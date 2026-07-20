@@ -1,2 +1,43 @@
-#+TITLE: Systems and Toolchains
+#+TITLE: Systems and Toolchains for AI in Engineering
 
+Course materials for 06-763 / 14-763 / 18-763, Fall 2026.
+
+*This repository is private. The rendered site is public:*
+http://kitchingroup.cheme.cmu.edu/f26-06763/
+
+Anything listed in the ~toc:~ of ~myst.yml~ is published to that site. Anything
+not listed stays private, which is why ~course/modules/~ (instructor planning and
+teaching notes) is deliberately excluded.
+
+* Structure
+
+| Path                     | What it is                                        |
+|--------------------------+---------------------------------------------------|
+| ~CLAUDE.md~              | Working conventions. Read this first.             |
+| ~course/~                | Planning material: syllabus, schedule, modules, assignments |
+| ~lectures/lNN/~          | Per-session notes, slides, and demo notebook      |
+| ~_templates/~            | Skeletons for notes and slides                    |
+| ~themes/course.css~      | Shared MARP slide theme                           |
+| ~myst.yml~               | Jupyter Book config and table of contents         |
+
+One directory per session, ~l01~ through ~l26~, plus ~mp1~ and ~mp2~ for the
+Week 8 mini-project. ~lectures/l01/~ is the worked reference for both formats.
+
+* Building
+
+#+begin_src sh
+jupyter-book build --html     # full book into _build/html
+jupyter-book start            # live-reloading preview
+
+npx @marp-team/marp-cli lectures/l01/slides.md -o /tmp/l01.html
+#+end_src
+
+Pushing to ~main~ builds the book, renders every slide deck, and deploys to
+GitHub Pages via ~.github/workflows/book.yml~.
+
+* Conventions
+
+Lecture notes are narrative documents meant to be read outside class; slides are
+projection scaffolding for use during it. They are separate artifacts with
+separate jobs, both derived from the corresponding lecture block in
+~course/modules/wkNN.md~. The full contract is in [[file:CLAUDE.md][CLAUDE.md]].

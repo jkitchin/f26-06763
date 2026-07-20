@@ -1,0 +1,5 @@
+# MARP CLI config. Makes `theme: course` resolve without a --theme-set flag.
+# Render one deck:   npx @marp-team/marp-cli lectures/l01/slides.md -o out.html
+# Render to PDF:     npx @marp-team/marp-cli lectures/l01/slides.md --pdf -o out.pdf
+themeSet: ./themes
+html: true

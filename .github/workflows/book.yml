@@ -1,0 +1,73 @@
+name: Build and deploy course site
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Allow GITHUB_TOKEN to deploy to Pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time; do not cancel a run that is mid-deploy.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Jupyter Book
+        run: pip install "jupyter-book>=2,<3"
+
+      - name: Build the book
+        run: jupyter-book build --html
+
+      - name: Render MARP slide decks
+        run: |
+          mkdir -p _build/html/slides
+          shopt -s nullglob
+          for deck in lectures/*/slides.md; do
+            id=$(basename "$(dirname "$deck")")
+            echo "Rendering $deck -> slides/$id.html"
+            npx -y @marp-team/marp-cli@latest "$deck" \
+              --html \
+              -o "_build/html/slides/$id.html"
+          done
+
+      - name: Check the build produced something
+        run: |
+          test -f _build/html/index.html || { echo "::error::book build produced no index.html"; exit 1; }
+          echo "Slide decks rendered:"
+          ls -1 _build/html/slides/ 2>/dev/null || echo "  (none yet)"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _build/html
+
+  deploy:
+    # Only publish from main. PRs build as a check but do not deploy.
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

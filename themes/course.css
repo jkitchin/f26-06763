@@ -1,0 +1,159 @@
+/* @theme course */
+
+/*
+ * Shared MARP theme for all lectures. Use with `theme: course` in slide frontmatter.
+ * Registered via .marprc.yml (themeSet: ./themes), so `marp slides.md` picks it up
+ * automatically from the repo root.
+ *
+ * Slide classes available:
+ *   <!-- _class: title -->    full-bleed title slide
+ *   <!-- _class: section -->  arc/section divider
+ *   <!-- _class: demo -->     "switch to the terminal" marker
+ */
+
+@import 'default';
+
+:root {
+  --cmu-red: #c41230;
+  --ink: #1a1a1a;
+  --muted: #5c5c5c;
+  --rule: #d8d8d8;
+  --accent-bg: #f6f6f7;
+
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  font-size: 26px;
+  color: var(--ink);
+}
+
+section {
+  padding: 60px 70px;
+  background: #fff;
+}
+
+h1 {
+  color: var(--cmu-red);
+  font-size: 1.5em;
+  margin-bottom: 0.4em;
+}
+
+h2 {
+  color: var(--ink);
+  font-size: 1.25em;
+  border-bottom: 3px solid var(--cmu-red);
+  padding-bottom: 0.2em;
+  margin-bottom: 0.6em;
+}
+
+h3 {
+  color: var(--muted);
+  font-size: 1.0em;
+  font-weight: 600;
+}
+
+ul,
+ol {
+  line-height: 1.5;
+}
+
+li {
+  margin-bottom: 0.35em;
+}
+
+code {
+  background: var(--accent-bg);
+  border-radius: 4px;
+  padding: 0.08em 0.3em;
+  font-size: 0.9em;
+}
+
+pre {
+  background: var(--accent-bg);
+  border-left: 4px solid var(--cmu-red);
+  border-radius: 0 6px 6px 0;
+  font-size: 0.78em;
+  line-height: 1.4;
+}
+
+blockquote {
+  border-left: 4px solid var(--rule);
+  color: var(--muted);
+  font-style: italic;
+  padding-left: 0.8em;
+}
+
+table {
+  font-size: 0.82em;
+  border-collapse: collapse;
+}
+
+th {
+  background: var(--accent-bg);
+  border-bottom: 2px solid var(--cmu-red);
+}
+
+td,
+th {
+  padding: 0.4em 0.7em;
+  border: 1px solid var(--rule);
+}
+
+/* Footer and pagination sit quietly out of the way. */
+footer,
+section::after {
+  color: var(--muted);
+  font-size: 0.6em;
+}
+
+/* --- Title slide ------------------------------------------------------- */
+section.title {
+  background: linear-gradient(135deg, var(--cmu-red) 0%, #8c0d22 100%);
+  color: #fff;
+  justify-content: center;
+}
+
+section.title h1 {
+  color: #fff;
+  font-size: 2em;
+  border: none;
+}
+
+section.title h2 {
+  color: rgba(255, 255, 255, 0.92);
+  border: none;
+  font-weight: 400;
+  font-size: 1.1em;
+}
+
+section.title p,
+section.title strong {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* --- Section divider --------------------------------------------------- */
+section.section {
+  background: var(--accent-bg);
+  justify-content: center;
+}
+
+section.section h1 {
+  border-left: 8px solid var(--cmu-red);
+  padding-left: 0.4em;
+}
+
+/* --- Demo marker ------------------------------------------------------- */
+section.demo {
+  background: var(--ink);
+  color: #f4f4f4;
+  justify-content: center;
+}
+
+section.demo h1,
+section.demo h2 {
+  color: #fff;
+  border: none;
+}
+
+section.demo code {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffd7dd;
+}

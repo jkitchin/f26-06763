@@ -1,0 +1,45 @@
+# Jupyter Book 2 (MyST) configuration.
+# Build locally with:  jupyter-book build --html
+# Docs: https://mystmd.org/guide/frontmatter
+version: 1
+project:
+  id: d5b531a2-3a97-418a-bac3-df8d95d6f317
+  title: Systems & Toolchains for AI in Engineering
+  description: >-
+    Course notes for 06-763 / 14-763 / 18-763: data infrastructure, machine
+    learning, LLM and agentic engineering, and production practice for
+    engineering applications.
+  github: https://github.com/jkitchin/f26-06763
+  # NOTE: everything listed in this toc is published to a PUBLIC site.
+  # course/modules/ is instructor-facing and is deliberately NOT listed.
+  # See CLAUDE.md, "What is public".
+  toc:
+    - file: index.md
+    - title: Course information
+      children:
+        - file: course/syllabus.md
+        - file: course/schedule.md
+    - title: Lectures
+      children:
+        - file: lectures/l01/notes.md
+    - title: Assignments
+      children:
+        - file: course/assignments/a01.md
+        - file: course/assignments/a02.md
+        - file: course/assignments/a03.md
+        - file: course/assignments/a04.md
+        - file: course/assignments/a05.md
+        - file: course/assignments/a06.md
+        - file: course/assignments/a08.md
+        - file: course/assignments/a09.md
+        - file: course/assignments/a10.md
+        - file: course/assignments/a11.md
+    - title: Projects
+      children:
+        - file: course/miniproject.md
+        - file: course/final-project.md
+
+site:
+  template: book-theme
+  options:
+    hide_outline: false

@@ -1,3 +1,24 @@
+# Build output
+_build/
+.jupyter_cache/
+*.html
+!themes/*.html
+
+# Node (marp via npx)
+node_modules/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Data: keep raw data out of git, track schemas and small samples deliberately
+data/raw/
+*.parquet
+*.duckdb
+
+# macOS / Emacs
 .DS_Store
 *~
 \#*\#
