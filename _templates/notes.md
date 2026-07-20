@@ -6,10 +6,10 @@
 :::{admonition} At a glance
 :class: tip
 
-**Session** L00, Week 00 · **Arc** Arc name
-**Slides** <a href="../../slides/l00.html">Deck for this session</a>
-**Demo** `demo.ipynb` (walked live in class)
-**Assignment** A00 released / due this session
+- **Session** L00, Week 00 · **Arc** Arc name
+- **Slides** <a href="../../slides/l00.html">Deck for this session</a>
+- **Demo** `demo.ipynb` (walked live in class)
+- **Assignment** A00 released / due this session
 :::
 
 <!--

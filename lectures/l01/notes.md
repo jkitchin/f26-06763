@@ -3,10 +3,10 @@
 :::{admonition} At a glance
 :class: tip
 
-**Session** L1, Week 1 · **Arc** Foundations
-**Slides** <a href="../../slides/l01.html">Deck for this session</a>
-**Demo** `demo.ipynb`, the UCI Air Quality notebook that fails to reproduce
-**Assignment** A1 released at L2
+- **Session** L1, Week 1 · **Arc** Foundations
+- **Slides** <a href="../../slides/l01.html">Deck for this session</a>
+- **Demo** `demo.ipynb`, the UCI Air Quality notebook that fails to reproduce
+- **Assignment** A1 released at L2
 :::
 
 ## Why this matters
