@@ -215,6 +215,22 @@ CI (`.github/workflows/book.yml`) builds the book, renders every `lectures/*/sli
 `_build/html/slides/lNN.html`, and deploys to Pages on push to `main`. Pull requests build
 as a check but do not deploy.
 
+:warning: **`BASE_URL` matters.** Pages serves this site from `/f26-06763/`, not from the
+domain root. MyST bakes absolute asset paths at build time, so CI sets
+`BASE_URL=/f26-06763`. Without it the HTML loads but every stylesheet and script 404s, and
+the site renders as unstyled text with a "Site not loading correctly?" banner.
+
+Do **not** set `BASE_URL` for local work, where the preview is served from the root. If you
+want to reproduce the deployed layout exactly:
+
+```bash
+BASE_URL=/f26-06763 jupyter-book build --html
+python3 -m http.server 8000   # then visit http://localhost:8000/f26-06763/
+```
+
+Checking that a deployed page returns HTTP 200 does not tell you it rendered. Confirm an
+asset URL from the page source also returns 200.
+
 ---
 
 ## 9. Adding a lecture

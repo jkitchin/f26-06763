@@ -36,6 +36,11 @@ jobs:
         run: pip install "jupyter-book>=2,<3"
 
       - name: Build the book
+        # Pages serves this repo at /<repo-name>/, not at the domain root, so MyST
+        # must be told the subpath or every CSS/JS asset is emitted as /build/...
+        # and 404s. See https://mystmd.org/guide/deployment#deploy-base-url
+        env:
+          BASE_URL: /${{ github.event.repository.name }}
         run: jupyter-book build --html
 
       - name: Render MARP slide decks
