@@ -1,0 +1,37 @@
+# Jupyter Book 1.x table of contents.
+# Paths are extensionless and relative to the repo root.
+#
+# NOTE: everything listed here is published to a PUBLIC site.
+# course/modules/ is instructor-facing and is deliberately absent, and
+# _config.yml sets only_build_toc_files so unlisted files are not built at all.
+# See CLAUDE.md, "What is public".
+format: jb-book
+root: index
+
+parts:
+  - caption: Course information
+    chapters:
+      - file: course/syllabus
+      - file: course/schedule
+
+  - caption: Lectures
+    chapters:
+      - file: lectures/l01/notes
+
+  - caption: Assignments
+    chapters:
+      - file: course/assignments/a01
+      - file: course/assignments/a02
+      - file: course/assignments/a03
+      - file: course/assignments/a04
+      - file: course/assignments/a05
+      - file: course/assignments/a06
+      - file: course/assignments/a08
+      - file: course/assignments/a09
+      - file: course/assignments/a10
+      - file: course/assignments/a11
+
+  - caption: Projects
+    chapters:
+      - file: course/miniproject
+      - file: course/final-project

@@ -5,7 +5,7 @@ Course materials for 06-763 / 14-763 / 18-763, Fall 2026.
 *This repository is private. The rendered site is public:*
 http://kitchingroup.cheme.cmu.edu/f26-06763/
 
-Anything listed in the ~toc:~ of ~myst.yml~ is published to that site. Anything
+Anything listed in the ~toc:~ of ~_toc.yml~ is published to that site. Anything
 not listed stays private, which is why ~course/modules/~ (instructor planning and
 teaching notes) is deliberately excluded.
 
@@ -18,7 +18,7 @@ teaching notes) is deliberately excluded.
 | ~lectures/lNN/~          | Per-session notes, slides, and demo notebook      |
 | ~_templates/~            | Skeletons for notes and slides                    |
 | ~themes/course.css~      | Shared MARP slide theme                           |
-| ~myst.yml~               | Jupyter Book config and table of contents         |
+| ~_toc.yml~               | Jupyter Book config and table of contents         |
 
 One directory per session, ~l01~ through ~l26~, plus ~mp1~ and ~mp2~ for the
 Week 8 mini-project. ~lectures/l01/~ is the worked reference for both formats.
@@ -26,8 +26,8 @@ Week 8 mini-project. ~lectures/l01/~ is the worked reference for both formats.
 * Building
 
 #+begin_src sh
-jupyter-book build --html     # full book into _build/html
-jupyter-book start            # live-reloading preview
+pip install "jupyter-book<2"  # 1.x is required, see CLAUDE.md section 8
+jupyter-book build .          # full book into _build/html
 
 npx @marp-team/marp-cli lectures/l01/slides.md -o /tmp/l01.html
 #+end_src

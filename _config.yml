@@ -1,0 +1,52 @@
+# Jupyter Book 1.x configuration.
+# Build with:  jupyter-book build .
+# Docs: https://jupyterbook.org/en/stable/customize/config.html
+
+title: Systems & Toolchains for AI in Engineering
+author: John Kitchin
+copyright: "2026"
+
+# SECURITY-RELEVANT. The Pages site is public while this repo is private.
+# By default Sphinx builds every source file it finds, whether or not it appears
+# in _toc.yml, which would publish course/modules/ (instructor teaching notes) as
+# reachable URLs even though they are absent from the navigation.
+# This setting restricts the build to files listed in _toc.yml. Do not turn it off.
+only_build_toc_files: true
+
+exclude_patterns:
+  - _build
+  - _templates          # skeletons, not course content
+  - course/modules      # instructor-facing planning notes, never published
+  - "lectures/*/slides.md"  # MARP source, rendered separately by CI
+  - "**.ipynb_checkpoints"
+  - node_modules
+  - README.md
+  - readme.org
+  - CLAUDE.md
+
+# Demo notebooks are run by hand in class, not at build time. They may depend on
+# data that is not in the repo, so executing them in CI would fail the build.
+execute:
+  execute_notebooks: 'off'
+
+repository:
+  url: https://github.com/jkitchin/f26-06763
+  branch: main
+
+html:
+  use_repository_button: true
+  use_issues_button: true
+  home_page_in_navbar: false
+
+parse:
+  myst_enable_extensions:
+    - colon_fence      # ::: admonition blocks
+    - dollarmath       # $...$ and $$...$$
+    - linkify
+    - substitution
+
+sphinx:
+  config:
+    html_show_copyright: false
+    # Warn on a broken cross-reference rather than shipping a dead link.
+    nitpicky: false

@@ -33,15 +33,13 @@ jobs:
           node-version: "20"
 
       - name: Install Jupyter Book
-        run: pip install "jupyter-book>=2,<3"
+        # Pinned to 1.x. Jupyter Book 2 (MyST) derives page URLs from the file
+        # basename, so every lectures/*/notes.md would collapse onto a single
+        # /notes URL, silently. 1.x mirrors the directory structure instead.
+        run: pip install "jupyter-book<2"
 
       - name: Build the book
-        # Pages serves this repo at /<repo-name>/, not at the domain root, so MyST
-        # must be told the subpath or every CSS/JS asset is emitted as /build/...
-        # and 404s. See https://mystmd.org/guide/deployment#deploy-base-url
-        env:
-          BASE_URL: /${{ github.event.repository.name }}
-        run: jupyter-book build --html
+        run: jupyter-book build . --warningiserror --keep-going
 
       - name: Render MARP slide decks
         run: |
@@ -60,6 +58,17 @@ jobs:
           test -f _build/html/index.html || { echo "::error::book build produced no index.html"; exit 1; }
           echo "Slide decks rendered:"
           ls -1 _build/html/slides/ 2>/dev/null || echo "  (none yet)"
+
+      - name: Verify no instructor-only material was published
+        # The Pages site is public while the repo is private. course/modules/
+        # holds teaching notes and must never be reachable. Fail loudly if it is.
+        run: |
+          if find _build/html -path "*modules*" -name "*.html" | grep -q .; then
+            echo "::error::instructor material from course/modules/ was published"
+            find _build/html -path "*modules*" -name "*.html"
+            exit 1
+          fi
+          echo "OK: no course/modules/ pages in the build output"
 
       - uses: actions/upload-pages-artifact@v3
         with:

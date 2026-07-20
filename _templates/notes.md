@@ -1,14 +1,13 @@
----
-title: "L00 · Full lecture title in sentence case"
-short_title: "L00 · Short nav label"
-subtitle: "Week 00 · Arc name"
----
+# L00 · Full lecture title in sentence case
+
+<!-- The H1 above is the page title and the nav label. Jupyter Book 1 takes the
+     title from the first heading, not from YAML frontmatter. -->
 
 :::{admonition} At a glance
 :class: tip
 
 **Session** L00, Week 00 · **Arc** Arc name
-**Slides** [Deck for this session](slides.md)
+**Slides** <a href="../../slides/l00.html">Deck for this session</a>
 **Demo** `demo.ipynb` (walked live in class)
 **Assignment** A00 released / due this session
 :::

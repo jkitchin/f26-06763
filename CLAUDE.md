@@ -7,6 +7,9 @@ different sessions, read as one course.
 
 Read this before creating or editing any lecture material.
 
+**Toolchain:** notes are MyST markdown built by **Jupyter Book 1.x** (pinned `<2`, see
+section 8), slides are **MARP** markdown, and CI publishes both to GitHub Pages.
+
 ---
 
 ## 1. What is public
@@ -14,26 +17,34 @@ Read this before creating or editing any lecture material.
 **The repository is private. The rendered site is public.**
 
 The GitHub Pages site at <http://kitchingroup.cheme.cmu.edu/f26-06763/> is world-readable
-even though the repo is not. Anything reachable from the `toc:` in `myst.yml` is
-published. Anything not listed there stays private.
+even though the repo is not.
 
 | Published | Private |
 |---|---|
 | `index.md` | `course/modules/wkNN.md` (instructor planning, teaching notes, pitfalls) |
 | `course/syllabus.md`, `course/schedule.md` | Anything under a `solutions/` directory |
-| `lectures/*/notes.md` | Draft material not yet added to the toc |
+| `lectures/*/notes.md` | Draft material not yet added to `_toc.yml` |
 | `course/assignments/aNN.md` | Grading keys, exam material, student data |
 | `course/miniproject.md`, `course/final-project.md` | |
 | Rendered slide decks at `/slides/lNN.html` | |
 
-Rules that follow from this:
+Three mechanisms enforce this, and all three should stay in place:
 
-- **Never add `course/modules/` to the toc.** Those files contain instructor-facing
-  teaching notes and class-management observations.
+1. `_toc.yml` lists only publishable files.
+2. `_config.yml` sets `only_build_toc_files: true`. **This matters more than it looks.**
+   Sphinx by default builds every source file it finds, not just the ones in the table of
+   contents. Without this setting, `course/modules/` would be absent from the navigation
+   but still reachable at a guessable URL.
+3. `_config.yml` also lists `course/modules` in `exclude_patterns`, and CI has a step that
+   fails the build if any `modules` page reaches the output directory.
+
+Rules that follow:
+
+- **Never add `course/modules/` to `_toc.yml`**, and never set `only_build_toc_files: false`.
 - Never put solutions, grading keys, or anything identifying a student in a published file.
 - Student-facing pitfalls *should* be lifted out of the module files into the notes, where
   students will read them. Instructor-facing observations stay in `course/modules/`.
-- When adding any file to the toc, confirm it contains nothing instructor-only.
+- When adding any file to `_toc.yml`, confirm it contains nothing instructor-only.
 
 ---
 
@@ -41,7 +52,8 @@ Rules that follow from this:
 
 ```
 ├── CLAUDE.md              this file
-├── myst.yml               Jupyter Book 2 config + table of contents
+├── _config.yml            Jupyter Book 1 config (privacy settings live here)
+├── _toc.yml               table of contents; only listed files are built
 ├── index.md               book landing page
 ├── .marprc.yml            MARP config (resolves `theme: course`)
 ├── themes/course.css      shared MARP theme
@@ -67,6 +79,9 @@ Rules that follow from this:
 are `a01` through `a11` (there is deliberately no `a07`; the mini-project is A7).
 
 One directory per **session**, not per week. Week 1 is two directories, `l01` and `l02`.
+
+Published URLs mirror this structure: `lectures/l01/notes.md` becomes
+`/f26-06763/lectures/l01/notes.html`.
 
 ---
 
@@ -106,7 +121,12 @@ to recover a session they missed. It carries the full argument and the links. It
 transcript of the slides, and the slides are not a summary of it. They are two different
 artifacts with two different jobs.
 
-**Required structure**, H2 sections in this order:
+**The page title is the first H1**, not YAML frontmatter. Jupyter Book 1 takes the document
+title and the navigation label from the leading `# L1 · Title` heading. Do not add a
+frontmatter `title:` and expect it to render.
+
+**Required structure**, H2 sections in this order, after the H1 and an opening
+`:::{admonition} At a glance` block:
 
 1. `## Why this matters` — narrative motivation opening on the engineering problem, not the
    tool. Two or three paragraphs. Ideally a concrete failure.
@@ -117,18 +137,27 @@ artifacts with two different jobs.
 6. `## Resources` — annotated links, one line each on why it is worth reading.
 7. `## Assignment` — a pointer and a deadline, never a copy of the rubric.
 
-Plus YAML frontmatter (`title`, `short_title`, `subtitle`) and an opening
-`:::{admonition} At a glance` block linking the slides, demo, and assignment.
-
 **Writing.** Connected prose, not bullet fragments. A student who missed class should be
 able to follow the argument from the notes alone. Prefer one idea developed properly over
 four mentioned in passing. Use the field's real names for concepts and link them, so the
 notes work as an index into the literature.
 
-**MyST features** available since this is Jupyter Book 2: `:::{admonition}` blocks with
-`:class: tip|warning|note`, `$...$` and `$$...$$` math, `[text](path.md)` cross-references
-between notes, and fenced code with a language tag. Keep code blocks in notes short and
-illustrative; the runnable version belongs in `demo.ipynb`.
+**MyST features** enabled in `_config.yml`: `:::{admonition}` blocks with
+`:class: tip|warning|note` (via `colon_fence`), `$...$` and `$$...$$` math (via
+`dollarmath`), and bare-URL autolinking (via `linkify`). Cross-reference another page with
+`[text](../l02/notes.md)`; Sphinx resolves the `.md` path.
+
+**Linking the slide deck** requires a raw HTML anchor, not markdown link syntax:
+
+```html
+<a href="../../slides/l01.html">Deck for this session</a>
+```
+
+The deck is rendered by MARP outside the Sphinx build, so it is not a known document.
+A markdown link would raise `myst.xref_missing`, and CI builds with `--warningiserror`.
+
+Keep code blocks in notes short and illustrative; the runnable version belongs in
+`demo.ipynb`.
 
 ---
 
@@ -142,7 +171,7 @@ and the slide should carry the pointer instead.
 
 **Required structure:** title → roadmap → content sections → demo marker → recap → next.
 
-**Budget** roughly 20 to 30 slides for an 80-minute session, including the section dividers.
+**Budget** roughly 20 to 30 slides for an 80-minute session, including section dividers.
 
 **Rules:**
 
@@ -159,6 +188,9 @@ and the slide should carry the pointer instead.
 - Tables earn their space when they contrast two things (naive versus what we do).
 - Final slide points back at the notes path.
 
+`slides.md` is excluded from the Sphinx build in `_config.yml`. It is MARP source, not a
+book page, and would render as broken markdown if included.
+
 **Do not** use the deck as the primary artifact and then generate notes from it. That
 produces bullet-shaped notes, which are bad notes.
 
@@ -174,6 +206,9 @@ Notebooks must run top to bottom after "Restart and Run All" against the repo's 
 environment, use relative paths only, and pin any seed that affects a displayed number. A
 demo whose point is that something *breaks* should break loudly and on purpose, with a
 markdown cell saying so.
+
+Notebooks are **not executed at build time** (`execute_notebooks: 'off'`), because they may
+depend on data that is not in the repo.
 
 ---
 
@@ -194,12 +229,26 @@ markdown cell saying so.
 
 ## 8. Building and previewing
 
-```bash
-# Full book, output in _build/html
-jupyter-book build --html
+**Jupyter Book is pinned to 1.x.** Do not upgrade to 2.x without reading this paragraph.
+Jupyter Book 2 (the MyST rewrite) derives page URLs from the file **basename**, so
+`lectures/l01/notes.md` and `lectures/l02/notes.md` both become `/notes` and silently
+collapse into one page, with no warning and no error. A `slug:` in frontmatter does not
+override it. Version 1.x mirrors the directory structure instead, which is what this
+layout depends on. 1.x also emits *relative* asset paths, so the site works at the
+`/f26-06763/` subpath with no `BASE_URL` configuration.
 
-# Live-reloading preview while writing notes
-jupyter-book start
+```bash
+# Install the pinned version
+pip install "jupyter-book<2"
+
+# Full build, output in _build/html
+jupyter-book build .
+
+# Match CI exactly (CI treats warnings as errors)
+jupyter-book build . --warningiserror --keep-going
+
+# Force a clean rebuild after moving or renaming files
+jupyter-book build . --all
 
 # One deck to HTML
 npx @marp-team/marp-cli lectures/l01/slides.md -o /tmp/l01.html
@@ -212,24 +261,18 @@ npx @marp-team/marp-cli -w lectures/l01/slides.md -o /tmp/l01.html
 ```
 
 CI (`.github/workflows/book.yml`) builds the book, renders every `lectures/*/slides.md` to
-`_build/html/slides/lNN.html`, and deploys to Pages on push to `main`. Pull requests build
-as a check but do not deploy.
+`_build/html/slides/lNN.html`, checks that no `course/modules/` page leaked into the
+output, and deploys to Pages on push to `main`. Pull requests build as a check but do not
+deploy.
 
-:warning: **`BASE_URL` matters.** Pages serves this site from `/f26-06763/`, not from the
-domain root. MyST bakes absolute asset paths at build time, so CI sets
-`BASE_URL=/f26-06763`. Without it the HTML loads but every stylesheet and script 404s, and
-the site renders as unstyled text with a "Site not loading correctly?" banner.
-
-Do **not** set `BASE_URL` for local work, where the preview is served from the root. If you
-want to reproduce the deployed layout exactly:
+**Verifying a deploy.** Checking that a page returns HTTP 200 does not tell you it
+rendered. Confirm an asset URL from the page source also returns 200, or screenshot it:
 
 ```bash
-BASE_URL=/f26-06763 jupyter-book build --html
-python3 -m http.server 8000   # then visit http://localhost:8000/f26-06763/
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless \
+  --virtual-time-budget=8000 --window-size=1280,900 \
+  --screenshot=/tmp/site.png http://kitchingroup.cheme.cmu.edu/f26-06763/
 ```
-
-Checking that a deployed page returns HTTP 200 does not tell you it rendered. Confirm an
-asset URL from the page source also returns 200.
 
 ---
 
@@ -239,9 +282,11 @@ asset URL from the page source also returns 200.
 2. `mkdir -p lectures/lNN` and copy both templates in.
 3. Write `notes.md` first, then compress it into `slides.md`. Notes before slides, always.
 4. Add `demo.ipynb` if the module file specifies a live demo.
-5. **Add the notes file to `toc:` in `myst.yml`**, under Lectures, in session order. It
-   will not appear on the site otherwise.
-6. Build locally and confirm it renders before pushing.
+5. **Add the notes file to `_toc.yml`** under the Lectures part, in session order, as an
+   extensionless path: `- file: lectures/lNN/notes`. It will not be built otherwise,
+   because `only_build_toc_files` is on.
+6. Update the deck link in the notes to `../../slides/lNN.html`.
+7. Build locally with `--warningiserror` and confirm it renders before pushing.
 
 `lectures/l01/` is the worked reference. When something here is ambiguous, match L1.
 
@@ -249,7 +294,8 @@ asset URL from the page source also returns 200.
 
 ## 10. Things not to do
 
-- Do not add `course/modules/` to the toc. See section 1.
+- Do not add `course/modules/` to `_toc.yml`, and do not disable `only_build_toc_files`.
+- Do not upgrade to `jupyter-book>=2`. See section 8.
 - Do not restate assignment rubrics in lecture notes. Two copies will disagree.
 - Do not swap the dataset a module specifies for a more familiar one.
 - Do not write slides first and back-fill the notes.

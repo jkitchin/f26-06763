@@ -1,14 +1,10 @@
----
-title: "L1 · The AI-engineering landscape and the modern toolchain"
-short_title: "L1 · The system view"
-subtitle: "Week 1 · Foundations"
----
+# L1 · The AI-engineering landscape and the modern toolchain
 
 :::{admonition} At a glance
 :class: tip
 
 **Session** L1, Week 1 · **Arc** Foundations
-**Slides** [Deck for this session](slides.md)
+**Slides** <a href="../../slides/l01.html">Deck for this session</a>
 **Demo** `demo.ipynb`, the UCI Air Quality notebook that fails to reproduce
 **Assignment** A1 released at L2
 :::
