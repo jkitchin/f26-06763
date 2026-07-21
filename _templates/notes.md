@@ -84,8 +84,8 @@ details fade. Connect forward to the next session so the arc is visible.
 Annotated links. One line per entry saying why it is worth the reader's time, because an
 unannotated link list is a list nobody opens.
 
-- [Title of primary source](https://example.org) — what it is and why it is here.
-- [Documentation page](https://example.org) — the specific section that matters.
+- [Title of primary source](https://example.org). what it is and why it is here.
+- [Documentation page](https://example.org). the specific section that matters.
 
 ## Assignment
 

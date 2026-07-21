@@ -1,4 +1,4 @@
-# CLAUDE.md — working conventions for this repo
+# CLAUDE.md, working conventions for this repo
 
 Course materials for **06-763 / 14-763 / 18-763, Systems & Toolchains for AI in
 Engineering** (Fall 2026). This file is the contract for how lecture material is
@@ -128,14 +128,14 @@ frontmatter `title:` and expect it to render.
 **Required structure**, H2 sections in this order, after the H1 and an opening
 `:::{admonition} At a glance` block:
 
-1. `## Why this matters` — narrative motivation opening on the engineering problem, not the
+1. `## Why this matters`, narrative motivation opening on the engineering problem, not the
    tool. Two or three paragraphs. Ideally a concrete failure.
-2. `## Learning objectives` — the one legitimate bullet list in the body, from the module file.
+2. `## Learning objectives`, the one legitimate bullet list in the body, from the module file.
 3. Three to six topic sections following the module's Topics.
-4. `## In-class demo` — short orientation, pointing at `demo.ipynb`.
-5. `## Summary` — a paragraph, not bullets. Connect forward to the next session.
-6. `## Resources` — annotated links, one line each on why it is worth reading.
-7. `## Assignment` — a pointer and a deadline, never a copy of the rubric.
+4. `## In-class demo`, short orientation, pointing at `demo.ipynb`.
+5. `## Summary`, a paragraph, not bullets. Connect forward to the next session.
+6. `## Resources`, annotated links, one line each on why it is worth reading.
+7. `## Assignment`, a pointer and a deadline, never a copy of the rubric.
 
 **Writing.** Connected prose, not bullet fragments. A student who missed class should be
 able to follow the argument from the notes alone. Prefer one idea developed properly over
@@ -159,6 +159,52 @@ A markdown link would raise `myst.xref_missing`, and CI builds with `--warningis
 Keep code blocks in notes short and illustrative; the runnable version belongs in
 `demo.ipynb`.
 
+### Researching and sourcing the notes
+
+**Research first, write second.** Do not draft a set of notes from memory and then look for
+links to support it. That process produces confident prose wrapped around claims nobody
+checked, and it is how invented statistics enter a syllabus. Start from the module file's
+readings, follow them to primary sources, read them, and let what you find shape the
+section.
+
+**Verify every link and every number.** Two separate checks, and the second is the one
+people skip:
+
+1. The URL resolves. Check the status code.
+2. The page actually contains the claim you are citing it for. Fetch it and confirm.
+
+A 200 response is not evidence that a source says what you think it says. When a figure is
+widely repeated, find it in the primary source or do not use it. If you cannot verify a
+commonly cited number, that absence is itself worth teaching: L1 uses the "less than 10% of
+the code is ML code" claim this way, because the number does not appear in the Sculley
+paper at all.
+
+Prefer primary sources over summaries, link to a version students can actually open (a
+paywalled DOI is a poor reading assignment), and note it in the annotation when a link is
+an author's copy or a mirror rather than the publisher's version.
+
+**Write for a practitioner.** For each topic, ask what someone doing this work actually
+needs: what decision does this let them make, what will they get wrong, and what does the
+failure look like when they do. Prefer that to a survey of everything true about the topic.
+The `:::{admonition} What a practitioner should take from this` block after a case study is
+the place to make this explicit, and it should contain advice specific enough to act on.
+
+**High-level concept first, then detail.** Open each section with the idea in plain terms,
+so a reader who stops after the first paragraph still has a correct mental model. Put the
+mechanism, the numbers, and the caveats in the paragraphs and `###` subsections that
+follow. A reader should be able to choose their depth without missing the point.
+
+**Use real case studies.** A named incident with verified figures does more work than any
+amount of abstract warning, because it gives students something to reason from and to cite.
+Good ones share three properties: the failure is documented in a primary source, the causal
+mechanism is specific enough to generalize from, and the lesson maps onto something the
+student will plausibly build. Anchor each case with a `###` subsection under the concept it
+illustrates rather than collecting them in an appendix.
+
+Where a case involves harm to real people, state what the investigations concluded and stop
+there. No dramatization, no speculation about motive, and no repeating a popular framing
+that the primary sources contradict.
+
 ---
 
 ## 5. Slide decks
@@ -171,7 +217,11 @@ and the slide should carry the pointer instead.
 
 **Required structure:** title → roadmap → content sections → demo marker → recap → next.
 
-**Budget** roughly 20 to 30 slides for an 80-minute session, including section dividers.
+**Budget** is set by density, not by a fixed count. Sparse slides carrying one fragment
+each run about 1.5 minutes; denser slides with a table or a quote run three or four. For an
+80-minute session with a 20-minute demo, that lands somewhere between 25 and 36 slides. L1
+is 36, at the sparse end of the range, because a case-study-driven lecture needs more
+slides than a definitional one. Count minutes, not slides.
 
 **Rules:**
 
