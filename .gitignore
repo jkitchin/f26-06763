@@ -1,3 +1,6 @@
+# Figure generation cache (raw data, not committed)
+lectures/*/figures/.cache/
+
 # Build output
 _build/
 .jupyter_cache/

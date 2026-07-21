@@ -42,16 +42,42 @@ jobs:
         run: jupyter-book build . --warningiserror --keep-going
 
       - name: Render MARP slide decks
+        # Each deck renders into its OWN directory as index.html, and that
+        # lecture's figures/ are copied in beside it. MARP does not inline local
+        # images, it emits <img src="figures/x.png">, so the relative path has to
+        # resolve identically whether the deck is opened from lectures/lNN/ during
+        # authoring or served from /slides/lNN/ in production.
         run: |
-          mkdir -p _build/html/slides
           shopt -s nullglob
           for deck in lectures/*/slides.md; do
             id=$(basename "$(dirname "$deck")")
-            echo "Rendering $deck -> slides/$id.html"
+            out="_build/html/slides/$id"
+            mkdir -p "$out"
+            echo "Rendering $deck -> slides/$id/"
             npx -y @marp-team/marp-cli@latest "$deck" \
               --html \
-              -o "_build/html/slides/$id.html"
+              -o "$out/index.html"
+            if compgen -G "lectures/$id/figures/*.png" > /dev/null; then
+              mkdir -p "$out/figures"
+              cp lectures/"$id"/figures/*.png "$out/figures/"
+            fi
           done
+
+      - name: Check every slide image actually resolves
+        # A missing figure renders as a silent broken image in the deck. Catch it
+        # in CI instead of in front of a lecture hall.
+        run: |
+          fail=0
+          for html in _build/html/slides/*/index.html; do
+            dir=$(dirname "$html")
+            for src in $(grep -o 'src="[^"]*\.png"' "$html" | sed 's/src="//; s/"//'); do
+              if [ ! -f "$dir/$src" ]; then
+                echo "::error::$html references missing image $src"
+                fail=1
+              fi
+            done
+          done
+          exit $fail
 
       - name: Check the build produced something
         run: |
