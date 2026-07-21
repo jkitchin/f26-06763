@@ -297,14 +297,37 @@ Do not commit datasets.
 
 ## 6. Demo notebooks
 
-`lectures/lNN/demo.ipynb`, optional but expected wherever the module file specifies a live
-demo. This is the artifact driven in class, deliberately kept separate from the deck so the
-deck stays diffable and the demo stays runnable.
+**Name them `lNN-<topic>.ipynb`**, for example `l01-reproducibility.ipynb`. Never
+`demo.ipynb`. Twenty-six files with the same name are ambiguous the moment they leave their
+directory, which is exactly what happens when a student downloads three of them or opens
+them as browser tabs. The lecture number goes in the filename because the filename is often
+the only context that travels with the file.
+
+Optional but expected wherever the module file specifies a live demo. This is the artifact
+driven in class, deliberately kept separate from the deck so the deck stays diffable and the
+demo stays runnable.
+
+Add the notebook to `_toc.yml` as a `sections:` entry under that lecture's notes, so it is
+published and students can actually download it. A notebook the notes reference but never
+publish is a promise the site does not keep.
 
 Notebooks must run top to bottom after "Restart and Run All" against the repo's `uv`
-environment, use relative paths only, and pin any seed that affects a displayed number. A
-demo whose point is that something *breaks* should break loudly and on purpose, with a
-markdown cell saying so.
+environment, use relative paths only, and pin any seed that affects a displayed number.
+
+**Deliberately broken demos are the exception**, and they carry extra obligations. A demo
+whose point is that something breaks should break loudly, on purpose, with a markdown cell
+saying so, and the defects must be documented in a generator script rather than left to
+look like bugs in the `.ipynb` JSON. `l01-reproducibility.ipynb` is the worked example.
+
+If a demo depends on a library version, make it break for **every** student rather than
+half of them. L1 integrates a curve twice, once with `np.trapz` (present in NumPy 1.x,
+removed in 2.0) and once with `np.trapezoid` (added in 2.0, absent from 1.x), so exactly
+one cell fails whichever version they installed, and comparing failures with a neighbour is
+the discussion. A defect that only fires on one version teaches only the students who
+happened to have it.
+
+Verify the failure modes by actually executing the notebook under each environment you
+claim to cover. Do not reason about which cell will fail.
 
 Notebooks are **not executed at build time** (`execute_notebooks: 'off'`), because they may
 depend on data that is not in the repo.

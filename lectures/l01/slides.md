@@ -675,7 +675,7 @@ MCAS is a reminder these have consequences.
 
 # Demo
 
-## `demo.ipynb`
+## `l01-reproducibility.ipynb`
 
 UCI Air Quality → plot → naive split → fresh checkout
 
@@ -685,10 +685,11 @@ UCI Air Quality → plot → naive split → fresh checkout
 
 ## What broke
 
-1. Missing package version
-2. Unpinned seed, different numbers
-3. Absolute path that existed only on my machine
+1. **Absolute path** that existed only on my machine
+2. **Unpinned split**, a different R2 every run, no error
+3. **NumPy version**, and *which* cell failed told you which version you have
 
+Compare failures with your neighbour on 3.
 Every one of these is mundane. **That is the point.**
 
 ---

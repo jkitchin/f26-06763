@@ -5,7 +5,7 @@
 
 - **Session** L1, Week 1 · **Arc** Foundations
 - **Slides** <a href="../../slides/l01/">Deck for this session</a>
-- **Demo** `demo.ipynb`, the UCI Air Quality notebook that fails to reproduce
+- **Demo** [`l01-reproducibility.ipynb`](l01-reproducibility.ipynb), the notebook that does not reproduce
 - **Assignment** A1 released at L2
 :::
 
@@ -464,7 +464,8 @@ to diagnose each break before I do: a missing package version, an unpinned seed 
 different numbers, and an absolute path that existed only on my machine. Every one of these
 is mundane. That is the point.
 
-The runnable version is `demo.ipynb`.
+The notebook is [`l01-reproducibility.ipynb`](l01-reproducibility.ipynb). Run it before class if
+you like, but do not fix anything yet.
 
 ## Summary
 
