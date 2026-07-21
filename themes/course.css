@@ -74,6 +74,30 @@ pre {
   line-height: 1.4;
 }
 
+/* Figures are block-centered so `![w:900](figures/x.png)` needs no wrapper. */
+section img {
+  display: block;
+  margin: 0.2em auto;
+}
+
+/* Links must be legible from the back of the room, and visibly links. */
+section a {
+  color: var(--cmu-red);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+section.title a,
+section.demo a {
+  color: #ffd7dd;
+}
+
+/* A muted source line under a figure or claim. */
+.source {
+  font-size: 0.6em;
+  color: var(--muted);
+}
+
 blockquote {
   border-left: 4px solid var(--rule);
   color: var(--muted);

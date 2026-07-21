@@ -17,6 +17,8 @@ parts:
   - caption: Lectures
     chapters:
       - file: lectures/l01/notes
+        sections:
+          - file: lectures/l01/l01-reproducibility
 
   - caption: Assignments
     chapters:

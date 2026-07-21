@@ -1,3 +1,6 @@
+# Figure generation cache (raw data, not committed)
+lectures/*/figures/.cache/
+
 # Build output
 _build/
 .jupyter_cache/
@@ -14,7 +17,7 @@ __pycache__/
 .ipynb_checkpoints/
 
 # Data: keep raw data out of git, track schemas and small samples deliberately
-data/raw/
+data/
 *.parquet
 *.duckdb
 
