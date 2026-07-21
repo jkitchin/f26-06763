@@ -7,7 +7,10 @@ for bugs by a future reader of the .ipynb JSON.
 
 The three, in the order a student meets them:
 
-1. Absolute path. Fails immediately for anyone who is not the author.
+1. Absolute path. The fetch cell writes to it and deliberately does NOT mkdir
+   parents, so on any machine that is not the author's it raises FileNotFoundError
+   rather than silently creating a directory tree. Fixing the path to a relative
+   one also makes the download work, so the student is genuinely unblocked.
 2. Unpinned split. Runs fine, different answer every time.
 3. NumPy version. Two integration cells, one calling np.trapz (present in 1.x,
    removed in 2.0) and one calling np.trapezoid (added in 2.0, absent from 1.x).
@@ -79,13 +82,43 @@ cells = [
 
     md("## 2. Load the data\n",
        "\n",
+       "The raw CSV is **not in this repository**. Datasets do not belong in git: they bloat\n",
+       "the history, they are usually someone else's to license, and a repository is not a\n",
+       "distribution channel. So the next cell fetches it from UCI on first run and reuses the\n",
+       "local copy afterwards, which is what you should do in your own projects too.\n",
+       "\n",
        "The export has the usual instrument-file quirks, none of them announced: semicolon\n",
        "separated, comma as the decimal mark, two trailing empty columns, and missing values\n",
        "coded as `-200` rather than left blank."),
 
-    code("DATA_PATH = '/Users/jkitchin/Dropbox/classes/f26-systems-toolchains/data/AirQualityUCI.csv'\n",
+    code("import io\n",
+         "import urllib.request\n",
+         "import zipfile\n",
+         "from pathlib import Path\n",
          "\n",
-         "df = (\n",
+         "DATA_PATH = Path('/Users/jkitchin/Dropbox/classes/f26-systems-toolchains/data/AirQualityUCI.csv')\n",
+         "URL = 'https://archive.ics.uci.edu/static/public/360/air+quality.zip'\n",
+         "\n",
+         "if not DATA_PATH.exists():\n",
+         "    print(f'fetching {URL}')\n",
+         "    with urllib.request.urlopen(URL) as response:\n",
+         "        payload = response.read()\n",
+         "    with zipfile.ZipFile(io.BytesIO(payload)) as archive:\n",
+         "        DATA_PATH.write_bytes(archive.read('AirQualityUCI.csv'))\n",
+         "\n",
+         "print(f'using {DATA_PATH}')"),
+
+    md("### If that cell just failed\n",
+       "\n",
+       "Read the error. It has nothing to do with statistics, sensors, or modelling. It is a\n",
+       "`FileNotFoundError`, and it happened while trying to *write* the downloaded file.\n",
+       "\n",
+       "The download worked. The place it was told to put the file does not exist on your\n",
+       "machine, and never will.\n",
+       "\n",
+       "**Problem one.** Fix it, rerun, and the fetch will succeed. Then keep going."),
+
+    code("df = (\n",
          "    pd.read_csv(DATA_PATH, sep=';', decimal=',')\n",
          "    .dropna(axis=1, how='all')\n",
          "    .dropna(how='all')\n",
@@ -99,13 +132,6 @@ cells = [
          "\n",
          "print(f'{len(df)} rows, {df.ts.min().date()} to {df.ts.max().date()}')\n",
          "df.head(3)"),
-
-    md("### If that cell just failed\n",
-       "\n",
-       "Read the error. It has nothing to do with statistics, sensors, or modelling, and it\n",
-       "will have failed on the very first line of the cell.\n",
-       "\n",
-       "**Problem one.** Fix it well enough to continue, then keep going."),
 
     md("## 3. A first look\n",
        "\n",
