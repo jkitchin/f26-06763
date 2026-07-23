@@ -15,7 +15,10 @@
 <!--
 STRUCTURE CONTRACT. Keep these H2 sections, in this order, in every set of notes.
 Delete a section only if it genuinely does not apply, and say why in one line.
-Prose over bullets in the body. See CLAUDE.md for the full convention.
+Write it like a chapter of a textbook: developed, connected paragraphs, not a
+bulleted outline with sentences attached. Surface the surprises. A full set runs
+to several thousand words. lectures/l03/notes.md is the reference for depth and
+voice. See CLAUDE.md section 4 for the full convention.
 -->
 
 ## Why this matters
@@ -65,6 +68,16 @@ Pull the student-facing pitfalls out of the module file's teaching notes and sur
 here, where students will actually read them. Keep instructor-only observations about
 class management in `course/modules/`, which is not published.
 :::
+
+## Where this pushes back
+
+The limits section. Wherever the tool or method has real trade-offs, examine them: what it is
+bad at, the failure modes and surprises a practitioner will hit, and when to reach for
+something else instead. This is expected, not optional, wherever it applies, and it usually
+sets up the next session. Be honest enough to turn the critique on the approach the notes just
+recommended. `lectures/l03/notes.md`, "Where the relational model pushes back," is the worked
+model. Delete this section only if the subject genuinely has no meaningful trade-offs, and say
+so in a line.
 
 ## In-class demo
 
