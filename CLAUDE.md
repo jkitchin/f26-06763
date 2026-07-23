@@ -135,10 +135,11 @@ frontmatter `title:` and expect it to render.
 2. `## Learning objectives`, the one legitimate bullet list in the body, from the module file.
 3. Three to six topic sections following the module's Topics, each expanded into connected
    prose rather than named in passing.
-4. A limits section, wherever the subject has real trade-offs: what the tool or method is bad
-   at, its failure modes and surprises, and when to reach past it. Expected, not optional,
-   wherever it applies, and it usually sets up the next arc. L3's "Where the relational model
-   pushes back" is the worked model.
+4. A limitations or trade-offs section, where appropriate. Not every session needs one, but
+   wherever the notes introduce or compare a technology, a candid pros-and-cons discussion
+   belongs here: what the tool or method is bad at, its failure modes and surprises, and when
+   to reach for something else. When it applies it usually sets up the next arc. L3's "Where
+   the relational model pushes back" is the worked model.
 5. `## In-class demo`, short orientation, pointing at `demo.ipynb`.
 6. `## Summary`, a paragraph, not bullets. Connect forward to the next session.
 7. `## Resources`, annotated links, one line each on why it is worth reading.
@@ -244,6 +245,12 @@ content is thinner than the session length demands.
 **Every deck needs links and figures.** A deck with neither is a deck that cannot be
 revisited by a student and cannot be checked by anyone. Put the source link on the slide
 that makes the claim, not only in the notes. L1 carries 17 links and 3 figures.
+
+**Weigh technologies, do not just sell them.** Where a session introduces or compares a
+technology, the deck should carry the trade-offs too, mirroring the notes' limitations
+section: a pros/cons or "when to use, when not" slide, for which a contrast table is ideal.
+Not every deck needs one, but a deck that only lists what a tool can do is a sales pitch, not
+a lecture.
 
 **Rules:**
 

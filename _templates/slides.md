@@ -9,8 +9,10 @@ footer: "Systems & Toolchains for AI in Engineering"
 <!--
 STRUCTURE CONTRACT for decks. Keep this slide order:
   title -> roadmap -> content -> demo marker -> recap -> next
-Budget roughly 20-30 slides for an 80-minute session.
+Budget roughly 55-70 slides for a 110-minute session (see CLAUDE.md section 5).
 Slides carry pointers; the notes carry the prose. Never paste paragraphs here.
+Where the session introduces or compares a technology, include a trade-offs
+slide (pros/cons or "when to use, when not"); a contrast table is ideal.
 See CLAUDE.md for the full convention.
 -->
 
