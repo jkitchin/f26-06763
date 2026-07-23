@@ -22,6 +22,9 @@ parts:
       - file: lectures/l03/notes
         sections:
           - file: lectures/l03/l03-sql-timeseries
+      - file: lectures/l05/notes
+        sections:
+          - file: lectures/l05/l05-pipelines
 
   - caption: Assignments
     chapters:
