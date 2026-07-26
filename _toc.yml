@@ -31,6 +31,9 @@ parts:
       - file: lectures/l09/notes
         sections:
           - file: lectures/l09/l09-model-selection
+      - file: lectures/l11/notes
+        sections:
+          - file: lectures/l11/l11-tensors-autograd
 
   - caption: Assignments
     chapters:
