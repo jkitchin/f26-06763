@@ -55,14 +55,10 @@ with no physical context.
 The pipeline still runs. The model still trains.
 Predictions look exactly as plausible.
 
----
+<!-- And the clearest illustration isn't an ML example at all: feature
+     engineering has always meant turning physical quantities into numbers some
+     system consumes. The consumer used to be a guidance algorithm. -->
 
-## The clearest illustration isn't ML at all
-
-Feature engineering has always meant turning
-physical quantities into numbers a system consumes.
-
-The consumer used to be a guidance algorithm.
 
 ---
 
@@ -99,7 +95,40 @@ run-to-failure, one row per engine per cycle.
 21 sensors + 3 operating settings.
 Failure cycle known in train, withheld in test.
 
-[Saxena et al., PHM 2008](https://www.nasa.gov/intelligent-systems-division/discovery-and-systems-health/pcoe/pcoe-data-set-repository/)
+FD001: 100 train / 100 test engines, median life 199 cycles.
+[NASA PCoE repository](https://www.nasa.gov/intelligent-systems-division/discovery-and-systems-health/pcoe/pcoe-data-set-repository/)
+
+---
+
+## First: look at what you actually have
+
+![w:1000](figures/sensor-degradation.png)
+
+<!-- SIX of 21 channels hold one constant value. Ask how many they'd have
+     noticed by eye. -->
+
+---
+
+## Six dead channels of twenty-one
+
+A rolling mean of a constant is a constant.
+Its rolling std is 0. Its delta-from-cycle-1 is 0.
+
+**Four columns of nothing, per dead channel.**
+
+---
+
+## And the trap in detecting them
+
+L5 said: constant ⟺ `std == 0`. True in arithmetic.
+
+```
+sensor5:  one value (14.62),  std() = 5.3e-15
+sensor16: one value (0.03),   std() = 3.5e-18
+```
+
+`std == 0` misses **2 of the 6.** Use `nunique()`,
+or a tolerance. Never `== 0` on a computed float.
 
 ---
 
@@ -154,14 +183,24 @@ df['sensor4_roll_mean_5'] = (
 
 ---
 
-## The pitfall: forgetting to group
+## What that looks like, measured
 
-Roll across the boundary between engine 7's
-last cycle and engine 8's first, and pandas
-**will not complain.**
+![w:820](figures/grouped-vs-not.png)
 
-The feature just tells the model engine 8
-started life mid-degradation. Borrowed from nowhere.
+<!-- 5-cycle rolling mean across the engine 1 / engine 2 boundary. The red line
+     spends 4 rows blending in engine 1's end-of-life readings. Peak error ~1.0
+     on a channel whose whole fleet range is ~1.7. -->
+
+---
+
+## Why it's worse than noise
+
+pandas **will not complain.** The contamination is
+worst at each engine's **first** cycles, where RUL
+is longest, and it always drags them toward the
+previous engine's **end of life.**
+
+**Bias with the shape of your signal.**
 
 ---
 
@@ -233,34 +272,66 @@ An engineering requirement.
 
 ---
 
-## Case: a $327 million unit mismatch
+## Case: a specification nobody checked
 
-**Mars Climate Orbiter**, lost 23 September 1999
-entering Mars orbit.
+**Mars Climate Orbiter**, launched 11 Dec 1998.
+Signal lost 09:04:52 UTC, 23 September 1999.
 
-Root cause: thruster impulse computed in
-**pound-seconds**. Navigation expected **newton-seconds**.
-
----
-
-## The conversion never happened
-
-Not at any step. Not by any process.
-For the entire cruise phase.
-
-Small errors accumulated for months.
-
----
-
-## The result
-
-Planned altitude: 140–150 km.
-Actual course: ~57 km.
-
-Believed to have burned up or been ejected
-into solar orbit.
+A Software Interface Specification **required
+newton-seconds**. The code wrote **pound-seconds**.
 
 [Mishap Investigation Board report](https://llis.nasa.gov/llis_lib/pdf/1009464main1_0641-mr.pdf)
+
+---
+
+## The error had a number
+
+> underestimated the effect on the spacecraft
+> trajectory by **a factor of 4.45**
+
+1 lbf = 4.45 N. Every firing modeled as
+four and a half times too weak.
+
+---
+
+## Why "small forces" weren't small
+
+The solar array was **asymmetric**, unlike Mars
+Global Surveyor's.
+
+Desaturation firings happened **10–14× more often
+than the navigation team expected.**
+
+4.45× error × 10–14× more often × 9 months.
+
+---
+
+## The altitudes, from the report
+
+| | km |
+|---|---|
+| planned first periapsis | **226** |
+| a week out | 150–170 |
+| one hour out | 110 |
+| **minimum survivable** | **80** |
+| reconstructed actual | **57** |
+
+<!-- Popular retellings say "planned 150 km". They're quoting an already-degraded
+     intermediate estimate as if it were the plan. 226 km was the plan. -->
+
+---
+
+## About that $327 million
+
+The MIB report **never mentions cost.**
+
+\$327.6M was the **two-spacecraft** Mars Surveyor '98
+program. The orbiter itself: nearer \$125M.
+
+The verified facts are damning enough.
+
+<!-- Same discipline as L1's "<10% of code is ML code" non-claim. Check whether
+     the source you're citing contains the number you're citing it for. -->
 
 ---
 
@@ -274,12 +345,41 @@ Both are just a float.
 
 ---
 
+## The part that should worry you more
+
+> concerns existed at the working level regarding
+> discrepancies observed between navigation solutions
+
+Noted "**only informally reported**."
+Doppler solutions consistently disagreed.
+
+> These discrepancies were not resolved.
+
+---
+
+## Months, not minutes
+
+The discrepancy was visible **spring and summer 1999.**
+
+Root cause identified **29 September**:
+six days *after* the spacecraft was gone.
+
+Same shape as L5's 97 unread "Power Peg disabled" emails.
+
+<!-- This is the through-line of the whole course. Say it explicitly: an anomaly
+     that is "noted informally" is not monitoring. -->
+
+---
+
 ## What a practitioner should take from this
 
 Never let a column imply its own units.
+`thrust_lbf`, not `thrust`.
 
-`thrust_lbf`, not `thrust`. Assert the unit at
-every interface between systems or teams.
+But note: MCO **had** a written spec requiring N-s.
+It didn't help, because nothing checked compliance.
+
+**A data contract that isn't executed is a comment.**
 
 ---
 
@@ -322,6 +422,8 @@ Which bands matter is a physical judgment
 | Min-max | need a fixed bounded range |
 | Robust (median/IQR) | heavy-tailed outliers, fault spikes |
 | Log / Box-Cox | naturally skewed physical quantities |
+
+[sklearn preprocessing](https://scikit-learn.org/stable/modules/preprocessing.html) · [Box-Cox (NIST)](https://www.itl.nist.gov/div898/handbook/eda/section3/eda336.htm)
 
 ---
 
@@ -366,30 +468,57 @@ Compare RUL error.
 
 ## The honest result
 
-The gap is often **small**. Sometimes near zero.
+Gap in RMSE: **+0.002 cycles.** Out of ~19.
 
-That's not a broken demo. It's the more
-useful version of the lesson.
-
----
-
-## Why the gap can be small
-
-Plain linear regression is scale-**invariant**:
-would show **zero** difference, always.
-
-`Ridge` isn't (its penalty acts on coefficients),
-so it shows a real, if modest, effect here.
+Not a typo. Not a scare number.
 
 ---
 
-## The pitfall: gap size isn't the point
+## But the leak definitely happened
 
-Depends on your model's scale-sensitivity,
-and on how different train/test really are.
+The two scalers disagree about where a feature sits by
+**up to 23%**, and about its spread by **up to 9%**.
 
-Two samples of the same simulated regime
-differ less than a real new deployment site will.
+So: the transform was badly contaminated,
+and the metric reported ~nothing.
+
+---
+
+## The actual lesson
+
+# Your metric is not a leak detector.
+
+---
+
+## One leak, four models
+
+![w:900](figures/leakage-by-model.png)
+
+<!-- Ask them to predict the ordering before revealing. Nobody predicts that the
+     alpha=1e4 bar goes NEGATIVE. -->
+
+---
+
+## Read the third bar again
+
+| model | gap |
+|---|---|
+| `LinearRegression` | exactly **0** |
+| `Ridge(alpha=10)` | +0.002 |
+| `Ridge(alpha=1e4)` | **−0.14** ← leak *helps* |
+| `KNeighbors(k=5)` | **+0.35** |
+
+A leak doesn't reliably inflate your score.
+It makes your score **meaningless**.
+
+---
+
+## So you cannot audit this with metrics
+
+You have to audit the **code**:
+
+find every `.fit()` and check what was
+in scope when it ran.
 
 ---
 
@@ -542,26 +671,51 @@ Rolling/delta/rate-of-change features on C-MAPSS FD001.
 
 ## What to watch
 
-- The gap between train-only and combined scaler fits
-- Why `Ridge`, not plain linear regression, is doing the comparing
-- The `Pipeline` saved with `joblib`, reloaded, reproduces itself exactly
+- 6 of 21 channels screened out as constant
+- Scalers disagree by 23%; `Ridge` gap is 0.002
+- Same leak across 4 models: 0, 0.002, **−0.14**, **+0.35**
+- `Pipeline` saved with `joblib`, reloaded, reproduces itself exactly
+
+---
+
+## Two bugs that were in this notebook
+
+1. `sensor5` promoted to "key degradation channel."
+   It is **constant.**
+2. `startswith('sensor2')` also matched
+   `sensor20`, `sensor21`.
+
+Bug 2 **improved** the score. That's the hard kind.
+
+<!-- Both documented in the notebook in place. Neither raised. -->
 
 ---
 
 ## Recap
 
 - A feature translates physical measurement into a model input, silently, if you let it
-- Unit consistency is an engineering requirement (Mars Climate Orbiter: $327M)
+- Units are an engineering requirement; MCO had a spec and nobody checked it
+- Group before every window, or you bias each engine's earliest cycles
 - Every transform is a statistic; fit it on the training split only
-- The leak's *size* isn't the lesson: fit-on-train-only is a principle, not a case-by-case check
-- `Pipeline`/`ColumnTransformer` make the rule structural, not just remembered
+- The gap was 0.002 and the leak was still real: **audit code, not metrics**
+- `Pipeline`/`ColumnTransformer` make the rule structural, not remembered
+
+---
+
+## Three things measurement changed today
+
+- `.apply`-style reasoning: the leak was **0.002**, not dramatic
+- `std == 0` misses 2 of 6 constant channels
+- A strong penalty made the leaky pipeline score **better**
+
+Every one of those was a draft claim that a run corrected.
 
 ---
 
 ## Next
 
-**Assignment** A4 released today, due ~1 week
-**Reading** scikit-learn Pipelines & preprocessing docs; Saxena et al. 2008
+**Assignment** [A4](../../course/assignments/a04.md), out today, due ~1 week
+**Reading** [sklearn pitfalls & leakage](https://scikit-learn.org/stable/common_pitfalls.html) · [Pipelines](https://scikit-learn.org/stable/modules/compose.html) · Saxena et al. 2008
 **L8** Same C-MAPSS fleet: the full leakage taxonomy, correct
 grouped/temporal splits, and versioning the pipeline with DVC
 
