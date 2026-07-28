@@ -117,9 +117,11 @@ If the module file and an existing set of notes disagree, say so rather than pic
 `lectures/lNN/notes.md`. Start from `_templates/notes.md`.
 
 **Purpose.** A narrative document a student reads *outside* of class, either to prepare or
-to recover a session they missed. It carries the full argument and the links. It is not a
-transcript of the slides, and the slides are not a summary of it. They are two different
-artifacts with two different jobs.
+to recover a session they missed. It carries the full argument and the links. It should read
+like a chapter of a good textbook: connected, developed paragraphs that carry the reader
+through an argument, not a bulleted outline with sentences attached. It is not a transcript of
+the slides, and the slides are not a summary of it. They are two different artifacts with two
+different jobs.
 
 **The page title is the first H1**, not YAML frontmatter. Jupyter Book 1 takes the document
 title and the navigation label from the leading `# L1 · Title` heading. Do not add a
@@ -129,18 +131,32 @@ frontmatter `title:` and expect it to render.
 `:::{admonition} At a glance` block:
 
 1. `## Why this matters`, narrative motivation opening on the engineering problem, not the
-   tool. Two or three paragraphs. Ideally a concrete failure.
+   tool. Two to four developed paragraphs. Ideally a concrete failure.
 2. `## Learning objectives`, the one legitimate bullet list in the body, from the module file.
-3. Three to six topic sections following the module's Topics.
-4. `## In-class demo`, short orientation, pointing at `demo.ipynb`.
-5. `## Summary`, a paragraph, not bullets. Connect forward to the next session.
-6. `## Resources`, annotated links, one line each on why it is worth reading.
-7. `## Assignment`, a pointer and a deadline, never a copy of the rubric.
+3. Three to six topic sections following the module's Topics, each expanded into connected
+   prose rather than named in passing.
+4. A limitations or trade-offs section, where appropriate. Not every session needs one, but
+   wherever the notes introduce or compare a technology, a candid pros-and-cons discussion
+   belongs here: what the tool or method is bad at, its failure modes and surprises, and when
+   to reach for something else. When it applies it usually sets up the next arc. L3's "Where
+   the relational model pushes back" is the worked model.
+5. `## In-class demo`, short orientation, pointing at `demo.ipynb`.
+6. `## Summary`, a paragraph, not bullets. Connect forward to the next session.
+7. `## Resources`, annotated links, one line each on why it is worth reading.
+8. `## Assignment`, a pointer and a deadline, never a copy of the rubric.
 
-**Writing.** Connected prose, not bullet fragments. A student who missed class should be
-able to follow the argument from the notes alone. Prefer one idea developed properly over
-four mentioned in passing. Use the field's real names for concepts and link them, so the
-notes work as an index into the literature.
+**Writing.** Write it as a chapter of a book, not a set of slides rendered as prose. That
+means developed, connected paragraphs that carry an argument from one to the next, full
+sentences rather than fragments, and enough breadth that a student who missed class can follow
+the whole thread from the notes alone. Prefer one idea developed properly over four mentioned
+in passing. Open each concept in plain terms, then go deep. Surface the things that will
+surprise a reader (the counterintuitive result, the footgun, the name that misleads) rather
+than only the tidy summary, because those are what make a chapter worth reading twice. Where it
+earns its place, a sentence or two of history or provenance grounds an idea. Use the field's
+real names for concepts and link them, so the notes double as an index into the literature. A
+full set runs to several thousand words; if a draft feels thin, it usually is.
+`lectures/l03/notes.md` is the reference for this depth and voice, and `lectures/l01/` remains
+the reference for structure and for the demo and figure mechanics.
 
 **MyST features** enabled in `_config.yml`: `:::{admonition}` blocks with
 `:class: tip|warning|note` (via `colon_fence`), `$...$` and `$$...$$` math (via
@@ -229,6 +245,12 @@ content is thinner than the session length demands.
 **Every deck needs links and figures.** A deck with neither is a deck that cannot be
 revisited by a student and cannot be checked by anyone. Put the source link on the slide
 that makes the claim, not only in the notes. L1 carries 17 links and 3 figures.
+
+**Weigh technologies, do not just sell them.** Where a session introduces or compares a
+technology, the deck should carry the trade-offs too, mirroring the notes' limitations
+section: a pros/cons or "when to use, when not" slide, for which a contrast table is ideal.
+Not every deck needs one, but a deck that only lists what a tool can do is a sales pitch, not
+a lecture.
 
 **Rules:**
 

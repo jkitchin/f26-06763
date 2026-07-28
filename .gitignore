@@ -1,5 +1,6 @@
 # Figure generation cache (raw data, not committed)
 lectures/*/figures/.cache/
+lectures/*/.cache/
 
 # claude
 .claude/
