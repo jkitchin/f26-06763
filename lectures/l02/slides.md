@@ -113,19 +113,6 @@ An NCI statistician, reviewing the case.
 
 ---
 
-## Reproducible is not correct
-
-Re-run a buggy pipeline and you get
-the **same wrong answer**.
-
-Reproducibility does not make you right.
-It makes you **checkable**.
-
-The Duke errors surfaced only because outsiders
-could rebuild the work and compare.
-
----
-
 ## The test you will face
 
 Someone points at a number your system produced:
@@ -580,6 +567,45 @@ Log enough to **rebuild** the run:
 
 That triple is the provenance the Duke work lacked.
 The miniproject requires exactly it.
+
+---
+
+<!-- _class: section -->
+
+# Where this pushes back
+## reproducible is necessary, not sufficient
+
+---
+
+## Reproducible is not correct
+
+Re-run a buggy pipeline and you get
+the **same wrong answer**.
+
+Reproducibility makes a result **checkable**, not right.
+The Duke errors surfaced only when outsiders
+**re-implemented** the analysis and compared.
+
+---
+
+## A lockfile pins Python, not the machine
+
+`uv.lock` pins every package version.
+It does **not** pin the system libraries, the OS,
+or the platform-specific wheels underneath.
+
+Whole-stack reproducibility is a **container**. That is Wk12.
+
+---
+
+## Pay in proportion
+
+The discipline has a cost. For a throwaway script, it is overkill.
+
+The moment a result is **rerun, shared, or believed**,
+it needs this. Results cross that line quietly.
+
+When in doubt, scaffold: retrofitting is the expensive direction.
 
 ---
 
