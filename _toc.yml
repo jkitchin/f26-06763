@@ -19,6 +19,9 @@ parts:
       - file: lectures/l01/notes
         sections:
           - file: lectures/l01/l01-reproducibility
+      - file: lectures/l02/notes
+        sections:
+          - file: lectures/l02/l02-scaffold
 
   - caption: Assignments
     chapters:
