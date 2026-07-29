@@ -20,6 +20,10 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 
+# MLflow tracking output, written by the demo notebooks when they are run
+mlruns/
+mlflow.db
+
 # Data: keep raw data out of git, track schemas and small samples deliberately
 data/
 *.parquet
