@@ -2,6 +2,9 @@
 lectures/*/figures/.cache/
 lectures/*/.cache/
 
+# claude
+.claude/
+
 # Build output
 _build/
 .jupyter_cache/
@@ -21,6 +24,11 @@ __pycache__/
 data/
 *.parquet
 *.duckdb
+
+# MLflow local store (created by the L2 demo when run in place)
+mlflow.db
+mlruns/
+mlartifacts/
 
 # macOS / Emacs
 .DS_Store
