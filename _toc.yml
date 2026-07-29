@@ -40,6 +40,9 @@ parts:
       - file: lectures/l13/notes
         sections:
           - file: lectures/l13/l13-surrogates-uq
+      - file: lectures/l15/notes
+        sections:
+          - file: lectures/l15/l15-tokenization-embeddings
 
   - caption: Assignments
     chapters:
