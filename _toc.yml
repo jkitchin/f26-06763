@@ -34,6 +34,9 @@ parts:
       - file: lectures/l11/notes
         sections:
           - file: lectures/l11/l11-tensors-autograd
+      - file: lectures/l13/notes
+        sections:
+          - file: lectures/l13/l13-surrogates-uq
 
   - caption: Assignments
     chapters:
