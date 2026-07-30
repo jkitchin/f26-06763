@@ -46,6 +46,9 @@ parts:
       - file: lectures/l17/notes
         sections:
           - file: lectures/l17/l17-rag
+      - file: lectures/l19/notes
+        sections:
+          - file: lectures/l19/l19-agent
 
   - caption: Assignments
     chapters:
