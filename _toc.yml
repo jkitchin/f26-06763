@@ -52,6 +52,9 @@ parts:
       - file: lectures/l21/notes
         sections:
           - file: lectures/l21/l21-eval
+      - file: lectures/l23/notes
+        sections:
+          - file: lectures/l23/l23-mlops
 
   - caption: Assignments
     chapters:
