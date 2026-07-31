@@ -49,6 +49,9 @@ parts:
       - file: lectures/l19/notes
         sections:
           - file: lectures/l19/l19-agent
+      - file: lectures/l21/notes
+        sections:
+          - file: lectures/l21/l21-eval
 
   - caption: Assignments
     chapters:
