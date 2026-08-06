@@ -44,12 +44,25 @@ jobs:
         # that pdflatex will not set without a declaration per character.
         # fonts-freefont-otf supplies FreeSerif/FreeSans/FreeMono, which is what
         # Sphinx's xelatex configuration asks for and where the glyph coverage
-        # comes from. Adds roughly three minutes to the run.
+        # comes from.
+        #
+        # The document loads 61 CTAN bundles, and the two -extra packages are
+        # not optional padding. They were derived from course.fls after a local
+        # build, then each uncertain file was looked up in the Ubuntu package
+        # index rather than guessed:
+        #   texlive-fonts-extra  bbm.sty (loaded transitively; the first CI
+        #                        failure was "File `bbm.sty' not found"),
+        #                        fontawesome5.sty
+        #   texlive-pictures     pict2e.sty, ellipse.sty
+        # A local TeX Live install is usually far more complete than this, so a
+        # PDF that builds on a laptop does not prove the CI package set. Check
+        # course.fls, not your own machine.
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
             texlive-xetex texlive-latex-recommended texlive-latex-extra \
-            texlive-fonts-recommended fonts-freefont-otf latexmk
+            texlive-fonts-recommended texlive-fonts-extra texlive-pictures \
+            fonts-freefont-otf latexmk
 
       - name: Build the book
         run: jupyter-book build . --warningiserror --keep-going
