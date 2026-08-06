@@ -396,6 +396,21 @@ break something.
 If you take one thing, take the ratchet. Everything else in this document is a consequence
 of somebody writing down what went wrong, once, in a place the next person would read.
 
+### And then the part this document does not cover
+
+Everything above is about how the material got made, which is a story about production. It
+is worth being explicit that production is not the point and never was. Fourteen sets of
+notes exist; every hour of understanding that went into making them stayed with the making.
+None of it arrives in you because the files are on a server.
+
+That is the subject of the companion document,
+[Generating is not learning](generating-is-not-learning.md), and it is the more important
+of the two. Producing plausible technical material has become nearly free. Consuming it
+costs exactly what it always did, which means the bottleneck moved and most people have not
+noticed. Read that one next, and do at least one of its exercises rather than reading both
+documents and stopping, which would be a fairly complete demonstration of the problem it
+describes.
+
 ## Resources
 
 - [`CLAUDE.md`](https://github.com/jkitchin/f26-06763/blob/main/CLAUDE.md) in this

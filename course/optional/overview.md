@@ -17,6 +17,8 @@ would have known that.
 
 ## What is here
 
+The two documents here are halves of one argument, and the second is the one that matters.
+
 **[How this course was built, and what to take from that](how-this-course-was-built.md)**
 is a case study in tool triage and in navigating an unfamiliar problem, using this
 repository's own construction as the example. It covers the conventions file that governs
@@ -25,6 +27,18 @@ including one case where the newer version lost, a table of eight claims that ch
 somebody actually measured them, what the collaboration with an AI assistant did and did not
 do, and a roadmap for building the same discipline into your own work. It closes with a
 reading path through the repository.
+
+**[Generating is not learning](generating-is-not-learning.md)** is the other half, and it
+argues that the first document describes an achievement that transfers to you not at all
+unless you do something with the material. Producing plausible technical work has become
+nearly free; consuming it costs exactly what it always did, and only the consuming half
+teaches anybody anything. It covers why reading feels like enough and measurably is not,
+the ten-minute diagnostic that tells you where your understanding actually stops, why
+teaching works and intending to teach does not, and where the handles for all of that
+already are in this repository. It ends in exercises, which is the point.
+
+Read them in that order if you are reading both. Read only the second if you are reading
+one.
 
 ## What may be added
 

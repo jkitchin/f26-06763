@@ -82,3 +82,4 @@ parts:
       - file: course/optional/overview
         sections:
           - file: course/optional/how-this-course-was-built
+          - file: course/optional/generating-is-not-learning
