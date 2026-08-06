@@ -43,6 +43,9 @@ parts:
       - file: lectures/l13/notes
         sections:
           - file: lectures/l13/l13-surrogates-uq
+      - file: lectures/l15/notes
+        sections:
+          - file: lectures/l15/l15-tokens-embeddings
       - file: lectures/l17/notes
         sections:
           - file: lectures/l17/l17-rag
