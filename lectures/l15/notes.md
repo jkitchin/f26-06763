@@ -327,7 +327,8 @@ pages and 248,947 characters of extracted text, and it is a 1989 scan, so what t
 extractor returns is OCR output complete with figure axis labels, running heads, and
 garbled fragments like `oi` and `TEj LE`. That is not a defect in the demonstration, it is
 the realistic case: **you pay tokens for whatever your extractor produces, noise
-included**. At 2.84 characters per token, this document is denser than the datasheet.
+included**. It comes out at 2.84 characters per token, more token-dense than the datasheet
+at 3.05, which is what OCR noise and equations do to a document.
 
 Three numbers follow, and each drives a different decision:
 
