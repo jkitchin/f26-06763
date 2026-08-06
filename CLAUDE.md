@@ -422,6 +422,13 @@ rendered. Confirm an asset URL from the page source also returns 200, or screens
 
 ## 9. Adding a lecture
 
+0. **Branch from an up-to-date `main`.** `git fetch origin` first, every time. Cross-
+   references to another lecture (`[L9](../l09/notes.md)`) fail the build under
+   `--warningiserror` when that page is not on the branch's base, and the tempting local
+   fix is to downgrade the link to plain text, which quietly loses it. This has cost a
+   closed pull request (#37, branched off an unmerged lecture, redone as #38) and a rebase
+   (#47, branched off a `main` that was four merges stale). If you find yourself removing a
+   cross-reference to make the build pass, check the base first.
 1. Read `course/modules/wkNN.md` for that lecture's block. It is the spec.
 2. `mkdir -p lectures/lNN` and copy both templates in.
 3. Write `notes.md` first, then compress it into `slides.md`. Notes before slides, always.
