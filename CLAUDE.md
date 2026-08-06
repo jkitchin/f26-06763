@@ -26,6 +26,7 @@ even though the repo is not.
 | `lectures/*/notes.md` | Draft material not yet added to `_toc.yml` |
 | `course/assignments/aNN.md` | Grading keys, exam material, student data |
 | `course/miniproject.md`, `course/final-project.md` | |
+| `course/optional/*.md` | |
 | Rendered slide decks at `/slides/lNN.html` | |
 
 Three mechanisms enforce this, and all three should stay in place:
@@ -422,6 +423,13 @@ rendered. Confirm an asset URL from the page source also returns 200, or screens
 
 ## 9. Adding a lecture
 
+0. **Branch from an up-to-date `main`.** `git fetch origin` first, every time. Cross-
+   references to another lecture (`[L9](../l09/notes.md)`) fail the build under
+   `--warningiserror` when that page is not on the branch's base, and the tempting local
+   fix is to downgrade the link to plain text, which quietly loses it. This has cost a
+   closed pull request (#37, branched off an unmerged lecture, redone as #38) and a rebase
+   (#47, branched off a `main` that was four merges stale). If you find yourself removing a
+   cross-reference to make the build pass, check the base first.
 1. Read `course/modules/wkNN.md` for that lecture's block. It is the spec.
 2. `mkdir -p lectures/lNN` and copy both templates in.
 3. Write `notes.md` first, then compress it into `slides.md`. Notes before slides, always.
@@ -433,6 +441,25 @@ rendered. Confirm an asset URL from the page source also returns 200, or screens
 7. Build locally with `--warningiserror` and confirm it renders before pushing.
 
 `lectures/l01/` is the worked reference. When something here is ambiguous, match L1.
+
+---
+
+## 9b. Optional material
+
+`course/optional/` holds published material that is not part of any session and that no
+assignment depends on: method, process, and reading that outlives the syllabus. It is
+listed in `_toc.yml` under its own part, so the same publishing rules apply as to anything
+else public.
+
+Two constraints specific to it. It **describes** `course/modules/` but never quotes it, so
+that instructor-only content stays instructor-only even when the process is the subject.
+And it is written from the repository's actual record, meaning the git history, the pull
+requests, and the committed figure scripts, rather than from recollection. A claim about
+how the course was built is subject to the same two-step verification as any other claim in
+section 4: the artifact exists, and it says what you are citing it for.
+
+Add to it when something is worth adding, not on a schedule.
+`course/optional/overview.md` lists what is there and what might come.
 
 ---
 
