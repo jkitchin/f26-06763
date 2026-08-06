@@ -96,6 +96,22 @@ jobs:
           fi
           echo "OK: no course/modules/ pages in the build output"
 
+      - name: Stamp the build with the commit it came from
+        # Read back off the live site by the verify job below, which is the only
+        # way to tell a fresh deploy from a stale one. Useful on its own too:
+        # /f26-06763/build-info.json answers "what is actually published right
+        # now", which is a different question from "did the last run go green".
+        run: |
+          cat > _build/html/build-info.json <<JSON
+          {
+            "commit": "${GITHUB_SHA}",
+            "ref": "${GITHUB_REF}",
+            "run_id": "${GITHUB_RUN_ID}",
+            "built_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          JSON
+          cat _build/html/build-info.json
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _build/html
@@ -108,6 +124,62 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  verify:
+    # A green deploy job is not evidence that the site updated.
+    #
+    # On 2026-08-06 the build job succeeded, actions/deploy-pages sat in
+    # deployment_queued for ten minutes and timed out, and the published site
+    # silently stayed on the previous commit while the run's build job still
+    # showed green. A second attempt reported queued for hours. Nothing in this
+    # workflow noticed, and the way it was eventually caught was a human
+    # fetching a lecture URL by hand and getting a 404.
+    #
+    # So: read the stamp the build job baked in, off the live site, and require
+    # it to name this commit. This is the deploy-time version of the rule in
+    # CLAUDE.md section 8, that HTTP 200 is not evidence a page rendered.
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm the live site is serving this commit
+        env:
+          PAGE_URL: ${{ needs.deploy.outputs.page_url }}
+          EXPECTED: ${{ github.sha }}
+        run: |
+          if [ -z "$PAGE_URL" ]; then
+            echo "::error::deploy produced no page_url; cannot verify the deploy"
+            exit 1
+          fi
+          url="${PAGE_URL%/}/build-info.json"
+          echo "Expecting $url to report commit $EXPECTED"
+
+          # Pages reports success slightly before the CDN serves the new build,
+          # so poll rather than fetching once. Roughly three minutes; a deploy
+          # that has not propagated by then has not propagated.
+          live=""
+          for attempt in $(seq 1 18); do
+            # The cache buster is not superstition: without it an edge cache can
+            # keep answering with the previous build and the check passes or
+            # fails on stale data.
+            body=$(curl -fsSL --max-time 20 -H 'Cache-Control: no-cache' \
+                     "${url}?cachebust=${GITHUB_RUN_ID}-${attempt}" 2>/dev/null || true)
+            live=$(printf '%s' "$body" \
+                   | python3 -c 'import json,sys; print(json.load(sys.stdin).get("commit",""))' 2>/dev/null || true)
+            if [ "$live" = "$EXPECTED" ]; then
+              echo "OK: the live site is serving $EXPECTED"
+              printf '%s\n' "$body"
+              exit 0
+            fi
+            echo "attempt ${attempt}/18: live=${live:-<unreachable>}"
+            sleep 10
+          done
+
+          echo "::error::deploy reported success but ${PAGE_URL} is serving ${live:-nothing}, not ${EXPECTED}"
+          echo "::error::the site is stale. Check https://www.githubstatus.com for a Pages incident, then re-run this workflow."
+          exit 1

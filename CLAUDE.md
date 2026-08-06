@@ -407,17 +407,40 @@ npx @marp-team/marp-cli -w lectures/l01/slides.md -o /tmp/l01.html
 
 CI (`.github/workflows/book.yml`) builds the book, renders every `lectures/*/slides.md` to
 `_build/html/slides/lNN.html`, checks that no `course/modules/` page leaked into the
-output, and deploys to Pages on push to `main`. Pull requests build as a check but do not
-deploy.
+output, deploys to Pages on push to `main`, and then verifies that the deploy actually
+landed. Pull requests build as a check but do not deploy.
 
-**Verifying a deploy.** Checking that a page returns HTTP 200 does not tell you it
-rendered. Confirm an asset URL from the page source also returns 200, or screenshot it:
+**Verifying a deploy.** There are three separate things here and they fail independently.
+
+*The page returns 200.* That does not tell you it rendered. Confirm an asset URL from the
+page source also returns 200, or screenshot it:
 
 ```bash
 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless \
   --virtual-time-budget=8000 --window-size=1280,900 \
   --screenshot=/tmp/site.png http://kitchingroup.cheme.cmu.edu/f26-06763/
 ```
+
+*The run is green.* That does not tell you the site updated, and this one is nastier
+because it looks conclusive. On 2026-08-06 the build job succeeded, `deploy-pages` timed
+out in `deployment_queued`, and the site silently served the previous commit for hours
+while the run's build job showed green. It was caught only because somebody fetched a
+lecture URL by hand and got a 404.
+
+*So the build stamps itself.* Every build writes `_build/html/build-info.json` containing
+the commit it came from, and a `verify` job reads that back **off the live site** after
+deploying and fails if it is not this commit. To check by hand at any time, which answers
+"what is actually published" rather than "did the last run go green":
+
+```bash
+curl -s http://kitchingroup.cheme.cmu.edu/f26-06763/build-info.json
+```
+
+Two things in that job are load-bearing and should not be tidied away. It **polls** for
+about three minutes, because Pages reports success slightly before the CDN serves the new
+build. And it appends a **cache-busting query string**, because without one an edge cache
+can keep answering with the previous build, which would make the check pass or fail on
+stale data and would defeat its entire purpose.
 
 ---
 
