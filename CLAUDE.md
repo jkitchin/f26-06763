@@ -395,6 +395,9 @@ jupyter-book build . --warningiserror --keep-going
 # Force a clean rebuild after moving or renaming files
 jupyter-book build . --all
 
+# The whole course as one PDF, into _build/latex/course.pdf
+jupyter-book build . --builder pdflatex
+
 # One deck to HTML
 npx @marp-team/marp-cli lectures/l01/slides.md -o /tmp/l01.html
 
@@ -405,10 +408,35 @@ npx @marp-team/marp-cli lectures/l01/slides.md --pdf -o /tmp/l01.pdf
 npx @marp-team/marp-cli -w lectures/l01/slides.md -o /tmp/l01.html
 ```
 
-CI (`.github/workflows/book.yml`) builds the book, renders every `lectures/*/slides.md` to
-`_build/html/slides/lNN.html`, checks that no `course/modules/` page leaked into the
-output, deploys to Pages on push to `main`, and then verifies that the deploy actually
-landed. Pull requests build as a check but do not deploy.
+CI (`.github/workflows/book.yml`) builds the book, builds the PDF, renders every
+`lectures/*/slides.md` to `_build/html/slides/lNN.html`, checks that no `course/modules/`
+page leaked into the output, deploys to Pages on push to `main`, and then verifies that the
+deploy actually landed. Pull requests build as a check but do not deploy.
+
+**The PDF.** `--builder pdflatex` produces the whole course as one document, and CI copies
+it to `_build/html/course.pdf` so it is downloadable at `/f26-06763/course.pdf`. It is
+linked from `index.md` with a raw HTML anchor, for the same reason the slide decks are: the
+PDF is not a Sphinx document, so markdown link syntax would fail `myst.xref_missing` under
+`--warningiserror`.
+
+Three things about it are load-bearing and live under `latex:` in `_config.yml`:
+
+- **`latex_engine: xelatex`.** These sources carry 34 distinct non-ASCII characters
+  (arrows, box drawing, Greek, superscripts, the micro sign). The pdflatex default cannot
+  set them without a `\DeclareUnicodeCharacter` per character; xelatex plus GNU FreeFont
+  handles all of them. CI installs `texlive-xetex` and `fonts-freefont-otf` for this.
+- **`latex_documents.targetname`.** Without it the output is `projectnamenotset.pdf`.
+- **`latex_documents.title`.** Jupyter Book copies the top-level `title:` into `\title{}`
+  *unescaped* (see `jupyter_book/config.py`, `latex_doc_overrides`), and the `&` in this
+  course's title fails the LaTeX run with `Misplaced alignment tab character &`. The
+  override supplies an escaped `\&`. Do not "simplify" it away.
+
+Measured on a green run rather than estimated: the whole CI job takes 4m46s, of which the
+TeX install is 134s, the PDF build 55s, and the artifact check 13s. The PDF build runs on
+pull requests as well as on `main` on purpose: a PDF that only breaks after merge is the
+kind of silent failure the rest of this workflow exists to prevent. The check inspects the
+artifact rather than the exit code, because a LaTeX run can succeed and still emit
+something truncated.
 
 **Verifying a deploy.** There are three separate things here and they fail independently.
 

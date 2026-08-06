@@ -36,10 +36,64 @@ jobs:
         # Pinned to 1.x. Jupyter Book 2 (MyST) derives page URLs from the file
         # basename, so every lectures/*/notes.md would collapse onto a single
         # /notes URL, silently. 1.x mirrors the directory structure instead.
-        run: pip install "jupyter-book<2"
+        run: pip install "jupyter-book<2" pypdf
+
+      - name: Install TeX for the PDF build
+        # xelatex, not pdflatex: the sources carry non-ASCII engineering
+        # notation (arrows, box drawing, Greek, superscripts, the micro sign)
+        # that pdflatex will not set without a declaration per character.
+        # fonts-freefont-otf supplies FreeSerif/FreeSans/FreeMono, which is what
+        # Sphinx's xelatex configuration asks for and where the glyph coverage
+        # comes from. Adds roughly three minutes to the run.
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            texlive-xetex texlive-latex-recommended texlive-latex-extra \
+            texlive-fonts-recommended fonts-freefont-otf latexmk
 
       - name: Build the book
         run: jupyter-book build . --warningiserror --keep-going
+
+      - name: Build the course PDF
+        # The whole course as one document. Config lives under `latex:` in
+        # _config.yml. This is deliberately not restricted to main: a PDF that
+        # only breaks after merge is exactly the silent failure the rest of this
+        # workflow exists to prevent.
+        run: |
+          jupyter-book build . --builder pdflatex
+          cp _build/latex/course.pdf _build/html/course.pdf
+
+      - name: Check the PDF is a whole course and not a stub
+        # A LaTeX run can succeed and still produce something truncated, so
+        # check the artifact rather than the exit code: it has to be book-sized
+        # and it has to contain text from both ends of the semester.
+        run: |
+          python - <<'PY'
+          import sys
+          from pypdf import PdfReader
+
+          reader = PdfReader("_build/html/course.pdf")
+          pages = len(reader.pages)
+          text = "\n".join((p.extract_text() or "") for p in reader.pages)
+
+          problems = []
+          if pages < 200:
+              problems.append(f"only {pages} pages; expected a whole course")
+          for probe, label in [
+              ("tiny in proportion", "L1"),
+              ("retrieval", "L17"),
+              ("Grading", "the syllabus"),
+              ("→", "non-ASCII typography (font coverage)"),
+          ]:
+              if probe not in text:
+                  problems.append(f"no text from {label} (probe {probe!r})")
+
+          if problems:
+              for p in problems:
+                  print(f"::error::course.pdf {p}")
+              sys.exit(1)
+          print(f"OK: course.pdf is {pages} pages, {len(text.split()):,} words")
+          PY
 
       - name: Render MARP slide decks
         # Each deck renders into its OWN directory as index.html, and that
@@ -82,6 +136,7 @@ jobs:
       - name: Check the build produced something
         run: |
           test -f _build/html/index.html || { echo "::error::book build produced no index.html"; exit 1; }
+          test -f _build/html/course.pdf || { echo "::error::course.pdf did not reach the site"; exit 1; }
           echo "Slide decks rendered:"
           ls -1 _build/html/slides/ 2>/dev/null || echo "  (none yet)"
 
