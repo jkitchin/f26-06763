@@ -76,3 +76,9 @@ parts:
     chapters:
       - file: course/miniproject
       - file: course/final-project
+
+  - caption: Optional material
+    chapters:
+      - file: course/optional/overview
+        sections:
+          - file: course/optional/how-this-course-was-built

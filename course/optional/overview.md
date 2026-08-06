@@ -1,0 +1,47 @@
+# Optional material
+
+Nothing in this section is examinable, and no assignment depends on it. It exists for a
+different reason.
+
+The syllabus is a list of tools, and tools age. The parts of this course most likely to
+still be useful to you in five years are not the tools but the habits around them: how you
+decide which tool deserves your attention, how you get your bearings in an area you have
+never worked in, how you tell a measured result from a plausible one, and how you keep a
+project honest as it grows past what one person can hold in their head. Those habits are
+hard to put in a lecture, because they are not topics. They show up as the way work gets
+done.
+
+So this section collects material that shows the work rather than teaching a topic. Read it
+when you are curious about the method, or when a lecture leaves you wondering how anyone
+would have known that.
+
+## What is here
+
+**[How this course was built, and what to take from that](how-this-course-was-built.md)**
+is a case study in tool triage and in navigating an unfamiliar problem, using this
+repository's own construction as the example. It covers the conventions file that governs
+every lecture and how its rules were each paid for once, the tools chosen and the reasons
+including one case where the newer version lost, a table of eight claims that changed when
+somebody actually measured them, what the collaboration with an AI assistant did and did not
+do, and a roadmap for building the same discipline into your own work. It closes with a
+reading path through the repository.
+
+## What may be added
+
+The section is meant to grow when there is something worth adding, not on a schedule.
+Candidates, none of which exist yet:
+
+An **annotated reading list** beyond the per-lecture resources, for people who want to go
+deeper into one arc rather than broader across all of them. There is an
+[open issue](https://github.com/jkitchin/f26-06763/issues/35) collecting suggestions.
+
+A **postmortem of the assignments**, written after they have been graded once, recording
+which parts turned out to teach what they were supposed to and which did not.
+
+A **guide to the engineering datasets** used across the semester: where each comes from,
+what is wrong with it, and what it can and cannot support. Several are already discussed in
+the lectures that use them, but the survey view would be useful when you are choosing data
+for a capstone.
+
+If you work through something in this course and find that the useful part was a method
+nobody wrote down, that is a good candidate for this section. Say so.
