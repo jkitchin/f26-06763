@@ -378,6 +378,31 @@ def check_bank_level(bank: Bank) -> None:
                 f"{len(items)} items; the floor is {MIN_ITEMS_PER_LECTURE} per published lecture",
             )
 
+        # Serving the whole pool makes the item-set half of the anti-forgery
+        # design inert: every student gets every item, so a copied PDF carries a
+        # perfectly ordinary item set. Only the ordering would still differ.
+        serve = data.get("serve")
+        if isinstance(serve, int) and items:
+            if serve > len(items):
+                bank.err(
+                    lecture,
+                    f"serve: {serve} exceeds the {len(items)}-item pool",
+                )
+            elif serve == len(items):
+                bank.err(
+                    lecture,
+                    f"serve: {serve} equals the pool size, so every student is "
+                    "served every item and item-set personalization does nothing. "
+                    "Lower serve or add items.",
+                )
+            elif len(items) < 1.5 * serve:
+                bank.warn(
+                    lecture,
+                    f"pool of {len(items)} against serve of {serve}: two students "
+                    "will share most of their items. Aim for at least 2x, "
+                    "ideally 3x.",
+                )
+
         covered: set[str] = set()
         for item in items:
             iid = item.get("id", "<no id>")

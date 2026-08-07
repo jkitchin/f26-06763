@@ -14,7 +14,16 @@ lecture: l15
 title: "Foundation models and LLMs at a systems level"
 source_notes: lectures/l15/notes.md
 status: published
-serve: 12
+
+# Serve fewer than the pool holds, or every student gets every item and the
+# item-set half of the anti-forgery design does nothing. Measured on this pool:
+# at serve 12 of 12 two students share 12/12 items, at serve 8 they share 5/8.
+# validate.py enforces the floor.
+#
+# GROWTH TARGET: 20+ items, at which point serve can go back to 12 with real
+# set-level personalization. The twelve below are the hand-written exemplars;
+# Phase 2 drafts the rest against them.
+serve: 8
 pool_version: 1
 provenance:
   drafted_by: hand

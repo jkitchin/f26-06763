@@ -98,7 +98,7 @@ export function selectionSeed(andrewId: string, lecture: string, poolVersion: nu
  */
 export class Rng {
   private ctr = 0
-  private buf = new Uint8Array(0)
+  private buf: Uint8Array<ArrayBufferLike> = new Uint8Array(0)
   private readonly seed: Uint8Array
 
   // A plain assignment rather than a TypeScript parameter property, so this
