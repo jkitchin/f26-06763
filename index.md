@@ -21,12 +21,18 @@ or after class rather than projected during it, so they carry the full argument 
 links to primary sources. The slides used in class are linked from the top of each set of
 notes.
 
-The entire course is also available as a single PDF, rebuilt on every change:
-<a href="course.pdf">course.pdf</a>. It contains the syllabus, the schedule, every set of
-notes, every demo notebook, the assignments, and the optional material, with a table of
-contents and page numbers. Useful for reading offline, for annotating, and for searching
-the whole semester at once. The slide decks are not in it; they are linked from each
-lecture instead.
+:::{admonition} The whole course as one PDF
+:class: tip
+
+<a href="course.pdf"><strong>Download course.pdf</strong></a>, rebuilt on every change to
+this site.
+
+It contains the syllabus, the schedule, every set of notes, every demo notebook, the
+assignments, and the optional material, with a table of contents, numbered sections and
+figures, and page numbers. Useful for reading offline, for annotating, and for searching
+the whole semester at once. The slide decks are not in it; they are linked from the top of
+each set of notes.
+:::
 
 ## Toolchain
 

@@ -7,6 +7,15 @@
 > Logistics (term, meeting times, room, instructor/TA contacts, office hours, course
 > management system) are filled in per offering — see `[TERM DETAILS]` placeholders below.
 
+:::{admonition} The whole course as one PDF
+:class: tip
+
+<a href="../course.pdf"><strong>Download course.pdf</strong></a>: this syllabus, the
+schedule, every set of lecture notes, every demo notebook, the assignments, and the
+optional material, in one searchable document with page numbers. Rebuilt on every change
+to the site.
+:::
+
 ---
 
 ## Course Description
