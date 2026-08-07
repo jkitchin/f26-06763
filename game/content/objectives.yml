@@ -1,0 +1,24 @@
+# Learning objectives, lifted verbatim from each lecture's "## Learning objectives"
+# section. validate.py re-parses those bullets and fails if `text` has drifted, so
+# this file cannot silently fall out of step with the notes.
+#
+# Do not edit `text` by hand to make a check pass. If the notes changed, the
+# objective changed, and the items mapped to it need re-reading.
+
+- id: l15-o1
+  lecture: l15
+  text: >-
+    Build a correct-enough mental model of a decoder-only LLM to reason about failure modes
+    (truncation, hallucination, context limits) rather than treat it as a black box.
+
+- id: l15-o2
+  lecture: l15
+  text: >-
+    Understand tokenization concretely: subword units, why "10.5 MPa" or "SS316L" may split
+    oddly, and how token counts drive cost/latency.
+
+- id: l15-o3
+  lecture: l15
+  text: >-
+    Understand embeddings as vectors and use cosine similarity to cluster/retrieve
+    engineering text.
