@@ -462,6 +462,10 @@ before editing that job:
   title probe compares with whitespace removed, because a long title wraps on the rendered
   slide and L17's does.
 
+Measured on the green run that introduced it, 14 decks and 874 pages: 49s to render the
+deck PDFs and 9s to check them, so about a minute on top of the job. The per-deck PDFs are
+intermediates in `_build/slides-pdf/` and are not published; only the merged file is.
+
 **Verifying a deploy.** There are three separate things here and they fail independently.
 
 *The page returns 200.* That does not tell you it rendered. Confirm an asset URL from the
