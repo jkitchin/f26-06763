@@ -58,6 +58,9 @@ By the end of this session you should be able to:
 
 ## CI/CD for ML and LLM systems
 
+```{index} continuous integration, metric gate
+```
+
 Ordinary software CI answers one question: does the code still do what its tests say it should.
 An ML or LLM system needs that question answered too, but it is not sufficient, because the
 code can be entirely unchanged while the system's actual behavior degrades, a prompt edit that
@@ -91,6 +94,17 @@ handful of repeated runs against a confidence interval, in the same spirit as L2
 CI, rather than a single number compared with `==`.
 
 ## Detecting drift without waiting for labels
+
+```{index} drift, Kolmogorov-Smirnov test, rolling baseline
+```
+```{index} single: drift; data drift
+```
+```{index} single: drift; concept drift
+```
+```{index} single: drift; prediction drift
+```
+```{index} pair: metric; population stability index
+```
 
 A model's accuracy can degrade in production long before you have any labels to measure it
 against, because ground truth for an engineering prediction, whether a part actually failed,
@@ -158,6 +172,13 @@ which of the three drift types it is consistent with, not to assume the model ha
 
 ## Cost in production, tracked over time
 
+```{index} rate limit
+```
+```{index} pair: failure mode; retry storm
+```
+```{index} pair: failure mode; runaway agent loop
+```
+
 Cost per request is not a number you compute once at launch and file away; it moves, usually
 upward, for reasons that are individually small and cumulatively expensive. **Prompt and
 context bloat**, a RAG system's retrieved context growing as the corpus grows, or a system
@@ -173,6 +194,9 @@ a hard cap on spend per hour or per user, are the blunt but reliable backstop fo
 monitoring catches the trend too late to matter.
 
 ## Failure modes and concrete guardrails
+
+```{index} guardrail
+```
 
 A guardrail that is not tied to a specific, named failure mode is not a guardrail, it is a
 sentence that sounds like one. The module's own teaching note is blunt about this: "we'll add
@@ -201,6 +225,11 @@ require a human sign-off before the guarded action proceeds, is worth doing on p
 your final project, not after something goes wrong.
 
 ## Responsible AI for engineering decisions
+
+```{index} model card, system card, datasheet, NIST AI Risk Management Framework
+```
+```{index} pair: failure mode; automation bias
+```
 
 Engineering AI is distinguished from a general-purpose chatbot by exactly the thing that makes
 this section non-optional: its recommendations frequently feed decisions with physical, safety,

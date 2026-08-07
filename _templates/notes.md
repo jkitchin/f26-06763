@@ -19,6 +19,11 @@ Write it like a chapter of a textbook: developed, connected paragraphs, not a
 bulleted outline with sentences attached. Surface the surprises. A full set runs
 to several thousand words. lectures/l03/notes.md is the reference for depth and
 voice. See CLAUDE.md section 4 for the full convention.
+
+Index the terms as you write, not afterwards: twelve to twenty {index} entries,
+one directive under each heading that defines something. lectures/l04/notes.md is
+the reference, CLAUDE.md section 4b is the convention, and CI rejects a lecture
+that arrives without them.
 -->
 
 ## Why this matters
@@ -41,8 +46,16 @@ By the end of this session you should be able to:
 
 ## Main section one
 
+```{index} first term, second term, third term
+```
+```{index} pair: failure mode; the thing that goes wrong here
+```
+
 The body of the notes. Use three to six H2 sections that follow the **Topics** list of the
 matching lecture block in `course/modules/wkNN.md`, expanded from bullets into narrative.
+One `{index}` directive per line, an untyped line splitting on commas into separate
+entries; see CLAUDE.md section 4b, and note that a second line inside one directive is a
+build error rather than a second entry.
 
 Write in connected prose. A student who missed class should be able to read this and
 follow the argument without the slides. Where a concept has a name in the literature,

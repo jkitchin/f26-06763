@@ -49,6 +49,9 @@ By the end of this session you should be able to:
 
 ## Tensors, and the dtype that will bite you
 
+```{index} tensor, dtype, broadcasting
+```
+
 A PyTorch **tensor** is a NumPy array with three extra properties: it knows what **device** it
 lives on, it optionally records the operations performed on it so they can be differentiated,
 and it has a `dtype` that is not the one NumPy would have picked. The first two are the point
@@ -72,6 +75,11 @@ multiplied (64x8 and 64x1)` is telling you the batch is 64, the features are 8, 
 downstream expected a different orientation.
 
 ### The dtype trap, measured
+
+```{index} float32, float64
+```
+```{index} pair: failure mode; float32 precision loss
+```
 
 `torch.tensor(3.14)` gives you a **float32** tensor. `torch.tensor(np.float64(3.14))` gives you
 float64. NumPy defaults to float64 and PyTorch defaults to float32, and when a float32 tensor
@@ -102,6 +110,11 @@ the boundary would have.
 :::
 
 ## Automatic differentiation, demystified
+
+```{index} automatic differentiation
+```
+```{index} single: automatic differentiation; reverse mode
+```
 
 The reason deep learning works at all is that you can compute the gradient of a scalar loss with
 respect to millions of parameters for roughly the cost of two forward passes. That is not
@@ -209,6 +222,9 @@ of a validation score that mysteriously differs from the test score computed by 
 
 ## The anatomy of a training loop
 
+```{index} training loop, DataLoader, loss function, optimizer, Adam, AdamW
+```
+
 With the gradient understood, the loop is short. Four objects and five lines.
 
 A **`Dataset`** answers two questions, `__len__` and `__getitem__`, and a **`DataLoader`**
@@ -275,6 +291,9 @@ compilation pays when there are many small operations to collapse, which is the 
 that decides whether a GPU pays, and that is the next section.
 
 ## Devices, and what an accelerator actually buys
+
+```{index} GPU, device placement
+```
 
 Moving to a GPU is two lines: `model.to(device)` and `x.to(device)`. The rules are few. Model
 and data must be on the same device or you get a clear error, which is the good case. Anything
@@ -429,6 +448,13 @@ different amounts.
 
 ## Three ways a first training loop dies
 
+```{index} learning rate
+```
+```{index} pair: failure mode; forgetting zero_grad
+```
+```{index} pair: failure mode; unscaled inputs
+```
+
 The module's teaching notes name the failures that occupy the first lab session. Each is worth
 seeing measured, because each looks different from what you would guess.
 
@@ -477,6 +503,9 @@ neural network.
 :::
 
 ## Reproducibility, and the seeds that actually matter
+
+```{index} random seed
+```
 
 A deep learning run has more sources of randomness than a scikit-learn fit: parameter
 initialisation, batch shuffling, dropout masks, and on GPU the non-deterministic reduction order

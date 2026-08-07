@@ -27,6 +27,9 @@ By the end of this session you should be able to:
 
 ## Row stores and column stores
 
+```{index} row store, column store, OLTP, OLAP, column projection, predicate pushdown
+```
+
 Every database has to decide, at the lowest level, how to place a table's values on disk, and there are two natural answers. A **row store** keeps the values of each row together: row one's every column, then row two's every column, and so on. A **column store** keeps the values of each column together: every row's timestamp, then every row's mote id, then every row's temperature. The logical table is identical either way; what differs is which values end up physically adjacent, and that adjacency decides what is cheap.
 
 ```{figure} figures/row-vs-column.png
@@ -50,6 +53,9 @@ The 80-times figure comes from `make_figures.py` running the same `avg(temperatu
 
 ## Parquet: a columnar file format
 
+```{index} Parquet, row group, column chunk, partition pruning
+```
+
 Columnar is an idea about layout; **Parquet** is the file format that has become its standard on-disk realization, and it is worth knowing its shape because you will produce and consume it constantly. A Parquet file stores a table column by column, but not naively as one giant column at a time, which would make writing and partial reads awkward. Instead it divides the rows into **row groups**, horizontal slices of perhaps a few hundred thousand rows, and within each row group it stores each column's values together as a **column chunk**, encoded and compressed on its own. The file ends with a footer of metadata that records the schema and, for every column chunk, small statistics including the minimum and maximum value. That footer is what makes a Parquet file self-contained: the types travel inside the file, so a reader needs no external schema to make sense of it, and the per-chunk statistics are what let a reader skip row groups that cannot match a filter.
 
 Two practical consequences follow. Because each column chunk is compressed independently and holds one type of similar values, Parquet routinely stores engineering data in a fraction of the space of the CSV it came from, which is the 5.5-times reduction the figure above measured. And because the format is just a file, or a directory of files, it needs no server: you write it, copy it, put it in object storage, and any tool that speaks Parquet can read it. You will most often write it from pandas with `df.to_parquet(...)` or from PyArrow directly, and read it back the same way.
@@ -63,6 +69,11 @@ Parquet is a file format, not a database, and it is easy to expect database beha
 :::
 
 ## DuckDB: SQL analytics inside your process
+
+```{index} DuckDB, embedded database
+```
+```{index} single: DuckDB; postgres extension
+```
 
 If Parquet is where analytical data rests, **DuckDB** is the engine that reads it, and its defining choice is that it runs *inside your process*. It is an in-process SQL database tuned for OLAP, with no server to start, no connection to manage, and no data to load into it first: you `import duckdb` and you are querying. The useful mental shorthand is that DuckDB is to analytics what SQLite is to transactions, an embedded database you drop into a program, though that phrasing is the course's framing rather than a claim DuckDB makes about itself. What makes it worth a lecture is that it collapses the distance between your files and your queries.
 
@@ -96,6 +107,11 @@ The same analytical query, `avg(temperature)` per mote over the whole table, as 
 
 ## The wider landscape: document, key-value, time-series, and vector stores
 
+```{index} document store, key-value store, time-series database, vector database, FAISS
+```
+```{index} see: vector store; vector database
+```
+
 The relational database and the columnar file cover an enormous fraction of engineering data between them, but not all of it, and part of being fluent here is knowing the rest of the landscape well enough to recognize when a problem has outgrown a table. Each of the stores below trades away one of the guarantees you learned to value in L3, usually the rigid schema or the joins, in exchange for a better fit to a particular access pattern.
 
 **Document stores**, of which MongoDB is the archetype, keep data as documents, JSON-like objects, whose fields can vary from one document to the next without a schema declared up front. That flexibility is exactly wrong for uniform sensor readings, where the schema contract is the whole point, and exactly right for heterogeneous experiment metadata, where run A recorded three parameters and run B recorded eleven and next month's run will record a set nobody has thought of yet. When the shape of the data is genuinely irregular and unpredictable, the relational schema stops protecting you and starts fighting you, and a document store fits.
@@ -110,9 +126,15 @@ This session has been an argument for columnar storage and for DuckDB, and it is
 
 ### Columnar is the wrong home for writes and updates
 
+```{index} pair: failure mode; point writes to a column store
+```
+
 The layout that makes analytical scans fast makes changes slow, and Parquet makes this concrete: a Parquet file is effectively immutable. You add data by writing new files, and you change a value by rewriting the file that holds it, because there is no in-place update and no row-level write. For data that arrives in batches and is read far more than written, that is fine, even helpful. For data that is constantly corrected and updated one record at a time, it is a poor fit, and the record belongs in the row store from L3. Column stores lose the point write; that is not a defect to engineer around but a property to respect.
 
 ### DuckDB is an engine, not a shared server
+
+```{index} pair: failure mode; DuckDB as a shared server
+```
 
 DuckDB runs inside one process, which is the source of its convenience and also its boundary. It is superb for one analyst's laptop, one pipeline's transform step, one service's embedded analytics. It is not a shared transactional backend that many clients write to concurrently with the isolation guarantees PostgreSQL provides, and it is not trying to be. When several writers need a single consistent view under concurrent updates, that is the relational server's job. DuckDB complements it, most naturally through the `postgres` attachment that lets it read the server's data for analysis without becoming the server.
 

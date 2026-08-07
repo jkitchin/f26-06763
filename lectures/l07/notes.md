@@ -54,6 +54,9 @@ By the end of this session you should be able to:
 
 ## Time-series features from a per-unit trajectory
 
+```{index} remaining useful life, lag feature, rolling window feature, expanding window feature
+```
+
 The dataset for this session and next is NASA's C-MAPSS Turbofan Engine Degradation
 Simulation, published by Saxena and colleagues at the 2008 Prognostics and Health Management
 conference: run-to-failure sensor trajectories for fleets of simulated turbofan engines, one
@@ -173,6 +176,9 @@ anything.
 
 ## Physical and domain features
 
+```{index} domain feature, spectral feature, band energy, unit consistency
+```
+
 Not every useful feature comes from a rolling window over a raw channel. **Dimensionless
 groups**, ratios engineered specifically to be independent of a system's absolute scale, are
 frequently more informative than any of the raw quantities they are built from. Engineers have
@@ -198,6 +204,9 @@ treating as a first-class engineering requirement rather than a habit of careful
 because the cost of getting it wrong is not hypothetical.
 
 ### Case study: a $327 million unit mismatch
+
+```{index} pair: case study; Mars Climate Orbiter
+```
 
 NASA's Mars Climate Orbiter launched on 11 December 1998 to study the Martian atmosphere and
 relay data from a companion lander. On 23 September 1999 it fired its main engine to enter
@@ -332,6 +341,9 @@ def band_energy(signal, fs, f_lo, f_hi):
 
 ## Scaling, encoding, and fitting on train only
 
+```{index} standardization, robust scaling, Box-Cox transform, one-hot encoding
+```
+
 Most models, and nearly all linear ones, are sensitive to the scale of their inputs, so the
 raw sensor and setting columns almost always need transforming before they reach a model.
 **Standardization** (subtract the mean, divide by the standard deviation) is the default,
@@ -420,6 +432,11 @@ established your baseline is months old.
 :::
 
 ## A leakage-safe pipeline, and what "safe" actually buys you
+
+```{index} data leakage, scikit-learn pipeline, feature store
+```
+```{index} pair: failure mode; fitting a scaler before the split
+```
 
 Scikit-learn's `Pipeline` and `ColumnTransformer` exist to make the fit-on-train-only rule
 close to unbreakable rather than merely well understood. A `Pipeline` chains a sequence of

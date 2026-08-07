@@ -224,6 +224,130 @@ that the primary sources contradict.
 
 ---
 
+## 4b. The index
+
+The site publishes a general index at `/f26-06763/genindex.html`, built from `{index}`
+entries in the notes. Search answers "which pages contain this string"; a student in week
+ten is asking something else, which is where this was explained, and twenty-six sessions is
+well past the point where anyone remembers. The index is also the only way to enumerate the
+case studies section 4 requires every set of notes to carry, which are otherwise scattered
+across a semester with nothing that lists them.
+
+It is linked from `index.md` with `` {ref}`general index <genindex>` ``. That is a role
+rather than the raw HTML anchor the decks and the PDFs need, and the difference is not
+inconsistency: `genindex` is a label Sphinx knows about, so Sphinx computes the relative
+href itself and the link is correct from the landing page and from a lecture page alike,
+with no `/f26-06763/` hardcoded anywhere. The decks and the PDFs are not Sphinx documents at
+all, which is why they get anchors.
+
+An index is only as good as the entries somebody remembered to write, and a lecture that
+ships without them fails nothing on its own: the build is green, the page renders, the term
+simply is not in the index. So CI checks for them, in the two places described in section 8.
+
+**Syntax.** One entry line per directive, placed at the top level of the document:
+
+````markdown
+```{index} Parquet, row group, predicate pushdown
+```
+````
+
+An untyped line is split on commas into separate top-level entries, so that is three. Typed
+entries are not split and each needs its own directive:
+
+````markdown
+```{index} single: Parquet; row group
+```
+```{index} pair: metric; nDCG
+```
+```{index} see: RAG; retrieval-augmented generation
+```
+````
+
+**A second line inside one directive is an error, not a second entry.** MyST hands the index
+directive only the first line and treats the rest as directive content, which this directive
+does not accept, so the build fails under `--warningiserror` with "Has content, but none
+permitted". reStructuredText allows the stacked form and nearly every example online uses
+it. It does not work here.
+
+**What to index.** Technologies and tools by proper name, file formats and protocols,
+concepts the notes actually define, failure modes, named case studies, and metrics. What not
+to index: generic nouns ("data", "model"), a term the notes name only in passing, or a
+section title restated. An entry is a promise that the paragraph it points at explains the
+thing, so index where a term is defined, not everywhere it appears.
+
+**`pair:` is for the three clusters, and nothing else.** `pair: a; b` emits both "a, b" and
+"b, a", so a term keeps its own alphabetical position while also gathering under a heading.
+Three categories use that, and they are most of what makes this index worth having:
+`pair: case study; Therac-25`, `pair: failure mode; training-serving skew`, and
+`pair: metric; nDCG`. The category word is singular and lowercase.
+
+**`see:` expands acronyms**, with the expansion as the canonical entry:
+`see: RAG; retrieval-augmented generation`. The exception is an acronym that is the field's
+real name, which BM25, nDCG, OLAP, and OLTP are, and those stay as themselves. `see:` is
+also the one-line repair when a variant spelling reaches `main`: add
+`see: parquet file; Parquet` rather than renaming across lectures.
+
+**How many.** Twelve to twenty per set of notes, roughly two per body section, and at least
+one under every H2 that defines something. Only `lectures/*/notes.md` is indexed. Not the
+syllabus, not the assignments, not the optional material, not the notebooks, so that
+following a page reference always lands you somewhere that explains the term.
+
+**Where the directive goes.** Immediately after the heading of the section that defines the
+terms, with a blank line either side, at the top level of the document. The index link then
+lands the reader at the section that explains the term rather than at the top of the page.
+Never put one inside an `:::{admonition}` body, a figure, or a table: those become fragile
+LaTeX environments in the PDF build, and an `\index{}` inside one breaks it for a reason
+nobody will guess from the error.
+
+**Entry text is more constrained than it looks**, and every one of these fails silently
+rather than loudly, because Sphinx parses the entry long before LaTeX sees it. A comma in an
+untyped entry splits it in two. A semicolon splits an entry from its subentry. A leading `!`
+promotes it to a main entry. A leading `module:`, `keyword:`, `operator:`, `object:`,
+`exception:`, or `statement:` is reinterpreted as a legacy Python index type. So: no commas,
+no semicolons, no leading `!`, and no leading reserved word plus colon. If a term genuinely
+contains a comma, rewrite the term.
+
+Beyond those, keep out `| " \ { } $ % # ^ ~ < >`, and keep entries ASCII. Both are checked
+by CI. Everything else is safe, including the characters that look dangerous: `Recall@k`
+and `zero_grad` are fine entries, because `sphinx/writers/latex.py` escapes `@`, `!`, `"`,
+`|` and the LaTeX specials before the index processor ever sees them. The hazard is
+Sphinx's own entry parser, not LaTeX's.
+
+The ASCII rule is the one that comes from outside Sphinx. The body of these notes carries
+34 distinct non-ASCII characters and that is fine, but the *index* is typeset by
+`makeindex`, which sorts non-ASCII text badly. `_config.yml` selects it with
+`latex_use_xindy: false`, because Sphinx's default index processor for xelatex is xindy, a
+separate apt package the CI TeX install does not carry. Write `R-squared` rather than `R²`,
+and `Karman vortex street` rather than the accented spelling.
+
+**Canonical form.** Proper nouns keep their own capitalization, including the deliberately
+lowercase ones: Parquet, DuckDB, PostgreSQL, nDCG, `uv`. Everything else is lowercase:
+predicate pushdown, row group, drift. Singular, always, so "row group" and not "row groups".
+Noun phrases, with no leading article and no trailing punctuation.
+
+**Check the vocabulary before inventing a variant.** There is no separate list of approved
+terms, deliberately: a second copy would drift from the notes, and authors would trust it
+anyway. The notes are the list, and this is how to read it:
+
+```bash
+# Every entry in the book, with the lecture it came from.
+grep -n '^```{index}' lectures/*/notes.md | sed 's/```{index} //'
+
+# Does the course already index something like this?
+grep -hi '^```{index}.*parquet' lectures/*/notes.md
+```
+
+CI fails the build when two lectures write one term two ways, comparing case-insensitively
+and ignoring a trailing "s", so "Parquet" and "parquet" will not both survive. It cannot see
+"Parquet" against "Parquet format", which is what the grep is for.
+
+`lectures/l04/notes.md` is the worked reference for indexing. Section 9's standing advice to
+match L1 is about structure; for terminology L4 is the model, because its vocabulary
+(Parquet, DuckDB, row store, column store, row group, predicate pushdown, OLAP, OLTP) is the
+cleanest in the course.
+
+---
+
 ## 5. Slide decks
 
 `lectures/lNN/slides.md`. MARP markdown. Start from `_templates/slides.md`.
@@ -406,6 +530,11 @@ npx @marp-team/marp-cli lectures/l01/slides.md --pdf --allow-local-files -o /tmp
 
 # Watch a deck while writing it
 npx @marp-team/marp-cli -w lectures/l01/slides.md -o /tmp/l01.html
+
+# How the index came out. genindex is a builder output rather than a source
+# file, so it is in neither _toc.yml nor the sidebar, and nothing but this
+# and the CI check will tell you it went empty.
+open _build/html/genindex.html
 ```
 
 CI (`.github/workflows/book.yml`) builds the book, builds the course PDF, renders every
@@ -413,6 +542,15 @@ CI (`.github/workflows/book.yml`) builds the book, builds the course PDF, render
 merged `slides.pdf`, checks that no `course/modules/` page leaked into the output, deploys
 to Pages on push to `main`, and then verifies that the deploy actually landed. Pull
 requests build as a check but do not deploy.
+
+**The index** is checked twice, for the reason section 4b gives: missing entries are
+invisible in a green build. A source lint runs before anything is installed, so it fails in
+seconds rather than after the TeX install, and it rejects a lecture carrying fewer than ten
+entries, an entry holding a character that Sphinx's parser or `makeindex` would mishandle,
+and any term written two ways across two lectures. Then an artifact check reads
+`_build/html/genindex.html` back and fails if it is missing or thin, because an empty index
+builds perfectly. Both scripts are self-contained `python3` heredocs in the workflow; run
+them by hand before pushing.
 
 **The PDF.** `--builder pdflatex` produces the whole course as one document, and CI copies
 it to `_build/html/course.pdf` so it is downloadable at `/f26-06763/course.pdf`. It is
@@ -431,6 +569,17 @@ Three things about it are load-bearing and live under `latex:` in `_config.yml`:
   *unescaped* (see `jupyter_book/config.py`, `latex_doc_overrides`), and the `&` in this
   course's title fails the LaTeX run with `Misplaced alignment tab character &`. The
   override supplies an escaped `\&`. Do not "simplify" it away.
+
+The PDF carries an index of its own, typeset at the end from the same `{index}` entries by
+`makeindex` running under `latexmk`. Two things about that are worth knowing. The processor
+is `makeindex` only because `_config.yml` sets `latex_use_xindy: false`; Sphinx's default
+for xelatex is xindy, which is an apt package (and a clisp dependency) the TeX install here
+does not carry, and the resulting `latexmkrc` would call a binary that is not there. That
+would not have failed before this: with no index entries the `.idx` file is empty, latexmk
+skips the index step, and the missing processor never comes up. Second, nothing in the chain
+fails loudly even now, because if the index step is skipped `\printindex` simply produces
+nothing and the document ships with a blank Index page. So CI asserts that
+`_build/latex/course.ind` came out non-empty, that file being the evidence the chain ran.
 
 Measured on a green run rather than estimated: the whole CI job takes 4m46s, of which the
 TeX install is 134s, the PDF build 55s, and the artifact check 13s. The PDF build runs on
@@ -512,12 +661,16 @@ stale data and would defeat its entire purpose.
 1. Read `course/modules/wkNN.md` for that lecture's block. It is the spec.
 2. `mkdir -p lectures/lNN` and copy both templates in.
 3. Write `notes.md` first, then compress it into `slides.md`. Notes before slides, always.
-4. Add `demo.ipynb` if the module file specifies a live demo.
-5. **Add the notes file to `_toc.yml`** under the Lectures part, in session order, as an
+4. **Add the index entries while the notes are still in your head**, twelve to twenty of
+   them, following section 4b. Left until later this means rereading the whole thing, which
+   means it does not get done, and CI will reject the lecture for it.
+5. Add `demo.ipynb` if the module file specifies a live demo.
+6. **Add the notes file to `_toc.yml`** under the Lectures part, in session order, as an
    extensionless path: `- file: lectures/lNN/notes`. It will not be built otherwise,
    because `only_build_toc_files` is on.
-6. Update the deck link in the notes to `../../slides/lNN.html`.
-7. Build locally with `--warningiserror` and confirm it renders before pushing.
+7. Update the deck link in the notes to `../../slides/lNN.html`.
+8. Build locally with `--warningiserror`, run the workflow's index lint by hand, and confirm
+   the page and its index entries render before pushing.
 
 `lectures/l01/` is the worked reference. When something here is ambiguous, match L1.
 
@@ -551,3 +704,6 @@ Add to it when something is worth adding, not on a schedule.
 - Do not write slides first and back-fill the notes.
 - Do not commit rendered output (`_build/`), large data files, or `node_modules/`.
 - Do not create parallel variants of a file. Edit the canonical one in place.
+- Do not ship a set of notes with no `{index}` entries. See section 4b.
+- Do not invent a second spelling of a term the index already carries. Grep first, and use
+  `see:` if the variant genuinely needs to resolve.

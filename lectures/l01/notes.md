@@ -62,6 +62,9 @@ By the end of this session you should be able to:
 
 ## The system view, and where the work actually is
 
+```{index} integration failure
+```
+
 Name the stages explicitly, because each one becomes a later arc of the course: data
 acquisition, storage, pipelines, features, training, evaluation, deployment, and
 monitoring. Read left to right that looks like a linear process, which is the first thing
@@ -75,6 +78,11 @@ another way in serving, or a source that silently started returning nulls. These
 integration failures, and cross-validation cannot see them.
 
 ### Case study: 15,841 cases that fell off the end of a spreadsheet
+
+```{index} hidden technical debt
+```
+```{index} pair: case study; Public Health England case loss
+```
 
 In late September 2020, Public Health England was moving COVID-19 test results from a
 laboratory surveillance system into the national contact-tracing system. Commercial labs
@@ -114,12 +122,18 @@ not know it exists, and you break it.
 
 ## Validating well is not evidence that a system works
 
+```{index} big data hubris, algorithm dynamics
+```
+
 This is the hardest lesson in the course to accept, because it contradicts the way machine
 learning is usually taught and assessed. A model can be validated carefully, by a competent
 team, using a protocol stricter than most production work receives, and still be wrong for
 years in deployment.
 
 ### Case study: Google Flu Trends
+
+```{index} pair: case study; Google Flu Trends
+```
 
 Google Flu Trends launched in November 2008 with a genuinely attractive premise. Influenza
 surveillance ran on a one to two week reporting lag, and search queries were available
@@ -173,6 +187,9 @@ you exist.
 :::
 
 ## Why engineering data is different
+
+```{index} sensor calibration, sensor drift, provenance
+```
 
 Everything above applies to machine learning generally. Three properties of engineering
 data sharpen it further.
@@ -240,6 +257,9 @@ rather than as good hygiene.
 
 ### Case study: a single angle-of-attack sensor
 
+```{index} pair: case study; Boeing 737 MAX
+```
+
 The 737 MAX accidents are the sharpest available illustration that in engineering systems,
 where a number comes from is part of the safety argument. The discussion here is limited to
 what the accident investigations concluded.
@@ -289,6 +309,9 @@ the semester we come back to it. Read this section for orientation rather than d
 
 ### Storage: where engineering data actually lives
 
+```{index} relational database, columnar file, embedded database, vector database
+```
+
 Most engineering analysis starts life in CSV files and stops scaling almost immediately. A
 CSV has no schema, no types, no constraints, and no way to read a column without reading
 every byte in the file. The PHE incident is what the far end of that road looks like.
@@ -310,6 +333,9 @@ problem. Scanning three columns across ten years is a columnar problem. Weeks 2 
 
 ### Pipelines: moving data without losing it
 
+```{index} batch processing, stream processing, data validation
+```
+
 A pipeline is the code that gets data from where it lands to where it is used, and it is
 usually the largest and least loved part of the system. Two shapes matter. **Batch**
 processing runs on a schedule over a bounded chunk of data and is what most engineering
@@ -325,6 +351,9 @@ habit in this course. Tools like `pandera` and Great Expectations exist to make 
 declarations executable. Weeks 3 and 4.
 
 ### Training: what actually happens
+
+```{index} automatic differentiation
+```
 
 Training is an optimization loop. You define a model with adjustable parameters, a loss
 function measuring how wrong it is, and then repeatedly compute the gradient of that loss
@@ -343,6 +372,9 @@ beat before claiming anything. Weeks 5 and 6.
 
 ### Evaluation and experiment tracking
 
+```{index} experiment tracking
+```
+
 Evaluation is the discipline of knowing whether the thing works, and both case studies
 above are evaluation failures rather than modelling failures. It divides into choosing a
 protocol that reflects deployment (temporal splits for time series, grouped splits when
@@ -355,6 +387,9 @@ the provenance requirement from earlier becomes unmeetable. MLflow records param
 metrics, and artifacts per run, so one run equals one reproducible fact. Week 5.
 
 ### Packaging and deployment: containers
+
+```{index} container, FastAPI
+```
 
 Your model runs on your laptop. That is not a deliverable. Deployment is the work of making
 it run somewhere else, repeatedly, for someone who is not you.
@@ -375,6 +410,9 @@ Week 12.
 
 ### Monitoring and operations
 
+```{index} MLOps
+```
+
 Deployment is where most courses stop and where the actual lifetime of a system begins.
 Models degrade because the world moves, exactly as the calibration figure above shows.
 **Monitoring** means watching input distributions for drift, watching predictions for
@@ -387,6 +425,9 @@ does not reach everyone at once, and the ability to roll back. Flu Trends is wha
 looks like when it is absent. Week 13.
 
 ### Language models and agents
+
+```{index} token, context window, prompting, retrieval-augmented generation, fine-tuning, agent
+```
 
 A large language model is a next-token predictor trained on a very large corpus, and almost
 everything surprising about it follows from scale plus that simple objective. For systems
@@ -408,6 +449,9 @@ agents over your own tools, querying a database, running a simulation, or drivin
 instrument. Weeks 9 through 11.
 
 ### Security and responsibility
+
+```{index} pair: failure mode; prompt injection
+```
 
 Adding a language model to a system adds attack surface that most engineers have not met
 before. **Prompt injection** is the central one: if untrusted text reaches the context

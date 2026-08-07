@@ -49,6 +49,9 @@ By the end of this session you should be able to:
 
 ## What "agent" means here
 
+```{index} agent, workflow
+```
+
 Every system in this course before today has been a **workflow**: you, the engineer, wrote the
 control flow, and the model filled in one step of it. A RAG pipeline in L17 always retrieves,
 then always generates; the order and the branching are yours, fixed in code, and the model
@@ -71,6 +74,9 @@ should be picked for the same reason you would pick Dask over pandas in L5, beca
 thing stopped being adequate, not because it is the more impressive-looking option.
 
 ## The tool-calling loop, concretely
+
+```{index} tool calling, tool definition
+```
 
 Strip away every framework and an agent's execution loop is five steps, repeated. You send the
 model your **messages so far** plus the **tool definitions** it is allowed to use. The model
@@ -101,6 +107,9 @@ code *does*, is where every guardrail in L20 attaches, and it is also exactly th
 Replit incident's fix targets: making the default on the "does" side of that line read-only.
 
 ## Designing tools an LLM can use correctly
+
+```{index} JSON Schema
+```
 
 A tool is not just a function; it is a function plus a specification the model reads to decide
 *when* and *how* to call it, and that specification is a prompt in every meaningful sense, subject
@@ -143,6 +152,9 @@ never sees your docstring's intent, only the string in the schema.
 
 ## Planning patterns: how much reasoning to ask for
 
+```{index} ReAct, plan-then-execute
+```
+
 Not every task needs the model to reason about its plan out loud, and asking it to when it does
 not costs latency and tokens for no benefit. **Single-step tool use** is a model choosing exactly
 one tool and calling it once, the right shape when a task genuinely resolves in one lookup.
@@ -158,6 +170,11 @@ mostly wasted motion when the task is short enough that reasoning and acting in 
 have caught a bad turn just as fast.
 
 ## Bounding the loop
+
+```{index} max-step budget, loop detection
+```
+```{index} pair: failure mode; runaway agent loop
+```
 
 An agent loop with no bound is not a feature, it is an unmanaged liability, and this is the
 single idea this session most wants to leave you unable to forget. A **max-step budget** stops
@@ -183,6 +200,9 @@ mechanism: an agent trace is a run, the same as a training run, and it deserves 
 discipline about being recorded rather than trusted to memory.
 
 ## Determinism and testing
+
+```{index} temperature
+```
 
 Tool-calling reliability benefits from a **low sampling temperature**: a model deciding which of
 several tools to call, and with what arguments, is doing something closer to classification than

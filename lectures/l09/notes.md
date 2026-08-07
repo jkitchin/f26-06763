@@ -57,6 +57,9 @@ By the end of this session you should be able to:
 
 ## The supervised workflow, and the number you only compute once
 
+```{index} problem framing, held-out test set, error analysis
+```
+
 The supervised workflow has a canonical shape, and the reason to name its stages explicitly
 is that the stages are what keeps the accounting straight. You start with **problem framing**:
 what quantity is being predicted, from what inputs, at what time, and to support what
@@ -111,6 +114,9 @@ actually care about requires a calibrated power meter or a week of CFD, a model 
 to the other is worth building, and knowing how much you can trust it is the entire question.
 
 ## Baselines that have to be beaten
+
+```{index} baseline
+```
 
 A baseline is not a formality and it is not a courtesy to the reader. It is the *unit* in
 which every later result is denominated. Without one, an RMSE of 3.4 MW is an uninterpretable
@@ -179,6 +185,9 @@ model across the five published shuffles moves the RMSE by ±0.05 MW. The random
 :::
 
 ### Case study: 50 million candidate predictors and one missing baseline
+
+```{index} pair: case study; Google Flu Trends
+```
 
 In 2009, a team from Google and the CDC published [a method for tracking influenza from search
 queries](https://research.google.com/archive/papers/detecting-influenza-epidemics.pdf) in
@@ -261,6 +270,11 @@ defences are monitoring and a baseline you keep running alongside in production.
 
 ## Metrics, and the engineering cost of being wrong
 
+```{index} pair: metric; RMSE
+```
+```{index} pair: metric; MAE
+```
+
 A metric is a compression of every error your model makes into one number, and the compression
 you choose declares what you think errors cost. That declaration is an engineering decision,
 not a statistical convention, and the default is wrong more often than people notice.
@@ -288,6 +302,9 @@ comparing models with different numbers of features on the same data.
 
 ### MAPE, and why it explodes
 
+```{index} pair: metric; MAPE
+```
+
 **MAPE**, the mean absolute percentage error, is the metric non-specialists ask for, because a
 percentage feels intuitive. It divides each error by the true value, which means it is
 undefined at zero and unstable near it, and the regime where the target approaches zero is
@@ -305,6 +322,9 @@ should be a decision rather than a side effect of picking the metric that sounde
 
 ### Residuals say what the summary cannot
 
+```{index} residual analysis
+```
+
 No scalar metric can tell you that your errors are *structured*, and structured errors are
 where the physics is hiding. Plot residuals against the fitted value and you find bias at the
 extremes of the range, which usually means an unmodelled nonlinearity. Plot residuals against
@@ -314,6 +334,11 @@ March. A model with a beautiful RMSE and a residual plot that looks like a smile
 correctable deficiency; a summary statistic will never tell you so.
 
 ### Fault detection, and the arithmetic of alarms
+
+```{index} pair: metric; ROC-AUC
+```
+```{index} pair: metric; PR-AUC
+```
 
 When the target is a class rather than a quantity, the metric problem changes shape and gets
 harder, because engineering fault data is almost always imbalanced. Consider the
@@ -349,6 +374,9 @@ things you have to go and look at to find one real fault. At 25% recall you inve
 product decision, and neither AUC number states it.
 
 ### Case study: 275 alarms in 11 minutes
+
+```{index} pair: case study; Milford Haven refinery explosion
+```
 
 The reason to take the alarm-burden axis seriously is that industry has already run this
 experiment, expensively. On 24 July 1994 a lightning strike triggered a process upset at the
@@ -391,6 +419,13 @@ has to decide whether to turn it on.
 :::
 
 ## Choosing a cross-validation scheme
+
+```{index} cross-validation, forward chaining
+```
+```{index} single: cross-validation; GroupKFold
+```
+```{index} single: cross-validation; TimeSeriesSplit
+```
 
 Cross-validation exists because a single train/validation split wastes data and gives a noisy
 answer. **k-fold** partitions the data into k parts, trains k times holding out each part in
@@ -496,6 +531,11 @@ validation question they have no way to answer.
 
 ## The leakage catalogue, from the modelling side
 
+```{index} data leakage
+```
+```{index} pair: failure mode; target leakage
+```
+
 [L7](../l07/notes.md) approached leakage from the feature-engineering side: every transform is
 a statistic, and the question is which rows it was computed over. This session's view is from
 the modelling side, where the same failure appears in four recognisable shapes.
@@ -547,6 +587,9 @@ Measured above: 52% on the airfoil random forest. This is the one that hurts mos
 because no `Pipeline` catches it. The split happens before any pipeline sees the data.
 
 ### 4. Selecting on the test set
+
+```{index} nested cross-validation
+```
 
 Every time you consult a score and change something, that score's data has been spent. Doing
 this with the *test* set is obviously wrong; doing it with the *validation* set is normal
@@ -603,6 +646,9 @@ your sample size, and in a wide sensor matrix, it usually is.
 
 ## Bias, variance, and reading a learning curve
 
+```{index} learning curve, overfitting, underfitting
+```
+
 The last diagnostic is the one that tells you what to *do* next, which no single score can.
 Plot training error and validation error against the number of training rows and the shape of
 the two curves classifies your problem.
@@ -651,6 +697,9 @@ large and static (variance-limited, regularise), and is the validation curve sti
 :::
 
 ## Where this pushes back
+
+```{index} one-standard-error rule
+```
 
 Everything above recommends more evaluation machinery, so it is worth being candid about what
 that machinery costs and where it stops working.

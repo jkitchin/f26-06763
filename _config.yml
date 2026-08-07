@@ -69,3 +69,28 @@ sphinx:
     html_show_copyright: false
     # Warn on a broken cross-reference rather than shipping a dead link.
     nitpicky: false
+    # The general index at /genindex.html, built from the {index} entries in the
+    # notes. Both keys are Sphinx defaults that Jupyter Book never sets, and both
+    # are written down here because they are load-bearing. Turn html_use_index
+    # off and the page disappears while every {ref}`genindex` link in the book
+    # silently becomes dead. Turn html_split_index on and the index fans out into
+    # genindex-A.html, genindex-B.html and so on, which the CI check does not
+    # expect. Note that only_build_toc_files does not affect either: genindex is
+    # written by the HTML builder rather than read from a source file, which is
+    # also why it cannot be listed in _toc.yml.
+    html_use_index: true
+    html_split_index: false
+    # The same entries are typeset at the end of course.pdf, and Sphinx picks the
+    # index processor from the LaTeX engine: xelatex means xindy by default, which
+    # is a separate apt package (pulling in clisp) that the CI TeX install does
+    # not carry. makeindex ships with texlive-binaries, which latexmk already
+    # depends on, so this gets the PDF an index with no new dependency. The cost
+    # is that makeindex sorts non-ASCII entry text badly, which is why CI rejects
+    # a non-ASCII index entry. Nothing here would have surfaced before the first
+    # {index} directive: with an empty .idx, latexmk skips the index step, so the
+    # PDF built fine for a year without any index processor installed at all.
+    latex_use_xindy: false
+    # Do NOT add html_theme_options here. Jupyter Book merges sphinx.config into
+    # its own defaults without recursing, so setting it would replace the theme
+    # options built from the html: block above and drop use_repository_button
+    # and its neighbours.

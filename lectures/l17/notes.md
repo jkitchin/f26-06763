@@ -63,6 +63,11 @@ By the end of this session you should be able to:
 
 ## The anatomy of a RAG pipeline
 
+```{index} retrieval-augmented generation
+```
+```{index} see: RAG; retrieval-augmented generation
+```
+
 Split the system into the two paths that actually run at different times, because conflating
 them is the fastest way to get confused about where a bug lives. The **ingestion path** runs
 once per document, offline, whenever your corpus changes: load the raw files, clean them,
@@ -87,6 +92,9 @@ actually buys you, how retrieval itself works, how to force the generation step 
 honest, and, last, how you would know any of this is working before you ship it.
 
 ## Chunking strategy
+
+```{index} chunking, fixed-size chunking, structure-aware chunking
+```
 
 A chunk is the unit your retriever can return, and that constraint cuts both ways. Too large a
 chunk and a query about one clause drags in several unrelated ones, diluting the similarity
@@ -142,6 +150,9 @@ supposed to represent it.
 
 ## Vector databases and the index that backs retrieval
 
+```{index} vector database, approximate nearest neighbor search, HNSW, FAISS, pgvector
+```
+
 A **vector database** (or, for smaller corpora, an in-process vector index) exists to answer
 one question fast: given a query vector, which of my stored vectors are closest to it. What it
 actually provides, beyond a big array of floats, is **approximate nearest-neighbor (ANN)
@@ -176,6 +187,9 @@ approximate index is not worth adding; the trade-off starts to matter once query
 under exact search would already be noticeable to a user.
 
 ## Retrieval mechanics: dense, keyword, and hybrid
+
+```{index} dense retrieval, keyword retrieval, BM25, hybrid retrieval, re-ranking, cross-encoder
+```
 
 **Dense retrieval** embeds both the query and every chunk into the same vector space with a
 neural embedding model and ranks chunks by vector similarity, cosine similarity being the
@@ -214,6 +228,9 @@ slower cross-encoder re-ranks just those, spending its expense only where it can
 
 ## Grounding the generation
 
+```{index} grounding
+```
+
 Retrieval only gets you halfway. The generation step has to be explicitly instructed to use
 what it was given rather than what it remembers, and this session's demo shows exactly why
 that instruction has to live at generation time rather than being papered over earlier in the
@@ -244,6 +261,15 @@ conflict rather than silently pick one are all better than leaving the choice to
 model's attention happens to favor.
 
 ## Evaluating retrieval, separately from evaluating the answer
+
+```{index} gold set, LLM-as-judge
+```
+```{index} pair: metric; Recall@k
+```
+```{index} pair: metric; MRR
+```
+```{index} pair: metric; nDCG
+```
 
 The single most common mistake in building a RAG system is judging it by reading the final
 answers and deciding whether they sound right. That skips the one measurement that tells you

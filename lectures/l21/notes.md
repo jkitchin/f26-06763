@@ -56,6 +56,9 @@ By the end of this session you should be able to:
 
 ## The eval mindset: a frozen, versioned test set
 
+```{index} eval harness, frozen test set, deterministic scoring
+```
+
 Everything else in this session rests on one discipline that costs nothing to state and is
 constantly violated in practice: the test set has to be **frozen** and **versioned**, or the
 number it produces means nothing. Frozen means the questions, the reference answers, and the
@@ -81,6 +84,13 @@ changes, are the two mechanical habits that make "frozen and versioned" somethin
 rather than something you promise.
 
 ## ML metrics recap, and why one number hides the failure that matters
+
+```{index} parity plot, probability calibration, reliability diagram, per-slice metric, bootstrap confidence interval
+```
+```{index} pair: metric; F1
+```
+```{index} pair: metric; expected calibration error
+```
 
 For a regression surrogate, the standard vocabulary is short: **MAE** (mean absolute error,
 in the same units as the target, easy to explain to a non-specialist), **RMSE** (root mean
@@ -134,6 +144,11 @@ slice breakdown tells you which one you actually built.
 
 ## LLM and agent evaluation, three ways
 
+```{index} reference-based scoring, faithfulness check, failure taxonomy
+```
+```{index} pair: metric; task success rate
+```
+
 Once a system's output is free text or a sequence of tool calls rather than a single number,
 "is this correct" stops being a comparison you can automate with equality, and the field has
 settled on three genuinely different tools for it, each valid in a different situation.
@@ -182,6 +197,13 @@ reviewer can actually act on.
 
 ## LLM-as-judge, done carefully
 
+```{index} LLM-as-judge
+```
+```{index} pair: failure mode; position bias
+```
+```{index} pair: failure mode; self-preference bias
+```
+
 A judge call is a model call, and it inherits every failure mode a model call has, plus a few
 specific to the judging setup itself. **Position bias** means a judge comparing two answers
 side by side can favor whichever one it saw first, independent of quality. **Length bias**
@@ -229,6 +251,9 @@ judge is blind to, not a bigger model.
 :::
 
 ## Observability and tracing
+
+```{index} observability, tracing, structured logging
+```
 
 You cannot debug or improve a system you cannot see, and "see" here means a specific, concrete
 list of fields captured on every single request, not a log line when something looks wrong.

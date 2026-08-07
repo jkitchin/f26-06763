@@ -49,6 +49,11 @@ By the end of this session you should be able to:
 
 ## What a surrogate is, and when it pays for itself
 
+```{index} surrogate model, response surface
+```
+```{index} see: emulator; surrogate model
+```
+
 A **surrogate model** (also **emulator**, **response surface**, or **metamodel**) is a
 cheap function fitted to the input-output behaviour of an expensive one. The expensive
 thing can be a simulation, a physical experiment, or an entire multi-stage pipeline; the
@@ -108,6 +113,9 @@ If you cannot name the loop, you are probably building the wrong thing.
 
 ### The surrogate lifecycle
 
+```{index} design of experiments
+```
+
 The sequence is worth naming because each stage has a failure mode:
 
 **Design of experiments** decides where to spend the simulation budget, and this is the
@@ -120,6 +128,9 @@ points where the surrogate is worst, which is active learning, and closes the lo
 the first stage. That last arrow is next session's subject.
 
 ## Spending a simulation budget
+
+```{index} curse of dimensionality, space-filling design, Latin hypercube sampling, Sobol sequence
+```
 
 You have a hundred runs. Where do you put them?
 
@@ -245,6 +256,11 @@ set.** Derived quantities are outputs wearing an input's clothes.
 :::
 
 ## Choosing a surrogate family
+
+```{index} Gaussian process regression, radial basis function, polynomial chaos expansion, neural operator
+```
+```{index} see: kriging; Gaussian process regression
+```
 
 There are four families worth knowing, and the choice is mostly determined by the dimension
 of the design space and the shape of the output.
@@ -426,6 +442,9 @@ understanding of the dataset is, and both are worth finding out before you build
 
 ### Soft penalties: physics-informed neural networks
 
+```{index} physics-informed neural network, collocation point
+```
+
 The strongest version of physics-informed modelling puts the governing equation into the
 loss. [Raissi, Perdikaris and Karniadakis](https://doi.org/10.1016/j.jcp.2018.10.045)
 formalised this as the **physics-informed neural network**: represent the solution field by
@@ -493,6 +512,9 @@ defend against the evidence, because you told it the equation is true.
 
 ### Soft against hard constraints
 
+```{index} hard constraint
+```
+
 The boundary condition in the demo can be imposed two ways. **Softly**, as another penalty
 term, which is what the loss above does. Or **hard**, by construction: write
 
@@ -529,6 +551,9 @@ Everything above produces a prediction and a number attached to it. This section
 what that number means and how to find out whether it is true.
 
 ### Aleatoric and epistemic
+
+```{index} aleatoric uncertainty, epistemic uncertainty
+```
 
 The distinction is the conceptual crux of the week, and it is not vocabulary.
 
@@ -592,6 +617,9 @@ about your error bars than another hundred unique runs.
 
 ### Five ways to get an interval
 
+```{index} deep ensemble, MC-dropout, quantile regression, conformal prediction
+```
+
 **GP posterior variance** comes free with the fit and is the most trustworthy of these on
 small, smooth problems, at the cost of cubic scaling and a kernel you have to choose.
 
@@ -622,6 +650,13 @@ $$1 - \alpha \le \mathbb{P}\!\left(Y_{\text{test}} \in \mathcal{C}(X_{\text{test
 and it holds for **any** model and **any** data distribution.
 
 ### Checking it: coverage and sharpness
+
+```{index} reliability diagram
+```
+```{index} pair: metric; PICP
+```
+```{index} pair: metric; CRPS
+```
 
 Two numbers, and you need both.
 
@@ -671,6 +706,11 @@ nearly doubled its interval to do it.
 
 ### Why conformal prediction breaks, and why that is instructive
 
+```{index} exchangeability
+```
+```{index} pair: failure mode; conformal prediction under covariate shift
+```
+
 Conformal's guarantee is real, and this is worth demonstrating rather than asserting. Fix
 the model, then repeatedly re-partition a pool of held-out rows into calibration and test
 sets at random, so that exchangeability holds by construction. Over 400 such draws with 451
@@ -702,6 +742,9 @@ came from the same place. Angelopoulos and Bates devote sections 4.5 and 4.6 to 
 shift and distribution drift precisely because this is the failure everyone hits.
 
 ## Where this pushes back
+
+```{index} model discrepancy
+```
 
 **A surrogate is a model of your simulator, not of reality.** Every error your solver makes,
 the surrogate faithfully reproduces, and then adds its own on top. If the CFD is 8% off from
