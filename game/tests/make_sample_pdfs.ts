@@ -40,7 +40,7 @@ interface Person {
   msPerItem: number
 }
 
-function session(p: Person, opts: { label: string; overrideId?: string } = { label: 'clean' }) {
+async function session(p: Person, opts: { label: string; overrideId?: string } = { label: 'clean' }) {
   const served = derive(p.andrewId, LECTURE, POOL, bank.pool_version, bank.serve)
 
   const items: ItemRecord[] = served.map((s, i) => {
@@ -99,7 +99,7 @@ function session(p: Person, opts: { label: string; overrideId?: string } = { lab
     }
   }
 
-  const doc = buildPdf({
+  const doc = await buildPdf({
     attestation,
     name: p.name,
     andrewId: opts.overrideId ?? p.andrewId,
@@ -125,15 +125,15 @@ const VA: Person = { andrewId: 'valves', name: 'Victor Alves', wrongEvery: 6, ms
 console.log('samples:')
 
 // 1. Two honest students. Their item sets must visibly differ.
-const a = session(JK)
-const b = session(VA)
+const a = await session(JK)
+const b = await session(VA)
 const overlap = a.served.filter((s, i) => s.id === b.served[i]?.id).length
 console.log(`     (item sets agree in ${overlap}/${a.served.length} positions)`)
 
 // 2. The forgery the derivation exists to catch: a real session re-issued under
 //    a different Andrew ID. The payload is internally consistent and the MAC is
 //    valid, because this same code built it. The served items are jkitchin's.
-session(JK, { label: 'copied', overrideId: 'valves' })
+await session(JK, { label: 'copied', overrideId: 'valves' })
 
 // 3. The text-editor forgery: take a real PDF and change the printed name.
 //    The attestation still says jkitchin, the page says someone else. Caught by
@@ -177,7 +177,7 @@ session(JK, { label: 'copied', overrideId: 'valves' })
   const labels: Record<string, { prompt: string; chosen: string }> = {}
   for (const rec of items) labels[rec.id] = { prompt: rec.id, chosen: 'answer' }
 
-  const doc = buildPdf({
+  const doc = await buildPdf({
     attestation,
     name: 'Morgan Reed',          // <- the edit
     andrewId: 'mreed',            // <- the edit
@@ -199,7 +199,7 @@ session(JK, { label: 'copied', overrideId: 'valves' })
 
 // 4. A fabricated PDF with no attestation at all.
 {
-  const doc = buildPdf({
+  const doc = await buildPdf({
     attestation: { bytes: new Uint8Array(), b64: '', code: 'FAKE-FAKE-FAKE-FAKE', payload: {} },
     name: 'S Fake',
     andrewId: 'sfake',

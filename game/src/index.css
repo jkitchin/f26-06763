@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+/* Colours are OKLCH so the light and dark pairs stay perceptually matched
+   rather than one of them looking muddy. CMU red is the one fixed point. */
+:root {
+  --brand: oklch(0.52 0.19 20);          /* CMU red */
+  --brand-wash: oklch(0.52 0.19 20 / 0.10);
+  --correct: oklch(0.55 0.15 145);
+  --correct-wash: oklch(0.55 0.15 145 / 0.10);
+  --wrong: oklch(0.55 0.19 25);
+  --wrong-wash: oklch(0.55 0.19 25 / 0.10);
+
+  --bg: oklch(0.99 0.002 90);
+  --surface-raised: oklch(1 0 0);
+  --border: oklch(0.90 0.004 90);
+  --ink: oklch(0.25 0.01 90);
+  --muted: oklch(0.55 0.01 90);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --brand: oklch(0.68 0.16 20);
+    --brand-wash: oklch(0.68 0.16 20 / 0.14);
+    --correct: oklch(0.72 0.15 145);
+    --correct-wash: oklch(0.72 0.15 145 / 0.14);
+    --wrong: oklch(0.70 0.17 25);
+    --wrong-wash: oklch(0.70 0.17 25 / 0.14);
+
+    --bg: oklch(0.19 0.008 260);
+    --surface-raised: oklch(0.23 0.010 260);
+    --border: oklch(0.32 0.012 260);
+    --ink: oklch(0.94 0.004 260);
+    --muted: oklch(0.68 0.010 260);
+  }
+}
+
+html { color-scheme: light dark; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Buttons are components rather than repeated utility strings: they appear on
+   every screen and drifted three ways within an hour of not doing this. */
+.btn-primary {
+  border-radius: 0.75rem;
+  background: var(--brand);
+  color: white;
+  padding: 0.65rem 1.25rem;
+  font-weight: 600;
+  transition: filter 120ms;
+}
+.btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-quiet {
+  border-radius: 0.75rem;
+  border: 2px solid var(--border);
+  background: var(--surface-raised);
+  color: var(--ink);
+  padding: 0.6rem 1.15rem;
+  font-weight: 600;
+}
+.btn-quiet:hover { border-color: var(--brand); }
+
+/* Item prompts carry inline code and short tables from the notes. */
+.prose-tight code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  padding: 0.05em 0.3em;
+}
+
+button:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* Item prompts and evidence are authored markdown lifted from the notes, so
+   they really use bold, inline code, links and (in one item) a table. */
+.md > * + * { margin-top: 0.75em; }
+.md p { margin: 0; }
+.md strong { font-weight: 700; }
+.md a { color: var(--brand); text-decoration: underline; text-underline-offset: 2px; }
+.md code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.88em;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  padding: 0.05em 0.3em;
+}
+.md ul, .md ol { margin: 0; padding-left: 1.25rem; }
+.md li + li { margin-top: 0.25em; }
+.md table {
+  border-collapse: collapse;
+  font-size: 0.92em;
+  display: block;
+  overflow-x: auto;      /* a wide table scrolls itself rather than the page */
+  max-width: 100%;
+}
+.md th, .md td {
+  border: 1px solid var(--border);
+  padding: 0.3em 0.6em;
+  text-align: left;
+  white-space: nowrap;
+}
+.md th { background: var(--surface-raised); font-weight: 600; }
+.md blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 0.9em;
+  color: var(--muted);
+  font-style: italic;
+}

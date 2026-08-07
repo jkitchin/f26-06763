@@ -9,13 +9,15 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "vectors": "node --experimental-strip-types tests/make_vectors.ts",
-    "samples": "node --experimental-strip-types tests/make_sample_pdfs.ts"
+    "samples": "node --experimental-strip-types tests/make_sample_pdfs.ts",
+    "smoke": "node --experimental-strip-types tests/smoke.ts"
   },
   "dependencies": {
     "@noble/hashes": "^1.6.1",
     "framer-motion": "^12.0.0",
     "idb-keyval": "^6.2.1",
     "jspdf": "^2.5.2",
+    "marked": "^18.0.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "yaml": "^2.9.0",
@@ -27,6 +29,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
+    "puppeteer-core": "^25.5.0",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.7.0",
     "vite": "^6.0.0"

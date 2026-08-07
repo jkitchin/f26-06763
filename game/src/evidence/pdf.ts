@@ -17,7 +17,7 @@
  * demonstration that the per-student seeding is doing something.
  */
 
-import { jsPDF } from 'jspdf'
+import type { jsPDF } from 'jspdf'
 import { attestationLines, type Attestation, type ItemRecord } from './payload.ts'
 
 export interface PdfInput {
@@ -46,7 +46,15 @@ function hms(ms: number): string {
   return m ? `${m} min ${String(s % 60).padStart(2, '0')} s` : `${s} s`
 }
 
-export function buildPdf(input: PdfInput): jsPDF {
+/**
+ * Async because jsPDF is loaded on demand.
+ *
+ * It is a third of the bundle and is needed only on the last screen of a
+ * module, so importing it eagerly makes every student pay for it on first load
+ * whether or not they finish. Vite splits it into its own chunk.
+ */
+export async function buildPdf(input: PdfInput): Promise<jsPDF> {
+  const { jsPDF } = await import('jspdf')
   const doc = new jsPDF({ unit: 'pt', format: 'letter' })
   const L = 56
   const W = doc.internal.pageSize.getWidth()
