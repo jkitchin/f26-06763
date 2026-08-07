@@ -5,6 +5,15 @@ dedicated **mini-project week** (Week 8, sessions MP-1/MP-2). Assignment release
 assume a release-then-due-one-week-later cadence; adjust to the academic calendar per
 offering.
 
+:::{admonition} The whole course as one PDF
+:class: tip
+
+<a href="../course.pdf"><strong>Download course.pdf</strong></a>: the syllabus, this
+schedule, every set of lecture notes, every demo notebook, the assignments, and the
+optional material, in one searchable document with page numbers. Rebuilt on every change
+to the site.
+:::
+
 | Session                     | Topic                                                                                                     | Deliverables                                               |
 |-----------------------------|-----------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
 | L1  [2026-08-24 Mon]        | AI engineering landscape & the system view; the modern toolchain                                          | **A1 released**                                            |

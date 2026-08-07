@@ -29,6 +29,25 @@ exclude_patterns:
 execute:
   execute_notebooks: 'off'
 
+# PDF build:  jupyter-book build . --builder pdflatex
+# Produces _build/latex/course.pdf, the whole course as one document. CI copies
+# it to the site root so it is downloadable at /f26-06763/course.pdf.
+latex:
+  # NOT the pdflatex default. These sources carry 34 distinct non-ASCII
+  # characters (arrows, box drawing, Greek, superscripts, the micro sign), and
+  # pdflatex needs a \DeclareUnicodeCharacter for each one before it will set
+  # them. xelatex with the GNU FreeFont family that ships with TeX Live covers
+  # all 34 with no per-character configuration.
+  latex_engine: xelatex
+  latex_documents:
+    # Both keys are load-bearing. Without targetname the output is called
+    # projectnamenotset.pdf. Without title, Jupyter Book copies the book title
+    # into \title{} unescaped, and the "&" in it fails the LaTeX run with
+    # "Misplaced alignment tab character &". See jupyter_book/config.py, which
+    # sets latex_doc_overrides["title"] from the top-level title: key.
+    targetname: course.tex
+    title: "Systems \\& Toolchains for AI in Engineering"
+
 repository:
   url: https://github.com/jkitchin/f26-06763
   branch: main
