@@ -31,6 +31,9 @@ parts:
       - file: lectures/l05/notes
         sections:
           - file: lectures/l05/l05-pipelines
+      - file: lectures/l06/notes
+        sections:
+          - file: lectures/l06/l06-validation
       - file: lectures/l07/notes
         sections:
           - file: lectures/l07/l07-features
