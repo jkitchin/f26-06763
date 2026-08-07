@@ -401,17 +401,18 @@ jupyter-book build . --builder pdflatex
 # One deck to HTML
 npx @marp-team/marp-cli lectures/l01/slides.md -o /tmp/l01.html
 
-# One deck to PDF (needs Chromium; CI only builds HTML)
-npx @marp-team/marp-cli lectures/l01/slides.md --pdf -o /tmp/l01.pdf
+# One deck to PDF (needs Chromium). --allow-local-files or the figures drop out
+npx @marp-team/marp-cli lectures/l01/slides.md --pdf --allow-local-files -o /tmp/l01.pdf
 
 # Watch a deck while writing it
 npx @marp-team/marp-cli -w lectures/l01/slides.md -o /tmp/l01.html
 ```
 
-CI (`.github/workflows/book.yml`) builds the book, builds the PDF, renders every
-`lectures/*/slides.md` to `_build/html/slides/lNN.html`, checks that no `course/modules/`
-page leaked into the output, deploys to Pages on push to `main`, and then verifies that the
-deploy actually landed. Pull requests build as a check but do not deploy.
+CI (`.github/workflows/book.yml`) builds the book, builds the course PDF, renders every
+`lectures/*/slides.md` to `_build/html/slides/lNN/index.html` and again to PDF for the
+merged `slides.pdf`, checks that no `course/modules/` page leaked into the output, deploys
+to Pages on push to `main`, and then verifies that the deploy actually landed. Pull
+requests build as a check but do not deploy.
 
 **The PDF.** `--builder pdflatex` produces the whole course as one document, and CI copies
 it to `_build/html/course.pdf` so it is downloadable at `/f26-06763/course.pdf`. It is
@@ -437,6 +438,33 @@ pull requests as well as on `main` on purpose: a PDF that only breaks after merg
 kind of silent failure the rest of this workflow exists to prevent. The check inspects the
 artifact rather than the exit code, because a LaTeX run can succeed and still emit
 something truncated.
+
+**The slides PDF.** The decks get the same treatment, one document for the whole semester
+at `/f26-06763/slides.pdf`, next to `course.pdf` and linked from `index.md` by the same raw
+HTML anchor. CI renders each `lectures/*/slides.md` a second time with `--pdf`, then merges
+the results with `pypdf`, one bookmark per session. Four things about it are worth knowing
+before editing that job:
+
+- **It needs a browser.** MARP has no PDF path that is not headless Chrome. The step uses
+  the runner image's `google-chrome-stable` and falls back to fetching Chrome for Testing
+  through puppeteer. It deliberately does not `apt-get install chromium`, which on Ubuntu 24
+  is a snap wrapper that will not run on a runner.
+- **`--allow-local-files` is required.** Without it every `figures/*.png` is silently
+  dropped from the PDF, verified by rendering L1 both ways: three figures with the flag,
+  zero without. The HTML export needs no such flag, which is exactly why this is easy to
+  lose in an edit.
+- **Session order is not filename order.** `mp1`/`mp2` sort to the end of a glob but belong
+  in Week 8, between L14 and L15, so the merge sorts on an explicit session key.
+- **The checks are not decoration.** One page per slide (a deck that renders short is
+  caught), the title text of every deck present in the merged text, and at least as many
+  embedded images as the deck references figures. Each was tested by breaking it on purpose:
+  truncating a deck to ten pages and dropping the local-files flag both fail the job. The
+  title probe compares with whitespace removed, because a long title wraps on the rendered
+  slide and L17's does.
+
+Measured on the green run that introduced it, 14 decks and 874 pages: 49s to render the
+deck PDFs and 9s to check them, so about a minute on top of the job. The per-deck PDFs are
+intermediates in `_build/slides-pdf/` and are not published; only the merged file is.
 
 **Verifying a deploy.** There are three separate things here and they fail independently.
 
