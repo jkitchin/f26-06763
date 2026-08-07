@@ -40,6 +40,9 @@ By the end of this session you should be able to:
 
 ## Environments you can rebuild
 
+```{index} virtual environment, uv, dependency resolution
+```
+
 When you install a particular Python together with a particular set of packages to run a project, that whole collection of software is the project's **environment**, and reproducing a result begins with reproducing it. The environment is more than the packages you named. It is the exact version of the Python interpreter, every package you installed directly, and every package those packages pulled in underneath them, each one at a specific version. A dependency you never typed can change a number you report, which is why "I installed pandas and scikit-learn" is not a description anyone can rebuild from.
 
 The reason this matters is that small version differences produce real, silent behavior changes, and the L1 demo was a live demonstration of one. A function's behavior can shift between two minor releases. A default argument can move. A dependency of a dependency can resolve to a newer version on a Tuesday than it did on the Monday you last ran the code, because "newest version that satisfies the constraints" is a moving target. None of these announce themselves. They surface later, as a result that will not reproduce, and by then the trail is cold.
@@ -55,6 +58,9 @@ The tool this course standardizes on for managing all of this is `uv`, and it wo
 In day-to-day use you drive `uv` with a handful of commands. `uv init` creates a project and writes the first `pyproject.toml` and `.python-version`. `uv add pandas scikit-learn mlflow` adds dependencies, resolves the whole graph, and updates both `pyproject.toml` and the lockfile in one step. `uv run python -m sensorlab.train` runs a command inside the project's environment, and before it does, it checks that the lockfile is consistent with `pyproject.toml`, so the environment can never quietly drift out from under you. On a fresh checkout of the project, on your laptop or a colleague's or a continuous-integration server, `uv sync` reconstructs the environment from the lockfile: the same interpreter, the same packages, the same versions, with no interpretation required. That last command is where the payoff lives, because it is the end of "works on my machine" as an acceptable answer.
 
 ### Lockfiles and requirements files
+
+```{index} lockfile
+```
 
 The single idea to carry out of this section is what a lockfile buys you, and the clearest way to see it is against the older tool it replaces. A `requirements.txt` file is a list of packages, and in most projects it lists only the direct ones, often at loose versions. Nothing about it is wrong, but nothing about it is reproducible either: install the same `requirements.txt` on two machines a month apart and you can easily get two different sets of packages, because the resolver is free to pick whatever is newest within the loose constraints, and a month is plenty of time for "newest" to change. The problem is old, and the file is one of a long line of attempts on it, from `pip freeze` through tools like pip-tools and Poetry and now `uv`.
 
@@ -73,6 +79,9 @@ The most common way to miss the point of `uv` is to treat it as a faster `pip` a
 :::
 
 ## A project layout that scales
+
+```{index} project scaffold, pyproject.toml
+```
 
 An exploratory analysis is happy to live in a single notebook and a folder of loose files, and for the first afternoon of a project that is exactly where it should live. A system cannot stay there. The difference is that a system's code has to be imported by other code, exercised by tests, and run by people who are not you and who are not sitting in the folder where you happened to save it. A small, conventional project layout buys all three of those, and the reason to set it up on the very first day is that it costs almost nothing then and is genuinely tedious to retrofit onto a tangle of scripts later.
 
@@ -98,6 +107,9 @@ The specific folder names matter far less than the principle underneath them, wh
 
 ## Versioning code, data, and models are three different problems
 
+```{index} data versioning, content hash, DVC, provenance
+```
+
 Git is superb at versioning code and close to useless at versioning a 200 MB data file, and the instinct to solve the problem by putting everything into one repository is precisely how repositories become slow, enormous, and unpleasant to clone. The three kinds of artifact a project produces, its code, its data, and its models, differ in their size, in how often they change, and in what is actually worth recording about them, and those differences mean they belong in three different tools. Getting this split right early is far cheaper than untangling it later.
 
 **Code** belongs in git, which was built for it. It is small, it is text, and git can show you exactly what changed, line by line, between any two points in the project's history. Each commit is a labeled, permanent save point, and its identifier, a short string called a SHA, is itself a piece of provenance: "which version of the code produced this number" is answered completely by a commit SHA. This is the cheapest and most reliable versioning you will do all semester, and it costs nothing but the discipline of committing in meaningful units.
@@ -119,6 +131,9 @@ Git is superb at versioning code and close to useless at versioning a 200 MB dat
 | Models | one per run, large binary | an MLflow run | the inputs that produced it |
 
 ## From notebook to module
+
+```{index} random seed
+```
 
 A notebook is the right tool for looking at data and the wrong tool for anything that has to run again reliably, and the reason is structural rather than a matter of taste. In a notebook, cells run in whatever order you clicked them, not top to bottom, and state accumulates invisibly between runs, so a variable defined in a cell you have since deleted can keep a later cell working long after the code that created it is gone. "It worked a minute ago" is a true statement about a notebook that tells you almost nothing about whether it will work on a fresh start. Turning the notebook into a module is how an exploration becomes something you can test, schedule, and trust, and it is the step where most of the L1 failures are designed out rather than merely warned against.
 
@@ -147,6 +162,9 @@ The notebook does not have to disappear when you do this. It becomes a thin fron
 
 ## Experiment hygiene: one run, one fact
 
+```{index} experiment tracking, MLflow
+```
+
 Once the analysis runs from the command line, you will run it many times, with different seeds, different features, and different parameters, and within a day the question "which settings produced this particular number" becomes genuinely unanswerable from memory. Experiment tracking is the infrastructure that answers it for you, by recording each run as it happens so that the run becomes a fact you can point to rather than a recollection you have to trust. It is the smallest, most immediately useful unit of the provenance discipline from earlier in the session.
 
 MLflow, the tracker this course uses, records for each run the parameters you chose, the metrics you measured, and any artifacts you attach, such as a figure or a saved model. It stores all of this locally, with no server to stand up in Week 1. There is a wrinkle worth knowing about, because it is the kind of thing that surprises people mid-demo: recent versions of MLflow have put the old bare-directory store into maintenance mode and will refuse to use it, steering you instead toward a small local SQLite database, which is a single file on disk and still needs no server. Pointed at that file, the `mlflow ui` command shows your runs side by side in a browser. The interface you actually touch is deliberately small:
@@ -169,6 +187,9 @@ Run the trainer twice with two different seeds and the two runs appear as two ro
 Everything so far has been an argument for a discipline, and it is a sound argument, but a course that only ever sold its tools would be teaching advocacy rather than engineering. Reproducibility is necessary infrastructure, not a cure-all, and the mature version of this knowledge is knowing exactly what it does not give you and where the effort stops being worth it. Several of its limits are worth meeting here, on paper, rather than later, under deadline.
 
 ### Reproducible is not the same as correct
+
+```{index} pair: failure mode; reproducible but wrong
+```
 
 This is the limit that matters most, and it is genuinely counterintuitive. Making a result reproducible does not make it right. If your pipeline contains the same off-by-one error the Duke code did, then locking the environment, pinning the seed, and tracking the run will faithfully reproduce the *wrong* answer, every time, with perfect fidelity. Reproducibility is what makes a result *checkable*; it is a precondition for catching errors, not a substitute for doing so. Notice, too, how the Duke errors were actually caught: not by re-running the original code, which would simply have reproduced its mistakes, but by outside statisticians *re-implementing* the analysis from scratch and finding that the two versions disagreed. Reproduction confirms you can regenerate a number. Confirming the number is right is a separate act, and it is called validation.
 

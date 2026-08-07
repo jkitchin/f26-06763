@@ -68,6 +68,9 @@ By the end of this session you should be able to:
 
 ## The relational model, and why long beats wide
 
+```{index} relational model, normalization, primary key, foreign key, long format
+```
+
 The relational model is one of the most durable ideas in computing, and it is worth knowing
 where it came from, because the reason it has outlived a half-century of hardware is the same
 reason it is the right default for your sensor data. In 1970 Edgar Codd, then at IBM,
@@ -181,6 +184,9 @@ from.
 
 ## Types that carry physical meaning
 
+```{index} PostgreSQL, timestamptz, numeric, double precision
+```
+
 Because the schema is a contract, the column types are the clauses that carry the most weight,
 and two of them reward real thought on engineering data. The first is time, and it hides a
 genuine surprise.
@@ -202,6 +208,9 @@ problem, so ordering, differencing, and bucketing are all well defined regardles
 data was collected or where it is later analyzed.
 
 ### Case study: the leap second of 30 June 2012
+
+```{index} pair: case study; 2012 leap second
+```
 
 It is tempting to treat time as a solved problem and move on, and the clearest argument
 against that complacency is what happened at midnight UTC on the first of July, 2012. The
@@ -283,6 +292,9 @@ provenance cannot be validated. It can only be believed, and belief is not a qua
 strategy.
 
 ## SQL that answers engineering questions
+
+```{index} window function
+```
 
 SQL is a language for describing the answer you want and leaving the database to work out how
 to compute it, and that declarative character is worth pausing on because it is easy to take
@@ -378,6 +390,9 @@ database, and fluency comes from writing them, not from reading them.
 
 ## Getting data in: COPY, psql, and Python
 
+```{index} COPY, staging table
+```
+
 A schema is an empty promise until you load it, and how you load matters far more than it
 first appears. The tempting way, especially from Python, is a loop that issues one `INSERT`
 per row, and on a dataset like this one that is a quiet catastrophe: two million separate
@@ -415,6 +430,9 @@ corrupt mote ids you do not even have to write the rule, because the foreign key
 rejects them for you the moment you try to insert one.
 
 ## Making range queries fast: indexes and EXPLAIN ANALYZE
+
+```{index} database index, B-tree, EXPLAIN ANALYZE, hypertable
+```
 
 The query that dominates time-series work, once the schema is right and the data is in, is the
 range scan: one sensor, one window of time. Without help, the database answers it the only way
@@ -508,6 +526,11 @@ and unpredictable set of fields, the rigid schema stops helping and starts fight
 this is exactly the territory where the document stores of the next session earn their place.
 
 ### NULL is not a value, and three-valued logic will surprise you
+
+```{index} three-valued logic
+```
+```{index} pair: failure mode; NULL in a comparison
+```
 
 SQL does not have two truth values but three: true, false, and unknown. `NULL` means "unknown,"
 and any comparison involving it yields not true or false but `NULL` itself, and this produces

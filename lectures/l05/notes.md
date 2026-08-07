@@ -78,6 +78,9 @@ By the end of this session you should be able to:
 
 ## Vectorization, and the shape sensor data actually take
 
+```{index} vectorization
+```
+
 Start from the operation every engineering dataset needs constantly: apply the same
 arithmetic to every value in a column. In pandas or Polars this is one line,
 `df['temp_c'] = (df['temp_f'] - 32) * 5 / 9`, and under the hood it runs as a tight loop over a
@@ -155,6 +158,9 @@ column operations. Reach for `.apply` when you have run out of alternatives, not
 :::
 
 ## Polars and the lazy execution model
+
+```{index} Polars, lazy evaluation, query optimizer, predicate pushdown, projection pushdown
+```
 
 Pandas made a specific set of design choices in 2008 that were entirely reasonable for the
 data of that era and that Arrow-based tools now revisit. Its default numeric layout is
@@ -238,6 +244,9 @@ someone says how much data.
 
 ### Arrow and Parquet are not the same thing
 
+```{index} Apache Arrow, Parquet
+```
+
 Interop is what keeps this practical rather than academic, and it requires separating two names
 that get used interchangeably and should not be.
 [**Arrow**](https://arrow.apache.org/docs/format/Columnar.html) is an *in-memory* format. Its
@@ -262,6 +271,9 @@ cheap enough that you should pick each stage's tool on its merits rather than pi
 library for the whole pipeline to avoid conversions.
 
 ## Designing a batch pipeline: stages, idempotency, and caching
+
+```{index} batch pipeline, idempotency, deterministic output
+```
 
 A **batch pipeline** is nothing more exotic than a sequence of transform stages, each one a
 pure function that reads an input and produces an output, run on a schedule or on demand over
@@ -311,6 +323,9 @@ depends on row order, and treat "the same input always yields the same output" a
 correctness requirement, not a nicety.
 
 ### Case study: one server out of eight
+
+```{index} pair: case study; Knight Capital
+```
 
 On 1 August 2012, Knight Capital Americas LLC lost more than \$460 million in roughly
 forty-five minutes. Knight was not a marginal firm: the SEC's order records that its trading
@@ -389,6 +404,9 @@ through three.
 
 ## Orchestration, or when a plain DAG is enough
 
+```{index} orchestration, directed acyclic graph, Makefile
+```
+
 Every pipeline with more than one stage is, whether or not anyone calls it one, a **directed
 acyclic graph**: a set of steps with dependencies between them, and no step depends on its own
 output, directly or through a cycle. A **Makefile** is the oldest tool that takes this
@@ -416,6 +434,9 @@ what the graph *is*; it changes who can operate it and what happens automaticall
 fails at 3 a.m.
 
 ## Scaling out without a cluster: partitioning, Dask, and Spark concepts
+
+```{index} partitioning, shuffle, lineage, Dask, Apache Spark
+```
 
 The mental model behind every distributed dataframe system traces back to a single 2004 paper,
 Dean and Ghemawat's

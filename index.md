@@ -21,6 +21,11 @@ or after class rather than projected during it, so they carry the full argument 
 links to primary sources. The slides used in class are linked from the top of each set of
 notes.
 
+Every technology, format, method, failure mode, and case study the course names is
+collected in the {ref}`general index <genindex>`, with each term linked to the section that
+introduces it. When you remember the idea but not which of the twenty-six sessions covered
+it, start there rather than with search.
+
 :::{admonition} The whole course as two PDFs
 :class: tip
 

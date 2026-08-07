@@ -32,6 +32,96 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Check every lecture carries index entries
+        # The general index is only as good as the entries somebody remembered to
+        # write, and a lecture that ships without them fails nothing on its own:
+        # the build is green, the page renders, the term simply is not in the
+        # index. So check the source. The entry text is checked too, because
+        # Sphinx's parser splits on commas and semicolons and reads a leading
+        # word-plus-colon as an index type, so a stray one turns a term into two
+        # wrong ones with no warning anywhere. See CLAUDE.md section 4b.
+        #
+        # This runs before anything is installed so it fails in seconds rather
+        # than after the TeX install.
+        run: |
+          python3 - <<'PY'
+          import glob
+          import re
+          import sys
+
+          # Below the twelve-to-twenty authoring target, so a lecture that comes
+          # in slightly light does not block a merge, while one that forgot does.
+          MIN_PER_LECTURE = 10
+          TYPES = ("single:", "pair:", "triple:", "double:", "see:", "seealso:")
+          # Sphinx reads these as legacy Python index types.
+          RESERVED = ("module:", "keyword:", "operator:", "object:",
+                      "exception:", "statement:")
+          # Everything Sphinx's LaTeX writer does not escape on our behalf.
+          BAD = set('|"\\{}$%#^~<>')
+
+          problems, totals, forms = [], {}, {}
+
+
+          def record(path, field):
+              field = field.strip()
+              if not field:
+                  problems.append(f"{path}: empty index entry field")
+                  return
+              bad = BAD.intersection(field)
+              if bad:
+                  problems.append(
+                      f"{path}: entry {field!r} contains {''.join(sorted(bad))}")
+              if not field.isascii():
+                  # The PDF index is set by makeindex, which sorts non-ASCII
+                  # badly. _config.yml picks it over xindy on purpose.
+                  problems.append(f"{path}: entry {field!r} is not ASCII")
+              # "Parquet" and "parquet files" must not both become entries.
+              key = " ".join(field.casefold().split()).rstrip("s")
+              forms.setdefault(key, set()).add(field)
+
+
+          def entries(path, arg):
+              body = arg[1:].lstrip() if arg.startswith("!") else arg.strip()
+              lowered = body.lower()
+              if lowered.startswith(RESERVED):
+                  problems.append(
+                      f"{path}: {body!r} starts with a reserved index type")
+              if lowered.startswith(TYPES):
+                  for field in body.split(":", 1)[1].split(";"):
+                      record(path, field)
+                  return 1
+              values = [v for v in body.split(",") if v.strip()]
+              for value in values:
+                  record(path, value.lstrip("! "))
+              return len(values)
+
+
+          for path in sorted(glob.glob("lectures/*/notes.md")):
+              text = open(path, encoding="utf-8").read()
+              count = 0
+              for arg in re.findall(r"^```\{index\}[ \t]+(.+?)[ \t]*$", text, re.M):
+                  count += entries(path, arg)
+              totals[path] = count
+              if count < MIN_PER_LECTURE:
+                  problems.append(
+                      f"{path}: {count} index entries, "
+                      f"need at least {MIN_PER_LECTURE}")
+
+          for key, variants in sorted(forms.items()):
+              if len(variants) > 1:
+                  problems.append("index term written more than one way: "
+                                  + " / ".join(repr(v) for v in sorted(variants)))
+
+          for path, count in totals.items():
+              print(f"{path}: {count} index entries")
+          if problems:
+              for problem in problems:
+                  print(f"::error::{problem}")
+              sys.exit(1)
+          print(f"OK: {sum(totals.values())} index entries "
+                f"across {len(totals)} lectures")
+          PY
+
       - name: Install Jupyter Book
         # Pinned to 1.x. Jupyter Book 2 (MyST) derives page URLs from the file
         # basename, so every lectures/*/notes.md would collapse onto a single
@@ -67,6 +157,51 @@ jobs:
       - name: Build the book
         run: jupyter-book build . --warningiserror --keep-going
 
+      - name: Check the general index was built and is populated
+        # genindex.html is a builder output rather than a source file, so it is
+        # in neither _toc.yml nor the sidebar and nothing else here would notice
+        # it going missing or coming out empty. Count the per-entry anchors that
+        # Sphinx emits rather than the theme's markup, so a theme upgrade does
+        # not break the check. The floor is the 316 anchors the fourteen
+        # backfilled lectures produce, less a margin.
+        run: |
+          python3 - <<'PY'
+          import re
+          import sys
+          from pathlib import Path
+
+          MIN_ANCHORS = 250
+          page = Path("_build/html/genindex.html")
+          if not page.exists():
+              print("::error::no _build/html/genindex.html; "
+                    "is html_use_index still true in _config.yml?")
+              sys.exit(1)
+
+          html = page.read_text(encoding="utf-8")
+          anchors = len(re.findall(r"#index-\d+", html))
+
+          problems = []
+          if anchors < MIN_ANCHORS:
+              problems.append(
+                  f"{anchors} indexed targets, expected at least {MIN_ANCHORS}")
+          # Both ends of the semester, and the two clusters that make the index
+          # worth having.
+          for probe, label in [
+              ("Parquet", "L4"),
+              ("re-ranking", "L17"),
+              ("case study", "the case-study cluster"),
+              ("failure mode", "the failure-mode cluster"),
+          ]:
+              if probe not in html:
+                  problems.append(f"nothing from {label} (probe {probe!r})")
+
+          if problems:
+              for problem in problems:
+                  print(f"::error::genindex.html {problem}")
+              sys.exit(1)
+          print(f"OK: genindex.html carries {anchors} indexed targets")
+          PY
+
       - name: Build the course PDF
         # The whole course as one document. Config lives under `latex:` in
         # _config.yml. This is deliberately not restricted to main: a PDF that
@@ -74,6 +209,19 @@ jobs:
         # workflow exists to prevent.
         run: |
           jupyter-book build . --builder pdflatex
+          # The index at the end of the PDF is typeset by makeindex under
+          # latexmk, and nothing in that chain fails loudly: skip it and
+          # \printindex simply emits nothing, leaving a blank Index page. The
+          # .ind file is the evidence the chain ran. makeindex comes from
+          # texlive-binaries, which latexmk depends on, and _config.yml sets
+          # latex_use_xindy: false so that is the binary latexmkrc asks for.
+          test -s _build/latex/course.ind || {
+            echo "::error::makeindex produced no course.ind, so the PDF's Index is empty"
+            echo "Index processor configured in _build/latex/latexmkrc:"
+            grep makeindex _build/latex/latexmkrc || true
+            command -v makeindex || echo "makeindex is not installed"
+            exit 1
+          }
           cp _build/latex/course.pdf _build/html/course.pdf
 
       - name: Check the PDF is a whole course and not a stub
