@@ -29,14 +29,15 @@ Six of these measurements changed what the lecture says.
 
   4. The deep ensemble was drafted as the well-calibrated alternative to a GP,
      on the strength of Lakshminarayanan et al.'s claims. On the honest split it
-     covers 76% of a nominal 95% interval, against the GP's 91%. Five members is
-     not enough on 1,200 rows, and "better than a single net" is not "calibrated."
+     covers 79.9% of a nominal 95% interval, against the GP's 91.0%. Five members
+     is not enough on 1,200 rows, and "better than a single net" is not
+     "calibrated."
 
   5. Split conformal was drafted as the method with a guarantee. It has one, and
      the guarantee is about exchangeability, not about the model. Under an i.i.d.
-     row split it lands on its nominal coverage almost exactly. Under a grouped
-     split it falls to 89%, and under a held-out velocity it falls to 68%. The
-     guarantee did not fail; the assumption did.
+     row split it lands on its nominal coverage almost exactly (96.7%). Under a
+     grouped split it holds at 95.7%, and under a held-out velocity it falls to
+     82.2%. The guarantee did not fail; the assumption did.
 
   6. The soft PDE penalty was drafted to show physics rescuing a net from sparse
      data, which it does. It also shows the failure mode: give the same penalty a

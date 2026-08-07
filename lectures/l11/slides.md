@@ -138,7 +138,7 @@ PyTorch defaults to float32.
 Today's autodiff figure was drafted to show
 "torch and JAX both match the analytic gradient."
 
-JAX matched at **3 × 10⁻¹⁶**.
+JAX matched at **4.4 × 10⁻¹⁶**.
 PyTorch disagreed at **7.5 × 10⁻⁸**.
 
 For an hour that looked like a real difference
