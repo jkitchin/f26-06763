@@ -10,6 +10,10 @@ _build/
 .jupyter_cache/
 *.html
 !themes/*.html
+# The game's entry point is *source*, not rendered output. The blanket *.html
+# rule above silently excluded it, and the app built fine locally while CI got
+# "Could not resolve entry module index.html".
+!game/index.html
 
 # Node (marp via npx)
 node_modules/
