@@ -13,12 +13,13 @@ before you spend ten minutes on the traceback.
 Four of these figures changed what the lecture says.
 
   1. The autodiff figure was drafted to show "autodiff agrees with the analytic
-     gradient to machine precision." PyTorch did not: it disagreed at 5e-8 while
-     JAX agreed at 3e-16. The cause was not PyTorch. It was two Python floats
-     (`torch.tensor(1.234)` and a bare `rng.normal()` scalar) silently becoming
-     float32, at a relative error of 1.25e-7, which is exactly float32 epsilon.
-     Nothing warned, because float32 promotes to float64 on contact and every
-     dtype downstream reads float64. That bug is now the point of the figure.
+     gradient to machine precision." PyTorch did not: it disagreed at 7.5e-8
+     while JAX agreed at 4.4e-16. The cause was not PyTorch. It was two Python
+     floats (`torch.tensor(1.234)` and a bare `rng.normal()` scalar) silently
+     becoming float32, at a relative error of 1.25e-7, which is exactly float32
+     epsilon. Nothing warned, because float32 promotes to float64 on contact and
+     every dtype downstream reads float64. That bug is now the point of the
+     figure. Declaring both scalars float64 takes PyTorch to 1.7e-18.
 
   2. The DL-vs-trees figure was drafted expecting the module's stated result,
      that gradient boosting beats an MLP on small tabular data. On a random

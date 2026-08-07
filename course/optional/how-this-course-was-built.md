@@ -235,7 +235,7 @@ discrepancy on purpose, so the surprise survives into the next person's reading.
 
 | what was expected | what was measured | why it happened |
 |---|---|---|
-| autodiff agrees with the analytic gradient to machine precision | PyTorch disagreed at 5e-8 while JAX agreed at 3e-16 | two Python floats silently became float32. The relative error was 1.25e-7 and float32 epsilon is 1.19e-7. Nothing warned, because float32 promotes to float64 on contact |
+| autodiff agrees with the analytic gradient to machine precision | PyTorch disagreed at 7.5e-8 while JAX agreed at 4.4e-16 | two Python floats silently became float32. The relative error was 1.25e-7 and float32 epsilon is 1.19e-7. Nothing warned, because float32 promotes to float64 on contact |
 | the GPU is faster | for this model the accelerator was **7 times slower**, and only won past ~256 hidden units | the crossover, not the speedup, is the number that decides anything |
 | unnormalized inputs cause NaNs | with SGD, immediately; with Adam, never. Training merely degraded from 5.5 to about 9.5 MPa | Adam's per-parameter scaling hides a scaling bug as mediocrity, which is worse than a crash |
 | gradient boosting beats a neural net on small tabular data | it does by 0.51 MPa on a random split, and by 0.13 ± 0.18 MPa (a tie) under a grouped split | much of the advantage was the tree's greater ability to exploit a leaky split. A single seed showed the net *winning*; five seeds showed a tie |

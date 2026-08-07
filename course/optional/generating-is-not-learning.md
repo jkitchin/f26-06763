@@ -174,7 +174,7 @@ look, and a way to check yourself. Do one properly rather than six loosely.
 **E1. The gradient that should have agreed.** Before running anything, write down whether
 you expect PyTorch and JAX to agree with an analytically computed gradient, and to how many
 digits. Then run `lectures/l11/figures/make_figures.py` and look at the autodiff panel. One
-framework agreed to about 3e-16 and the other to about 5e-8. Write three sentences
+framework agreed to about 4.4e-16 and the other to about 7.5e-8. Write three sentences
 explaining the gap before you read the script's header, which explains it. If your
 explanation does not mention dtype, you have found a real gap in your own model of
 floating-point arithmetic, and it is a gap that will cost you a day at some point.
