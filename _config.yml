@@ -3,7 +3,7 @@
 # Docs: https://jupyterbook.org/en/stable/customize/config.html
 
 title: Systems & Toolchains for AI in Engineering
-author: John Kitchin
+author: John Kitchin and Victor Alves
 copyright: "2026"
 
 # SECURITY-RELEVANT. The Pages site is public while this repo is private.
