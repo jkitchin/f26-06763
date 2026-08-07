@@ -20,6 +20,9 @@ exclude_patterns:
   - "lectures/*/slides.md"  # MARP source, rendered separately by CI
   - "**.ipynb_checkpoints"
   - node_modules
+  - .pytest_cache       # running the quiz tests must not break the book build
+  - game                # Vite app, built separately by CI into _build/html/game
+  - tools
   - README.md
   - readme.org
   - CLAUDE.md

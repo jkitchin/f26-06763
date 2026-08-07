@@ -42,6 +42,19 @@ and for searching the whole semester at once. The decks are also published as li
 linked from the top of each set of notes.
 :::
 
+:::{admonition} Practice modules
+:class: tip
+
+<a href="game/"><strong>Open the practice modules</strong></a>, a short set of
+questions for each lecture, tied to the numbers and the pitfalls in that
+session's notes.
+
+Each one takes about ten minutes, ends by producing a PDF you upload, and counts
+toward participation on completion rather than on score. The questions are
+selected from your Andrew ID, so yours are not your neighbour's. Everything runs
+in your browser and nothing is uploaded from the page itself.
+:::
+
 ## Toolchain
 
 Python with `uv` for environments, PyTorch for deep learning, MLflow for experiment

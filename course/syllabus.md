@@ -96,7 +96,21 @@ There is **no proctored final exam**; assessment is project- and portfolio-based
   integrate back-half topics — an **LLM/agentic system** with real **evaluation and
   deployment**. Deliverables: proposal, build (repo), recorded demo, and in-class
   presentation.
-- **Participation & quizzes:** short in-class concept checks and engagement.
+- **Participation & quizzes:** short in-class concept checks and engagement, plus
+  the <a href="../game/">practice modules</a>, one per lecture, roughly ten
+  minutes each. Finish a module and it produces a PDF; upload that. **Credit is
+  for completing them, not for the score**, so a module you find hard is worth
+  exactly as much as one you find easy.
+
+  Two things worth stating plainly, because you will find them out anyway. Your
+  questions are selected from your Andrew ID, so they differ from your
+  neighbour's, and a submitted PDF is checked against the set your ID generates.
+  And the answer key ships inside the JavaScript, because the grading happens in
+  your browser and there is nowhere else for it to be. That is a deliberate
+  trade, not an oversight: the alternative buys nothing at this weighting.
+  **If you reverse-engineer how the questions are selected and write up what you
+  found, that is worth more credit than the modules themselves.** Come and show
+  me.
 
 ### Grading scale
 A ≥ 90 (A− from 90, A from 93) · B [80–90) · C [70–80) · D [60–70) · R/F < 60. `+/−`

@@ -497,6 +497,55 @@ jobs:
               sys.exit(1)
           print(f"OK: slides.pdf is {len(merged.pages)} pages across {len(bookmarks)} decks")
           PY
+      - name: Build the practice game
+        # Same pattern as the MARP step above: a non-Sphinx artifact built
+        # separately and copied into the output tree before it is uploaded.
+        # VITE_MAC_KEY is what the evidence PDFs are stamped with; without the
+        # secret the build falls back to a well-known development key and marks
+        # the PDFs key_id "dev", which the next step refuses to publish.
+        env:
+          VITE_MAC_KEY: ${{ secrets.GAME_MAC_KEY }}
+          VITE_KEY_ID: ${{ secrets.GAME_MAC_KEY && 'f26-k1' || 'dev' }}
+          VITE_BUILD_COMMIT: ${{ github.sha }}
+        run: |
+          cd game
+          npm ci --no-audit --no-fund
+          npm run build
+          cd ..
+          mkdir -p _build/html/game
+          cp -r game/dist/* _build/html/game/
+
+      - name: Check the game actually resolves its assets
+        # A wrong Vite `base` produces an index.html that exists, is 200, and
+        # renders a blank page because every asset 404s. Every other check in
+        # this workflow passes on that, which is exactly why this one greps for
+        # the deployed path rather than for the file.
+        run: |
+          html=_build/html/game/index.html
+          test -f "$html" || { echo "::error::the game did not build"; exit 1; }
+          grep -q '/f26-06763/game/assets/' "$html" || {
+            echo "::error::$html has no /f26-06763/game/assets/ references; the Vite base is wrong"
+            grep -o 'src="[^"]*"' "$html" || true
+            exit 1
+          }
+          for asset in $(grep -o '/f26-06763/game/assets/[^"]*' "$html"); do
+            test -f "_build/html${asset#/f26-06763}" || {
+              echo "::error::$html references missing asset $asset"; exit 1; }
+          done
+          echo "OK: the game's assets resolve"
+
+      - name: Refuse to publish evidence PDFs signed with the dev key
+        # A missing repository secret would otherwise ship silently, and every
+        # PDF issued all semester would carry a key that is published in the
+        # source tree. Better to fail the deploy than to find out in December.
+        if: github.ref == 'refs/heads/main'
+        run: |
+          if grep -rqs '"dev"' _build/html/game/assets/*.js && \
+             ! grep -rqs 'f26-k1' _build/html/game/assets/*.js; then
+            echo "::error::the game was built without GAME_MAC_KEY; set the repository secret"
+            exit 1
+          fi
+          echo "OK: the game is not using the development key"
 
       - name: Check the build produced something
         run: |
