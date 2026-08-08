@@ -383,8 +383,11 @@ convention and are sparser, one idea per slide; migrate them to topic titles whe
 next revised.
 
 **Definitions get a green box.** Bring the notes' green definition ribbons onto the slides.
-When a slide introduces a term or a concept, put the plain definition in the theme's green box
-instead of a bare bullet, so the scaffolding a student leans on looks the same in both places.
+Reserve the box for the handful of genuine key terms, the same ones the notes give a ribbon,
+not every noun on the slide. A deck where most slides are green boxes has lost the emphasis the
+box is meant to carry; aim for roughly the ribbon count of the matching notes. When a slide
+introduces one of those key terms, put the plain definition in the theme's green box instead of
+a bare bullet, so the scaffolding a student leans on looks the same in both places.
 For a definition inside a content slide, wrap it in a div and leave blank lines around the text
 so the markdown still renders:
 
