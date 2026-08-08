@@ -212,3 +212,37 @@
   text: >-
     Explain the distributed-processing model (partitioning, lazy graphs) without needing a
     cluster.
+
+- id: l03-o1
+  lecture: l03
+  text: >-
+    Model sensor/simulation data in a relational schema with appropriate types (timestamps,
+    numeric precision, units).
+
+- id: l03-o2
+  lecture: l03
+  text: >-
+    Load data into PostgreSQL and query it with SQL: joins, `GROUP BY`, window functions,
+    time bucketing.
+
+- id: l03-o3
+  lecture: l03
+  text: >-
+    Reason about indexing and query cost for time-range queries.
+
+- id: l04-o1
+  lecture: l04
+  text: >-
+    Explain columnar storage and why it accelerates analytical scans, and read and write
+    Parquet.
+
+- id: l04-o2
+  lecture: l04
+  text: >-
+    Use DuckDB to query Parquet and PostgreSQL without a server, and choose between OLTP and
+    OLAP tools.
+
+- id: l04-o3
+  lecture: l04
+  text: >-
+    Place document, key-value, and vector stores in the engineering data landscape.
