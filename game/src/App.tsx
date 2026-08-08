@@ -14,12 +14,13 @@ import { parseHash, toHash, type Route } from './route.ts'
 import { useProgress } from './store/useProgress.ts'
 import { Home } from './ui/Home.tsx'
 import { Identity } from './ui/Identity.tsx'
+import { MapView } from './ui/MapView.tsx'
 import { SessionRoute } from './ui/SessionRoute.tsx'
 import { Summary } from './ui/Summary.tsx'
 
 export function App() {
   const banks = useMemo(() => loadBanks(), [])
-  const { andrewId, displayName, log, storageOk, hydrated, setIdentity } = useProgress()
+  const { andrewId, displayName, log, storageOk, hydrated, setIdentity, append } = useProgress()
   const [route, setRoute] = useState<Route>(() => parseHash(window.location.hash))
 
   // Keep the address bar and the screen in step, both ways, so the browser's
@@ -43,17 +44,30 @@ export function App() {
 
   // A route to a lecture with no bank is a stale link; fall back rather than
   // rendering nothing.
-  const target = route.name === 'home' ? null : banks[route.lecture]
-  if (route.name !== 'home' && !target) {
+  const target = route.name === 'home' || route.name === 'map' ? null : banks[route.lecture]
+  if (route.name !== 'home' && route.name !== 'map' && !target) {
     if (window.location.hash !== '#/') window.location.hash = '#/'
     return <Home banks={banks} log={log} andrewId={andrewId} storageOk={storageOk}
                  onStart={(l) => go({ name: 'session', lecture: l })}
-                 onEvidence={(l) => go({ name: 'summary', lecture: l })} />
+                 onEvidence={(l) => go({ name: 'summary', lecture: l })}
+                 onMap={() => go({ name: 'map' })} />
   }
 
   if (!andrewId) {
     // Identify first, then carry on to wherever the link pointed.
     return <Identity onDone={(id, name) => setIdentity(id, name)} />
+  }
+
+  if (route.name === 'map') {
+    return (
+      <MapView
+        banks={banks}
+        log={log}
+        onVisit={(room) => append([{ t: 'visited', room, at: Date.now() }])}
+        onStart={(lecture) => go({ name: 'session', lecture })}
+        onList={() => go({ name: 'home' })}
+      />
+    )
   }
 
   if (route.name === 'session' && target) {
@@ -88,6 +102,7 @@ export function App() {
       storageOk={storageOk}
       onStart={(lecture) => go({ name: 'session', lecture })}
       onEvidence={(lecture) => go({ name: 'summary', lecture })}
+      onMap={() => go({ name: 'map' })}
     />
   )
 }

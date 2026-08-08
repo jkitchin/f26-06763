@@ -14,7 +14,8 @@
     "nav": "node --experimental-strip-types tests/nav.ts",
     "mastery": "node --experimental-strip-types tests/mastery.ts",
     "routes": "node --experimental-strip-types tests/routes.ts",
-    "persistence": "node --experimental-strip-types tests/persistence.ts"
+    "persistence": "node --experimental-strip-types tests/persistence.ts",
+    "map": "node --experimental-strip-types tests/map.ts"
   },
   "dependencies": {
     "@noble/hashes": "^1.6.1",

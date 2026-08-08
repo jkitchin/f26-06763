@@ -73,6 +73,27 @@ export interface ItemWithdrawn {
   at: number
 }
 
+/**
+ * A room stood in on the map.
+ *
+ * Ungraded today, and deliberately shaped so it need not be redesigned if that
+ * changes. It is an event in the same append-only log as everything else, so
+ * "which rooms has this student explored" is a question about history rather
+ * than a counter somebody can set, and an evidence PDF covering map progress
+ * would read it exactly the way the module PDF reads answers.
+ *
+ * Every derivation above ignores it, because each one identifies its events
+ * positively rather than by exclusion. That is the property that lets the log
+ * grow new event kinds without a migration, and it is worth preserving: a
+ * derivation written as "anything that is not an opened event" would have
+ * quietly counted these as answers.
+ */
+export interface RoomVisited {
+  t: 'visited'
+  room: string
+  at: number
+}
+
 /** One answered item. Append-only: entries are never edited or removed. */
 export interface LogEntry {
   t?: 'answer'
@@ -95,12 +116,13 @@ export interface LogEntry {
   at: number
 }
 
-export type Event = SessionOpened | ItemWithdrawn | LogEntry
+export type Event = SessionOpened | ItemWithdrawn | RoomVisited | LogEntry
 
 const isOpened = (e: Event): e is SessionOpened => (e as SessionOpened).t === 'opened'
 const isWithdrawn = (e: Event): e is ItemWithdrawn => (e as ItemWithdrawn).t === 'withdrawn'
+const isVisit = (e: Event): e is RoomVisited => (e as RoomVisited).t === 'visited'
 const isAnswer = (e: Event): e is LogEntry =>
-  (e as LogEntry).itemId !== undefined && !isOpened(e) && !isWithdrawn(e)
+  (e as LogEntry).itemId !== undefined && !isOpened(e) && !isWithdrawn(e) && !isVisit(e)
 
 export interface SessionSummary {
   session: string
@@ -334,4 +356,18 @@ export function accuracy(log: readonly Event[]): number {
   const answers = log.filter(isAnswer)
   if (!answers.length) return 0
   return answers.filter((e) => e.firstOk).length / answers.length
+}
+
+/** Rooms this student has stood in, which is what draws the map. */
+export function visitedRooms(log: readonly Event[]): Set<string> {
+  return new Set(log.filter(isVisit).map((e) => e.room))
+}
+
+/** When each room was first entered, for ordering a "where you have been" list. */
+export function firstVisits(log: readonly Event[]): Map<string, number> {
+  const out = new Map<string, number>()
+  for (const e of log) {
+    if (isVisit(e) && !out.has(e.room)) out.set(e.room, e.at)
+  }
+  return out
 }

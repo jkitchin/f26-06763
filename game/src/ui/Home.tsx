@@ -21,9 +21,10 @@ interface Props {
   storageOk: boolean
   onStart: (lecture: string) => void
   onEvidence: (lecture: string) => void
+  onMap: () => void
 }
 
-export function Home({ banks, log, andrewId, storageOk, onStart, onEvidence }: Props) {
+export function Home({ banks, log, andrewId, storageOk, onStart, onEvidence, onMap }: Props) {
   const lectures = Object.values(banks).sort((a, b) => a.lecture.localeCompare(b.lecture))
 
   return (
@@ -33,6 +34,12 @@ export function Home({ banks, log, andrewId, storageOk, onStart, onEvidence }: P
         <p className="mt-1 text-sm text-[var(--muted)]">
           Signed in as <span className="font-mono">{andrewId}</span>
         </p>
+        {/* The list is the primary view and stays that way. The map is the
+            other way in, for the question a list cannot answer: which session
+            covered this, and what does it depend on. */}
+        <button type="button" onClick={onMap} className="btn-secondary mt-4">
+          Explore the course map
+        </button>
       </header>
 
       {!storageOk && (
