@@ -40,6 +40,9 @@ By the end of this session you should be able to:
 
 ## Environments you can rebuild
 
+```{index} virtual environment, uv, dependency resolution, lockfile
+```
+
 A project's **environment** is the exact Python interpreter and set of packages you install to run it. Reproducing a result begins with reproducing that environment. The environment is more than the packages you named. It includes the exact version of the Python interpreter. It includes every package you installed directly. It also includes every package those packages pulled in underneath them, each one at a specific version. A dependency you never typed can change a number you report. That is why "I installed pandas and scikit-learn" is not a description anyone can rebuild from.
 
 Small version differences produce real, silent changes in behavior. The L1 demo showed one live. A function's behavior can shift between two minor releases. A default argument can move. A dependency of a dependency can resolve to a newer version on a Tuesday than it did on the Monday you last ran the code. "Newest version that satisfies the constraints" is a moving target. None of these announce themselves. They surface later, as a result that will not reproduce, and by then the trail is cold.
@@ -74,6 +77,9 @@ The most common way to miss the point of `uv` is to treat it as a faster `pip` a
 
 ## A project layout that scales
 
+```{index} project scaffold, pyproject.toml
+```
+
 An exploratory analysis can live in a single notebook and a folder of loose files. For the first afternoon of a project, that is exactly where it should live. A system cannot stay there. A system's code has to be imported by other code, exercised by tests, and run by people who are not you and who are not sitting in the folder where you happened to save it. A small, conventional project layout buys all three of those. Set it up on the very first day. It costs almost nothing then, and it is genuinely tedious to retrofit onto a tangle of scripts later.
 
 :::{admonition} Definition: scaffolding
@@ -98,6 +104,9 @@ The specific folder names matter far less than the principle underneath them. Th
 
 ## Versioning code, data, and models are three different problems
 
+```{index} data versioning, content hash, DVC, provenance
+```
+
 Git is excellent at versioning code. It is close to useless at versioning a 200 MB data file. The instinct is to solve the problem by putting everything into one repository. That is exactly how repositories become slow, enormous, and unpleasant to clone. A project produces three kinds of artifact: its code, its data, and its models. They differ in size, in how often they change, and in what is worth recording about them. Those differences mean they belong in three different tools. Getting this split right early is far cheaper than untangling it later.
 
 **Code** belongs in git, which was built for it. Code is small and it is text. Git can show you exactly what changed, line by line, between any two points in the project's history. Each commit is a labeled, permanent save point. Its identifier is a short string called a SHA, and the SHA is itself a piece of provenance. The question "which version of the code produced this number" is answered completely by a commit SHA. This is the cheapest and most reliable versioning you will do all semester. It costs nothing but the discipline of committing in meaningful units.
@@ -119,6 +128,9 @@ Git is excellent at versioning code. It is close to useless at versioning a 200 
 | Models | one per run, large binary | an MLflow run | the inputs that produced it |
 
 ## From notebook to module
+
+```{index} random seed, notebook to module
+```
 
 A notebook is the right tool for looking at data. It is the wrong tool for anything that has to run again reliably. The reason is structural. In a notebook, cells run in whatever order you clicked them, not top to bottom. State accumulates invisibly between runs. A variable defined in a cell you have since deleted can keep a later cell working long after the code that created it is gone. "It worked a minute ago" is a true statement about a notebook. It tells you almost nothing about whether it will work on a fresh start. Turning the notebook into a module is how an exploration becomes something you can test, schedule, and trust. It is the step where most of the L1 failures are designed out rather than merely warned against.
 
@@ -147,6 +159,9 @@ The notebook does not have to disappear when you do this. It becomes a thin fron
 
 ## Experiment hygiene: one run, one fact
 
+```{index} experiment tracking, MLflow
+```
+
 Once the analysis runs from the command line, you will run it many times, with different seeds, different features, and different parameters. Within a day, the question "which settings produced this particular number" becomes unanswerable from memory. **Experiment tracking** is the infrastructure that answers it for you. It records each run as it happens, so the run becomes a fact you can point to rather than a recollection you have to trust. It is the smallest and most immediately useful unit of the provenance discipline from earlier in the session.
 
 MLflow is the tracker this course uses. For each run it records the parameters you chose, the metrics you measured, and any artifacts you attach, such as a figure or a saved model. It stores all of this locally, with no server to stand up in Week 1. One wrinkle is worth knowing, because it surprises people mid-demo. Recent versions of MLflow have put the old bare-directory store into maintenance mode and will refuse to use it. They steer you instead toward a small local SQLite database, which is a single file on disk and still needs no server. Pointed at that file, the `mlflow ui` command shows your runs side by side in a browser. The interface you actually touch is small:
@@ -165,6 +180,9 @@ with mlflow.start_run():
 Run the trainer twice with two different seeds. The two runs appear as two rows you can compare directly. The small difference between them is the lesson. It is why the seed has to be logged: without it, neither number is reconstructible. The habit worth building is to log enough that the run could be *rebuilt* from its record. That means the git commit SHA of the code, a hash or version of the data, and the seed, all sitting next to the metric. That triple is the provenance the Duke work never had. With it, a run becomes one reproducible fact, which is the phrase this section is named for. The Week 7 miniproject later demands exactly this triple, a git SHA, a data hash, and a seed, as its price of admission. This session is where you build the habit that makes that requirement painless.
 
 ## Where reproducibility pushes back
+
+```{index} pair: failure mode; reproducible but wrong
+```
 
 Everything so far has been an argument for a discipline. The argument is sound. A course that only sold its tools would be teaching advocacy rather than engineering. Reproducibility is necessary infrastructure. It is not a cure-all. Knowing this well means knowing what it does not give you and where the effort stops being worth it. Several of its limits are worth meeting here, on paper, rather than later, under deadline.
 

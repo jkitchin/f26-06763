@@ -27,6 +27,9 @@ By the end of this session you should be able to:
 
 ## Splits done right
 
+```{index} train/test split, grouped split, GroupKFold, temporal split, TimeSeriesSplit, nested cross-validation
+```
+
 A train/test split has one job: to make the test set a fair stand-in for the data the model will see in deployment. Every splitting rule in this section follows from that one requirement, and the default tool most people reach for, a random shuffle, violates it for the two kinds of data engineering produces most often: grouped data and time-series data.
 
 The C-MAPSS data is both. It is **grouped** because every row belongs to one of 100 engines, and the deployment question is always about a *new* engine, not a new cycle of an engine you have already watched fail. It is **temporal** because within an engine the rows are ordered by cycle, and the deployment question is always about the *future*, not a cycle wedged between two you have already seen. A random shuffle ignores both facts. It splits at the level of the row, so the same engine lands in both halves, and it splits without regard to time, so the model trains on cycle 151 and is tested on cycle 150.
@@ -70,6 +73,9 @@ The same fleet, split two ways. Left: a random row split scatters every engine a
 
 ## A taxonomy of leakage
 
+```{index} data leakage, target leakage, temporal leakage, group leakage
+```
+
 Leakage is the general fault the split above is one instance of. The definition worth memorizing comes from Kaufman and colleagues, who call it "one of the top ten data mining mistakes."
 
 :::{admonition} Definition: leakage
@@ -91,6 +97,9 @@ Leakage arrives in four recognizable shapes, and a good audit checks for each by
 The reason leakage deserves its own vocabulary is that it defeats the instrument you would normally trust. Your validation score is supposed to tell you whether the model works. When the data leaks, the score tells you how well the model exploited information it will not have, and a higher score is then worse news, not better. You cannot find leakage by looking at the metric; you find it by reasoning about where each number came from.
 
 ## Versioning data and features
+
+```{index} data versioning, DVC, content hash, dvc.yaml
+```
 
 Reproducibility, from [L2](../l02/notes.md), is the ability to take your data and your code and get your numbers back. L2 versioned the code with git and kept the raw data out of git behind a content hash. This session closes the remaining gap: a tool that versions the data and the derived feature sets *by content*, and ties a specific data version to the code version and the experiment that used it.
 
@@ -121,6 +130,9 @@ A **datasheet** is a structured document, proposed by [Gebru et al. (2021)](http
 For engineering data the high-value entries are provenance and known issues: which instrument and firmware produced the readings, the units and sample rate of each channel, the calibration state, and the defects you already know about. C-MAPSS is a clean example to document, because it has surprises worth writing down. Six of its 21 sensor channels are constant and carry no information, the remaining-useful-life target in the training set is the true cycle count while the test set withholds it, and the "operating condition" is fixed for FD001 but varies in the other three subsets. A one-page card that states those facts saves the next person the hour it costs to rediscover them, and it is the natural home for the pitfalls this arc has surfaced: the dying-battery motes from [L6](../l06/notes.md), the constant channels from L7, the units convention on every column.
 
 ## Data-centric iteration
+
+```{index} datasheet, data-centric iteration
+```
 
 The reflex when a model underperforms is to change the model: a bigger network, a different algorithm, more hyperparameter search. **Data-centric iteration** inverts that reflex. You hold the model fixed and improve the data, then measure whether the data change helped.
 
