@@ -1,0 +1,92 @@
+{
+  "lecture": "l19",
+  "versions": {
+    "1": {
+      "items": {
+        "l19-q01": {
+          "answer": "In the harness: break after the third identical failing call, with an explicit message",
+          "options": [
+            "In the model: raise the temperature so it explores a different tool instead of repeating itself",
+            "In the tool: raise an exception on a bad mote id so the loop stops on the first failed call",
+            "In the harness: break after the third identical failing call, with an explicit message",
+            "In the prompt: instruct the model to keep track of calls it has already made and never repeat one that failed"
+          ]
+        },
+        "l19-q02": {
+          "answer": "The description was written for a human reader, not for the model that has to call it",
+          "options": [
+            "The model is too small for tool use; a larger model would infer the argument format from the tool name",
+            "The description was written for a human reader, not for the model that has to call it",
+            "The tool should be split into four narrower tools, one per variable, so that no argument is needed",
+            "Tool descriptions should be short so they do not crowd the context window; the fault is in the arguments alone"
+          ]
+        },
+        "l19-q03": {
+          "answer": "Return a plain, informative result the model can read and react to",
+          "options": [
+            "Raise an exception, so the failure is loud and the agent stops before it can compound the mistake",
+            "Return a plain, informative result the model can read and react to",
+            "Return an empty result, so the model infers that nothing matched and moves on",
+            "Retry internally with a nearby valid id, so the agent makes progress without a wasted turn"
+          ]
+        },
+        "l19-q04": {
+          "answer": "Safety. The loop is limited, not safe: three tool calls is plenty to delete something if a tool can delete something",
+          "options": [
+            "Nothing further is needed; those three bounds are what makes an agent production-ready",
+            "Safety. The loop is limited, not safe: three tool calls is plenty to delete something if a tool can delete something",
+            "Debuggability, which requires structured logging of every step in addition to the bounds",
+            "Determinism, which requires pinning the temperature to zero as well as bounding the loop"
+          ]
+        },
+        "l19-q05": {
+          "answer": "It establishes that the harness is correct, and leaves entirely open whether a real model chooses the right tool, with the right arguments, at the right time",
+          "options": [
+            "It establishes that the agent works end to end, leaving only latency and cost to tune",
+            "It establishes that the harness is correct, and leaves entirely open whether a real model chooses the right tool, with the right arguments, at the right time",
+            "It establishes nothing useful, because a model that cannot reason is not a meaningful test of a system built around reasoning",
+            "It establishes that the tool schemas are well formed, and leaves the harness logic untested"
+          ]
+        },
+        "l19-q06": {
+          "answer": "A silent model update on the provider's side; determinism is a preference, not a guarantee",
+          "options": [
+            "Temperature drift in your own configuration; pin it to zero and the behaviour becomes identical",
+            "A silent model update on the provider's side; determinism is a preference, not a guarantee",
+            "Context-window exhaustion, which changes behaviour once conversations grow past a threshold",
+            "Rate limiting, which causes retries that present as different tool choices"
+          ]
+        },
+        "l19-q07": {
+          "answer": "No. Reach for an agent only once a fixed pipeline has stopped being sufficient",
+          "options": [
+            "Yes; an agent handles the fixed case too and gives you room to grow",
+            "No. Reach for an agent only once a fixed pipeline has stopped being sufficient",
+            "Yes, provided the loop is bounded, since bounds remove the cost objection",
+            "It makes no difference; the two compile to the same sequence of API calls"
+          ]
+        },
+        "l19-q08": {},
+        "l19-q09": {
+          "answer": "A malformed call can be rejected before your tool code runs, rather than crashing inside it",
+          "options": [
+            "It makes the tool faster, since parsing is done by the provider rather than in your code",
+            "A malformed call can be rejected before your tool code runs, rather than crashing inside it",
+            "It is required by the tool-calling API, which rejects tools without typed arguments",
+            "It reduces token usage, because a schema is more compact than a prose description"
+          ]
+        },
+        "l19-q10": {
+          "answer": "The harness breaks after the third identical failing call, not the model noticing",
+          "options": [
+            "The model gives up on its own after reading the error twice, so the bound is a formality",
+            "The harness breaks after the third identical failing call, not the model noticing",
+            "The tool raises an exception on the second call, which propagates and stops the run",
+            "The max-step budget expires, which is why loop detection is redundant when a step budget exists"
+          ]
+        }
+      },
+      "serve": 6
+    }
+  }
+}

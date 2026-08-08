@@ -1,0 +1,110 @@
+{
+  "lecture": "l11",
+  "versions": {
+    "1": {
+      "items": {
+        "l11-q01": {
+          "answer": "Two Python floats entered as float32, and float32 promotes to float64 on contact, so every dtype downstream reads float64 and looks fine",
+          "options": [
+            "PyTorch's autograd is less numerically careful than JAX's, so use JAX when you need gradient accuracy",
+            "Two Python floats entered as float32, and float32 promotes to float64 on contact, so every dtype downstream reads float64 and looks fine",
+            "`requires_grad=True` silently downcasts, so set `torch.set_default_dtype(torch.float64)` before building any tensor",
+            "The analytic derivative was miscopied; a discrepancy this size is almost always the reference, not the framework"
+          ]
+        },
+        "l11-q02": {
+          "answer": "Two and a half times slower: 8.6 ms per epoch on the CPU against 21.1 ms on the GPU",
+          "options": [
+            "Roughly 3x faster, which is the usual return on moving a small model to an accelerator",
+            "Two and a half times slower: 8.6 ms per epoch on the CPU against 21.1 ms on the GPU",
+            "About the same, since the model is too small for the device to matter either way",
+            "Around 10x faster once the data is resident on the device and transfers stop dominating"
+          ]
+        },
+        "l11-q03": {
+          "answer": "C (2.8x), then B (1.2x), then A, which is actually 0.8x, meaning slower",
+          "options": [
+            "C (2.8x), then B (1.2x), then A, which is actually 0.8x, meaning slower",
+            "A (2.8x), then C (1.2x), then B at 0.8x, since matmuls benefit most from fusion",
+            "B (2.8x), then A (1.2x), then C at 0.8x, since elementwise chains fuse best",
+            "All three land between 1.2x and 2.8x; compilation never makes a workload slower"
+          ]
+        },
+        "l11-q04": {
+          "answer": "It flatters whichever model can better exploit the leak, and the tree's advantage over the net largely disappears once whole mixes are held out",
+          "options": [
+            "Nothing much; with over a thousand rows a random split is representative enough for a model comparison",
+            "It flatters whichever model can better exploit the leak, and the tree's advantage over the net largely disappears once whole mixes are held out",
+            "It penalises the tree, because trees are more sensitive to the duplicate rows a random split creates",
+            "It inflates both equally, so the comparison between them is still fair even though the absolute numbers are wrong"
+          ]
+        },
+        "l11-q05": {
+          "answer": "It does not diverge at all; it trains to 9.7 MPa instead of 6.0, a model that works and is merely bad",
+          "options": [
+            "NaN too, though it takes more epochs because the moment estimates delay the divergence",
+            "It does not diverge at all; it trains to 9.7 MPa instead of 6.0, a model that works and is merely bad",
+            "It converges normally, since adaptive methods are scale-invariant by construction",
+            "It diverges to a large finite value rather than NaN, which is easy to spot in the loss curve"
+          ]
+        },
+        "l11-q06": {
+          "answer": "The outcome there depends on the seed, so a single run tells you nothing about whether the setting is safe",
+          "options": [
+            "It is the largest stable value, so it is the right choice for fastest convergence",
+            "The outcome there depends on the seed, so a single run tells you nothing about whether the setting is safe",
+            "It is exactly the edge of stability, which can be computed in advance from the loss curvature",
+            "Nothing; it is simply an intermediate point between the working value and divergence"
+          ]
+        },
+        "l11-q07": {
+          "answer": "Because truncation error falls with the step while rounding error rises, so the total is minimised at a floor rather than driven to zero",
+          "options": [
+            "Because the step size is chosen by trial and error, and forty candidates is too coarse a sweep to find the optimum",
+            "Because truncation error falls with the step while rounding error rises, so the total is minimised at a floor rather than driven to zero",
+            "Because central differences are only second-order accurate, and a higher-order stencil would reach machine precision",
+            "Because floating point subtraction is not associative, so the result depends on evaluation order"
+          ]
+        },
+        "l11-q08": {},
+        "l11-q09": {
+          "answer": "Whether `opt.zero_grad()` is being called, because gradients accumulate by default and its absence never raises",
+          "options": [
+            "The learning rate, since a slow, smooth decrease is the classic signature of a step size that is too small",
+            "Whether `opt.zero_grad()` is being called, because gradients accumulate by default and its absence never raises",
+            "The batch size, since small batches produce noisy gradients that slow convergence",
+            "The initialisation, since poor scaling of the first layer will stall learning without any error"
+          ]
+        },
+        "l11-q10": {
+          "answer": "That tree-based models remain ahead on typical tabular data, across 45 datasets and a large compute budget",
+          "options": [
+            "That deep learning wins once the dataset passes roughly ten thousand rows",
+            "That tree-based models remain ahead on typical tabular data, across 45 datasets and a large compute budget",
+            "That the two are indistinguishable once hyperparameters are tuned equally for both",
+            "That the comparison is undecidable, because no standard tabular benchmark suite exists"
+          ]
+        },
+        "l11-q11": {
+          "answer": "That the two are the same computation to float64 rounding, so the speedup costs no accuracy",
+          "options": [
+            "That the vectorised version is slightly wrong, and the difference is the approximation error it introduces",
+            "That the two are the same computation to float64 rounding, so the speedup costs no accuracy",
+            "That the loop version accumulates error over 256 iterations, and vectorising removes it",
+            "That the comparison is inconclusive at this precision and should be repeated in float32"
+          ]
+        },
+        "l11-q12": {
+          "answer": "Whichever you have; the point is the crossover, not which device won",
+          "options": [
+            "The GPU, by a wide margin, which is why accelerators are the default for training",
+            "Whichever you have; the point is the crossover, not which device won",
+            "The CPU always, because PyTorch's GPU path is not optimised for tabular data",
+            "Neither reliably; device timings are too noisy on a laptop to support any conclusion"
+          ]
+        }
+      },
+      "serve": 8
+    }
+  }
+}

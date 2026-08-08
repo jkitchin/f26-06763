@@ -10,6 +10,17 @@ The semester MAC key is found automatically: --key, then $GAME_MAC_KEY, then
 ~/.config/f26-06763/mac-key, then the macOS keychain. Grading should not require
 remembering a 64-character string.
 
+`--pool` names the bank as it stands today, which is usually not the bank the
+student was served. Item selection is a function of the whole pool, so adding
+one item changes which items everybody gets. Each PDF says which pool_version it
+was issued under, and anything older is checked against the snapshot in
+`game/content/pools/`, printed as a `pool:` line. That archive is what keeps a
+week-3 PDF verifiable in week 9; `tools/pool_archive.py` maintains it and CI
+fails the build if a bank was edited without its version being bumped. If a
+version is missing from it the derivation checks report `?` rather than a
+mismatch, because that is a gap in this repository and not something a student
+did.
+
 Keep the roster outside the repository. The repository is private but the site
 is public, and CLAUDE.md section 1 is unambiguous about student data.
 
@@ -86,6 +97,8 @@ DEV_MAC_KEY = "dev-key-not-secret"
 # be read back: if this file and the keychain entry are both lost, the only
 # remaining copy is the one in the published JavaScript bundle, which is a
 # fittingly awkward reminder of what this key is and is not.
+POOL_ARCHIVE = Path(__file__).resolve().parent.parent / "game" / "content" / "pools"
+
 KEY_FILE = Path.home() / ".config" / "f26-06763" / "mac-key"
 KEYCHAIN_SERVICE = "f26-06763-game-mac-key"
 
@@ -225,6 +238,13 @@ class Result:
     active_ms: int = 0
     elapsed_ms: int = 0
     code: str = ""
+    #: Which pool this PDF was checked against: "current", "archived vN", or
+    #: "vN (not archived)". Printed on its own line rather than pushed through
+    #: `notes`, because `notes` is what promotes PASS to PASS*, and being
+    #: checked against the archive is the correct path rather than an anomaly.
+    #: Once a bank has been bumped it is the path every honest PDF takes, and a
+    #: PASS* on all of them would leave PASS* meaning nothing.
+    pool_source: str = "current"
     checks: dict = field(default_factory=dict)
     notes: list = field(default_factory=list)
     problems: list = field(default_factory=list)
@@ -275,6 +295,52 @@ def check_mac(res: Result, ex: Extract, mac_key: str) -> None:
             f"the code printed on the page is not the one this payload implies "
             f"(expected {expected})"
         )
+
+
+def archived_bank(lecture: str, pool_version: int) -> dict | None:
+    """The bank as it stood at `pool_version`, or None if it was never archived.
+
+    Item selection is a function of the whole pool, so adding one item changes
+    which items every student is served. Re-deriving a week-3 PDF against the
+    week-9 bank compares it to a derivation that never existed, and the honest
+    student comes back MISM. See tools/pool_archive.py for the archive this
+    reads and the CI check that keeps it current.
+
+    Shaped like a bank rather than like the archive, so the two checks
+    downstream do not need to know which one they were handed.
+    """
+    p = POOL_ARCHIVE / f"{lecture}.json"
+    if not p.is_file():
+        return None
+    try:
+        snap = json.loads(p.read_text(encoding="utf-8")).get("versions", {}).get(str(pool_version))
+    except (json.JSONDecodeError, OSError):
+        return None
+    if not snap:
+        return None
+    return {
+        "lecture": lecture,
+        "pool_version": pool_version,
+        "serve": snap.get("serve"),
+        "items": [{"id": i, **rec} for i, rec in sorted(snap.get("items", {}).items())],
+    }
+
+
+def resolve_bank(live: dict, payload: dict) -> tuple[dict | None, str]:
+    """Which bank this PDF should be checked against, and where it came from.
+
+    The live file is used only when the PDF was issued under the version it
+    still carries. Otherwise the archived snapshot is authoritative, because it
+    is the only thing that describes what the student was actually served.
+    """
+    lecture = payload.get("module", {}).get("lecture", "") or live.get("lecture", "")
+    served_v = payload.get("module", {}).get("pool_version", live.get("pool_version", 1))
+    if served_v == live.get("pool_version", 1):
+        return live, "current"
+    arch = archived_bank(lecture, served_v)
+    if arch is None:
+        return None, f"v{served_v} (not archived)"
+    return arch, f"archived v{served_v}"
 
 
 def check_derivation(res: Result, ex: Extract, pool: dict, pool_version: int) -> None:
@@ -400,15 +466,28 @@ def verify_one(path: Path, bank: dict, mac_key: str) -> Result:
     m = re.search(r"\b([0-9A-HJKMNP-TV-Z]{4}(?:-[0-9A-HJKMNP-TV-Z]{4}){3})\b", ex.page_text)
     res.code = m.group(1) if m else ""
 
-    pool = {
-        i["id"]: {"options": i.get("options") or [], "variants": i.get("variants")}
-        for i in bank.get("items", [])
-    }
+    against, res.pool_source = resolve_bank(bank, p)
 
     check_printed_text_agrees(res, ex)
     check_mac(res, ex, mac_key)
-    check_derivation(res, ex, pool, bank.get("pool_version", 1))
-    check_answers(res, ex, bank)
+
+    if against is None:
+        # Never a REVIEW: the student did nothing. The pool they were served was
+        # edited without being archived, so the evidence is simply not
+        # re-derivable here. Fix the repository, not the grade.
+        res.checks["drv"] = res.checks["ans"] = "?"
+        res.notes.append(
+            f"issued under pool {res.pool_source}; that version is not in "
+            f"game/content/pools/, so the item set cannot be re-derived. "
+            f"The MAC still covers this payload. Run: python tools/pool_archive.py"
+        )
+    else:
+        pool = {
+            i["id"]: {"options": i.get("options") or [], "variants": i.get("variants")}
+            for i in against.get("items", [])
+        }
+        check_derivation(res, ex, pool, against.get("pool_version", 1))
+        check_answers(res, ex, against)
 
     res.verdict = "REVIEW" if res.problems else "PASS"
     if res.verdict == "PASS" and res.notes:
@@ -483,6 +562,8 @@ def main() -> int:
             f"{r.channel:<5} {r.checks.get('mac', '-'):<5} {r.checks.get('drv', '-'):<5} "
             f"{r.checks.get('ans', '-'):<5} {r.checks.get('txt', '-'):<5} {r.verdict}"
         )
+        if r.pool_source != "current":
+            print(f"{'':<12} pool: {r.pool_source}, the one this student was served")
         for note in r.notes:
             print(f"{'':<12} note: {note}")
         for problem in r.problems:

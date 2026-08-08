@@ -1,0 +1,110 @@
+{
+  "lecture": "l13",
+  "versions": {
+    "1": {
+      "items": {
+        "l13-q01": {
+          "answer": "At 148 queries, where the cost of building it crosses the cost of just solving",
+          "options": [
+            "Immediately, since a 33,000-fold speedup dwarfs any training cost you could incur",
+            "At 148 queries, where the cost of building it crosses the cost of just solving",
+            "At 128 queries, the number of solves spent building it, since each one has to be recovered",
+            "Never in a single study; surrogates pay off only when reused across projects"
+          ]
+        },
+        "l13-q02": {
+          "answer": "The GP, at 91.0% against the ensemble's 79.9%",
+          "options": [
+            "The ensemble, at about 95%, which is what its calibration claims deliver",
+            "The GP, at 91.0% against the ensemble's 79.9%",
+            "Both land near 95%; the split does not affect calibration, only accuracy",
+            "The ensemble, though only slightly, since five members is a small ensemble"
+          ]
+        },
+        "l13-q03": {
+          "answer": "Responsiveness and calibration are different properties",
+          "options": [
+            "The ensemble is less responsive to novelty, which is why its coverage falls",
+            "Responsiveness and calibration are different properties",
+            "The coverage difference is noise; a 1.83 against 1.84 ratio means the two are equivalent",
+            "The GP is extrapolating and the ensemble is interpolating, so the comparison is not like for like"
+          ]
+        },
+        "l13-q04": {
+          "answer": "It falls to 82.2%; the assumption failed, not the method",
+          "options": [
+            "It holds, because the guarantee is distribution-free and does not depend on the split",
+            "It falls to 82.2%; the assumption failed, not the method",
+            "It rises above nominal, because conformal intervals widen conservatively when the data shifts",
+            "It becomes undefined, since conformal prediction requires an i.i.d. calibration set to produce any interval"
+          ]
+        },
+        "l13-q05": {
+          "answer": "No: it helps where the physics involves the extrapolated variable, and hurts where it does not",
+          "options": [
+            "Yes, uniformly, which is why dimensionless groups are the standard first move",
+            "No: it helps where the physics involves the extrapolated variable, and hurts where it does not",
+            "No, it hurts everywhere once the model is a GP rather than a linear fit",
+            "It makes no measurable difference, since a GP can learn the transformation itself"
+          ]
+        },
+        "l13-q06": {
+          "answer": "In the physics: a wrong prior is worse than no prior, so the constant has to be checked before it is imposed",
+          "options": [
+            "In the optimiser: the penalty weight is too high, so lower it until the data term dominates",
+            "In the physics: a wrong prior is worse than no prior, so the constant has to be checked before it is imposed",
+            "In the architecture: a larger network can represent the discrepancy between the penalty and the data",
+            "In the data: more measurements in the region of disagreement will eventually outvote the penalty"
+          ]
+        },
+        "l13-q07": {
+          "answer": "Measurably worse: adding 17 points made the design worse on the measured criterion",
+          "options": [
+            "Better, roughly in proportion to the extra points",
+            "Measurably worse: adding 17 points made the design worse on the measured criterion",
+            "Unchanged, since 17 points is too few to move a space-filling measure",
+            "Better, but only in the dimensions the sequence happens to refine next"
+          ]
+        },
+        "l13-q08": {
+          "answer": "2, and in ten dimensions it is 1, which is why grids die and space-filling designs exist",
+          "options": [
+            "About 10, since a grid spends its budget evenly across dimensions",
+            "2, and in ten dimensions it is 1, which is why grids die and space-filling designs exist",
+            "About 4, the same as in three dimensions, since the budget is what binds",
+            "5, one per dimension, which is the usual rule of thumb for a screening design"
+          ]
+        },
+        "l13-q09": {
+          "answer": "scikit-learn 1.8 and 1.9 assign groups to folds by different rules, so the same call produces different folds",
+          "options": [
+            "One of the two is seeding the split differently, so pinning the random state will reconcile them",
+            "scikit-learn 1.8 and 1.9 assign groups to folds by different rules, so the same call produces different folds",
+            "The notebook is scoring on a different column, which is why both numbers moved together",
+            "Coverage and RMSE are computed over different subsets in the two files"
+          ]
+        },
+        "l13-q10": {
+          "answer": "Aleatoric is noise in the process itself and epistemic is ignorance of the model; only the second shrinks with more data",
+          "options": [
+            "Aleatoric is model error and epistemic is measurement error; the split tells you which team to send the problem to",
+            "Aleatoric is noise in the process itself and epistemic is ignorance of the model; only the second shrinks with more data",
+            "Aleatoric applies to interpolation and epistemic to extrapolation, so the split follows from the query location",
+            "They are two names for the same quantity, distinguished only by which community is writing"
+          ]
+        },
+        "l13-q11": {},
+        "l13-q12": {
+          "answer": "Every method looks fine on random rows; the differences need a harder split",
+          "options": [
+            "Coverage is stable across splits; the methods differ only in sharpness",
+            "Every method looks fine on random rows; the differences need a harder split",
+            "The deep ensemble leads under every split, which is why it is the modern default",
+            "Coverage improves under the harder splits, because the intervals widen faster than the error grows"
+          ]
+        }
+      },
+      "serve": 8
+    }
+  }
+}

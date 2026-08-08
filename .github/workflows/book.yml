@@ -53,6 +53,19 @@ jobs:
         # existed), and a link to a lecture that has no notes.md.
         run: python tools/graph.py --check
 
+      - name: Check every served pool version is archived
+        # tools/verify_evidence.py re-derives a student's item set to check it,
+        # and item selection is a function of the whole pool, so adding one item
+        # to a bank changes which items every student is served. Without an
+        # archive, a PDF issued in week 3 and verified in week 9 is compared
+        # against a derivation that never existed, and the honest student comes
+        # back "item set is not the one jkitchin derives to".
+        #
+        # So the rule is: change a pool, bump its pool_version, archive it. This
+        # fails the build on the one mistake that produces the silent version,
+        # which is editing a bank and leaving pool_version alone.
+        run: python tools/pool_archive.py --check
+
       - name: Check the two derivations still agree
         # game/src/seed.ts and tools/derive.py must produce identical item
         # selections forever. A divergence is invisible until students submit,
