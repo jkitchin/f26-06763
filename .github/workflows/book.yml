@@ -95,16 +95,18 @@ jobs:
       - name: Run the quiz tests
         run: python -m pytest game/tests/ -q
 
-      - name: Run the game's own test suites
-        # These existed and ran nowhere. mastery, routes, nav, persistence and
-        # map are plain node scripts using --experimental-strip-types, so they
-        # need no build and take about a second between them. persistence is
-        # the one that matters most: it is the only thing asserting that a
-        # finished module stays finished when a bank grows, and it was passing
-        # on laptops and being checked by nothing.
+      - name: Run the game's logic tests
+        # These existed and ran nowhere. Plain node scripts under
+        # --experimental-strip-types, no browser and no build, about a second
+        # between them. persistence is the one that matters most: it is the
+        # only thing asserting that a finished module stays finished when a
+        # bank grows, and it was passing on laptops and checked by nothing.
+        #
+        # The browser suites (routes, nav, smoke) are NOT here. They serve
+        # game/dist/, so they belong after the build, in the build job.
         run: |
           cd game
-          for suite in mastery routes nav persistence map; do
+          for suite in mastery persistence map; do
             echo "--- $suite"
             npm run --silent "$suite"
           done
@@ -123,7 +125,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # 22.6+ for --experimental-strip-types, which the game's tests run
+          # under. Matches the quiz job so the two cannot drift.
+          node-version: "24"
 
       - name: Check every lecture carries index entries
         # The general index is only as good as the entries somebody remembered to
@@ -560,15 +564,23 @@ jobs:
           cp -r game/dist/* _build/html/game/
 
       - name: Drive the built game in a browser
-        # The only check that exercises the assembled bundle rather than a
-        # layer of it: it mounts the app at the deployed base path, finishes a
-        # module, walks the map, and downloads the evidence PDF. A wrong Vite
-        # base renders a blank page that every file-exists check passes, which
-        # is why this runs against dist/ after the real build.
+        # The only checks that exercise the assembled bundle rather than a
+        # layer of it. They mount the app at the deployed base path, walk the
+        # routes, finish a module, walk the map, and download the evidence PDF.
+        # A wrong Vite base renders a blank page that every file-exists check
+        # happily passes, which is why these run against dist/ after the real
+        # build rather than against source.
         #
-        # Uses the runner's google-chrome-stable through puppeteer-core, the
-        # same browser the slides PDF step needs, so it adds no download.
-        run: cd game && npm run smoke
+        # They use the runner's google-chrome-stable through puppeteer-core,
+        # the same browser the slides PDF step above needs, so they add no
+        # download. routes and nav hardcoded a macOS Chrome path until
+        # tests/chrome.ts; that is why they had never run here.
+        run: |
+          cd game
+          for suite in routes nav smoke; do
+            echo "--- $suite"
+            npm run --silent "$suite"
+          done
 
       - name: Check the game actually resolves its assets
         # A wrong Vite `base` produces an index.html that exists, is 200, and

@@ -1,5 +1,6 @@
 /** Per-module URLs: run with `npm run routes`. */
 import { createServer } from 'node:http'
+import { requireChrome } from './chrome.ts'
 import { existsSync, readFileSync } from 'node:fs'
 import { extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -23,7 +24,7 @@ const check = (ok: boolean, label: string, detail = '') => {
   if (!ok) fails++
 }
 const b = await puppeteer.launch({
-  executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  executablePath: requireChrome(),
   headless: true, args: ['--no-sandbox'],
 })
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))

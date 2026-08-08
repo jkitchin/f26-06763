@@ -25,18 +25,14 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from 'node:f
 import { extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import puppeteer, { type Browser, type Page } from 'puppeteer-core'
+import { CHROME } from './chrome.ts'
 
 const DIST = fileURLToPath(new URL('../dist/', import.meta.url))
 const DOWNLOADS = fileURLToPath(new URL('./downloads/', import.meta.url))
 const BASE = '/f26-06763/game/'
 const PORT = 8732
 
-const CHROME = [
-  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-  '/usr/bin/google-chrome',
-  '/usr/bin/chromium-browser',
-  '/usr/bin/chromium',
-].find(existsSync)
+
 
 const TYPES: Record<string, string> = {
   '.html': 'text/html',
