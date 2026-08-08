@@ -1,0 +1,326 @@
+# L19 has no figures and almost no bolded numbers. It is not item-poor, it is
+# number-poor: only three of the ten kinds need a number, and this bank is built
+# from the mechanism paragraphs, the pitfall admonition, and the pushback
+# section instead.
+
+schema: 1
+lecture: l19
+title: "Agent fundamentals: tool use, function calling, planning loops"
+source_notes: lectures/l19/notes.md
+status: published
+# Ten items and a serve of 8 means two students share most of their draw, which
+# weakens the item-set half of the evidence design. Serving 6 until the bank
+# grows past 15. GROWTH TARGET: 15+ items.
+serve: 6
+pool_version: 1
+provenance:
+  drafted_by: hand
+  reviewed_by: jkitchin
+  reviewed_at: 2026-08-08
+
+items:
+
+  - id: l19-q01
+    kind: locus_of_control
+    rung: 3
+    difficulty: 2
+    objectives: [l19-o3]
+    prompt: |
+      Your agent calls `query_sensor_db` with mote 5, gets "no data for this
+      mote", calls it again with mote 5, gets the same error, and calls it a
+      third time.
+
+      Where does the fix belong?
+    options:
+      - "In the model: raise the temperature so it explores a different tool instead of repeating itself"
+      - "In the tool: raise an exception on a bad mote id so the loop stops on the first failed call"
+      - "In the harness: break after the third identical failing call, with an explicit message"
+      - "In the prompt: instruct the model to keep track of calls it has already made and never repeat one that failed"
+    answer: "In the harness: break after the third identical failing call, with an explicit message"
+    evidence: |
+      The harness does not wait for the model to notice it is stuck, because a
+      model that has not noticed after two identical failures is not about to
+      notice on the third. It decides, on the model's behalf, that this line of
+      attempts is over. Note what the second option gets wrong: a tool that
+      crashes on bad input does not fail safely, it stops the entire agent on the
+      first mistake, which is strictly worse than handing back an error a caller
+      can act on.
+    source:
+      file: lectures/l19/notes.md
+      heading: "Bounding the loop"
+      quote: "third identical failing call, with an explicit message rather than a silent stop"
+    verify: {mode: quote, needle: "third identical failing call", volatility: stable}
+    tags: [agents, harness, loop-detection]
+
+  - id: l19-q02
+    kind: spot_the_defect
+    rung: 3
+    difficulty: 2
+    objectives: [l19-o2]
+    prompt: |
+      A tool is registered with the description `"queries the sensor database"`
+      and a single free-text `query` argument. The model calls it with the wrong
+      arguments most of the time.
+
+      What is wrong?
+    options:
+      - "The model is too small for tool use; a larger model would infer the argument format from the tool name"
+      - "The description was written for a human reader, not for the model that has to call it"
+      - "The tool should be split into four narrower tools, one per variable, so that no argument is needed"
+      - "Tool descriptions should be short so they do not crowd the context window; the fault is in the arguments alone"
+    answer: "The description was written for a human reader, not for the model that has to call it"
+    evidence: |
+      Nothing in "queries the sensor database" tells the model what a valid mote
+      id looks like, what variables exist, or when to call this tool rather than
+      another. The version that works says what it reads, over what range of
+      inputs, and what it returns on failure. A tool description is a prompt in
+      every meaningful sense and deserves the same care. The model never sees
+      your docstring's intent, only the string in the schema.
+    source:
+      file: lectures/l19/notes.md
+      heading: "Designing tools an LLM can use correctly"
+      quote: "The model never sees your docstring's intent, only the string in the schema."
+    verify: {mode: quote, needle: "only the string in the schema", volatility: stable}
+    tags: [agents, tool-design]
+
+  - id: l19-q03
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l19-o2]
+    prompt: |
+      What should a tool do when the model calls it with an invalid argument, for
+      example a mote id that has no data?
+    options:
+      - "Raise an exception, so the failure is loud and the agent stops before it can compound the mistake"
+      - "Return a plain, informative result the model can read and react to"
+      - "Return an empty result, so the model infers that nothing matched and moves on"
+      - "Retry internally with a nearby valid id, so the agent makes progress without a wasted turn"
+    answer: "Return a plain, informative result the model can read and react to"
+    evidence: |
+      This is called out as the single most consequential design decision in tool
+      design, and the answer is never an uncaught exception. The demo tests it by
+      asking for a mote that genuinely has no data in the real Intel Lab file,
+      and the model reads the error and tries a different mote instead of the
+      loop dying. An empty result is nearly as bad as a crash: it is
+      indistinguishable from a successful query that found nothing.
+    source:
+      file: lectures/l19/notes.md
+      heading: "Designing tools an LLM can use correctly"
+      quote: "Return a **plain, informative result**"
+    verify: {mode: quote, needle: "plain, informative result", volatility: stable}
+    tags: [agents, tool-design, error-handling]
+
+  - id: l19-q04
+    kind: mcq
+    rung: 3
+    difficulty: 3
+    objectives: [l19-o3]
+    prompt: |
+      You have added a max-step budget, a cost cap, and loop detection to your
+      agent. What have you *not* achieved?
+    options:
+      - "Nothing further is needed; those three bounds are what makes an agent production-ready"
+      - "Safety. The loop is limited, not safe: three tool calls is plenty to delete something if a tool can delete something"
+      - "Debuggability, which requires structured logging of every step in addition to the bounds"
+      - "Determinism, which requires pinning the temperature to zero as well as bounding the loop"
+    answer: "Safety. The loop is limited, not safe: three tool calls is plenty to delete something if a tool can delete something"
+    evidence: |
+      A well-bounded loop is not a safe loop, only a limited one. Bounds stop an
+      agent running forever or repeating a failure indefinitely, and none of them
+      says anything about whether the actions it does take are ones you wanted.
+      Logging and determinism are both real concerns and both appear elsewhere in
+      this session, but neither is what the bounds fail to buy. Safety is a
+      question about tool capability, and that is L20's subject.
+    source:
+      file: lectures/l19/notes.md
+      heading: "Where this pushes back"
+      quote: "A well-bounded loop is not a safe loop, only a limited one."
+    verify: {mode: quote, needle: "not a safe loop, only a limited one", volatility: stable}
+    tags: [agents, safety, bounds]
+
+  - id: l19-q05
+    kind: claim_vs_source
+    rung: 2
+    difficulty: 3
+    objectives: [l19-o1]
+    prompt: |
+      This session's demo proves the harness works against a scripted model that
+      cannot reason.
+
+      What does that demonstration establish, and what does it leave open?
+    options:
+      - "It establishes that the agent works end to end, leaving only latency and cost to tune"
+      - "It establishes that the harness is correct, and leaves entirely open whether a real model chooses the right tool, with the right arguments, at the right time"
+      - "It establishes nothing useful, because a model that cannot reason is not a meaningful test of a system built around reasoning"
+      - "It establishes that the tool schemas are well formed, and leaves the harness logic untested"
+    answer: "It establishes that the harness is correct, and leaves entirely open whether a real model chooses the right tool, with the right arguments, at the right time"
+    evidence: |
+      The split is deliberate: the harness is the part you can fully verify
+      without a live API call, so it is verified, and the much harder question is
+      named rather than quietly folded into the demo's success. That harder
+      question is what A10 and L20's evaluation section actually measure. The
+      general habit is worth more than the example: know which half of a system
+      your test covers, and say so.
+    source:
+      file: lectures/l19/notes.md
+      heading: "Where this pushes back"
+      quote: "It tells you nothing about\nwhether a real model will decide well."
+    verify: {mode: quote, needle: "whether a real model will decide well", volatility: stable}
+    tags: [agents, evaluation, testing]
+
+  - id: l19-q06
+    kind: mcq
+    rung: 3
+    difficulty: 2
+    objectives: [l19-o1]
+    prompt: |
+      An agent that worked reliably in testing starts failing differently in
+      production, on the same prompts, with no change to your code.
+
+      What is the most likely explanation, and what can you do about it?
+    options:
+      - "Temperature drift in your own configuration; pin it to zero and the behaviour becomes identical"
+      - "A silent model update on the provider's side; determinism is a preference, not a guarantee"
+      - "Context-window exhaustion, which changes behaviour once conversations grow past a threshold"
+      - "Rate limiting, which causes retries that present as different tool choices"
+    answer: "A silent model update on the provider's side; determinism is a preference, not a guarantee"
+    evidence: |
+      Low temperature makes tool choices more consistent, not identical, and a
+      provider-side update can change behaviour on the exact same prompt with no
+      warning and no version bump you control. The notes are explicit that there
+      is no clean engineering fix for this beyond monitoring and pinning. That is
+      an unusual thing for a course to say and it is worth remembering: some
+      operational risks are managed rather than solved.
+    source:
+      file: lectures/l19/notes.md
+      heading: "Where this pushes back"
+      quote: "**Determinism is a preference, not a guarantee.**"
+    verify: {mode: quote, needle: "Determinism is a preference, not a guarantee", volatility: stable}
+    tags: [agents, determinism, operations]
+
+  - id: l19-q07
+    kind: locus_of_control
+    rung: 2
+    difficulty: 2
+    objectives: [l19-o1]
+    prompt: |
+      A task can be written as a fixed sequence of four steps that always run in
+      the same order. Should it be an agent?
+    options:
+      - "Yes; an agent handles the fixed case too and gives you room to grow"
+      - "No. Reach for an agent only once a fixed pipeline has stopped being sufficient"
+      - "Yes, provided the loop is bounded, since bounds remove the cost objection"
+      - "It makes no difference; the two compile to the same sequence of API calls"
+    answer: "No. Reach for an agent only once a fixed pipeline has stopped being sufficient"
+    evidence: |
+      A four-step agent loop is at minimum four round trips to a model, plus tool
+      execution, and that adds up in a way one well-designed prompt does not. The
+      distinction that matters is where control flow lives: in a workflow you
+      decide the order, in an agent the model does. Paying for the model to
+      decide something you already know is the commonest way an agent turns out
+      to be worse than the pipeline it replaced.
+    source:
+      file: lectures/l19/notes.md
+      heading: "Where this pushes back"
+      quote: "not as a default architecture"
+    verify: {mode: quote, needle: "not as a default architecture", volatility: stable}
+    tags: [agents, architecture]
+
+  - id: l19-q08
+    kind: mechanism_recall
+    rung: 5
+    difficulty: 3
+    objectives: [l19-o1]
+    prompt: |
+      Close the notes. Write out the tool-calling loop from memory, step by step,
+      and say what ends it. Stop when you stall, and note where.
+    checklist:
+      - text: "Send the prompt plus the tool schemas to the model"
+        needle: "tool"
+      - text: "The model returns either an answer or a request to call a tool"
+        needle: "call"
+      - text: "The harness executes the tool and appends the result to the conversation"
+        needle: "result"
+      - text: "Repeat, with the model now seeing what the tool returned"
+        needle: "loop"
+      - text: "It ends on an answer, or on a bound: max steps, cost, timeout, or loop detection"
+        needle: "budget"
+    answer: null
+    evidence: |
+      The part people leave out is the last one, and it is the one the session
+      most wants you unable to forget: an agent loop with no bound is not a
+      feature, it is an unmanaged liability. If your loop ended only when the
+      model decided to stop, you have described a program whose termination
+      condition is a language model's judgement.
+    source:
+      file: lectures/l19/notes.md
+      heading: "Bounding the loop"
+      quote: "is not a feature, it is an unmanaged liability"
+    verify:
+      mode: manual
+      needle: "unmanaged liability"
+      volatility: stable
+      exempt_reason: >-
+        Free-text recall; each checklist entry is verified against the source
+        individually rather than the answer being matched as a whole.
+    tags: [agents, self-test]
+
+  - id: l19-q09
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l19-o2]
+    prompt: |
+      Why type and validate tool arguments with a real JSON Schema rather than
+      accepting a free-text string the tool parses itself?
+    options:
+      - "It makes the tool faster, since parsing is done by the provider rather than in your code"
+      - "A malformed call can be rejected before your tool code runs, rather than crashing inside it"
+      - "It is required by the tool-calling API, which rejects tools without typed arguments"
+      - "It reduces token usage, because a schema is more compact than a prose description"
+    answer: "A malformed call can be rejected before your tool code runs, rather than crashing inside it"
+    evidence: |
+      A schema does two jobs at once. It tells the model what a valid call looks
+      like, which reduces malformed calls; and where the provider supports strict
+      validation, it rejects the ones that still happen at the boundary rather
+      than inside your code. That is the same principle as declaring a dtype at
+      the boundary in L11: check where the value enters, not after it has already
+      travelled.
+    source:
+      file: lectures/l19/notes.md
+      heading: "Designing tools an LLM can use correctly"
+      quote: "rather than trusting the model to spell \"temperature\"\nconsistently"
+    verify: {mode: quote, needle: "trusting the model to spell", volatility: stable}
+    tags: [agents, tool-design, validation]
+
+  - id: l19-q10
+    kind: notebook_run
+    rung: 4
+    difficulty: 2
+    objectives: [l19-o3]
+    prompt: |
+      Open [`l19-agent.ipynb`](../lectures/l19/l19-agent.ipynb) and run the
+      loop-detection case, where the scripted model asks repeatedly for a mote
+      with no data.
+
+      What ends the loop, and what would have happened without that bound?
+    options:
+      - "The model gives up on its own after reading the error twice, so the bound is a formality"
+      - "The harness breaks after the third identical failing call, not the model noticing"
+      - "The tool raises an exception on the second call, which propagates and stops the run"
+      - "The max-step budget expires, which is why loop detection is redundant when a step budget exists"
+    answer: "The harness breaks after the third identical failing call, not the model noticing"
+    evidence: |
+      Loop detection and the step budget are different bounds and both are worth
+      having: a step budget stops a loop that is making no progress, but only
+      after it has spent the whole budget doing so. Loop detection catches the
+      specific case of a model that is wrong the same way twice, and stops it
+      three calls in rather than twenty. Watching it fire is the point of running
+      the cell.
+    source:
+      file: lectures/l19/notes.md
+      heading: "Bounding the loop"
+      quote: "breaking the loop after the\nthird identical failing call"
+    verify: {mode: quote, needle: "third identical failing call", volatility: stable}
+    tags: [agents, notebook, loop-detection]

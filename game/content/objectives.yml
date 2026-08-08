@@ -54,3 +54,36 @@
   lecture: l11
   text: >-
     Use GPUs correctly and diagnose the common failure modes.
+
+- id: l19-o1
+  lecture: l19
+  text: >-
+    Implement a minimal tool-using agent from scratch against the tool-calling API, no
+    framework.
+
+- id: l19-o2
+  lecture: l19
+  text: >-
+    Design tool schemas that an LLM can use correctly and a harness can execute safely.
+
+- id: l19-o3
+  lecture: l19
+  text: >-
+    Build in termination, budgets, and error recovery so the loop is bounded and debuggable.
+
+- id: l21-o1
+  lecture: l21
+  text: >-
+    Build a repeatable eval harness that turns "it seems to work" into a number with a
+    confidence interval.
+
+- id: l21-o2
+  lecture: l21
+  text: >-
+    Implement an LLM-as-judge grader and validate it against a small human-labeled set.
+
+- id: l21-o3
+  lecture: l21
+  text: >-
+    Add tracing so every request's inputs, outputs, tool calls, latency, and cost are
+    recorded and queryable.

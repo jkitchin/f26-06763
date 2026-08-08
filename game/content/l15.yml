@@ -118,10 +118,10 @@ items:
       general lesson?
     options:
       - "15-20% was confirmed, so the documented figure is safe to budget with and the vendor number can be trusted directly"
-      - "The estimate came in 31% low, well outside the documented range, because the documented range is for typical text and a 146-page OCR scan is not typical text"
+      - "The estimate came in 31% low, well outside the documented range"
       - "The estimate came in 31% high, so the budget has slack rather than a shortfall"
       - "The two counts agreed, because both tokenizers now share a vocabulary"
-    answer: "The estimate came in 31% low, well outside the documented range, because the documented range is for typical text and a 146-page OCR scan is not typical text"
+    answer: "The estimate came in 31% low, well outside the documented range"
     evidence: |
       `tiktoken` said 87,556 tokens; Claude Opus 5 billed 126,452. That is 31%
       low, against documentation promising 15-20%, because the documentation
@@ -231,10 +231,10 @@ items:
       The model returns `1`. What is wrong, and what single change fixes it?
     options:
       - "The temperature is too high; set it to 0 so the model stops guessing and returns only what the datasheet actually supports"
-      - "The model has no token meaning \"not in the source,\" so probability mass that ought to go there lands on plausible digits instead. Permit an explicit NOT FOUND answer"
+      - "There is no token meaning \"not in the source\", so permit an explicit NOT FOUND answer"
       - "The datasheet was truncated before the relevant page; raise the context window"
       - "The model is lying, and the fix is a stronger instruction not to fabricate"
-    answer: "The model has no token meaning \"not in the source,\" so probability mass that ought to go there lands on plausible digits instead. Permit an explicit NOT FOUND answer"
+    answer: "There is no token meaning \"not in the source\", so permit an explicit NOT FOUND answer"
     evidence: |
       Measured, the distribution does not become uniform and contains no signal
       meaning "I have never heard of this." It puts 0.405 on `1`, 0.358 on `2`,
@@ -383,10 +383,10 @@ items:
       and what is the rule this illustrates?
     options:
       - "561 embedding calls, one per pair, but each is far cheaper than an LLM call so the total cost still falls by orders of magnitude"
-      - "One call and 455 tokens, after which every pairwise comparison is a dot product; use embeddings for \"which of these are alike\" and an LLM for \"what does this one say\""
+      - "One call and 455 tokens, after which every comparison is a dot product"
       - "34 calls, one per entry, then 561 cosine comparisons"
       - "One call, but the comparison still needs an LLM to interpret the scores"
-    answer: "One call and 455 tokens, after which every pairwise comparison is a dot product; use embeddings for \"which of these are alike\" and an LLM for \"what does this one say\""
+    answer: "One call and 455 tokens, after which every comparison is a dot product"
     evidence: |
       All 34 entries embed in a single call for a fraction of a cent, and every
       pairwise comparison is then a 34 x 1,536 matrix times its own transpose,

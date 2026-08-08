@@ -390,10 +390,10 @@ items:
       when to reach for an accelerator?
     options:
       - "The GPU, by a wide margin, which is why accelerators are the default for training"
-      - "Whichever you have, the point is the crossover: this model is small enough that overhead can dominate, and the accelerator only pays past a few hundred hidden units"
+      - "Whichever you have; the point is the crossover, not which device won"
       - "The CPU always, because PyTorch's GPU path is not optimised for tabular data"
       - "Neither reliably; device timings are too noisy on a laptop to support any conclusion"
-    answer: "Whichever you have, the point is the crossover: this model is small enough that overhead can dominate, and the accelerator only pays past a few hundred hidden units"
+    answer: "Whichever you have; the point is the crossover, not which device won"
     evidence: |
       On the machine these notes were measured on, the CPU ran 8.6 ms per epoch
       against the GPU's 21.1 ms, and the accelerator only started winning past

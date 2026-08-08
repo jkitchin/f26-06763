@@ -35,7 +35,7 @@ items:
     options:
       - "About 30%, which is why the ensemble is worth its complexity and why the study reaches for one at all"
       - "About 85%, leaving the other three ambient channels and the forest to split the rest"
-      - "About 50%, so the forest roughly doubles what a line achieves"
+      - "About 50%, so the forest roughly doubles what a single-variable line achieves and clearly earns its complexity"
       - "Almost none; the relationship is too nonlinear for a line"
     answer: "About 85%, leaving the other three ambient channels and the forest to split the rest"
     evidence: |
@@ -262,7 +262,7 @@ items:
       - "AUC, because it is threshold-independent and therefore the more robust summary of a detector's ranking quality"
       - "Average precision, because ROC's false-positive rate is diluted by the large negative class, while precision is not"
       - "Neither; with 6.6% positives, accuracy is the only interpretable number"
-      - "They cannot disagree; one of the two must be miscomputed"
+      - "They cannot disagree by this much on the same predictions, so one of the two has been computed on the wrong column"
     answer: "Average precision, because ROC's false-positive rate is diluted by the large negative class, while precision is not"
     evidence: |
       With a 6.6% base rate the negatives dominate, so a false-positive rate
