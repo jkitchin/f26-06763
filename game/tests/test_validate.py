@@ -28,7 +28,7 @@ import validate as V  # noqa: E402
 @pytest.fixture
 def bank():
     """A real, loaded, passing bank. Tests mutate copies of its items."""
-    b = V.validate()
+    b, _ = V.validate()
     assert not [i for i in b.issues if i.level == "error"], (
         "the committed bank must be clean before negative tests mean anything"
     )
@@ -43,7 +43,7 @@ def item():
 
 def errors_for(check, item, *args):
     b = V.Bank()
-    b.objectives = V.validate().objectives
+    b.objectives = V.validate()[0].objectives
     check(b, item, "test-item", *args)
     return [i.message for i in b.issues if i.level == "error"]
 
@@ -288,3 +288,89 @@ def test_objective_text_must_still_match_the_notes(bank):
     }
     V.check_objectives_match_notes(b)
     assert any("no longer matches" in i.message for i in b.issues)
+
+
+# --- keeping the bank in sync as lectures change ---------------------------
+
+def test_published_lecture_with_no_bank_fails(tmp_path, monkeypatch):
+    """A new lecture must not merge with no items and nothing saying so."""
+    b = V.Bank()
+    b.lectures = {"l01": {}}          # pretend only l01 has a bank
+    V.check_lecture_coverage(b)
+    msgs = [i.message for i in b.issues if i.level == "error"]
+    assert any("does not exist" in m for m in msgs)
+    assert any("status: unwritten" in m for m in msgs)
+
+
+def test_lecture_declaring_unwritten_is_accepted():
+    """The escape hatch has to work, or the rule is unusable mid-semester."""
+    bank, _ = V.validate()
+    assert not [i for i in bank.issues if i.level == "error"]
+
+
+def test_objective_in_notes_but_not_in_bank_fails():
+    """The coverage rule used to fail open in this direction."""
+    b = V.Bank()
+    # Know about only two of l03's three objectives.
+    real = V.validate()[0].objectives
+    b.objectives = {k: v for k, v in real.items() if k in ("l03-o1", "l03-o2")}
+    b.lectures = {}
+    V.check_objectives_match_notes(b)
+    msgs = [i.message for i in b.issues if i.level == "error"]
+    assert any("objectives.yml does not have" in m for m in msgs)
+
+
+def test_section_hash_notices_a_rewrite_around_a_surviving_quote():
+    """The gap the quote rule cannot close on its own.
+
+    A quote anchors to a string. If the string survives a rewrite, every other
+    rule passes while the argument around it has moved.
+    """
+    notes = (V.REPO / "lectures" / "l03" / "notes.md").read_text(encoding="utf-8")
+    quote = "the rigid schema stops helping and starts fighting you"
+
+    before = V.section_for(notes, quote)
+    assert before is not None
+    edited = notes.replace(
+        "### The schema is rigid, and rigidity has a price",
+        "### The schema is rigid, and rigidity has a price\n\n"
+        "NOTE: the advice below is superseded.\n",
+        1,
+    )
+    after = V.section_for(edited, quote)
+    assert after is not None
+    assert quote in after[1]                          # the quote still matches...
+    assert V.section_sha(before[1]) != V.section_sha(after[1])   # ...the hash does not
+
+
+def test_section_hash_is_stable_when_another_section_changes():
+    """Otherwise every hash churns on every edit and the report is noise."""
+    notes = (V.REPO / "lectures" / "l03" / "notes.md").read_text(encoding="utf-8")
+    quote = "the rigid schema stops helping and starts fighting you"
+    edited = notes.replace(
+        "## The relational model, and why long beats wide",
+        "## The relational model, and why long beats wide\n\nAn added sentence.\n",
+        1,
+    )
+    a, b = V.section_for(notes, quote), V.section_for(edited, quote)
+    assert a and b and V.section_sha(a[1]) == V.section_sha(b[1])
+
+
+def test_renaming_a_heading_changes_the_section_hash():
+    notes = (V.REPO / "lectures" / "l03" / "notes.md").read_text(encoding="utf-8")
+    quote = "the rigid schema stops helping and starts fighting you"
+    edited = notes.replace(
+        "### The schema is rigid, and rigidity has a price",
+        "### Schemas are rigid", 1,
+    )
+    a, b = V.section_for(notes, quote), V.section_for(edited, quote)
+    assert a and b and V.section_sha(a[1]) != V.section_sha(b[1])
+
+
+def test_every_item_has_an_accepted_section_hash():
+    """A missing entry means an item nobody has reviewed against its source."""
+    lock = V.load_lock()
+    bank, _ = V.validate()
+    ids = {i["id"] for d in bank.lectures.values() for i in (d.get("items") or [])}
+    assert ids - set(lock) == set(), "items with no section hash"
+    assert set(lock) - ids == set(), "stale lock entries"

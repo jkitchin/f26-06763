@@ -3,8 +3,9 @@
 
 Run from the repository root:
 
-    python game/validate.py              # check everything, exit 1 on any error
-    python game/validate.py --review l15 # print review cards for a human pass
+    python game/validate.py                  # check everything, exit 1 on any error
+    python game/validate.py --review l15     # review cards for a human pass
+    python game/validate.py --accept-sections  # after re-reading changed sections
 
 This exists because the material has already drifted once without a quiz. The
 figure-script headers in L11 and L13 disagreed with their own notes for weeks,
@@ -19,6 +20,16 @@ So the rule the whole file is built around:
 which gives an unbroken chain from a student's answer to a byte range in a
 published page. Break the chain and the build fails.
 
+That rule catches deletion and rewording, which is most of what happens to a
+lecture, and it does not catch a rewrite that leaves the quoted sentence
+standing while changing the argument around it. So each item also records a
+hash of its enclosing section in content/sections.lock, and a change there is
+reported rather than fatal: the list of affected items lands in the CI log of
+the pull request that edited the lecture, and again as a diff on the lockfile.
+Two further rules close the coverage direction, where the bank could previously
+fail open: a published lecture with no bank at all, and an objective the notes
+declare that objectives.yml has never heard of.
+
 Deliberately pure text: no notebook execution, no network, no imports beyond
 PyYAML. It runs in well under a second on the whole bank, which is why it is its
 own CI job ahead of the book build rather than a step inside it.
@@ -27,6 +38,7 @@ own CI job ahead of the book build rather than a step inside it.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import re
 import sys
 from dataclasses import dataclass, field
@@ -109,6 +121,73 @@ def toc_files() -> set[str]:
     """
     raw = (REPO / "_toc.yml").read_text(encoding="utf-8")
     return {f"{m.group(1)}.md" for m in re.finditer(r"^\s*-?\s*file:\s*(\S+)", raw, re.MULTILINE)}
+
+
+def toc_lectures() -> list[str]:
+    """Lecture ids published in _toc.yml, in course order."""
+    raw = (REPO / "_toc.yml").read_text(encoding="utf-8")
+    return [m.group(1) for m in re.finditer(r"lectures/(l\d\d)/notes", raw)]
+
+
+# --- sections --------------------------------------------------------------
+#
+# The quote check anchors an item to a *string*. That catches deletion and
+# rewording, which is most of what happens, and it does not catch a rewrite that
+# leaves the quoted sentence standing while changing the argument around it.
+# Inserting "the advice below is superseded" directly above a quoted span passes
+# every other rule in this file.
+#
+# So each item also records a hash of the section its quote lives in, in
+# content/sections.lock. When that section changes, the item is reported. It is
+# a warning and not an error on purpose: a rule that forced a re-review of every
+# affected item on every edit is friction, and friction gets switched off. What
+# it buys is a list, printed in the CI log of the pull request that made the
+# change and visible again as a diff on the lockfile, saying "you edited these
+# sections; these items depend on them".
+
+LOCK = Path(__file__).parent / "content" / "sections.lock"
+
+
+def sections_of(text: str) -> list[tuple[str, str]]:
+    """Split a notes file into (heading, normalized body) at H2/H3 boundaries.
+
+    Splitting on headings rather than tracking byte offsets means a hash is
+    stable when something *elsewhere* in the file reflows, which is the common
+    case and would otherwise make every hash churn on every edit.
+    """
+    out: list[tuple[str, list[str]]] = [("(preamble)", [])]
+    for line in text.split("\n"):
+        m = re.match(r"^(#{2,3})\s+(.+?)\s*$", line)
+        if m:
+            # The heading goes into its own section's body as well as being its
+            # label. Some items quote the heading itself, and more importantly
+            # renaming a heading *is* a change to the section, so it belongs
+            # inside the hash rather than beside it.
+            out.append((m.group(2), [m.group(2)]))
+        else:
+            out[-1][1].append(line)
+    return [(h, norm_text("\n".join(body))) for h, body in out]
+
+
+def section_for(text: str, quote: str) -> tuple[str, str] | None:
+    """The (heading, body) whose body contains `quote`."""
+    needle = norm_text(quote)
+    if not needle:
+        return None
+    for heading, body in sections_of(text):
+        if needle in body:
+            return heading, body
+    return None
+
+
+def section_sha(body: str) -> str:
+    return hashlib.sha256(body.encode("utf-8")).hexdigest()[:12]
+
+
+def load_lock() -> dict:
+    if not LOCK.is_file():
+        return {}
+    return yaml.safe_load(LOCK.read_text(encoding="utf-8")) or {}
 
 
 # --- rules -----------------------------------------------------------------
@@ -363,6 +442,92 @@ def check_objectives_match_notes(bank: Bank) -> None:
                 "The notes were edited and objectives.yml was not.",
             )
 
+    # ...and the other direction. The loop above only proves that objectives we
+    # already know about still exist. Adding a bullet to the notes and not to
+    # objectives.yml was silent, so a whole objective could go untested without
+    # anything noticing, which is the coverage rule quietly failing open.
+    for lecture in sorted({o["lecture"] for o in bank.objectives.values()} | set(bank.lectures)):
+        text = read_source(f"lectures/{lecture}/notes.md")
+        if text is None:
+            continue
+        section = re.search(
+            r"^## Learning objectives\s*(.+?)^## ", text, re.MULTILINE | re.DOTALL
+        )
+        if not section:
+            continue
+        known = [norm_text(o["text"]) for o in bank.objectives.values() if o["lecture"] == lecture]
+        for bullet in objective_bullets(section.group(1)):
+            if norm_text(bullet) not in known:
+                bank.err(
+                    lecture,
+                    f"lectures/{lecture}/notes.md declares an objective that "
+                    f"objectives.yml does not have, so nothing tests it:\n"
+                    f'          "{" ".join(bullet.split())[:110]}"',
+                )
+
+
+def objective_bullets(section: str) -> list[str]:
+    """The objective bullets, rejoined across the hard wrap the notes use."""
+    out: list[str] = []
+    for line in section.split("\n"):
+        if line.strip().startswith("- "):
+            out.append(line.strip()[2:])
+        elif out and line.startswith("  ") and line.strip():
+            out[-1] += " " + line.strip()
+    return out
+
+
+def check_sections(bank: Bank, lock: dict) -> list[str]:
+    """Report items whose cited section has changed since it was last accepted.
+
+    Returns the ids that moved, so --accept-sections can name them.
+    """
+    moved: list[str] = []
+    for lecture, data in bank.lectures.items():
+        if data.get("status") == "unwritten":
+            continue
+        for item in data.get("items") or []:
+            iid = item.get("id", f"{lecture}/<no id>")
+            src = item.get("source") or {}
+            text = read_source(src.get("file", ""))
+            if text is None or not src.get("quote"):
+                continue                      # check_grounding already said so
+            found = section_for(text, src["quote"])
+            if found is None:
+                continue                      # ditto: the quote is not there
+            heading, body = found
+            now = section_sha(body)
+            was = lock.get(iid)
+            if was is None:
+                moved.append(iid)
+                bank.warn(iid, f'no accepted section hash yet (section "{heading}")')
+            elif was != now:
+                moved.append(iid)
+                bank.warn(
+                    iid,
+                    f'the cited section "{heading}" in {src["file"]} has changed '
+                    f"since this item was reviewed ({was} -> {now}). Re-read it, "
+                    "then run: python game/validate.py --accept-sections",
+                )
+    return moved
+
+
+def check_lecture_coverage(bank: Bank) -> None:
+    """Every published lecture needs a bank, or an explicit unwritten stub.
+
+    Without this a new lecture merges with no items and nothing says so, which
+    is not hypothetical: L06 is in flight as this is written.
+    """
+    have = set(bank.lectures)
+    for lecture in toc_lectures():
+        if lecture not in have:
+            bank.err(
+                lecture,
+                f"lectures/{lecture}/notes.md is published in _toc.yml but "
+                f"game/content/{lecture}.yml does not exist. Author a bank, or "
+                "add a stub with status: unwritten to say so deliberately.",
+            )
+
 
 def check_bank_level(bank: Bank) -> None:
     """Rules that need the whole bank, not one item."""
@@ -458,9 +623,10 @@ def load(bank: Bank) -> None:
         bank.lectures[lecture] = data
 
 
-def validate() -> Bank:
+def validate(lock: dict | None = None) -> tuple[Bank, list[str]]:
     bank = Bank()
     load(bank)
+    check_lecture_coverage(bank)
     check_objectives_match_notes(bank)
 
     for lecture, data in bank.lectures.items():
@@ -475,7 +641,48 @@ def validate() -> Bank:
             check_objectives(bank, item, where, lecture)
 
     check_bank_level(bank)
-    return bank
+    moved = check_sections(bank, load_lock() if lock is None else lock)
+    return bank, moved
+
+
+def accept_sections(bank: Bank, moved: list[str]) -> int:
+    """Record the current section hashes.
+
+    Run this *after* re-reading the sections that changed, not instead of. The
+    resulting diff on content/sections.lock is the review artifact: one line per
+    item whose source moved, which is exactly the list somebody should have
+    looked at.
+    """
+    lock = load_lock()
+    for lecture, data in bank.lectures.items():
+        if data.get("status") == "unwritten":
+            continue
+        for item in data.get("items") or []:
+            src = item.get("source") or {}
+            text = read_source(src.get("file", ""))
+            if text is None or not src.get("quote"):
+                continue
+            found = section_for(text, src["quote"])
+            if found:
+                lock[item["id"]] = section_sha(found[1])
+
+    # Drop entries for items that no longer exist, so the lock does not grow
+    # a tail of ids nobody can trace.
+    live = {i["id"] for d in bank.lectures.values() for i in (d.get("items") or [])}
+    stale = [k for k in lock if k not in live]
+    for k in stale:
+        del lock[k]
+
+    LOCK.write_text(
+        "# Hash of the notes section each item's quote lives in.\n"
+        "# Regenerate with: python game/validate.py --accept-sections\n"
+        "# A change here means a cited section was edited; the diff is the list\n"
+        "# of items somebody should have re-read.\n"
+        + yaml.safe_dump(dict(sorted(lock.items())), sort_keys=False),
+        encoding="utf-8",
+    )
+    print(f"recorded {len(lock)} section hashes ({len(moved)} changed, {len(stale)} removed)")
+    return 0
 
 
 def review(bank: Bank, lecture: str) -> None:
@@ -504,9 +711,17 @@ def review(bank: Bank, lecture: str) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--review", metavar="LECTURE", help="print review cards and exit")
+    ap.add_argument(
+        "--accept-sections",
+        action="store_true",
+        help="record the current section hashes, after re-reading the sections",
+    )
     args = ap.parse_args()
 
-    bank = validate()
+    bank, moved = validate()
+
+    if args.accept_sections:
+        return accept_sections(bank, moved)
 
     if args.review:
         review(bank, args.review)
