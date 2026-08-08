@@ -270,7 +270,7 @@ items:
       has. Where you stalled is your reading assignment.
     source:
       file: lectures/l05/notes.md
-      heading: "The operation that tells you which kind you have"
+      heading: "Where this pushes back"
       quote: "a worker dying mid-shuffle"
     verify:
       mode: manual

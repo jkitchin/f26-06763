@@ -138,7 +138,7 @@ items:
     source:
       file: lectures/l13/notes.md
       heading: "Why conformal prediction breaks, and why that is instructive"
-      quote: "82.2%"
+      quote: "collapses to **82.2%**."
     verify:
       mode: ordering
       needle: "82.2%"
@@ -212,7 +212,7 @@ items:
     source:
       file: lectures/l13/notes.md
       heading: "Soft penalties: physics-informed neural networks"
-      quote: "conductivity"
+      quote: "a known source and unknown conductivity"
     verify:
       mode: quote
       needle: "conductivity"
@@ -401,6 +401,6 @@ items:
     source:
       file: lectures/l13/notes.md
       heading: "Interpolation, extrapolation, and how to validate a surrogate"
-      quote: "held-out"
+      quote: "On a held-out free-stream velocity, 3.04 dB."
     verify: {mode: ordering, needle: "held-out", volatility: measured}
     tags: [uncertainty, notebook]

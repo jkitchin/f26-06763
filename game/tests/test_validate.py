@@ -374,3 +374,37 @@ def test_every_item_has_an_accepted_section_hash():
     ids = {i["id"] for d in bank.lectures.values() for i in (d.get("items") or [])}
     assert ids - set(lock) == set(), "items with no section hash"
     assert set(lock) - ids == set(), "stale lock entries"
+
+
+def test_heading_must_be_where_the_quote_lives(item):
+    """The heading is shown to students as the source pointer.
+
+    Checking only that a heading *exists* let 22 items ship pointing at a
+    section their quote is not in, usually because a short needle matched the
+    objectives bullet at the top of the file instead of the passage meant.
+    """
+    item["source"]["heading"] = "Why this matters"      # real heading, wrong section
+    msgs = errors_for(V.check_grounding, item)
+    assert any("is not where the quote lives" in m for m in msgs)
+
+
+def test_declaring_the_enclosing_h2_is_accepted():
+    """Pointing at the parent section is a legitimate, coarser citation."""
+    text = V.read_source("lectures/l13/notes.md")
+    assert text
+    quote = "collapses to **82.2%**."
+    here, _ = V.section_for(text, quote) or (None, None)
+    assert here, "fixture quote not found"
+    parent = V.enclosing_h2(text, here)
+    assert parent and parent != here, "fixture is not an H3 under an H2"
+
+
+def test_a_short_quote_that_matches_the_intro_is_caught(item):
+    """The actual failure mode: 'eval gate' first occurs in the objectives."""
+    item["source"]["file"] = "lectures/l23/notes.md"
+    item["source"]["heading"] = "CI/CD for ML and LLM systems"
+    item["source"]["quote"] = "eval gate"
+    item["verify"]["needle"] = "eval gate"
+    msgs = errors_for(V.check_grounding, item)
+    assert any("is not where the quote lives" in m for m in msgs)
+    assert any("often the intro" in m for m in msgs)

@@ -180,6 +180,20 @@ def section_for(text: str, quote: str) -> tuple[str, str] | None:
     return None
 
 
+def enclosing_h2(text: str, heading: str) -> str | None:
+    """The H2 a given section sits under, or None if it is itself an H2."""
+    current: str | None = None
+    for line in text.split("\n"):
+        m = re.match(r"^(#{2,3})\s+(.+?)\s*$", line)
+        if not m:
+            continue
+        if norm_text(m.group(2)) == norm_text(heading):
+            return None if len(m.group(1)) == 2 else current
+        if len(m.group(1)) == 2:
+            current = m.group(2)
+    return None
+
+
 def section_sha(body: str) -> str:
     return hashlib.sha256(body.encode("utf-8")).hexdigest()[:12]
 
@@ -254,6 +268,26 @@ def check_grounding(bank: Bank, item: dict, where: str) -> None:
     heading = src.get("heading")
     if heading and norm_text(heading) not in headings_of(text):
         bank.err(where, f'heading "{heading}" does not exist in {rel}')
+    elif heading:
+        # ...and it has to be the section the quote is actually in, or the H2
+        # enclosing it. Checking only that the heading exists let 22 items ship
+        # pointing somewhere the quote does not appear, usually because a short
+        # needle like "eval gate" matched the objectives bullet at the top of
+        # the file rather than the passage the item is about. The heading is
+        # what a student is shown as the source, so a heading that is merely a
+        # real heading is not good enough.
+        found = section_for(text, quote)
+        if found and norm_text(found[0]) != norm_text(heading):
+            parent = enclosing_h2(text, found[0])
+            if not parent or norm_text(parent) != norm_text(heading):
+                bank.err(
+                    where,
+                    f'heading "{heading}" is not where the quote lives '
+                    f'(it is in "{found[0]}"). Point the heading there, or '
+                    "quote something distinctive from the section you meant: a "
+                    "short quote matches its first occurrence in the file, "
+                    "which is often the intro.",
+                )
 
     # Every number in the answer has to be findable in the source. This is the
     # rule that would have caught the L11/L13 drift.

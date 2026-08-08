@@ -278,7 +278,7 @@ items:
     source:
       file: lectures/l11/notes.md
       heading: "The anatomy of a training loop"
-      quote: "zero_grad"
+      quote: "optimizer.zero_grad()           # clear the accumulator"
     verify:
       mode: manual
       needle: "zero_grad"
@@ -314,7 +314,7 @@ items:
     source:
       file: lectures/l11/notes.md
       heading: "Three ways a first training loop dies"
-      quote: "zero_grad"
+      quote: "pair: failure mode; forgetting zero_grad"
     verify: {mode: quote, needle: "zero_grad", volatility: stable}
     tags: [training, debugging]
 
@@ -372,7 +372,7 @@ items:
       agreement first, then keep the speed.
     source:
       file: lectures/l11/notes.md
-      heading: "Two designs for the same mathematics"
+      heading: "JAX writes the same loop inside out"
       quote: "the same 256 examples to **2.2 × 10⁻¹⁵**"
     verify: {mode: quote, needle: "2.2 × 10⁻¹⁵", volatility: measured}
     tags: [vectorization, numerics]

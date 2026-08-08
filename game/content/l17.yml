@@ -102,7 +102,7 @@ items:
     source:
       file: lectures/l17/notes.md
       heading: "Where this pushes back"
-      quote: "does not raise an error"
+      quote: "model than the one used to build the index does not raise an error"
     verify: {mode: quote, needle: "does not raise an error", volatility: stable}
     tags: [rag, embeddings, silent-failure]
 
@@ -312,6 +312,6 @@ items:
     source:
       file: lectures/l17/notes.md
       heading: "Evaluating retrieval, separately from evaluating the answer"
-      quote: "recall@k"
+      quote: "**Recall@k** asks"
     verify: {mode: quote, needle: "recall@k", volatility: stable}
     tags: [rag, evaluation, notebook]

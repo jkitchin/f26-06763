@@ -206,7 +206,7 @@ items:
     source:
       file: lectures/l04/notes.md
       heading: "Where columns and DuckDB stop helping"
-      quote: "access pattern"
+      quote: "Every advantage above was an advantage *for a particular access pattern*"
     verify: {mode: quote, needle: "access pattern", volatility: stable}
     tags: [access-patterns, selection]
 

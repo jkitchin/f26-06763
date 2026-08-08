@@ -99,7 +99,7 @@ items:
       fine.
     source:
       file: lectures/l07/notes.md
-      heading: "Case study: a $327 million unit mismatch"
+      heading: "The part that should worry you more than the units"
       quote: "The root cause was not identified until **29 September 1999**"
     verify: {mode: quote, needle: "29 September 1999", volatility: stable}
     tags: [units, case-study]
@@ -220,10 +220,10 @@ items:
     source:
       file: lectures/l07/notes.md
       heading: "Time-series features from a per-unit trajectory"
-      quote: "delta-from-start, and rate-of-change features"
+      quote: "is a lag-1 feature's natural companion"
     verify:
       mode: manual
-      needle: "rate-of-change"
+      needle: "lag-1 feature"
       volatility: stable
       exempt_reason: >-
         Free-text recall; each checklist entry is verified against the source
@@ -314,6 +314,7 @@ items:
     source:
       file: lectures/l07/notes.md
       heading: "A leakage-safe pipeline, and what \"safe\" actually buys you"
-      quote: "pipeline"
+      quote: |-
+        Scikit-learn's `Pipeline` and `ColumnTransformer` exist to make the fit-on-train-only rule
     verify: {mode: quote, needle: "pipeline", volatility: stable}
     tags: [pipelines, serving]

@@ -37,7 +37,7 @@ items:
       the number, which is exactly why the number was never needed.
     source:
       file: lectures/l01/notes.md
-      heading: "The system view, and where the work actually is"
+      heading: "Why this matters"
       quote: "tiny in proportion to the rest of the system"
     verify: {mode: quote, needle: "tiny in proportion to the rest of the system", volatility: stable}
     tags: [verification, citation]
@@ -131,7 +131,7 @@ items:
     source:
       file: lectures/l01/notes.md
       heading: "Why engineering data is different"
-      quote: "provenance"
+      quote: "**Provenance.** In a regulated or safety-relevant setting you may be required to"
     verify: {mode: quote, needle: "provenance", volatility: stable}
     tags: [provenance, engineering-data]
 
@@ -213,8 +213,8 @@ items:
       a well-validated model and failed anyway.
     source:
       file: lectures/l01/notes.md
-      heading: "The system view, and where the work actually is"
-      quote: "the rest of the system"
+      heading: "Why this matters"
+      quote: "tiny in proportion to the rest of the system"
     verify: {mode: quote, needle: "the rest of the system", volatility: stable}
     tags: [system-view]
 
@@ -285,7 +285,7 @@ items:
     source:
       file: lectures/l01/notes.md
       heading: "In-class demo"
-      quote: "reproducibility"
+      quote: "The notebook is [`l01-reproducibility.ipynb`](l01-reproducibility.ipynb)."
     verify: {mode: quote, needle: "reproducibility", volatility: stable}
     tags: [reproducibility, notebook]
 

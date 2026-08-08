@@ -162,7 +162,7 @@ items:
     source:
       file: lectures/l21/notes.md
       heading: "The eval mindset: a frozen, versioned test set"
-      quote: "frozen"
+      quote: "the test set has to be **frozen** and **versioned**"
     verify: {mode: quote, needle: "frozen", volatility: stable}
     tags: [evaluation, methodology]
 

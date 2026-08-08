@@ -238,7 +238,7 @@ items:
       thing you filed worth retrieving.
     source:
       file: lectures/l02/notes.md
-      heading: "Experiment hygiene: one run, one fact"
+      heading: "Tracking records; it does not enforce"
       quote: "the lockfile, the pinned interpreter, the fixed seed, the recorded SHA and hash"
     verify:
       mode: manual

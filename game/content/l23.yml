@@ -211,8 +211,8 @@ items:
     source:
       file: lectures/l23/notes.md
       heading: "CI/CD for ML and LLM systems"
-      quote: "eval gate"
-    verify: {mode: quote, needle: "eval gate", volatility: stable}
+      quote: "**gate on a metric threshold**, failing the build outright if a key"
+    verify: {mode: quote, needle: "gate on a metric threshold", volatility: stable}
     tags: [cicd, evaluation]
 
   - id: l23-q08
@@ -338,6 +338,6 @@ items:
     source:
       file: lectures/l23/notes.md
       heading: "CI/CD for ML and LLM systems"
-      quote: "container"
+      quote: "**Build the container** next, so the environment the"
     verify: {mode: quote, needle: "container", volatility: stable}
     tags: [cicd, containers]
