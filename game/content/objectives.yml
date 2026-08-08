@@ -151,3 +151,48 @@
   text: >-
     Identify system-specific failure modes and write concrete guardrails; apply a
     responsible-AI checklist to an engineering decision.
+
+- id: l01-o1
+  lecture: l01
+  text: >-
+    Map the end-to-end lifecycle of an engineering ML system and identify the standardized
+    toolchain used throughout the semester.
+
+- id: l01-o2
+  lecture: l01
+  text: >-
+    Contrast "a model in a notebook" with "a system," naming the data contracts, drift, and
+    monitoring concerns that separate them.
+
+- id: l01-o3
+  lecture: l01
+  text: >-
+    Explain why engineering data imposes provenance and traceability requirements that
+    general-purpose ML tutorials ignore.
+
+- id: l01-o4
+  lecture: l01
+  text: >-
+    Justify each component of the course toolchain in terms of the failure it prevents.
+
+- id: l02-o1
+  lecture: l02
+  text: >-
+    Build and lock a project environment with `uv`, and rebuild it exactly on a fresh machine.
+
+- id: l02-o2
+  lecture: l02
+  text: >-
+    Choose the right versioning tool for code, data, and models, and explain why large binary
+    files do not belong in plain git.
+
+- id: l02-o3
+  lecture: l02
+  text: >-
+    Turn an exploratory notebook into a script or package with a tested command-line entry
+    point.
+
+- id: l02-o4
+  lecture: l02
+  text: >-
+    Log a run to MLflow so that one run equals one fact you can reproduce.
