@@ -91,7 +91,13 @@ export function Identity({ onDone }: Props) {
       <p className="mt-6 text-xs leading-relaxed text-[var(--muted)]">
         Everything stays in this browser. Nothing is uploaded from here: you
         download a PDF and hand that in. Your questions are selected from your
-        Andrew ID, so they differ from your neighbour's.
+        Andrew ID, so they differ from your neighbour's and are the same
+        wherever you sign in.
+      </p>
+      <p className="mt-3 text-xs leading-relaxed text-[var(--muted)]">
+        Because progress is stored in this browser only, a different computer or
+        a private window starts a module from the beginning. Finish a module and
+        download its PDF in one sitting.
       </p>
     </div>
   )

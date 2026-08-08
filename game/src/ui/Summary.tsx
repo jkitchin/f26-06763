@@ -150,7 +150,9 @@ export function Summary({ bank, log, andrewId, displayName, onHome }: Props) {
         Download the PDF
       </button>
       <p className="mt-2 text-xs text-[var(--muted)]">
-        Upload it to Canvas. You can download it again from the module list.
+        Upload it to Canvas. You can download it again from the module list, on
+        this browser: progress is not stored anywhere else, so download it now
+        if you might finish on a different computer.
       </p>
       {error && <p className="mt-3 text-sm text-[var(--wrong)]">{error}</p>}
 

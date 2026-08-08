@@ -12,17 +12,18 @@
  */
 
 import type { Bank } from '../content/load.ts'
-import { bestScoreFor, levelFor, MAX_LEVEL, type LogEntry } from '../store/log.ts'
+import { bestScoreFor, levelFor, type LogEntry } from '../store/log.ts'
 
 interface Props {
   banks: Record<string, Bank>
   log: LogEntry[]
   andrewId: string
+  storageOk: boolean
   onStart: (lecture: string) => void
   onEvidence: (lecture: string) => void
 }
 
-export function Home({ banks, log, andrewId, onStart, onEvidence }: Props) {
+export function Home({ banks, log, andrewId, storageOk, onStart, onEvidence }: Props) {
   const lectures = Object.values(banks).sort((a, b) => a.lecture.localeCompare(b.lecture))
   const servedFor = (id: string) => banks[id]?.serve ?? Infinity
 
@@ -35,18 +36,37 @@ export function Home({ banks, log, andrewId, onStart, onEvidence }: Props) {
         </p>
       </header>
 
+      {!storageOk && (
+        <p
+          role="alert"
+          className="mb-4 rounded-xl border-2 border-[var(--wrong)] bg-[var(--wrong-wash)] p-3 text-sm"
+        >
+          <strong>This browser is not saving your progress.</strong> Private
+          browsing and some privacy settings block it. Finish a module in this
+          tab and download the PDF before closing it, or switch to a normal
+          window.
+        </p>
+      )}
+
       <p className="mb-4 text-sm text-[var(--muted)]">
         A <span className="text-[var(--correct)]">✓</span> means the module is
-        complete, and that is the whole requirement. The dots are optional
-        mastery: they fill as you answer more of a module right first time, and
-        they come from your best run, so practising again can only help.
+        complete, and that is the whole requirement. The percentage is just for
+        you.
+      </p>
+
+      <p className="mb-6 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm text-[var(--muted)]">
+        <strong className="text-[var(--ink)]">Progress is saved in this browser
+        only.</strong>{' '}
+        On another computer, or in a private window, you will start a module
+        again from the beginning. Your questions are chosen from your Andrew ID,
+        so they are the same wherever you sign in. The PDF is the thing that
+        counts, so finish a module and download it in one sitting.
       </p>
 
       <ul className="space-y-3">
         {lectures.map((bank) => {
-          const level = levelFor(log, bank.lecture, servedFor)
           const best = bestScoreFor(log, bank.lecture, servedFor)
-          const done = level > 0
+          const done = levelFor(log, bank.lecture, servedFor) > 0
           return (
             <li
               key={bank.lecture}
@@ -56,26 +76,14 @@ export function Home({ banks, log, andrewId, onStart, onEvidence }: Props) {
                 <span className="font-mono text-sm font-bold uppercase">{bank.lecture}</span>
                 <span className="flex-1 text-[15px] font-medium">{bank.title}</span>
                 {done && (
-                  <span className="text-sm text-[var(--correct)]" title="Complete. This is what counts for credit.">
+                  <span
+                    className="text-base text-[var(--correct)]"
+                    title="Complete. This is the whole requirement."
+                    aria-label="complete"
+                  >
                     ✓
                   </span>
                 )}
-                <span
-                  className="font-mono text-xs text-[var(--muted)]"
-                  title={
-                    done
-                      ? `Mastery ${level} of ${MAX_LEVEL}, from your best run (${Math.round((best ?? 0) * 100)}%). Optional.`
-                      : 'Not started'
-                  }
-                  aria-label={
-                    done
-                      ? `mastery ${level} of ${MAX_LEVEL}, from your best run`
-                      : 'not started'
-                  }
-                >
-                  {'●'.repeat(level)}
-                  {'○'.repeat(MAX_LEVEL - level)}
-                </span>
               </div>
               <p className="mt-1 text-sm text-[var(--muted)]">
                 {bank.serve} questions, about {Math.round(bank.serve * 1.2)} minutes

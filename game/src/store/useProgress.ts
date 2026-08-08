@@ -34,6 +34,13 @@ export interface SaveData {
 }
 
 export interface ProgressState extends SaveData {
+  /**
+   * False once a read or write to IndexedDB has failed. Not persisted, for the
+   * obvious reason. Surfaced in the UI rather than only in the console: Safari
+   * in private mode rejects IndexedDB outright, and a student whose progress is
+   * silently memory-only will lose a module to a refresh and have no idea why.
+   */
+  storageOk: boolean
   setIdentity: (andrewId: string, displayName: string) => void
   append: (entries: LogEntry[]) => void
   setSettings: (patch: Partial<Settings>) => void
@@ -41,7 +48,8 @@ export interface ProgressState extends SaveData {
   reset: () => void
 }
 
-const initial = (): SaveData => ({
+const initial = (): SaveData & { storageOk: boolean } => ({
+  storageOk: true,
   version: SAVE_VERSION,
   andrewId: '',
   displayName: '',
@@ -58,6 +66,8 @@ const initial = (): SaveData => ({
 let warned = false
 
 function onStorageError(op: string, err: unknown): null {
+  // Referenced lazily: this runs long after module init, so the store exists.
+  useProgress?.setState({ storageOk: false })
   if (!warned) {
     warned = true
     console.warn(
@@ -125,6 +135,8 @@ export const useProgress = create<ProgressState>()(
       name: STORAGE_KEY,
       version: SAVE_VERSION,
       storage: createJSONStorage(() => idbStorage),
+      // storageOk is deliberately absent: a flag saying "saving is broken" has
+      // no business being saved.
       partialize: ({ version, andrewId, displayName, log, settings }) => ({
         version,
         andrewId,
