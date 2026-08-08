@@ -17,13 +17,13 @@ Six of these measurements changed what the lecture says.
 
   2. The latency measurement was drafted expecting long inputs to be slow. They
      are not. On Claude Haiku 4.5, going from 769 to 100,456 input tokens (130x)
-     added about one second. Going from 16 to 2,048 output tokens added 22.5.
+     added about 0.4 seconds. Going from 16 to 2,048 output tokens added 22.
      One output token costs roughly a thousand input tokens of latency, which is
      the opposite of the intuition most students arrive with.
 
   3. The hallucination panel was drafted expecting a fabricated part number to
-     produce a confident, low-entropy wrong answer. Measured, it produces 1.85
-     bits and a 50/35 split between "1" and "2" as the leading digit. The model
+     produce a confident, low-entropy wrong answer. Measured, it produces 2.22
+     bits, with 0.405 on "1" and 0.358 on "2" as the leading digit. The model
      is not confident; it is also not declining. The lesson is not "entropy
      detects hallucination", it is "the model has no token for I-do-not-know
      unless the prompt gives it one" -- and when it is given one, the same

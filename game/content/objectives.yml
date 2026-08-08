@@ -39,3 +39,18 @@
   lecture: l09
   text: >-
     Choose the correct cross-validation scheme for the data's structure.
+
+- id: l11-o1
+  lecture: l11
+  text: >-
+    Build fluency with tensors, shapes/broadcasting, and device placement.
+
+- id: l11-o2
+  lecture: l11
+  text: >-
+    Explain and implement a training loop and the role of `autograd` and the optimizer.
+
+- id: l11-o3
+  lecture: l11
+  text: >-
+    Use GPUs correctly and diagnose the common failure modes.
