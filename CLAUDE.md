@@ -361,11 +361,25 @@ and the slide should carry the pointer instead.
 **Sessions are 110 minutes.** Budget accordingly, and note that this is long enough that a
 deck which merely names topics will run dry well before the room does.
 
-Slides here are deliberately sparse, roughly one idea each, so they run fast: about 1.5
-minutes for a fragment slide, three or four for a table, a quote, or a figure you actually
-talk through. For 110 minutes with a 20-minute demo that lands around **55 to 70 slides**.
-L1 is 63. If a draft comes in at 30, the problem is usually not pacing, it is that the
-content is thinner than the session length demands.
+**Title by topic, not by headline.** A deck should read like a conference talk. Group the
+content under a handful of topics, each opened by a `<!-- _class: section -->` divider, and
+give the content slides under a topic the topic itself as their heading rather than a fresh
+sentence each. Let the heading stay stable while the content builds, with at most a short
+subtitle after a comma to mark progress (`Windows`, then `Windows, event time`). The topic is
+what a student navigates by. A deck where every slide has its own distinct, punchy headline is
+a reliable sign of machine-generated slides, and it multiplies the coda-and-aphorism habit
+from section 7, because those headlines become the aphorisms. Slide headings are plain labels
+in sentence case, and they never use the constructions section 7 bans.
+
+Slides can be moderately dense, as long as the deck carries the same amount of content the
+session needs. A topic slide may hold a few related points, or a small table plus a line of
+framing, instead of a single fragment. It stays fragments and pointers rather than paragraphs,
+because the slide anchors what you say and does not replace it. Budget by content and by time
+rather than by a fixed slide count: a 110-minute session with a 20-minute demo runs to roughly
+**35 to 55 topic slides**. Too much text on a single slide is a worse failure than too few
+slides, so if a deck feels thin, add topics and real content. L1 and L2 predate this
+convention and are sparser, one idea per slide; migrate them to topic titles when they are
+next revised.
 
 **Every deck needs links and figures.** A deck with neither is a deck that cannot be
 revisited by a student and cannot be checked by anyone. Put the source link on the slide
@@ -379,7 +393,10 @@ a lecture.
 
 **Rules:**
 
-- One idea per slide. Six lines maximum, fewer is better.
+- Title by topic: slide headings name the topic and repeat across that topic's build slides.
+  They are plain labels in sentence case, not unique per-slide headlines or aphorisms.
+- One topic per slide, a few related points at most. Aim for eight lines or fewer, and never
+  a paragraph.
 - Fragments, not sentences. The slide is the pointer; the instructor is the explanation.
 - Code on a slide is for reading aloud. More than about ten lines belongs in the demo.
 - Frontmatter is fixed: `marp: true`, `theme: course`, `paginate: true`, plus `header`
@@ -493,6 +510,45 @@ depend on data that is not in the repo.
 - Name the engineering context. This course is distinguished from a generic ML course by
   sensor data, simulation output, experimental measurement, and surrogate models. Examples
   should reflect that rather than defaulting to MNIST or the iris dataset.
+
+### Constructions to avoid
+
+One family of constructions marks machine-generated prose more reliably than any single word,
+and it should be cut on sight: a plain sentence followed by a clause that reframes it as the
+important takeaway instead of adding anything. The tells that make it up:
+
+- **Anaphoric metacommentary.** A phrase like "that is the point" or "this is the lesson" that
+  refers back to the whole previous sentence rather than advancing the argument.
+- **Evaluative coda.** A tag that tells the reader how to relate to a statement: "worth
+  sitting with", "worth keeping in mind", "the part worth holding onto".
+- **Therapeutic idiom.** Counseling or wellness register used outside its literal sense, such
+  as "sit with" or "lean into", which LLMs reach for disproportionately.
+- **Contrast through understatement.** An understated negation where a concrete word is
+  sharper: "not catastrophic" instead of "small", "not uncommon" instead of "frequent". Name
+  the thing.
+- **Artificial emphasis.** "And that is the point", "and that distinction matters", which
+  inflate an ordinary statement into a small revelation.
+
+The broader family includes "that is the key point", "that is worth emphasizing", "that is the
+thing to keep in mind", "and that is what makes this important", "X is what makes Y", and "the
+word X is load-bearing". None of these are ungrammatical, and people do write them. The problem
+is that LLMs overproduce the pattern, especially the combination of a statement, an anaphoric
+evaluative coda, and a contemplative phrase. The fix is almost always deletion, since the
+sentence before it already made the point: cut the coda, or replace it with the concrete claim
+it gestures at. "The gap is tiny. That is the point:" becomes "The gap is tiny, so the seed has
+to be logged or neither number is reconstructible." Keep at most one plain, useful memorable
+line per section, and never as a reflex.
+
+Two related habits, also cut on sight:
+
+- **Negative parallelism.** "Not X but Y", "not merely A, it is B", and clipped tailing
+  negations ("no guessing", "not a headline"). Write the positive statement instead.
+- **Manufactured drama by fragmentation.** A run of clipped one-line sentences to force
+  emphasis. One short sentence for emphasis is fine; a machine-gun run of them is its own tell.
+
+Reinforcing section 4: open each concept with one plain sentence before any elaboration, and
+split sentences that run past about thirty words, because long comma-chained sentences are the
+main thing that makes notes hard to read aloud.
 
 ---
 
