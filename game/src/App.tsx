@@ -9,7 +9,7 @@
 import { useMemo, useState } from 'react'
 import { loadBanks, poolOf } from './content/load.ts'
 import { derive } from './seed.ts'
-import { newSessionId, type LogEntry } from './store/log.ts'
+import { entriesFor, newSessionId, openSessionFor, type LogEntry } from './store/log.ts'
 import { useProgress } from './store/useProgress.ts'
 import { Home } from './ui/Home.tsx'
 import { Identity } from './ui/Identity.tsx'
@@ -39,10 +39,9 @@ export function App() {
         sessionId={screen.sessionId}
         served={served}
         itemsById={itemsById}
-        onFinish={(entries: LogEntry[]) => {
-          append(entries)
-          setScreen({ name: 'summary', lecture: bank.lecture })
-        }}
+        resumed={entriesFor(log, screen.sessionId)}
+        onAnswer={(entry: LogEntry) => append([entry])}
+        onFinish={() => setScreen({ name: 'summary', lecture: bank.lecture })}
         onQuit={() => setScreen({ name: 'home' })}
       />
     )
@@ -67,9 +66,17 @@ export function App() {
       banks={banks}
       log={log}
       andrewId={andrewId}
-      onStart={(lecture) =>
-        setScreen({ name: 'session', lecture, sessionId: newSessionId(andrewId, lecture, Date.now()) })
-      }
+      onStart={(lecture) => {
+        // Rejoin an unfinished sitting rather than starting a second one, so a
+        // student who quit or refreshed at item six carries on from item six.
+        const servedFor = (id: string) => banks[id]?.serve ?? Infinity
+        const open = openSessionFor(log, lecture, servedFor)
+        setScreen({
+          name: 'session',
+          lecture,
+          sessionId: open ?? newSessionId(andrewId, lecture, Date.now()),
+        })
+      }}
       onEvidence={(lecture) => setScreen({ name: 'summary', lecture })}
     />
   )

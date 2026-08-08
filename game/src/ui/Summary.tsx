@@ -14,6 +14,7 @@ import { derive } from '../seed.ts'
 import { buildAttestation, type ItemRecord } from '../evidence/payload.ts'
 import { buildPdf, filenameFor } from '../evidence/pdf.ts'
 import { latestCompleted, type LogEntry } from '../store/log.ts'
+import { Markdown } from './Markdown.tsx'
 
 const APP_VERSION = '0.1.0'
 const BUILD_COMMIT: string = import.meta.env?.VITE_BUILD_COMMIT ?? '0'.repeat(40)
@@ -28,6 +29,7 @@ interface Props {
 
 export function Summary({ bank, log, andrewId, displayName, onHome }: Props) {
   const [error, setError] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState<string | null>(null)
   const servedFor = (id: string) => (id === bank.lecture ? bank.serve : Infinity)
   const session = latestCompleted(log, bank.lecture, servedFor)
 
@@ -120,7 +122,7 @@ export function Summary({ bank, log, andrewId, displayName, onHome }: Props) {
   const minutes = Math.round(session.activeMs / 60000)
 
   return (
-    <div className="mx-auto max-w-md px-4 py-16 text-center">
+    <div className="mx-auto max-w-2xl px-4 py-16 text-center">
       <p className="text-5xl" aria-hidden>
         ✓
       </p>
@@ -144,6 +146,71 @@ export function Summary({ bank, log, andrewId, displayName, onHome }: Props) {
       <button type="button" onClick={onHome} className="btn-quiet mt-6 w-full">
         Back to modules
       </button>
+
+      {/* The review list. This is where the explanations are most likely to be
+          read: the module is over, nothing is at stake, and the student already
+          knows which ones they missed. Mid-session the same text competes with
+          wanting to get to the end. */}
+      <section className="mt-12 text-left">
+        <h2 className="mb-4 text-lg font-bold">Your answers</h2>
+        <ul className="space-y-3">
+          {session.entries.map((e, i) => {
+            const item = byId[e.itemId]
+            if (!item) return null
+            const idx = e.chosen[0] ? Number(e.chosen[0].slice(3)) : -1
+            const chosen = item.options?.[idx]
+            const open = expanded === e.itemId
+            return (
+              <li
+                key={e.itemId}
+                className="rounded-xl border-2 border-[var(--border)] bg-[var(--surface-raised)]"
+              >
+                <button
+                  type="button"
+                  onClick={() => setExpanded(open ? null : e.itemId)}
+                  aria-expanded={open}
+                  className="flex w-full items-start gap-3 p-3 text-left"
+                >
+                  <span
+                    aria-hidden
+                    className={e.firstOk ? 'text-[var(--correct)]' : 'text-[var(--wrong)]'}
+                  >
+                    {e.firstOk ? '✓' : '✗'}
+                  </span>
+                  <span className="flex-1 text-sm">
+                    <span className="text-[var(--muted)]">{i + 1}. </span>
+                    {(item.prompt ?? '').split('\n').find((l) => l.trim()) ?? e.itemId}
+                  </span>
+                  <span className="text-[var(--muted)]" aria-hidden>
+                    {open ? '−' : '+'}
+                  </span>
+                </button>
+                {open && (
+                  <div className="border-t border-[var(--border)] p-3">
+                    {chosen && (
+                      <p className="mb-2 text-sm">
+                        <span className="text-[var(--muted)]">You chose: </span>
+                        {chosen}
+                      </p>
+                    )}
+                    {!e.firstOk && item.answer && (
+                      <p className="mb-2 text-sm">
+                        <span className="text-[var(--muted)]">Answer: </span>
+                        {item.answer}
+                      </p>
+                    )}
+                    <Markdown className="text-sm leading-relaxed">{item.evidence}</Markdown>
+                    <p className="mt-2 text-xs text-[var(--muted)]">
+                      Source: {item.source.file}
+                      {item.source.heading ? ` · ${item.source.heading}` : ''}
+                    </p>
+                  </div>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      </section>
     </div>
   )
 }

@@ -139,6 +139,32 @@ export function newSessionId(andrewId: string, lecture: string, startedAt: numbe
   return `${andrewId}/${lecture}/${startedAt}`
 }
 
+/**
+ * The unfinished sitting for this lecture, if there is one.
+ *
+ * This is what makes the paragraph above true rather than aspirational. An
+ * earlier version derived the id from Date.now() at the moment Start was
+ * clicked and only wrote to the log when the whole module finished, so a
+ * refresh at item six minted a new id and discarded five answers. Entries are
+ * now appended as they are committed, and a returning student rejoins the
+ * sitting they left by looking it up here.
+ */
+export function openSessionFor(
+  log: readonly LogEntry[],
+  lecture: string,
+  servedFor: (lecture: string) => number,
+): string | null {
+  const open = sessionsOf(log, servedFor)
+    .filter((s) => s.lecture === lecture && !s.complete)
+    .sort((a, b) => a.finishedAt - b.finishedAt)
+  return open.length ? open[open.length - 1]!.session : null
+}
+
+/** The entries already recorded for one sitting, in the order they were answered. */
+export function entriesFor(log: readonly LogEntry[], session: string): LogEntry[] {
+  return log.filter((e) => e.session === session).sort((a, b) => a.at - b.at)
+}
+
 /** Total answered items, for the HUD. */
 export function answeredCount(log: readonly LogEntry[]): number {
   return log.length

@@ -9,9 +9,20 @@
  * a predict item the player has to commit to an expectation *before* the
  * options appear, and is then shown the gap between it and the measurement.
  *
- * Timing is recorded per item, split into "time to first answer" and "total
- * time", because with retry-until-right the total is mostly a function of how
- * many tries it took and the first is the one that means anything.
+ * Two properties this component has to preserve, and an earlier version of it
+ * preserved neither:
+ *
+ * ANSWERS ARE PERSISTED AS THEY HAPPEN. Entries used to accumulate in component
+ * state and reach the log only when the whole module finished, so quitting or
+ * refreshing at item six discarded five answers. Each entry now goes to the log
+ * on commit, and a returning student resumes from what is already there.
+ *
+ * GOING BACK IS REVIEW, NOT A SECOND ATTEMPT. The evidence PDF records
+ * first_ok, tries and per-item timing. If an item could be re-answered after
+ * its answer was revealed, those fields would stop measuring anything and
+ * first-try accuracy would be useless as course telemetry. So an answered item
+ * is read-only: it shows what was chosen, whether it was right first time, and
+ * the evidence, which is what a student wants from a back button anyway.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -26,7 +37,11 @@ interface Props {
   sessionId: string
   served: ServedItem[]
   itemsById: Record<string, Item>
-  onFinish: (entries: LogEntry[]) => void
+  /** Entries already in the log for this sitting; non-empty when resuming. */
+  resumed: LogEntry[]
+  /** Called the moment an item is committed, so nothing lives only in memory. */
+  onAnswer: (entry: LogEntry) => void
+  onFinish: () => void
   onQuit: () => void
 }
 
@@ -37,11 +52,17 @@ export function SessionPlayer({
   sessionId,
   served,
   itemsById,
+  resumed,
+  onAnswer,
   onFinish,
   onQuit,
 }: Props) {
-  const [at, setAt] = useState(0)
-  const [entries, setEntries] = useState<LogEntry[]>([])
+  const [entries, setEntries] = useState<LogEntry[]>(resumed)
+  /** The item being answered. Everything before it is answered and read-only. */
+  const cursor = entries.length
+  const [at, setAt] = useState(cursor)
+  const reviewing = at < cursor
+
   const [phase, setPhase] = useState<Phase>('answer')
   const [selected, setSelected] = useState<number | null>(null)
   const [tries, setTries] = useState(0)
@@ -53,6 +74,7 @@ export function SessionPlayer({
 
   const current = served[at]
   const item = current ? itemsById[current.id] : undefined
+  const record = reviewing ? entries[at] : undefined
 
   /** Options in this student's served order, with the key back to pool order. */
   const shown = useMemo(() => {
@@ -68,12 +90,20 @@ export function SessionPlayer({
     [shown, item],
   )
 
+  /** Where the recorded choice sits in the order this student was served. */
+  const recordedShownIndex = useMemo(() => {
+    if (!record?.chosen.length) return -1
+    const poolIndex = Number(record.chosen[0]!.slice(3))
+    return record.opts.indexOf(poolIndex)
+  }, [record])
+
   const isPredict = !!item?.predict
   const isFree = !item?.options?.length
 
-  // Reset per item. Deliberately keyed on `at` rather than on the item id, so
-  // an item that somehow appears twice still gets a clean slate.
+  // Reset per item, but only for the item being answered: moving back to review
+  // must not restart anybody's clock.
   useEffect(() => {
+    if (at !== cursor) return
     setPhase(isPredict ? 'predict' : 'answer')
     setSelected(null)
     setTries(0)
@@ -81,7 +111,7 @@ export function SessionPlayer({
     setPrediction('')
     startedAt.current = Date.now()
     firstAnswerMs.current = null
-  }, [at, isPredict])
+  }, [at, cursor, isPredict])
 
   const commit = useCallback(
     (correct: boolean, chosenPoolIndex: number | null, wasRevealed: boolean) => {
@@ -102,12 +132,13 @@ export function SessionPlayer({
         revealed: wasRevealed,
         at: now,
       }
-      const next = [...entries, entry]
-      setEntries(next)
-      if (at + 1 >= served.length) onFinish(next)
+      // Straight to the log, not held until the end.
+      onAnswer(entry)
+      setEntries((prev) => [...prev, entry])
+      if (at + 1 >= served.length) onFinish()
       else setAt(at + 1)
     },
-    [at, current, entries, item, lecture, onFinish, served.length, sessionId, tries],
+    [at, current, item, lecture, onAnswer, onFinish, served.length, sessionId, tries],
   )
 
   const check = useCallback(() => {
@@ -115,15 +146,8 @@ export function SessionPlayer({
     if (firstAnswerMs.current === null) {
       firstAnswerMs.current = Date.now() - startedAt.current
     }
-    const correct = shown[selected]?.text === item.answer
-    if (correct) {
-      setPhase('feedback')
-    } else {
-      // Retry until right: the module is graded on completion, so a wrong
-      // answer costs a second attempt and the evidence records that it took two.
-      setTries((n) => n + 1)
-      setPhase('feedback')
-    }
+    if (shown[selected]?.text !== item.answer) setTries((n) => n + 1)
+    setPhase('feedback')
   }, [item, selected, shown])
 
   const next = useCallback(() => {
@@ -142,10 +166,12 @@ export function SessionPlayer({
   const correctNow = shown[selected ?? -1]?.text === item.answer
   /** The item is finished: got it right, gave up, or it is not gradeable. */
   const settled = correctNow || revealed || isFree
+  const showFeedback = reviewing || phase === 'feedback'
+  const wasRight = reviewing ? !!record?.firstOk : settled
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-2xl flex-col px-4 py-6">
-      <header className="mb-6 flex items-center gap-4">
+      <header className="mb-6 flex items-center gap-3">
         <button
           type="button"
           onClick={onQuit}
@@ -154,21 +180,53 @@ export function SessionPlayer({
         >
           ✕
         </button>
+
+        <button
+          type="button"
+          onClick={() => setAt((n) => Math.max(0, n - 1))}
+          disabled={at === 0}
+          className="text-sm text-[var(--muted)] hover:text-[var(--ink)] disabled:opacity-30"
+          aria-label="Previous question"
+        >
+          ‹
+        </button>
+
         <div
           className="h-2 flex-1 overflow-hidden rounded-full bg-[var(--surface-raised)]"
           role="progressbar"
-          aria-valuenow={at}
+          aria-valuenow={cursor}
           aria-valuemax={served.length}
         >
           <div
             className="h-full rounded-full bg-[var(--brand)] transition-[width]"
-            style={{ width: `${(at / served.length) * 100}%` }}
+            style={{ width: `${(cursor / served.length) * 100}%` }}
           />
         </div>
+
+        <button
+          type="button"
+          onClick={() => setAt((n) => Math.min(cursor, n + 1))}
+          disabled={at >= cursor}
+          className="text-sm text-[var(--muted)] hover:text-[var(--ink)] disabled:opacity-30"
+          aria-label="Next question"
+        >
+          ›
+        </button>
+
         <span className="font-mono text-sm text-[var(--muted)]">
           {at + 1}/{served.length}
         </span>
       </header>
+
+      {reviewing && (
+        <p
+          className="mb-4 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)]
+                     px-3 py-2 text-sm text-[var(--muted)]"
+        >
+          Reviewing an answered question. Your answer is recorded and cannot be
+          changed.
+        </p>
+      )}
 
       <main className="flex-1">
         <p className="mb-1 font-mono text-xs uppercase tracking-wide text-[var(--muted)]">
@@ -178,7 +236,7 @@ export function SessionPlayer({
           {item.prompt}
         </Markdown>
 
-        {phase === 'predict' && item.predict && (
+        {!reviewing && phase === 'predict' && item.predict && (
           <section aria-label="Commit to an expectation">
             <p className="mb-3 text-sm text-[var(--muted)]">{item.predict.ask}</p>
             <textarea
@@ -205,24 +263,20 @@ export function SessionPlayer({
           </section>
         )}
 
-        {phase !== 'predict' && !isFree && (
+        {(reviewing || phase !== 'predict') && !isFree && (
           <ChoiceGrid
             options={shown.map((o) => o.text)}
-            selected={selected}
-            onSelect={setSelected}
-            // Only paint the right answer once the item is actually over:
-            // got it right, or gave up via "Show me". Revealing it on a wrong
-            // first try and then offering "Try again" is not a retry, it is a
-            // copy exercise.
+            selected={reviewing ? recordedShownIndex : selected}
+            onSelect={reviewing ? () => {} : setSelected}
             revealed={
-              phase !== 'feedback'
+              !showFeedback
                 ? null
-                : { answerIndex: settled ? answerShownIndex : -1 }
+                : { answerIndex: reviewing || settled ? answerShownIndex : -1 }
             }
           />
         )}
 
-        {phase !== 'predict' && isFree && (
+        {!reviewing && phase !== 'predict' && isFree && (
           <section aria-label="Write from memory">
             <textarea
               rows={7}
@@ -244,22 +298,41 @@ export function SessionPlayer({
           </section>
         )}
 
-        {phase === 'feedback' && (
+        {reviewing && isFree && item.checklist && (
+          <ul className="space-y-2">
+            {item.checklist.map((c) => (
+              <li key={c.needle} className="flex gap-2 text-sm">
+                <span aria-hidden>▫</span>
+                <span>{c.text}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {showFeedback && (
           <aside
             className={`mt-6 rounded-xl border-2 p-4 ${
-              settled
+              wasRight
                 ? 'border-[var(--correct)] bg-[var(--correct-wash)]'
                 : 'border-[var(--wrong)] bg-[var(--wrong-wash)]'
             }`}
           >
-            {/* Nothing that gives the answer away until the item is actually
-                over. The evidence explains *why* the answer is the answer, so
-                showing it beside a "Try again" button turns the retry into a
-                reading-comprehension exercise and throws away the second
-                attempt, which is the only part that involves thinking. */}
-            {settled ? (
+            {reviewing && (
+              <p className="mb-3 text-sm text-[var(--muted)]">
+                {record?.revealed
+                  ? 'You revealed this one.'
+                  : record?.firstOk
+                    ? 'Right first time.'
+                    : `Answered in ${record?.tries ?? 2} attempts.`}
+              </p>
+            )}
+            {/* Nothing that gives the answer away until the item is over. The
+                evidence explains *why* the answer is the answer, so showing it
+                beside a "Try again" button turns the retry into a reading
+                exercise and throws away the second attempt. */}
+            {reviewing || settled ? (
               <>
-                {item.predict && prediction.trim() && (
+                {!reviewing && item.predict && prediction.trim() && (
                   <p className="mb-3 text-sm">
                     <span className="text-[var(--muted)]">You predicted: </span>
                     <span className="italic">{prediction.trim()}</span>
@@ -282,52 +355,56 @@ export function SessionPlayer({
       </main>
 
       <footer className="mt-6 flex items-center gap-3">
-        {phase === 'answer' && !isFree && (
+        {reviewing ? (
+          <button type="button" onClick={() => setAt(cursor)} className="btn-primary">
+            Back to question {cursor + 1}
+          </button>
+        ) : (
           <>
-            <button
-              type="button"
-              onClick={check}
-              disabled={selected === null}
-              className="btn-primary"
-            >
-              Check
-            </button>
-            {tries > 0 && (
-              // The escape hatch. A student stuck on item 6 with no way out is a
-              // student who never finishes, and completion is the grade. It is
-              // recorded, and it forfeits first-try credit.
+            {phase === 'answer' && !isFree && (
+              <>
+                <button
+                  type="button"
+                  onClick={check}
+                  disabled={selected === null}
+                  className="btn-primary"
+                >
+                  Check
+                </button>
+                {tries > 0 && (
+                  // The escape hatch. A student stuck on item 6 with no way out
+                  // is a student who never finishes, and completion is the
+                  // grade. It is recorded, and it forfeits first-try credit.
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRevealed(true)
+                      setSelected(answerShownIndex)
+                      setPhase('feedback')
+                    }}
+                    className="btn-quiet"
+                  >
+                    Show me
+                  </button>
+                )}
+              </>
+            )}
+            {phase === 'answer' && isFree && (
+              <button type="button" onClick={() => setPhase('feedback')} className="btn-primary">
+                Show the checklist
+              </button>
+            )}
+            {phase === 'feedback' && (
               <button
                 type="button"
-                onClick={() => {
-                  setRevealed(true)
-                  setSelected(answerShownIndex)
-                  setPhase('feedback')
-                }}
-                className="btn-quiet"
+                onClick={isFree ? () => commit(true, null, false) : next}
+                className="btn-primary"
+                autoFocus
               >
-                Show me
+                {settled ? (at + 1 >= served.length ? 'Finish' : 'Continue') : 'Try again'}
               </button>
             )}
           </>
-        )}
-        {phase === 'answer' && isFree && (
-          <button type="button" onClick={() => setPhase('feedback')} className="btn-primary">
-            Show the checklist
-          </button>
-        )}
-        {phase === 'feedback' && (
-          <button
-            type="button"
-            onClick={isFree ? () => commit(true, null, false) : next}
-            className="btn-primary"
-            autoFocus
-          >
-            {isFree || correctNow || revealed
-              ? at + 1 >= served.length
-                ? 'Finish'
-                : 'Continue'
-              : 'Try again'}
-          </button>
         )}
       </footer>
     </div>
