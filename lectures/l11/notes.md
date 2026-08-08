@@ -518,7 +518,7 @@ your problem that you need to know. On this session's data the seed-to-seed spre
 enough to reverse a model-family comparison, which is why every number in these notes is a mean
 over five seeds and five folds.
 
-Log the seed to MLflow alongside everything else from [L10](../l09/notes.md), and log the
+Log the seed to MLflow alongside everything else from L10, and log the
 *number of seeds* too. "RMSE 5.81" is an anecdote; "5.81 ± 0.49 over 25 runs" is a measurement.
 
 ## Where this pushes back
@@ -528,7 +528,7 @@ on concrete trains in under a second, has no learning rate to tune, no scaling r
 device to place, and ties the neural network. Every hour spent on the MLP bought a model that is
 harder to deploy and no more accurate. The reason to learn PyTorch is not that it wins here; it
 is that it is the only option once the input has structure a tree cannot exploit, which is
-[L12](../l09/notes.md)'s subject.
+L12's subject.
 
 **The framework will compute a wrong answer at full speed.** This is worth repeating as a
 limitation rather than a feature. Nothing in the stack checks that your graph means what you
@@ -594,7 +594,7 @@ measures rather than describes. A GPU is a throughput device with a fixed cost p
 the model in this session runs four times slower on one. And on 1,030 rows of concrete, the
 neural network and the gradient-boosted tree tie once the split respects the mix structure,
 which is a narrower and more useful claim than either "deep learning wins" or "trees win."
-[L12](../l09/notes.md) picks up where the tie leaves off: architectures that match the structure
+L12 picks up where the tie leaves off: architectures that match the structure
 of the input, where a network can do something a tree genuinely cannot.
 
 ## Resources
