@@ -146,7 +146,8 @@ frontmatter `title:` and expect it to render.
 7. `## Resources`, annotated links, one line each on why it is worth reading.
 8. `## Assignment`, a pointer and a deadline, never a copy of the rubric.
 
-**Writing.** Write it as a chapter of a book, not a set of slides rendered as prose. That
+**Writing.** Follow `scientific_writing.md` (repo root) for the prose standard. Write it as a
+chapter of a book, not a set of slides rendered as prose. That
 means developed, connected paragraphs that carry an argument from one to the next, full
 sentences rather than fragments, and enough breadth that a student who missed class can follow
 the whole thread from the notes alone. Prefer one idea developed properly over four mentioned
@@ -381,6 +382,24 @@ slides, so if a deck feels thin, add topics and real content. L1 and L2 predate 
 convention and are sparser, one idea per slide; migrate them to topic titles when they are
 next revised.
 
+**Definitions get a green box.** Bring the notes' green definition ribbons onto the slides.
+When a slide introduces a term or a concept, put the plain definition in the theme's green box
+instead of a bare bullet, so the scaffolding a student leans on looks the same in both places.
+For a definition inside a content slide, wrap it in a div and leave blank lines around the text
+so the markdown still renders:
+
+```html
+<div class="definition">
+
+**Watermark**: an estimate of the event time up to which all data has arrived.
+
+</div>
+```
+
+For a definition that earns its own slide, mark the slide `<!-- _class: definition -->`, which
+tints the whole slide green. The box holds one plain sentence, humanized to the same standard
+as the rest of the deck (see `scientific_writing.md`), and never a paragraph.
+
 **Every deck needs links and figures.** A deck with neither is a deck that cannot be
 revisited by a student and cannot be checked by anyone. Put the source link on the slide
 that makes the claim, not only in the notes. L1 carries 17 links and 3 figures.
@@ -403,7 +422,9 @@ a lecture.
   (`"06-763 · LNN"`) and `footer` (the course title).
 - Slide classes from the shared theme: `<!-- _class: title -->` for the opener,
   `<!-- _class: section -->` for arc dividers, `<!-- _class: demo -->` for the switch to
-  live code.
+  live code, and `<!-- _class: definition -->` for a full-slide green definition.
+- Definitions and key concepts go in the green box (an inline `<div class="definition">` or a
+  `<!-- _class: definition -->` slide), mirroring the notes' ribbons. Keep the wording plain.
 - Speaker notes go in HTML comments and show up in presenter view. Use them for timing
   cues and the things you always forget to say.
 - Tables earn their space when they contrast two things (naive versus what we do).
@@ -499,6 +520,11 @@ depend on data that is not in the repo.
 ---
 
 ## 7. Writing style
+
+The full writing standard for the course is `scientific_writing.md` in the repo root: how to
+state a claim (lead with it, quantify, cite, report enough to reproduce), and the
+machine-writing patterns to cut. Read it before writing notes or slides, and treat it as
+binding for both. The essentials:
 
 - **No em-dashes.** Use commas, parentheses, colons, or separate sentences.
 - Prose over bullets in the notes. Bullets are correct in slides, in learning objectives,
