@@ -23,10 +23,10 @@ items:
       What does adding retrieval without a retrieval evaluation actually buy?
     options:
       - "Grounding, since the model can now only answer from documents you supplied"
-      - "A system whose failures come with a citation attached, which can make them more convincing rather than less"
+      - "A system whose failures now come with a citation attached"
       - "Freshness, which is the main benefit and does not depend on evaluation"
       - "Lower cost, since retrieved chunks are cheaper than long-context prompts"
-    answer: "A system whose failures come with a citation attached, which can make them more convincing rather than less"
+    answer: "A system whose failures now come with a citation attached"
     evidence: |
       A confident wrong answer looks identical to a confident right one. Nothing
       about a fluent, well-cited-looking answer distinguishes retrieval finding
@@ -89,10 +89,10 @@ items:
       Why not, and what is the fix?
     options:
       - "The vector store validates dimensions, so a mismatch is caught only if the dimensions differ; pad the shorter vectors"
-      - "Nearest-neighbour search returns neighbours in a space the query was never correctly placed in, and nothing raises. Pin the embedding model in the index's version metadata"
+      - "The query is placed in the wrong space and nothing raises; pin the model in the index metadata"
       - "The scores are renormalised per query, which hides the change; disable normalisation to surface it"
       - "The index needs rebuilding on every deploy, and the staleness is what degraded retrieval"
-    answer: "Nearest-neighbour search returns neighbours in a space the query was never correctly placed in, and nothing raises. Pin the embedding model in the index's version metadata"
+    answer: "The query is placed in the wrong space and nothing raises; pin the model in the index metadata"
     evidence: |
       This is the same silent-conversion shape as the dtype trap in L11 and the
       unit mismatch in L7: a value crosses an interface, is interpreted in the
@@ -119,10 +119,10 @@ items:
       Where does the fix belong?
     options:
       - "In the retriever: a cross-encoder re-ranker will surface both halves and the model can combine them"
-      - "In chunking, at ingestion. No amount of clever re-ranking recovers a fact that structure-blind chunking already split"
+      - "In chunking, at ingestion; re-ranking cannot recover a split fact"
       - "In the generation prompt: instruct the model to combine partial evidence across retrieved chunks"
       - "In k: retrieve more chunks so both halves are likely to appear in the context together"
-    answer: "In chunking, at ingestion. No amount of clever re-ranking recovers a fact that structure-blind chunking already split"
+    answer: "In chunking, at ingestion; re-ranking cannot recover a split fact"
     evidence: |
       Chunking is a lossy transformation you cannot fully undo downstream, so
       money spent getting it right the first time buys more than the same money
@@ -298,10 +298,10 @@ items:
       judged?
     options:
       - "The fraction of generated answers that cite a real source, which is the grounding rate"
-      - "The fraction of questions whose correct chunk appears in the top k, which bounds what generation can possibly get right"
+      - "The fraction of questions whose correct chunk appears in the top k"
       - "The average similarity of the top k chunks, which indicates whether the index is well built"
       - "The fraction of retrieved chunks that are relevant, which is precision at the retrieval stage"
-    answer: "The fraction of questions whose correct chunk appears in the top k, which bounds what generation can possibly get right"
+    answer: "The fraction of questions whose correct chunk appears in the top k"
     evidence: |
       It is a ceiling. If the right chunk is not in the top k, the generator
       cannot produce a grounded correct answer no matter how good the prompt is,

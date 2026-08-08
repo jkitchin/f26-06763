@@ -134,3 +134,20 @@
   text: >-
     Evaluate retrieval quality quantitatively and connect retrieval failures to downstream
     answer failures.
+
+- id: l23-o1
+  lecture: l23
+  text: >-
+    Build a CI pipeline that runs tests and an eval gate (fail the build if a key metric drops
+    below threshold) and produces a deployable container.
+
+- id: l23-o2
+  lecture: l23
+  text: >-
+    Design drift and regression monitoring and choose alert thresholds you can justify.
+
+- id: l23-o3
+  lecture: l23
+  text: >-
+    Identify system-specific failure modes and write concrete guardrails; apply a
+    responsible-AI checklist to an engineering decision.

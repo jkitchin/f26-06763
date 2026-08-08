@@ -93,10 +93,10 @@ items:
       What does that pair of facts tell you?
     options:
       - "The ensemble is less responsive to novelty, which is why its coverage falls"
-      - "Responsiveness and calibration are different properties: both noticed the shift equally, and only one had intervals the right size to begin with"
+      - "Responsiveness and calibration are different properties"
       - "The coverage difference is noise; a 1.83 against 1.84 ratio means the two are equivalent"
       - "The GP is extrapolating and the ensemble is interpolating, so the comparison is not like for like"
-    answer: "Responsiveness and calibration are different properties: both noticed the shift equally, and only one had intervals the right size to begin with"
+    answer: "Responsiveness and calibration are different properties"
     evidence: |
       This is the diagnostic worth carrying. A model whose sigma grows under
       extrapolation is telling you it has left familiar ground, and that is
@@ -124,10 +124,10 @@ items:
       guarantee?
     options:
       - "It holds, because the guarantee is distribution-free and does not depend on the split"
-      - "It falls to 82.2%; the guarantee is about exchangeability, and the assumption failed rather than the method"
+      - "It falls to 82.2%; the assumption failed, not the method"
       - "It rises above nominal, because conformal intervals widen conservatively when the data shifts"
       - "It becomes undefined, since conformal prediction requires an i.i.d. calibration set to produce any interval"
-    answer: "It falls to 82.2%; the guarantee is about exchangeability, and the assumption failed rather than the method"
+    answer: "It falls to 82.2%; the assumption failed, not the method"
     evidence: |
       This is the most instructive failure in the session, because conformal
       prediction is usually sold on its guarantee. The guarantee is real and it
@@ -161,10 +161,10 @@ items:
       common_prior: "A uniform win. Better features are better features."
     options:
       - "Yes, uniformly, which is why dimensionless groups are the standard first move"
-      - "No: it helps where the physics involves the variable being extrapolated over, and hurts where it does not"
+      - "No: it helps where the physics involves the extrapolated variable, and hurts where it does not"
       - "No, it hurts everywhere once the model is a GP rather than a linear fit"
       - "It makes no measurable difference, since a GP can learn the transformation itself"
-    answer: "No: it helps where the physics involves the variable being extrapolated over, and hurts where it does not"
+    answer: "No: it helps where the physics involves the extrapolated variable, and hurts where it does not"
     evidence: |
       Extrapolating over chord, log-Strouhal takes RMSE from 4.37 to 2.15 dB.
       Extrapolating over angle of attack it goes the wrong way, 4.84 to 5.31.
@@ -388,10 +388,10 @@ items:
       What is the general shape of the result?
     options:
       - "Coverage is stable across splits; the methods differ only in sharpness"
-      - "Every method looks acceptable on random rows, and the differences only appear once whole configurations or a velocity are held out"
+      - "Every method looks fine on random rows; the differences need a harder split"
       - "The deep ensemble leads under every split, which is why it is the modern default"
       - "Coverage improves under the harder splits, because the intervals widen faster than the error grows"
-    answer: "Every method looks acceptable on random rows, and the differences only appear once whole configurations or a velocity are held out"
+    answer: "Every method looks fine on random rows; the differences need a harder split"
     evidence: |
       That is the reason the session insists on validating a surrogate under the
       split that matches how it will be used. A random-row split answers "can it

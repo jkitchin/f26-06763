@@ -54,10 +54,10 @@ items:
       You want to know whether a colleague's pipeline leaks. What do you look at?
     options:
       - "The validation score, since a leak inflates it and the inflation is what you are detecting"
-      - "The code, because the same leak reads as zero, negative, or clearly positive depending only on the estimator"
+      - "The code; the same leak reads four different ways across four estimators"
       - "The gap between train and validation error, which widens characteristically when data has leaked"
       - "A learning curve, since leakage shows up as a curve that plateaus above its achievable floor"
-    answer: "The code, because the same leak reads as zero, negative, or clearly positive depending only on the estimator"
+    answer: "The code; the same leak reads four different ways across four estimators"
     evidence: |
       Every option except the second is an attempt to detect a leak from
       symptoms, and this session's measurement is that the symptoms are not
@@ -116,10 +116,10 @@ items:
       This line was in the demo notebook until it was checked. What does it do?
     options:
       - "Nothing wrong; it selects sensor2 as intended and is the idiomatic way to do it"
-      - "It quietly sweeps in sensor20 and sensor21 as well, because startswith matches a prefix rather than a name"
+      - "It quietly sweeps in sensor20 and sensor21, since startswith matches a prefix"
       - "It fails on an empty DataFrame, which is why a guard is needed before it"
       - "It selects the columns in a non-deterministic order, which changes the feature matrix between runs"
-    answer: "It quietly sweeps in sensor20 and sensor21 as well, because startswith matches a prefix rather than a name"
+    answer: "It quietly sweeps in sensor20 and sensor21, since startswith matches a prefix"
     evidence: |
       Two silent bugs were in this notebook until somebody checked, and both are
       documented in place rather than quietly fixed: this one, and a constant
@@ -300,10 +300,10 @@ items:
       fitted pipeline object rather than a sequence of notebook cells?
     options:
       - "It runs faster, because the transforms are applied in a single vectorised pass over the data"
-      - "The transform that is applied at prediction time is the same object that was fitted at training time, so the two cannot drift apart"
+      - "The transform applied at prediction time is the object fitted at training time"
       - "It documents the feature engineering, which makes the notebook easier for a reviewer to follow"
       - "It allows hyperparameter search over the feature steps, which is not possible with loose cells"
-    answer: "The transform that is applied at prediction time is the same object that was fitted at training time, so the two cannot drift apart"
+    answer: "The transform applied at prediction time is the object fitted at training time"
     evidence: |
       Hyperparameter search over feature steps is a real benefit and it is not the
       main one. The main one is that a scaler holds fitted state, and loose cells
