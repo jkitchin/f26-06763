@@ -82,9 +82,9 @@ items:
       this course actually handles. Which is the most token-dense, meaning the
       fewest characters bought per token?
     options:
-      - "Technical prose, at 4.82 characters per token"
+      - "Technical prose, at 4.82 characters per token, since English words are what the vocabulary was fitted on"
       - "A pump datasheet, at 3.05 characters per token"
-      - "Python source, at 2.56 characters per token"
+      - "Python source, at 2.56 characters per token, because identifiers and punctuation fragment badly"
       - "An alarm table flattened out of a PDF, at 2.35 characters per token"
     answer: "An alarm table flattened out of a PDF, at 2.35 characters per token"
     evidence: |
@@ -117,7 +117,7 @@ items:
       What did the measurement in these notes actually find, and what is the
       general lesson?
     options:
-      - "15-20% was confirmed, so the documented figure is safe to budget with"
+      - "15-20% was confirmed, so the documented figure is safe to budget with and the vendor number can be trusted directly"
       - "The estimate came in 31% low, well outside the documented range, because the documented range is for typical text and a 146-page OCR scan is not typical text"
       - "The estimate came in 31% high, so the budget has slack rather than a shortfall"
       - "The two counts agreed, because both tokenizers now share a vocabulary"
@@ -157,7 +157,7 @@ items:
       ask: "Commit to one before you reveal. Most rooms pick the other one."
       common_prior: "Trim the input. A huge prompt must be what is slow."
     options:
-      - "Trimming the input; long prompts dominate latency"
+      - "Trimming the input; long prompts dominate latency, because the model must attend over every pair of positions before it can answer"
       - "Trimming the output; the 128-fold output cut saves about 22 seconds while the 130-fold input cut saves about 0.4 seconds"
       - "Both about equally, since latency is roughly linear in total tokens"
       - "Neither; latency is set by the provider's queue rather than by token counts"
@@ -230,7 +230,7 @@ items:
 
       The model returns `1`. What is wrong, and what single change fixes it?
     options:
-      - "The temperature is too high; set it to 0 so the model stops guessing"
+      - "The temperature is too high; set it to 0 so the model stops guessing and returns only what the datasheet actually supports"
       - "The model has no token meaning \"not in the source,\" so probability mass that ought to go there lands on plausible digits instead. Permit an explicit NOT FOUND answer"
       - "The datasheet was truncated before the relevant page; raise the context window"
       - "The model is lying, and the fix is a stronger instruction not to fabricate"
@@ -266,7 +266,7 @@ items:
       You send 190,000 tokens to a model with a 200,000-token context window and
       set `max_tokens` to 64,000. What happens?
     options:
-      - "You get up to 64,000 tokens back; `max_tokens` is independent of the window"
+      - "You get up to 64,000 tokens back, because `max_tokens` governs generation and the window governs input, and the two are budgeted separately"
       - "The window is shared between input and output, so there is room for about 10,000 tokens of answer whatever `max_tokens` says"
       - "The provider silently truncates the input to make room for the output"
       - "The oldest part of the input is evicted automatically, sliding-window style"
@@ -316,9 +316,9 @@ items:
       common_prior: "A > C > B. The same-event pair should score highest and the contradiction lowest."
     options:
       - "C (0.971) > B (0.694) > A (0.532)"
-      - "A (0.971) > C (0.694) > B (0.532)"
+      - "A (0.971) > C (0.694) > B (0.532), the same-event pair scoring highest"
       - "C (0.971) > A (0.694) > B (0.532)"
-      - "A (0.694) > B (0.532) > C (0.361)"
+      - "A (0.694) > B (0.532) > C (0.361), with the unit mismatch scoring lowest of the three"
     answer: "C (0.971) > B (0.694) > A (0.532)"
     evidence: |
       The pair that means the *opposite* scores higher than the pair that means
@@ -348,7 +348,7 @@ items:
       `Bearing temperature 85 degF`, which are an alarm condition and room
       temperature respectively. Where does the fix belong?
     options:
-      - "In the embedding model: switch to one that encodes units correctly"
+      - "In the embedding model: switch to one trained on technical text, which will encode degC and degF as the distinct quantities they are"
       - "In the threshold: raise the cosine cut until these two fall apart"
       - "In the pipeline: unit normalization has to be an explicit, typed, tested step, with the original value retained"
       - "In the LLM: add a downstream judge call that checks the units agree"
@@ -382,7 +382,7 @@ items:
       pairwise with an LLM means 561 calls. What does the embedding route cost,
       and what is the rule this illustrates?
     options:
-      - "561 embedding calls, but each is cheaper than an LLM call"
+      - "561 embedding calls, one per pair, but each is far cheaper than an LLM call so the total cost still falls by orders of magnitude"
       - "One call and 455 tokens, after which every pairwise comparison is a dot product; use embeddings for \"which of these are alike\" and an LLM for \"what does this one say\""
       - "34 calls, one per entry, then 561 cosine comparisons"
       - "One call, but the comparison still needs an LLM to interpret the scores"
@@ -424,7 +424,7 @@ items:
       The 1,024 row does worse than the 512 row below it. What should you
       conclude?
     options:
-      - "512 dimensions is genuinely the sweet spot for this model; truncate to 512"
+      - "512 dimensions is genuinely the sweet spot for this model, so truncate there and take both the storage saving and the accuracy"
       - "Nothing about the model. On 34 records the curve cannot be monotonic; this is sampling noise, and tuning a storage decision on a sample this small is the mistake"
       - "The Matryoshka training failed for this model, so truncation is unsafe here"
       - "The 1,024 measurement is a bug and should be re-run until it exceeds the 512 row"
@@ -463,7 +463,7 @@ items:
       - "The datasheet is less dense: more characters per token than prose, by about 1.6x"
       - "The datasheet is more dense: fewer characters per token than prose, by about 1.6x"
       - "They come out within a few percent of each other"
-      - "The datasheet is more dense by more than 5x"
+      - "The datasheet is more dense by more than 5x, since almost every line is numbers and units rather than words"
     answer: "The datasheet is more dense: fewer characters per token than prose, by about 1.6x"
     evidence: |
       3.05 characters per token for the datasheet against 4.82 for technical

@@ -22,3 +22,20 @@
   text: >-
     Understand embeddings as vectors and use cosine similarity to cluster/retrieve
     engineering text.
+
+- id: l09-o1
+  lecture: l09
+  text: >-
+    Translate an engineering question into a learning task with an appropriate loss and
+    reporting metric.
+
+- id: l09-o2
+  lecture: l09
+  text: >-
+    Build and beat baselines; know when a "sophisticated" model is not actually earning its
+    complexity.
+
+- id: l09-o3
+  lecture: l09
+  text: >-
+    Choose the correct cross-validation scheme for the data's structure.

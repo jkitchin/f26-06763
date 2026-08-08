@@ -1,0 +1,403 @@
+# L09 item bank, drafted from the harvest of lectures/l09/notes.md and reviewed
+# against the five rules in game/README.md.
+
+schema: 1
+lecture: l09
+title: "Train, validate, select: baselines, cross-validation, metrics"
+source_notes: lectures/l09/notes.md
+status: published
+serve: 8
+pool_version: 1
+provenance:
+  drafted_by: hand
+  reviewed_by: jkitchin
+  reviewed_at: 2026-08-08
+
+items:
+
+  # --- baselines ----------------------------------------------------------
+
+  - id: l09-q01
+    kind: predict_measure
+    rung: 1
+    difficulty: 2
+    objectives: [l09-o2]
+    prompt: |
+      A combined-cycle power plant, predicting electrical output. The random
+      forest in this study reaches 3.36 MW RMSE.
+
+      Before you look: how much of the distance between "no model at all" and
+      that random forest is closed by a straight line on **ambient temperature
+      alone**?
+    predict:
+      ask: "Write a percentage down before revealing."
+      common_prior: "Maybe a third. It is one variable and a linear fit."
+    options:
+      - "About 30%, which is why the ensemble is worth its complexity and why the study reaches for one at all"
+      - "About 85%, leaving the other three ambient channels and the forest to split the rest"
+      - "About 50%, so the forest roughly doubles what a line achieves"
+      - "Almost none; the relationship is too nonlinear for a line"
+    answer: "About 85%, leaving the other three ambient channels and the forest to split the rest"
+    evidence: |
+      Predicting the mean costs 17.07 MW, the target's own standard deviation.
+      One thermodynamic variable and a straight line close 85% of the entire gap.
+      All four ambient channels take you to 91%, and the random forest closes the
+      remaining 9%. The forest is not wrong to use, but a report that quotes only
+      "3.36 MW RMSE" has hidden the fact that most of the achievement belongs to
+      a line somebody could have fitted in an afternoon.
+    source:
+      file: lectures/l09/notes.md
+      heading: "Baselines that have to be beaten"
+      quote: "a straight line close **85% of the entire gap**"
+    verify: {mode: quote, needle: "85% of the entire gap", volatility: measured}
+    tags: [baselines, reporting]
+
+  - id: l09-q02
+    kind: claim_vs_source
+    rung: 2
+    difficulty: 2
+    objectives: [l09-o2]
+    prompt: |
+      A colleague reports: "our random forest achieves 3.36 MW RMSE on the plant
+      data." The number is correct.
+
+      What is wrong with the report?
+    options:
+      - "Nothing; RMSE on held-out data is exactly the right thing to quote, and adding baselines to the report would only pad it"
+      - "It is a fact about nothing until it sits on a ladder, because most of the gap is closed by a one-variable linear fit and the number alone hides that"
+      - "RMSE is the wrong metric for power output; MAPE is scale-free"
+      - "The value should be reported with a confidence interval instead"
+    answer: "It is a fact about nothing until it sits on a ladder, because most of the gap is closed by a one-variable linear fit and the number alone hides that"
+    evidence: |
+      Report results as a ladder, not as a single number: predict-the-mean, then
+      the one-variable line, then the full linear model, then the model you are
+      proposing. Each rung says what the next one bought. A single number cannot
+      be argued with because it cannot be compared with anything, which is
+      exactly why it gets quoted.
+    source:
+      file: lectures/l09/notes.md
+      heading: "Baselines that have to be beaten"
+      quote: "is a fact about nothing"
+    verify: {mode: quote, needle: "fact about nothing", volatility: stable}
+    tags: [baselines, reporting]
+
+  # --- cross-validation ----------------------------------------------------
+
+  - id: l09-q03
+    kind: rank
+    rung: 1
+    difficulty: 3
+    objectives: [l09-o3]
+    prompt: |
+      Airfoil self-noise data, where 1,503 rows collapse into 106 wind-tunnel
+      configurations. Four models scored under random `KFold` and under
+      `GroupKFold` on configuration.
+
+      Rank the models by how much the random split flatters them, most inflated
+      first.
+    predict:
+      ask: "Commit to an ordering before revealing."
+      common_prior: "All four inflate about equally; it is the same split."
+    options:
+      - "random forest, then k-NN, then linear and predict-the-mean tied at no inflation"
+      - "predict-the-mean, then linear, then k-NN, then random forest, since simpler models are more sensitive to the split"
+      - "linear, then random forest, then k-NN, then predict-the-mean"
+      - "k-NN, then random forest, then linear, then predict-the-mean"
+    answer: "random forest, then k-NN, then linear and predict-the-mean tied at no inflation"
+    evidence: |
+      Inflation factors are 1.52x for the random forest, 1.28x for k-NN, and
+      exactly 1.00x for both the linear model and predict-the-mean. The pattern
+      is the point: the more a model can memorise a neighbourhood, the more a
+      random split rewards it for recognising rows it has already seen. A linear
+      model has nowhere to put that memory, so it is honest by construction and
+      tells you nothing about whether your split is right.
+    source:
+      file: lectures/l09/notes.md
+      heading: "Measuring what the choice is worth"
+      quote: "| random forest | 1.76 dB | 2.69 dB | **1.52×** |"
+    verify: {mode: ordering, needle: "1.52", volatility: measured}
+    tags: [cross-validation, leakage]
+
+  - id: l09-q04
+    kind: direction
+    rung: 2
+    difficulty: 2
+    objectives: [l09-o3]
+    prompt: |
+      You cross-validate a random forest on grouped experimental data with plain
+      random `KFold` instead of `GroupKFold`.
+
+      Which way does the reported error move, and does it matter?
+    options:
+      - "It reads too low, by about half again on this data, and that is the number a paper would print"
+      - "It reads too high, so the result is conservative and safe to publish, which is why random splits are the cautious default"
+      - "It is unbiased; the split only affects the variance of the estimate"
+      - "It reads too low, but by so little that the choice is a formality"
+    answer: "It reads too low, by about half again on this data, and that is the number a paper would print"
+    evidence: |
+      1.76 dB under random k-fold against 2.69 dB when whole runs are held out.
+      Same data, same model, same code, and the published number would be 52% too
+      low. Nothing errors, nothing warns, and the mistake is invisible in the
+      output. The scheme has to match the structure the data actually has, which
+      means asking what a *new* observation will look like in production: a new
+      row from a run you have seen, or a new run entirely.
+    source:
+      file: lectures/l09/notes.md
+      heading: "Measuring what the choice is worth"
+      quote: "the number a paper would print is **52% too low**"
+    verify: {mode: ordering, needle: "52% too low", volatility: measured}
+    tags: [cross-validation, leakage]
+
+  # --- leakage -------------------------------------------------------------
+
+  - id: l09-q05
+    kind: spot_the_defect
+    rung: 3
+    difficulty: 3
+    objectives: [l09-o3]
+    prompt: |
+      ```python
+      # 5,000 candidate columns, 50 observations
+      keep = top_k_by_correlation(X, y, k=100)   # screen once, on everything
+      score = cross_val_score(KNeighborsClassifier(1), X[keep], y, cv=10)
+      ```
+      This reports a 0.9% error rate. What is wrong, and what does the honest
+      number turn out to be?
+    options:
+      - "Nothing structural; k=1 is simply too small for 50 observations, and raising k would regularise the classifier and bring the error back to something believable"
+      - "The screen sees the labels of every fold before the split, so the folds are not held out at all. Refit the screen inside each fold and the error is 47.5%, a coin flip"
+      - "The 10-fold split is too coarse for 50 observations; leave-one-out would fix it"
+      - "The correlation screen should be replaced by a model-based selector"
+    answer: "The screen sees the labels of every fold before the split, so the folds are not held out at all. Refit the screen inside each fold and the error is 47.5%, a coin flip"
+    evidence: |
+      With 5,000 candidates and 50 observations, some columns correlate with the
+      labels by chance. Choosing them using all the labels bakes that accident
+      into every fold, and the cross-validation then measures how well the model
+      recognises noise it was already shown. 0.9% against 47.5% is not a subtle
+      bias, it is the difference between a publishable result and nothing at all.
+      Anything fitted to data, including a feature screen, belongs inside the
+      loop.
+    source:
+      file: lectures/l09/notes.md
+      heading: "The extreme case, and why it is in the reading"
+      quote: "and you get **47.5%**, which is the coin flip it is"
+    verify: {mode: quote, needle: "47.5%", volatility: stable}
+    tags: [leakage, cross-validation]
+
+  - id: l09-q06
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l09-o3]
+    prompt: |
+      Which of these fitting steps is safe to do once, on the whole dataset,
+      before cross-validating?
+    options:
+      - "Scaling features with a `StandardScaler`, since the mean and variance of the inputs say nothing about the labels"
+      - "Screening columns by their correlation with the label"
+      - "Imputing missing values with the column mean"
+      - "None of them; anything fitted to data belongs inside the loop"
+    answer: "None of them; anything fitted to data belongs inside the loop"
+    evidence: |
+      Each of the three learns something from rows that are about to be treated
+      as unseen. The scaler learns the mean and variance, the screen learns which
+      columns correlate, the imputer learns the mean. On this session's power
+      data the scaling version of the mistake is worth 0.0015 MW, which is
+      nothing, and the feature-screening version is worth the entire result. The
+      size of the damage depends on how much the step learns, which is why the
+      rule is about the mechanism and not about the measured harm.
+    source:
+      file: lectures/l09/notes.md
+      heading: "The leakage catalogue, from the modelling side"
+      quote: "The largest effect across four models is **0.0015 MW**"
+    verify: {mode: quote, needle: "0.0015 MW", volatility: measured}
+    tags: [leakage, pipelines]
+
+  # --- metrics -------------------------------------------------------------
+
+  - id: l09-q07
+    kind: predict_measure
+    rung: 1
+    difficulty: 2
+    objectives: [l09-o1]
+    prompt: |
+      Remaining-useful-life predictions on jet engines. RMSE and MAE both report
+      the error as exactly 15 cycles.
+
+      Before you look: what does MAPE report on the same predictions?
+    predict:
+      ask: "Higher or lower than you would expect from a 15-cycle error, and why?"
+      common_prior: "Something small, since MAPE is just the error as a percentage."
+    options:
+      - "About 15%, since MAPE is the same set of errors expressed relatively rather than in absolute cycles"
+      - "39.5%, because engines close to failure have tiny true values and one of them contributes 214% on its own"
+      - "Undefined, because MAPE cannot be computed for regression"
+      - "About 5%, because most engines have long remaining lives"
+    answer: "39.5%, because engines close to failure have tiny true values and one of them contributes 214% on its own"
+    evidence: |
+      MAPE divides by the truth, so it explodes exactly where the truth is small,
+      which for remaining-useful-life is exactly the engines you care about most.
+      A scale-free metric sounds like the safe default and is the wrong one here.
+      The general habit: know which region of the target a metric punishes, and
+      check that it is not the region the engineering decision lives in.
+    source:
+      file: lectures/l09/notes.md
+      heading: "MAPE, and why it explodes"
+      quote: "MAPE reports **39.5%**"
+    verify: {mode: quote, needle: "39.5%", volatility: measured}
+    tags: [metrics]
+
+  - id: l09-q08
+    kind: locus_of_control
+    rung: 3
+    difficulty: 3
+    objectives: [l09-o1]
+    prompt: |
+      Wafer fault detection, 6.6% failure rate. Your classifier reports an ROC
+      AUC of 0.72, comfortably above a coin flip, and the curve looks reassuring.
+      Average precision on the same predictions is 0.18.
+
+      Which number should drive the decision, and why do they disagree?
+    options:
+      - "AUC, because it is threshold-independent and therefore the more robust summary of a detector's ranking quality"
+      - "Average precision, because ROC's false-positive rate is diluted by the large negative class, while precision is not"
+      - "Neither; with 6.6% positives, accuracy is the only interpretable number"
+      - "They cannot disagree; one of the two must be miscomputed"
+    answer: "Average precision, because ROC's false-positive rate is diluted by the large negative class, while precision is not"
+    evidence: |
+      With a 6.6% base rate the negatives dominate, so a false-positive rate
+      computed against them stays small even when most of your alarms are wrong.
+      Average precision of 0.18 against a base rate of 0.066 is the honest
+      statement of what an operator will experience. The operational question is
+      how many wafers get inspected per real fault: 10 at 81% recall. That trade
+      is the actual decision, and no single scalar makes it for you.
+    source:
+      file: lectures/l09/notes.md
+      heading: "Fault detection, and the arithmetic of alarms"
+      quote: "average precision of **0.18** against a base rate of 0.066"
+    verify: {mode: quote, needle: "0.18", volatility: measured}
+    tags: [metrics, imbalance]
+
+  - id: l09-q09
+    kind: claim_vs_source
+    rung: 2
+    difficulty: 3
+    objectives: [l09-o1]
+    prompt: |
+      Texas City, 2005. A frequently repeated version of the story is that the
+      operators ignored their alarms.
+
+      What did the investigation actually establish about the alarm load?
+    options:
+      - "The alarm system had failed and produced no annunciations at all"
+      - "In eleven minutes the two operators had to recognise, acknowledge and act on 275 alarms"
+      - "The operators had disabled the alarms to reduce nuisance trips, which is why none of them was acted on in time"
+      - "Alarms were annunciated correctly and at a manageable rate"
+    answer: "In eleven minutes the two operators had to recognise, acknowledge and act on 275 alarms"
+    evidence: |
+      The number is the point, and it changes what the failure was. A system that
+      issues 275 alarms in eleven minutes has not given two people information,
+      it has given them noise, and no amount of attentiveness fixes that. This is
+      the imbalanced-classifier arithmetic with people at the other end: a
+      detector tuned for recall without regard to precision produces exactly this
+      load, and the design defect is upstream of anybody's diligence.
+    source:
+      file: lectures/l09/notes.md
+      heading: "Case study: 275 alarms in 11 minutes"
+      quote: "acknowledge and act on **275 alarms**"
+    verify: {mode: quote, needle: "275 alarms", volatility: stable}
+    tags: [metrics, imbalance, case-study]
+
+  # --- diagnosis -----------------------------------------------------------
+
+  - id: l09-q10
+    kind: spot_the_defect
+    rung: 2
+    difficulty: 2
+    objectives: [l09-o2]
+    prompt: |
+      An unlimited-depth decision tree achieves exactly 0.000 MW RMSE on the
+      training data and 4.64 MW on validation.
+
+      What has happened, and what is the right response?
+    options:
+      - "The model has found the true relationship, so deploy it and monitor for drift rather than deliberately making it worse"
+      - "Every leaf holds a single sample, so the tree has memorised the training set. The response is less capacity, more regularisation, or more data"
+      - "The validation set is corrupted, since zero training error cannot occur otherwise"
+      - "The target has been leaked into a feature; find and remove it"
+    answer: "Every leaf holds a single sample, so the tree has memorised the training set. The response is less capacity, more regularisation, or more data"
+    evidence: |
+      Zero training error is not a triumph, it is a confession. The useful part
+      is that high variance and high bias call for opposite actions: an
+      underfitting model needs more capacity, this one needs less. A learning
+      curve tells you which you have, and it is the cheapest diagnostic in the
+      session and the one most likely to be skipped.
+    source:
+      file: lectures/l09/notes.md
+      heading: "Bias, variance, and reading a learning curve"
+      quote: "achieves exactly **0.000 MW** on training data"
+    verify: {mode: quote, needle: "0.000 MW", volatility: stable}
+    tags: [bias-variance, diagnosis]
+
+  - id: l09-q11
+    kind: mcq
+    rung: 3
+    difficulty: 3
+    objectives: [l09-o2]
+    prompt: |
+      Selecting on validation and then reporting that same validation score
+      biases the result. Measured on this session's data, at how many rows does
+      that optimism fall inside the fold noise?
+    options:
+      - "It never does; the bias is a property of selecting on a score, so it does not shrink with more observations"
+      - "By a few hundred rows it is comparable to the noise, and on the full 9,568 rows it is −0.003 MW"
+      - "Only above about 100,000 rows, which is why small studies are unpublishable"
+      - "At around 80 rows, which is why small pilot studies are safe"
+    answer: "By a few hundred rows it is comparable to the noise, and on the full 9,568 rows it is −0.003 MW"
+    evidence: |
+      At 80 rows the winning configuration's validation score is 0.19 MW better
+      than it deserves, roughly four times the fold noise. By 320 rows the bias
+      has fallen inside the noise band, and on all 9,568 rows it is −0.003 MW.
+      So the effect is real and it is a small-sample effect. The fix does not
+      change with n: hold out a test set, compute the number on it once, and
+      report that. Selection optimism is why "the best validation score" is not
+      an estimate of anything.
+    source:
+      file: lectures/l09/notes.md
+      heading: "4. Selecting on the test set"
+      quote: "**0.19 MW better than it deserves**"
+    verify: {mode: quote, needle: "0.19 MW", volatility: measured}
+    tags: [selection, reporting]
+
+  # --- notebook ------------------------------------------------------------
+
+  - id: l09-q12
+    kind: notebook_run
+    rung: 4
+    difficulty: 2
+    objectives: [l09-o3]
+    prompt: |
+      Open [`l09-model-selection.ipynb`](../lectures/l09/l09-model-selection.ipynb)
+      and run the cross-validation comparison on the airfoil data.
+
+      Compare the random-`KFold` and `GroupKFold` scores for the random forest.
+      Which way do they differ, and roughly by how much?
+    options:
+      - "GroupKFold is lower, by roughly half"
+      - "GroupKFold is higher, by roughly half again"
+      - "They agree to within the fold noise"
+      - "GroupKFold is higher, by more than five times"
+    answer: "GroupKFold is higher, by roughly half again"
+    evidence: |
+      1.76 dB against 2.69 dB, an inflation of 1.52x. The question asks for the
+      direction and the rough size rather than the values, because your exact
+      numbers depend on the scikit-learn version: 1.8 and 1.9 assign groups to
+      folds by different rules with the same signature and the same
+      `shuffle=False`, which is documented in this course's own figure scripts as
+      having silently changed published numbers.
+    source:
+      file: lectures/l09/notes.md
+      heading: "Measuring what the choice is worth"
+      quote: "| random forest | 1.76 dB | 2.69 dB | **1.52×** |"
+    verify: {mode: ordering, needle: "2.69 dB", volatility: measured}
+    tags: [cross-validation, notebook]
