@@ -21,10 +21,17 @@ or after class rather than projected during it, so they carry the full argument 
 links to primary sources. The slides used in class are linked from the top of each set of
 notes.
 
-Every technology, format, method, failure mode, and case study the course names is
-collected in the {ref}`general index <genindex>`, with each term linked to the section that
-introduces it. When you remember the idea but not which of the twenty-six sessions covered
-it, start there rather than with search.
+:::{admonition} Every term in the course, in one list
+:class: tip
+
+The {ref}`general index <genindex>` collects every technology, format, method, failure
+mode, and case study the course names, with each term linked to the section that
+introduces it rather than to every page that mentions it.
+
+When you remember the idea but not which of the twenty-six sessions covered it, start
+there rather than with search. It is also the only place the named case studies are
+gathered, under "case study", alongside "failure mode" and "metric".
+:::
 
 :::{admonition} The whole course as two PDFs
 :class: tip
