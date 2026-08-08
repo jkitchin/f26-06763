@@ -1,0 +1,319 @@
+schema: 1
+lecture: l07
+title: "Features for time-series and physical data: transforms, scaling, leakage"
+source_notes: lectures/l07/notes.md
+status: published
+serve: 6
+pool_version: 1
+provenance:
+  drafted_by: hand
+  reviewed_by: jkitchin
+  reviewed_at: 2026-08-08
+
+items:
+
+  - id: l07-q01
+    kind: predict_measure
+    rung: 1
+    difficulty: 3
+    objectives: [l07-o2]
+    prompt: |
+      The same engine data, featurized identically, with a `StandardScaler` fit
+      two ways: on the training engines only, and on training plus test combined.
+
+      Before you look: how big is the gap in a `Ridge` model's RMSE?
+    predict:
+      ask: "Write down what you expect the leak to be worth."
+      common_prior: "Noticeable. That is why the rule exists."
+    options:
+      - "About 0.002 cycles, which is to say invisible"
+      - "Around 2 cycles, small but detectable if you look for it"
+      - "Around 15 cycles, large enough that any review would catch it"
+      - "It cannot be measured, because the leaky fit changes the test set itself"
+    answer: "About 0.002 cycles, which is to say invisible"
+    evidence: |
+      The scaler statistics diverge by up to 23% between the two fits, so the leak
+      is real before any model is involved. The `Ridge` gap is 0.002 cycles, which
+      establishes something more uncomfortable: a real leak can be invisible in a
+      metric. Across four estimators the same leak reads as zero, negligible,
+      negative, and clearly positive depending only on the estimator, which is
+      why you cannot audit for this by looking at scores. You audit the code.
+    source:
+      file: lectures/l07/notes.md
+      heading: "In-class demo"
+      quote: "The **`Ridge` gap is 0.002 cycles**"
+    verify: {mode: quote, needle: "0.002 cycles", volatility: measured}
+    tags: [leakage, scaling]
+
+  - id: l07-q02
+    kind: locus_of_control
+    rung: 3
+    difficulty: 3
+    objectives: [l07-o2]
+    prompt: |
+      You want to know whether a colleague's pipeline leaks. What do you look at?
+    options:
+      - "The validation score, since a leak inflates it and the inflation is what you are detecting"
+      - "The code, because the same leak reads as zero, negative, or clearly positive depending only on the estimator"
+      - "The gap between train and validation error, which widens characteristically when data has leaked"
+      - "A learning curve, since leakage shows up as a curve that plateaus above its achievable floor"
+    answer: "The code, because the same leak reads as zero, negative, or clearly positive depending only on the estimator"
+    evidence: |
+      Every option except the second is an attempt to detect a leak from
+      symptoms, and this session's measurement is that the symptoms are not
+      reliable: one real leak produced four different verdicts across four
+      estimators, including one that pointed the wrong way. Leakage is a property
+      of the procedure, not of the score, so it is found by reading what was
+      fitted on what.
+    source:
+      file: lectures/l07/notes.md
+      heading: "In-class demo"
+      quote: "you cannot audit for this by looking at scores"
+    verify: {mode: quote, needle: "cannot audit for this by looking at scores", volatility: stable}
+    tags: [leakage, review]
+
+  - id: l07-q03
+    kind: claim_vs_source
+    rung: 2
+    difficulty: 3
+    objectives: [l07-o1]
+    prompt: |
+      Mars Climate Orbiter is usually told as "NASA lost a spacecraft because
+      someone confused pounds and newtons."
+
+      What did the investigation add that the popular version leaves out?
+    options:
+      - "That the units were correct and the failure was a navigation software defect"
+      - "That the mismatch was known and survivable in principle, and the root cause was not identified until six days after the loss"
+      - "That the spacecraft was lost to a propulsion failure unrelated to units"
+      - "That the conversion error was introduced during the final approach manoeuvre"
+    answer: "That the mismatch was known and survivable in principle, and the root cause was not identified until six days after the loss"
+    evidence: |
+      The Board records 80 km as the minimum survivable altitude for this
+      spacecraft; the reconstructed actual first periapsis was 57 km, which it
+      judged too low. Tracking during the preceding week had already put the
+      predicted altitude as low as 110 km against a planned 226 km. The lesson
+      the notes draw is not "check your units", which everyone already agrees
+      with. It is that a quantity crossed an interface, was silently converted,
+      and every diagnostic downstream reported the converted value as if it were
+      fine.
+    source:
+      file: lectures/l07/notes.md
+      heading: "Case study: a $327 million unit mismatch"
+      quote: "The root cause was not identified until **29 September 1999**"
+    verify: {mode: quote, needle: "29 September 1999", volatility: stable}
+    tags: [units, case-study]
+
+  - id: l07-q04
+    kind: spot_the_defect
+    rung: 3
+    difficulty: 2
+    objectives: [l07-o1]
+    prompt: |
+      ```python
+      cols = [c for c in df.columns if c.startswith('sensor2')]
+      ```
+      This line was in the demo notebook until it was checked. What does it do?
+    options:
+      - "Nothing wrong; it selects sensor2 as intended and is the idiomatic way to do it"
+      - "It quietly sweeps in sensor20 and sensor21 as well, because startswith matches a prefix rather than a name"
+      - "It fails on an empty DataFrame, which is why a guard is needed before it"
+      - "It selects the columns in a non-deterministic order, which changes the feature matrix between runs"
+    answer: "It quietly sweeps in sensor20 and sensor21 as well, because startswith matches a prefix rather than a name"
+    evidence: |
+      Two silent bugs were in this notebook until somebody checked, and both are
+      documented in place rather than quietly fixed: this one, and a constant
+      sensor promoted to a "key degradation channel". Neither raises, neither
+      changes a shape, and both alter the feature matrix. Selecting columns by
+      prefix is a recurring version of the same mistake, and the fix is an exact
+      match or an explicit list.
+    source:
+      file: lectures/l07/notes.md
+      heading: "In-class demo"
+      quote: "a `startswith('sensor2')` filter"
+    verify: {mode: quote, needle: "startswith('sensor2')", volatility: stable}
+    tags: [features, silent-failure]
+
+  - id: l07-q05
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l07-o2]
+    prompt: |
+      Where should a `StandardScaler` be fitted when you are cross-validating?
+    options:
+      - "Once on the full dataset, since scaling uses no label information and therefore cannot leak"
+      - "Inside the loop, on each training fold, with the fitted transform applied to the held-out fold"
+      - "Once on the training split, then reused unchanged for every fold within it"
+      - "Separately on each fold including the held-out one, so every fold is on a comparable scale"
+    answer: "Inside the loop, on each training fold, with the fitted transform applied to the held-out fold"
+    evidence: |
+      The last option is the most tempting and the most wrong: fitting a scaler
+      on the held-out fold uses it, which is the leak. That labels are not
+      involved is beside the point, since the mean and variance of the inputs are
+      still information from rows you are pretending not to have seen. Measured
+      here, the two fits' statistics diverge by up to 23%, and the effect on the
+      score is unreliable enough that you cannot detect the mistake from the
+      score.
+    source:
+      file: lectures/l07/notes.md
+      heading: "Scaling, encoding, and fitting on train only"
+      quote: "up to 23%"
+    verify: {mode: quote, needle: "23%", volatility: measured}
+    tags: [leakage, scaling, pipelines]
+
+  - id: l07-q06
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l07-o3]
+    prompt: |
+      What does saving a fitted pipeline with `joblib` and reloading it establish?
+    options:
+      - "That the model will generalise, since a reproducible pipeline is a validated one"
+      - "That it reproduces its own predictions exactly, which is the minimum bar before anything is deployed"
+      - "That the feature engineering is correct, since a broken transform would fail to serialize"
+      - "That the pipeline is portable across environments, since joblib pins its dependencies"
+    answer: "That it reproduces its own predictions exactly, which is the minimum bar before anything is deployed"
+    evidence: |
+      A fitted pipeline carries the transformer state, the scaler's means and
+      variances among it, so serializing and reloading checks that the thing you
+      will call in production is the thing you validated. It says nothing about
+      generalisation and nothing about portability: joblib does not pin
+      dependencies, and a pipeline pickled under one scikit-learn version is not
+      guaranteed to load under another, which is why L2's environment discipline
+      is a prerequisite rather than an aside.
+    source:
+      file: lectures/l07/notes.md
+      heading: "In-class demo"
+      quote: "confirm it reproduces\nits own predictions exactly"
+    verify: {mode: quote, needle: "reproduces", volatility: stable}
+    tags: [pipelines, reproducibility]
+
+  - id: l07-q07
+    kind: mechanism_recall
+    rung: 5
+    difficulty: 3
+    objectives: [l07-o1]
+    prompt: |
+      Close the notes. Write down the families of feature you would build from a
+      per-unit sensor trajectory, and say what each one is for. Stop when you
+      stall, and note where.
+    checklist:
+      - text: "Lag features: the value some steps ago"
+        needle: "lag"
+      - text: "Rolling window statistics: mean, standard deviation, min and max over a window"
+        needle: "window"
+      - text: "Delta from start, and rate of change"
+        needle: "rate-of-change"
+      - text: "Frequency-domain features, where the signal has periodic content"
+        needle: "frequency"
+      - text: "Physical and domain features, derived from what the quantity means"
+        needle: "Physical and domain features"
+    answer: null
+    evidence: |
+      The one worth checking yourself on is the last. Lag and window features are
+      mechanical and can be generated for any channel; a physical feature
+      requires knowing what the measurement is, and it is where the engineering
+      knowledge you have that a generic pipeline does not actually enters the
+      model. Where you stalled is your reading assignment.
+    source:
+      file: lectures/l07/notes.md
+      heading: "Time-series features from a per-unit trajectory"
+      quote: "delta-from-start, and rate-of-change features"
+    verify:
+      mode: manual
+      needle: "rate-of-change"
+      volatility: stable
+      exempt_reason: >-
+        Free-text recall; each checklist entry is verified against the source
+        individually rather than the answer being matched as a whole.
+    tags: [features, self-test]
+
+  - id: l07-q08
+    kind: locus_of_control
+    rung: 3
+    difficulty: 2
+    objectives: [l07-o1]
+    prompt: |
+      A channel in your sensor set is constant across every unit and every cycle.
+      Your feature-selection step nonetheless promoted it to a "key degradation
+      channel".
+
+      Where is the defect?
+    options:
+      - "In the sensor: a constant reading means the instrument has failed and should be replaced"
+      - "In the selection step, which ranked a zero-variance column without checking whether it varies at all"
+      - "In the model, which should regularise a constant feature to zero weight automatically"
+      - "In the scaling, which divides by a near-zero standard deviation and amplifies noise"
+    answer: "In the selection step, which ranked a zero-variance column without checking whether it varies at all"
+    evidence: |
+      This was a real bug in the demo notebook, left documented in place rather
+      than quietly fixed. A constant column carries no information by
+      construction, so any procedure that ranks it highly is telling you about
+      the procedure rather than about the data. The model may well shrink it to
+      zero and that does not make the selection step correct: it makes the defect
+      invisible, which is the worse outcome.
+    source:
+      file: lectures/l07/notes.md
+      heading: "In-class demo"
+      quote: "a constant sensor promoted to a \"key degradation channel,\""
+    verify: {mode: quote, needle: "constant sensor promoted", volatility: stable}
+    tags: [features, silent-failure]
+
+  - id: l07-q09
+    kind: notebook_run
+    rung: 4
+    difficulty: 2
+    objectives: [l07-o2]
+    prompt: |
+      Open [`l07-features.ipynb`](../lectures/l07/l07-features.ipynb) and run the
+      leaky-versus-honest scaler comparison across the four estimators.
+
+      What is the pattern across models?
+    options:
+      - "All four show the leak clearly, in proportion to how flexible the model is"
+      - "The same leak reads as zero, negligible, negative and clearly positive depending only on the estimator"
+      - "Only the linear models show it, since trees are invariant to monotone rescaling"
+      - "None of them shows it, which is why scaler leakage is considered a theoretical concern"
+    answer: "The same leak reads as zero, negligible, negative and clearly positive depending only on the estimator"
+    evidence: |
+      One of the four points the wrong way, which is the part worth sitting with:
+      a leak that makes the score *worse* on one estimator would be dismissed as
+      noise by anyone auditing from scores. The scaler statistics diverge by up
+      to 23% regardless, which is the check that does work, because it looks at
+      what was fitted rather than at what it produced.
+    source:
+      file: lectures/l07/notes.md
+      heading: "In-class demo"
+      quote: "zero, negligible, negative, and clearly positive"
+    verify: {mode: ordering, needle: "negligible, negative", volatility: measured}
+    tags: [leakage, notebook]
+
+  - id: l07-q10
+    kind: mcq
+    rung: 3
+    difficulty: 3
+    objectives: [l07-o3]
+    prompt: |
+      What is the strongest argument for assembling feature engineering into a
+      fitted pipeline object rather than a sequence of notebook cells?
+    options:
+      - "It runs faster, because the transforms are applied in a single vectorised pass over the data"
+      - "The transform that is applied at prediction time is the same object that was fitted at training time, so the two cannot drift apart"
+      - "It documents the feature engineering, which makes the notebook easier for a reviewer to follow"
+      - "It allows hyperparameter search over the feature steps, which is not possible with loose cells"
+    answer: "The transform that is applied at prediction time is the same object that was fitted at training time, so the two cannot drift apart"
+    evidence: |
+      Hyperparameter search over feature steps is a real benefit and it is not the
+      main one. The main one is that a scaler holds fitted state, and loose cells
+      let training and serving apply different state without anything raising:
+      the classic production failure is a model served with a scaler refitted on
+      whatever data happened to be around. A pipeline makes that a single object
+      you save and reload, which is why the demo ends by doing exactly that.
+    source:
+      file: lectures/l07/notes.md
+      heading: "A leakage-safe pipeline, and what \"safe\" actually buys you"
+      quote: "pipeline"
+    verify: {mode: quote, needle: "pipeline", volatility: stable}
+    tags: [pipelines, serving]

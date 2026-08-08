@@ -102,3 +102,18 @@
   lecture: l13
   text: >-
     Produce and calibrate predictive uncertainty, separating aleatoric from epistemic.
+
+- id: l07-o1
+  lecture: l07
+  text: >-
+    Construct lag, window, and frequency-domain features for sensor/simulation signals.
+
+- id: l07-o2
+  lecture: l07
+  text: >-
+    Apply appropriate scaling and encoding while avoiding leakage.
+
+- id: l07-o3
+  lecture: l07
+  text: >-
+    Assemble features into a reproducible feature pipeline with fitted transformers.
