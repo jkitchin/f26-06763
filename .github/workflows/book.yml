@@ -66,6 +66,15 @@ jobs:
         # which is editing a bank and leaving pool_version alone.
         run: python tools/pool_archive.py --check
 
+      - name: Check the map world matches the schedule and the graph
+        # The map's rooms are the sessions in course/schedule.md, its regions
+        # are the arcs the notes declare, and its corridors are the edges the
+        # step above verified. Regenerating rather than trusting caught a
+        # schedule parser that silently dropped L18 and L19, which would have
+        # shipped a map with a room missing and five corridors leading out of
+        # nothing.
+        run: python tools/world.py --check
+
       - name: Check the two derivations still agree
         # game/src/seed.ts and tools/derive.py must produce identical item
         # selections forever. A divergence is invisible until students submit,
@@ -85,6 +94,20 @@ jobs:
 
       - name: Run the quiz tests
         run: python -m pytest game/tests/ -q
+
+      - name: Run the game's own test suites
+        # These existed and ran nowhere. mastery, routes, nav, persistence and
+        # map are plain node scripts using --experimental-strip-types, so they
+        # need no build and take about a second between them. persistence is
+        # the one that matters most: it is the only thing asserting that a
+        # finished module stays finished when a bank grows, and it was passing
+        # on laptops and being checked by nothing.
+        run: |
+          cd game
+          for suite in mastery routes nav persistence map; do
+            echo "--- $suite"
+            npm run --silent "$suite"
+          done
 
       - name: Typecheck the game
         run: cd game && npx tsc --noEmit
@@ -535,6 +558,17 @@ jobs:
           cd ..
           mkdir -p _build/html/game
           cp -r game/dist/* _build/html/game/
+
+      - name: Drive the built game in a browser
+        # The only check that exercises the assembled bundle rather than a
+        # layer of it: it mounts the app at the deployed base path, finishes a
+        # module, walks the map, and downloads the evidence PDF. A wrong Vite
+        # base renders a blank page that every file-exists check passes, which
+        # is why this runs against dist/ after the real build.
+        #
+        # Uses the runner's google-chrome-stable through puppeteer-core, the
+        # same browser the slides PDF step needs, so it adds no download.
+        run: cd game && npm run smoke
 
       - name: Check the game actually resolves its assets
         # A wrong Vite `base` produces an index.html that exists, is 200, and

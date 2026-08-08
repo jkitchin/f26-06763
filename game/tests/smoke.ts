@@ -13,6 +13,7 @@
  *   - a session can be completed start to finish
  *   - two Andrew IDs are served different items
  *   - the evidence PDF actually downloads, with bytes in it
+ *   - the map renders, walks, and remembers where you have been
  *   - nothing lands in the console
  *
  * Uses puppeteer-core against the system Chrome, so there is no browser
@@ -219,6 +220,54 @@ async function main() {
       'two students are served different items',
       `${samePosition}/${first.length} positions match`,
     )
+
+    // --- the map ----------------------------------------------------------
+    //
+    // Walking is the one thing no unit test can reach: tests/map.ts proves the
+    // world holds together and that a visit is inert to grading, but only a
+    // browser proves an arrow key moves a sprite, that standing somewhere
+    // records it, and that the record survives a reload. The last of those is
+    // the requirement the whole persistence commit exists for, checked here
+    // end to end rather than in a simulation.
+    await page.goto(`http://localhost:${PORT}${BASE}#/map`, { waitUntil: 'networkidle0' })
+    await page.waitForSelector('[role="application"]')
+
+    const roomCount = await page.$$eval('[role="application"] button', (b) => b.length)
+    check(roomCount === 26, 'every session on the schedule is drawn', `${roomCount} rooms`)
+
+    const coverageOf = () =>
+      page.$$eval('p', (ps) =>
+        ps.map((p) => p.textContent ?? '').find((t) => /rooms visited/.test(t)) ?? '')
+    const before = await coverageOf()
+
+    // Up from spawn into L1, then right along the top row as far as L3.
+    //
+    // L3 specifically, and this is not arbitrary. The first version stopped at
+    // L2 and asserted a corridor was lit, which failed: L2 has no corridors at
+    // all, citing nothing and cited by nothing. That is a true fact about the
+    // course rather than a bug, and the assertion was the thing that was wrong.
+    const walk = ['ArrowUp', 'ArrowUp', 'ArrowUp', 'ArrowUp',
+                  'ArrowRight', 'ArrowRight', 'ArrowRight'] as const
+    for (const key of walk) {
+      await page.keyboard.press(key)
+      await new Promise((r) => setTimeout(r, 60))
+    }
+    const after = await coverageOf()
+    check(before !== after, 'walking visits rooms', `${before.trim()} -> ${after.trim()}`)
+
+    const panel = await page.$eval('section h2', (h) => h.textContent ?? '')
+    check(/^L\d/.test(panel), 'standing in a room shows what it covers', panel.slice(0, 48))
+
+    // A corridor is the point of the map, so an empty one is a silent failure.
+    const lines = await page.$$eval('svg line', (l) => l.length)
+    check(lines > 0, 'corridors are drawn from the room you are standing in', `${lines} lit`)
+
+    // Reload: visits are events in the same IndexedDB log as answers, so if
+    // this resets, so does everything else.
+    await page.reload({ waitUntil: 'networkidle0' })
+    await page.waitForSelector('[role="application"]')
+    const restored = await coverageOf()
+    check(restored === after, 'visited rooms survive a reload', `${restored.trim()}`)
 
     check(errors.length === 0, 'no console errors', errors.slice(0, 2).join(' | '))
   } finally {

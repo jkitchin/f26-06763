@@ -298,6 +298,16 @@ function RoomPanel({ room, banks, visited, onStart }: {
         </p>
       )}
 
+      {links.length === 0 && (
+        // Not every room connects, and saying nothing looks like a bug. L2
+        // cites nothing and is cited by nothing, which is a real property of
+        // the course worth stating rather than rendering as an absence.
+        <p className="mt-4 text-sm text-[var(--muted)]">
+          No session links to this one, and it links to none. That is a fact
+          about the notes as they stand, not a gap in the map.
+        </p>
+      )}
+
       {links.length > 0 && (
         <div className="mt-4">
           <h3 className="text-sm font-medium">

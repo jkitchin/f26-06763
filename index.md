@@ -53,6 +53,13 @@ Each one takes about ten minutes, ends by producing a PDF you upload, and counts
 toward participation on completion rather than on score. The questions are
 selected from your Andrew ID, so yours are not your neighbour's. Everything runs
 in your browser and nothing is uploaded from the page itself.
+
+The same app carries <a href="game/#/map"><strong>a map of the course</strong></a>,
+which answers a different question: not "what should I practise" but "which
+session covered this, and what does it depend on". Every corridor on it is a
+place one lecture actually cites another, so it shows the structure of the
+course rather than a picture of it. It is not graded, and nothing on it is
+locked.
 :::
 
 ## Toolchain
