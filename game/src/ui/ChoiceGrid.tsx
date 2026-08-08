@@ -57,7 +57,7 @@ export function ChoiceGrid({ options, selected, onSelect, revealed }: Props) {
         let tone = 'border-[var(--border)] bg-[var(--surface-raised)]'
         if (isAnswer) tone = 'border-[var(--correct)] bg-[var(--correct-wash)]'
         else if (isWrongPick) tone = 'border-[var(--wrong)] bg-[var(--wrong-wash)]'
-        else if (isSelected) tone = 'border-[var(--brand)] bg-[var(--brand-wash)]'
+        else if (isSelected) tone = 'border-[var(--selected)] bg-[var(--selected-wash)]'
 
         return (
           <button

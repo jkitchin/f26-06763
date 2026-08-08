@@ -12,7 +12,7 @@
  */
 
 import type { Bank } from '../content/load.ts'
-import { levelFor, MAX_LEVEL, type LogEntry } from '../store/log.ts'
+import { bestScoreFor, levelFor, MAX_LEVEL, type LogEntry } from '../store/log.ts'
 
 interface Props {
   banks: Record<string, Bank>
@@ -35,9 +35,17 @@ export function Home({ banks, log, andrewId, onStart, onEvidence }: Props) {
         </p>
       </header>
 
+      <p className="mb-4 text-sm text-[var(--muted)]">
+        A <span className="text-[var(--correct)]">✓</span> means the module is
+        complete, and that is the whole requirement. The dots are optional
+        mastery: they fill as you answer more of a module right first time, and
+        they come from your best run, so practising again can only help.
+      </p>
+
       <ul className="space-y-3">
         {lectures.map((bank) => {
           const level = levelFor(log, bank.lecture, servedFor)
+          const best = bestScoreFor(log, bank.lecture, servedFor)
           const done = level > 0
           return (
             <li
@@ -47,9 +55,23 @@ export function Home({ banks, log, andrewId, onStart, onEvidence }: Props) {
               <div className="flex items-baseline gap-3">
                 <span className="font-mono text-sm font-bold uppercase">{bank.lecture}</span>
                 <span className="flex-1 text-[15px] font-medium">{bank.title}</span>
+                {done && (
+                  <span className="text-sm text-[var(--correct)]" title="Complete. This is what counts for credit.">
+                    ✓
+                  </span>
+                )}
                 <span
                   className="font-mono text-xs text-[var(--muted)]"
-                  aria-label={`level ${level} of ${MAX_LEVEL}`}
+                  title={
+                    done
+                      ? `Mastery ${level} of ${MAX_LEVEL}, from your best run (${Math.round((best ?? 0) * 100)}%). Optional.`
+                      : 'Not started'
+                  }
+                  aria-label={
+                    done
+                      ? `mastery ${level} of ${MAX_LEVEL}, from your best run`
+                      : 'not started'
+                  }
                 >
                   {'●'.repeat(level)}
                   {'○'.repeat(MAX_LEVEL - level)}
@@ -57,6 +79,9 @@ export function Home({ banks, log, andrewId, onStart, onEvidence }: Props) {
               </div>
               <p className="mt-1 text-sm text-[var(--muted)]">
                 {bank.serve} questions, about {Math.round(bank.serve * 1.2)} minutes
+                {done && best !== null && (
+                  <> · best run {Math.round(best * 100)}%</>
+                )}
               </p>
               <div className="mt-3 flex gap-2">
                 <button type="button" onClick={() => onStart(bank.lecture)} className="btn-primary">

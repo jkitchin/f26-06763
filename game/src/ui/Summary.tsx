@@ -13,7 +13,7 @@ import { poolOf } from '../content/load.ts'
 import { derive } from '../seed.ts'
 import { buildAttestation, type ItemRecord } from '../evidence/payload.ts'
 import { buildPdf, filenameFor } from '../evidence/pdf.ts'
-import { latestCompleted, type LogEntry } from '../store/log.ts'
+import { itemScore, latestCompleted, sittingScore, type LogEntry } from '../store/log.ts'
 import { Markdown } from './Markdown.tsx'
 
 const APP_VERSION = '0.1.0'
@@ -120,6 +120,7 @@ export function Summary({ bank, log, andrewId, displayName, onHome }: Props) {
   }
 
   const minutes = Math.round(session.activeMs / 60000)
+  const score = sittingScore(session.entries)
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-16 text-center">
@@ -131,6 +132,16 @@ export function Summary({ bank, log, andrewId, displayName, onHome }: Props) {
         {session.firstTry} of {session.entries.length} right first time, in about{' '}
         {minutes || 1} minute{minutes === 1 ? '' : 's'}.
       </p>
+      {score !== null && (
+        <p className="mt-1 text-[15px]">
+          <span className="text-[var(--muted)]">This run scored </span>
+          <strong>{Math.round(score * 100)}%</strong>
+          <span className="text-[var(--muted)]">
+            {' '}
+            (a second attempt is worth half, a revealed answer nothing).
+          </span>
+        </p>
+      )}
       <p className="mt-1 text-sm text-[var(--muted)]">
         The grade is for finishing, not for the score.
       </p>
@@ -173,9 +184,9 @@ export function Summary({ bank, log, andrewId, displayName, onHome }: Props) {
                 >
                   <span
                     aria-hidden
-                    className={e.firstOk ? 'text-[var(--correct)]' : 'text-[var(--wrong)]'}
+                    className={e.firstOk ? 'text-[var(--correct)]' : 'text-[var(--muted)]'}
                   >
-                    {e.firstOk ? '✓' : '✗'}
+                    {e.revealed ? '·' : e.firstOk ? '✓' : `${e.tries}×`}
                   </span>
                   <span className="flex-1 text-sm">
                     <span className="text-[var(--muted)]">{i + 1}. </span>
@@ -187,6 +198,11 @@ export function Summary({ bank, log, andrewId, displayName, onHome }: Props) {
                 </button>
                 {open && (
                   <div className="border-t border-[var(--border)] p-3">
+                    <p className="mb-2 text-xs text-[var(--muted)]">
+                      {e.revealed
+                        ? 'Revealed, so it scored 0.'
+                        : `Answered in ${e.tries} ${e.tries === 1 ? 'attempt' : 'attempts'}, scoring ${Math.round(itemScore(e) * 100)}%.`}
+                    </p>
                     {chosen && (
                       <p className="mb-2 text-sm">
                         <span className="text-[var(--muted)]">You chose: </span>

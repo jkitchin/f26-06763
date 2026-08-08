@@ -11,7 +11,8 @@
     "vectors": "node --experimental-strip-types tests/make_vectors.ts",
     "samples": "node --experimental-strip-types tests/make_sample_pdfs.ts",
     "smoke": "node --experimental-strip-types tests/smoke.ts",
-    "nav": "node --experimental-strip-types tests/nav.ts"
+    "nav": "node --experimental-strip-types tests/nav.ts",
+    "mastery": "node --experimental-strip-types tests/mastery.ts"
   },
   "dependencies": {
     "@noble/hashes": "^1.6.1",

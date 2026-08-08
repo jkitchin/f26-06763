@@ -104,17 +104,85 @@ export function completedFor(
 }
 
 /**
- * Mastery level for a lecture: how many times it has been completed, capped.
+ * How well one item was answered, from 1 down to 0.
  *
- * Recomputed on every read rather than incremented and stored. The cost is a
- * pass over the log; the benefit is that there is no counter to edit.
+ *   right first time      1
+ *   right on the second   0.5
+ *   third                 0.33
+ *   revealed              0
+ *
+ * 1/tries rather than a lookup table, because it needs no thresholds and
+ * degrades sensibly however many options an item has. Revealing scores zero
+ * whatever was clicked afterwards: the escape hatch exists so a stuck student
+ * can finish, and finishing is what earns the credit, but it is not knowing.
+ */
+export function itemScore(entry: LogEntry): number {
+  if (entry.revealed) return 0
+  return 1 / Math.max(1, entry.tries)
+}
+
+/**
+ * Whether an item can contribute to mastery at all.
+ *
+ * Free-response items are scored by the student against a checklist, and they
+ * commit with tries = 1 by construction, so counting them would hand everybody
+ * a free 1.0 and quietly inflate every score. Mastery measures the items that
+ * were actually graded.
+ */
+export function isGradeable(entry: LogEntry): boolean {
+  return entry.chosen.length > 0
+}
+
+/** Mean item score over one sitting, or null if it graded nothing. */
+export function sittingScore(entries: readonly LogEntry[]): number | null {
+  const gradeable = entries.filter(isGradeable)
+  if (!gradeable.length) return null
+  return gradeable.reduce((n, e) => n + itemScore(e), 0) / gradeable.length
+}
+
+/**
+ * Score at which each level is reached. Five is "everything first time".
+ *
+ * Deliberately not a straight percentage: on a six-item module one second
+ * attempt costs 0.083, and a student who got everything right except one they
+ * needed two goes at should not drop two levels for it.
+ */
+const LEVEL_AT = [0.95, 0.8, 0.65, 0.45] as const
+
+/**
+ * Mastery level for a lecture, from the student's BEST completed sitting.
+ *
+ * Best rather than latest, and this is the load-bearing choice. If a casual
+ * second run could lower the number, the rational move would be to stop
+ * practising once the number looked good, which is the exact opposite of what
+ * the thing is for. Practising can only help.
+ *
+ * Level 1 means completed, which is the only level that matters for credit.
+ * Two through five are for anyone who wants them.
+ *
+ * Recomputed on every read rather than incremented and stored, so there is no
+ * counter to edit.
  */
 export function levelFor(
   log: readonly LogEntry[],
   lecture: string,
   servedFor: (lecture: string) => number,
 ): number {
-  return Math.min(MAX_LEVEL, completedFor(log, lecture, servedFor).length)
+  const done = completedFor(log, lecture, servedFor)
+  if (!done.length) return 0
+  const best = Math.max(...done.map((s) => sittingScore(s.entries) ?? 0))
+  return Math.min(MAX_LEVEL, 1 + LEVEL_AT.filter((t) => best >= t).length)
+}
+
+/** The best score itself, for showing a percentage next to the dots. */
+export function bestScoreFor(
+  log: readonly LogEntry[],
+  lecture: string,
+  servedFor: (lecture: string) => number,
+): number | null {
+  const done = completedFor(log, lecture, servedFor)
+  if (!done.length) return null
+  return Math.max(...done.map((s) => sittingScore(s.entries) ?? 0))
 }
 
 /** The most recent completed sitting, which is what the PDF is issued from. */
