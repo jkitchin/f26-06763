@@ -196,3 +196,19 @@
   lecture: l02
   text: >-
     Log a run to MLflow so that one run equals one fact you can reproduce.
+
+- id: l05-o1
+  lecture: l05
+  text: >-
+    Write idiomatic transformations in pandas and Polars and read/benchmark both.
+
+- id: l05-o2
+  lecture: l05
+  text: >-
+    Structure a batch pipeline into reproducible, parameterized stages.
+
+- id: l05-o3
+  lecture: l05
+  text: >-
+    Explain the distributed-processing model (partitioning, lazy graphs) without needing a
+    cluster.
