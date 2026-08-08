@@ -193,8 +193,11 @@ async function main() {
     const size = files[0] ? readFileSync(join(DOWNLOADS, files[0])).length : 0
     check(files.length === 1, 'the evidence PDF downloads', files[0] ?? '(none)')
     check(size > 5000, 'the PDF has real content', `${size} bytes`)
+    // Pattern, not a literal: which module comes first depends on how many
+    // banks are published, and an assertion on "l15" quietly became wrong the
+    // day L01 was authored.
     check(
-      files[0] === 'l15-evidence-jkitchin.pdf',
+      /^l\d\d-evidence-jkitchin\.pdf$/.test(files[0] ?? ''),
       'the filename identifies student and module',
       files[0] ?? '',
     )
