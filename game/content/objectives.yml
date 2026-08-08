@@ -117,3 +117,20 @@
   lecture: l07
   text: >-
     Assemble features into a reproducible feature pipeline with fitted transformers.
+
+- id: l17-o1
+  lecture: l17
+  text: >-
+    Explain why RAG exists (grounding, freshness, source attribution, cost vs long-context)
+    and where it breaks.
+
+- id: l17-o2
+  lecture: l17
+  text: >-
+    Build each stage of a RAG pipeline and reason about the design choices at each stage.
+
+- id: l17-o3
+  lecture: l17
+  text: >-
+    Evaluate retrieval quality quantitatively and connect retrieval failures to downstream
+    answer failures.
