@@ -29,17 +29,17 @@ it, start there rather than with search.
 :::{admonition} The whole course as two PDFs
 :class: tip
 
-<a href="course.pdf"><strong>Download course.pdf</strong></a>, rebuilt on every change to
-this site.
+<a href="course.pdf"><strong>Download course.pdf</strong></a>, the written record: the
+syllabus, the schedule, every set of notes, every demo notebook, the assignments, and the
+optional material, with a table of contents, numbered sections and figures, and page
+numbers.
 
-It contains the syllabus, the schedule, every set of notes, every demo notebook, the
-assignments, and the optional material, with a table of contents, numbered sections and
-figures, and page numbers. Useful for reading offline, for annotating, and for searching
-the whole semester at once.
+<a href="slides.pdf"><strong>Download slides.pdf</strong></a>, the projected record: every
+deck of the semester in session order, with a bookmark per session.
 
-The slide decks are not in it. They are published separately, as
-<a href="slides.pdf"><strong>slides.pdf</strong></a>, every deck in session order with a
-bookmark per session, and as the live HTML decks linked from the top of each set of notes.
+Both are rebuilt on every change to this site. Useful for reading offline, for annotating,
+and for searching the whole semester at once. The decks are also published as live HTML,
+linked from the top of each set of notes.
 :::
 
 ## Toolchain
