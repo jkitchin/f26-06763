@@ -6,6 +6,10 @@
         --roster ~/private/f26-roster.csv \
         --csv out.csv
 
+The semester MAC key is found automatically: --key, then $GAME_MAC_KEY, then
+~/.config/f26-06763/mac-key, then the macOS keychain. Grading should not require
+remembering a 64-character string.
+
 Keep the roster outside the repository. The repository is private but the site
 is public, and CLAUDE.md section 1 is unambiguous about student data.
 
@@ -54,7 +58,9 @@ import csv
 import hashlib
 import hmac
 import json
+import os
 import re
+import subprocess
 import sys
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
@@ -71,9 +77,51 @@ END = "-----END 06763 ATTESTATION-----"
 DOMAIN = b"06763/attest/v1\x00"
 
 # Must match game/src/evidence/payload.ts. Injected there at build time; this is
-# the local-build fallback. Pass --key for a real semester key, and keep that
-# file outside the repo.
-DEFAULT_MAC_KEY = "dev-key-not-secret"
+# the local-build fallback, and it is the literal string a bundle built without
+# GAME_MAC_KEY ships with.
+DEV_MAC_KEY = "dev-key-not-secret"
+
+# Where the semester key lives on the grading machine. Outside the repository,
+# owner-readable only. GitHub secrets are write-only, so the copy CI uses cannot
+# be read back: if this file and the keychain entry are both lost, the only
+# remaining copy is the one in the published JavaScript bundle, which is a
+# fittingly awkward reminder of what this key is and is not.
+KEY_FILE = Path.home() / ".config" / "f26-06763" / "mac-key"
+KEYCHAIN_SERVICE = "f26-06763-game-mac-key"
+
+
+def resolve_key(explicit: str | None) -> tuple[str, str]:
+    """Find the semester MAC key. Returns (key, where it came from).
+
+    Ordered so the least surprising source wins: an explicit flag, then the
+    environment, then the two local stores. Grading should not require
+    remembering a 64-character string.
+    """
+    if explicit:
+        return explicit, "--key"
+
+    from_env = os.environ.get("GAME_MAC_KEY")
+    if from_env:
+        return from_env.strip(), "$GAME_MAC_KEY"
+
+    if KEY_FILE.is_file():
+        mode = KEY_FILE.stat().st_mode & 0o077
+        if mode:
+            print(f"::warning::{KEY_FILE} is readable by others; chmod 600 it")
+        return KEY_FILE.read_text(encoding="utf-8").strip(), str(KEY_FILE)
+
+    if sys.platform == "darwin":
+        try:
+            out = subprocess.run(
+                ["security", "find-generic-password", "-s", KEYCHAIN_SERVICE, "-w"],
+                capture_output=True, text=True, timeout=10, check=False,
+            )
+            if out.returncode == 0 and out.stdout.strip():
+                return out.stdout.strip(), "macOS keychain"
+        except (OSError, subprocess.SubprocessError):
+            pass
+
+    return DEV_MAC_KEY, "development fallback"
 
 CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
@@ -388,10 +436,20 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Verify submitted module PDFs.")
     ap.add_argument("folder", type=Path)
     ap.add_argument("--pool", type=Path, required=True, help="game/content/lNN.yml")
-    ap.add_argument("--key", default=DEFAULT_MAC_KEY, help="semester MAC key")
+    ap.add_argument("--key", help="semester MAC key; normally found automatically")
     ap.add_argument("--roster", type=Path, help="CSV with an andrew_id column")
     ap.add_argument("--csv", type=Path, help="write per-student rows here")
     args = ap.parse_args()
+
+    mac_key, key_source = resolve_key(args.key)
+    if key_source == "development fallback":
+        print(
+            "::warning::no semester key found, using the development key. Codes on "
+            "PDFs built by CI will not match. Set GAME_MAC_KEY or write the key to "
+            f"{KEY_FILE}."
+        )
+    else:
+        print(f"key: {key_source}")
 
     bank = yaml.safe_load(args.pool.read_text(encoding="utf-8"))
     pdfs = sorted(args.folder.glob("*.pdf"))
@@ -399,7 +457,7 @@ def main() -> int:
         print(f"no PDFs in {args.folder}")
         return 1
 
-    results = [verify_one(p, bank, args.key) for p in pdfs]
+    results = [verify_one(p, bank, mac_key) for p in pdfs]
     find_duplicates(results)
 
     roster = set()

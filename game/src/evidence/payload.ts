@@ -36,8 +36,16 @@ export const END = '-----END 06763 ATTESTATION-----'
  * and CI fails the build on main if the shipped key_id is still `dev`, because
  * a silently unsigned deploy is worse than a broken one.
  */
-const MAC_KEY: string = import.meta.env?.VITE_MAC_KEY ?? 'dev-key-not-secret'
-export const KEY_ID: string = import.meta.env?.VITE_KEY_ID ?? 'dev'
+// import.meta.env is Vite's, and is undefined when these modules are run
+// directly under Node for the test fixtures. Falling through to process.env
+// means the sample PDFs can be built with the same key the verifier will use,
+// instead of silently being dev-key artifacts that fail every MAC check.
+declare const process: { env?: Record<string, string | undefined> } | undefined
+const env = (k: string): string | undefined =>
+  import.meta.env?.[k] ?? (typeof process !== 'undefined' ? process?.env?.[k] : undefined)
+
+const MAC_KEY: string = env('VITE_MAC_KEY') || 'dev-key-not-secret'
+export const KEY_ID: string = env('VITE_KEY_ID') || 'dev'
 
 const enc = new TextEncoder()
 
