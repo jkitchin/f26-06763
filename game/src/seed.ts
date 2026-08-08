@@ -11,11 +11,21 @@
  * The order of RNG consumption is part of the contract, not an implementation
  * detail: variant first, then option order, per item, in selection order.
  *
- * NOTE ON CRYPTO. This deliberately does not use `window.crypto.subtle`. Every
- * link to the course site in this repository is `http://`, and on a non-secure
- * origin `crypto.subtle` is `undefined`. It would work on localhost and fail
- * for every student, which is exactly the class of failure CLAUDE.md section 8
- * exists to prevent. @noble/hashes is synchronous, ~8 KB, and has no deps.
+ * NOTE ON CRYPTO. This deliberately does not use `window.crypto.subtle`, and
+ * the reason has changed, so it is worth writing down properly.
+ *
+ * The original reason was that every link to the course site was `http://` and
+ * `crypto.subtle` is `undefined` on a non-secure origin, so the code would have
+ * worked on localhost and failed for every student. That is no longer true: the
+ * site enforces HTTPS as of 2026-08-08 and the origin is secure. The premise
+ * expired; the decision did not.
+ *
+ * Two reasons it stands on its own. `crypto.subtle` is asynchronous, and this
+ * derivation runs inside a synchronous render path and inside `tools/derive.py`'s
+ * test vectors, so an async digest would push a Promise through both halves of
+ * a contract that has to agree byte for byte. And it does not exist under node
+ * without a shim, which is where `npm run vectors` runs. @noble/hashes is
+ * synchronous, ~8 KB, has no dependencies, and is identical in both places.
  */
 
 import { sha256 } from '@noble/hashes/sha256'
