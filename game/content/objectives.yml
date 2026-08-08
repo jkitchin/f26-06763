@@ -87,3 +87,18 @@
   text: >-
     Add tracing so every request's inputs, outputs, tool calls, latency, and cost are
     recorded and queryable.
+
+- id: l13-o1
+  lecture: l13
+  text: >-
+    Design a surrogate: sampling plan, model family, and validation for extrapolation.
+
+- id: l13-o2
+  lecture: l13
+  text: >-
+    Add physics to a model via soft penalties or hard constraints, and evaluate the payoff.
+
+- id: l13-o3
+  lecture: l13
+  text: >-
+    Produce and calibrate predictive uncertainty, separating aleatoric from epistemic.
