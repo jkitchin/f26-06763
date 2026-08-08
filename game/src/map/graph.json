@@ -1,0 +1,200 @@
+{
+  "generated_by": "tools/graph.py",
+  "note": "Hard markdown cross-links only. See the module docstring for why.",
+  "lectures": [
+    "l01",
+    "l02",
+    "l03",
+    "l04",
+    "l05",
+    "l07",
+    "l09",
+    "l11",
+    "l13",
+    "l15",
+    "l17",
+    "l19",
+    "l21",
+    "l23"
+  ],
+  "edges": [
+    {
+      "from": "l04",
+      "to": "l03",
+      "weight": 1,
+      "where": "At the end of [L3](../l03/notes.md) we had the Intel Berkeley Lab readings in a relational database, indexed on `(sensor_id, ts)` so that a selective query, one"
+    },
+    {
+      "from": "l05",
+      "to": "l03",
+      "weight": 2,
+      "where": "`sensors` and `readings` tables in [L3](../l03/notes.md), and the same warning applies here that"
+    },
+    {
+      "from": "l05",
+      "to": "l07",
+      "weight": 1,
+      "where": "distinction [L7](../l07/notes.md) runs into on a different dataset. A column holding the single"
+    },
+    {
+      "from": "l07",
+      "to": "l01",
+      "weight": 1,
+      "where": "directly back to the sensor drift you measured in [L1](../l01/notes.md): if a channel's raw"
+    },
+    {
+      "from": "l07",
+      "to": "l03",
+      "weight": 1,
+      "where": "data to a fixed grid**. For that, recall the Intel Berkeley Lab motes from [L3](../l03/notes.md),"
+    },
+    {
+      "from": "l07",
+      "to": "l05",
+      "weight": 2,
+      "where": "[L5](../l05/notes.md) offers a neat shortcut for finding constant columns: a numeric column is"
+    },
+    {
+      "from": "l09",
+      "to": "l05",
+      "weight": 1,
+      "where": "[L5](../l05/notes.md): 1,567 semiconductor production runs with 590 process sensors each, of"
+    },
+    {
+      "from": "l09",
+      "to": "l07",
+      "weight": 4,
+      "where": "[L7](../l07/notes.md)'s C-MAPSS fleet. Take a model with a flat, perfectly uniform 15-cycle"
+    },
+    {
+      "from": "l11",
+      "to": "l07",
+      "weight": 1,
+      "where": "exactly as in [L7](../l07/notes.md). The habit does not change because the model is now a"
+    },
+    {
+      "from": "l11",
+      "to": "l09",
+      "weight": 3,
+      "where": "[L9](../l09/notes.md), which is why this session comes after it and not before."
+    },
+    {
+      "from": "l13",
+      "to": "l01",
+      "weight": 1,
+      "where": "This is [L1](../l01/notes.md)'s `np.trapz` lesson in a new costume, and the fix is the same"
+    },
+    {
+      "from": "l13",
+      "to": "l07",
+      "weight": 1,
+      "where": "of the leakage failures in [L7](../l07/notes.md) and [L9](../l09/notes.md) too. The method"
+    },
+    {
+      "from": "l13",
+      "to": "l09",
+      "weight": 3,
+      "where": "splitting discipline from [L9](../l09/notes.md) reappears in a harsher form, because a"
+    },
+    {
+      "from": "l13",
+      "to": "l11",
+      "weight": 1,
+      "where": "**collocation points** where no measurement exists. This is [L11](../l11/notes.md)'s"
+    },
+    {
+      "from": "l15",
+      "to": "l09",
+      "weight": 1,
+      "where": "[L9](../l09/notes.md) and [L13](../l13/notes.md); this is the report itself. It is 146"
+    },
+    {
+      "from": "l15",
+      "to": "l11",
+      "weight": 1,
+      "where": "Nothing in that stack is new to this course. [L11](../l11/notes.md) covered tensors,"
+    },
+    {
+      "from": "l15",
+      "to": "l13",
+      "weight": 1,
+      "where": "[L9](../l09/notes.md) and [L13](../l13/notes.md); this is the report itself. It is 146"
+    },
+    {
+      "from": "l15",
+      "to": "l17",
+      "weight": 2,
+      "where": "retrieval-augmented generation, the subject of [L17](../l17/notes.md) in two sessions'"
+    },
+    {
+      "from": "l15",
+      "to": "l19",
+      "weight": 1,
+      "where": "retrieval index, and [L19](../l19/notes.md), where the model starts calling tools."
+    }
+  ],
+  "in_degree": {
+    "l01": 2,
+    "l02": 0,
+    "l03": 3,
+    "l04": 0,
+    "l05": 2,
+    "l07": 4,
+    "l09": 3,
+    "l11": 2,
+    "l13": 1,
+    "l15": 0,
+    "l17": 1,
+    "l19": 1,
+    "l21": 0,
+    "l23": 0
+  },
+  "in_weight": {
+    "l01": 2,
+    "l02": 0,
+    "l03": 4,
+    "l04": 0,
+    "l05": 3,
+    "l07": 7,
+    "l09": 7,
+    "l11": 2,
+    "l13": 1,
+    "l15": 0,
+    "l17": 2,
+    "l19": 1,
+    "l21": 0,
+    "l23": 0
+  },
+  "out_degree": {
+    "l01": 0,
+    "l02": 0,
+    "l03": 0,
+    "l04": 1,
+    "l05": 2,
+    "l07": 3,
+    "l09": 2,
+    "l11": 2,
+    "l13": 4,
+    "l15": 5,
+    "l17": 0,
+    "l19": 0,
+    "l21": 0,
+    "l23": 0
+  },
+  "unreferenced": [
+    "l02",
+    "l04",
+    "l15",
+    "l21",
+    "l23"
+  ],
+  "terminal": [
+    "l01",
+    "l02",
+    "l03",
+    "l17",
+    "l19",
+    "l21",
+    "l23"
+  ]
+}

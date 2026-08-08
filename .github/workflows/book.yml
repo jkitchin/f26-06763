@@ -45,6 +45,14 @@ jobs:
         # would ship a wrong answer.
         run: python game/validate.py
 
+      - name: Check the lecture graph matches the notes
+        # The course map draws a corridor for every cross-link one lecture makes
+        # of another, so the graph has to be regenerated rather than trusted.
+        # This also catches two things nothing else does: a link whose text
+        # names one lecture while its href points at another (five of those
+        # existed), and a link to a lecture that has no notes.md.
+        run: python tools/graph.py --check
+
       - name: Check the two derivations still agree
         # game/src/seed.ts and tools/derive.py must produce identical item
         # selections forever. A divergence is invisible until students submit,
