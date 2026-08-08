@@ -9,19 +9,17 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
-import { loadBanks, poolOf } from './content/load.ts'
+import { loadBanks } from './content/load.ts'
 import { parseHash, toHash, type Route } from './route.ts'
-import { derive } from './seed.ts'
-import { entriesFor, newSessionId, openSessionFor, type LogEntry } from './store/log.ts'
 import { useProgress } from './store/useProgress.ts'
 import { Home } from './ui/Home.tsx'
 import { Identity } from './ui/Identity.tsx'
-import { SessionPlayer } from './ui/SessionPlayer.tsx'
+import { SessionRoute } from './ui/SessionRoute.tsx'
 import { Summary } from './ui/Summary.tsx'
 
 export function App() {
   const banks = useMemo(() => loadBanks(), [])
-  const { andrewId, displayName, log, storageOk, setIdentity, append } = useProgress()
+  const { andrewId, displayName, log, storageOk, hydrated, setIdentity } = useProgress()
   const [route, setRoute] = useState<Route>(() => parseHash(window.location.hash))
 
   // Keep the address bar and the screen in step, both ways, so the browser's
@@ -37,7 +35,11 @@ export function App() {
     setRoute(next)
   }
 
-  const servedFor = (id: string) => banks[id]?.serve ?? Infinity
+  // Nothing renders from the log until IndexedDB has been read. Without this
+  // gate the first paint is computed from an empty log, so a returning student
+  // sees a flash of the identity screen and a fast one can type into it, and
+  // that write lands before hydration and takes their progress with it.
+  if (!hydrated) return <p className="p-8 text-[var(--muted)]">Restoring your progress…</p>
 
   // A route to a lecture with no bank is a stale link; fall back rather than
   // rendering nothing.
@@ -55,20 +57,11 @@ export function App() {
   }
 
   if (route.name === 'session' && target) {
-    const sessionId =
-      openSessionFor(log, target.lecture, servedFor) ??
-      newSessionId(andrewId, target.lecture, Date.now())
-    const served = derive(andrewId, target.lecture, poolOf(target), target.pool_version, target.serve)
-    const itemsById = Object.fromEntries(target.items.map((i) => [i.id, i]))
     return (
-      <SessionPlayer
-        key={`${target.lecture}/${sessionId}`}
-        lecture={target.lecture}
-        sessionId={sessionId}
-        served={served}
-        itemsById={itemsById}
-        resumed={entriesFor(log, sessionId)}
-        onAnswer={(entry: LogEntry) => append([entry])}
+      <SessionRoute
+        key={target.lecture}
+        bank={target}
+        andrewId={andrewId}
         onFinish={() => go({ name: 'summary', lecture: target.lecture })}
         onQuit={() => go({ name: 'home' })}
       />

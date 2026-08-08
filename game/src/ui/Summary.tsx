@@ -13,7 +13,7 @@ import { poolOf } from '../content/load.ts'
 import { derive } from '../seed.ts'
 import { buildAttestation, type ItemRecord } from '../evidence/payload.ts'
 import { buildPdf, filenameFor } from '../evidence/pdf.ts'
-import { itemScore, latestCompleted, sittingScore, type LogEntry } from '../store/log.ts'
+import { itemScore, latestCompleted, sittingScore, type Event } from '../store/log.ts'
 import { Markdown } from './Markdown.tsx'
 
 const APP_VERSION = '0.1.0'
@@ -21,7 +21,7 @@ const BUILD_COMMIT: string = import.meta.env?.VITE_BUILD_COMMIT ?? '0'.repeat(40
 
 interface Props {
   bank: Bank
-  log: LogEntry[]
+  log: Event[]
   andrewId: string
   displayName: string
   onHome: () => void
@@ -30,8 +30,7 @@ interface Props {
 export function Summary({ bank, log, andrewId, displayName, onHome }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
-  const servedFor = (id: string) => (id === bank.lecture ? bank.serve : Infinity)
-  const session = latestCompleted(log, bank.lecture, servedFor)
+  const session = latestCompleted(log, bank.lecture)
 
   if (!session) {
     return (

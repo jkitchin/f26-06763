@@ -25,8 +25,58 @@
 
 export const MAX_LEVEL = 5
 
+/**
+ * One item as it was served. Recorded when a sitting opens, and never revised.
+ *
+ * This is the content stamp, and it is the whole fix. Completeness used to be
+ * judged by comparing the number of items answered against the number the bank
+ * serves *right now*, which meant raising `serve` from 8 to 12 silently
+ * un-completed every sitting anyone had already finished: their level dropped
+ * to zero, their tick vanished, and the button that re-downloads their PDF
+ * disappeared with it. Recording the plan answers the question at the only
+ * moment it is still true.
+ */
+export interface PlannedItem {
+  id: string
+  variant: string
+  /** The option order served, indexing the original pool order. */
+  opts: number[]
+}
+
+/** The premise of a sitting, written once when it opens. */
+export interface SessionOpened {
+  t: 'opened'
+  session: string
+  lecture: string
+  /** Frozen so a PDF stays reproducible if the student later fixes a typo. */
+  andrewId: string
+  plan: PlannedItem[]
+  /**
+   * Diagnostic only. Never read by any derivation: if you find yourself
+   * consulting `content.serve` to decide something, the bug is back.
+   */
+  content: { pool_version: number; serve: number }
+  at: number
+}
+
+/**
+ * A planned item that is no longer answerable, because it left the bank.
+ *
+ * It satisfies the plan, so the sitting can still finish, and it is excluded
+ * from scoring, so a withdrawal is never a punishment. Same treatment free
+ * response already gets.
+ */
+export interface ItemWithdrawn {
+  t: 'withdrawn'
+  session: string
+  itemId: string
+  at: number
+}
+
 /** One answered item. Append-only: entries are never edited or removed. */
 export interface LogEntry {
+  t?: 'answer'
+
   /** Groups entries into a sitting. Derived, not random: see newSessionId. */
   session: string
   lecture: string
@@ -45,62 +95,106 @@ export interface LogEntry {
   at: number
 }
 
+export type Event = SessionOpened | ItemWithdrawn | LogEntry
+
+const isOpened = (e: Event): e is SessionOpened => (e as SessionOpened).t === 'opened'
+const isWithdrawn = (e: Event): e is ItemWithdrawn => (e as ItemWithdrawn).t === 'withdrawn'
+const isAnswer = (e: Event): e is LogEntry =>
+  (e as LogEntry).itemId !== undefined && !isOpened(e) && !isWithdrawn(e)
+
 export interface SessionSummary {
   session: string
   lecture: string
+  opened: SessionOpened
   entries: LogEntry[]
+  /** Planned items with neither an answer nor a withdrawal. */
+  remaining: PlannedItem[]
   startedAt: number
   finishedAt: number
   activeMs: number
   firstTry: number
-  /** True once every served item has an entry. */
+  /** True once every item in the PLAN is settled. */
   complete: boolean
 }
 
 /**
  * Group the log into sittings, and decide which are complete.
  *
- * `servedFor` returns how many items that lecture serves, so completeness is a
- * question about the content rather than about a stored flag.
+ * NOTE THE SIGNATURE. There is no content parameter, and there must never be
+ * one again. Completeness is a question about the plan recorded when the
+ * sitting opened, so this function is deliberately unable to see the bank at
+ * all. Making the bad call unrepresentable is cheaper than remembering not to
+ * make it, which is why `game/tests/persistence.ts` asserts the arity.
  */
-export function sessionsOf(
-  log: readonly LogEntry[],
-  servedFor: (lecture: string) => number,
-): SessionSummary[] {
-  const byId = new Map<string, LogEntry[]>()
-  for (const entry of log) {
-    const list = byId.get(entry.session)
-    if (list) list.push(entry)
-    else byId.set(entry.session, [entry])
+export function sessionsOf(log: readonly Event[]): SessionSummary[] {
+  const opened = new Map<string, SessionOpened>()
+  const answers = new Map<string, LogEntry[]>()
+  const withdrawn = new Map<string, Set<string>>()
+
+  for (const e of log) {
+    if (isOpened(e)) {
+      // First writer wins: a duplicate open must not replace a plan a student
+      // has already answered against.
+      if (!opened.has(e.session)) opened.set(e.session, e)
+    } else if (isWithdrawn(e)) {
+      const set = withdrawn.get(e.session) ?? new Set<string>()
+      set.add(e.itemId)
+      withdrawn.set(e.session, set)
+    } else if (isAnswer(e)) {
+      const list = answers.get(e.session)
+      if (list) list.push(e)
+      else answers.set(e.session, [e])
+    }
   }
 
   const out: SessionSummary[] = []
-  for (const [session, entries] of byId) {
-    const lecture = entries[0]!.lecture
-    // Distinct items, not entry count: a resumed session that re-logged an item
-    // must not count twice toward completion.
-    const distinct = new Set(entries.map((e) => e.itemId)).size
+  for (const [session, open] of opened) {
+    const entries = (answers.get(session) ?? []).sort((a, b) => a.at - b.at)
+    const settled = new Set(entries.map((e) => e.itemId))
+    for (const id of withdrawn.get(session) ?? []) settled.add(id)
+    const remaining = open.plan.filter((p) => !settled.has(p.id))
     out.push({
       session,
-      lecture,
+      lecture: open.lecture,
+      opened: open,
       entries,
-      startedAt: Math.min(...entries.map((e) => e.at - e.totalMs)),
-      finishedAt: Math.max(...entries.map((e) => e.at)),
+      remaining,
+      startedAt: entries.length
+        ? Math.min(open.at, ...entries.map((e) => e.at - e.totalMs))
+        : open.at,
+      finishedAt: entries.length ? Math.max(...entries.map((e) => e.at)) : open.at,
       activeMs: entries.reduce((n, e) => n + e.totalMs, 0),
       firstTry: entries.filter((e) => e.firstOk).length,
-      complete: distinct >= servedFor(lecture),
+      // A plan can be satisfied entirely by withdrawals if the bank is gutted
+      // between two visits. That is a satisfied plan but it is not a completed
+      // module, and crediting it would make deleting items a way to earn the
+      // tick. At least one item has to have actually been answered.
+      complete: open.plan.length > 0 && remaining.length === 0 && entries.length > 0,
     })
   }
   return out.sort((a, b) => a.finishedAt - b.finishedAt)
 }
 
+/**
+ * Where to resume: the first planned item that is not settled.
+ *
+ * By id, not by count. `entries.length` was wrong twice over: a re-logged item
+ * skipped a question, and growing the pool displaced one so a mid-session
+ * student resumed into a different list and produced a sitting spanning two
+ * derivations, which the verifier then flags against honest work.
+ */
+export function resumeAt(s: SessionSummary): number {
+  const settled = new Set(s.entries.map((e) => e.itemId))
+  const i = s.opened.plan.findIndex((p) => !settled.has(p.id))
+  return i < 0 ? s.opened.plan.length : i
+}
+
 /** Completed sittings for one lecture, oldest first. */
 export function completedFor(
-  log: readonly LogEntry[],
+  log: readonly Event[],
   lecture: string,
-  servedFor: (lecture: string) => number,
 ): SessionSummary[] {
-  return sessionsOf(log, servedFor).filter((s) => s.lecture === lecture && s.complete)
+  return sessionsOf(log).filter((s) => s.lecture === lecture && s.complete)
 }
 
 /**
@@ -164,11 +258,10 @@ const LEVEL_AT = [0.95, 0.8, 0.65, 0.45] as const
  * counter to edit.
  */
 export function levelFor(
-  log: readonly LogEntry[],
+  log: readonly Event[],
   lecture: string,
-  servedFor: (lecture: string) => number,
 ): number {
-  const done = completedFor(log, lecture, servedFor)
+  const done = completedFor(log, lecture)
   if (!done.length) return 0
   const best = Math.max(...done.map((s) => sittingScore(s.entries) ?? 0))
   return Math.min(MAX_LEVEL, 1 + LEVEL_AT.filter((t) => best >= t).length)
@@ -176,22 +269,20 @@ export function levelFor(
 
 /** The best score itself, for showing a percentage next to the dots. */
 export function bestScoreFor(
-  log: readonly LogEntry[],
+  log: readonly Event[],
   lecture: string,
-  servedFor: (lecture: string) => number,
 ): number | null {
-  const done = completedFor(log, lecture, servedFor)
+  const done = completedFor(log, lecture)
   if (!done.length) return null
   return Math.max(...done.map((s) => sittingScore(s.entries) ?? 0))
 }
 
 /** The most recent completed sitting, which is what the PDF is issued from. */
 export function latestCompleted(
-  log: readonly LogEntry[],
+  log: readonly Event[],
   lecture: string,
-  servedFor: (lecture: string) => number,
 ): SessionSummary | null {
-  const done = completedFor(log, lecture, servedFor)
+  const done = completedFor(log, lecture)
   return done.length ? done[done.length - 1]! : null
 }
 
@@ -218,28 +309,29 @@ export function newSessionId(andrewId: string, lecture: string, startedAt: numbe
  * sitting they left by looking it up here.
  */
 export function openSessionFor(
-  log: readonly LogEntry[],
+  log: readonly Event[],
   lecture: string,
-  servedFor: (lecture: string) => number,
-): string | null {
-  const open = sessionsOf(log, servedFor)
+): SessionSummary | null {
+  const open = sessionsOf(log)
     .filter((s) => s.lecture === lecture && !s.complete)
     .sort((a, b) => a.finishedAt - b.finishedAt)
-  return open.length ? open[open.length - 1]!.session : null
+  return open.length ? open[open.length - 1]! : null
 }
 
 /** The entries already recorded for one sitting, in the order they were answered. */
-export function entriesFor(log: readonly LogEntry[], session: string): LogEntry[] {
-  return log.filter((e) => e.session === session).sort((a, b) => a.at - b.at)
+export function entriesFor(log: readonly Event[], session: string): LogEntry[] {
+  return log.filter((e): e is LogEntry => isAnswer(e) && e.session === session)
+    .sort((a, b) => a.at - b.at)
 }
 
 /** Total answered items, for the HUD. */
-export function answeredCount(log: readonly LogEntry[]): number {
-  return log.length
+export function answeredCount(log: readonly Event[]): number {
+  return log.filter(isAnswer).length
 }
 
 /** First-try accuracy across the whole log, for the dashboard. */
-export function accuracy(log: readonly LogEntry[]): number {
-  if (!log.length) return 0
-  return log.filter((e) => e.firstOk).length / log.length
+export function accuracy(log: readonly Event[]): number {
+  const answers = log.filter(isAnswer)
+  if (!answers.length) return 0
+  return answers.filter((e) => e.firstOk).length / answers.length
 }

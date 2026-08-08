@@ -58,8 +58,21 @@ export function SessionPlayer({
   onQuit,
 }: Props) {
   const [entries, setEntries] = useState<LogEntry[]>(resumed)
-  /** The item being answered. Everything before it is answered and read-only. */
-  const cursor = entries.length
+  const answered = useMemo(() => new Map(entries.map((e) => [e.itemId, e])), [entries])
+  /**
+   * The item being answered: the first served item with no answer yet.
+   *
+   * By id, not `entries.length`. The count was wrong in both directions. An
+   * item answered twice (a double-submit, a replayed import) pushed the cursor
+   * past a question nobody saw, and a pool that grew between two visits shifted
+   * the list under a resuming student, so they answered item 4 of the new
+   * derivation believing it was item 4 of the old one and produced a sitting
+   * spanning two orders that the verifier then flagged as tampered.
+   */
+  const cursor = useMemo(() => {
+    const i = served.findIndex((s) => !answered.has(s.id))
+    return i < 0 ? served.length : i
+  }, [served, answered])
   const [at, setAt] = useState(cursor)
   const reviewing = at < cursor
 
@@ -75,7 +88,7 @@ export function SessionPlayer({
 
   const current = served[at]
   const item = current ? itemsById[current.id] : undefined
-  const record = reviewing ? entries[at] : undefined
+  const record = reviewing && current ? answered.get(current.id) : undefined
 
   /** Options in this student's served order, with the key back to pool order. */
   const shown = useMemo(() => {

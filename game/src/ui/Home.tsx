@@ -12,11 +12,11 @@
  */
 
 import type { Bank } from '../content/load.ts'
-import { bestScoreFor, levelFor, type LogEntry } from '../store/log.ts'
+import { bestScoreFor, levelFor, type Event } from '../store/log.ts'
 
 interface Props {
   banks: Record<string, Bank>
-  log: LogEntry[]
+  log: Event[]
   andrewId: string
   storageOk: boolean
   onStart: (lecture: string) => void
@@ -25,7 +25,6 @@ interface Props {
 
 export function Home({ banks, log, andrewId, storageOk, onStart, onEvidence }: Props) {
   const lectures = Object.values(banks).sort((a, b) => a.lecture.localeCompare(b.lecture))
-  const servedFor = (id: string) => banks[id]?.serve ?? Infinity
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
@@ -65,8 +64,8 @@ export function Home({ banks, log, andrewId, storageOk, onStart, onEvidence }: P
 
       <ul className="space-y-3">
         {lectures.map((bank) => {
-          const best = bestScoreFor(log, bank.lecture, servedFor)
-          const done = levelFor(log, bank.lecture, servedFor) > 0
+          const best = bestScoreFor(log, bank.lecture)
+          const done = levelFor(log, bank.lecture) > 0
           return (
             <li
               key={bank.lecture}

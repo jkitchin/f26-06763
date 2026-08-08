@@ -10,28 +10,18 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 import { del, get, set } from 'idb-keyval'
-import type { LogEntry } from './log.ts'
+import type { Event, PlannedItem, SessionOpened } from './log.ts'
+import { openSessionFor } from './log.ts'
+import {
+  initial, migrate, readSave, SAVE_VERSION,
+  type Quarantined, type SaveData, type Settings,
+} from './migrate.ts'
 
-export const SAVE_VERSION = 1
+export { migrate, SAVE_VERSION }
+export { DEFAULT_SETTINGS } from './migrate.ts'
+export type { Quarantined, SaveData, Settings }
+
 const STORAGE_KEY = 'f26-06763-game/progress'
-
-export interface Settings {
-  /** Off by default. Adult learners resent hearts; opt in, don't opt out. */
-  hearts: boolean
-  theme: 'system' | 'light' | 'dark'
-}
-
-export const DEFAULT_SETTINGS: Settings = { hearts: false, theme: 'system' }
-
-export interface SaveData {
-  version: number
-  /** Normalized Andrew ID. Drives the whole derivation, so it is confirmed
-   *  back to the student before anything is built on it. */
-  andrewId: string
-  displayName: string
-  log: LogEntry[]
-  settings: Settings
-}
 
 export interface ProgressState extends SaveData {
   /**
@@ -41,21 +31,34 @@ export interface ProgressState extends SaveData {
    * silently memory-only will lose a module to a refresh and have no idea why.
    */
   storageOk: boolean
+  /**
+   * False until IndexedDB has been read. Everything that renders from the log
+   * waits for it: without a gate the first paint is computed from an empty log,
+   * so a returning student sees a flash of the identity screen, and a fast one
+   * can type into it and have that write land before hydration.
+   */
+  hydrated: boolean
+  /** Saves that could not be migrated. Kept, never discarded. */
+  quarantine: Quarantined[]
   setIdentity: (andrewId: string, displayName: string) => void
-  append: (entries: LogEntry[]) => void
+  append: (entries: Event[]) => void
+  /**
+   * Record the premise of a sitting, and return its id. Idempotent per lecture:
+   * if an unfinished sitting exists its id comes back untouched, because a
+   * second plan for the same sitting is how a student ends up half-answering
+   * two different derivations.
+   */
+  openSession: (
+    lecture: string,
+    andrewId: string,
+    plan: PlannedItem[],
+    content: { pool_version: number; serve: number },
+  ) => string
   setSettings: (patch: Partial<Settings>) => void
   exportSave: () => string
   reset: () => void
 }
 
-const initial = (): SaveData & { storageOk: boolean } => ({
-  storageOk: true,
-  version: SAVE_VERSION,
-  andrewId: '',
-  displayName: '',
-  log: [],
-  settings: { ...DEFAULT_SETTINGS },
-})
 
 /**
  * IndexedDB is not always there: Safari in private mode rejects it, quotas run
@@ -65,9 +68,27 @@ const initial = (): SaveData & { storageOk: boolean } => ({
  */
 let warned = false
 
+/**
+ * Set if storage fails before the store finishes being created, and applied the
+ * moment it has been.
+ *
+ * This is not hypothetical tidiness. zustand's `persist` calls `getItem` from
+ * inside `createStore`, so a storage layer that rejects immediately reports the
+ * failure while `useProgress` is still in its temporal dead zone. Touching the
+ * binding there threw a ReferenceError out of the hydrate chain, which took out
+ * hydration itself and left `storageOk` stuck at true. The case that does
+ * reject immediately is Safari in private mode, which is precisely the case
+ * this flag exists to warn about, so the warning was broken exactly when it was
+ * needed.
+ */
+let storageFailedEarly = false
+
 function onStorageError(op: string, err: unknown): null {
-  // Referenced lazily: this runs long after module init, so the store exists.
-  useProgress?.setState({ storageOk: false })
+  try {
+    useProgress.setState({ storageOk: false })
+  } catch {
+    storageFailedEarly = true
+  }
   if (!warned) {
     warned = true
     console.warn(
@@ -118,6 +139,19 @@ export const useProgress = create<ProgressState>()(
         setState({ log: [...getState().log, ...entries] })
       },
 
+      openSession(lecture: string, andrewId: string, plan: PlannedItem[],
+                  content: { pool_version: number; serve: number }): string {
+        const existing = openSessionFor(getState().log, lecture)
+        if (existing) return existing.session
+        const at = Date.now()
+        const session = `${andrewId}/${lecture}/${at}`
+        const opened: SessionOpened = {
+          t: 'opened', session, lecture, andrewId, plan, content, at,
+        }
+        setState({ log: [...getState().log, opened] })
+        return session
+      },
+
       setSettings(patch) {
         setState({ settings: { ...getState().settings, ...patch } })
       },
@@ -135,15 +169,36 @@ export const useProgress = create<ProgressState>()(
       name: STORAGE_KEY,
       version: SAVE_VERSION,
       storage: createJSONStorage(() => idbStorage),
-      // storageOk is deliberately absent: a flag saying "saving is broken" has
-      // no business being saved.
-      partialize: ({ version, andrewId, displayName, log, settings }) => ({
+      migrate,
+
+      /**
+       * Runs on every hydration, migrated or not. zustand skips `migrate`
+       * entirely when the persisted value has no `version` field, which is what
+       * a hand-edited or imported save looks like, so the shape check lives
+       * here where nothing can route around it.
+       */
+      merge: (persisted: unknown, current: ProgressState): ProgressState =>
+        ({ ...current, ...readSave(persisted) }),
+
+      /** The hydration gate, and the only place storageOk can learn about a
+       *  read failure: idbStorage.getItem swallows it to keep the app alive. */
+      onRehydrateStorage: () => (_state: unknown, err?: unknown) => {
+        useProgress.setState({ hydrated: true, storageOk: !err } as Partial<ProgressState>)
+        if (err) console.warn('06-763 game: could not restore saved progress', err)
+      },
+      // hydrated and storageOk are deliberately absent. A flag saying "saving
+      // is broken" has no business being saved, and a persisted `hydrated: true`
+      // would disarm the gate on the very next load.
+      partialize: ({ version, andrewId, displayName, log, settings, quarantine }: ProgressState) => ({
         version,
         andrewId,
         displayName,
         log,
         settings,
+        quarantine,
       }),
     },
   ),
 )
+
+if (storageFailedEarly) useProgress.setState({ storageOk: false })
