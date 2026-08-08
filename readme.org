@@ -3,7 +3,7 @@
 Course materials for 06-763 / 14-763 / 18-763, Fall 2026.
 
 *This repository is private. The rendered site is public:*
-http://kitchingroup.cheme.cmu.edu/f26-06763/
+https://kitchingroup.cheme.cmu.edu/f26-06763/
 
 Anything listed in the ~toc:~ of ~_toc.yml~ is published to that site. Anything
 not listed stays private, which is why ~course/modules/~ (instructor planning and
