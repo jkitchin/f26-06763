@@ -65,7 +65,8 @@ export function SessionPlayer({
 
   const [phase, setPhase] = useState<Phase>('answer')
   const [selected, setSelected] = useState<number | null>(null)
-  const [tries, setTries] = useState(0)
+  /** Display indices already tried and wrong. tries is derived from this. */
+  const [wrongPicks, setWrongPicks] = useState<number[]>([])
   const [revealed, setRevealed] = useState(false)
   const [prediction, setPrediction] = useState('')
 
@@ -106,13 +107,14 @@ export function SessionPlayer({
     if (at !== cursor) return
     setPhase(isPredict ? 'predict' : 'answer')
     setSelected(null)
-    setTries(0)
+    setWrongPicks([])
     setRevealed(false)
     setPrediction('')
     startedAt.current = Date.now()
     firstAnswerMs.current = null
   }, [at, cursor, isPredict])
 
+  const tries = wrongPicks.length
   const commit = useCallback(
     (correct: boolean, chosenPoolIndex: number | null, wasRevealed: boolean) => {
       if (!current || !item) return
@@ -146,20 +148,17 @@ export function SessionPlayer({
     if (firstAnswerMs.current === null) {
       firstAnswerMs.current = Date.now() - startedAt.current
     }
-    if (shown[selected]?.text !== item.answer) setTries((n) => n + 1)
-    setPhase('feedback')
-  }, [item, selected, shown])
-
-  const next = useCallback(() => {
-    if (!item) return
-    const correct = shown[selected ?? -1]?.text === item.answer
-    if (correct || revealed) {
-      commit(correct, shown[selected ?? -1]?.poolIndex ?? null, revealed)
-    } else {
-      setPhase('answer')
-      setSelected(null)
+    if (shown[selected]?.text === item.answer) {
+      setPhase('feedback')
+      return
     }
-  }, [commit, item, revealed, selected, shown])
+    // Wrong. Rule the option out and hand control straight back, rather than
+    // stopping on a screen whose only action is "Try again". The earlier
+    // version also told the student to use "Show me" from a screen that did
+    // not render "Show me", which is a message pointing at a missing button.
+    setWrongPicks((prev) => (prev.includes(selected) ? prev : [...prev, selected]))
+    setSelected(null)
+  }, [item, selected, shown])
 
   if (!current || !item) return null
 
@@ -167,6 +166,7 @@ export function SessionPlayer({
   /** The item is finished: got it right, gave up, or it is not gradeable. */
   const settled = correctNow || revealed || isFree
   const showFeedback = reviewing || phase === 'feedback'
+  const missed = !reviewing && wrongPicks.length > 0 && phase === 'answer'
   const wasRight = reviewing ? !!record?.firstOk : settled
 
   return (
@@ -268,11 +268,8 @@ export function SessionPlayer({
             options={shown.map((o) => o.text)}
             selected={reviewing ? recordedShownIndex : selected}
             onSelect={reviewing ? () => {} : setSelected}
-            revealed={
-              !showFeedback
-                ? null
-                : { answerIndex: reviewing || settled ? answerShownIndex : -1 }
-            }
+            revealed={showFeedback ? { answerIndex: answerShownIndex } : null}
+            wrong={reviewing ? [] : wrongPicks}
           />
         )}
 
@@ -309,6 +306,12 @@ export function SessionPlayer({
           </ul>
         )}
 
+        {missed && (
+          <p className="mt-4 text-sm text-[var(--wrong)]" role="status">
+            Not that one. Pick another.
+          </p>
+        )}
+
         {showFeedback && (
           <aside
             className={`mt-6 rounded-xl border-2 p-4 ${
@@ -330,26 +333,17 @@ export function SessionPlayer({
                 evidence explains *why* the answer is the answer, so showing it
                 beside a "Try again" button turns the retry into a reading
                 exercise and throws away the second attempt. */}
-            {reviewing || settled ? (
-              <>
-                {!reviewing && item.predict && prediction.trim() && (
-                  <p className="mb-3 text-sm">
-                    <span className="text-[var(--muted)]">You predicted: </span>
-                    <span className="italic">{prediction.trim()}</span>
-                  </p>
-                )}
-                <Markdown className="text-[15px] leading-relaxed">{item.evidence}</Markdown>
-                <p className="mt-3 text-xs text-[var(--muted)]">
-                  Source: {item.source.file}
-                  {item.source.heading ? ` · ${item.source.heading}` : ''}
-                </p>
-              </>
-            ) : (
-              <p className="text-[15px]">
-                Not that one. Have another go, or use <em>Show me</em> if you
-                would rather see the answer and the reasoning.
+            {!reviewing && item.predict && prediction.trim() && (
+              <p className="mb-3 text-sm">
+                <span className="text-[var(--muted)]">You predicted: </span>
+                <span className="italic">{prediction.trim()}</span>
               </p>
             )}
+            <Markdown className="text-[15px] leading-relaxed">{item.evidence}</Markdown>
+            <p className="mt-3 text-xs text-[var(--muted)]">
+              Source: {item.source.file}
+              {item.source.heading ? ` · ${item.source.heading}` : ''}
+            </p>
           </aside>
         )}
       </main>
@@ -371,7 +365,7 @@ export function SessionPlayer({
                 >
                   Check
                 </button>
-                {tries > 0 && (
+                {wrongPicks.length > 0 && (
                   // The escape hatch. A student stuck on item 6 with no way out
                   // is a student who never finishes, and completion is the
                   // grade. It is recorded, and it forfeits first-try credit.
@@ -397,11 +391,15 @@ export function SessionPlayer({
             {phase === 'feedback' && (
               <button
                 type="button"
-                onClick={isFree ? () => commit(true, null, false) : next}
+                onClick={() =>
+                  isFree
+                    ? commit(true, null, false)
+                    : commit(correctNow, shown[selected ?? -1]?.poolIndex ?? null, revealed)
+                }
                 className="btn-primary"
                 autoFocus
               >
-                {settled ? (at + 1 >= served.length ? 'Finish' : 'Continue') : 'Try again'}
+                {at + 1 >= served.length ? 'Finish' : 'Continue'}
               </button>
             )}
           </>

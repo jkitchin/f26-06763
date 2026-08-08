@@ -116,22 +116,26 @@ async function playModule(page: Page, andrewId: string, name: string): Promise<s
       continue
     }
 
-    // Choice item. The app is retry-until-right, so work through the options in
-    // turn rather than re-clicking the same one: an earlier version of this
-    // harness kept picking option A after every miss and span until the guard
-    // tripped, which looked exactly like the app being stuck.
-    const count = (await page.$$('div.grid button')).length
-    if (count) {
-      for (let attempt = 0; attempt < count; attempt++) {
-        const options = await page.$$('div.grid button')
-        await options[attempt]?.click()
-        await page.click('button.btn-primary') // Check
-        await new Promise((r) => setTimeout(r, 60))
-
-        const verdict = await page.$eval('button.btn-primary', (el) => el.textContent ?? '')
-        await page.click('button.btn-primary') // Continue / Finish / Try again
+    // Choice item. Wrong answers rule an option out and hand control straight
+    // back, so an attempt is "click a live option, Check" with no second button.
+    if ((await page.$$('div.grid button')).length) {
+      for (let attempt = 0; attempt < 8; attempt++) {
+        const fresh = await page.$$('div.grid button')
+        let clicked = false
+        for (const o of fresh) {
+          if (!(await page.evaluate((e) => (e as HTMLButtonElement).disabled, o))) {
+            await o.click(); clicked = true; break
+          }
+        }
+        if (!clicked) break
+        await page.click('button.btn-primary')
         await new Promise((r) => setTimeout(r, 80))
-        if (!verdict.includes('Try again')) break
+        const label = await page.$eval('button.btn-primary', (el) => el.textContent ?? '')
+        if (label.includes('Continue') || label.includes('Finish')) {
+          await page.click('button.btn-primary')
+          await new Promise((r) => setTimeout(r, 120))
+          break
+        }
       }
     }
   }

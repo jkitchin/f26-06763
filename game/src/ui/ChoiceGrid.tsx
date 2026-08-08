@@ -20,6 +20,12 @@ interface Props {
   onSelect: (index: number) => void
   /** Once set the grid is read-only and paints the answer. */
   revealed: { answerIndex: number } | null
+  /**
+   * Options already tried and wrong. Painted as wrong and not clickable again,
+   * while everything else stays live, so a second attempt is just another click
+   * rather than a trip through a "Try again" button.
+   */
+  wrong?: number[]
 }
 
 function isTypingTarget(e: KeyboardEvent): boolean {
@@ -27,7 +33,7 @@ function isTypingTarget(e: KeyboardEvent): boolean {
   return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
 }
 
-export function ChoiceGrid({ options, selected, onSelect, revealed }: Props) {
+export function ChoiceGrid({ options, selected, onSelect, revealed, wrong = [] }: Props) {
   useEffect(() => {
     if (revealed) return
     const onKey = (e: KeyboardEvent) => {
@@ -38,21 +44,23 @@ export function ChoiceGrid({ options, selected, onSelect, revealed }: Props) {
         const h = HOME_ROW.indexOf(e.key.toLowerCase())
         if (h >= 0) i = h
       }
-      if (i >= 0 && i < options.length) {
+      if (i >= 0 && i < options.length && !wrong.includes(i)) {
         e.preventDefault()
         onSelect(i)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [options.length, onSelect, revealed])
+  }, [options.length, onSelect, revealed, wrong])
 
   return (
     <div className="grid gap-3">
       {options.map((option, i) => {
         const isSelected = selected === i
         const isAnswer = revealed?.answerIndex === i
-        const isWrongPick = revealed !== null && isSelected && !isAnswer
+        const isTriedWrong = wrong.includes(i)
+        const isWrongPick = isTriedWrong || (revealed !== null && isSelected && !isAnswer)
+        const locked = revealed !== null || isTriedWrong
 
         let tone = 'border-[var(--border)] bg-[var(--surface-raised)]'
         if (isAnswer) tone = 'border-[var(--correct)] bg-[var(--correct-wash)]'
@@ -63,11 +71,12 @@ export function ChoiceGrid({ options, selected, onSelect, revealed }: Props) {
           <button
             key={option}
             type="button"
-            disabled={revealed !== null}
+            disabled={locked}
             onClick={() => onSelect(i)}
             aria-pressed={isSelected}
             className={`flex items-start gap-3 rounded-xl border-2 px-4 py-3 text-left
-                        transition-colors disabled:cursor-default ${tone}`}
+                        transition-colors disabled:cursor-default
+                        ${isTriedWrong ? 'opacity-70' : ''} ${tone}`}
           >
             <kbd
               className="mt-0.5 shrink-0 rounded border border-[var(--border)]

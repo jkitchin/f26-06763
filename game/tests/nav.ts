@@ -34,19 +34,28 @@ const btn = () => page.$eval('button.btn-primary', (e) => e.textContent ?? '')
 const counter = () => page.$eval('header span.font-mono', (e) => e.textContent ?? '')
 
 async function answerOne() {
-  const opts = await page.$$('div.grid button')
-  if (!opts.length) {                       // free-response item
+  if (!(await page.$$('div.grid button')).length) {           // free-response
     await page.click('button.btn-primary'); await wait(80)
     await page.click('button.btn-primary'); await wait(120)
     return
   }
-  for (let k = 0; k < opts.length; k++) {
+  // Wrong answers no longer stop on a screen: the grid stays live and ruled-out
+  // options go disabled, so an attempt is "click a live option, Check".
+  for (let attempt = 0; attempt < 8; attempt++) {
     const fresh = await page.$$('div.grid button')
-    await fresh[k]?.click()
-    await page.click('button.btn-primary'); await wait(80)     // Check
-    const verdict = await btn()
-    await page.click('button.btn-primary'); await wait(120)    // Continue / Try again
-    if (!verdict.includes('Try again')) return
+    let clicked = false
+    for (const o of fresh) {
+      if (!(await page.evaluate((e) => (e as HTMLButtonElement).disabled, o))) {
+        await o.click(); clicked = true; break
+      }
+    }
+    if (!clicked) return
+    await page.click('button.btn-primary'); await wait(100)   // Check
+    const label = await btn()
+    if (label.includes('Continue') || label.includes('Finish')) {
+      await page.click('button.btn-primary'); await wait(150)
+      return
+    }
   }
 }
 
@@ -88,6 +97,41 @@ check(evidence.length > 80, 'the evidence is shown on review', `${evidence.lengt
 
 await page.click('button.btn-primary'); await wait(250)
 check((await counter()) === resumed, 'returns to the current item', await counter())
+
+// --- a wrong answer does not park you on a one-button screen ---------------
+await page.click('button.btn-primary'); await wait(250)      // back to current
+// Find a question with options and deliberately answer it wrong.
+for (let guard = 0; guard < 8; guard++) {
+  const label = await btn()
+  if (label.includes('Lock it in')) { await page.type('textarea', 'g'); await page.click('button.btn-primary'); await wait(150) }
+  if ((await page.$$('div.grid button')).length) break
+  await answerOne()
+}
+const before = await counter()
+const opts = await page.$$('div.grid button')
+// Click each option until one is wrong, i.e. the item does not advance.
+for (let k = 0; k < opts.length; k++) {
+  const fresh = await page.$$('div.grid button')
+  const enabled: number[] = []
+  for (let j = 0; j < fresh.length; j++) {
+    if (!(await page.evaluate((e) => (e as HTMLButtonElement).disabled, fresh[j]!))) enabled.push(j)
+  }
+  await fresh[enabled[0]!]?.click()
+  await page.click('button.btn-primary'); await wait(200)     // Check
+  if ((await btn()).includes('Continue') || (await btn()).includes('Finish')) break
+  // Wrong: this is the state the report was about.
+  const labels = await page.$$eval('footer button', (bs) => bs.map((x) => x.textContent ?? ''))
+  check(!labels.some((l) => l.includes('Try again')), 'no "Try again" button after a wrong answer', labels.join(' | '))
+  check(labels.some((l) => l.includes('Show me')), '"Show me" is on screen when it is offered', labels.join(' | '))
+  const stillThere = await page.$$eval('div.grid button', (bs) =>
+    bs.filter((x) => !(x as HTMLButtonElement).disabled).length)
+  check(stillThere > 0, 'other options stay clickable, so a retry is one click', `${stillThere} live`)
+  const ruledOut = await page.$$eval('div.grid button', (bs) =>
+    bs.filter((x) => (x as HTMLButtonElement).disabled).length)
+  check(ruledOut > 0, 'the wrong option is ruled out', `${ruledOut} disabled`)
+  check((await counter()) === before, 'still on the same question', await counter())
+  break
+}
 
 await b.close(); server.close()
 console.log(fails ? `\n${fails} failed` : '\nall checks passed')
