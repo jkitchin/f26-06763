@@ -1,0 +1,330 @@
+#!/usr/bin/env python3
+"""Generate lectures/l06/l06-validation.ipynb.
+
+The L6 demo has two halves, matching the notes: a validation gate and a windowed
+replay, both over the Intel Berkeley Lab readings carried from L3/L4.
+
+Validation:
+  - Declare a pandera schema (dtypes, mote id set, physical ranges, voltage floor).
+  - Validate the RAW data: it already fails, because the real feed carries
+    physically impossible values. The gate stops the pipeline, loudly.
+  - Show the cost of NOT gating: the raw mean temperature is a confident wrong
+    number, because ~18% of readings are outside any instrument range.
+  - A controlled injection: a clean slice plus two bad rows, so the failure
+    report points at exactly the rows we corrupted.
+  - The three policies a failing check can take: block, warn, quarantine.
+
+Streaming:
+  - Measure out-of-order arrival (~79.5%), which is why windows use event time.
+  - Replay one mote as tumbling and sliding windows, the notes' windowing figure
+    reproduced from the data.
+
+Design notes so the demo runs cleanly:
+  - Full-dataset failure COUNTS are computed with pandas (fast); pandera is run
+    non-lazily on the full data (raises on the first bad row, so it is fast) and
+    lazily on a small sample (so it collects every failure without materializing
+    hundreds of thousands of failure cases).
+  - Every expected failure is caught so "Restart and Run All" finishes top to
+    bottom. The committed .ipynb carries no outputs and uses relative paths only.
+
+Kept in a generator for deterministic cell ids and no hand-edited JSON.
+"""
+import json
+from pathlib import Path
+
+OUT = Path(__file__).parent / "l06-validation.ipynb"
+
+_n = 0
+
+
+def _next_id(kind):
+    global _n
+    _n += 1
+    return f"{kind}-{_n:02d}"
+
+
+def md(*lines):
+    return {"cell_type": "markdown", "id": _next_id("md"),
+            "metadata": {}, "source": list(lines)}
+
+
+def code(*lines):
+    return {"cell_type": "code", "id": _next_id("code"), "execution_count": None,
+            "metadata": {}, "outputs": [], "source": list(lines)}
+
+
+cells = [
+    md("# L6 demo: a validation gate, and a windowed replay\n",
+       "\n",
+       "Two ideas from this session, on the Intel Berkeley Lab readings we have used since\n",
+       "L3. First, **validation**: we write down what the data must satisfy as an executable\n",
+       "schema, run it as a gate, and watch it stop the pipeline when the data is wrong.\n",
+       "Then **streaming**: we measure how out of order the feed really is, and replay one\n",
+       "sensor as tumbling and sliding windows in event time.\n",
+       "\n",
+       "The lesson of the first half is that the gate **fails loudly on purpose**. The raw\n",
+       "feed already breaks the schema, so several cells below are expected to report a\n",
+       "failure. Each is caught so the notebook still runs top to bottom.\n",
+       "\n",
+       "> Data: [Intel Lab Data](https://db.csail.mit.edu/labdata/labdata.html), ~2.3M readings\n",
+       "> from 54 motes, carried over from L3/L4."),
+
+    md("## 1. Load the readings\n",
+       "\n",
+       "The same loader as L3/L4: a whitespace-separated export with no header, rows not in\n",
+       "time order, and short or malformed rows we skip. The data is fetched from a mirror on\n",
+       "first run and cached under `data/`."),
+
+    code("import io\n",
+         "import urllib.request\n",
+         "import warnings\n",
+         "import zipfile\n",
+         "from pathlib import Path\n",
+         "\n",
+         "import pandas as pd\n",
+         "import pandera.pandas as pa\n",
+         "\n",
+         "# pandas 2.3 + numpy 2.5 emit a DeprecationWarning on Timestamp + Timedelta\n",
+         "# arithmetic (the 'generic' timedelta unit). It does not affect results.\n",
+         "warnings.filterwarnings('ignore', message=\"The 'generic' unit for NumPy timedelta\")\n",
+         "\n",
+         "DATA = Path('data/data.txt')\n",
+         "URL = 'https://raw.githubusercontent.com/linsea423/Intel_Lab_Data/master/data.zip'\n",
+         "COLS = ['date', 'time', 'epoch', 'moteid',\n",
+         "        'temperature', 'humidity', 'light', 'voltage']\n",
+         "\n",
+         "\n",
+         "def load(path: Path = DATA) -> pd.DataFrame:\n",
+         "    path.parent.mkdir(parents=True, exist_ok=True)\n",
+         "    if not path.exists():\n",
+         "        print(f'fetching {URL}')\n",
+         "        with urllib.request.urlopen(URL) as r:\n",
+         "            payload = r.read()\n",
+         "        with zipfile.ZipFile(io.BytesIO(payload)) as z:\n",
+         "            path.write_bytes(z.read('data.txt'))\n",
+         "    df = pd.read_csv(path, sep=r'\\s+', names=COLS, header=None,\n",
+         "                     engine='c', on_bad_lines='skip')\n",
+         "    df['ts'] = pd.to_datetime(df['date'] + ' ' + df['time'],\n",
+         "                              format='mixed', errors='coerce')\n",
+         "    df = df.dropna(subset=['ts', 'moteid'])\n",
+         "    df['moteid'] = df['moteid'].astype(int)\n",
+         "    return df[['moteid', 'ts', 'temperature', 'humidity', 'light', 'voltage']]\n",
+         "\n",
+         "\n",
+         "readings = load()\n",
+         "print(f'{len(readings):,} readings; {readings.moteid.nunique()} distinct mote ids '\n",
+         "      f'(54 motes were deployed); '\n",
+         "      f'{readings.ts.min().date()} to {readings.ts.max().date()}')\n",
+         "readings.head(3)"),
+
+    md("## 2. Write down what you expect\n",
+       "\n",
+       "A [pandera](https://pandera.readthedocs.io/) schema is a set of executable checks. We\n",
+       "assert three kinds at once: the **types** of the columns, the **set** a mote id must\n",
+       "fall in (54 motes were deployed, so a valid id is 1 to 54), and the **physical** ranges\n",
+       "a reading must respect. A temperature outside 0 to 50 degrees C is outside the\n",
+       "instrument's range; a battery below 2.4 V produces readings L3 showed we cannot trust.\n",
+       "\n",
+       "The schema is just data describing data. Nothing has been checked yet."),
+
+    code("schema = pa.DataFrameSchema(\n",
+         "    {\n",
+         "        'moteid':      pa.Column(int,   pa.Check.isin(range(1, 55))),\n",
+         "        'temperature': pa.Column(float, pa.Check.in_range(0, 50), nullable=True),\n",
+         "        'voltage':     pa.Column(float, pa.Check.ge(2.4),        nullable=True),\n",
+         "    }\n",
+         ")\n",
+         "schema"),
+
+    md("## 3. Run the gate on the raw feed\n",
+       "\n",
+       "`schema.validate(df)` raises `SchemaError` on the **first** thing that is wrong and\n",
+       "stops. That is exactly what a gate at the top of a pipeline should do: refuse to pass\n",
+       "data it cannot vouch for. We catch the error only so the notebook keeps running; in a\n",
+       "pipeline you would let it halt the job."),
+
+    code("try:\n",
+         "    schema.validate(readings)\n",
+         "    print('the raw feed passed the gate')\n",
+         "except pa.errors.SchemaError as e:\n",
+         "    bad_ids = sorted(int(v) for v in e.failure_cases['failure_case'].unique())\n",
+         "    print('GATE STOPPED THE PIPELINE at the first failing check:')\n",
+         "    print(f\"  column {e.schema.name!r} failed its 'valid mote id' check\")\n",
+         "    print(f'  offending mote ids: {bad_ids}')"),
+
+    md("The gate stopped at the very first thing wrong, before it ever looked at a\n",
+       "temperature. Some readings are tagged with mote ids outside the deployed 1 to 54,\n",
+       "including plainly corrupt values like 65407. A **set check** is the simplest kind of\n",
+       "schema check, and here it catches data corruption for free. About 0.4% of rows are\n",
+       "affected, small, but exactly the kind of thing that silently breaks a `GROUP BY mote`."),
+
+    md("## 4. Collect every failure on a sample\n",
+       "\n",
+       "`lazy=True` does not stop at the first failure; it checks everything and raises a\n",
+       "`SchemaErrors` (plural) carrying a `failure_cases` table: which column, which check,\n",
+       "which value, and the row index. Collecting every failure over 2.3M rows would\n",
+       "materialize hundreds of thousands of cases, so we run the lazy check on a sample to\n",
+       "show the shape of the report."),
+
+    code("sample = readings.head(50_000)\n",
+         "try:\n",
+         "    schema.validate(sample, lazy=True)\n",
+         "    print('sample passed')\n",
+         "except pa.errors.SchemaErrors as e:\n",
+         "    fc = e.failure_cases\n",
+         "    print(f'{len(fc):,} failing cases in {len(sample):,} rows')\n",
+         "    print(fc['check'].value_counts().to_string())\n",
+         "    print()\n",
+         "    print(fc[['column', 'check', 'failure_case', 'index']].head(6).to_string(index=False))"),
+
+    md("## 5. Why the gate matters: the confident wrong number\n",
+       "\n",
+       "Without the gate, the pipeline runs to completion and hands you an answer. The answer\n",
+       "is wrong, and nothing warns you. Compare the mean temperature over the **raw** feed\n",
+       "against the mean over only the **physically plausible** rows. The impossible values do\n",
+       "not announce themselves; they just move the number."),
+
+    code("raw_mean = readings['temperature'].mean()\n",
+         "plausible = readings[readings['temperature'].between(0, 50)]\n",
+         "clean_mean = plausible['temperature'].mean()\n",
+         "dropped = len(readings) - len(plausible)\n",
+         "print(f'raw mean temperature       {raw_mean:8.2f} C   (all {len(readings):,} rows)')\n",
+         "print(f'plausible mean temperature {clean_mean:8.2f} C   "
+         "({dropped:,} impossible rows removed, {dropped / len(readings):.1%})')"),
+
+    md("## 6. A controlled injection\n",
+       "\n",
+       "On the real feed the failures are real, which makes it hard to point at one. So take a\n",
+       "slice we know is clean, inject two rows we know are bad, and confirm the gate catches\n",
+       "**exactly** those two: a temperature above the range and a voltage below the floor."),
+
+    code("clean = plausible[plausible['voltage'] >= 2.4].head(8).reset_index(drop=True)\n",
+         "\n",
+         "bad = pd.DataFrame({\n",
+         "    'moteid':      [7, 12],\n",
+         "    'ts':          pd.to_datetime(['2004-03-01 00:00:00', '2004-03-01 00:00:31']),\n",
+         "    'temperature': [122.15, 24.0],   # row 0: impossible temperature\n",
+         "    'humidity':    [40.0, 40.0],\n",
+         "    'light':       [100.0, 100.0],\n",
+         "    'voltage':     [2.6, 1.91],      # row 1: battery below the floor\n",
+         "})\n",
+         "spiked = pd.concat([clean, bad], ignore_index=True)\n",
+         "\n",
+         "try:\n",
+         "    schema.validate(spiked, lazy=True)\n",
+         "    print('no failures (unexpected)')\n",
+         "except pa.errors.SchemaErrors as e:\n",
+         "    print(e.failure_cases[['column', 'check', 'failure_case', 'index']].to_string(index=False))"),
+
+    md("The report names the two injected rows and nothing else: index 8 for the impossible\n",
+       "temperature, index 9 for the low voltage. That precision is what makes a schema worth\n",
+       "keeping. It does not just say the data is bad; it says which row, which rule, which\n",
+       "value."),
+
+    md("## 7. What a failing check should do\n",
+       "\n",
+       "A check that fails needs a policy. Three common ones, from strictest to most forgiving:\n",
+       "\n",
+       "- **block**: raise and stop, so bad data never reaches a model or a report\n",
+       "- **warn**: log it and carry on, when you want to monitor but not act yet\n",
+       "- **quarantine**: route the bad rows aside and let the good rows flow\n",
+       "\n",
+       "Quarantine is often the right call for a sensor feed: one dead mote should not stop the\n",
+       "floor. We split the raw feed into a clean stream and a quarantine table using the same\n",
+       "physical rules the schema encodes."),
+
+    code("# Match the schema's physical checks: a missing value is nullable, so it is not 'bad'.\n",
+         "temp_bad = readings['temperature'].notna() & ~readings['temperature'].between(0, 50)\n",
+         "volt_bad = readings['voltage'].notna() & (readings['voltage'] < 2.4)\n",
+         "bad = temp_bad | volt_bad\n",
+         "good = readings[~bad]\n",
+         "quarantine = readings[bad]\n",
+         "print(f'passed      {len(good):,} rows ({len(good) / len(readings):.1%})')\n",
+         "print(f'quarantined {len(quarantine):,} rows ({len(quarantine) / len(readings):.1%})')\n",
+         "print()\n",
+         "print(f'  low battery (<2.4 V)     {volt_bad.sum():,}')\n",
+         "print(f'  impossible temperature   {temp_bad.sum():,}')\n",
+         "overlap = (temp_bad & volt_bad).sum() / temp_bad.sum()\n",
+         "print(f'  of the impossible temps, {overlap:.0%} are also low-voltage: the same failure')"),
+
+    md("The two rules reject nearly the same rows: 96% of the impossible temperatures come\n",
+       "from motes whose batteries had drained, exactly as L3 found. A physical check does not\n",
+       "just flag a bad value; it points at the mechanism that produced it."),
+
+    md("## 8. Streaming: how out of order is the feed?\n",
+       "\n",
+       "Now the other half. A reading's **event time** is when it was measured; its\n",
+       "**processing time** is when we see it. Over a lossy sensor network the two diverge, so\n",
+       "readings arrive out of event-time order. We measure it directly: per mote, what\n",
+       "fraction of readings have a timestamp earlier than a reading already seen from that\n",
+       "mote. This is why windowed aggregates must group by event time, not arrival order."),
+
+    code("def out_of_order_fraction(df: pd.DataFrame) -> float:\n",
+         "    earlier_than_seen = (df.groupby('moteid')['ts']\n",
+         "                         .apply(lambda s: s < s.cummax())\n",
+         "                         .reset_index(level=0, drop=True))\n",
+         "    return float(earlier_than_seen.mean())\n",
+         "\n",
+         "frac = out_of_order_fraction(readings)\n",
+         "print(f'{frac:.1%} of readings arrive out of event-time order')"),
+
+    md("## 9. Replay one sensor as windows\n",
+       "\n",
+       "Windowing turns an endless feed into numbers you can act on. Take the busiest mote's\n",
+       "first eight hours and aggregate its temperature two ways over event time: a **tumbling**\n",
+       "window (fixed one-hour buckets, no overlap) and a **sliding** window (a one-hour\n",
+       "average recomputed every fifteen minutes). This is the notes' windowing figure,\n",
+       "reproduced from the data."),
+
+    code("clean_stream = readings[readings['temperature'].between(0, 50)]\n",
+         "mote = int(clean_stream['moteid'].value_counts().idxmax())\n",
+         "s = (clean_stream[clean_stream['moteid'] == mote]\n",
+         "     .sort_values('ts').set_index('ts')['temperature'])\n",
+         "s = s[s.index < s.index.min() + pd.Timedelta(hours=8)]\n",
+         "\n",
+         "tumbling = s.resample('1h').mean()\n",
+         "sliding = s.resample('15min').mean().rolling(4, min_periods=1).mean()\n",
+         "\n",
+         "print(f'mote {mote}: {len(s):,} readings over 8 hours\\n')\n",
+         "print('tumbling 1 h windows (event time):')\n",
+         "print(tumbling.round(2).to_string())"),
+
+    code("import matplotlib.pyplot as plt\n",
+         "\n",
+         "fig, ax = plt.subplots(figsize=(10, 4))\n",
+         "ax.plot(s.index, s.values, '.', ms=3, color='0.8', label='raw readings (~31 s)')\n",
+         "ax.step(tumbling.index, tumbling.values, where='post', color='#c41230', lw=2.5,\n",
+         "        label='tumbling 1 h mean')\n",
+         "ax.plot(sliding.index, sliding.values, color='#1f5c99', lw=1.8,\n",
+         "        label='sliding 1 h mean, 15 min hop')\n",
+         "ax.set_ylabel('Temperature, C')\n",
+         "ax.set_title(f'One stream, two windows (mote {mote}, first 8 hours)')\n",
+         "ax.legend(frameon=False, fontsize=9)\n",
+         "plt.show()"),
+
+    md("---\n",
+       "\n",
+       "## Takeaway\n",
+       "\n",
+       "The gate turns a silent, confident wrong number into a loud, specific failure: which\n",
+       "row, which check, which value. The three policies (block, warn, quarantine) decide\n",
+       "what to do when it fails, and for a sensor feed quarantine usually wins. On the\n",
+       "streaming side, most readings arrive out of order, which is why a windowed aggregate\n",
+       "has to group by event time rather than by when the data showed up. Assignment **A3**\n",
+       "has you write a validation suite for a sensor feed and reason about a windowed\n",
+       "aggregate, so both halves start here."),
+]
+
+nb = {
+    "cells": cells,
+    "metadata": {
+        "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
+        "language_info": {"name": "python", "version": "3.12"},
+    },
+    "nbformat": 4,
+    "nbformat_minor": 5,
+}
+
+OUT.parent.mkdir(parents=True, exist_ok=True)
+OUT.write_text(json.dumps(nb, indent=1) + "\n")
+print(f"wrote {OUT} ({len(cells)} cells)")

@@ -31,9 +31,15 @@ parts:
       - file: lectures/l05/notes
         sections:
           - file: lectures/l05/l05-pipelines
+      - file: lectures/l06/notes
+        sections:
+          - file: lectures/l06/l06-validation
       - file: lectures/l07/notes
         sections:
           - file: lectures/l07/l07-features
+      - file: lectures/l08/notes
+        sections:
+          - file: lectures/l08/l08-splits-versioning
       - file: lectures/l09/notes
         sections:
           - file: lectures/l09/l09-model-selection
