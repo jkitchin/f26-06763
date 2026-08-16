@@ -43,6 +43,9 @@ parts:
       - file: lectures/l09/notes
         sections:
           - file: lectures/l09/l09-model-selection
+      - file: lectures/l10/notes
+        sections:
+          - file: lectures/l10/l10-tracking-search
       - file: lectures/l11/notes
         sections:
           - file: lectures/l11/l11-tensors-autograd
