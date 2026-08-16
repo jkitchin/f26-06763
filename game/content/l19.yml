@@ -135,8 +135,8 @@ items:
     source:
       file: lectures/l19/notes.md
       heading: "Where this pushes back"
-      quote: "A well-bounded loop is not a safe loop, only a limited one."
-    verify: {mode: quote, needle: "not a safe loop, only a limited one", volatility: stable}
+      quote: "none of them stop it from doing something genuinely harmful within those bounds, three tool calls is plenty to delete something if the tool it calls can delete something"
+    verify: {mode: quote, needle: "stop it from doing something genuinely harmful within those bounds", volatility: stable}
     tags: [agents, safety, bounds]
 
   - id: l19-q05
@@ -195,8 +195,8 @@ items:
     source:
       file: lectures/l19/notes.md
       heading: "Where this pushes back"
-      quote: "**Determinism is a preference, not a guarantee.**"
-    verify: {mode: quote, needle: "Determinism is a preference, not a guarantee", volatility: stable}
+      quote: "a model update on the provider's side can change its behavior on the exact same prompt with no warning and no version bump you control"
+    verify: {mode: quote, needle: "change its behavior on the exact same prompt with no warning", volatility: stable}
     tags: [agents, determinism, operations]
 
   - id: l19-q07
@@ -256,7 +256,7 @@ items:
     source:
       file: lectures/l19/notes.md
       heading: "Bounding the loop"
-      quote: "is not a feature, it is an unmanaged liability"
+      quote: "An agent loop with no bound is an unmanaged liability"
     verify:
       mode: manual
       needle: "unmanaged liability"

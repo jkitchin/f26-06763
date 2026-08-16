@@ -19,10 +19,13 @@ console.log('map:')
 
 // --- the generated world holds together ------------------------------------
 
-check(world.rooms.length === 26, 'every session on the schedule is a room',
+check(world.rooms.length === 25, 'every session on the schedule is a room',
   `${world.rooms.length} rooms`)
-check(world.rooms.filter((r) => r.written).length === 14,
-  'fourteen of them are written', `${world.rooms.filter((r) => r.written).length}`)
+// Sixteen written, not fourteen: L6 and L8 gained notes. Both have a bank
+// stub marked `status: unwritten`, so they are readable rooms with no practice
+// module, which is a third state the room panel now says out loud.
+check(world.rooms.filter((r) => r.written).length === 16,
+  'sixteen of them are written', `${world.rooms.filter((r) => r.written).length}`)
 
 // L18 and L19 carry a conference annotation in the schedule that an earlier
 // parser silently dropped. L19 anchors five authored corridors, so losing it
@@ -102,7 +105,7 @@ check(!doorVisible(oneDoor, none), 'a corridor is hidden until both ends are vis
 check(!doorVisible(oneDoor, new Set(['l21'])), 'one end is not enough')
 check(doorVisible(oneDoor, both), 'and drawn once both have been')
 
-check(coverage(none).seen === 0 && coverage(none).total === 26, 'coverage starts at zero of 26')
+check(coverage(none).seen === 0 && coverage(none).total === 25, 'coverage starts at zero of 25')
 check(coverage(both).seen === 2, 'and counts the rooms actually stood in')
 
 check(signFor('l20')?.promised_by === 'l19', 'the L20 shutter carries L19s promise')

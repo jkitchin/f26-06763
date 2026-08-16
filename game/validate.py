@@ -623,6 +623,15 @@ def check_bank_level(bank: Bank) -> None:
         for oid, obj in bank.objectives.items():
             if obj["lecture"] != lecture:
                 continue
+            if data.get("status") == "unwritten":
+                # An unwritten bank covers nothing by definition, and it already
+                # says so. The objectives are still registered, because the
+                # notes declare them and this file checks that objectives.yml
+                # matches the notes; requiring coverage from a bank that
+                # announces it has no items would leave the only two ways out
+                # being to delete the objectives or to write the bank under
+                # deadline. Neither is what "unwritten" is for.
+                continue
             n = sum(1 for it in items if oid in (it.get("objectives") or []))
             if n == 0:
                 bank.err(oid, f"no items cover this objective; {lecture} leaves it untested")

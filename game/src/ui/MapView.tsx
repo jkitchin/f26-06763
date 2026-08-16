@@ -290,6 +290,16 @@ function RoomPanel({ room, banks, visited, onStart }: {
             Not written yet. It is on the schedule, so it is drawn.
           </span>
         )}
+        {/* Notes but no bank. A third state, and it appeared the moment L6 and
+            L8 were written: the room is readable and has no practice module, so
+            neither the button above nor the "not written yet" note applies, and
+            without this the panel silently offers a student less than the room
+            beside it with no reason given. */}
+        {room.written && !bank && (
+          <span className="self-center text-sm text-[var(--muted)]">
+            Notes are up. The practice module for this one is not written yet.
+          </span>
+        )}
       </div>
 
       {sign && (

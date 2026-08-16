@@ -68,8 +68,7 @@
       "rooms": [
         "l21",
         "l22",
-        "l23",
-        "l24"
+        "l23"
       ]
     }
   ],
@@ -144,13 +143,13 @@
       "id": "l06",
       "date": "2026-09-14",
       "title": "Streaming concepts for sensor data; data validation (pandera/Great Expectations)",
-      "written": false,
-      "arc_source": "inherited",
+      "written": true,
+      "arc_source": "declared",
       "arc": "Data Systems",
       "region": 1,
       "x": 5,
       "y": 2,
-      "notes": null
+      "notes": "../lectures/l06/notes.html"
     },
     {
       "session": "L7",
@@ -170,13 +169,13 @@
       "id": "l08",
       "date": "2026-09-21",
       "title": "Data quality, versioning, splits; data-centric iteration",
-      "written": false,
-      "arc_source": "inherited",
+      "written": true,
+      "arc_source": "declared",
       "arc": "Data Systems",
       "region": 1,
       "x": 5,
       "y": 3,
-      "notes": null
+      "notes": "../lectures/l08/notes.html"
     },
     {
       "session": "L9",
@@ -260,7 +259,7 @@
       "session": "MP-1",
       "id": "mp1",
       "date": "2026-10-21",
-      "title": "Mini-project week — build / studio day (supervised work + clinic)",
+      "title": "Mini-project day 1",
       "written": false,
       "arc_source": "inherited",
       "arc": "Machine learning & deep learning",
@@ -273,7 +272,7 @@
       "session": "MP-2",
       "id": "mp2",
       "date": "2026-10-26",
-      "title": "Mini-project week — demo day (walkthroughs + peer feedback)",
+      "title": "Mini-project day 2",
       "written": false,
       "arc_source": "inherited",
       "arc": "Machine learning & deep learning",
@@ -398,19 +397,6 @@
       "x": 13,
       "y": 2,
       "notes": "../lectures/l23/notes.html"
-    },
-    {
-      "session": "L24",
-      "id": "l24",
-      "date": "2026-12-02",
-      "title": "Capstone studio: integration, evaluation & deployment clinic (final-project work time)",
-      "written": false,
-      "arc_source": "inherited",
-      "arc": "Production & responsibility",
-      "region": 4,
-      "x": 14,
-      "y": 2,
-      "notes": null
     }
   ],
   "doors": [
@@ -439,6 +425,14 @@
       "where": "distinction [L7](../l07/notes.md) runs into on a different dataset. A column holding the single"
     },
     {
+      "from": "l06",
+      "to": "l05",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "The pipeline we built in [L5](../l05/notes.md) was a batch pipeline: a clean sequence of stages over a fixed, finished dataset. That is the right picture most o"
+    },
+    {
       "from": "l07",
       "to": "l01",
       "origin": "link",
@@ -461,6 +455,30 @@
       "relation": null,
       "why": null,
       "where": "[L5](../l05/notes.md) offers a neat shortcut for finding constant columns: a numeric column is"
+    },
+    {
+      "from": "l08",
+      "to": "l02",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "Reproducibility, from [L2](../l02/notes.md), is the ability to take your data and your code and get your numbers back. L2 versioned the code with git and kept t"
+    },
+    {
+      "from": "l08",
+      "to": "l06",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "For engineering data the high-value entries are provenance and known issues: which instrument and firmware produced the readings, the units and sample rate of e"
+    },
+    {
+      "from": "l08",
+      "to": "l07",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "[L7](../l07/notes.md) ended on a leak so small you could miss it. Fitting a scaler on the test data instead of the training data changed the reported error by a"
     },
     {
       "from": "l09",
@@ -628,7 +646,7 @@
       "origin": "authored",
       "relation": "builds-on",
       "why": "The strongest claim of dependency anywhere in the back half. Not \"recall L13\" but \"this is L13, continued\".",
-      "where": "It is the entire second half of L13"
+      "where": "the subject of the entire second half of L13: what happens when a company builds the model, ships it, and stops watching"
     },
     {
       "from": "l21",

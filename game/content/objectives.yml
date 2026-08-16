@@ -246,3 +246,39 @@
   lecture: l04
   text: >-
     Place document, key-value, and vector stores in the engineering data landscape.
+
+# L6 and L8 have published notes but no item bank yet (see game/content/l06.yml
+# and l08.yml, both status: unwritten). The objectives are registered anyway,
+# lifted verbatim, so that whoever writes those banks maps items onto objectives
+# that already exist rather than inventing a second set. validate.py checks the
+# text against the notes, so these cannot drift silently either.
+
+- id: l06-o1
+  lecture: l06
+  text: >-
+    Distinguish batch from streaming, and identify when sensor systems require streaming.
+
+- id: l06-o2
+  lecture: l06
+  text: >-
+    Explain windowing, event vs. processing time, watermarks, and late or out-of-order data.
+
+- id: l06-o3
+  lecture: l06
+  text: >-
+    Author executable data-quality checks and integrate them as a pipeline gate.
+
+- id: l08-o1
+  lecture: l08
+  text: >-
+    Design leakage-free splits for temporal and grouped data and detect leakage empirically.
+
+- id: l08-o2
+  lecture: l08
+  text: >-
+    Version datasets and feature sets so results are reproducible from raw inputs.
+
+- id: l08-o3
+  lecture: l08
+  text: >-
+    Run a data-centric improvement loop and attribute gains to data changes.

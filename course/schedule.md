@@ -33,8 +33,8 @@ to the site.
 | [2026-10-12 Mon]            | FALL BREAK                                                                                                |                                                            |
 | [2026-10-14 Wed]            | FALL BREAK                                                                                                |                                                            |
 | L14 [2026-10-19 Mon]        | Bayesian optimization & active learning for design                                                        |                                                            |
-| MP-1 [2026-10-21 Wed]       | **Mini-project day 1                                      |                                                            |
-| MP-2 [2026-10-26 Mon]       | **Mini-project day 2                                           | **Miniproject due (end of week)**                          |
+| MP-1 [2026-10-21 Wed]       | **Mini-project day 1**                                                                                    |                                                            |
+| MP-2 [2026-10-26 Mon]       | **Mini-project day 2**                                                                                    | **Miniproject due (end of week)**                          |
 | L15  [2026-10-28 Wed]       | Foundation models & LLMs at a systems level: architecture, tokenization, embeddings                       | **A8 released**                                            |
 | L16  [2026-11-02 Mon]       | API / prompt / structured-output interface; context, cost, latency; prompting                             |                                                            |
 | L17  [2026-11-04 Wed]       | Retrieval-augmented generation & vector databases (chunking, retrieval, grounding, retrieval eval)        | A8 due · **A9 released**                                   |
@@ -44,6 +44,7 @@ to the site.
 | L21  [2026-11-18 Wed]       | Evaluating ML & LLM/agent systems: eval harnesses, LLM-as-judge, tracing/observability                    | A10 due · **A11 released**                                 |
 | L22   [2026-11-23 Mon]      | Deployment: FastAPI, Docker, cloud serving, latency/cost                                                  |                                                            |
 | [2026-11-25 Wed]            | THANKSGIVING                                                                                              |                                                            |
+| L23  [2026-11-30 Mon]       | MLOps: CI/CD for ML, drift/regression monitoring, cost; safety, failure modes, responsible AI             | A11 due                                                    |
 |                          | **Final project presentations — Day 1**                                                                   |                                                            |
 |                          | **Final project presentations — Day 2 + course wrap**                                                     | **Final project due**                                      |
 

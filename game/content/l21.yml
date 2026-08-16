@@ -74,8 +74,8 @@ items:
     source:
       file: lectures/l21/notes.md
       heading: "LLM-as-judge, done carefully"
-      quote: "it is what validation exists to catch"
-    verify: {mode: quote, needle: "what validation exists to catch", volatility: stable}
+      quote: "the fix is almost always a sharper rubric or an added programmatic check for the specific dimension the judge is blind to, not a bigger model"
+    verify: {mode: quote, needle: "a sharper rubric or an added programmatic check", volatility: stable}
     tags: [evaluation, judge]
 
   - id: l21-q03
@@ -188,7 +188,7 @@ items:
     source:
       file: lectures/l21/notes.md
       heading: "LLM-as-judge, done carefully"
-      quote: "a score\nplus a written justification, not prose you then have to parse"
+      quote: "a score plus a written justification instead of freeform prose you then have to parse"
     verify: {mode: quote, needle: "a written justification", volatility: stable}
     tags: [evaluation, judge, structured-output]
 

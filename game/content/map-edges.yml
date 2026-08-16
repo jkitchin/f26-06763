@@ -98,7 +98,9 @@ edges:
       L13" but "this is L13, continued".
     source:
       file: lectures/l21/notes.md
-      quote: It is the entire second half of L13
+      quote: >-
+        the subject of the entire second half of L13: what happens when a
+        company builds the model, ships it, and stops watching
 
   - from: l21
     to: l03

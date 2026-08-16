@@ -266,7 +266,7 @@ async function main() {
     await page.waitForSelector('[role="application"]')
 
     const roomCount = await page.$$eval('[role="application"] button', (b) => b.length)
-    check(roomCount === 26, 'every session on the schedule is drawn', `${roomCount} rooms`)
+    check(roomCount === 25, 'every session on the schedule is drawn', `${roomCount} rooms`)
 
     const coverageOf = () =>
       page.$$eval('p', (ps) =>

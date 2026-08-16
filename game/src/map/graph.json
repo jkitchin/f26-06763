@@ -19,7 +19,9 @@
     "l03",
     "l04",
     "l05",
+    "l06",
     "l07",
+    "l08",
     "l09",
     "l11",
     "l13",
@@ -52,6 +54,13 @@
       "origin": "link"
     },
     {
+      "from": "l06",
+      "to": "l05",
+      "weight": 1,
+      "where": "The pipeline we built in [L5](../l05/notes.md) was a batch pipeline: a clean sequence of stages over a fixed, finished dataset. That is the right picture most o",
+      "origin": "link"
+    },
+    {
       "from": "l07",
       "to": "l01",
       "weight": 1,
@@ -70,6 +79,27 @@
       "to": "l05",
       "weight": 2,
       "where": "[L5](../l05/notes.md) offers a neat shortcut for finding constant columns: a numeric column is",
+      "origin": "link"
+    },
+    {
+      "from": "l08",
+      "to": "l02",
+      "weight": 2,
+      "where": "Reproducibility, from [L2](../l02/notes.md), is the ability to take your data and your code and get your numbers back. L2 versioned the code with git and kept t",
+      "origin": "link"
+    },
+    {
+      "from": "l08",
+      "to": "l06",
+      "weight": 1,
+      "where": "For engineering data the high-value entries are provenance and known issues: which instrument and firmware produced the readings, the units and sample rate of e",
+      "origin": "link"
+    },
+    {
+      "from": "l08",
+      "to": "l07",
+      "weight": 2,
+      "where": "[L7](../l07/notes.md) ended on a leak so small you could miss it. Fitting a scaler on the test data instead of the training data changed the reported error by a",
       "origin": "link"
     },
     {
@@ -230,7 +260,7 @@
       "from": "l21",
       "to": "l13",
       "weight": 1,
-      "where": "It is the entire second half of L13",
+      "where": "the subject of the entire second half of L13: what happens when a company builds the model, ships it, and stops watching",
       "origin": "authored",
       "relation": "builds-on",
       "why": "The strongest claim of dependency anywhere in the back half. Not \"recall L13\" but \"this is L13, continued\"."
@@ -301,11 +331,13 @@
   ],
   "in_degree": {
     "l01": 2,
-    "l02": 0,
+    "l02": 1,
     "l03": 5,
     "l04": 2,
-    "l05": 3,
-    "l07": 5,
+    "l05": 4,
+    "l06": 1,
+    "l07": 6,
+    "l08": 0,
     "l09": 3,
     "l11": 2,
     "l13": 4,
@@ -317,11 +349,13 @@
   },
   "in_weight": {
     "l01": 2,
-    "l02": 0,
+    "l02": 2,
     "l03": 6,
     "l04": 2,
-    "l05": 4,
-    "l07": 8,
+    "l05": 5,
+    "l06": 1,
+    "l07": 10,
+    "l08": 0,
     "l09": 7,
     "l11": 2,
     "l13": 4,
@@ -337,7 +371,9 @@
     "l03": 0,
     "l04": 1,
     "l05": 2,
+    "l06": 1,
     "l07": 3,
+    "l08": 3,
     "l09": 2,
     "l11": 2,
     "l13": 4,
@@ -348,7 +384,7 @@
     "l23": 5
   },
   "unreferenced": [
-    "l02",
+    "l08",
     "l15",
     "l23"
   ],

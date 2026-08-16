@@ -41,7 +41,7 @@ items:
     source:
       file: lectures/l07/notes.md
       heading: "In-class demo"
-      quote: "The **`Ridge` gap is 0.002 cycles**"
+      quote: "The **`Ridge` gap is only 0.002 cycles**, small enough that a real leak can be invisible in a metric"
     verify: {mode: quote, needle: "0.002 cycles", volatility: measured}
     tags: [leakage, scaling]
 
@@ -68,8 +68,8 @@ items:
     source:
       file: lectures/l07/notes.md
       heading: "In-class demo"
-      quote: "you cannot audit for this by looking at scores"
-    verify: {mode: quote, needle: "cannot audit for this by looking at scores", volatility: stable}
+      quote: "the same leak reading as zero, negligible, negative, and clearly positive depending only on the estimator, so scores alone cannot tell you whether a leak occurred"
+    verify: {mode: quote, needle: "scores alone cannot tell you whether a leak occurred", volatility: stable}
     tags: [leakage, review]
 
   - id: l07-q03

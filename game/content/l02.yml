@@ -123,8 +123,8 @@ items:
     source:
       file: lectures/l02/notes.md
       heading: "A hash tells you that data changed, not what or why"
-      quote: "A hash is a smoke alarm, not an investigation."
-    verify: {mode: quote, needle: "smoke alarm, not an investigation", volatility: stable}
+      quote: "It will not tell you which rows changed, whether the change was a fix or a corruption, or whether it matters for your result"
+    verify: {mode: quote, needle: "whether the change was a fix or a corruption", volatility: stable}
     tags: [provenance, data-versioning]
 
   - id: l02-q05
@@ -239,7 +239,7 @@ items:
     source:
       file: lectures/l02/notes.md
       heading: "Tracking records; it does not enforce"
-      quote: "the lockfile, the pinned interpreter, the fixed seed, the recorded SHA and hash"
+      quote: "the lockfile, the pinned interpreter, the fixed seed, and the recorded SHA and hash"
     verify:
       mode: manual
       needle: "the pinned interpreter, the fixed seed"
@@ -275,7 +275,7 @@ items:
     source:
       file: lectures/l02/notes.md
       heading: "Reproducible is not the same as correct"
-      quote: "re-implementing* the analysis from scratch"
+      quote: "Outside statisticians re-implemented the analysis from scratch and found that the two versions disagreed"
     verify: {mode: quote, needle: "the analysis from scratch", volatility: stable}
     tags: [reproducibility, validation]
 

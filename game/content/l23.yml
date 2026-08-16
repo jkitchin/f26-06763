@@ -125,7 +125,7 @@ items:
     source:
       file: lectures/l23/notes.md
       heading: "Failure modes and concrete guardrails"
-      quote: "it is a sentence that sounds like one"
+      quote: "A guardrail tied to no specific, named failure mode is a sentence that sounds like one"
     verify: {mode: quote, needle: "a sentence that sounds like one", volatility: stable}
     tags: [guardrails, design]
 
