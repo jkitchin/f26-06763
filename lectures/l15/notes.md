@@ -281,7 +281,7 @@ datasheet:
 | Claude Haiku 4.5 | 924 | +19% |
 | Claude Opus 5 | 1,263 | **+63%** |
 
-The gap that catches people is not the one between vendors, it is the last row against the
+People expect the vendors to differ. The gap that catches them is the last row against the
 one above it. **Two models from the same provider disagree by 37% on the same text**,
 because Anthropic changed tokenizer within its own model line and documents the change as
 roughly 30% more tokens for the same input. "Use the provider's tokenizer" is not a
@@ -380,8 +380,8 @@ at roughly 90 tokens per second and that rate is set by the serial loop describe
 not by anything you can pay to avoid.
 
 Put crudely: **one output token costs about as much wall-clock time as a thousand input
-tokens.** So the instinct to trim the document you paste in, in order to make the call
-faster, optimizes the wrong term. Trimming the input saves money. Trimming what you ask
+tokens.** So the instinct to trim the document you paste in, to make the call faster,
+optimizes the wrong term. Trimming the input saves money. Trimming what you ask
 the model to *write* saves time. For an extraction task that returns a small JSON object,
 you are almost entirely paying for input tokens in dollars and almost entirely paying for
 output tokens in seconds, and those are two different budgets with two different fixes.
@@ -477,9 +477,8 @@ thousand input tokens and a short answer each, that is on the order of a dollar 
 minutes, and the answers are not reproducible. Embedding all 34 entries was **one call, 455
 tokens, and a fraction of a cent**, after which every pairwise comparison is a dot product:
 a 34 × 1,536 matrix times its own transpose, microseconds. Scaled to a hundred thousand
-records the LLM approach is not merely expensive, it is arithmetically impossible, while
-the embedding approach is a single matrix multiply or an approximate-nearest-neighbour
-index.
+records the LLM approach is arithmetically impossible, while the embedding approach is a
+single matrix multiply or an approximate-nearest-neighbour index.
 
 The rule of thumb: **use embeddings when the question is "which of these are alike," and an
 LLM when the question is "what does this one say."** Deduplication, clustering, near-

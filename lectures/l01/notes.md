@@ -35,8 +35,8 @@ Engineering data makes the gap wider than it is in the domains where machine lea
 methodology is usually taught. A sensor is not a static dataset. It drifts, it needs
 recalibration, it samples irregularly, it reports in physical units that must be tracked or
 the analysis is meaningless, and its output may end up in a safety case that has to be
-defensible years later. A pipeline that quietly loses provenance is not merely untidy in
-that setting. It is unusable, and occasionally it is dangerous.
+defensible years later. A pipeline that quietly loses provenance is unusable in that
+setting, because a safety case you cannot trace back to its inputs is not a safety case.
 
 :::{admonition} A note on the "10%" figure
 :class: note
@@ -217,8 +217,8 @@ Monthly mean absolute error of a calibration fitted on March to May 2004 only.
 
 The result is more interesting than a simple decay. The error does not creep steadily
 upward; it swings with the season, dipping *below* the fitted-period error in August and
-peaking at roughly 1.9 times it in November and December. The model did not merely get
-stale. It learned spring, and it is worst exactly when conditions are least like spring.
+peaking at roughly 1.9 times it in November and December. The model learned spring, so it
+is worst exactly when conditions are least like spring.
 That is the same failure Google Flu Trends had, reproduced on a gas sensor: a model that is
 partly measuring the thing you care about and partly measuring the season.
 
@@ -234,7 +234,7 @@ testing on the later one:
 The random split reports a number the deployed model will never achieve.
 ```
 
-The gap is not catastrophic, and that is the point worth sitting with. A random split
+The gap is small enough to pass unnoticed. A random split
 shuffles later readings into the training set, so the model is quietly allowed to see the
 future, and it reports $R^2 = 0.78$ where the honest temporal estimate is $0.68$. If you
 only ever saw the first number you would have no reason to suspect anything, which is
@@ -505,8 +505,9 @@ It works, and it looks convincing.
 
 Then we run the same notebook on a fresh checkout, where it breaks three times. Your job is
 to diagnose each break before I do: a missing package version, an unpinned seed producing
-different numbers, and an absolute path that existed only on my machine. Every one of these
-is mundane. That is the point.
+different numbers, and an absolute path that existed only on my machine. None of the three
+is exotic, and none of them announces itself as a reproducibility failure while you are
+making it.
 
 The notebook is [`l01-reproducibility.ipynb`](l01-reproducibility.ipynb). Run it before class if
 you like, but do not fix anything yet.

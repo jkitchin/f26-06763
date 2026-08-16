@@ -45,7 +45,7 @@ footer: "Systems & Toolchains for AI in Engineering"
 - What was the hourly average across the floor?
 
 The arithmetic is trivial.
-The **shape of the data** is what makes them hard.
+The **shape of the data** is the hard part.
 
 ---
 
@@ -75,7 +75,7 @@ You cannot put a `WHERE` clause on a **column name**.
 A CSV has no opinion about what belongs in a cell.
 
 This week's data: **2.3M** readings, 54 motes,
-Intel Berkeley Lab, Feb–Apr 2004.
+Intel Berkeley Lab, February to April 2004.
 
 Hiding in it: temperatures of **122°C** and **386°C**,
 in the same column as the honest 19°C ones.
@@ -303,7 +303,7 @@ Set the bound from the instrument, not from hope.
 
 - Batteries drain past **~2.4 V** over the month
 - Below that, the temperature channel **lies**
-- ~18% of temps are impossible (outside 0–50°C)
+- ~18% of temps are impossible (outside 0 to 50°C)
 - **Essentially all** of them: motes already below 2.4 V
 
 The cleaning rule isn't a guess. It's in the data.
@@ -513,7 +513,7 @@ This file has:
 
 - truncated rows (a few fields only)
 - sub-second timestamps
-- mote ids **outside** 1–54 (corrupt id field)
+- mote ids **outside** 1 to 54 (corrupt id field)
 
 **Staging table** pattern: `COPY` raw → clean with SQL → insert.
 Cleaning rules become **queries**, and the FK catches the rest.

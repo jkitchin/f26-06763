@@ -655,7 +655,7 @@ and there is no conversion.
 - pin the model id next to the vectors, like a schema version
 
 Also: `input_type` for asymmetric models, and
-8K–32K token input limits, so chunk first.
+8K to 32K token input limits, so chunk first.
 
 ---
 

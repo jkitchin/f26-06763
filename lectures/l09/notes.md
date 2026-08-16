@@ -31,8 +31,8 @@ number that is smaller than the truth, and a smaller number looks like better wo
 
 The engineering consequence is that the model is deployed against a promise it cannot keep. A
 plant-output surrogate that reported ±3 MW in the notebook and delivers ±8 MW in production
-does not merely disappoint; it invalidates whatever downstream decision was sized against the
-±3. If the surrogate feeds a dispatch optimisation, the optimisation was solved against a
+invalidates whatever downstream decision was sized against the ±3. If the surrogate feeds a
+dispatch optimisation, the optimisation was solved against a
 model of the model's error that was wrong by a factor of three. This is why the discipline in
 this session is not statistical fussiness. Reporting a number you cannot defend is an
 engineering defect in the same category as an unverified tolerance.
@@ -130,7 +130,7 @@ The baselines worth building in engineering contexts are short and specific:
   actively worse than a constant.
 - **Persistence, or predict the last value.** For anything time-ordered, this is the baseline
   that matters, and it is far stronger than people expect. Tomorrow's temperature is very
-  nearly today's temperature. A model that cannot beat persistence is not a model, it is an
+  nearly today's temperature. A model that cannot beat persistence is an
   expensive way of describing the recent past.
 - **A linear or ridge model.** Cheap, interpretable, and much better than its reputation on
   physical data, because a great many physical relationships are locally linear in the range
@@ -162,8 +162,8 @@ a straight line close **85% of the entire gap** between having no model and havi
 model in the study. Adding the other three ambient channels takes you to 4.56 MW, or 91%. The
 random forest, at 3.36 MW, closes the remaining 9%.
 
-The physical reason is not mysterious, and it is worth stating because it is what makes the
-number a lesson rather than a curiosity. A gas turbine breathes air. Colder air is denser, so
+The physical reason is worth stating, because it explains why a straight line gets so far.
+A gas turbine breathes air. Colder air is denser, so
 the compressor ingests more mass per unit volume, so the machine makes more power. Ambient
 temperature is not one predictor among four; it is *the* predictor, and everything else is a
 correction. Any engineer on the plant could have told you that before a model was fitted, and
@@ -560,9 +560,9 @@ happens when you actually measure it on this dataset. It was measured, four ways
 the 7,654-row training split and gets the same answer to the same number of decimal places,
 which is itself worth noticing.)
 
-The largest effect across four models is **0.0015 MW**, against fold noise of ±0.05 MW. It is
-not merely small, it is unmeasurable, and in two of the four cases the leaky pipeline scores
-very slightly *better*.
+The largest effect across four models is **0.0015 MW**, against fold noise of ±0.05 MW, so the
+effect is unmeasurable, and in two of the four cases the leaky pipeline scores very slightly
+*better*.
 
 This is the same result [L7](../l07/notes.md) got on C-MAPSS, for the same reason. Computing a
 mean over 9,568 rows instead of 7,654 randomly chosen ones barely moves the mean. The leak is
@@ -669,7 +669,7 @@ to represent the relationship, and it does not matter how much more data you col
 action is more capacity: interaction terms, a nonlinear family, better features.
 
 The **unlimited-depth decision tree** achieves exactly **0.000 MW** on training data and 4.64
-on validation, a gap of 4.64 MW. Zero training error is not a triumph, it is a confession:
+on validation, a gap of 4.64 MW. Zero training error is a confession:
 every leaf has been driven down to a single sample, so the tree has memorised the training
 set. This is **overfitting**, or high variance, and the actions are the opposite ones: less
 capacity (limit the depth), more regularisation, or more data. Note that the tree's validation

@@ -327,7 +327,7 @@ Now look at the intervals, and note that they run the other way. The GP's mean p
 $\sigma$ is 1.50 dB and its 95% interval covers **91.0%** of the held-out points. The
 ensemble is the less accurate model and reports the **narrower** interval, mean $\sigma$
 1.15 dB, and it covers **79.9%**. One point in five falls outside an interval that was
-supposed to miss one in twenty. The ensemble is not merely less accurate; it is more
+supposed to miss one in twenty. The ensemble is both less accurate and more
 confident than it has earned, which is the combination that does damage.
 
 Move to the held-out velocity and both models get worse and both widen, by almost exactly
@@ -341,7 +341,7 @@ The mechanism behind the GP's behaviour is worth understanding rather than memor
 stationary kernel has a finite correlation length, so far from any training point the
 posterior has nothing to condition on and relaxes back to the prior: prior mean, prior
 variance. **The GP's uncertainty grows away from data by construction, not by cleverness.**
-That property is what makes it the default surrogate inside a Bayesian optimization loop,
+That property makes it the default surrogate inside a Bayesian optimization loop,
 which is next session's subject, and it is also why a GP is *conservative* rather than
 *correct* outside the training envelope. It will tell you it does not know. It will not tell
 you the right answer.

@@ -245,7 +245,7 @@ And report extrapolation error **separately**.
 
 Today's grouped split is four lines in the repo,
 not `GroupKFold`, because **scikit-learn 1.8 and 1.9
-assign groups to folds by different rules** — same
+assign groups to folds by different rules**: same
 signature, same `shuffle=False`, no warning.
 
 The figures and the demo notebook disagreed at
@@ -783,7 +783,7 @@ Fix the model. Re-partition a held-out pool into
 calibration and test **at random**, 400 times, so that
 exchangeability holds by construction:
 
-Mean coverage **95.41%**, guaranteed band 95.000–95.221%.
+Mean coverage **95.41%**, guaranteed band 95.000 to 95.221%.
 The theory works.
 
 Now stop re-partitioning at random. Calibration set
