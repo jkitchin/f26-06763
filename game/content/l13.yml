@@ -1,0 +1,406 @@
+schema: 1
+lecture: l13
+title: "Surrogate modeling, physics-informed models, and uncertainty"
+source_notes: lectures/l13/notes.md
+status: published
+serve: 6
+pool_version: 2
+provenance:
+  drafted_by: hand
+  reviewed_by: jkitchin
+  reviewed_at: 2026-08-08
+
+items:
+
+  - id: l13-q01
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l13-o1]
+    prompt: |
+      A solve costs 49 ms; a Gaussian process trained on 128 solves predicts in
+      1.5 microseconds per point, 33,000 times faster.
+
+      At how many queries does the surrogate start paying for itself?
+    options:
+      - "Immediately, since a 33,000-fold speedup dwarfs any training cost you could incur"
+      - "At 148 queries, where the cost of building it crosses the cost of just solving"
+      - "At 128 queries, the number of solves spent building it, since each one has to be recovered"
+      - "Never in a single study; surrogates pay off only when reused across projects"
+    answer: "At 148 queries, where the cost of building it crosses the cost of just solving"
+    evidence: |
+      The break-even is not the speedup, it is where the two lines cross, and the
+      training cost has to be counted. Below 148 queries, building the surrogate
+      was slower than just running the solver. This is the number to compute
+      before you build one, and it is usually the number nobody computes: the
+      33,000x is real and is not the decision.
+    source:
+      file: lectures/l13/notes.md
+      heading: "The economics, measured"
+      quote: "Those cross at **148 queries**"
+    verify: {mode: quote, needle: "148 queries", volatility: measured}
+    tags: [surrogates, economics]
+
+  - id: l13-q02
+    kind: predict_measure
+    rung: 1
+    difficulty: 3
+    objectives: [l13-o3]
+    prompt: |
+      A deep ensemble and a Gaussian process, both on the same airfoil data, both
+      producing nominal 95% intervals. The ensemble is the modern method and its
+      paper's title contains the words "predictive uncertainty".
+
+      Before you look: which is better calibrated on the honest split, and by how
+      much?
+    predict:
+      ask: "Pick one, and say what coverage you expect from it."
+      common_prior: "The ensemble. A GP on 1,200 rows is the least modern method in the comparison."
+    options:
+      - "The ensemble, at about 95%, which is what its calibration claims deliver"
+      - "The GP, at 91.0% against the ensemble's 79.9%"
+      - "Both land near 95%; the split does not affect calibration, only accuracy"
+      - "The ensemble, though only slightly, since five members is a small ensemble"
+    answer: "The GP, at 91.0% against the ensemble's 79.9%"
+    evidence: |
+      79.9% coverage from a nominal 95% interval means one point in five falls
+      outside an interval that claimed to hold nineteen in twenty. Five members
+      is not many, and the disagreement between five networks systematically
+      understates the disagreement between all the networks you might have
+      trained. "Better than a single net" is not "calibrated", and the paper's
+      title is not a measurement of your data.
+    source:
+      file: lectures/l13/notes.md
+      heading: "Two surrogates on the same held-out sweep"
+      quote: "1.15 dB, and it covers **79.9%**"
+    verify:
+      mode: ordering
+      needle: "79.9%"
+      volatility: measured
+      cross_check: lectures/l13/figures/make_figures.py
+    tags: [uncertainty, calibration]
+
+  - id: l13-q03
+    kind: spot_the_defect
+    rung: 3
+    difficulty: 3
+    objectives: [l13-o3]
+    prompt: |
+      Extrapolating to a held-out velocity, two models grow their predicted sigma
+      by almost exactly the same factor: 1.83x for the GP and 1.84x for the
+      ensemble. Their coverage ends at 93.8% and 77.6% respectively.
+
+      What does that pair of facts tell you?
+    options:
+      - "The ensemble is less responsive to novelty, which is why its coverage falls"
+      - "Responsiveness and calibration are different properties"
+      - "The coverage difference is noise; a 1.83 against 1.84 ratio means the two are equivalent"
+      - "The GP is extrapolating and the ensemble is interpolating, so the comparison is not like for like"
+    answer: "Responsiveness and calibration are different properties"
+    evidence: |
+      This is the diagnostic worth carrying. A model whose sigma grows under
+      extrapolation is telling you it has left familiar ground, and that is
+      genuinely useful. It is a separate question from whether the interval was
+      ever the right width. Identical responsiveness with very different coverage
+      means the ensemble's intervals were too narrow all along, and the
+      extrapolation merely made the consequence visible.
+    source:
+      file: lectures/l13/notes.md
+      heading: "Two surrogates on the same held-out sweep"
+      quote: "$\\sigma$ grows **1.83×** for the GP and **1.84×** for the ensemble"
+    verify: {mode: quote, needle: "1.83", volatility: measured}
+    tags: [uncertainty, extrapolation]
+
+  - id: l13-q04
+    kind: direction
+    rung: 2
+    difficulty: 3
+    objectives: [l13-o3]
+    prompt: |
+      Split conformal prediction comes with a guarantee. Under an i.i.d. row
+      split it lands almost exactly on its nominal 95%.
+
+      What happens under a held-out velocity, and what does that say about the
+      guarantee?
+    options:
+      - "It holds, because the guarantee is distribution-free and does not depend on the split"
+      - "It falls to 82.2%; the assumption failed, not the method"
+      - "It rises above nominal, because conformal intervals widen conservatively when the data shifts"
+      - "It becomes undefined, since conformal prediction requires an i.i.d. calibration set to produce any interval"
+    answer: "It falls to 82.2%; the assumption failed, not the method"
+    evidence: |
+      This is the most instructive failure in the session, because conformal
+      prediction is usually sold on its guarantee. The guarantee is real and it
+      is conditional: it holds when the calibration data and the test data are
+      exchangeable. Hold out a velocity and they are not, so the coverage that
+      was guaranteed under one assumption is not guaranteed under another. The
+      method did not break. The assumption did, quietly.
+    source:
+      file: lectures/l13/notes.md
+      heading: "Why conformal prediction breaks, and why that is instructive"
+      quote: "collapses to **82.2%**."
+    verify:
+      mode: ordering
+      needle: "82.2%"
+      volatility: measured
+      cross_check: lectures/l13/figures/make_figures.py
+    tags: [uncertainty, conformal, assumptions]
+
+  - id: l13-q05
+    kind: predict_measure
+    rung: 1
+    difficulty: 3
+    objectives: [l13-o2]
+    prompt: |
+      Feeding a GP log-Strouhal number instead of raw frequency puts the physics
+      into the features.
+
+      Before you look: does it help everywhere?
+    predict:
+      ask: "Uniform win, or something else?"
+      common_prior: "A uniform win. Better features are better features."
+    options:
+      - "Yes, uniformly, which is why dimensionless groups are the standard first move"
+      - "No: it helps where the physics involves the extrapolated variable, and hurts where it does not"
+      - "No, it hurts everywhere once the model is a GP rather than a linear fit"
+      - "It makes no measurable difference, since a GP can learn the transformation itself"
+    answer: "No: it helps where the physics involves the extrapolated variable, and hurts where it does not"
+    evidence: |
+      Extrapolating over chord, log-Strouhal takes RMSE from 4.37 to 2.15 dB.
+      Extrapolating over angle of attack it goes the wrong way, 4.84 to 5.31.
+      Physics is not a free lunch; it is a claim, and a claim can be wrong or
+      simply irrelevant to the direction you are extrapolating in. The same
+      section checks whether the dataset even obeys the U^5 scaling the standard
+      model predicts, and it does not, which is why "check before you constrain"
+      is the rule rather than "add physics".
+    source:
+      file: lectures/l13/notes.md
+      heading: "The cheapest version: use the right coordinates"
+      quote: "| held-out chord, 0.3048 m | 4.37 dB | **2.15 dB** | **−51%** |"
+    verify:
+      mode: ordering
+      needle: "4.37"
+      volatility: measured
+      cross_check: lectures/l13/figures/make_figures.py
+    tags: [physics, features, extrapolation]
+
+  - id: l13-q06
+    kind: locus_of_control
+    rung: 3
+    difficulty: 3
+    objectives: [l13-o2]
+    prompt: |
+      A physics-informed net with a soft PDE penalty converges confidently to the
+      wrong temperature field. The conductivity in the penalty is 30% wrong.
+      Adding more data does not fix it.
+
+      Where does the fix belong?
+    options:
+      - "In the optimiser: the penalty weight is too high, so lower it until the data term dominates"
+      - "In the physics: a wrong prior is worse than no prior, so the constant has to be checked before it is imposed"
+      - "In the architecture: a larger network can represent the discrepancy between the penalty and the data"
+      - "In the data: more measurements in the region of disagreement will eventually outvote the penalty"
+    answer: "In the physics: a wrong prior is worse than no prior, so the constant has to be checked before it is imposed"
+    evidence: |
+      More data does not fix it, and that is the diagnostic. A soft penalty is a
+      statement that the answer should satisfy this equation, and if the equation
+      is wrong you have told the model to be confidently wrong in a physically
+      plausible way, which is much harder to spot than being wrong at random. The
+      same session shows the dataset failing to obey a scaling law its standard
+      model predicts, which is the general instruction: check the physics is in
+      your data before you constrain the model with it.
+    source:
+      file: lectures/l13/notes.md
+      heading: "Soft penalties: physics-informed neural networks"
+      quote: "a known source and unknown conductivity"
+    verify:
+      mode: quote
+      needle: "conductivity"
+      volatility: stable
+      cross_check: lectures/l13/figures/make_figures.py
+    tags: [physics, pinn, priors]
+
+  - id: l13-q07
+    kind: predict_measure
+    rung: 2
+    difficulty: 3
+    objectives: [l13-o1]
+    prompt: |
+      You have a space-filling design and a budget for 17 more simulation points.
+      You add them with a Sobol sequence.
+
+      Before you look: what happens to the design's quality?
+    predict:
+      ask: "Better, or something else?"
+      common_prior: "Better. More points in a low-discrepancy sequence is strictly more coverage."
+    options:
+      - "Better, roughly in proportion to the extra points"
+      - "Measurably worse: adding 17 points made the design worse on the measured criterion"
+      - "Unchanged, since 17 points is too few to move a space-filling measure"
+      - "Better, but only in the dimensions the sequence happens to refine next"
+    answer: "Measurably worse: adding 17 points made the design worse on the measured criterion"
+    evidence: |
+      Read that twice, because it violates the intuition that more samples cannot
+      hurt. Low-discrepancy sequences have good properties at particular sizes,
+      and a partial block can leave the design less balanced than the one before
+      it. The practical rule is to take these sequences at their natural sizes
+      rather than stopping wherever the budget ran out, and to measure the design
+      rather than assume monotonic improvement.
+    source:
+      file: lectures/l13/notes.md
+      heading: "Spending a simulation budget"
+      quote: "**Adding 17 points made the design measurably worse.**"
+    verify: {mode: quote, needle: "Adding 17 points made the design measurably worse", volatility: measured}
+    tags: [doe, sampling]
+
+  - id: l13-q08
+    kind: mcq
+    rung: 2
+    difficulty: 3
+    objectives: [l13-o1]
+    prompt: |
+      With a budget of 100 simulation runs, how many levels per variable can a
+      full-factorial grid afford in five dimensions?
+    options:
+      - "About 10, since a grid spends its budget evenly across dimensions"
+      - "2, and in ten dimensions it is 1, which is why grids die and space-filling designs exist"
+      - "About 4, the same as in three dimensions, since the budget is what binds"
+      - "5, one per dimension, which is the usual rule of thumb for a screening design"
+    answer: "2, and in ten dimensions it is 1, which is why grids die and space-filling designs exist"
+    evidence: |
+      100 runs buys 10 levels in one dimension, 4 in three, 2 in five, and 1 in
+      ten. A grid's resolution collapses as dimensions rise because the cost is
+      levels raised to the power of dimensions, and two levels per variable
+      cannot represent curvature at all. This is the whole argument for Latin
+      hypercube and Sobol designs, and it is arithmetic rather than a preference.
+    source:
+      file: lectures/l13/notes.md
+      heading: "Spending a simulation budget"
+      quote: "10 levels in one dimension, 4 in three, **2 in five**"
+    verify: {mode: quote, needle: "2 in five", volatility: stable}
+    tags: [doe, dimensionality]
+
+  - id: l13-q09
+    kind: spot_the_defect
+    rung: 3
+    difficulty: 3
+    objectives: [l13-o1]
+    prompt: |
+      Your figures and your demo notebook disagree about the same split: 2.08 dB
+      against 1.50 dB, and 91% coverage against 94%. Both call `GroupKFold(5)`
+      with the same signature and the same `shuffle=False`.
+
+      What happened?
+    options:
+      - "One of the two is seeding the split differently, so pinning the random state will reconcile them"
+      - "scikit-learn 1.8 and 1.9 assign groups to folds by different rules, so the same call produces different folds"
+      - "The notebook is scoring on a different column, which is why both numbers moved together"
+      - "Coverage and RMSE are computed over different subsets in the two files"
+    answer: "scikit-learn 1.8 and 1.9 assign groups to folds by different rules, so the same call produces different folds"
+    evidence: |
+      Same signature, same arguments, no warning, no deprecation, different
+      answer. This is the L2 reproducibility lesson arriving in the middle of a
+      modelling session: a pinned environment is not bureaucracy, it is the only
+      thing standing between you and two files that disagree for reasons neither
+      file records. Every held-out-configuration number in the L13 figure script
+      had to be redone because of it.
+    source:
+      file: lectures/l13/notes.md
+      heading: "Interpolation, extrapolation, and how to validate a surrogate"
+      quote: "**scikit-learn 1.8 and 1.9 assign groups to folds by different rules**"
+    verify: {mode: quote, needle: "assign groups to folds by different rules", volatility: stable}
+    tags: [reproducibility, cross-validation]
+
+  - id: l13-q10
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l13-o3]
+    prompt: |
+      What is the difference between aleatoric and epistemic uncertainty, and why
+      does the split matter operationally?
+    options:
+      - "Aleatoric is model error and epistemic is measurement error; the split tells you which team to send the problem to"
+      - "Aleatoric is noise in the process itself and epistemic is ignorance of the model; only the second shrinks with more data"
+      - "Aleatoric applies to interpolation and epistemic to extrapolation, so the split follows from the query location"
+      - "They are two names for the same quantity, distinguished only by which community is writing"
+    answer: "Aleatoric is noise in the process itself and epistemic is ignorance of the model; only the second shrinks with more data"
+    evidence: |
+      The operational consequence is the whole point of separating them. If your
+      interval is dominated by epistemic uncertainty, more simulations or more
+      experiments will narrow it. If it is dominated by aleatoric noise, they
+      will not, and you are looking at the process's own variability. Spending a
+      budget on data to reduce an uncertainty that is not going to move is a
+      common and expensive mistake.
+    source:
+      file: lectures/l13/notes.md
+      heading: "Aleatoric and epistemic"
+      quote: "Aleatoric and epistemic"
+    verify: {mode: quote, needle: "epistemic", volatility: stable}
+    tags: [uncertainty, decomposition]
+
+  - id: l13-q11
+    kind: mechanism_recall
+    rung: 5
+    difficulty: 3
+    objectives: [l13-o3]
+    prompt: |
+      Close the notes. Explain how to check whether a predictive interval is any
+      good, and why one number is not enough. Stop when you stall, and note where.
+    checklist:
+      - text: "Coverage: what fraction of held-out points fall inside the nominal interval"
+        needle: "coverage"
+      - text: "Sharpness: how wide the intervals are, since a very wide interval covers trivially"
+        needle: "sharpness"
+      - text: "Both are needed, because either alone can be gamed"
+        needle: "PICP"
+      - text: "Check under the split that matches deployment, not just on random rows"
+        needle: "held-out"
+    answer: null
+    evidence: |
+      Coverage alone is trivially satisfiable by predicting an enormous interval,
+      and sharpness alone by predicting a tiny one, so the pair is the
+      measurement. The split matters as much as the metric: on this data every
+      method looks acceptable on random rows, and the differences only appear
+      when whole configurations or a whole velocity are held out.
+    source:
+      file: lectures/l13/notes.md
+      heading: "Checking it: coverage and sharpness"
+      quote: "coverage and sharpness"
+    verify:
+      mode: manual
+      needle: "coverage and sharpness"
+      volatility: stable
+      exempt_reason: >-
+        Free-text recall; each checklist entry is verified against the source
+        individually rather than the answer being matched as a whole.
+    tags: [uncertainty, self-test]
+
+  - id: l13-q12
+    kind: notebook_run
+    rung: 4
+    difficulty: 2
+    objectives: [l13-o3]
+    prompt: |
+      Open [`l13-surrogates-uq.ipynb`](../lectures/l13/l13-surrogates-uq.ipynb)
+      and run the coverage comparison under the three splits.
+
+      What is the general shape of the result?
+    options:
+      - "Coverage is stable across splits; the methods differ only in sharpness"
+      - "Every method looks fine on random rows; the differences need a harder split"
+      - "The deep ensemble leads under every split, which is why it is the modern default"
+      - "Coverage improves under the harder splits, because the intervals widen faster than the error grows"
+    answer: "Every method looks fine on random rows; the differences need a harder split"
+    evidence: |
+      That is the reason the session insists on validating a surrogate under the
+      split that matches how it will be used. A random-row split answers "can it
+      interpolate between rows I already have", which is almost never the
+      question a surrogate is built for. Your exact numbers will differ with the
+      scikit-learn version, for the reason the same notebook documents.
+    source:
+      file: lectures/l13/notes.md
+      heading: "Interpolation, extrapolation, and how to validate a surrogate"
+      quote: "On a held-out free-stream velocity, 3.04 dB."
+    verify: {mode: ordering, needle: "held-out", volatility: measured}
+    tags: [uncertainty, notebook]

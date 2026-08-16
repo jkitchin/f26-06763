@@ -1,0 +1,179 @@
+{
+  "lecture": "l07",
+  "versions": {
+    "1": {
+      "items": {
+        "l07-q01": {
+          "answer": "About 0.002 cycles, which is to say invisible",
+          "options": [
+            "About 0.002 cycles, which is to say invisible",
+            "Around 2 cycles, small but detectable if you look for it",
+            "Around 15 cycles, large enough that any review would catch it",
+            "It cannot be measured, because the leaky fit changes the test set itself"
+          ]
+        },
+        "l07-q02": {
+          "answer": "The code; the same leak reads four different ways across four estimators",
+          "options": [
+            "The validation score, since a leak inflates it and the inflation is what you are detecting",
+            "The code; the same leak reads four different ways across four estimators",
+            "The gap between train and validation error, which widens characteristically when data has leaked",
+            "A learning curve, since leakage shows up as a curve that plateaus above its achievable floor"
+          ]
+        },
+        "l07-q03": {
+          "answer": "That the mismatch was known and survivable in principle, and the root cause was not identified until six days after the loss",
+          "options": [
+            "That the units were correct and the failure was a navigation software defect",
+            "That the mismatch was known and survivable in principle, and the root cause was not identified until six days after the loss",
+            "That the spacecraft was lost to a propulsion failure unrelated to units",
+            "That the conversion error was introduced during the final approach manoeuvre"
+          ]
+        },
+        "l07-q04": {
+          "answer": "It quietly sweeps in sensor20 and sensor21, since startswith matches a prefix",
+          "options": [
+            "Nothing wrong; it selects sensor2 as intended and is the idiomatic way to do it",
+            "It quietly sweeps in sensor20 and sensor21, since startswith matches a prefix",
+            "It fails on an empty DataFrame, which is why a guard is needed before it",
+            "It selects the columns in a non-deterministic order, which changes the feature matrix between runs"
+          ]
+        },
+        "l07-q05": {
+          "answer": "Inside the loop, on each training fold, with the fitted transform applied to the held-out fold",
+          "options": [
+            "Once on the full dataset, since scaling uses no label information and therefore cannot leak",
+            "Inside the loop, on each training fold, with the fitted transform applied to the held-out fold",
+            "Once on the training split, then reused unchanged for every fold within it",
+            "Separately on each fold including the held-out one, so every fold is on a comparable scale"
+          ]
+        },
+        "l07-q06": {
+          "answer": "That it reproduces its own predictions exactly, which is the minimum bar before anything is deployed",
+          "options": [
+            "That the model will generalise, since a reproducible pipeline is a validated one",
+            "That it reproduces its own predictions exactly, which is the minimum bar before anything is deployed",
+            "That the feature engineering is correct, since a broken transform would fail to serialize",
+            "That the pipeline is portable across environments, since joblib pins its dependencies"
+          ]
+        },
+        "l07-q07": {},
+        "l07-q08": {
+          "answer": "In the selection step, which ranked a zero-variance column without checking whether it varies at all",
+          "options": [
+            "In the sensor: a constant reading means the instrument has failed and should be replaced",
+            "In the selection step, which ranked a zero-variance column without checking whether it varies at all",
+            "In the model, which should regularise a constant feature to zero weight automatically",
+            "In the scaling, which divides by a near-zero standard deviation and amplifies noise"
+          ]
+        },
+        "l07-q09": {
+          "answer": "The same leak reads as zero, negligible, negative and clearly positive depending only on the estimator",
+          "options": [
+            "All four show the leak clearly, in proportion to how flexible the model is",
+            "The same leak reads as zero, negligible, negative and clearly positive depending only on the estimator",
+            "Only the linear models show it, since trees are invariant to monotone rescaling",
+            "None of them shows it, which is why scaler leakage is considered a theoretical concern"
+          ]
+        },
+        "l07-q10": {
+          "answer": "The transform applied at prediction time is the object fitted at training time",
+          "options": [
+            "It runs faster, because the transforms are applied in a single vectorised pass over the data",
+            "The transform applied at prediction time is the object fitted at training time",
+            "It documents the feature engineering, which makes the notebook easier for a reviewer to follow",
+            "It allows hyperparameter search over the feature steps, which is not possible with loose cells"
+          ]
+        }
+      },
+      "serve": 6
+    },
+    "2": {
+      "items": {
+        "l07-q01": {
+          "answer": "About 0.002 cycles, which is to say invisible",
+          "options": [
+            "About 0.002 cycles, which is to say invisible",
+            "Around 2 cycles, small but detectable if you look for it",
+            "Around 15 cycles, large enough that any review would catch it",
+            "It cannot be measured, because the leaky fit changes the test set itself"
+          ]
+        },
+        "l07-q02": {
+          "answer": "The code; the same leak reads four different ways across four estimators",
+          "options": [
+            "The validation score, since a leak inflates it and the inflation is what you are detecting",
+            "The code; the same leak reads four different ways across four estimators",
+            "The gap between train and validation error, which widens characteristically when data has leaked",
+            "A learning curve, since leakage shows up as a curve that plateaus above its achievable floor"
+          ]
+        },
+        "l07-q03": {
+          "answer": "That the mismatch was known and survivable in principle, and the root cause was not identified until six days after the loss",
+          "options": [
+            "That the units were correct and the failure was a navigation software defect",
+            "That the mismatch was known and survivable in principle, and the root cause was not identified until six days after the loss",
+            "That the spacecraft was lost to a propulsion failure unrelated to units",
+            "That the conversion error was introduced during the final approach manoeuvre"
+          ]
+        },
+        "l07-q04": {
+          "answer": "It quietly sweeps in sensor20 and sensor21, since startswith matches a prefix",
+          "options": [
+            "Nothing wrong; it selects sensor2 as intended and is the idiomatic way to do it",
+            "It quietly sweeps in sensor20 and sensor21, since startswith matches a prefix",
+            "It fails on an empty DataFrame, which is why a guard is needed before it",
+            "It selects the columns in a non-deterministic order, which changes the feature matrix between runs"
+          ]
+        },
+        "l07-q05": {
+          "answer": "Inside the loop, on each training fold, with the fitted transform applied to the held-out fold",
+          "options": [
+            "Once on the full dataset, since scaling uses no label information and therefore cannot leak",
+            "Inside the loop, on each training fold, with the fitted transform applied to the held-out fold",
+            "Once on the training split, then reused unchanged for every fold within it",
+            "Separately on each fold including the held-out one, so every fold is on a comparable scale"
+          ]
+        },
+        "l07-q06": {
+          "answer": "That it reproduces its own predictions exactly, which is the minimum bar before anything is deployed",
+          "options": [
+            "That the model will generalise, since a reproducible pipeline is a validated one",
+            "That it reproduces its own predictions exactly, which is the minimum bar before anything is deployed",
+            "That the feature engineering is correct, since a broken transform would fail to serialize",
+            "That the pipeline is portable across environments, since joblib pins its dependencies"
+          ]
+        },
+        "l07-q07": {},
+        "l07-q08": {
+          "answer": "In the selection step, which ranked a zero-variance column without checking whether it varies at all",
+          "options": [
+            "In the sensor: a constant reading means the instrument has failed and should be replaced",
+            "In the selection step, which ranked a zero-variance column without checking whether it varies at all",
+            "In the model, which should regularise a constant feature to zero weight automatically",
+            "In the scaling, which divides by a near-zero standard deviation and amplifies noise"
+          ]
+        },
+        "l07-q09": {
+          "answer": "The same leak reads as zero, negligible, negative and clearly positive depending only on the estimator",
+          "options": [
+            "All four show the leak clearly, in proportion to how flexible the model is",
+            "The same leak reads as zero, negligible, negative and clearly positive depending only on the estimator",
+            "Only the linear models show it, since trees are invariant to monotone rescaling",
+            "None of them shows it, which is why scaler leakage is considered a theoretical concern"
+          ]
+        },
+        "l07-q10": {
+          "answer": "The transform applied at prediction time is the object fitted at training time",
+          "options": [
+            "It runs faster, because the transforms are applied in a single vectorised pass over the data",
+            "The transform applied at prediction time is the object fitted at training time",
+            "It documents the feature engineering, which makes the notebook easier for a reviewer to follow",
+            "It allows hyperparameter search over the feature steps, which is not possible with loose cells"
+          ]
+        }
+      },
+      "serve": 5
+    }
+  }
+}

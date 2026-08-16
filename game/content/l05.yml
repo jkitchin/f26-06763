@@ -1,0 +1,312 @@
+schema: 1
+lecture: l05
+title: "Dataframes, batch pipelines, and distributed concepts"
+source_notes: lectures/l05/notes.md
+status: published
+serve: 5
+pool_version: 2
+provenance:
+  drafted_by: hand
+  reviewed_by: jkitchin
+  reviewed_at: 2026-08-08
+
+items:
+
+  - id: l05-q01
+    kind: spot_the_defect
+    rung: 3
+    difficulty: 3
+    objectives: [l05-o2]
+    prompt: |
+      Knight Capital, 1 August 2012: more than $460 million lost in about
+      forty-five minutes. New code was deployed to seven of eight servers.
+
+      The missed server was survivable on its own. What made it a catastrophe?
+    options:
+      - "The deployment had no rollback, so the seven updated servers could not be reverted quickly"
+      - "The new code repurposed a flag that had previously activated Power Peg, dead code from 2003 that was never deleted"
+      - "The eighth server had no monitoring, so nobody noticed it was serving stale code"
+      - "The rollout happened during market hours, which is when the exposure was greatest"
+    answer: "The new code repurposed a flag that had previously activated Power Peg, dead code from 2003 that was never deleted"
+    evidence: |
+      Knight had stopped using Power Peg in 2003 and never removed it, so setting
+      the repurposed flag on a server that still had the old code woke a
+      nine-year-old feature. A partially-succeeded deployment is the initiating
+      event and the reason it was fatal is that the system had two meanings for
+      one flag. The SEC's order is worth reading in full: it is one of the
+      clearest post-mortems ever written about a batch job that partially
+      succeeded.
+    source:
+      file: lectures/l05/notes.md
+      heading: "Case study: one server out of eight"
+      quote: "repurposed a flag"
+    verify: {mode: quote, needle: "repurposed a flag", volatility: stable}
+    tags: [pipelines, deployment, case-study]
+
+  - id: l05-q02
+    kind: locus_of_control
+    rung: 3
+    difficulty: 2
+    objectives: [l05-o3]
+    prompt: |
+      A job takes four minutes on one machine. A colleague proposes moving it to
+      Dask.
+
+      What decides whether that is a good idea?
+    options:
+      - "The data size alone; above a few gigabytes distributed processing is the right default"
+      - "Which side of the crossover the job is on, since graph-building overhead is a fixed cost that dominates on small data"
+      - "Whether the transformations are embarrassingly parallel, since a shuffle would negate the benefit"
+      - "Whether a cluster is available, since Dask on one machine offers nothing over pandas"
+    answer: "Which side of the crossover the job is on, since graph-building overhead is a fixed cost that dominates on small data"
+    evidence: |
+      The skill this session is after is not "know how Dask works", it is "know
+      how to tell, before you start, which side of that crossover your job is
+      on". Distributed processing adds a scheduler to reason about, a new class
+      of failure a single machine never has, and real wall-clock overhead before
+      any computation begins. That overhead is largely independent of data size,
+      which is exactly why it dominates on small data and disappears on data too
+      large for one machine.
+    source:
+      file: lectures/l05/notes.md
+      heading: "Where this pushes back"
+      quote: "which side of that crossover point your job is on"
+    verify: {mode: quote, needle: "which side of that crossover point", volatility: stable}
+    tags: [distributed, judgement]
+
+  - id: l05-q03
+    kind: mcq
+    rung: 2
+    difficulty: 3
+    objectives: [l05-o1]
+    prompt: |
+      What does lazy evaluation cost you, in Polars or in a Dask graph?
+    options:
+      - "Memory, since the whole plan must be held before anything executes"
+      - "Errors move away from the line that causes them, frequently not raising until `.collect()` or `.compute()`"
+      - "Determinism, since the optimiser may reorder operations between runs"
+      - "Type safety, since column types are only known once the data is materialised"
+    answer: "Errors move away from the line that causes them, frequently not raising until `.collect()` or `.compute()`"
+    evidence: |
+      A malformed expression can fail several lines and possibly several stages
+      from the mistake. Pandas' eager default fails immediately at the offending
+      line, which is genuinely easier to debug, and it is a real reason to keep
+      eager pandas in an exploratory notebook and reach for the lazy API once the
+      pipeline shape has stabilised. Laziness is what enables the optimisation;
+      the debugging cost is the price.
+    source:
+      file: lectures/l05/notes.md
+      heading: "Where this pushes back"
+      quote: "Lazy evaluation moves errors away from the line that causes them."
+    verify: {mode: quote, needle: "moves errors away from the line", volatility: stable}
+    tags: [polars, lazy, debugging]
+
+  - id: l05-q04
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l05-o1]
+    prompt: |
+      When is staying with pandas the right call, even though Polars is faster?
+    options:
+      - "When the data fits in memory, since Polars' advantage only appears above that"
+      - "When your collaborators, your codebase, or the library you need next only speaks pandas"
+      - "When the transformations are simple, since Polars' optimiser needs complex queries to pay off"
+      - "When you need plotting, since Polars cannot be converted to a plottable form"
+    answer: "When your collaborators, your codebase, or the library you need next only speaks pandas"
+    evidence: |
+      Polars is faster and stricter, and stricter has a cost: a less forgiving
+      type system, a thinner third-party ecosystem, and the eager-versus-lazy
+      split as an extra concept. Converting between the two costs little thanks
+      to the shared Arrow layout, so "prototype in whichever you know, convert if
+      profiling says so" is a defensible default. Note the last option is wrong
+      for the same reason: conversion is cheap.
+    source:
+      file: lectures/l05/notes.md
+      heading: "Where this pushes back"
+      quote: "**Polars is faster and stricter, and stricter has a cost.**"
+    verify: {mode: quote, needle: "stricter has a cost", volatility: stable}
+    tags: [polars, pandas, tooling]
+
+  - id: l05-q05
+    kind: spot_the_defect
+    rung: 3
+    difficulty: 3
+    objectives: [l05-o2]
+    prompt: |
+      A pipeline stage caches its output to Parquet, keyed on the stage name. A
+      config parameter changes and the stage is re-run.
+
+      What happens?
+    options:
+      - "The cache is invalidated automatically, since the config is part of the stage's inputs"
+      - "The stale file is reused, because nothing keyed on the config invalidates a file keyed only on the stage name"
+      - "The stage fails, since the cached schema no longer matches the new config"
+      - "A new cache entry is written alongside the old one, and the newer is preferred"
+    answer: "The stale file is reused, because nothing keyed on the config invalidates a file keyed only on the stage name"
+    evidence: |
+      "Delete the cache when anything upstream changes" is a correctness rule
+      trivial to state and easy to get wrong, and the config-parameter case is
+      exactly where homegrown caching fails. A Makefile's timestamp comparison
+      solves this for file-level dependencies for free; a Python script usually
+      has to solve it by hand. Idempotency and caching are not free either, which
+      is the honest framing this section insists on.
+    source:
+      file: lectures/l05/notes.md
+      heading: "Where this pushes back"
+      quote: "keyed only on its stage\nname"
+    verify: {mode: quote, needle: "keyed only on its stage", volatility: stable}
+    tags: [pipelines, caching, idempotency]
+
+  - id: l05-q06
+    kind: predict_measure
+    rung: 1
+    difficulty: 2
+    objectives: [l05-o1]
+    prompt: |
+      A Python loop over a sensor array, against the vectorized equivalent.
+
+      Before you look: how much slower is the loop?
+    predict:
+      ask: "Write down a factor before revealing."
+      common_prior: "Maybe 5 or 10 times. Interpreted code is slower but not absurdly so."
+    options:
+      - "Within a factor of two of 100 times slower"
+      - "About 5 times slower, which is the usual interpreter overhead"
+      - "About 1,000 times slower, since every element crosses the Python-C boundary"
+      - "Roughly the same, since NumPy loops internally anyway"
+    answer: "Within a factor of two of 100 times slower"
+    evidence: |
+      Two orders of magnitude, and the reason is that the vectorized version
+      hands the whole array to compiled code once while the loop pays Python's
+      per-element overhead every time. This is the measurement that makes
+      "vectorize" a rule rather than a preference, and it is also why the
+      distributed question later in the session is usually premature: a hundredfold
+      speedup is available on one machine before any cluster is involved.
+    source:
+      file: lectures/l05/notes.md
+      heading: "Vectorization, and the shape sensor data actually take"
+      quote: "**100 times** slower than the vectorized"
+    verify: {mode: ordering, needle: "100 times", volatility: measured}
+    tags: [vectorization, performance]
+
+  - id: l05-q07
+    kind: mcq
+    rung: 2
+    difficulty: 3
+    objectives: [l05-o3]
+    prompt: |
+      Arrow and Parquet are often mentioned together. What is the difference?
+    options:
+      - "They are the same format, with Arrow being the newer name"
+      - "Arrow is an in-memory columnar layout; Parquet is an on-disk columnar file format"
+      - "Arrow is for streaming and Parquet for batch, so they suit different pipeline stages"
+      - "Parquet is Arrow with compression enabled, so the two are interchangeable at rest"
+    answer: "Arrow is an in-memory columnar layout; Parquet is an on-disk columnar file format"
+    evidence: |
+      The confusion is common enough that the notes give it a subsection. The
+      practical consequence is the one that matters: because pandas and Polars
+      share the Arrow memory layout, converting between them is nearly free, which
+      is what makes "prototype in whichever you know" a workable default rather
+      than a costly commitment.
+    source:
+      file: lectures/l05/notes.md
+      heading: "Arrow and Parquet are not the same thing"
+      quote: "Arrow and Parquet are not the same thing"
+    verify: {mode: quote, needle: "Arrow and Parquet are not the same thing", volatility: stable}
+    tags: [arrow, parquet, storage]
+
+  - id: l05-q08
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l05-o2]
+    prompt: |
+      What does it mean for a pipeline stage to be idempotent, and why does it
+      matter?
+    options:
+      - "It produces the same output for the same input, so a partial failure can be retried without corrupting anything"
+      - "It runs in constant time regardless of input size, which makes scheduling predictable"
+      - "It holds no state between invocations, so stages can run in any order"
+      - "It writes atomically, so a reader never sees a half-written file"
+    answer: "It produces the same output for the same input, so a partial failure can be retried without corrupting anything"
+    evidence: |
+      Retryability is the whole payoff. A pipeline that cannot be safely re-run
+      forces you to reason about what a partial failure left behind, and Knight
+      Capital is the extreme version of what that reasoning costs when it is done
+      under time pressure. Atomic writes are a real and complementary technique;
+      they make a stage safe to *read* during a run rather than safe to repeat.
+    source:
+      file: lectures/l05/notes.md
+      heading: "Designing a batch pipeline: stages, idempotency, and caching"
+      quote: "idempotency"
+    verify: {mode: quote, needle: "idempotency", volatility: stable}
+    tags: [pipelines, idempotency]
+
+  - id: l05-q09
+    kind: mechanism_recall
+    rung: 5
+    difficulty: 3
+    objectives: [l05-o3]
+    prompt: |
+      Close the notes. Explain what a shuffle is, and why it is the operation
+      that tells you which kind of distributed job you have. Stop when you stall,
+      and note where.
+    checklist:
+      - text: "Data is split into partitions, each handled independently"
+        needle: "partition"
+      - text: "Some operations need data from every partition to meet, which is a shuffle"
+        needle: "shuffle"
+      - text: "A shuffle moves data across the network and is the expensive step"
+        needle: "network"
+      - text: "Embarrassingly parallel work has no shuffle and scales nearly linearly"
+        needle: "parallel"
+    answer: null
+    evidence: |
+      A job with no shuffle scales almost linearly and is a good candidate for
+      distribution; a job dominated by shuffles may be slower distributed than it
+      was on one machine. It is also where the new failure mode lives, since a
+      worker dying mid-shuffle is a class of problem single-machine pandas never
+      has. Where you stalled is your reading assignment.
+    source:
+      file: lectures/l05/notes.md
+      heading: "Where this pushes back"
+      quote: "a worker dying mid-shuffle"
+    verify:
+      mode: manual
+      needle: "mid-shuffle"
+      volatility: stable
+      exempt_reason: >-
+        Free-text recall; each checklist entry is verified against the source
+        individually rather than the answer being matched as a whole.
+    tags: [distributed, shuffle, self-test]
+
+  - id: l05-q10
+    kind: notebook_run
+    rung: 4
+    difficulty: 2
+    objectives: [l05-o1]
+    prompt: |
+      Open [`l05-pipelines.ipynb`](../lectures/l05/l05-pipelines.ipynb) and run
+      the pandas-against-Polars benchmark on the sensor data.
+
+      What should you conclude from whichever number you get?
+    options:
+      - "That Polars should replace pandas in your projects, since the benchmark settles it"
+      - "That the ratio is a property of this workload and this machine, and the transferable habit is measuring rather than assuming"
+      - "That the two are equivalent, since the difference is within run-to-run noise"
+      - "That benchmarks of this kind are not meaningful, since real pipelines are dominated by input and output"
+    answer: "That the ratio is a property of this workload and this machine, and the transferable habit is measuring rather than assuming"
+    evidence: |
+      A speed ratio measured on one laptop, one dataset and one set of operations
+      does not generalise to your pipeline, and the session is explicit that the
+      ecosystem and your collaborators are frequently the deciding factor rather
+      than throughput. The number worth carrying from this session is the
+      hundredfold vectorization gap, because that one is about the shape of the
+      computation rather than about which library you chose.
+    source:
+      file: lectures/l05/notes.md
+      heading: "How much does this actually buy you"
+      quote: "How much does this actually buy you"
+    verify: {mode: quote, needle: "How much does this actually buy you", volatility: stable}
+    tags: [polars, benchmark, notebook]

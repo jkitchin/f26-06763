@@ -1,0 +1,483 @@
+# L15 item bank, hand-written from lectures/l15/notes.md.
+#
+# These twelve are the exemplars the later LLM-drafted banks are grounded on, so
+# they are deliberately over-commented. The contract every item obeys:
+#
+#   source.quote  appears verbatim in source.file
+#   verify.needle appears inside source.quote
+#
+# validate.py enforces both, which is what stops an item from outliving the claim
+# it tests. See game/README.md for the five authoring rules.
+
+schema: 1
+lecture: l15
+title: "Foundation models and LLMs at a systems level"
+source_notes: lectures/l15/notes.md
+status: published
+
+# Serve fewer than the pool holds, or every student gets every item and the
+# item-set half of the anti-forgery design does nothing. Measured on this pool:
+# at serve 12 of 12 two students share 12/12 items, at serve 8 they share 5/8.
+# validate.py enforces the floor.
+#
+# GROWTH TARGET: 20+ items, at which point serve can go back to 12 with real
+# set-level personalization. The twelve below are the hand-written exemplars;
+# Phase 2 drafts the rest against them.
+serve: 6
+pool_version: 2
+provenance:
+  drafted_by: hand
+  reviewed_by: jkitchin
+  reviewed_at: 2026-08-07
+
+items:
+
+  # --- tokenization -------------------------------------------------------
+
+  - id: l15-q01
+    kind: predict_measure
+    rung: 1
+    difficulty: 2
+    objectives: [l15-o2]
+    prompt: |
+      A two-page pump datasheet, 2,365 characters. You count it locally with
+      `tiktoken` (`cl100k_base`) and get **776 tokens**. You are about to send it
+      to Claude Opus 5.
+
+      Before you look: what will Opus 5 count it as?
+    predict:
+      ask: "Write a number, and say whether you expect it above or below 776."
+      common_prior: "About the same, within 10%. Tokenizers are roughly interchangeable."
+    options:
+      - "About 780, within 1% of the local count"
+      - "924, the same as Claude Haiku 4.5"
+      - "1,263, about 63% more than the local count"
+      - "About 590, because a newer tokenizer compresses better"
+    answer: "1,263, about 63% more than the local count"
+    evidence: |
+      1,263, which is 63% above the `tiktoken` estimate and 37% above Claude
+      Haiku 4.5's 924 on the same bytes. The gap that catches people is not the
+      one between vendors: two models from the *same* provider disagree by 37%,
+      because Anthropic changed tokenizer within its own model line. "Use the
+      provider's tokenizer" is not a sufficient rule. Use the model's, for the
+      exact model id you are going to call, and re-measure when you change model.
+    source:
+      file: lectures/l15/notes.md
+      heading: "Count, do not estimate"
+      quote: "| Claude Opus 5 | 1,263 | **+63%** |"
+    verify:
+      mode: quote
+      needle: "1,263"
+      volatility: dated
+      expires: 2027-06-30
+    tags: [tokenization, cost]
+
+  - id: l15-q02
+    kind: mcq
+    rung: 1
+    difficulty: 2
+    objectives: [l15-o2]
+    prompt: |
+      Characters per token, averaged over whole documents, for five kinds of text
+      this course actually handles. Which is the most token-dense, meaning the
+      fewest characters bought per token?
+    options:
+      - "Technical prose, at 4.82 characters per token, since English words are what the vocabulary was fitted on"
+      - "A pump datasheet, at 3.05 characters per token"
+      - "Python source, at 2.56 characters per token, because identifiers and punctuation fragment badly"
+      - "An alarm table flattened out of a PDF, at 2.35 characters per token"
+    answer: "An alarm table flattened out of a PDF, at 2.35 characters per token"
+    evidence: |
+      Tabular data is the worst case, at roughly half the characters per token of
+      ordinary prose. A page of a datasheet costs about 1.6 times as many tokens
+      as a page of prose with the same number of characters, and a page of
+      tabular data about twice. Any budget built from the general "four
+      characters per token" rule of thumb will be wrong in the expensive
+      direction for exactly the documents this course cares about.
+    source:
+      file: lectures/l15/notes.md
+      heading: "What that adds up to per page"
+      quote: "| an alarm table flattened out of a PDF | 2.35 |"
+    verify:
+      mode: quote
+      needle: "2.35"
+      volatility: measured
+    tags: [tokenization, cost]
+
+  - id: l15-q03
+    kind: claim_vs_source
+    rung: 2
+    difficulty: 2
+    objectives: [l15-o2]
+    prompt: |
+      A teammate cites Anthropic's documentation, which says `tiktoken`
+      "undercounts Claude tokens by ~15-20% on typical text," and budgets a
+      146-page scanned report accordingly.
+
+      What did the measurement in these notes actually find, and what is the
+      general lesson?
+    options:
+      - "15-20% was confirmed, so the documented figure is safe to budget with and the vendor number can be trusted directly"
+      - "The estimate came in 31% low, well outside the documented range"
+      - "The estimate came in 31% high, so the budget has slack rather than a shortfall"
+      - "The two counts agreed, because both tokenizers now share a vocabulary"
+    answer: "The estimate came in 31% low, well outside the documented range"
+    evidence: |
+      `tiktoken` said 87,556 tokens; Claude Opus 5 billed 126,452. That is 31%
+      low, against documentation promising 15-20%, because the documentation
+      describes typical text and this is OCR output full of figure axis labels,
+      running heads, and garbled fragments. You pay tokens for whatever your
+      extractor produces, noise included. A vendor's stated error bar is a claim
+      about their corpus, not about yours; measure on your own documents.
+    source:
+      file: lectures/l15/notes.md
+      heading: "Count, do not estimate"
+      quote: "Opus 5 bills 126,452. The estimate is **31% low**."
+    verify:
+      mode: quote
+      needle: "31% low"
+      volatility: dated
+      expires: 2027-06-30
+    tags: [tokenization, cost, verification]
+
+  # --- architecture and latency -------------------------------------------
+
+  - id: l15-q04
+    kind: direction
+    rung: 1
+    difficulty: 2
+    objectives: [l15-o1]
+    prompt: |
+      An LLM call in your pipeline is too slow. You can either trim the 100,000-token
+      document you paste in down to 800 tokens, or cut the answer you ask for from
+      2,048 tokens down to 16.
+
+      Which one moves the clock, and roughly by how much?
+    predict:
+      ask: "Commit to one before you reveal. Most rooms pick the other one."
+      common_prior: "Trim the input. A huge prompt must be what is slow."
+    options:
+      - "Trimming the input; long prompts dominate latency, because the model must attend over every pair of positions before it can answer"
+      - "Trimming the output; the 128-fold output cut saves about 22 seconds while the 130-fold input cut saves about 0.4 seconds"
+      - "Both about equally, since latency is roughly linear in total tokens"
+      - "Neither; latency is set by the provider's queue rather than by token counts"
+    answer: "Trimming the output; the 128-fold output cut saves about 22 seconds while the 130-fold input cut saves about 0.4 seconds"
+    evidence: |
+      Reading the input is parallel; writing the output is a strict serial loop,
+      one forward pass per token, and no hardware makes step 200 start before
+      step 199 finishes. Measured against Claude Haiku 4.5, a 130-fold increase
+      in input added about 0.4 s, inside the run-to-run scatter, while a 128-fold
+      increase in output added 22 s. Trimming the input saves money; trimming the
+      output saves time. Two budgets, two different fixes.
+    source:
+      file: lectures/l15/notes.md
+      heading: "Input is cheap in time; output is not"
+      quote: "one output token costs about as much wall-clock time as a thousand input"
+    verify:
+      mode: ordering
+      needle: "one output token costs about as much wall-clock time as a thousand input"
+      volatility: measured
+    tags: [latency, architecture]
+
+  - id: l15-q05
+    kind: mechanism_recall
+    rung: 5
+    difficulty: 3
+    objectives: [l15-o1]
+    prompt: |
+      Close the notes. In full sentences, explain *why* output tokens cost far
+      more wall-clock time than input tokens. Write the mechanism, not the
+      measurement. Stop when you stall, and note where.
+    checklist:
+      - text: "The model is autoregressive: one token is drawn, appended, and the whole thing runs again"
+        needle: "appended to the"
+      - text: "Generating N tokens is therefore N forward passes in strict sequence"
+        needle: "500 forward passes, in strict sequence"
+      - text: "No amount of hardware parallelizes it, because step 200 cannot start before step 199 finishes"
+        needle: "no\namount of hardware makes step 200 start before step 199 finishes"
+      - text: "Reading the input is parallel: all of it can be processed at once"
+        needle: "Reading\nthe input is a *parallel* operation"
+    answer: null
+    evidence: |
+      The whole answer is in one sentence of the architecture section: generating
+      500 tokens is 500 forward passes, in strict sequence. Everything else,
+      including the 22-second measurement, follows from it. If your explanation
+      reached for "the model has to think harder about longer answers," you have
+      found a real gap: the per-token cost is constant, and it is the *count* of
+      serial steps that moves.
+    source:
+      file: lectures/l15/notes.md
+      heading: "The shape of a decoder-only model"
+      quote: "generating 500 tokens is 500 forward passes, in strict sequence, and no"
+    verify:
+      mode: manual
+      needle: "500 forward passes, in strict sequence"
+      volatility: stable
+      exempt_reason: >-
+        Free-text recall. Each checklist entry is verified against the source
+        individually rather than the answer being matched as a whole.
+    tags: [architecture, latency, self-test]
+
+  - id: l15-q06
+    kind: spot_the_defect
+    rung: 3
+    difficulty: 3
+    objectives: [l15-o1]
+    prompt: |
+      An extraction prompt asks a model for the discharge pressure of pump
+      `Kessler-Voss KV-7710/B`, which does not exist. The prompt supplies a
+      datasheet that does not mention it, and asks for the number only.
+
+      The model returns `1`. What is wrong, and what single change fixes it?
+    options:
+      - "The temperature is too high; set it to 0 so the model stops guessing and returns only what the datasheet actually supports"
+      - "There is no token meaning \"not in the source\", so permit an explicit NOT FOUND answer"
+      - "The datasheet was truncated before the relevant page; raise the context window"
+      - "The model is lying, and the fix is a stronger instruction not to fabricate"
+    answer: "There is no token meaning \"not in the source\", so permit an explicit NOT FOUND answer"
+    evidence: |
+      Measured, the distribution does not become uniform and contains no signal
+      meaning "I have never heard of this." It puts 0.405 on `1`, 0.358 on `2`,
+      and entropy rises to 2.22 bits. The model is *less* certain but still
+      emitting a digit. Add the clause "or with the words NOT FOUND if the answer
+      is not in the text below" and the distribution collapses onto `NOT` at
+      probability 1.000, entropy 0.00 bits. Eleven words. Hallucination here is
+      not the model lying, it is the model doing exactly what it was trained to
+      do in a situation where the correct answer is not expressible in its
+      output space.
+    source:
+      file: lectures/l15/notes.md
+      heading: "Prediction, fluency, and hallucination"
+      quote: "Entropy rises to **2.22 bits**."
+    verify:
+      mode: quote
+      needle: "2.22 bits"
+      volatility: measured
+    tags: [hallucination, prompting]
+
+  # --- context, cost -------------------------------------------------------
+
+  - id: l15-q07
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l15-o1, l15-o2]
+    prompt: |
+      You send 190,000 tokens to a model with a 200,000-token context window and
+      set `max_tokens` to 64,000. What happens?
+    options:
+      - "You get up to 64,000 tokens back, because `max_tokens` governs generation and the window governs input, and the two are budgeted separately"
+      - "The window is shared between input and output, so there is room for about 10,000 tokens of answer whatever `max_tokens` says"
+      - "The provider silently truncates the input to make room for the output"
+      - "The oldest part of the input is evicted automatically, sliding-window style"
+    answer: "The window is shared between input and output, so there is room for about 10,000 tokens of answer whatever `max_tokens` says"
+    evidence: |
+      The context window is tokens in *plus* tokens out. On the providers this
+      course uses, exceeding the window is a request-level error rather than a
+      silent truncation, which is the merciful behaviour, and you should confirm
+      that for any provider you add. The silent truncation that actually bites
+      you happens earlier and in your own code: a chunker with an off-by-one, a
+      PDF extractor that gives up on page 40, a `[:8000]` somebody added while
+      debugging and never removed.
+    source:
+      file: lectures/l15/notes.md
+      heading: "The context window as a budget"
+      quote: "the budget is shared: **tokens in plus tokens out**"
+    verify:
+      mode: quote
+      needle: "tokens in plus tokens out"
+      volatility: stable
+    tags: [context, budget]
+
+  # --- embeddings ----------------------------------------------------------
+
+  - id: l15-q08
+    kind: rank
+    rung: 1
+    difficulty: 3
+    objectives: [l15-o3]
+    prompt: |
+      Three pairs of maintenance-log entries, embedded with
+      `text-embedding-3-small`. Rank them by cosine similarity, highest first.
+
+      **A.** `brg vibration p101 high at startup` against
+      `Operator reports growling from the drive end bearing on P-101`
+      (the same event, no shared words)
+
+      **B.** `Mechanical seal leaking, approx 8 drops/min, pump P-101` against
+      `P-101 seal inspected, no leak found`
+      (a fault and its refutation)
+
+      **C.** `Bearing temperature 85 degC steady on the drive end` against
+      `Bearing temperature 85 degF steady on the drive end`
+      (differing by one unit)
+    predict:
+      ask: "Write your ordering down before revealing."
+      common_prior: "A > C > B. The same-event pair should score highest and the contradiction lowest."
+    options:
+      - "C (0.971) > B (0.694) > A (0.532)"
+      - "A (0.971) > C (0.694) > B (0.532), the same-event pair scoring highest"
+      - "C (0.971) > A (0.694) > B (0.532)"
+      - "A (0.694) > B (0.532) > C (0.361), with the unit mismatch scoring lowest of the three"
+    answer: "C (0.971) > B (0.694) > A (0.532)"
+    evidence: |
+      The pair that means the *opposite* scores higher than the pair that means
+      the *same*, and the pair differing only by a unit scores highest of all.
+      Across the eight opposite-meaning pairs in this set, all eight score above
+      the weakest true match. Cosine measures how much two texts are *about the
+      same thing*, and a leak report and a no-leak report are maximally about the
+      same thing; "no" is one token among a dozen and it does not move the vector
+      far. This is structural, not a defect of this particular model.
+    source:
+      file: lectures/l15/notes.md
+      heading: "Cosine similarity does not know about negation"
+      quote: "One is a fault and the other is its refutation. Their cosine similarity is **0.694**."
+    verify:
+      mode: ordering
+      needle: "0.694"
+      volatility: measured
+    tags: [embeddings, negation, units]
+
+  - id: l15-q09
+    kind: locus_of_control
+    rung: 3
+    difficulty: 2
+    objectives: [l15-o3]
+    prompt: |
+      Your deduplicator merged `Bearing temperature 85 degC` with
+      `Bearing temperature 85 degF`, which are an alarm condition and room
+      temperature respectively. Where does the fix belong?
+    options:
+      - "In the embedding model: switch to one trained on technical text, which will encode degC and degF as the distinct quantities they are"
+      - "In the threshold: raise the cosine cut until these two fall apart"
+      - "In the pipeline: unit normalization has to be an explicit, typed, tested step, with the original value retained"
+      - "In the LLM: add a downstream judge call that checks the units agree"
+    answer: "In the pipeline: unit normalization has to be an explicit, typed, tested step, with the original value retained"
+    evidence: |
+      Cosine here is 0.971, and on `10.5 MPa` against `10.5 bar` it is 0.761,
+      still well inside the range where a deduplicator merges. Raising the
+      threshold cannot work, because precision never rises above 0.62 at any cut
+      that retains meaningful recall: there is no value that separates the
+      classes, since the classes overlap in the underlying quantity. Unit
+      normalization cannot be delegated to semantic similarity, and it cannot be
+      delegated to the LLM's good judgment either, which is why A8 requires units
+      in the schema.
+    source:
+      file: lectures/l15/notes.md
+      heading: "Units are invisible"
+      quote: "to be an explicit, typed, tested step in your pipeline"
+    verify:
+      mode: quote
+      needle: "explicit, typed, tested step"
+      volatility: stable
+    tags: [embeddings, units, pipeline]
+
+  - id: l15-q10
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l15-o3]
+    prompt: |
+      You need to deduplicate 34 free-text maintenance log entries. Doing it
+      pairwise with an LLM means 561 calls. What does the embedding route cost,
+      and what is the rule this illustrates?
+    options:
+      - "561 embedding calls, one per pair, but each is far cheaper than an LLM call so the total cost still falls by orders of magnitude"
+      - "One call and 455 tokens, after which every comparison is a dot product"
+      - "34 calls, one per entry, then 561 cosine comparisons"
+      - "One call, but the comparison still needs an LLM to interpret the scores"
+    answer: "One call and 455 tokens, after which every comparison is a dot product"
+    evidence: |
+      All 34 entries embed in a single call for a fraction of a cent, and every
+      pairwise comparison is then a 34 x 1,536 matrix times its own transpose,
+      microseconds. Scaled to a hundred thousand records the LLM approach is not
+      merely expensive, it is arithmetically impossible, while the embedding
+      approach is one matrix multiply or an approximate-nearest-neighbour index.
+      Most real pipelines use embeddings to narrow a corpus from millions to
+      tens, then spend LLM tokens only on the tens. That pipeline is RAG.
+    source:
+      file: lectures/l15/notes.md
+      heading: "When embeddings beat an LLM call"
+      quote: "Embedding all 34 entries was **one call, 455"
+    verify:
+      mode: quote
+      needle: "455"
+      volatility: measured
+    tags: [embeddings, cost]
+
+  - id: l15-q11
+    kind: mcq
+    rung: 3
+    difficulty: 3
+    objectives: [l15-o3]
+    prompt: |
+      Truncating `text-embedding-3-small` vectors and asking whether each entry's
+      nearest neighbour is unchanged, measured on 34 records:
+
+      | dimensions kept | nearest neighbour unchanged |
+      |---|---|
+      | 1,536 | 100% |
+      | 1,024 | 97.1% |
+      | 512 | 100% |
+      | 256 | 85.3% |
+
+      The 1,024 row does worse than the 512 row below it. What should you
+      conclude?
+    options:
+      - "512 dimensions is genuinely the sweet spot for this model, so truncate there and take both the storage saving and the accuracy"
+      - "Nothing about the model. On 34 records the curve cannot be monotonic; this is sampling noise, and tuning a storage decision on a sample this small is the mistake"
+      - "The Matryoshka training failed for this model, so truncation is unsafe here"
+      - "The 1,024 measurement is a bug and should be re-run until it exceeds the 512 row"
+    answer: "Nothing about the model. On 34 records the curve cannot be monotonic; this is sampling noise, and tuning a storage decision on a sample this small is the mistake"
+    evidence: |
+      The non-monotonic row is in the table rather than smoothed away precisely
+      because the temptation to tune a storage decision on a small sample is the
+      mistake this course keeps warning about, and here it is in one of our own
+      measurements. The defensible reading is the coarse one: a third of the
+      storage for no measurable loss is a good trade, and anything finer than
+      that is not supported by 34 records.
+    source:
+      file: lectures/l15/notes.md
+      heading: "Dimensionality is a storage decision"
+      quote: "| 1,024 | 4,096 | 97.1% |"
+    verify:
+      mode: quote
+      needle: "97.1%"
+      volatility: measured
+    tags: [embeddings, storage, sampling]
+
+  # --- notebook ------------------------------------------------------------
+
+  - id: l15-q12
+    kind: notebook_run
+    rung: 4
+    difficulty: 2
+    objectives: [l15-o2]
+    prompt: |
+      Open [`l15-tokens-embeddings.ipynb`](../lectures/l15/l15-tokens-embeddings.ipynb)
+      and run the tokenization section against the pump datasheet.
+
+      Compare the characters-per-token figure you get for the datasheet with the
+      one for technical prose. Which direction does it go, and roughly by how much?
+    options:
+      - "The datasheet is less dense: more characters per token than prose, by about 1.6x"
+      - "The datasheet is more dense: fewer characters per token than prose, by about 1.6x"
+      - "They come out within a few percent of each other"
+      - "The datasheet is more dense by more than 5x, since almost every line is numbers and units rather than words"
+    answer: "The datasheet is more dense: fewer characters per token than prose, by about 1.6x"
+    evidence: |
+      3.05 characters per token for the datasheet against 4.82 for technical
+      prose, so a page of datasheet costs about 1.6 times as many tokens as a
+      page of prose with the same number of characters. The question asks for the
+      ratio rather than the absolute value on purpose: your exact numbers depend
+      on the tokenizer version you have installed, but the direction and the
+      rough size of the effect do not.
+    source:
+      file: lectures/l15/notes.md
+      heading: "What that adds up to per page"
+      quote: "about **1.6 times** as many tokens as a page of prose"
+    verify:
+      mode: ordering
+      needle: "1.6 times"
+      volatility: measured
+    tags: [tokenization, notebook]

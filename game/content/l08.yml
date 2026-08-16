@@ -1,0 +1,12 @@
+schema: 1
+lecture: l08
+title: "Data quality, versioning, and leakage-free splits"
+source_notes: lectures/l08/notes.md
+# See game/content/l06.yml. The notes are published and the bank is not written.
+status: unwritten
+serve: 0
+pool_version: 1
+provenance:
+  drafted_by: none
+  reviewed_by: none
+items: []

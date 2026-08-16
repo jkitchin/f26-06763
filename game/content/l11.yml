@@ -1,0 +1,409 @@
+schema: 1
+lecture: l11
+title: "Deep learning with PyTorch: tensors, autodiff, training loops, GPUs"
+source_notes: lectures/l11/notes.md
+status: published
+serve: 6
+pool_version: 2
+provenance:
+  drafted_by: hand
+  reviewed_by: jkitchin
+  reviewed_at: 2026-08-08
+
+items:
+
+  - id: l11-q01
+    kind: spot_the_defect
+    rung: 3
+    difficulty: 3
+    objectives: [l11-o1]
+    prompt: |
+      A hand-derived gradient and PyTorch's `autograd` disagree by 7.5e-8, which
+      is eight orders of magnitude worse than it should be. JAX agrees to 4.4e-16
+      on the same problem. Every `tensor.dtype` you print reads `float64`.
+
+      What is wrong?
+    options:
+      - "PyTorch's autograd is less numerically careful than JAX's, so use JAX when you need gradient accuracy"
+      - "Two Python floats entered as float32, and float32 promotes to float64 on contact, so every dtype downstream reads float64 and looks fine"
+      - "`requires_grad=True` silently downcasts, so set `torch.set_default_dtype(torch.float64)` before building any tensor"
+      - "The analytic derivative was miscopied; a discrepancy this size is almost always the reference, not the framework"
+    answer: "Two Python floats entered as float32, and float32 promotes to float64 on contact, so every dtype downstream reads float64 and looks fine"
+    evidence: |
+      `torch.tensor(3.14)` gives float32; NumPy defaults to float64 and PyTorch to
+      float32. The relative error was 1.25e-7, float32 epsilon to two figures,
+      which is how the bug was identified as a dtype problem rather than a
+      difference between the libraries. Declare both scalars float64 and PyTorch
+      matches to 1.7e-18. Checking `tensor.dtype` after the fact would not have
+      found this. Checking it at the boundary would.
+    source:
+      file: lectures/l11/notes.md
+      heading: "The dtype trap, measured"
+      quote: "which is float32 epsilon to two figures"
+    verify:
+      mode: quote
+      needle: "float32 epsilon to two figures"
+      volatility: stable
+      cross_check: lectures/l11/figures/make_figures.py
+    tags: [dtype, autodiff, silent-failure]
+
+  - id: l11-q02
+    kind: predict_measure
+    rung: 1
+    difficulty: 2
+    objectives: [l11-o3]
+    prompt: |
+      A small MLP on tabular concrete data, trained on a laptop. You move it to
+      the GPU.
+
+      Before you look: what happens to the time per epoch?
+    predict:
+      ask: "Faster or slower, and by how much?"
+      common_prior: "Faster. That is what an accelerator is for."
+    options:
+      - "Roughly 3x faster, which is the usual return on moving a small model to an accelerator"
+      - "Two and a half times slower: 8.6 ms per epoch on the CPU against 21.1 ms on the GPU"
+      - "About the same, since the model is too small for the device to matter either way"
+      - "Around 10x faster once the data is resident on the device and transfers stop dominating"
+    answer: "Two and a half times slower: 8.6 ms per epoch on the CPU against 21.1 ms on the GPU"
+    evidence: |
+      For this model the accelerator is slower, and it only starts winning past
+      roughly 256 hidden units. Kernel launch and transfer overhead dominate when
+      the arithmetic per step is small, and a tabular MLP has very little
+      arithmetic per step. The crossover, not the speedup, is the lesson: measure
+      where your model sits on it before you pay for a GPU.
+    source:
+      file: lectures/l11/notes.md
+      heading: "Devices, and what an accelerator actually buys"
+      quote: "**8.6 ms per epoch on the CPU and 21.1 ms on the GPU**"
+    verify:
+      mode: ordering
+      needle: "8.6 ms per epoch on the CPU and 21.1 ms on the GPU"
+      volatility: measured
+    tags: [devices, performance]
+
+  - id: l11-q03
+    kind: rank
+    rung: 2
+    difficulty: 3
+    objectives: [l11-o3]
+    prompt: |
+      Three JAX workloads, timed eager and under `jit`. Rank them by how much
+      `jit` helps, most helped first.
+
+      **A.** one 512x512 matmul plus `tanh`
+      **B.** a chain of elementwise ops on 2M floats
+      **C.** a 10-step iterative update via `lax.fori_loop`
+    predict:
+      ask: "Commit before revealing."
+      common_prior: "All three get faster; compilation is strictly a win."
+    options:
+      - "C (2.8x), then B (1.2x), then A, which is actually 0.8x, meaning slower"
+      - "A (2.8x), then C (1.2x), then B at 0.8x, since matmuls benefit most from fusion"
+      - "B (2.8x), then A (1.2x), then C at 0.8x, since elementwise chains fuse best"
+      - "All three land between 1.2x and 2.8x; compilation never makes a workload slower"
+    answer: "C (2.8x), then B (1.2x), then A, which is actually 0.8x, meaning slower"
+    evidence: |
+      `jit` pays where there is structure to fuse and control flow to unroll. A
+      single large matmul is already one library call, so compilation adds
+      dispatch overhead and nothing else, and it comes out slower. The iterative
+      update is where it earns 2.8x, because the loop itself becomes part of the
+      compiled program. "Compile it" is not a free optimisation, it is a bet
+      about the shape of the work.
+    source:
+      file: lectures/l11/notes.md
+      heading: "JAX writes the same loop inside out"
+      quote: "| one 512×512 matmul plus `tanh` | 2.8 ms | 3.6 ms | **0.8×** |"
+    verify: {mode: ordering, needle: "0.8", volatility: measured}
+    tags: [jax, jit, performance]
+
+  - id: l11-q04
+    kind: direction
+    rung: 2
+    difficulty: 3
+    objectives: [l11-o2]
+    prompt: |
+      The concrete dataset has 428 distinct mixes, and the multi-age mixes
+      account for 76% of all rows: the same batch appears at 3, 7, 28 and 90 days.
+
+      You split rows at random for validation. What does that do to a comparison
+      between gradient boosting and an MLP?
+    options:
+      - "Nothing much; with over a thousand rows a random split is representative enough for a model comparison"
+      - "It flatters whichever model can better exploit the leak, and the tree's advantage over the net largely disappears once whole mixes are held out"
+      - "It penalises the tree, because trees are more sensitive to the duplicate rows a random split creates"
+      - "It inflates both equally, so the comparison between them is still fair even though the absolute numbers are wrong"
+    answer: "It flatters whichever model can better exploit the leak, and the tree's advantage over the net largely disappears once whole mixes are held out"
+    evidence: |
+      On a random k-fold gradient boosting beats the MLP by 0.51 MPa. Under a
+      mix-grouped split the gap collapses to 0.13 +/- 0.18 MPa, a tie. The tree's
+      advantage here is substantially its greater ability to exploit a leaky
+      split. A single-seed run of the same comparison showed the MLP winning, and
+      five seeds show a tie, which is the other half of the lesson: do not report
+      single-seed deep-learning results.
+    source:
+      file: lectures/l11/notes.md
+      heading: "Look at the rows before you model them"
+      quote: "mixes account for **76% of all rows**"
+    verify:
+      mode: ordering
+      needle: "76% of all rows"
+      volatility: measured
+      cross_check: lectures/l11/figures/make_figures.py
+    tags: [leakage, comparison]
+
+  - id: l11-q05
+    kind: predict_measure
+    rung: 1
+    difficulty: 2
+    objectives: [l11-o2]
+    prompt: |
+      The module's claim is that unnormalized inputs cause NaNs. You train the
+      same unnormalized data twice, once with SGD and once with Adam.
+
+      Before you look: what does Adam do?
+    predict:
+      ask: "NaN, or something else?"
+      common_prior: "NaN as well, a bit later. Bad scaling is bad scaling."
+    options:
+      - "NaN too, though it takes more epochs because the moment estimates delay the divergence"
+      - "It does not diverge at all; it trains to 9.7 MPa instead of 6.0, a model that works and is merely bad"
+      - "It converges normally, since adaptive methods are scale-invariant by construction"
+      - "It diverges to a large finite value rather than NaN, which is easy to spot in the loss curve"
+    answer: "It does not diverge at all; it trains to 9.7 MPa instead of 6.0, a model that works and is merely bad"
+    evidence: |
+      With SGD the NaNs arrive immediately. Adam's per-parameter scaling absorbs
+      the problem and hides a scaling bug as mediocrity rather than as a crash,
+      which is worse: a crash gets investigated, a model that is merely not very
+      good gets shipped. The general shape is the one this course keeps
+      returning to, that the dangerous failure is the one that does not raise.
+    source:
+      file: lectures/l11/notes.md
+      heading: "Three ways a first training loop dies"
+      quote: "it trains to 9.7 MPa instead of 6.0"
+    verify:
+      mode: quote
+      needle: "9.7 MPa instead of 6.0"
+      volatility: measured
+      cross_check: lectures/l11/figures/make_figures.py
+    tags: [training, optimizers, silent-failure]
+
+  - id: l11-q06
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l11-o2]
+    prompt: |
+      Sweeping the SGD learning rate on this model: about 7.6 MPa at the working
+      value, 33.7 at `lr = 1.0`, and NaN from the first epoch at `lr = 2.0`.
+
+      What is special about `lr = 1.0`?
+    options:
+      - "It is the largest stable value, so it is the right choice for fastest convergence"
+      - "The outcome there depends on the seed, so a single run tells you nothing about whether the setting is safe"
+      - "It is exactly the edge of stability, which can be computed in advance from the loss curvature"
+      - "Nothing; it is simply an intermediate point between the working value and divergence"
+    answer: "The outcome there depends on the seed, so a single run tells you nothing about whether the setting is safe"
+    evidence: |
+      At `lr = 1.0` the result varies across seed-and-loop combinations, which is
+      the honest version of the "too high a learning rate diverges" lesson. There
+      is not a clean threshold with safety below and failure above; there is a
+      band where whether you get away with it is luck. A hyperparameter chosen
+      from one run in that band is a hyperparameter you have not chosen.
+    source:
+      file: lectures/l11/notes.md
+      heading: "Three ways a first training loop dies"
+      quote: "At **lr = 1.0** the outcome depends on the seed"
+    verify: {mode: quote, needle: "the outcome depends on the seed", volatility: measured}
+    tags: [training, hyperparameters, reproducibility]
+
+  - id: l11-q07
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l11-o1]
+    prompt: |
+      You want to check a gradient. Autodiff gives 1.7e-18 against the analytic
+      answer; the best central difference over forty step sizes manages 1.4e-12.
+
+      Why can finite differences not do better, however carefully you choose the
+      step?
+    options:
+      - "Because the step size is chosen by trial and error, and forty candidates is too coarse a sweep to find the optimum"
+      - "Because truncation error falls with the step while rounding error rises, so the total is minimised at a floor rather than driven to zero"
+      - "Because central differences are only second-order accurate, and a higher-order stencil would reach machine precision"
+      - "Because floating point subtraction is not associative, so the result depends on evaluation order"
+    answer: "Because truncation error falls with the step while rounding error rises, so the total is minimised at a floor rather than driven to zero"
+    evidence: |
+      The two error terms move in opposite directions with h, so there is a best
+      step and a corresponding error floor, and the floor is many orders of
+      magnitude above machine precision. Autodiff is not a better approximation
+      of the derivative, it is the derivative, computed by the chain rule on the
+      operations you actually performed. That is why it lands at 1.7e-18 and a
+      difference quotient cannot.
+    source:
+      file: lectures/l11/notes.md
+      heading: "Automatic differentiation, demystified"
+      quote: "The best central difference, over forty step sizes, manages **1.4 × 10⁻¹²**"
+    verify: {mode: quote, needle: "1.4 × 10⁻¹²", volatility: measured}
+    tags: [autodiff, numerics]
+
+  - id: l11-q08
+    kind: mechanism_recall
+    rung: 5
+    difficulty: 3
+    objectives: [l11-o2]
+    prompt: |
+      Close the notes. Write out the five steps of a PyTorch training loop from
+      memory, in order, and say what each one is for. Stop when you stall, and
+      note where.
+    checklist:
+      - text: "Zero the gradients, because they accumulate by default"
+        needle: "zero_grad"
+      - text: "Forward pass: compute predictions from the batch"
+        needle: "forward"
+      - text: "Compute the loss against the targets"
+        needle: "loss"
+      - text: "Backward pass: autograd populates .grad for every parameter"
+        needle: "backward"
+      - text: "Optimizer step: apply the update"
+        needle: "step"
+    answer: null
+    evidence: |
+      The one people leave out is the first, and it is the only one whose absence
+      does not raise: gradients accumulate, so omitting `opt.zero_grad()` trains
+      on a running sum of every gradient so far. The run does not crash, it just
+      learns badly, and the loss curve looks like a bad hyperparameter rather
+      than a bug. If you stalled anywhere, that is your reading assignment.
+    source:
+      file: lectures/l11/notes.md
+      heading: "The anatomy of a training loop"
+      quote: "optimizer.zero_grad()           # clear the accumulator"
+    verify:
+      mode: manual
+      needle: "zero_grad"
+      volatility: stable
+      exempt_reason: >-
+        Free-text recall; each checklist entry is verified against the source
+        individually rather than the answer being matched as a whole.
+    tags: [training, self-test]
+
+  - id: l11-q09
+    kind: locus_of_control
+    rung: 3
+    difficulty: 2
+    objectives: [l11-o2]
+    prompt: |
+      Your training loss decreases far more slowly than it should, nothing
+      raises, and the shapes are all correct. A colleague suggests lowering the
+      learning rate.
+
+      What should you check first, and why?
+    options:
+      - "The learning rate, since a slow, smooth decrease is the classic signature of a step size that is too small"
+      - "Whether `opt.zero_grad()` is being called, because gradients accumulate by default and its absence never raises"
+      - "The batch size, since small batches produce noisy gradients that slow convergence"
+      - "The initialisation, since poor scaling of the first layer will stall learning without any error"
+    answer: "Whether `opt.zero_grad()` is being called, because gradients accumulate by default and its absence never raises"
+    evidence: |
+      Every other candidate is a tuning question; this one is a defect, and it
+      presents identically. The line everyone forgets once is the one whose
+      omission is silent, so it is worth ruling out before spending an afternoon
+      on hyperparameters. This is the same shape as the dtype trap earlier in the
+      session: a real bug wearing the costume of a bad setting.
+    source:
+      file: lectures/l11/notes.md
+      heading: "Three ways a first training loop dies"
+      quote: "pair: failure mode; forgetting zero_grad"
+    verify: {mode: quote, needle: "zero_grad", volatility: stable}
+    tags: [training, debugging]
+
+  - id: l11-q10
+    kind: claim_vs_source
+    rung: 2
+    difficulty: 2
+    objectives: [l11-o1]
+    prompt: |
+      "Deep learning beats trees on tabular data now." Someone cites Grinsztajn
+      and Varoquaux's benchmark.
+
+      What does that work actually report?
+    options:
+      - "That deep learning wins once the dataset passes roughly ten thousand rows"
+      - "That tree-based models remain ahead on typical tabular data, across 45 datasets and a large compute budget"
+      - "That the two are indistinguishable once hyperparameters are tuned equally for both"
+      - "That the comparison is undecidable, because no standard tabular benchmark suite exists"
+    answer: "That tree-based models remain ahead on typical tabular data, across 45 datasets and a large compute budget"
+    evidence: |
+      45 datasets and 20,000 compute hours, and the finding runs the other way
+      from the slogan. Worth pairing with this session's own measurement, where a
+      tree's apparent advantage over an MLP largely evaporated once the grouped
+      split removed the leak. Both point at the same discipline: the honest
+      comparison is the one with the right split and more than one seed, and it
+      is usually less exciting than either camp's headline.
+    source:
+      file: lectures/l11/notes.md
+      heading: "The comparison, run honestly"
+      quote: "benchmarked **45 datasets**"
+    verify: {mode: quote, needle: "45 datasets", volatility: stable}
+    tags: [comparison, literature]
+
+  - id: l11-q11
+    kind: mcq
+    rung: 3
+    difficulty: 3
+    objectives: [l11-o1]
+    prompt: |
+      Replacing an explicit Python loop over 256 examples with a vectorised
+      formulation agrees to 2.2e-15 and is also faster.
+
+      What is the 2.2e-15 telling you?
+    options:
+      - "That the vectorised version is slightly wrong, and the difference is the approximation error it introduces"
+      - "That the two are the same computation to float64 rounding, so the speedup costs no accuracy"
+      - "That the loop version accumulates error over 256 iterations, and vectorising removes it"
+      - "That the comparison is inconclusive at this precision and should be repeated in float32"
+    answer: "That the two are the same computation to float64 rounding, so the speedup costs no accuracy"
+    evidence: |
+      2.2e-15 is float64 epsilon territory: the two orderings of the same
+      arithmetic differ only by rounding. That is the check worth running
+      whenever you vectorise, because vectorising is a rewrite, and a rewrite
+      that changes the answer is a bug rather than an optimisation. Confirm the
+      agreement first, then keep the speed.
+    source:
+      file: lectures/l11/notes.md
+      heading: "JAX writes the same loop inside out"
+      quote: "the same 256 examples to **2.2 × 10⁻¹⁵**"
+    verify: {mode: quote, needle: "2.2 × 10⁻¹⁵", volatility: measured}
+    tags: [vectorization, numerics]
+
+  - id: l11-q12
+    kind: notebook_run
+    rung: 4
+    difficulty: 2
+    objectives: [l11-o3]
+    prompt: |
+      Open [`l11-tensors-autograd.ipynb`](../lectures/l11/l11-tensors-autograd.ipynb)
+      and run the device comparison for the small tabular MLP.
+
+      Which device wins on your machine, and what does the result tell you about
+      when to reach for an accelerator?
+    options:
+      - "The GPU, by a wide margin, which is why accelerators are the default for training"
+      - "Whichever you have; the point is the crossover, not which device won"
+      - "The CPU always, because PyTorch's GPU path is not optimised for tabular data"
+      - "Neither reliably; device timings are too noisy on a laptop to support any conclusion"
+    answer: "Whichever you have; the point is the crossover, not which device won"
+    evidence: |
+      On the machine these notes were measured on, the CPU ran 8.6 ms per epoch
+      against the GPU's 21.1 ms, and the accelerator only started winning past
+      about 256 hidden units. Your absolute numbers will differ, which is exactly
+      why the question asks for the shape rather than the values: the crossover
+      exists on every machine, and where it sits is something you measure rather
+      than assume.
+    source:
+      file: lectures/l11/notes.md
+      heading: "Devices, and what an accelerator actually buys"
+      quote: "**8.6 ms per epoch on the CPU and 21.1 ms on the GPU**"
+    verify: {mode: ordering, needle: "21.1 ms on the GPU", volatility: measured}
+    tags: [devices, notebook]

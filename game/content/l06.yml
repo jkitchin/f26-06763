@@ -1,0 +1,16 @@
+schema: 1
+lecture: l06
+title: "Streaming concepts and data validation"
+source_notes: lectures/l06/notes.md
+# The notes are published, the item bank is not written yet. This stub says so
+# deliberately: validate.py refuses a published lecture with no bank at all,
+# because a lecture that silently has no practice module is indistinguishable
+# from one somebody forgot. load.ts skips any bank with this status, so the
+# module does not appear in the app and the map draws the room as shuttered.
+status: unwritten
+serve: 0
+pool_version: 1
+provenance:
+  drafted_by: none
+  reviewed_by: none
+items: []

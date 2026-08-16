@@ -1,0 +1,179 @@
+{
+  "lecture": "l21",
+  "versions": {
+    "1": {
+      "items": {
+        "l21-q01": {
+          "answer": "About -0.11, which is agreement no better than chance",
+          "options": [
+            "About 0.4, mediocre but clearly better than chance, which is what a crude lexical heuristic ought to manage",
+            "About -0.11, which is agreement no better than chance",
+            "About 0.8, since the cases were constructed to be unambiguous and a heuristic should handle unambiguous cases",
+            "Undefined, because kappa needs more than eight examples to be computed"
+          ]
+        },
+        "l21-q02": {
+          "answer": "Sharpen the rubric, or add a programmatic check for the dimension it is blind to",
+          "options": [
+            "Skip judge validation in future; a check that fails this often is not earning its cost",
+            "Sharpen the rubric, or add a programmatic check for the dimension it is blind to",
+            "Move to a larger judge model, since capability is what a low kappa is measuring",
+            "Relabel the examples, since disagreement this severe usually means the human labels were inconsistent"
+          ]
+        },
+        "l21-q03": {
+          "answer": "Position bias; randomize answer order in pairwise comparisons so the effect cancels",
+          "options": [
+            "Recency bias; place the stronger answer second so it is freshest in context",
+            "Position bias; randomize answer order in pairwise comparisons so the effect cancels",
+            "Temperature bias; set the judge's temperature to zero so its scores stop varying",
+            "Vocabulary bias; restrict the rubric to words that appear in the answers themselves"
+          ]
+        },
+        "l21-q04": {
+          "answer": "An aggregate is a weighted average over whatever slices happen to be in the test set, and the weights are an accident of how the data was collected",
+          "options": [
+            "Accuracy is the wrong metric here; F1 balances precision against recall and would have surfaced the night-shift failure",
+            "An aggregate is a weighted average over whatever slices happen to be in the test set, and the weights are an accident of how the data was collected",
+            "The test set is stale and should be refreshed continuously from production traffic",
+            "94% is simply too low a bar for a production system, and the threshold should be raised"
+          ]
+        },
+        "l21-q05": {
+          "answer": "Because a set that moves cannot be compared with itself over time",
+          "options": [
+            "Because labelling is expensive, so re-labelling should be avoided where possible",
+            "Because a set that moves cannot be compared with itself over time",
+            "Because production data is not representative of the deployment distribution",
+            "Because a frozen set can be cached, which makes the harness fast enough to run in CI"
+          ]
+        },
+        "l21-q06": {
+          "answer": "A score plus a written justification, as structured output",
+          "options": [
+            "Prose you then parse, since free text lets the judge express nuance a schema would flatten",
+            "A score plus a written justification, as structured output",
+            "A single score, since a justification costs output tokens and latency without changing the number the harness records",
+            "A ranked list of all candidate answers, since relative judgements are more reliable than absolute ones"
+          ]
+        },
+        "l21-q07": {},
+        "l21-q08": {
+          "answer": "A trace per request, so the specific run can be retrieved and read",
+          "options": [
+            "A higher log level on the model client, so the raw HTTP exchange is captured",
+            "A trace per request, so the specific run can be retrieved and read",
+            "A larger eval set, so the behaviour would have been caught before release",
+            "Pinning the model version, so yesterday's behaviour is reproducible today"
+          ]
+        },
+        "l21-q09": {
+          "answer": "Agreement no better than chance, about this judge rather than judges in general",
+          "options": [
+            "Strong agreement, showing that a simple heuristic is adequate for most grading",
+            "Agreement no better than chance, about this judge rather than judges in general",
+            "Perfect agreement, since the cases were constructed to be unambiguous",
+            "Agreement that cannot be summarised, because kappa is undefined on so few cases"
+          ]
+        },
+        "l21-q10": {
+          "answer": "Inputs, outputs, tool calls, latency and cost, because cost is a per-request property that only becomes visible in aggregate and only if it was recorded",
+          "options": [
+            "Inputs and outputs only, since tool calls and timings are already in the application logs and duplicating them wastes storage",
+            "Inputs, outputs, tool calls, latency and cost, because cost is a per-request property that only becomes visible in aggregate and only if it was recorded",
+            "A hash of the request, so traces stay small and no user data is retained anywhere in the system",
+            "The model version and the prompt template, since those are the only things that change between deployments"
+          ]
+        }
+      },
+      "serve": 6
+    },
+    "2": {
+      "items": {
+        "l21-q01": {
+          "answer": "About -0.11, which is agreement no better than chance",
+          "options": [
+            "About 0.4, mediocre but clearly better than chance, which is what a crude lexical heuristic ought to manage",
+            "About -0.11, which is agreement no better than chance",
+            "About 0.8, since the cases were constructed to be unambiguous and a heuristic should handle unambiguous cases",
+            "Undefined, because kappa needs more than eight examples to be computed"
+          ]
+        },
+        "l21-q02": {
+          "answer": "Sharpen the rubric, or add a programmatic check for the dimension it is blind to",
+          "options": [
+            "Skip judge validation in future; a check that fails this often is not earning its cost",
+            "Sharpen the rubric, or add a programmatic check for the dimension it is blind to",
+            "Move to a larger judge model, since capability is what a low kappa is measuring",
+            "Relabel the examples, since disagreement this severe usually means the human labels were inconsistent"
+          ]
+        },
+        "l21-q03": {
+          "answer": "Position bias; randomize answer order in pairwise comparisons so the effect cancels",
+          "options": [
+            "Recency bias; place the stronger answer second so it is freshest in context",
+            "Position bias; randomize answer order in pairwise comparisons so the effect cancels",
+            "Temperature bias; set the judge's temperature to zero so its scores stop varying",
+            "Vocabulary bias; restrict the rubric to words that appear in the answers themselves"
+          ]
+        },
+        "l21-q04": {
+          "answer": "An aggregate is a weighted average over whatever slices happen to be in the test set, and the weights are an accident of how the data was collected",
+          "options": [
+            "Accuracy is the wrong metric here; F1 balances precision against recall and would have surfaced the night-shift failure",
+            "An aggregate is a weighted average over whatever slices happen to be in the test set, and the weights are an accident of how the data was collected",
+            "The test set is stale and should be refreshed continuously from production traffic",
+            "94% is simply too low a bar for a production system, and the threshold should be raised"
+          ]
+        },
+        "l21-q05": {
+          "answer": "Because a set that moves cannot be compared with itself over time",
+          "options": [
+            "Because labelling is expensive, so re-labelling should be avoided where possible",
+            "Because a set that moves cannot be compared with itself over time",
+            "Because production data is not representative of the deployment distribution",
+            "Because a frozen set can be cached, which makes the harness fast enough to run in CI"
+          ]
+        },
+        "l21-q06": {
+          "answer": "A score plus a written justification, as structured output",
+          "options": [
+            "Prose you then parse, since free text lets the judge express nuance a schema would flatten",
+            "A score plus a written justification, as structured output",
+            "A single score, since a justification costs output tokens and latency without changing the number the harness records",
+            "A ranked list of all candidate answers, since relative judgements are more reliable than absolute ones"
+          ]
+        },
+        "l21-q07": {},
+        "l21-q08": {
+          "answer": "A trace per request, so the specific run can be retrieved and read",
+          "options": [
+            "A higher log level on the model client, so the raw HTTP exchange is captured",
+            "A trace per request, so the specific run can be retrieved and read",
+            "A larger eval set, so the behaviour would have been caught before release",
+            "Pinning the model version, so yesterday's behaviour is reproducible today"
+          ]
+        },
+        "l21-q09": {
+          "answer": "Agreement no better than chance, about this judge rather than judges in general",
+          "options": [
+            "Strong agreement, showing that a simple heuristic is adequate for most grading",
+            "Agreement no better than chance, about this judge rather than judges in general",
+            "Perfect agreement, since the cases were constructed to be unambiguous",
+            "Agreement that cannot be summarised, because kappa is undefined on so few cases"
+          ]
+        },
+        "l21-q10": {
+          "answer": "Inputs, outputs, tool calls, latency and cost, because cost is a per-request property that only becomes visible in aggregate and only if it was recorded",
+          "options": [
+            "Inputs and outputs only, since tool calls and timings are already in the application logs and duplicating them wastes storage",
+            "Inputs, outputs, tool calls, latency and cost, because cost is a per-request property that only becomes visible in aggregate and only if it was recorded",
+            "A hash of the request, so traces stay small and no user data is retained anywhere in the system",
+            "The model version and the prompt template, since those are the only things that change between deployments"
+          ]
+        }
+      },
+      "serve": 5
+    }
+  }
+}

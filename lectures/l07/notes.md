@@ -307,7 +307,7 @@ attached unit as an incomplete data contract.
 Then note the harder half: MCO *had* a written specification requiring newton-seconds, and it
 did not help, because nothing checked compliance. A data contract that is documented but not
 executed is a comment. This is the argument for the pandera schemas from
-[L6](../l05/notes.md)'s successor applied to units: a range assertion on
+L6's successor applied to units: a range assertion on
 `thrust_lbf` that fails loudly when someone hands it newtons is worth more than a paragraph in
 an interface document that both teams believe they are following.
 

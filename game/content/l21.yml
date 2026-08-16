@@ -1,0 +1,322 @@
+schema: 1
+lecture: l21
+title: "Evaluating ML and LLM/agent systems: harnesses, judges, tracing"
+source_notes: lectures/l21/notes.md
+status: published
+serve: 5
+pool_version: 2
+provenance:
+  drafted_by: hand
+  reviewed_by: jkitchin
+  reviewed_at: 2026-08-08
+
+items:
+
+  - id: l21-q01
+    kind: predict_measure
+    rung: 1
+    difficulty: 3
+    objectives: [l21-o2]
+    prompt: |
+      This session's demo validates a deliberately naive judge, a lexical-overlap
+      heuristic, against hand labels on eight constructed cases.
+
+      Before you look: what is Cohen's kappa?
+    predict:
+      ask: "Write a number between -1 and 1, and say what you expect."
+      common_prior: "Something positive but mediocre, maybe 0.4. Word overlap is crude but not useless."
+    options:
+      - "About 0.4, mediocre but clearly better than chance, which is what a crude lexical heuristic ought to manage"
+      - "About -0.11, which is agreement no better than chance"
+      - "About 0.8, since the cases were constructed to be unambiguous and a heuristic should handle unambiguous cases"
+      - "Undefined, because kappa needs more than eight examples to be computed"
+    answer: "About -0.11, which is agreement no better than chance"
+    evidence: |
+      Every disagreement traces to a specific, nameable blind spot. The heuristic
+      cannot tell a citation that supports the answer from one that does not,
+      because it never looks at the citation; and it cannot tell "48 mm" from
+      "36 mm" inside an otherwise identical sentence, because word overlap does
+      not distinguish those the way a person instantly does. A real LLM judge
+      would close some of those gaps and not others, and the entire point of
+      running the validation is that you find out which, on your rubric, with
+      your judge, rather than assuming.
+    source:
+      file: lectures/l21/notes.md
+      heading: "LLM-as-judge, done carefully"
+      quote: "kappa of about -0.11, agreement no better\nthan chance"
+    verify: {mode: quote, needle: "-0.11", volatility: measured}
+    tags: [evaluation, judge]
+
+  - id: l21-q02
+    kind: locus_of_control
+    rung: 3
+    difficulty: 2
+    objectives: [l21-o2]
+    prompt: |
+      You validate your LLM judge against fifty hand labels and it fails: kappa
+      is close to zero.
+
+      What should you do?
+    options:
+      - "Skip judge validation in future; a check that fails this often is not earning its cost"
+      - "Sharpen the rubric, or add a programmatic check for the dimension it is blind to"
+      - "Move to a larger judge model, since capability is what a low kappa is measuring"
+      - "Relabel the examples, since disagreement this severe usually means the human labels were inconsistent"
+    answer: "Sharpen the rubric, or add a programmatic check for the dimension it is blind to"
+    evidence: |
+      Treat a judge's kappa the way you would treat a surrogate's calibration
+      coverage: a number you check, not a property you assume. The fix is almost
+      always a sharper rubric or an added programmatic check, not a bigger model,
+      because the usual failure is that the rubric did not say what you meant
+      rather than that the judge could not read it. Note what the third option
+      quietly assumes: that capability, not specification, is the binding
+      constraint. It usually is not.
+    source:
+      file: lectures/l21/notes.md
+      heading: "LLM-as-judge, done carefully"
+      quote: "the fix is almost always a sharper rubric or an added programmatic check for the specific dimension the judge is blind to, not a bigger model"
+    verify: {mode: quote, needle: "a sharper rubric or an added programmatic check", volatility: stable}
+    tags: [evaluation, judge]
+
+  - id: l21-q03
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l21-o2]
+    prompt: |
+      Which of these is a known systematic bias of LLM-as-judge, and what is the
+      direct control for it?
+    options:
+      - "Recency bias; place the stronger answer second so it is freshest in context"
+      - "Position bias; randomize answer order in pairwise comparisons so the effect cancels"
+      - "Temperature bias; set the judge's temperature to zero so its scores stop varying"
+      - "Vocabulary bias; restrict the rubric to words that appear in the answers themselves"
+    answer: "Position bias; randomize answer order in pairwise comparisons so the effect cancels"
+    evidence: |
+      The three named biases are position, length, and self-preference. None of
+      them makes LLM-as-judge useless; they make it a measurement instrument with
+      known systematic errors, which is a reason to calibrate rather than to
+      discard. Randomizing order cancels position bias directly, and a
+      length-normalized criterion is the analogous control when longer answers
+      keep winning for the wrong reason. Temperature is a real setting and not
+      one of the biases.
+    source:
+      file: lectures/l21/notes.md
+      heading: "LLM-as-judge, done carefully"
+      quote: "randomize answer order in pairwise comparisons to cancel out position bias"
+    verify: {mode: quote, needle: "cancel out position bias", volatility: stable}
+    tags: [evaluation, judge, bias]
+
+  - id: l21-q04
+    kind: spot_the_defect
+    rung: 3
+    difficulty: 2
+    objectives: [l21-o1]
+    prompt: |
+      Your model reports 94% accuracy on the test set and the number has been
+      stable for months. A customer reports that it fails badly on night-shift
+      data.
+
+      What is the defect in the reporting?
+    options:
+      - "Accuracy is the wrong metric here; F1 balances precision against recall and would have surfaced the night-shift failure"
+      - "An aggregate is a weighted average over whatever slices happen to be in the test set, and the weights are an accident of how the data was collected"
+      - "The test set is stale and should be refreshed continuously from production traffic"
+      - "94% is simply too low a bar for a production system, and the threshold should be raised"
+    answer: "An aggregate is a weighted average over whatever slices happen to be in the test set, and the weights are an accident of how the data was collected"
+    evidence: |
+      A single scalar cannot show you which slice is failing, and a slice that is
+      rare in your test set contributes almost nothing to the aggregate however
+      badly it does. Refreshing the test set is the wrong instinct here for a
+      separate reason: an eval set that moves cannot be compared with itself over
+      time, which is why the session insists on a frozen, versioned one. Report
+      per slice, and freeze the set.
+    source:
+      file: lectures/l21/notes.md
+      heading: "ML metrics recap, and why one number hides the failure that matters"
+      quote: "the weights are usually an accident of how the data w"
+    verify: {mode: quote, needle: "an accident of how the data", volatility: stable}
+    tags: [evaluation, slices]
+
+  - id: l21-q05
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l21-o1]
+    prompt: |
+      Why must an eval set be frozen and versioned rather than refreshed as new
+      production data arrives?
+    options:
+      - "Because labelling is expensive, so re-labelling should be avoided where possible"
+      - "Because a set that moves cannot be compared with itself over time"
+      - "Because production data is not representative of the deployment distribution"
+      - "Because a frozen set can be cached, which makes the harness fast enough to run in CI"
+    answer: "Because a set that moves cannot be compared with itself over time"
+    evidence: |
+      The whole value of an eval number is the comparison it supports: this
+      version against last version. Change the set and the comparison silently
+      becomes a comparison of two different questions, so a drop could mean a
+      regression or could mean the new examples were harder, and you cannot tell
+      which. Freezing does not mean never adding; it means versioning, so that
+      every number is attached to the set it was computed on.
+    source:
+      file: lectures/l21/notes.md
+      heading: "The eval mindset: a frozen, versioned test set"
+      quote: "the test set has to be **frozen** and **versioned**"
+    verify: {mode: quote, needle: "frozen", volatility: stable}
+    tags: [evaluation, methodology]
+
+  - id: l21-q06
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l21-o2]
+    prompt: |
+      When building an LLM-as-judge, what should the judge be asked to return?
+    options:
+      - "Prose you then parse, since free text lets the judge express nuance a schema would flatten"
+      - "A score plus a written justification, as structured output"
+      - "A single score, since a justification costs output tokens and latency without changing the number the harness records"
+      - "A ranked list of all candidate answers, since relative judgements are more reliable than absolute ones"
+    answer: "A score plus a written justification, as structured output"
+    evidence: |
+      Two reasons, and the second is the one people miss. Structured output is
+      more reliable to extract than prose you parse. And writing the
+      justification is frequently what makes the judge's reasoning inspectable at
+      all, which is what lets you find the blind spot when validation fails.
+      A bare score gives you a number and no way to debug it.
+    source:
+      file: lectures/l21/notes.md
+      heading: "LLM-as-judge, done carefully"
+      quote: "a score plus a written justification instead of freeform prose you then have to parse"
+    verify: {mode: quote, needle: "a written justification", volatility: stable}
+    tags: [evaluation, judge, structured-output]
+
+  - id: l21-q07
+    kind: mechanism_recall
+    rung: 5
+    difficulty: 3
+    objectives: [l21-o2]
+    prompt: |
+      Close the notes. Write out the procedure for validating an LLM judge before
+      you trust it, and say what a failed validation means. Stop when you stall,
+      and note where.
+    checklist:
+      - text: "Hand-label twenty to fifty examples yourself, first"
+        needle: "Hand-label twenty to fifty examples yourself"
+      - text: "Run the judge on the same examples and measure agreement"
+        needle: "run the judge on the same examples"
+      - text: "Percent agreement at minimum, Cohen's kappa to correct for chance"
+        needle: "Cohen's kappa"
+      - text: "A failed validation is what validation exists to catch, not a reason to skip it"
+        needle: "it is what validation exists to catch"
+      - text: "The fix is usually a sharper rubric or a programmatic check, not a bigger model"
+        needle: "not a bigger model"
+      - text: "Name the biases you are controlling for: position, length, self-preference"
+        needle: "Self-preference"
+    answer: null
+    evidence: |
+      The demo runs exactly this on eight constructed cases and gets a kappa of
+      about -0.11 against a judge built to be naive. Every disagreement traces to
+      a nameable blind spot, and the point of running the validation is that you
+      find out which, on your rubric, with your judge, rather than assuming.
+      Where you stalled is your reading assignment.
+    source:
+      file: lectures/l21/notes.md
+      heading: "LLM-as-judge, done carefully"
+      quote: "Hand-label twenty to fifty examples yourself"
+    verify:
+      mode: manual
+      needle: "Hand-label twenty to fifty examples yourself"
+      volatility: stable
+      exempt_reason: >-
+        Free-text recall; each checklist entry is verified against the source
+        individually rather than the answer being matched as a whole.
+    tags: [evaluation, judge, self-test]
+
+  - id: l21-q08
+    kind: locus_of_control
+    rung: 3
+    difficulty: 3
+    objectives: [l21-o3]
+    prompt: |
+      A user reports that your agent "did something weird" yesterday afternoon.
+      You cannot reproduce it.
+
+      What makes this a debuggable incident rather than a shrug?
+    options:
+      - "A higher log level on the model client, so the raw HTTP exchange is captured"
+      - "A trace per request, so the specific run can be retrieved and read"
+      - "A larger eval set, so the behaviour would have been caught before release"
+      - "Pinning the model version, so yesterday's behaviour is reproducible today"
+    answer: "A trace per request, so the specific run can be retrieved and read"
+    evidence: |
+      Pinning and a bigger eval set are both good and neither answers this
+      question, because this question is about an event that already happened.
+      An agent trace is a run, the same as a training run, and deserves the same
+      discipline about being recorded rather than trusted to memory. Without one
+      the incident is unfalsifiable in both directions: you cannot confirm it and
+      you cannot dismiss it.
+    source:
+      file: lectures/l21/notes.md
+      heading: "Observability and tracing"
+      quote: "observability, tracing, structured logging"
+    verify: {mode: quote, needle: "tracing", volatility: stable}
+    tags: [observability, tracing]
+
+  - id: l21-q09
+    kind: notebook_run
+    rung: 4
+    difficulty: 2
+    objectives: [l21-o2]
+    prompt: |
+      Open [`l21-eval.ipynb`](../lectures/l21/l21-eval.ipynb) and run the judge
+      validation against the hand-labelled cases.
+
+      What does the agreement look like, and what should you conclude from it?
+    options:
+      - "Strong agreement, showing that a simple heuristic is adequate for most grading"
+      - "Agreement no better than chance, about this judge rather than judges in general"
+      - "Perfect agreement, since the cases were constructed to be unambiguous"
+      - "Agreement that cannot be summarised, because kappa is undefined on so few cases"
+    answer: "Agreement no better than chance, about this judge rather than judges in general"
+    evidence: |
+      Kappa comes out around -0.11 against a deliberately naive lexical-overlap
+      judge. The generalisation to resist is "LLM judges do not work": the
+      measured thing is that *this* judge, on *this* rubric, does not, and the
+      procedure that established it is the transferable part. Run the same
+      procedure on your own judge and you will get your own number, which is the
+      only one that licenses trusting it.
+    source:
+      file: lectures/l21/notes.md
+      heading: "LLM-as-judge, done carefully"
+      quote: "a judge deliberately built to be naive"
+    verify: {mode: quote, needle: "deliberately built to be naive", volatility: stable}
+    tags: [evaluation, judge, notebook]
+
+  - id: l21-q10
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l21-o3]
+    prompt: |
+      What should a trace record for every request, and why does cost belong on
+      that list?
+    options:
+      - "Inputs and outputs only, since tool calls and timings are already in the application logs and duplicating them wastes storage"
+      - "Inputs, outputs, tool calls, latency and cost, because cost is a per-request property that only becomes visible in aggregate and only if it was recorded"
+      - "A hash of the request, so traces stay small and no user data is retained anywhere in the system"
+      - "The model version and the prompt template, since those are the only things that change between deployments"
+    answer: "Inputs, outputs, tool calls, latency and cost, because cost is a per-request property that only becomes visible in aggregate and only if it was recorded"
+    evidence: |
+      Cost is the one people leave out, and it is the one that cannot be
+      reconstructed later: a monthly invoice tells you the total and nothing about
+      which request shape caused it. Recorded per request, the same data answers
+      "what did yesterday's incident do" and "which endpoint is expensive", which
+      is why this is one mechanism rather than two.
+    source:
+      file: lectures/l21/notes.md
+      heading: "Observability and tracing"
+      quote: "observability, tracing, structured logging"
+    verify: {mode: quote, needle: "structured logging", volatility: stable}
+    tags: [observability, cost]

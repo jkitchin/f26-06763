@@ -1,0 +1,720 @@
+{
+  "generated_by": "tools/world.py",
+  "note": "Rooms are the sessions in course/schedule.md, regions are the arcs the notes declare, corridors are the edges tools/graph.py verified. Nothing is placed by hand.",
+  "grid": {
+    "width": 16,
+    "height": 6,
+    "cols_per_region": 2
+  },
+  "spawn": {
+    "x": 1,
+    "y": 5
+  },
+  "regions": [
+    {
+      "name": "Foundations",
+      "x0": 1,
+      "rows": 1,
+      "rooms": [
+        "l01",
+        "l02"
+      ]
+    },
+    {
+      "name": "Data Systems",
+      "x0": 4,
+      "rows": 3,
+      "rooms": [
+        "l03",
+        "l04",
+        "l05",
+        "l06",
+        "l07",
+        "l08"
+      ]
+    },
+    {
+      "name": "Machine learning & deep learning",
+      "x0": 7,
+      "rows": 4,
+      "rooms": [
+        "l09",
+        "l10",
+        "l11",
+        "l12",
+        "l13",
+        "l14",
+        "mp1",
+        "mp2"
+      ]
+    },
+    {
+      "name": "LLM & agentic engineering",
+      "x0": 10,
+      "rows": 3,
+      "rooms": [
+        "l15",
+        "l16",
+        "l17",
+        "l18",
+        "l19",
+        "l20"
+      ]
+    },
+    {
+      "name": "Production & responsibility",
+      "x0": 13,
+      "rows": 2,
+      "rooms": [
+        "l21",
+        "l22",
+        "l23"
+      ]
+    }
+  ],
+  "rooms": [
+    {
+      "session": "L1",
+      "id": "l01",
+      "date": "2026-08-24",
+      "title": "AI engineering landscape & the system view; the modern toolchain",
+      "written": true,
+      "arc_source": "declared",
+      "arc": "Foundations",
+      "region": 0,
+      "x": 1,
+      "y": 1,
+      "notes": "../lectures/l01/notes.html"
+    },
+    {
+      "session": "L2",
+      "id": "l02",
+      "date": "2026-08-26",
+      "title": "Reproducible environments (uv), version control for code/data/models, notebooks→scripts→packages",
+      "written": true,
+      "arc_source": "declared",
+      "arc": "Foundations",
+      "region": 0,
+      "x": 2,
+      "y": 1,
+      "notes": "../lectures/l02/notes.html"
+    },
+    {
+      "session": "L3",
+      "id": "l03",
+      "date": "2026-08-31",
+      "title": "Relational data & PostgreSQL for engineering/time-series data; SQL essentials",
+      "written": true,
+      "arc_source": "declared",
+      "arc": "Data Systems",
+      "region": 1,
+      "x": 4,
+      "y": 1,
+      "notes": "../lectures/l03/notes.html"
+    },
+    {
+      "session": "L4",
+      "id": "l04",
+      "date": "2026-09-02",
+      "title": "Beyond relational: document/NoSQL, columnar/Parquet, DuckDB; vector-store preview",
+      "written": true,
+      "arc_source": "declared",
+      "arc": "Data Systems",
+      "region": 1,
+      "x": 5,
+      "y": 1,
+      "notes": "../lectures/l04/notes.html"
+    },
+    {
+      "session": "L5",
+      "id": "l05",
+      "date": "2026-09-09",
+      "title": "Dataframes & scalable processing (pandas/Polars); batch pipelines; distributed concepts (Spark/Dask demo)",
+      "written": true,
+      "arc_source": "declared",
+      "arc": "Data Systems",
+      "region": 1,
+      "x": 4,
+      "y": 2,
+      "notes": "../lectures/l05/notes.html"
+    },
+    {
+      "session": "L6",
+      "id": "l06",
+      "date": "2026-09-14",
+      "title": "Streaming concepts for sensor data; data validation (pandera/Great Expectations)",
+      "written": true,
+      "arc_source": "declared",
+      "arc": "Data Systems",
+      "region": 1,
+      "x": 5,
+      "y": 2,
+      "notes": "../lectures/l06/notes.html"
+    },
+    {
+      "session": "L7",
+      "id": "l07",
+      "date": "2026-09-16",
+      "title": "Features for time-series/physical data; transforms, scaling, leakage",
+      "written": true,
+      "arc_source": "declared",
+      "arc": "Data Systems",
+      "region": 1,
+      "x": 4,
+      "y": 3,
+      "notes": "../lectures/l07/notes.html"
+    },
+    {
+      "session": "L8",
+      "id": "l08",
+      "date": "2026-09-21",
+      "title": "Data quality, versioning, splits; data-centric iteration",
+      "written": true,
+      "arc_source": "declared",
+      "arc": "Data Systems",
+      "region": 1,
+      "x": 5,
+      "y": 3,
+      "notes": "../lectures/l08/notes.html"
+    },
+    {
+      "session": "L9",
+      "id": "l09",
+      "date": "2026-09-23",
+      "title": "ML workflow: train/validate/select, cross-validation, metrics, strong baselines",
+      "written": true,
+      "arc_source": "declared",
+      "arc": "Machine learning & deep learning",
+      "region": 2,
+      "x": 7,
+      "y": 1,
+      "notes": "../lectures/l09/notes.html"
+    },
+    {
+      "session": "L10",
+      "id": "l10",
+      "date": "2026-09-28",
+      "title": "Experiment tracking (MLflow) + hyperparameter search",
+      "written": false,
+      "arc_source": "inherited",
+      "arc": "Machine learning & deep learning",
+      "region": 2,
+      "x": 8,
+      "y": 1,
+      "notes": null
+    },
+    {
+      "session": "L11",
+      "id": "l11",
+      "date": "2026-09-30",
+      "title": "Deep learning with PyTorch: tensors, autodiff, training loops, GPUs",
+      "written": true,
+      "arc_source": "declared",
+      "arc": "Machine learning & deep learning",
+      "region": 2,
+      "x": 7,
+      "y": 2,
+      "notes": "../lectures/l11/notes.html"
+    },
+    {
+      "session": "L12",
+      "id": "l12",
+      "date": "2026-10-05",
+      "title": "Architectures for engineering data (MLP, CNN for fields/images, sequence models)",
+      "written": false,
+      "arc_source": "inherited",
+      "arc": "Machine learning & deep learning",
+      "region": 2,
+      "x": 8,
+      "y": 2,
+      "notes": null
+    },
+    {
+      "session": "L13",
+      "id": "l13",
+      "date": "2026-10-07",
+      "title": "Applied engineering ML: surrogate modeling, physics-informed/constrained models, UQ",
+      "written": true,
+      "arc_source": "declared",
+      "arc": "Machine learning & deep learning",
+      "region": 2,
+      "x": 7,
+      "y": 3,
+      "notes": "../lectures/l13/notes.html"
+    },
+    {
+      "session": "L14",
+      "id": "l14",
+      "date": "2026-10-19",
+      "title": "Bayesian optimization & active learning for design",
+      "written": false,
+      "arc_source": "inherited",
+      "arc": "Machine learning & deep learning",
+      "region": 2,
+      "x": 8,
+      "y": 3,
+      "notes": null
+    },
+    {
+      "session": "MP-1",
+      "id": "mp1",
+      "date": "2026-10-21",
+      "title": "Mini-project day 1",
+      "written": false,
+      "arc_source": "inherited",
+      "arc": "Machine learning & deep learning",
+      "region": 2,
+      "x": 7,
+      "y": 4,
+      "notes": null
+    },
+    {
+      "session": "MP-2",
+      "id": "mp2",
+      "date": "2026-10-26",
+      "title": "Mini-project day 2",
+      "written": false,
+      "arc_source": "inherited",
+      "arc": "Machine learning & deep learning",
+      "region": 2,
+      "x": 8,
+      "y": 4,
+      "notes": null
+    },
+    {
+      "session": "L15",
+      "id": "l15",
+      "date": "2026-10-28",
+      "title": "Foundation models & LLMs at a systems level: architecture, tokenization, embeddings",
+      "written": true,
+      "arc_source": "declared",
+      "arc": "LLM & agentic engineering",
+      "region": 3,
+      "x": 10,
+      "y": 1,
+      "notes": "../lectures/l15/notes.html"
+    },
+    {
+      "session": "L16",
+      "id": "l16",
+      "date": "2026-11-02",
+      "title": "API / prompt / structured-output interface; context, cost, latency; prompting",
+      "written": false,
+      "arc_source": "inherited",
+      "arc": "LLM & agentic engineering",
+      "region": 3,
+      "x": 11,
+      "y": 1,
+      "notes": null
+    },
+    {
+      "session": "L17",
+      "id": "l17",
+      "date": "2026-11-04",
+      "title": "Retrieval-augmented generation & vector databases (chunking, retrieval, grounding, retrieval eval)",
+      "written": true,
+      "arc_source": "declared",
+      "arc": "LLM & agentic engineering",
+      "region": 3,
+      "x": 10,
+      "y": 2,
+      "notes": "../lectures/l17/notes.html"
+    },
+    {
+      "session": "L18",
+      "id": "l18",
+      "date": "2026-11-09",
+      "title": "Adaptation: prompting vs RAG vs fine-tuning; LoRA/PEFT hands-on",
+      "written": false,
+      "arc_source": "inherited",
+      "arc": "LLM & agentic engineering",
+      "region": 3,
+      "x": 11,
+      "y": 2,
+      "notes": null
+    },
+    {
+      "session": "L19",
+      "id": "l19",
+      "date": "2026-11-11",
+      "title": "Agent fundamentals: tool use, function calling, planning/execution loops",
+      "written": true,
+      "arc_source": "declared",
+      "arc": "LLM & agentic engineering",
+      "region": 3,
+      "x": 10,
+      "y": 3,
+      "notes": "../lectures/l19/notes.html"
+    },
+    {
+      "session": "L20",
+      "id": "l20",
+      "date": "2026-11-16",
+      "title": "Multi-agent orchestration, frameworks, guardrails; agents over engineering tools/data",
+      "written": false,
+      "arc_source": "inherited",
+      "arc": "LLM & agentic engineering",
+      "region": 3,
+      "x": 11,
+      "y": 3,
+      "notes": null
+    },
+    {
+      "session": "L21",
+      "id": "l21",
+      "date": "2026-11-18",
+      "title": "Evaluating ML & LLM/agent systems: eval harnesses, LLM-as-judge, tracing/observability",
+      "written": true,
+      "arc_source": "declared",
+      "arc": "Production & responsibility",
+      "region": 4,
+      "x": 13,
+      "y": 1,
+      "notes": "../lectures/l21/notes.html"
+    },
+    {
+      "session": "L22",
+      "id": "l22",
+      "date": "2026-11-23",
+      "title": "Deployment: FastAPI, Docker, cloud serving, latency/cost",
+      "written": false,
+      "arc_source": "inherited",
+      "arc": "Production & responsibility",
+      "region": 4,
+      "x": 14,
+      "y": 1,
+      "notes": null
+    },
+    {
+      "session": "L23",
+      "id": "l23",
+      "date": "2026-11-30",
+      "title": "MLOps: CI/CD for ML, drift/regression monitoring, cost; safety, failure modes, responsible AI",
+      "written": true,
+      "arc_source": "declared",
+      "arc": "Production & responsibility",
+      "region": 4,
+      "x": 13,
+      "y": 2,
+      "notes": "../lectures/l23/notes.html"
+    }
+  ],
+  "doors": [
+    {
+      "from": "l04",
+      "to": "l03",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "At the end of [L3](../l03/notes.md) we had the Intel Berkeley Lab readings in a relational database, indexed on `(sensor_id, ts)` so that a selective query, one"
+    },
+    {
+      "from": "l05",
+      "to": "l03",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "`sensors` and `readings` tables in [L3](../l03/notes.md), and the same warning applies here that"
+    },
+    {
+      "from": "l05",
+      "to": "l07",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "distinction [L7](../l07/notes.md) runs into on a different dataset. A column holding the single"
+    },
+    {
+      "from": "l06",
+      "to": "l05",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "The pipeline we built in [L5](../l05/notes.md) was a batch pipeline: a clean sequence of stages over a fixed, finished dataset. That is the right picture most o"
+    },
+    {
+      "from": "l07",
+      "to": "l01",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "directly back to the sensor drift you measured in [L1](../l01/notes.md): if a channel's raw"
+    },
+    {
+      "from": "l07",
+      "to": "l03",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "data to a fixed grid**. For that, recall the Intel Berkeley Lab motes from [L3](../l03/notes.md),"
+    },
+    {
+      "from": "l07",
+      "to": "l05",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "[L5](../l05/notes.md) offers a neat shortcut for finding constant columns: a numeric column is"
+    },
+    {
+      "from": "l08",
+      "to": "l02",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "Reproducibility, from [L2](../l02/notes.md), is the ability to take your data and your code and get your numbers back. L2 versioned the code with git and kept t"
+    },
+    {
+      "from": "l08",
+      "to": "l06",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "For engineering data the high-value entries are provenance and known issues: which instrument and firmware produced the readings, the units and sample rate of e"
+    },
+    {
+      "from": "l08",
+      "to": "l07",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "[L7](../l07/notes.md) ended on a leak so small you could miss it. Fitting a scaler on the test data instead of the training data changed the reported error by a"
+    },
+    {
+      "from": "l09",
+      "to": "l05",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "[L5](../l05/notes.md): 1,567 semiconductor production runs with 590 process sensors each, of"
+    },
+    {
+      "from": "l09",
+      "to": "l07",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "[L7](../l07/notes.md)'s C-MAPSS fleet. Take a model with a flat, perfectly uniform 15-cycle"
+    },
+    {
+      "from": "l11",
+      "to": "l07",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "exactly as in [L7](../l07/notes.md). The habit does not change because the model is now a"
+    },
+    {
+      "from": "l11",
+      "to": "l09",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "[L9](../l09/notes.md), which is why this session comes after it and not before."
+    },
+    {
+      "from": "l13",
+      "to": "l01",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "This is [L1](../l01/notes.md)'s `np.trapz` lesson in a new costume, and the fix is the same"
+    },
+    {
+      "from": "l13",
+      "to": "l07",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "of the leakage failures in [L7](../l07/notes.md) and [L9](../l09/notes.md) too. The method"
+    },
+    {
+      "from": "l13",
+      "to": "l09",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "splitting discipline from [L9](../l09/notes.md) reappears in a harsher form, because a"
+    },
+    {
+      "from": "l13",
+      "to": "l11",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "**collocation points** where no measurement exists. This is [L11](../l11/notes.md)'s"
+    },
+    {
+      "from": "l15",
+      "to": "l09",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "[L9](../l09/notes.md) and [L13](../l13/notes.md); this is the report itself. It is 146"
+    },
+    {
+      "from": "l15",
+      "to": "l11",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "Nothing in that stack is new to this course. [L11](../l11/notes.md) covered tensors,"
+    },
+    {
+      "from": "l15",
+      "to": "l13",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "[L9](../l09/notes.md) and [L13](../l13/notes.md); this is the report itself. It is 146"
+    },
+    {
+      "from": "l15",
+      "to": "l17",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "retrieval-augmented generation, the subject of [L17](../l17/notes.md) in two sessions'"
+    },
+    {
+      "from": "l15",
+      "to": "l19",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "retrieval index, and [L19](../l19/notes.md), where the model starts calling tools."
+    },
+    {
+      "from": "l19",
+      "to": "l03",
+      "origin": "authored",
+      "relation": "shares-data",
+      "why": "The Intel Lab sensor data, still the spine of the course's examples.",
+      "where": "against the same Intel Lab sensor Parquet file from L3 and L4"
+    },
+    {
+      "from": "l19",
+      "to": "l04",
+      "origin": "authored",
+      "relation": "shares-data",
+      "why": "Same file, reached through the columnar path L4 introduces.",
+      "where": "against the same Intel Lab sensor Parquet file from L3 and L4"
+    },
+    {
+      "from": "l19",
+      "to": "l05",
+      "origin": "authored",
+      "relation": "reuses",
+      "why": "Agent observability is not a new subject; it is the logging from the streaming session pointed at a different kind of run.",
+      "where": "Reuse the structured logging and MLflow tracking from L5"
+    },
+    {
+      "from": "l19",
+      "to": "l13",
+      "origin": "authored",
+      "relation": "reuses",
+      "why": "The agent's tool is a surrogate, so the demo only works if the surrogate session already happened. A genuine prerequisite rather than a callback.",
+      "where": "small surrogate standing in for L13's airfoil noise model, sharing that model's five inputs"
+    },
+    {
+      "from": "l19",
+      "to": "l17",
+      "origin": "authored",
+      "relation": "contrasts",
+      "why": "The cleanest statement of what an agent is, and it is a negative definition: retrieval always happens, tool use is decided. Walking this corridor should feel like the distinction landing.",
+      "where": "A RAG pipeline in L17 always retrieves, then always generates; the order and the branching are yours, fixed in code"
+    },
+    {
+      "from": "l21",
+      "to": "l03",
+      "origin": "authored",
+      "relation": "builds-on",
+      "why": "The 2.4-volt threshold is a specific number decided in L3. Evaluating against it is meaningless without knowing where it came from.",
+      "where": "sensor readings above L3's 2.4-volt trustworthiness threshold"
+    },
+    {
+      "from": "l21",
+      "to": "l04",
+      "origin": "authored",
+      "relation": "shares-data",
+      "why": "Same sensor data, no API key, which is why the demo runs anywhere.",
+      "where": "data L3, L4, and L19 use and needs no API key or external service"
+    },
+    {
+      "from": "l21",
+      "to": "l13",
+      "origin": "authored",
+      "relation": "builds-on",
+      "why": "The strongest claim of dependency anywhere in the back half. Not \"recall L13\" but \"this is L13, continued\".",
+      "where": "the subject of the entire second half of L13: what happens when a company builds the model, ships it, and stops watching"
+    },
+    {
+      "from": "l21",
+      "to": "l17",
+      "origin": "authored",
+      "relation": "reuses",
+      "why": "The eval harness is built against the RAG system L17 leaves behind.",
+      "where": "eval harness for a small RAG assistant in the spirit of L17's system"
+    },
+    {
+      "from": "l21",
+      "to": "l19",
+      "origin": "authored",
+      "relation": "builds-on",
+      "why": "The evaluation session consumes exactly what the agent session already emits, which is why the two are adjacent rather than merely related.",
+      "where": "L19's harness already logs everything a failure taxonomy needs, every tool call, every result, every stop condition"
+    },
+    {
+      "from": "l23",
+      "to": "l07",
+      "origin": "authored",
+      "relation": "prevents",
+      "why": "The course's oldest case study, reached again from the far end. Naming the same failure twice, four sessions apart, is the point.",
+      "where": "a units assertion at every system boundary (L7's Mars Climate Orbiter case)"
+    },
+    {
+      "from": "l23",
+      "to": "l13",
+      "origin": "authored",
+      "relation": "prevents",
+      "why": "Extrapolation is the surrogate failure mode L13 defines; the input-range check is what stops it reaching production.",
+      "where": "refuse or flag rather than silently extrapolate (L7, L13)"
+    },
+    {
+      "from": "l23",
+      "to": "l17",
+      "origin": "authored",
+      "relation": "builds-on",
+      "why": "Grounding and the faithfulness check are L17's mechanisms, audited here.",
+      "where": "instruction (L17); a faithfulness check verifying the cited chunk is in the retrieved set (L21)"
+    },
+    {
+      "from": "l23",
+      "to": "l19",
+      "origin": "authored",
+      "relation": "prevents",
+      "why": "A failure named in one session and defended in another. This is the bestiary pattern the map is for.",
+      "where": "the failure L19's bounded loop exists to prevent"
+    },
+    {
+      "from": "l23",
+      "to": "l21",
+      "origin": "authored",
+      "relation": "builds-on",
+      "why": "The pipeline's regression test asserts against numbers L21 measured, so the two sessions are joined by a specific value rather than a theme.",
+      "where": "unit-tested against L21's actual measured numbers as a passing case"
+    }
+  ],
+  "signs": [
+    {
+      "lecture": "l20",
+      "promised_by": "l19",
+      "where": "is where every guardrail in L20 attaches"
+    },
+    {
+      "lecture": "l22",
+      "promised_by": "l21",
+      "where": "shared with L22, deploy that system behind a FastAPI and Docker service"
+    }
+  ]
+}

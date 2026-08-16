@@ -298,7 +298,7 @@ and Sobol sensitivity indices analytically instead of by sampling.
 sets, and structured outputs. An MLP for a scalar quantity of interest is the simple case.
 The interesting case is **field-to-field** emulation, where a CNN or U-Net maps an input
 field (a geometry, a source distribution, a boundary condition) to an output field (a
-pressure, a temperature, a stress), which is what [L12](../l11/notes.md)'s convolutional
+pressure, a temperature, a stress), which is what L12's convolutional
 architectures were building toward. Beyond that lie **neural operators**, which learn
 mappings between function spaces rather than between vectors, so a single trained model
 handles any discretisation: [DeepONet](https://arxiv.org/abs/1910.03193) and the

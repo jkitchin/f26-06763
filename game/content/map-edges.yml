@@ -1,0 +1,215 @@
+schema: cmu-06763-map-edges/1
+
+# Hand-authored corridors for the back half of the course.
+#
+# tools/graph.py extracts the dependency graph from markdown cross-links, which
+# is the right default because a link is unambiguous and machine-checkable. It
+# stops at L15. The four late lectures cite earlier sessions only in prose, so
+# an extracted map would leave the entire LLM and production arc unconnected,
+# which is the half students reach when they are most lost.
+#
+# The alternative considered and rejected was extracting prose mentions. Checked
+# rather than assumed: every mention in the corpus today is of the form "from
+# L3" or "as in L5", and the reversing forms ("unlike L5", "rather than L5") do
+# not currently occur, so a regex would in fact work right now. It is still the
+# wrong source of truth. Nothing stops the reversing form from being written
+# next week, a corridor built on one would be a prerequisite the notes
+# explicitly deny, and nothing would catch it.
+#
+# So these are content, and they are held to the same standard as a quiz item.
+# Each edge quotes the sentence that justifies it, tools/graph.py checks the
+# quote still appears in the cited file, and it checks the quote actually names
+# the lecture the edge points at. An edge nobody can point at is an invented
+# prerequisite, and inventing prerequisites is precisely what this course
+# teaches against.
+#
+# L17 is absent on purpose. It cites nothing, by link or in prose, and that is a
+# true fact about the course rather than a gap in this file. It should show on
+# the map as the dead end it is.
+
+relations:
+  # A closed vocabulary, because the map draws each one differently and an open
+  # one drifts into synonyms nobody can render.
+  builds-on:   the session assumes the target's material and extends it
+  contrasts:   the session defines itself against the target
+  reuses:      the session reuses a concrete artifact, tool or harness
+  shares-data: the session runs on the same dataset
+  prevents:    the session's mechanism prevents a failure the target named
+
+edges:
+  # --- L19, agents ---------------------------------------------------------
+  - from: l19
+    to: l17
+    relation: contrasts
+    why: >-
+      The cleanest statement of what an agent is, and it is a negative
+      definition: retrieval always happens, tool use is decided. Walking this
+      corridor should feel like the distinction landing.
+    source:
+      file: lectures/l19/notes.md
+      quote: >-
+        A RAG pipeline in L17 always retrieves, then always generates; the order
+        and the branching are yours, fixed in code
+
+  - from: l19
+    to: l05
+    relation: reuses
+    why: >-
+      Agent observability is not a new subject; it is the logging from the
+      streaming session pointed at a different kind of run.
+    source:
+      file: lectures/l19/notes.md
+      quote: Reuse the structured logging and MLflow tracking from L5
+
+  - from: l19
+    to: l03
+    relation: shares-data
+    why: The Intel Lab sensor data, still the spine of the course's examples.
+    source:
+      file: lectures/l19/notes.md
+      quote: against the same Intel Lab sensor Parquet file from L3 and L4
+
+  - from: l19
+    to: l04
+    relation: shares-data
+    why: Same file, reached through the columnar path L4 introduces.
+    source:
+      file: lectures/l19/notes.md
+      quote: against the same Intel Lab sensor Parquet file from L3 and L4
+
+  - from: l19
+    to: l13
+    relation: reuses
+    why: >-
+      The agent's tool is a surrogate, so the demo only works if the surrogate
+      session already happened. A genuine prerequisite rather than a callback.
+    source:
+      file: lectures/l19/notes.md
+      quote: >-
+        small surrogate standing in for L13's airfoil noise model, sharing that
+        model's five inputs
+
+  # --- L21, evaluation and observability -----------------------------------
+  - from: l21
+    to: l13
+    relation: builds-on
+    why: >-
+      The strongest claim of dependency anywhere in the back half. Not "recall
+      L13" but "this is L13, continued".
+    source:
+      file: lectures/l21/notes.md
+      quote: >-
+        the subject of the entire second half of L13: what happens when a
+        company builds the model, ships it, and stops watching
+
+  - from: l21
+    to: l03
+    relation: builds-on
+    why: >-
+      The 2.4-volt threshold is a specific number decided in L3. Evaluating
+      against it is meaningless without knowing where it came from.
+    source:
+      file: lectures/l21/notes.md
+      quote: sensor readings above L3's 2.4-volt trustworthiness threshold
+
+  - from: l21
+    to: l19
+    relation: builds-on
+    why: >-
+      The evaluation session consumes exactly what the agent session already
+      emits, which is why the two are adjacent rather than merely related.
+    source:
+      file: lectures/l21/notes.md
+      quote: >-
+        L19's harness already logs everything a failure taxonomy needs, every
+        tool call, every result, every stop condition
+
+  - from: l21
+    to: l17
+    relation: reuses
+    why: The eval harness is built against the RAG system L17 leaves behind.
+    source:
+      file: lectures/l21/notes.md
+      quote: >-
+        eval harness for a small RAG assistant in the spirit of L17's system
+
+  - from: l21
+    to: l04
+    relation: shares-data
+    why: Same sensor data, no API key, which is why the demo runs anywhere.
+    source:
+      file: lectures/l21/notes.md
+      quote: data L3, L4, and L19 use and needs no API key or external service
+
+  # --- L23, MLOps and responsibility ---------------------------------------
+  - from: l23
+    to: l21
+    relation: builds-on
+    why: >-
+      The pipeline's regression test asserts against numbers L21 measured, so
+      the two sessions are joined by a specific value rather than a theme.
+    source:
+      file: lectures/l23/notes.md
+      quote: unit-tested against L21's actual measured numbers as a passing case
+
+  - from: l23
+    to: l19
+    relation: prevents
+    why: >-
+      A failure named in one session and defended in another. This is the
+      bestiary pattern the map is for.
+    source:
+      file: lectures/l23/notes.md
+      quote: the failure L19's bounded loop exists to prevent
+
+  - from: l23
+    to: l17
+    relation: builds-on
+    why: Grounding and the faithfulness check are L17's mechanisms, audited here.
+    source:
+      file: lectures/l23/notes.md
+      quote: >-
+        instruction (L17); a faithfulness check verifying the cited chunk is in
+        the retrieved set (L21)
+
+  - from: l23
+    to: l07
+    relation: prevents
+    why: >-
+      The course's oldest case study, reached again from the far end. Naming the
+      same failure twice, four sessions apart, is the point.
+    source:
+      file: lectures/l23/notes.md
+      quote: >-
+        a units assertion at every system boundary (L7's Mars Climate Orbiter
+        case)
+
+  - from: l23
+    to: l13
+    relation: prevents
+    why: >-
+      Extrapolation is the surrogate failure mode L13 defines; the input-range
+      check is what stops it reaching production.
+    source:
+      file: lectures/l23/notes.md
+      quote: refuse or flag rather than silently extrapolate (L7, L13)
+
+# Signs on the rooms that are not written yet.
+#
+# Twelve lectures have no notes. They show as shuttered rooms rather than as
+# absences, so the shape of the whole course is legible from week one and the
+# map grows by opening a shutter rather than by being redrawn. A shutter that
+# an existing lecture already promises can carry the promise as its sign.
+shutters:
+  - lecture: l20
+    promised_by: l19
+    source:
+      file: lectures/l19/notes.md
+      quote: is where every guardrail in L20 attaches
+
+  - lecture: l22
+    promised_by: l21
+    source:
+      file: lectures/l21/notes.md
+      quote: >-
+        shared with L22, deploy that system behind a FastAPI and Docker service

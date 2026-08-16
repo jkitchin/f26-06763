@@ -1,0 +1,231 @@
+{
+  "lecture": "l09",
+  "versions": {
+    "1": {
+      "items": {
+        "l09-q01": {
+          "answer": "About 85%, leaving the other three ambient channels and the forest to split the rest",
+          "options": [
+            "About 30%, which is why the ensemble is worth its complexity and why the study reaches for one at all",
+            "About 85%, leaving the other three ambient channels and the forest to split the rest",
+            "About 50%, so the forest roughly doubles what a single-variable line achieves and clearly earns its complexity",
+            "Almost none; the relationship is too nonlinear for a line"
+          ]
+        },
+        "l09-q02": {
+          "answer": "It is a fact about nothing until it sits on a ladder, because most of the gap is closed by a one-variable linear fit and the number alone hides that",
+          "options": [
+            "Nothing; RMSE on held-out data is exactly the right thing to quote, and adding baselines to the report would only pad it",
+            "It is a fact about nothing until it sits on a ladder, because most of the gap is closed by a one-variable linear fit and the number alone hides that",
+            "RMSE is the wrong metric for power output; MAPE is scale-free",
+            "The value should be reported with a confidence interval instead"
+          ]
+        },
+        "l09-q03": {
+          "answer": "random forest, then k-NN, then linear and predict-the-mean tied at no inflation",
+          "options": [
+            "random forest, then k-NN, then linear and predict-the-mean tied at no inflation",
+            "predict-the-mean, then linear, then k-NN, then random forest, since simpler models are more sensitive to the split",
+            "linear, then random forest, then k-NN, then predict-the-mean",
+            "k-NN, then random forest, then linear, then predict-the-mean"
+          ]
+        },
+        "l09-q04": {
+          "answer": "It reads too low, by about half again on this data, and that is the number a paper would print",
+          "options": [
+            "It reads too low, by about half again on this data, and that is the number a paper would print",
+            "It reads too high, so the result is conservative and safe to publish, which is why random splits are the cautious default",
+            "It is unbiased; the split only affects the variance of the estimate",
+            "It reads too low, but by so little that the choice is a formality"
+          ]
+        },
+        "l09-q05": {
+          "answer": "The screen sees the labels of every fold before the split, so the folds are not held out at all. Refit the screen inside each fold and the error is 47.5%, a coin flip",
+          "options": [
+            "Nothing structural; k=1 is simply too small for 50 observations, and raising k would regularise the classifier and bring the error back to something believable",
+            "The screen sees the labels of every fold before the split, so the folds are not held out at all. Refit the screen inside each fold and the error is 47.5%, a coin flip",
+            "The 10-fold split is too coarse for 50 observations; leave-one-out would fix it",
+            "The correlation screen should be replaced by a model-based selector"
+          ]
+        },
+        "l09-q06": {
+          "answer": "None of them; anything fitted to data belongs inside the loop",
+          "options": [
+            "Scaling features with a `StandardScaler`, since the mean and variance of the inputs say nothing about the labels",
+            "Screening columns by their correlation with the label",
+            "Imputing missing values with the column mean",
+            "None of them; anything fitted to data belongs inside the loop"
+          ]
+        },
+        "l09-q07": {
+          "answer": "39.5%, because engines close to failure have tiny true values and one of them contributes 214% on its own",
+          "options": [
+            "About 15%, since MAPE is the same set of errors expressed relatively rather than in absolute cycles",
+            "39.5%, because engines close to failure have tiny true values and one of them contributes 214% on its own",
+            "Undefined, because MAPE cannot be computed for regression",
+            "About 5%, because most engines have long remaining lives"
+          ]
+        },
+        "l09-q08": {
+          "answer": "Average precision, because ROC's false-positive rate is diluted by the large negative class, while precision is not",
+          "options": [
+            "AUC, because it is threshold-independent and therefore the more robust summary of a detector's ranking quality",
+            "Average precision, because ROC's false-positive rate is diluted by the large negative class, while precision is not",
+            "Neither; with 6.6% positives, accuracy is the only interpretable number",
+            "They cannot disagree by this much on the same predictions, so one of the two has been computed on the wrong column"
+          ]
+        },
+        "l09-q09": {
+          "answer": "In eleven minutes the two operators had to recognise, acknowledge and act on 275 alarms",
+          "options": [
+            "The alarm system had failed and produced no annunciations at all",
+            "In eleven minutes the two operators had to recognise, acknowledge and act on 275 alarms",
+            "The operators had disabled the alarms to reduce nuisance trips, which is why none of them was acted on in time",
+            "Alarms were annunciated correctly and at a manageable rate"
+          ]
+        },
+        "l09-q10": {
+          "answer": "Every leaf holds a single sample, so the tree has memorised the training set. The response is less capacity, more regularisation, or more data",
+          "options": [
+            "The model has found the true relationship, so deploy it and monitor for drift rather than deliberately making it worse",
+            "Every leaf holds a single sample, so the tree has memorised the training set. The response is less capacity, more regularisation, or more data",
+            "The validation set is corrupted, since zero training error cannot occur otherwise",
+            "The target has been leaked into a feature; find and remove it"
+          ]
+        },
+        "l09-q11": {
+          "answer": "By a few hundred rows it is comparable to the noise, and on the full 9,568 rows it is −0.003 MW",
+          "options": [
+            "It never does; the bias is a property of selecting on a score, so it does not shrink with more observations",
+            "By a few hundred rows it is comparable to the noise, and on the full 9,568 rows it is −0.003 MW",
+            "Only above about 100,000 rows, which is why small studies are unpublishable",
+            "At around 80 rows, which is why small pilot studies are safe"
+          ]
+        },
+        "l09-q12": {
+          "answer": "GroupKFold is higher, by roughly half again",
+          "options": [
+            "GroupKFold is lower, by roughly half",
+            "GroupKFold is higher, by roughly half again",
+            "They agree to within the fold noise",
+            "GroupKFold is higher, by more than five times"
+          ]
+        }
+      },
+      "serve": 8
+    },
+    "2": {
+      "items": {
+        "l09-q01": {
+          "answer": "About 85%, leaving the other three ambient channels and the forest to split the rest",
+          "options": [
+            "About 30%, which is why the ensemble is worth its complexity and why the study reaches for one at all",
+            "About 85%, leaving the other three ambient channels and the forest to split the rest",
+            "About 50%, so the forest roughly doubles what a single-variable line achieves and clearly earns its complexity",
+            "Almost none; the relationship is too nonlinear for a line"
+          ]
+        },
+        "l09-q02": {
+          "answer": "It is a fact about nothing until it sits on a ladder, because most of the gap is closed by a one-variable linear fit and the number alone hides that",
+          "options": [
+            "Nothing; RMSE on held-out data is exactly the right thing to quote, and adding baselines to the report would only pad it",
+            "It is a fact about nothing until it sits on a ladder, because most of the gap is closed by a one-variable linear fit and the number alone hides that",
+            "RMSE is the wrong metric for power output; MAPE is scale-free",
+            "The value should be reported with a confidence interval instead"
+          ]
+        },
+        "l09-q03": {
+          "answer": "random forest, then k-NN, then linear and predict-the-mean tied at no inflation",
+          "options": [
+            "random forest, then k-NN, then linear and predict-the-mean tied at no inflation",
+            "predict-the-mean, then linear, then k-NN, then random forest, since simpler models are more sensitive to the split",
+            "linear, then random forest, then k-NN, then predict-the-mean",
+            "k-NN, then random forest, then linear, then predict-the-mean"
+          ]
+        },
+        "l09-q04": {
+          "answer": "It reads too low, by about half again on this data, and that is the number a paper would print",
+          "options": [
+            "It reads too low, by about half again on this data, and that is the number a paper would print",
+            "It reads too high, so the result is conservative and safe to publish, which is why random splits are the cautious default",
+            "It is unbiased; the split only affects the variance of the estimate",
+            "It reads too low, but by so little that the choice is a formality"
+          ]
+        },
+        "l09-q05": {
+          "answer": "The screen sees the labels of every fold before the split, so the folds are not held out at all. Refit the screen inside each fold and the error is 47.5%, a coin flip",
+          "options": [
+            "Nothing structural; k=1 is simply too small for 50 observations, and raising k would regularise the classifier and bring the error back to something believable",
+            "The screen sees the labels of every fold before the split, so the folds are not held out at all. Refit the screen inside each fold and the error is 47.5%, a coin flip",
+            "The 10-fold split is too coarse for 50 observations; leave-one-out would fix it",
+            "The correlation screen should be replaced by a model-based selector"
+          ]
+        },
+        "l09-q06": {
+          "answer": "None of them; anything fitted to data belongs inside the loop",
+          "options": [
+            "Scaling features with a `StandardScaler`, since the mean and variance of the inputs say nothing about the labels",
+            "Screening columns by their correlation with the label",
+            "Imputing missing values with the column mean",
+            "None of them; anything fitted to data belongs inside the loop"
+          ]
+        },
+        "l09-q07": {
+          "answer": "39.5%, because engines close to failure have tiny true values and one of them contributes 214% on its own",
+          "options": [
+            "About 15%, since MAPE is the same set of errors expressed relatively rather than in absolute cycles",
+            "39.5%, because engines close to failure have tiny true values and one of them contributes 214% on its own",
+            "Undefined, because MAPE cannot be computed for regression",
+            "About 5%, because most engines have long remaining lives"
+          ]
+        },
+        "l09-q08": {
+          "answer": "Average precision, because ROC's false-positive rate is diluted by the large negative class, while precision is not",
+          "options": [
+            "AUC, because it is threshold-independent and therefore the more robust summary of a detector's ranking quality",
+            "Average precision, because ROC's false-positive rate is diluted by the large negative class, while precision is not",
+            "Neither; with 6.6% positives, accuracy is the only interpretable number",
+            "They cannot disagree by this much on the same predictions, so one of the two has been computed on the wrong column"
+          ]
+        },
+        "l09-q09": {
+          "answer": "In eleven minutes the two operators had to recognise, acknowledge and act on 275 alarms",
+          "options": [
+            "The alarm system had failed and produced no annunciations at all",
+            "In eleven minutes the two operators had to recognise, acknowledge and act on 275 alarms",
+            "The operators had disabled the alarms to reduce nuisance trips, which is why none of them was acted on in time",
+            "Alarms were annunciated correctly and at a manageable rate"
+          ]
+        },
+        "l09-q10": {
+          "answer": "Every leaf holds a single sample, so the tree has memorised the training set. The response is less capacity, more regularisation, or more data",
+          "options": [
+            "The model has found the true relationship, so deploy it and monitor for drift rather than deliberately making it worse",
+            "Every leaf holds a single sample, so the tree has memorised the training set. The response is less capacity, more regularisation, or more data",
+            "The validation set is corrupted, since zero training error cannot occur otherwise",
+            "The target has been leaked into a feature; find and remove it"
+          ]
+        },
+        "l09-q11": {
+          "answer": "By a few hundred rows it is comparable to the noise, and on the full 9,568 rows it is −0.003 MW",
+          "options": [
+            "It never does; the bias is a property of selecting on a score, so it does not shrink with more observations",
+            "By a few hundred rows it is comparable to the noise, and on the full 9,568 rows it is −0.003 MW",
+            "Only above about 100,000 rows, which is why small studies are unpublishable",
+            "At around 80 rows, which is why small pilot studies are safe"
+          ]
+        },
+        "l09-q12": {
+          "answer": "GroupKFold is higher, by roughly half again",
+          "options": [
+            "GroupKFold is lower, by roughly half",
+            "GroupKFold is higher, by roughly half again",
+            "They agree to within the fold noise",
+            "GroupKFold is higher, by more than five times"
+          ]
+        }
+      },
+      "serve": 6
+    }
+  }
+}

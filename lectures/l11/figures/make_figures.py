@@ -31,9 +31,9 @@ Four of these figures changed what the lecture says.
 
   3. The pathology figure was drafted around the module's claim that
      unnormalized inputs cause NaNs. With SGD they do, immediately. With Adam
-     they do not: training merely degrades from 5.5 to ~9.5 MPa. Adam's
-     per-parameter scaling hides a scaling bug as mediocrity rather than a crash,
-     which is worse.
+     they do not: it trains to 9.7 MPa instead of 6.0. Adam's per-parameter
+     scaling hides a scaling bug as mediocrity rather than a crash, which is
+     worse.
 
   4. The device figure was drafted expecting "GPU faster." For this model the
      accelerator is 7x *slower*, and it only wins past ~256 hidden units. The

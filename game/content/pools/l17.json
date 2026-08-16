@@ -1,0 +1,179 @@
+{
+  "lecture": "l17",
+  "versions": {
+    "1": {
+      "items": {
+        "l17-q01": {
+          "answer": "A system whose failures now come with a citation attached",
+          "options": [
+            "Grounding, since the model can now only answer from documents you supplied",
+            "A system whose failures now come with a citation attached",
+            "Freshness, which is the main benefit and does not depend on evaluation",
+            "Lower cost, since retrieved chunks are cheaper than long-context prompts"
+          ]
+        },
+        "l17-q02": {
+          "answer": "Models do not read a long context uniformly: accuracy on a fact is worse when it sits in the middle",
+          "options": [
+            "Latency, since a long prompt takes proportionally longer to process before the first token",
+            "Models do not read a long context uniformly: accuracy on a fact is worse when it sits in the middle",
+            "Truncation, since providers silently drop the oldest tokens once the window is exceeded",
+            "The attention mechanism degrades quadratically, so quality falls smoothly with length"
+          ]
+        },
+        "l17-q03": {
+          "answer": "The query is placed in the wrong space and nothing raises; pin the model in the index metadata",
+          "options": [
+            "The vector store validates dimensions, so a mismatch is caught only if the dimensions differ; pad the shorter vectors",
+            "The query is placed in the wrong space and nothing raises; pin the model in the index metadata",
+            "The scores are renormalised per query, which hides the change; disable normalisation to surface it",
+            "The index needs rebuilding on every deploy, and the staleness is what degraded retrieval"
+          ]
+        },
+        "l17-q04": {
+          "answer": "In chunking, at ingestion; re-ranking cannot recover a split fact",
+          "options": [
+            "In the retriever: a cross-encoder re-ranker will surface both halves and the model can combine them",
+            "In chunking, at ingestion; re-ranking cannot recover a split fact",
+            "In the generation prompt: instruct the model to combine partial evidence across retrieved chunks",
+            "In k: retrieve more chunks so both halves are likely to appear in the context together"
+          ]
+        },
+        "l17-q05": {
+          "answer": "When plain dense retrieval already hits recall@k near 1.0, since there is nothing left to improve",
+          "options": [
+            "When the corpus is large, since two indexes do not scale to millions of documents",
+            "When plain dense retrieval already hits recall@k near 1.0, since there is nothing left to improve",
+            "When queries are short, since re-rankers need long queries to score against",
+            "When the embedding model is recent, since modern embeddings subsume what BM25 contributes"
+          ]
+        },
+        "l17-q06": {
+          "answer": "That it is topically close, and nothing about whether it answers the question or even agrees with it",
+          "options": [
+            "That the chunk is relevant with roughly 83% confidence, which is a usable threshold",
+            "That it is topically close, and nothing about whether it answers the question or even agrees with it",
+            "That it is the best match available, since scores are normalised across the corpus",
+            "That the answer can be generated from it, provided the score exceeds your tuned cutoff"
+          ]
+        },
+        "l17-q07": {
+          "answer": "Build the retrieval gold set and measure recall@k before ever judging a generated answer",
+          "options": [
+            "Judge the generated answers first, since that is what users experience, then trace failures back to retrieval",
+            "Build the retrieval gold set and measure recall@k before ever judging a generated answer",
+            "Both at once, since retrieval and generation failures are indistinguishable from the outside",
+            "Neither in isolation; only end-to-end task success is meaningful for a retrieval system"
+          ]
+        },
+        "l17-q08": {},
+        "l17-q09": {
+          "answer": "Exact lexical matching, which is what rescues a query containing a part number or an error code",
+          "options": [
+            "Semantic matching across paraphrase, which embeddings approximate less reliably",
+            "Exact lexical matching, which is what rescues a query containing a part number or an error code",
+            "A calibrated probability of relevance, which dense scores lack",
+            "Language independence, since term statistics do not depend on a trained model"
+          ]
+        },
+        "l17-q10": {
+          "answer": "The fraction of questions whose correct chunk appears in the top k",
+          "options": [
+            "The fraction of generated answers that cite a real source, which is the grounding rate",
+            "The fraction of questions whose correct chunk appears in the top k",
+            "The average similarity of the top k chunks, which indicates whether the index is well built",
+            "The fraction of retrieved chunks that are relevant, which is precision at the retrieval stage"
+          ]
+        }
+      },
+      "serve": 6
+    },
+    "2": {
+      "items": {
+        "l17-q01": {
+          "answer": "A system whose failures now come with a citation attached",
+          "options": [
+            "Grounding, since the model can now only answer from documents you supplied",
+            "A system whose failures now come with a citation attached",
+            "Freshness, which is the main benefit and does not depend on evaluation",
+            "Lower cost, since retrieved chunks are cheaper than long-context prompts"
+          ]
+        },
+        "l17-q02": {
+          "answer": "Models do not read a long context uniformly: accuracy on a fact is worse when it sits in the middle",
+          "options": [
+            "Latency, since a long prompt takes proportionally longer to process before the first token",
+            "Models do not read a long context uniformly: accuracy on a fact is worse when it sits in the middle",
+            "Truncation, since providers silently drop the oldest tokens once the window is exceeded",
+            "The attention mechanism degrades quadratically, so quality falls smoothly with length"
+          ]
+        },
+        "l17-q03": {
+          "answer": "The query is placed in the wrong space and nothing raises; pin the model in the index metadata",
+          "options": [
+            "The vector store validates dimensions, so a mismatch is caught only if the dimensions differ; pad the shorter vectors",
+            "The query is placed in the wrong space and nothing raises; pin the model in the index metadata",
+            "The scores are renormalised per query, which hides the change; disable normalisation to surface it",
+            "The index needs rebuilding on every deploy, and the staleness is what degraded retrieval"
+          ]
+        },
+        "l17-q04": {
+          "answer": "In chunking, at ingestion; re-ranking cannot recover a split fact",
+          "options": [
+            "In the retriever: a cross-encoder re-ranker will surface both halves and the model can combine them",
+            "In chunking, at ingestion; re-ranking cannot recover a split fact",
+            "In the generation prompt: instruct the model to combine partial evidence across retrieved chunks",
+            "In k: retrieve more chunks so both halves are likely to appear in the context together"
+          ]
+        },
+        "l17-q05": {
+          "answer": "When plain dense retrieval already hits recall@k near 1.0, since there is nothing left to improve",
+          "options": [
+            "When the corpus is large, since two indexes do not scale to millions of documents",
+            "When plain dense retrieval already hits recall@k near 1.0, since there is nothing left to improve",
+            "When queries are short, since re-rankers need long queries to score against",
+            "When the embedding model is recent, since modern embeddings subsume what BM25 contributes"
+          ]
+        },
+        "l17-q06": {
+          "answer": "That it is topically close, and nothing about whether it answers the question or even agrees with it",
+          "options": [
+            "That the chunk is relevant with roughly 83% confidence, which is a usable threshold",
+            "That it is topically close, and nothing about whether it answers the question or even agrees with it",
+            "That it is the best match available, since scores are normalised across the corpus",
+            "That the answer can be generated from it, provided the score exceeds your tuned cutoff"
+          ]
+        },
+        "l17-q07": {
+          "answer": "Build the retrieval gold set and measure recall@k before ever judging a generated answer",
+          "options": [
+            "Judge the generated answers first, since that is what users experience, then trace failures back to retrieval",
+            "Build the retrieval gold set and measure recall@k before ever judging a generated answer",
+            "Both at once, since retrieval and generation failures are indistinguishable from the outside",
+            "Neither in isolation; only end-to-end task success is meaningful for a retrieval system"
+          ]
+        },
+        "l17-q08": {},
+        "l17-q09": {
+          "answer": "Exact lexical matching, which is what rescues a query containing a part number or an error code",
+          "options": [
+            "Semantic matching across paraphrase, which embeddings approximate less reliably",
+            "Exact lexical matching, which is what rescues a query containing a part number or an error code",
+            "A calibrated probability of relevance, which dense scores lack",
+            "Language independence, since term statistics do not depend on a trained model"
+          ]
+        },
+        "l17-q10": {
+          "answer": "The fraction of questions whose correct chunk appears in the top k",
+          "options": [
+            "The fraction of generated answers that cite a real source, which is the grounding rate",
+            "The fraction of questions whose correct chunk appears in the top k",
+            "The average similarity of the top k chunks, which indicates whether the index is well built",
+            "The fraction of retrieved chunks that are relevant, which is precision at the retrieval stage"
+          ]
+        }
+      },
+      "serve": 5
+    }
+  }
+}

@@ -1,0 +1,311 @@
+schema: 1
+lecture: l04
+title: "Beyond relational: columnar, Parquet, DuckDB, and the wider landscape"
+source_notes: lectures/l04/notes.md
+status: published
+serve: 5
+pool_version: 2
+provenance:
+  drafted_by: hand
+  reviewed_by: jkitchin
+  reviewed_at: 2026-08-08
+
+items:
+
+  - id: l04-q01
+    kind: locus_of_control
+    rung: 3
+    difficulty: 2
+    objectives: [l04-o2]
+    prompt: |
+      Records in your system are constantly corrected one at a time. Someone
+      proposes storing them as Parquet for the analytics speedup.
+
+      What is wrong with that?
+    options:
+      - "Nothing, provided the corrections are batched nightly rather than applied individually"
+      - "A Parquet file is effectively immutable: there is no in-place update, so a single correction rewrites the file that holds it"
+      - "Parquet cannot represent the schema changes that corrections imply"
+      - "Parquet loses precision on repeated rewrites, so corrections accumulate error"
+    answer: "A Parquet file is effectively immutable: there is no in-place update, so a single correction rewrites the file that holds it"
+    evidence: |
+      The layout that makes analytical scans fast makes changes slow. Column
+      stores lose the point write, and that is a property to respect rather than
+      a defect to engineer around: data that is constantly corrected belongs in
+      the row store from L3. Batching helps and does not change the shape of the
+      argument, which is about matching the store to the access pattern.
+    source:
+      file: lectures/l04/notes.md
+      heading: "Columnar is the wrong home for writes and updates"
+      quote: "a Parquet file is effectively immutable"
+    verify: {mode: quote, needle: "effectively immutable", volatility: stable}
+    tags: [parquet, access-patterns]
+
+  - id: l04-q02
+    kind: claim_vs_source
+    rung: 3
+    difficulty: 3
+    objectives: [l04-o2]
+    prompt: |
+      "After that lecture, we should replace PostgreSQL with DuckDB and Parquet."
+
+      What is wrong with this conclusion?
+    options:
+      - "Nothing; for analytical workloads the replacement is the recommended migration"
+      - "It is named in the notes as the most common mistake after the lecture: the two compose, and a real platform runs both"
+      - "DuckDB cannot read PostgreSQL, so the migration would lose the existing data"
+      - "Parquet lacks the type system to represent what a relational schema encodes"
+    answer: "It is named in the notes as the most common mistake after the lecture: the two compose, and a real platform runs both"
+    evidence: |
+      PostgreSQL absorbs the live writes with its schema and transactions intact,
+      and the history is periodically laid down as Parquet that DuckDB scans, with
+      the `postgres` extension as the bridge. The skill is not loyalty to a column
+      store or a row store; it is placing each part of the workload where its
+      access pattern is cheap, and moving data across the seam deliberately.
+    source:
+      file: lectures/l04/notes.md
+      heading: "OLTP and OLAP compose; \"just use DuckDB\" is a trap"
+      quote: "The most common mistake after this lecture"
+    verify: {mode: quote, needle: "most common mistake after this lecture", volatility: stable}
+    tags: [oltp, olap, architecture]
+
+  - id: l04-q03
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l04-o2]
+    prompt: |
+      What is DuckDB not?
+    options:
+      - "An analytical engine, since it is optimised for point lookups rather than scans"
+      - "A shared transactional backend that many clients write to concurrently with isolation guarantees"
+      - "A SQL engine, since it uses its own dialect rather than standard SQL"
+      - "Usable without a server, since it requires a background process to hold state"
+    answer: "A shared transactional backend that many clients write to concurrently with isolation guarantees"
+    evidence: |
+      DuckDB runs inside one process, which is both its convenience and its
+      boundary: superb for one analyst's laptop, one pipeline's transform step,
+      one service's embedded analytics, and not trying to be a concurrent
+      multi-writer server. When several writers need a single consistent view,
+      that is the relational server's job, and DuckDB complements it most
+      naturally through the `postgres` attachment.
+    source:
+      file: lectures/l04/notes.md
+      heading: "DuckDB is an engine, not a shared server"
+      quote: "DuckDB is an engine, not a shared server"
+    verify: {mode: quote, needle: "an engine, not a shared server", volatility: stable}
+    tags: [duckdb, architecture]
+
+  - id: l04-q04
+    kind: predict_measure
+    rung: 2
+    difficulty: 2
+    objectives: [l04-o1]
+    prompt: |
+      Columnar storage gives a large measured speedup on analytical scans.
+
+      Before you look: at what data size does that advantage appear?
+    predict:
+      ask: "Write down a row count before revealing."
+      common_prior: "Almost immediately; columnar is just a better layout for analytics."
+    options:
+      - "At a few thousand rows, since the layout advantage is structural rather than a matter of scale"
+      - "At millions of rows; it shrinks at a few hundred thousand and vanishes on data that fits in memory"
+      - "Only above a billion rows, below which the formats are indistinguishable"
+      - "At any size, though the factor grows with row count"
+    answer: "At millions of rows; it shrinks at a few hundred thousand and vanishes on data that fits in memory"
+    evidence: |
+      The measured 80-times speedup appears at millions of rows. Below that scale
+      a pandas `groupby` is simpler, fast enough, and one fewer moving part, and
+      reaching for the columnar machinery is over-engineering, the same lesson L2
+      made about scaffolding a throwaway script. Match the tool to the size as
+      well as to the access pattern.
+    source:
+      file: lectures/l04/notes.md
+      heading: "Small data needs none of this"
+      quote: "speedup appears at millions of rows"
+    verify: {mode: ordering, needle: "millions of rows", volatility: measured}
+    tags: [columnar, scale]
+
+  - id: l04-q05
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l04-o1]
+    prompt: |
+      Why does a column store accelerate an analytical scan?
+    options:
+      - "It compresses better, so less data has to be read from disk overall"
+      - "A query touching three of forty columns reads only those three, instead of every row in full"
+      - "It keeps an index on every column, so any predicate can be answered from an index"
+      - "It stores data pre-aggregated, so common groupings are already computed"
+    answer: "A query touching three of forty columns reads only those three, instead of every row in full"
+    evidence: |
+      Compression is a genuine second-order benefit and it follows from the same
+      property: values in a column are homogeneous, so they compress far better
+      than a row of mixed types. But the primary mechanism is that the layout
+      lets you skip what you did not ask for, and that is why the advantage is
+      about access pattern rather than about size alone.
+    source:
+      file: lectures/l04/notes.md
+      heading: "Row stores and column stores"
+      quote: "Row stores and column stores"
+    verify: {mode: quote, needle: "Row stores and column stores", volatility: stable}
+    tags: [columnar, mechanism]
+
+  - id: l04-q06
+    kind: locus_of_control
+    rung: 3
+    difficulty: 2
+    objectives: [l04-o3]
+    prompt: |
+      A colleague wants a document store because designing the schema is taking
+      too long.
+
+      Is that a good reason?
+    options:
+      - "Yes; schema design is a bottleneck and document stores let it be deferred until the shape settles"
+      - "No. Choose one because your access pattern demands it, not because a schema felt like work"
+      - "Yes, provided a schema is imposed later at the application layer"
+      - "No, because document stores are slower than relational databases at every access pattern"
+    answer: "No. Choose one because your access pattern demands it, not because a schema felt like work"
+    evidence: |
+      Document, key-value, and time-series stores each solve a real problem by
+      giving something up, and what they give up is usually the relational
+      contract from L3: the enforced schema, the joins, the transactions. That is
+      the right trade when the data genuinely does not fit a table, and a bad one
+      when it is a way of not deciding. The fourth option is wrong in a different
+      direction: they are not slower everywhere, they are faster at the pattern
+      they were built for.
+    source:
+      file: lectures/l04/notes.md
+      heading: "The NoSQL stores trade away the guarantees you just learned to value"
+      quote: "not because a schema felt like work"
+    verify: {mode: quote, needle: "not because a schema felt like work", volatility: stable}
+    tags: [nosql, tradeoffs]
+
+  - id: l04-q07
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l04-o3]
+    prompt: |
+      Which store fits "continuous writes, point lookups, strong consistency"?
+    options:
+      - "A column store with Parquet files, since the writes can be appended as new files"
+      - "A row store and OLTP, which is the relational database of L3"
+      - "A document store, since point lookups by key are its core operation"
+      - "A vector store, since consistency is maintained by the index rather than the engine"
+    answer: "A row store and OLTP, which is the relational database of L3"
+    evidence: |
+      The rule the whole arc is building toward: store data in the shape that
+      matches how it will be read. Continuous writes, point lookups and strong
+      consistency say row store; wide scans and aggregates over history say
+      column store. A document store does point lookups well and gives up the
+      consistency guarantee, which is exactly the part this question specified.
+    source:
+      file: lectures/l04/notes.md
+      heading: "Where columns and DuckDB stop helping"
+      quote: "Every advantage above was an advantage *for a particular access pattern*"
+    verify: {mode: quote, needle: "access pattern", volatility: stable}
+    tags: [access-patterns, selection]
+
+  - id: l04-q08
+    kind: mechanism_recall
+    rung: 5
+    difficulty: 2
+    objectives: [l04-o3]
+    prompt: |
+      Close the notes. Name the store families this session places on the map,
+      and say what access pattern each one is for. Stop when you stall, and note
+      where.
+    checklist:
+      - text: "Row store / OLTP: continuous writes, point lookups, transactions"
+        needle: "OLTP"
+      - text: "Column store / OLAP: wide scans and aggregates over history"
+        needle: "OLAP"
+      - text: "Document store: heterogeneous records without a fixed schema"
+        needle: "document"
+      - text: "Key-value store: lookup by key, nothing else"
+        needle: "key-value"
+      - text: "Time-series store: append-heavy measurements indexed by time"
+        needle: "time-series"
+      - text: "Vector store: nearest-neighbour search over embeddings"
+        needle: "vector"
+    answer: null
+    evidence: |
+      Six families, and the skill this arc is building is not fluency in any one
+      of them: it is matching the store to the access pattern, and noticing when
+      a system needs two and a deliberate seam between them. Where you stalled is
+      your reading assignment.
+    source:
+      file: lectures/l04/notes.md
+      heading: "The wider landscape: document, key-value, time-series, and vector stores"
+      quote: "document, key-value, time-series, and vector stores"
+    verify:
+      mode: manual
+      needle: "key-value, time-series, and vector stores"
+      volatility: stable
+      exempt_reason: >-
+        Free-text recall; each checklist entry is verified against the source
+        individually rather than the answer being matched as a whole.
+    tags: [landscape, self-test]
+
+  - id: l04-q09
+    kind: spot_the_defect
+    rung: 3
+    difficulty: 2
+    objectives: [l04-o1]
+    prompt: |
+      A pipeline writes one Parquet file per reading, as readings arrive.
+
+      What is wrong?
+    options:
+      - "Nothing; appending new files is the documented way to add data to Parquet"
+      - "Parquet's advantages come from scanning columns across many rows, and a file per row gives up all of them while adding per-file overhead"
+      - "Parquet cannot store a single row, so the writes will fail"
+      - "The files will not be readable by DuckDB unless they share a schema"
+    answer: "Parquet's advantages come from scanning columns across many rows, and a file per row gives up all of them while adding per-file overhead"
+    evidence: |
+      Writing new files is indeed how you add data to Parquet, which is what makes
+      this failure plausible enough to happen: the mechanism is correct and the
+      granularity destroys the point. Columnar compression and column skipping
+      both need many rows in one file to do anything, and each file carries schema
+      and footer overhead. This access pattern is a row store's, and it should be
+      in one.
+    source:
+      file: lectures/l04/notes.md
+      heading: "Parquet: a columnar file format"
+      quote: "Parquet: a columnar file format"
+    verify: {mode: quote, needle: "a columnar file format", volatility: stable}
+    tags: [parquet, anti-pattern]
+
+  - id: l04-q10
+    kind: notebook_run
+    rung: 4
+    difficulty: 2
+    objectives: [l04-o2]
+    prompt: |
+      Open [`l04-storage.ipynb`](../lectures/l04/l04-storage.ipynb) and run the
+      same aggregate against PostgreSQL and against Parquet via DuckDB.
+
+      What should you take from the ratio you measure?
+    options:
+      - "That DuckDB should be the default engine for this workload from now on"
+      - "That the advantage is specific to this access pattern and this size, which is the thing to check before choosing"
+      - "That PostgreSQL is misconfigured, since a correctly indexed server should match a columnar scan"
+      - "That the comparison is unfair, since the two are not doing the same work"
+    answer: "That the advantage is specific to this access pattern and this size, which is the thing to check before choosing"
+    evidence: |
+      The two *are* doing the same work, which is what makes the comparison
+      meaningful; they are doing it against layouts built for different patterns.
+      Run the same comparison on a point lookup and the ordering reverses. The
+      measured 80-times speedup is real, it appears at millions of rows, and it
+      is an argument for a seam between two stores rather than for replacing one
+      with the other.
+    source:
+      file: lectures/l04/notes.md
+      heading: "DuckDB: SQL analytics inside your process"
+      quote: "DuckDB: SQL analytics inside your process"
+    verify: {mode: quote, needle: "SQL analytics inside your process", volatility: stable}
+    tags: [duckdb, benchmark, notebook]

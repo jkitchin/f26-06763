@@ -1,0 +1,284 @@
+# Learning objectives, lifted verbatim from each lecture's "## Learning objectives"
+# section. validate.py re-parses those bullets and fails if `text` has drifted, so
+# this file cannot silently fall out of step with the notes.
+#
+# Do not edit `text` by hand to make a check pass. If the notes changed, the
+# objective changed, and the items mapped to it need re-reading.
+
+- id: l15-o1
+  lecture: l15
+  text: >-
+    Build a correct-enough mental model of a decoder-only LLM to reason about failure modes
+    (truncation, hallucination, context limits) rather than treat it as a black box.
+
+- id: l15-o2
+  lecture: l15
+  text: >-
+    Understand tokenization concretely: subword units, why "10.5 MPa" or "SS316L" may split
+    oddly, and how token counts drive cost/latency.
+
+- id: l15-o3
+  lecture: l15
+  text: >-
+    Understand embeddings as vectors and use cosine similarity to cluster/retrieve
+    engineering text.
+
+- id: l09-o1
+  lecture: l09
+  text: >-
+    Translate an engineering question into a learning task with an appropriate loss and
+    reporting metric.
+
+- id: l09-o2
+  lecture: l09
+  text: >-
+    Build and beat baselines; know when a "sophisticated" model is not actually earning its
+    complexity.
+
+- id: l09-o3
+  lecture: l09
+  text: >-
+    Choose the correct cross-validation scheme for the data's structure.
+
+- id: l11-o1
+  lecture: l11
+  text: >-
+    Build fluency with tensors, shapes/broadcasting, and device placement.
+
+- id: l11-o2
+  lecture: l11
+  text: >-
+    Explain and implement a training loop and the role of `autograd` and the optimizer.
+
+- id: l11-o3
+  lecture: l11
+  text: >-
+    Use GPUs correctly and diagnose the common failure modes.
+
+- id: l19-o1
+  lecture: l19
+  text: >-
+    Implement a minimal tool-using agent from scratch against the tool-calling API, no
+    framework.
+
+- id: l19-o2
+  lecture: l19
+  text: >-
+    Design tool schemas that an LLM can use correctly and a harness can execute safely.
+
+- id: l19-o3
+  lecture: l19
+  text: >-
+    Build in termination, budgets, and error recovery so the loop is bounded and debuggable.
+
+- id: l21-o1
+  lecture: l21
+  text: >-
+    Build a repeatable eval harness that turns "it seems to work" into a number with a
+    confidence interval.
+
+- id: l21-o2
+  lecture: l21
+  text: >-
+    Implement an LLM-as-judge grader and validate it against a small human-labeled set.
+
+- id: l21-o3
+  lecture: l21
+  text: >-
+    Add tracing so every request's inputs, outputs, tool calls, latency, and cost are
+    recorded and queryable.
+
+- id: l13-o1
+  lecture: l13
+  text: >-
+    Design a surrogate: sampling plan, model family, and validation for extrapolation.
+
+- id: l13-o2
+  lecture: l13
+  text: >-
+    Add physics to a model via soft penalties or hard constraints, and evaluate the payoff.
+
+- id: l13-o3
+  lecture: l13
+  text: >-
+    Produce and calibrate predictive uncertainty, separating aleatoric from epistemic.
+
+- id: l07-o1
+  lecture: l07
+  text: >-
+    Construct lag, window, and frequency-domain features for sensor/simulation signals.
+
+- id: l07-o2
+  lecture: l07
+  text: >-
+    Apply appropriate scaling and encoding while avoiding leakage.
+
+- id: l07-o3
+  lecture: l07
+  text: >-
+    Assemble features into a reproducible feature pipeline with fitted transformers.
+
+- id: l17-o1
+  lecture: l17
+  text: >-
+    Explain why RAG exists (grounding, freshness, source attribution, cost vs long-context)
+    and where it breaks.
+
+- id: l17-o2
+  lecture: l17
+  text: >-
+    Build each stage of a RAG pipeline and reason about the design choices at each stage.
+
+- id: l17-o3
+  lecture: l17
+  text: >-
+    Evaluate retrieval quality quantitatively and connect retrieval failures to downstream
+    answer failures.
+
+- id: l23-o1
+  lecture: l23
+  text: >-
+    Build a CI pipeline that runs tests and an eval gate (fail the build if a key metric drops
+    below threshold) and produces a deployable container.
+
+- id: l23-o2
+  lecture: l23
+  text: >-
+    Design drift and regression monitoring and choose alert thresholds you can justify.
+
+- id: l23-o3
+  lecture: l23
+  text: >-
+    Identify system-specific failure modes and write concrete guardrails; apply a
+    responsible-AI checklist to an engineering decision.
+
+- id: l01-o1
+  lecture: l01
+  text: >-
+    Map the end-to-end lifecycle of an engineering ML system and identify the standardized
+    toolchain used throughout the semester.
+
+- id: l01-o2
+  lecture: l01
+  text: >-
+    Contrast "a model in a notebook" with "a system," naming the data contracts, drift, and
+    monitoring concerns that separate them.
+
+- id: l01-o3
+  lecture: l01
+  text: >-
+    Explain why engineering data imposes provenance and traceability requirements that
+    general-purpose ML tutorials ignore.
+
+- id: l01-o4
+  lecture: l01
+  text: >-
+    Justify each component of the course toolchain in terms of the failure it prevents.
+
+- id: l02-o1
+  lecture: l02
+  text: >-
+    Build and lock a project environment with `uv`, and rebuild it exactly on a fresh machine.
+
+- id: l02-o2
+  lecture: l02
+  text: >-
+    Choose the right versioning tool for code, data, and models, and explain why large binary
+    files do not belong in plain git.
+
+- id: l02-o3
+  lecture: l02
+  text: >-
+    Turn an exploratory notebook into a script or package with a tested command-line entry
+    point.
+
+- id: l02-o4
+  lecture: l02
+  text: >-
+    Log a run to MLflow so that one run equals one fact you can reproduce.
+
+- id: l05-o1
+  lecture: l05
+  text: >-
+    Write idiomatic transformations in pandas and Polars and read/benchmark both.
+
+- id: l05-o2
+  lecture: l05
+  text: >-
+    Structure a batch pipeline into reproducible, parameterized stages.
+
+- id: l05-o3
+  lecture: l05
+  text: >-
+    Explain the distributed-processing model (partitioning, lazy graphs) without needing a
+    cluster.
+
+- id: l03-o1
+  lecture: l03
+  text: >-
+    Model sensor/simulation data in a relational schema with appropriate types (timestamps,
+    numeric precision, units).
+
+- id: l03-o2
+  lecture: l03
+  text: >-
+    Load data into PostgreSQL and query it with SQL: joins, `GROUP BY`, window functions,
+    time bucketing.
+
+- id: l03-o3
+  lecture: l03
+  text: >-
+    Reason about indexing and query cost for time-range queries.
+
+- id: l04-o1
+  lecture: l04
+  text: >-
+    Explain columnar storage and why it accelerates analytical scans, and read and write
+    Parquet.
+
+- id: l04-o2
+  lecture: l04
+  text: >-
+    Use DuckDB to query Parquet and PostgreSQL without a server, and choose between OLTP and
+    OLAP tools.
+
+- id: l04-o3
+  lecture: l04
+  text: >-
+    Place document, key-value, and vector stores in the engineering data landscape.
+
+# L6 and L8 have published notes but no item bank yet (see game/content/l06.yml
+# and l08.yml, both status: unwritten). The objectives are registered anyway,
+# lifted verbatim, so that whoever writes those banks maps items onto objectives
+# that already exist rather than inventing a second set. validate.py checks the
+# text against the notes, so these cannot drift silently either.
+
+- id: l06-o1
+  lecture: l06
+  text: >-
+    Distinguish batch from streaming, and identify when sensor systems require streaming.
+
+- id: l06-o2
+  lecture: l06
+  text: >-
+    Explain windowing, event vs. processing time, watermarks, and late or out-of-order data.
+
+- id: l06-o3
+  lecture: l06
+  text: >-
+    Author executable data-quality checks and integrate them as a pipeline gate.
+
+- id: l08-o1
+  lecture: l08
+  text: >-
+    Design leakage-free splits for temporal and grouped data and detect leakage empirically.
+
+- id: l08-o2
+  lecture: l08
+  text: >-
+    Version datasets and feature sets so results are reproducible from raw inputs.
+
+- id: l08-o3
+  lecture: l08
+  text: >-
+    Run a data-centric improvement loop and attribute gains to data changes.

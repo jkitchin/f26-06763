@@ -780,6 +780,112 @@ Add to it when something is worth adding, not on a schedule.
 
 ---
 
+## 9c. The practice game and the course map
+
+`game/` is a Vite/React app published to `/f26-06763/game/`. It serves each student a
+seeded selection of practice items per lecture and ends in an evidence PDF they upload for
+participation credit. The same app carries the course map at `#/map`. It is one app on
+purpose: the map opens the modules that already exist rather than needing a second set of
+content.
+
+**The participation score is on the PDF, and the rule is one line.** Each question is worth
+a point, each wrong answer deducts `WRONG_PENALTY` (0.25), a revealed answer scores zero,
+and the score is the mean over the questions that had an answer chosen. Free-recall items
+are excluded, because the student scores those against a checklist and counting them would
+hand everybody a free point. The rule lives in `game/src/store/log.ts` and is mirrored in
+`tools/verify_evidence.py`; `game/tests/test_derive.py` reads both files and fails if the
+two constants disagree, because a disagreement means the number on a student's PDF is not
+the number their TA records.
+
+Be careful reasoning about how hard that penalty is. It replaced `1 / tries` and it is
+*softer*: every graded item has four options and is retry-until-right, so a student who
+knows nothing averages 1.5 wrong attempts and scores 0.625, against 0.521 under the old
+rule. The deduction is not what discourages guessing. The attempt window below is.
+
+**Retakes get different questions, and the attempt number is on the PDF.** The seed was
+always `(salt, andrew id, lecture, pool version)` with no attempt term, so a student could
+finish a module, read the answers off the review screen, run it again and score 100% on an
+identical draw. Now `derive()` takes a 1-based `attempt`, which slides a window along the
+ranking: attempt 1 takes ranks 0..k-1, attempt 2 takes ranks k..2k-1, and later attempts
+wrap.
+
+Two things about that are load-bearing and easy to undo by accident:
+
+- **The ranking must not depend on the attempt.** Only the offset moves. Reseeding per
+  attempt would draw an independent sample, and an independent 5-of-10 sample overlaps the
+  first by 2.5 items on average, which is most of the way back to the bug. This is why
+  `selectItems` takes an offset rather than a fresh seed.
+- **`serve` must be at most half the pool**, or attempt 2 cannot be disjoint. Every bank is
+  `serve = pool // 2` for exactly this reason, which is what moved the serve-6 banks to 5
+  and the serve-8 banks to 6. `test_derive.py` asserts it across every shipped bank, so
+  growing a pool and raising `serve` to match will fail rather than quietly re-serving
+  attempt 1's questions.
+
+The attempt is stamped into `SessionOpened` when the sitting opens and travels in the MAC'd
+payload, and both halves matter. Recomputing it at PDF time would count sittings finished
+*after* this one and re-derive to items the student was never served, which is section 9c's
+own "never judge past work by present content" bug; and the verifier must re-derive with the
+attempt from the payload or every honest retake fails.
+
+**None of this is tamper-proof, and the code says so rather than implying otherwise.**
+Clearing site data resets the attempt counter to 1 and re-serves attempt 1's questions, and
+the MAC key ships in the public bundle. The goal is unchanged from what
+`tools/verify_evidence.py` has always said: make the cheapest successful forgery cost at
+least as much as doing the module honestly. `find_duplicates` notes the same student
+submitting the same attempt twice with different codes, as a `PASS*` for a human to look at
+and never as an accusation, because clearing a browser is something honest people do.
+
+Changing the payload shape means bumping `SCHEMA` in **both** `game/src/evidence/payload.ts`
+and `tools/verify_evidence.py`. Bumping only the first makes every PDF report `UNREADABLE`,
+which is the false-positive bucket, so the failure reaches a TA as "your file is corrupt"
+addressed to students who did nothing wrong. Nothing caught that until the `quiz` job grew a
+step that issues sample PDFs and runs the verifier over them end to end.
+
+**It runs entirely in the browser.** No `fetch`, no external host, no runtime network call
+of any kind; the item banks are inlined at build time by an eager `import.meta.glob`,
+progress lives in IndexedDB, and the PDF is generated in the tab. The grading side is the
+opposite: `tools/verify_evidence.py` is a CLI a TA runs against downloaded PDFs. Keep that
+split. A feature that needs a server is a feature this design cannot have.
+
+**Five artifacts are generated, and none of them may be hand-edited.** Each has a `--write`
+that produces it and a `--check` that regenerates and compares, and CI runs every `--check`
+in the `quiz` job:
+
+| Artifact | Built by | What drift would mean |
+|---|---|---|
+| `game/tests/vectors.json` | `npm run vectors` | `seed.ts` and `derive.py` disagree, so every honest PDF fails at once |
+| `game/src/map/graph.json` | `tools/graph.py` | a corridor nobody can point at, or a lecture cited by a broken link |
+| `game/src/map/world.json` | `tools/world.py` | a room missing from the map while its corridors still exist |
+| `game/content/pools/*.json` | `tools/pool_archive.py` | a bank edit silently invalidating PDFs already in students' hands |
+| `game/content/sections.lock` | `game/validate.py` | an item quoting a section that has since been rewritten |
+
+The pattern is the same one section 5b applies to figures, and it is worth stating as a
+rule: **a committed artifact that nobody regenerates keeps passing after the thing it
+describes has moved.** That is why every one of these is rebuilt in CI rather than trusted.
+
+**Never judge past work by present content.** This is the bug class the game has produced
+twice, in both halves of the system, and it is silent both times. Completeness used to be
+decided by comparing answers against the bank's *current* `serve`, so growing a pool
+un-completed every finished sitting; `verify_evidence.py` used to re-derive a student's
+item set from the *current* pool, so a week-3 PDF failed verification in week 9 and the
+error accused the student. Both are fixed by recording what was served at the time: a
+`SessionOpened` event in the log, and a snapshot in `game/content/pools/`. If you find
+yourself reading today's bank to decide something that happened earlier, stop.
+
+**Map edges are content.** `tools/graph.py` extracts corridors from markdown cross-links,
+which covers L1 to L15; the back half cites earlier sessions only in prose, so those edges
+are hand-written in `game/content/map-edges.yml` with the sentence that justifies each. The
+check that matters is that a quote must actually name the lecture its edge points at, and
+note that lecture numbers are prefixes of each other (L1 inside L13 and L17, L2 inside
+L20), which is why the test for it exists.
+
+Nothing on the map is locked behind a prerequisite, and that is a design decision rather
+than an unfinished feature: a student arriving in week 12 must not be walled out of L23
+because they skipped L9. There are also no streaks, no XP and no leaderboard, for the
+reason `course/optional/generating-is-not-learning.md` gives.
+
+---
+
 ## 10. Things not to do
 
 - Do not add `course/modules/` to `_toc.yml`, and do not disable `only_build_toc_files`.

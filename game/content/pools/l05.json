@@ -1,0 +1,179 @@
+{
+  "lecture": "l05",
+  "versions": {
+    "1": {
+      "items": {
+        "l05-q01": {
+          "answer": "The new code repurposed a flag that had previously activated Power Peg, dead code from 2003 that was never deleted",
+          "options": [
+            "The deployment had no rollback, so the seven updated servers could not be reverted quickly",
+            "The new code repurposed a flag that had previously activated Power Peg, dead code from 2003 that was never deleted",
+            "The eighth server had no monitoring, so nobody noticed it was serving stale code",
+            "The rollout happened during market hours, which is when the exposure was greatest"
+          ]
+        },
+        "l05-q02": {
+          "answer": "Which side of the crossover the job is on, since graph-building overhead is a fixed cost that dominates on small data",
+          "options": [
+            "The data size alone; above a few gigabytes distributed processing is the right default",
+            "Which side of the crossover the job is on, since graph-building overhead is a fixed cost that dominates on small data",
+            "Whether the transformations are embarrassingly parallel, since a shuffle would negate the benefit",
+            "Whether a cluster is available, since Dask on one machine offers nothing over pandas"
+          ]
+        },
+        "l05-q03": {
+          "answer": "Errors move away from the line that causes them, frequently not raising until `.collect()` or `.compute()`",
+          "options": [
+            "Memory, since the whole plan must be held before anything executes",
+            "Errors move away from the line that causes them, frequently not raising until `.collect()` or `.compute()`",
+            "Determinism, since the optimiser may reorder operations between runs",
+            "Type safety, since column types are only known once the data is materialised"
+          ]
+        },
+        "l05-q04": {
+          "answer": "When your collaborators, your codebase, or the library you need next only speaks pandas",
+          "options": [
+            "When the data fits in memory, since Polars' advantage only appears above that",
+            "When your collaborators, your codebase, or the library you need next only speaks pandas",
+            "When the transformations are simple, since Polars' optimiser needs complex queries to pay off",
+            "When you need plotting, since Polars cannot be converted to a plottable form"
+          ]
+        },
+        "l05-q05": {
+          "answer": "The stale file is reused, because nothing keyed on the config invalidates a file keyed only on the stage name",
+          "options": [
+            "The cache is invalidated automatically, since the config is part of the stage's inputs",
+            "The stale file is reused, because nothing keyed on the config invalidates a file keyed only on the stage name",
+            "The stage fails, since the cached schema no longer matches the new config",
+            "A new cache entry is written alongside the old one, and the newer is preferred"
+          ]
+        },
+        "l05-q06": {
+          "answer": "Within a factor of two of 100 times slower",
+          "options": [
+            "Within a factor of two of 100 times slower",
+            "About 5 times slower, which is the usual interpreter overhead",
+            "About 1,000 times slower, since every element crosses the Python-C boundary",
+            "Roughly the same, since NumPy loops internally anyway"
+          ]
+        },
+        "l05-q07": {
+          "answer": "Arrow is an in-memory columnar layout; Parquet is an on-disk columnar file format",
+          "options": [
+            "They are the same format, with Arrow being the newer name",
+            "Arrow is an in-memory columnar layout; Parquet is an on-disk columnar file format",
+            "Arrow is for streaming and Parquet for batch, so they suit different pipeline stages",
+            "Parquet is Arrow with compression enabled, so the two are interchangeable at rest"
+          ]
+        },
+        "l05-q08": {
+          "answer": "It produces the same output for the same input, so a partial failure can be retried without corrupting anything",
+          "options": [
+            "It produces the same output for the same input, so a partial failure can be retried without corrupting anything",
+            "It runs in constant time regardless of input size, which makes scheduling predictable",
+            "It holds no state between invocations, so stages can run in any order",
+            "It writes atomically, so a reader never sees a half-written file"
+          ]
+        },
+        "l05-q09": {},
+        "l05-q10": {
+          "answer": "That the ratio is a property of this workload and this machine, and the transferable habit is measuring rather than assuming",
+          "options": [
+            "That Polars should replace pandas in your projects, since the benchmark settles it",
+            "That the ratio is a property of this workload and this machine, and the transferable habit is measuring rather than assuming",
+            "That the two are equivalent, since the difference is within run-to-run noise",
+            "That benchmarks of this kind are not meaningful, since real pipelines are dominated by input and output"
+          ]
+        }
+      },
+      "serve": 6
+    },
+    "2": {
+      "items": {
+        "l05-q01": {
+          "answer": "The new code repurposed a flag that had previously activated Power Peg, dead code from 2003 that was never deleted",
+          "options": [
+            "The deployment had no rollback, so the seven updated servers could not be reverted quickly",
+            "The new code repurposed a flag that had previously activated Power Peg, dead code from 2003 that was never deleted",
+            "The eighth server had no monitoring, so nobody noticed it was serving stale code",
+            "The rollout happened during market hours, which is when the exposure was greatest"
+          ]
+        },
+        "l05-q02": {
+          "answer": "Which side of the crossover the job is on, since graph-building overhead is a fixed cost that dominates on small data",
+          "options": [
+            "The data size alone; above a few gigabytes distributed processing is the right default",
+            "Which side of the crossover the job is on, since graph-building overhead is a fixed cost that dominates on small data",
+            "Whether the transformations are embarrassingly parallel, since a shuffle would negate the benefit",
+            "Whether a cluster is available, since Dask on one machine offers nothing over pandas"
+          ]
+        },
+        "l05-q03": {
+          "answer": "Errors move away from the line that causes them, frequently not raising until `.collect()` or `.compute()`",
+          "options": [
+            "Memory, since the whole plan must be held before anything executes",
+            "Errors move away from the line that causes them, frequently not raising until `.collect()` or `.compute()`",
+            "Determinism, since the optimiser may reorder operations between runs",
+            "Type safety, since column types are only known once the data is materialised"
+          ]
+        },
+        "l05-q04": {
+          "answer": "When your collaborators, your codebase, or the library you need next only speaks pandas",
+          "options": [
+            "When the data fits in memory, since Polars' advantage only appears above that",
+            "When your collaborators, your codebase, or the library you need next only speaks pandas",
+            "When the transformations are simple, since Polars' optimiser needs complex queries to pay off",
+            "When you need plotting, since Polars cannot be converted to a plottable form"
+          ]
+        },
+        "l05-q05": {
+          "answer": "The stale file is reused, because nothing keyed on the config invalidates a file keyed only on the stage name",
+          "options": [
+            "The cache is invalidated automatically, since the config is part of the stage's inputs",
+            "The stale file is reused, because nothing keyed on the config invalidates a file keyed only on the stage name",
+            "The stage fails, since the cached schema no longer matches the new config",
+            "A new cache entry is written alongside the old one, and the newer is preferred"
+          ]
+        },
+        "l05-q06": {
+          "answer": "Within a factor of two of 100 times slower",
+          "options": [
+            "Within a factor of two of 100 times slower",
+            "About 5 times slower, which is the usual interpreter overhead",
+            "About 1,000 times slower, since every element crosses the Python-C boundary",
+            "Roughly the same, since NumPy loops internally anyway"
+          ]
+        },
+        "l05-q07": {
+          "answer": "Arrow is an in-memory columnar layout; Parquet is an on-disk columnar file format",
+          "options": [
+            "They are the same format, with Arrow being the newer name",
+            "Arrow is an in-memory columnar layout; Parquet is an on-disk columnar file format",
+            "Arrow is for streaming and Parquet for batch, so they suit different pipeline stages",
+            "Parquet is Arrow with compression enabled, so the two are interchangeable at rest"
+          ]
+        },
+        "l05-q08": {
+          "answer": "It produces the same output for the same input, so a partial failure can be retried without corrupting anything",
+          "options": [
+            "It produces the same output for the same input, so a partial failure can be retried without corrupting anything",
+            "It runs in constant time regardless of input size, which makes scheduling predictable",
+            "It holds no state between invocations, so stages can run in any order",
+            "It writes atomically, so a reader never sees a half-written file"
+          ]
+        },
+        "l05-q09": {},
+        "l05-q10": {
+          "answer": "That the ratio is a property of this workload and this machine, and the transferable habit is measuring rather than assuming",
+          "options": [
+            "That Polars should replace pandas in your projects, since the benchmark settles it",
+            "That the ratio is a property of this workload and this machine, and the transferable habit is measuring rather than assuming",
+            "That the two are equivalent, since the difference is within run-to-run noise",
+            "That benchmarks of this kind are not meaningful, since real pipelines are dominated by input and output"
+          ]
+        }
+      },
+      "serve": 5
+    }
+  }
+}
