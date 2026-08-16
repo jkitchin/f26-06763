@@ -17,10 +17,10 @@ bereavement fares, and it told him he could book a full-price ticket immediately
 for a bereavement discount within 90 days after travel. He did exactly that. Air Canada then
 refused the refund, pointing out, correctly, that its actual bereavement policy required the
 discount request to be submitted *before* travel, not after. The chatbot's answer simply was
-not what the airline's policy said. Air Canada's defense in the case that followed is the part
-worth remembering: it argued the chatbot was "a separate legal entity that is responsible for
-its own actions," and that Mr. Moffatt should have verified the chatbot's claim against the
-airline's own policy page himself. Canada's Civil Resolution Tribunal rejected that argument
+not what the airline's policy said. Air Canada's defense in the case that followed argued the
+chatbot was "a separate legal entity that is responsible for its own actions," and that Mr.
+Moffatt should have verified the chatbot's claim against the airline's own policy page himself.
+Canada's Civil Resolution Tribunal rejected that argument
 in February 2024, calling it "a remarkable submission" and holding that a company is
 responsible for all the information on its website, "whether it comes from a static page or a
 chatbot." Air Canada was ordered to pay the fare difference and damages.
@@ -29,27 +29,25 @@ Read past the legal outcome and the engineering failure is precise and entirely 
 this point in the course: a language model was asked a factual question about a policy
 document that exists, in full, in a specific, retrievable place, and instead of being shown
 that document, it was left to generate an answer from whatever pattern of bereavement-policy
-language it had absorbed in training. It was not lying. It was doing exactly what a language
-model does when nothing constrains it to a source: producing plausible, fluent, and in this
-case wrong text. This is the sharpest illustration of why grounding is not an optional
-refinement of a chatbot. A model unconstrained by a real source is a generator of plausible
-text, and "plausible" and "correct" are different properties that happen to coincide often
-enough to be dangerous.
+language it had absorbed in training. The chatbot had no intent to deceive: it was doing
+exactly what a language model does when nothing constrains it to a source, producing
+plausible, fluent, and in this case wrong text. Grounding is not an optional refinement of a
+chatbot: a model unconstrained by a real source generates plausible text, and "plausible" and
+"correct" are different properties that coincide often enough to be dangerous.
 
 Retrieval-augmented generation is the engineering answer to exactly this failure: instead of
 asking a model to recall a fact from its training data, hand it the actual, current,
 retrievable text of the fact and ask it to answer from that. The word "augmented" undersells
-what is happening. RAG is not a way to make a model smarter; it is a way to make a model's
-answer traceable to a source a human can go check, which is the property Air Canada's chatbot
-was missing and the property this session is entirely about building. It also solves two
-problems retrieval-free generation cannot touch at all: **freshness**, since a retrieved
-document can be updated the moment the policy changes with no retraining, and **cost**,
-since retrieving three relevant paragraphs is cheaper than either fine-tuning a model on your
-entire corpus or pasting the entire corpus into every prompt. That second comparison, retrieval
-versus simply using a very long context window now that models support hundreds of thousands
-of tokens, is worth naming early: a longer context is not a substitute for retrieval, both
-because it is billed by the token on every single call and because, as later sections show,
-a model does not read a long context uniformly.
+what is happening: RAG makes a model's answer traceable to a source a human can go check.
+That traceability is the property Air Canada's chatbot was missing, and it is what this
+session builds toward. RAG also solves two problems retrieval-free generation cannot touch at
+all: **freshness**, since a retrieved document can be updated the moment the policy changes
+with no retraining, and **cost**, since retrieving three relevant paragraphs is cheaper than
+either fine-tuning a model on your entire corpus or pasting the entire corpus into every
+prompt. Retrieval and simply using a very long context window, now that models support
+hundreds of thousands of tokens, are not the same choice: a longer context is not a substitute
+for retrieval, both because it is billed by the token on every single call and because, as
+later sections show, a model does not read a long context uniformly.
 
 ## Learning objectives
 
@@ -108,8 +106,8 @@ consecutive chunks so a fact sitting near a boundary has a chance of appearing w
 least one chunk. It is trivial to implement and it is blind to the document's own structure,
 which is exactly what makes it a poor fit for the kind of document this session's demo uses:
 an engineering standard or manual, built from numbered clauses and tables, where the unit of
-meaning is not "256 tokens" but "clause 4.2" or "the row for 3/8 inch bolts." A fixed window
-does not know where clause 4.2 ends. It will, with some regularity, end a chunk in the middle
+meaning is a numbered clause like "clause 4.2" or a table row like "the row for 3/8 inch
+bolts." A fixed window does not know where clause 4.2 ends. It will, with some regularity, end a chunk in the middle
 of a table row, separating a bolt size from its torque value, or bury one short, specific
 clause inside a chunk dominated by an unrelated neighboring one.
 
@@ -275,7 +273,7 @@ The single most common mistake in building a RAG system is judging it by reading
 answers and deciding whether they sound right. That skips the one measurement that tells you
 where a failure actually lives: if the retriever did not return the right chunk, no generation
 strategy can produce a correct, grounded answer, and a good-sounding answer produced despite
-bad retrieval is luck, not a working system.
+bad retrieval is luck: the system still failed, it just did not look like it failed.
 
 Retrieval evaluation needs a **gold set**: a list of queries paired with the chunk or chunks
 that actually answer each one, built by a human who knows the corpus, the same discipline this
@@ -310,13 +308,12 @@ human judgment just moves the trust problem rather than solving it.
 RAG is a genuine fix for ungrounded generation, and it introduces failure modes of its own that
 are easy to miss precisely because the system appears to be working.
 
-**A confident wrong answer looks identical to a confident right one.** This is the deepest
-problem RAG has to manage rather than solve outright: nothing about a fluent, well-cited-looking
-answer distinguishes a case where retrieval actually found the right chunk from a case where it
-confidently found the wrong one, unless you specifically built and ran the retrieval evaluation
-from the previous section. A RAG system without a retrieval eval is not obviously safer than no
-RAG system at all; it is a system whose failures now come with a citation attached, which can
-make them more convincing rather than less.
+**A confident wrong answer looks identical to a confident right one.** Nothing about a fluent,
+well-cited-looking answer distinguishes a case where retrieval actually found the right chunk
+from a case where it confidently found the wrong one, unless you specifically built and ran
+the retrieval evaluation from the previous section. A RAG system without a retrieval eval is
+not obviously safer than no RAG system at all: its failures now come with a citation attached,
+which can make them more convincing.
 
 **Long context is not a free substitute for retrieval, and it has its own failure mode.** With
 context windows now reaching hundreds of thousands of tokens, the obvious question is why chunk
@@ -326,7 +323,7 @@ less obvious answer is that models do not read a long context uniformly: Liu and
 2023 study "Lost in the Middle" found that model accuracy on a fact embedded in a long context
 is reliably higher when that fact sits near the beginning or end of the context and measurably
 worse when it sits in the middle, regardless of how relevant the fact actually is. A shorter,
-retrieval-curated context is not just cheaper, it can be more reliable for exactly this reason.
+retrieval-curated context is cheaper and, for exactly this reason, can be more reliable too.
 
 **Embedding-model and index mismatch fails silently.** Re-embedding a query with a different
 model than the one used to build the index does not raise an error. It just returns nearest
@@ -340,7 +337,7 @@ re-ranking recovers a fact that structure-blind chunking already split across tw
 ingestion time. Money spent getting chunking right the first time buys more than the same
 money spent on a fancier retriever afterward.
 
-**Hybrid and re-ranking add real operational cost for a real gain, not a free upgrade.**
+**Hybrid and re-ranking add real operational cost for a real gain.**
 Maintaining two indexes, or adding a cross-encoder pass, is more moving parts, more latency,
 and more to keep synchronized when the corpus updates. Measure the recall and nDCG gain against
 your actual gold set before adding either; a corpus small and clean enough that plain dense
@@ -353,8 +350,8 @@ Build the retrieval gold set and measure recall@k before you ever judge a genera
 Treat a similarity score as a measure of topical closeness, never as a confidence score, and
 put the "answer only from context, or say you cannot" instruction, and a check that it was
 followed, at the generation step where it belongs. A RAG system's citations make its failures
-look more trustworthy, not less, which is exactly why the evaluation has to be real rather
-than a glance at whether the answers sound plausible.
+look more trustworthy. That is why the evaluation has to be a measurement, not a glance at
+whether the answers sound plausible.
 :::
 
 ## In-class demo
@@ -380,12 +377,12 @@ A language model asked a factual question with nothing to ground it will answer 
 and often wrong, and Air Canada's chatbot is what that costs when the question was one a real
 document already answered correctly. Retrieval-augmented generation's whole argument is that an
 answer traceable to a retrievable source is worth building deliberately: chunk a corpus with its
-own structure in mind rather than an arbitrary token count, index it in a vector store sized to
+own structure in mind rather than an arbitrary token count, index it in a vector index sized to
 your actual scale, retrieve with dense, keyword, or hybrid search depending on whether your
 queries are paraphrases or exact identifiers, and instruct the generation step, explicitly and
 checkably, to answer only from what it was given. None of that is safe to assume works until you
-measure it, which is why retrieval evaluation, recall@k first, is this session's least glamorous
-and most load-bearing idea. Next session turns the question around: given prompting, RAG, and
+measure it, and retrieval evaluation, recall@k first, is the measurement this whole argument
+depends on. Next session turns the question around: given prompting, RAG, and
 fine-tuning all on the table, which one actually fits a given engineering task, and what does a
 LoRA fine-tune on the course GPU look like when behavior, not knowledge, is what needs fixing.
 

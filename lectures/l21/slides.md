@@ -188,9 +188,9 @@ checked against real Intel Lab data:
 
 ---
 
-## That's not a slightly-optimistic interval
+## A badly miscalibrated interval
 
-It is not doing the job an interval is for.
+Fails the one job an interval has to do.
 
 Training tells you nothing about this.
 Only checking coverage against held-out truth does.
@@ -206,7 +206,7 @@ Only checking coverage against held-out truth does.
 
 ---
 
-## Per-slice metrics: the most important idea here
+## Per-slice metrics: what aggregates hide
 
 Same fitted model. Same data source.
 
@@ -367,8 +367,8 @@ depends entirely on whether your **rubric** asked it to check.
 
 ## What a practitioner should take from this
 
-A failing kappa isn't a reason to skip validation
-faster next time. It's what validation is *for*.
+Validation exists to catch a failing kappa
+like this one.
 
 Fix: a sharper rubric or an added programmatic check.
 Not, by default, a bigger model.
@@ -454,7 +454,7 @@ Only the human-agreement check catches that.
 
 ---
 
-## Unread observability is just storage
+## Traces only help if someone reads them
 
 Logging every trace costs nothing if nobody
 queries it.
@@ -501,7 +501,7 @@ you validate + a surrogate you audit by slice.
 - Per-slice metrics find what aggregates hide: 2.5x, measured, not assumed
 - Reference-based → programmatic → LLM-as-judge, in that order of cost and reliability
 - Validate every judge against human labels before trusting it on anything else
-- Observability is what turns "it seemed to get worse" into a traceable claim
+- Observability turns "it seemed to get worse" into a traceable claim
 
 ---
 

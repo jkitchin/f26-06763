@@ -155,7 +155,7 @@ software CI doesn't have.
 
 ---
 
-## The gate is what makes this an ML pipeline
+## The gate makes this an ML pipeline
 
 Not "report the number and hope someone notices."
 
@@ -222,7 +222,7 @@ the same distribution? A p-value, not a vibe.
 | Comparison | PSI |
 |---|---|
 | Random split (no drift) | 0.001 |
-| First week vs. last week (real, unforced) | 1.26 – 9.03 |
+| First week vs. last week (real, unforced) | 1.26 to 9.03 |
 | Injected sudden shift | 5.35 |
 
 ---

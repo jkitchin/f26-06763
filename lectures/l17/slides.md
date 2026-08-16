@@ -213,7 +213,7 @@ Never splits a fact in half.
 | Chunking | recall@3 | nDCG@3 |
 |---|---|---|
 | Structure-aware | ~1.00 | ~0.95 |
-| Naive fixed (crosses clause + doc bounds) | ~0.93 | ~0.6–0.7 |
+| Naive fixed (crosses clause + doc bounds) | ~0.93 | ~0.6-0.7 |
 
 ---
 
