@@ -23,85 +23,70 @@ footer: "Systems & Toolchains for AI in Engineering"
 3. A project layout that scales
 4. Versioning code, data, and models
 5. Notebook to module, and tracking runs
-6. Live demo: an empty folder to a tracked run
+6. Where reproducibility pushes back
+7. Live demo: an empty folder to a tracked run
 
 ---
 
 <!-- _class: section -->
 
 # Why reproducibility
+
 ## a model nobody could rebuild
 
 ---
 
-## A model in the clinic
+## Why reproducibility, a model in the clinic
 
 2006, Duke, in *Nature Medicine*:
 read a tumor's gene expression,
 predict which chemotherapy will work.
 
-By 2007, the predictors were **assigning patients**
+By 2007 the predictors were **assigning patients**
 in clinical trials.
 
 [Nature Medicine, 2006](https://www.nature.com/articles/nm1491)
 
 ---
 
-## Two outsiders tried to check it
+## Why reproducibility, the check that failed
 
 Baggerly & Coombes rebuilt the analysis
-from the **published data**.
+from the **published data**. The numbers **did not match**.
 
-The numbers **did not match**.
+Two ordinary errors, both invisible in the papers:
+
+- a gene list **shifted down by one row**
+- the **labels swapped**: responds vs resists
 
 [Deriving chemosensitivity from cell lines (2009)](https://projecteuclid.org/journals/annals-of-applied-statistics/volume-3/issue-4/Deriving-chemosensitivity-from-cell-lines--Forensic-bioinformatics-and-reproducible/10.1214/09-AOAS291.full)
 
 ---
 
-## Two small errors
-
-- A gene list **shifted down by one row**
-- The **labels swapped**: responds vs resists
-
-Easy to make. Easy to miss.
-**Invisible** in the published papers.
-
----
-
-## How far it went
+## Why reproducibility, how far it went
 
 Three trials at Duke. **117 patients** enrolled.
 
-A later **National Academies review**
-examined how work that could not be reproduced
-had reached patients.
+- a [National Academies review](https://www.ncbi.nlm.nih.gov/books/NBK475955/) traced how it reached patients
+- [retracted](https://www.nature.com/articles/nm0111-135) in 2011: the authors could not reproduce it either
+- a [federal inquiry](https://retractionwatch.com/2015/11/07/its-official-anil-potti-faked-data-say-feds/) later found research misconduct
 
-[National Academies case study](https://www.ncbi.nlm.nih.gov/books/NBK475955/)
-
----
-
-## It reached patients anyway
-
-The paper was **[retracted](https://www.nature.com/articles/nm0111-135)** in 2011,
-because even its authors could not reproduce it.
-
-A [federal inquiry](https://retractionwatch.com/2015/11/07/its-official-anil-potti-faked-data-say-feds/) later found research misconduct.
-
-Intent is not our focus. **The engineering lesson holds either way.**
+Intent is not this course's subject.
+The engineering lesson holds either way.
 
 ---
 
-## The missing property has a name
+<!-- _class: definition -->
 
-> A result is **reproducible** when someone else
-> can take your data and your code, run them,
-> and get the same numbers you reported.
+## Reproducibility
 
-If they cannot, nobody can check it. **Including you.**
+A result is **reproducible** when someone else can take your data and your code, run them, and get the same numbers you reported.
+
+If they cannot, nobody can check it, including you six months later.
 
 ---
 
-## Said plainly
+## Why reproducibility, said plainly
 
 > "There is computer code that evaluates the algorithm.
 > There is data. And when you plug the data into that code,
@@ -113,7 +98,7 @@ An NCI statistician, reviewing the case.
 
 ---
 
-## The test you will face
+## Why reproducibility, the test you will face
 
 Someone points at a number your system produced:
 
@@ -121,28 +106,35 @@ Someone points at a number your system produced:
 2. **Which code** made it?
 3. Can you make it **again, exactly**?
 
-In any regulated or safety-critical setting, this is not optional.
+In any regulated or safety-critical setting, this is required.
 
 ---
 
 <!-- _class: section -->
 
 # Environments you can rebuild
+
 ## `uv`
 
 ---
 
-## Your environment
+## Environments you can rebuild
 
-The exact software a project needs to run:
+<div class="definition">
+
+**Environment**: the exact Python interpreter and set of packages a project needs to run.
+
+</div>
+
+More than the packages you named:
 
 - the version of **Python** (the interpreter)
 - every **package** you installed
-- each at a **specific version**
+- each at a **specific version**, transitive ones included
 
 ---
 
-## Small differences, real bugs
+## Environments you can rebuild, small differences and real bugs
 
 The L1 demo broke because a version was never recorded.
 
@@ -150,21 +142,25 @@ The L1 demo broke because a version was never recorded.
 - a default value moves
 - a **hidden** dependency resolves differently today
 
-Your packages have their own packages underneath them.
+<div class="definition">
+
+**Dependency**: a package your project needs to run. Each one usually pulls in more of its own, so three packages can become fifty.
+
+</div>
 
 ---
 
-## Three files carry the guarantee
+## Environments you can rebuild, three files
 
-- `pyproject.toml` — what you **asked for** (loose)
-- `uv.lock` — what you **got**: every package, exact
-- `.python-version` — the **interpreter**, pinned
+- `pyproject.toml`: what you **asked for** (loose)
+- `uv.lock`: what you **got**, every package, exact
+- `.python-version`: the **interpreter**, pinned
 
-Together: a rebuild that is the **same**, not merely similar.
+Together they make a rebuild come out the same.
 
 ---
 
-## Pin Python too, not just packages
+## Environments you can rebuild, pin Python too
 
 `.python-version` fixes the interpreter.
 
@@ -175,7 +171,7 @@ syntax, defaults, and C extensions differ.
 
 ---
 
-## Start a project
+## Environments you can rebuild, start a project
 
 ```bash
 uv init sensorlab && cd sensorlab
@@ -187,7 +183,7 @@ uv add pandas scikit-learn mlflow
 
 ---
 
-## Run and rebuild
+## Environments you can rebuild, run and rebuild
 
 ```bash
 uv run python -m sensorlab.train --seed 0   # checks the lock first
@@ -199,7 +195,7 @@ You rarely touch the virtual environment by hand.
 
 ---
 
-## What `uv sync` buys a teammate
+## Environments you can rebuild, one command for a teammate
 
 A colleague clones the repo and runs one command:
 
@@ -208,11 +204,17 @@ uv sync
 ```
 
 Same interpreter, same packages, same versions.
-The end of **"works on my machine."**
+This ends "works on my machine" as an answer.
 
 ---
 
-## Lockfile beats a requirements file
+## Environments you can rebuild, the lockfile
+
+<div class="definition">
+
+**Lockfile**: the complete set of packages your project resolved to, every one pinned to an exact version. Install from it and you get identical packages every time. `uv` writes `uv.lock` for you; never edit it by hand.
+
+</div>
 
 | `requirements.txt` | `uv.lock` |
 |---|---|
@@ -224,20 +226,9 @@ The end of **"works on my machine."**
 
 ---
 
-## What a lockfile is
+## Environments you can rebuild, the pitfall
 
-> Every package your project resolved to,
-> pinned to an exact version.
-
-Install from it → **identical packages every time.**
-
-`uv` writes `uv.lock` for you. Never edit it by hand.
-
----
-
-## The pitfall
-
-`uv` is not just a faster `pip`.
+Treating `uv` as a faster `pip` and stopping at `uv add` misses the pin.
 
 The pin that buys reproducibility is
 the **lockfile + the interpreter**, together.
@@ -250,31 +241,28 @@ get the same thing back. We do this live.
 <!-- _class: section -->
 
 # A project layout
+
 ## that scales
 
 ---
 
-## Scaffolding
+## A project layout that scales
 
-> Set up the project's skeleton before you write much code:
-> the folders, the config, an empty package.
+<div class="definition">
 
-The frame you build on. A1 has you scaffold **once**
-and reuse it all semester.
+**Scaffolding**: the project's skeleton set up before you write much code, the folders, the config, and an empty importable package.
 
----
+</div>
 
-## A system needs three things
+A notebook and loose files cannot be
+**imported**, **tested**, or **run** by someone else.
+A small standard layout gives all three.
 
-A notebook and a folder of loose files
-cannot be **imported**, **tested**, or **run** by someone else.
-
-A small, standard layout gives all three.
-Costs nothing on day one. Painful to add later.
+It costs almost nothing on day one and is tedious to add later.
 
 ---
 
-## The `src` layout
+## A project layout that scales, the src layout
 
 Your code is a **package**, imported by name:
 
@@ -286,9 +274,9 @@ from one specific directory. This removes it.
 
 ---
 
-## `pyproject.toml` is the manifest
+## A project layout that scales, the manifest
 
-One file declares the project:
+`pyproject.toml` declares the project:
 
 - its **dependencies**
 - its **entry points**
@@ -298,7 +286,7 @@ One file declares the project:
 
 ---
 
-## A place for each thing
+## A project layout that scales, a place for each thing
 
 ```text
 sensorlab/
@@ -311,12 +299,12 @@ sensorlab/
 
 ---
 
-## The boundary lives in the tree
+## A project layout that scales, the boundary in the tree
 
 The line between **exploration**
 and **the code that runs**
 is drawn in the folder layout,
-not held in your memory.
+so it does not live in your memory.
 
 A1 reuses this exact structure all semester.
 
@@ -325,23 +313,17 @@ A1 reuses this exact structure all semester.
 <!-- _class: section -->
 
 # Versioning
+
 ## code, data, and models
 
 ---
 
-## Three different problems
+## Versioning, three different problems
 
-Code, data, and models differ in
-
-- **size**
-- how often they **change**
-- what is worth **recording** about them
-
+Code, data, and models differ in **size**,
+in how often they **change**,
+and in what is worth **recording** about them.
 So they belong in **different tools**.
-
----
-
-## Pick the tool per artifact
 
 | Artifact | Tool | What you version |
 |---|---|---|
@@ -351,50 +333,38 @@ So they belong in **different tools**.
 
 ---
 
-## Code → git
+## Versioning, code to git
 
 Small, text, diffable.
-
 Each commit is a labeled save point.
-Its **SHA** answers a provenance question:
+Its **SHA** answers: which version of the code produced this number?
 
-> which version of the code produced this number?
+<div class="definition">
 
----
+**Provenance**: the record of where a result came from, which data, which code, which settings. Reproducibility is making the result again; provenance is saying how it was made.
 
-## Provenance
-
-> The record of where a result came from:
-> which data, which code, which settings.
-
-Reproducibility is making the result **again**.
-Provenance is saying **how it was made**.
+</div>
 
 ---
 
-## Data → not plain git
+## Versioning, data is not plain git
 
 git keeps **every version forever**.
 A 200 MB file bloats the repo permanently.
+Raw data may also carry **license or privacy** limits.
 
-Raw data may also carry **license or privacy** limits
-a public copy of the repo would break.
+<div class="definition">
 
----
+**Content hash**: a short fingerprint of a file's bytes. Change one byte and it changes, so two runs can be checked for using the same data.
 
-## Set up `.gitignore` first
+</div>
 
-Before the first commit, not after.
-
-- track a small sample + a **content hash**
-- keep the raw bytes out
-
-Once a big file is committed, removing it
-means **rewriting history**. Far more work.
+Set up `.gitignore` **first**: track a small sample plus the hash,
+keep the raw bytes out. Removing a committed big file rewrites history.
 
 ---
 
-## Big data gets its own tools
+## Versioning, big data gets its own tools
 
 git is the wrong home for large binaries.
 
@@ -405,7 +375,7 @@ For now: a hash and a source, not the bytes.
 
 ---
 
-## Models → version the inputs
+## Versioning, models version the inputs
 
 A model is an **output**.
 
@@ -419,11 +389,12 @@ MLflow stores that link. (Next.)
 <!-- _class: section -->
 
 # Notebook to module
+
 ## and tracking runs
 
 ---
 
-## Notebooks do not rerun
+## Notebook to module, notebooks do not rerun
 
 Great for looking at data.
 Wrong tool for code that must run again.
@@ -434,7 +405,7 @@ Wrong tool for code that must run again.
 
 ---
 
-## This is the normal case
+## Notebook to module, the normal case
 
 [One study](https://leomurta.github.io/papers/pimentel2019a.pdf) ran ~**864k** valid notebooks from GitHub:
 
@@ -452,7 +423,7 @@ papers could even be **built** in half an hour.
 
 ---
 
-## Step 1: extract functions
+## Notebook to module, extract functions
 
 Pull the logic out of the cells:
 
@@ -467,7 +438,7 @@ Arguments in, values out. Now you can **import and test** them.
 
 ---
 
-## Step 2: add an entry point
+## Notebook to module, add an entry point
 
 ```python
 if __name__ == "__main__":
@@ -483,7 +454,7 @@ uv run python -m sensorlab.train --seed 0
 
 ---
 
-## The notebook does not disappear
+## Notebook to module, the notebook stays
 
 It becomes a **thin front-end**
 that imports the same functions.
@@ -493,10 +464,13 @@ so they cannot drift apart.
 
 ---
 
-## Pin the randomness
+## Notebook to module, pin the randomness
 
-> A **seed** is the starting number for a random process.
-> Fix it, and the "random" choices repeat.
+<div class="definition">
+
+**Seed**: the starting number for a pseudo-random process. Fix it and the "random" choices, such as a train/test split, repeat on every run.
+
+</div>
 
 L1's problem two: the seed was never fixed,
 so the score moved every run.
@@ -505,19 +479,22 @@ so the score moved every run.
 
 ---
 
-## Why track runs at all
+## Tracking runs, why track at all
 
 Run the trainer a hundred times,
 changing seeds and settings.
-
 By tomorrow, *"which run made this number?"*
 is gone from memory.
 
-Tracking makes each run a **fact**, not a recollection.
+<div class="definition">
+
+**Experiment tracking**: infrastructure that records each run as it happens, so the run becomes a fact you can point to.
+
+</div>
 
 ---
 
-## Track each run
+## Tracking runs, MLflow
 
 MLflow records, per run:
 **parameters**, **metrics**, **artifacts**.
@@ -529,7 +506,7 @@ Recent MLflow keeps runs in a small **SQLite** file.
 
 ---
 
-## The interface is small
+## Tracking runs, the interface is small
 
 ```python
 import mlflow
@@ -544,7 +521,7 @@ Run it with two seeds → two rows to compare.
 
 ---
 
-## Compare the two runs
+## Tracking runs, compare the two runs
 
 Same data, same code, two seeds:
 
@@ -553,12 +530,12 @@ Same data, same code, two seeds:
 | 0 | 0.786 |
 | 1 | 0.785 |
 
-The gap is tiny. That is the point:
-**log the seed** or neither number is reconstructible.
+The gap is tiny (0.786 vs 0.785).
+Without the logged seed, neither number is reconstructible.
 
 ---
 
-## One run, one fact
+## Tracking runs, one run one fact
 
 Log enough to **rebuild** the run:
 
@@ -572,23 +549,25 @@ The miniproject requires exactly it.
 
 <!-- _class: section -->
 
-# Where this pushes back
-## reproducible is necessary, not sufficient
+# Where reproducibility
+
+## pushes back
 
 ---
 
-## Reproducible is not correct
+## Where it pushes back, reproducible is not correct
 
 Re-run a buggy pipeline and you get
 the **same wrong answer**.
 
-Reproducibility makes a result **checkable**, not right.
+Reproducibility makes a result **checkable**.
+Correctness is a separate step.
 The Duke errors surfaced only when outsiders
 **re-implemented** the analysis and compared.
 
 ---
 
-## A lockfile pins Python, not the machine
+## Where it pushes back, a lockfile pins Python, not the machine
 
 `uv.lock` pins every package version.
 It does **not** pin the system libraries, the OS,
@@ -598,7 +577,7 @@ Whole-stack reproducibility is a **container**. That is Wk12.
 
 ---
 
-## Pay in proportion
+## Where it pushes back, pay in proportion
 
 The discipline has a cost. For a throwaway script, it is overkill.
 
@@ -621,21 +600,20 @@ Empty folder → tracked run in ~15 minutes:
 
 ---
 
-## What to watch
+## Demo, what to watch
 
 1. Delete `.venv`, rebuild from the lockfile.
-   That is a reproducible environment, for real.
+   That is a reproducible environment.
 
-2. Two seeded runs become **two comparable facts**,
-   not two numbers you have to remember.
+2. Two seeded runs become **two comparable facts**.
 
 ---
 
 ## Recap
 
 - Reproducible = your data + your code → your numbers
-- Reproducible is **checkable**, not automatically correct
-- `uv`: the **lockfile + interpreter** make the rebuild the same
+- Reproducible means **checkable**; correctness is separate
+- `uv`: the **lockfile + interpreter** make the rebuild come out the same
 - Code in git; data and models elsewhere; `.gitignore` first
 - Notebook → module: functions, a CLI, a **fixed seed**
 - MLflow: one run = one fact, with SHA + hash + seed
@@ -645,7 +623,7 @@ Empty folder → tracked run in ~15 minutes:
 ## Next
 
 **Assignment** A1 released today, due ~1 week: scaffold `sensorlab`
-**Reading** uv docs; Pro Git ch. 1–2; MLflow quickstart; The Turing Way
+**Reading** uv docs; Pro Git ch. 1-2; MLflow quickstart; The Turing Way
 **L3** Give the data a real home: relational databases & SQL
 for engineering time series
 

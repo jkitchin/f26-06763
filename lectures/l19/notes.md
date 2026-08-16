@@ -32,12 +32,11 @@ occasionally makes a bad call is an accepted cost of using one at all; a model t
 makes a bad call *with unrestricted write access and no one watching* is a different kind of
 risk entirely, and it is a risk that lives in the engineering around the model, not in the model.
 
-That is this session's actual subject. Not "can a language model use a tool," which by this
-point in the semester you already know it can, but how you build the harness around that
-capability so a bad call is bounded, recoverable, and visible rather than catastrophic. Every
-topic below, tool design, the loop's shape, budgets, error handling, is an answer to the same
-question the Replit story raises: what has to be true about your code, not the model, for an
-agent to fail small instead of failing big.
+By this point in the semester you already know a language model can use a tool. This session's
+actual subject is how you build the harness around that capability so a bad call is bounded,
+recoverable, and visible rather than catastrophic. Every topic below, tool design, the loop's
+shape, budgets, error handling, is an answer to the same question the Replit story raises: what
+has to be true about your code, not the model, for an agent to fail small instead of failing big.
 
 ## Learning objectives
 
@@ -57,9 +56,9 @@ control flow, and the model filled in one step of it. A RAG pipeline in L17 alwa
 then always generates; the order and the branching are yours, fixed in code, and the model
 never decides what happens next. An **agent** inverts that: the model is handed a goal, a set of
 tools, and an observation of what happened last, and it is the model, not your code, that decides
-which tool to call next, or whether to stop. The defining property is not intelligence, it is
-**where the control flow lives**. A workflow's control flow lives in your source file. An agent's
-control flow lives, call to call, inside the model's own output.
+which tool to call next, or whether to stop. The defining property is **where the control flow
+lives**, not how intelligent the model is. A workflow's control flow lives in your source file.
+An agent's control flow lives, call to call, inside the model's own output.
 
 That inversion is a spectrum, not a binary switch, and it is worth placing yourself on it
 deliberately rather than by default. A single tool call appended to an otherwise fixed pipeline
@@ -111,10 +110,10 @@ Replit incident's fix targets: making the default on the "does" side of that lin
 ```{index} JSON Schema
 ```
 
-A tool is not just a function; it is a function plus a specification the model reads to decide
-*when* and *how* to call it, and that specification is a prompt in every meaningful sense, subject
-to the same care as anything else you would put in front of the model. The **name** should say
-what the tool does in a word or two a reader would guess correctly. The **description** is the
+A tool is a function plus a specification the model reads to decide *when* and *how* to call it.
+That specification is a prompt in every meaningful sense, subject to the same care as anything
+else you would put in front of the model. The **name** should say what the tool does in a word
+or two a reader would guess correctly. The **description** is the
 part beginners underinvest in and then blame the model for the consequences: "get sensor data"
 invites the model to call it with almost any argument, because nothing in that sentence tells it
 what a valid mote id looks like, what variables exist, or when to call this tool instead of some
@@ -161,10 +160,10 @@ one tool and calling it once, the right shape when a task genuinely resolves in 
 **ReAct**, from Yao and colleagues' 2022 paper "Synergizing Reasoning and Acting in Language
 Models," interleaves an explicit reasoning trace with each action: the model states what it
 observed, what that implies, and what it will do next, before emitting the next tool call. That
-visible reasoning step is exactly what makes the model's decisions auditable, and it is what
-this session's scripted stand-in mimics structurally, even though it is not a real model: observe
-a tool result, decide the next call, repeat, stop once the goal is met. **Plan-then-execute**
-separates the two phases entirely, producing a full multi-step plan before executing any of it,
+visible reasoning step makes the model's decisions auditable. This session's scripted stand-in
+mimics the same structure, even though it is not a real model: observe a tool result, decide the
+next call, repeat, stop once the goal is met. **Plan-then-execute** separates the two phases
+entirely, producing a full multi-step plan before executing any of it,
 which is worth the extra latency when a wrong early step is expensive to discover late, and
 mostly wasted motion when the task is short enough that reasoning and acting in lockstep would
 have caught a bad turn just as fast.
@@ -176,9 +175,9 @@ have caught a bad turn just as fast.
 ```{index} pair: failure mode; runaway agent loop
 ```
 
-An agent loop with no bound is not a feature, it is an unmanaged liability, and this is the
-single idea this session most wants to leave you unable to forget. A **max-step budget** stops
-the loop after a fixed number of tool calls regardless of whether the model thinks it is making
+An agent loop with no bound is an unmanaged liability. That is the single idea this session most
+wants to leave you unable to forget. A **max-step budget** stops the loop after a fixed number
+of tool calls regardless of whether the model thinks it is making
 progress. A **token or cost budget** stops it when the accumulated spend crosses a line you
 chose in advance, which matters because a model that is not converging can otherwise burn real
 money at machine speed while you are not watching. A **timeout** bounds wall-clock time the same
@@ -194,8 +193,8 @@ that has not noticed after two identical failures is not about to notice on the 
 harness decides, on the model's behalf, that this line of attempts is over.
 
 **Logging every step**, the prompt sent, the tool called, the arguments, the result, and the
-token usage, is what turns "the agent did something weird" into a debuggable incident rather than
-a shrug. Reuse the structured logging and MLflow tracking from L5 rather than inventing a new
+token usage, turns "the agent did something weird" into a debuggable incident. Reuse the
+structured logging and MLflow tracking from L5 rather than inventing a new
 mechanism: an agent trace is a run, the same as a training run, and it deserves the same
 discipline about being recorded rather than trusted to memory.
 
@@ -219,8 +218,8 @@ separates two entirely different classes of bug. If a unit test on `call_surroga
 tool is wrong and no model behavior will fix that. If your tools all pass their unit tests and
 the agent still behaves strangely, the bug is in the loop, the prompt, or the model's choices,
 not in the tools, and you have just saved yourself from debugging the wrong layer. **Recording
-traces**, the full step-by-step log from the previous section, is what makes that second class
-of bug diagnosable at all once you know it is not the tools.
+traces**, the full step-by-step log from the previous section, makes that second class of bug
+diagnosable once you know it is not the tools.
 
 ## Where this pushes back
 
@@ -239,20 +238,20 @@ verify without a live API call. The much harder, unresolved question, does a rea
 the right tool, with the right arguments, at the right time, is untested by anything in this
 notebook, and it is the question A10 and L20's evaluation section actually measure.
 
-**Determinism is a preference, not a guarantee.** Low temperature makes a model's tool choices
-more consistent, not identical, and a model update on the provider's side can change its
-behavior on the exact same prompt with no warning and no version bump you control. An agent
+**Low temperature makes determinism more likely. It does not guarantee it.** A model's tool
+choices become more consistent, not identical, and a model update on the provider's side can
+change its behavior on the exact same prompt with no warning and no version bump you control. An agent
 that worked reliably in testing can start failing differently after a silent model update, which
 is a real operational risk with no clean engineering fix beyond monitoring and pinning the model
 version as tightly as your provider allows.
 
-**A well-bounded loop is not a safe loop, only a limited one.** A step budget, a cost cap, and
-loop detection stop an agent from running forever or repeating a failure indefinitely, and none
+**Limiting a loop is not the same as making it safe.** A step budget, a cost cap, and loop
+detection stop an agent from running forever or repeating a failure indefinitely, and none
 of them stop it from doing something genuinely harmful within those bounds, three tool calls is
-plenty to delete something if the tool it calls can delete something. That is precisely why
-L20's guardrails, read-only data access, output validation, and a human approval gate before any
-consequential action, are not this session's polish on top of a working loop; they are the part
-of the story this session's harness has not yet built.
+plenty to delete something if the tool it calls can delete something. That is why L20's
+guardrails, read-only data access, output validation, and a human approval gate before any
+consequential action, belong to a later stage of the story: the part this session's harness has
+not yet built.
 
 :::{admonition} What a practitioner should take from this
 :class: tip
@@ -283,9 +282,9 @@ data L3 and L4 use and needs no API key.
 ## Summary
 
 An agent is a workflow whose control flow has moved from your source file into the model's own
-output, one tool call at a time, and that inversion is worth exactly as much engineering
-discipline as it costs in latency, unpredictability, and consequence, no more and no less. The
-tool-calling loop itself is five repeating steps, send messages and tool definitions, receive a
+output, one tool call at a time. That inversion costs latency, unpredictability, and consequence,
+and it deserves engineering discipline in proportion to that cost. The tool-calling loop itself
+is five repeating steps, send messages and tool definitions, receive a
 tool request or a final answer, execute in your harness, feed the result back, and every
 guardrail this arc eventually builds attaches to the single line where your code, not the model,
 decides what actually happens. Tool descriptions are prompts and deserve prompt-level care;

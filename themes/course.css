@@ -181,3 +181,43 @@ section.demo code {
   background: rgba(255, 255, 255, 0.12);
   color: #ffd7dd;
 }
+
+/* --- Definition / concept box ----------------------------------------- */
+/* Mirrors the green definition ribbons in the notes. Two ways to use it:
+ *   inline box:  <div class="definition"> ... </div>   (leave blank lines
+ *                inside so the markdown still renders)
+ *   whole slide: <!-- _class: definition -->
+ * Put the term in **bold**; it picks up the green. Keep the wording plain. */
+:root {
+  --green: #1a7f37;
+  --green-bg: #eaf7ee;
+}
+
+div.definition {
+  background: var(--green-bg);
+  border-left: 6px solid var(--green);
+  border-radius: 0 6px 6px 0;
+  padding: 0.5em 0.85em;
+  margin: 0.5em 0;
+}
+
+div.definition p {
+  margin: 0.15em 0;
+  font-style: normal;
+}
+
+div.definition strong {
+  color: var(--green);
+}
+
+section.definition {
+  background: var(--green-bg);
+}
+
+section.definition h2 {
+  border-bottom-color: var(--green);
+}
+
+section.definition strong {
+  color: var(--green);
+}

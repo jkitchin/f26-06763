@@ -18,10 +18,10 @@ footer: "Systems & Toolchains for AI in Engineering"
 
 ## Roadmap
 
-1. The query the index could not help
-2. Row stores vs column stores
-3. Parquet: the columnar file
-4. DuckDB: SQL analytics in your process
+1. Why columns
+2. Row stores and column stores
+3. Parquet
+4. DuckDB
 5. The wider landscape
 6. Where columns stop helping
 7. Live demo: the same data, columnar
@@ -31,76 +31,69 @@ footer: "Systems & Toolchains for AI in Engineering"
 <!-- _class: section -->
 
 # Why columns
+
 ## the query the index could not help
 
 ---
 
-## L3 left us here
+## Why columns
 
-The Intel Lab readings in PostgreSQL,
-indexed on `(sensor_id, ts)`.
+L3 left the Intel Lab readings in PostgreSQL, indexed on `(sensor_id, ts)`.
 
-One sensor, one hour → a few hundredths of a ms.
-
-That is the **dashboard** query.
+- one sensor, one hour → a few hundredths of a ms
+- that is the dashboard query, and the row store is superb at it
 
 ---
 
-## The analyst asks a different question
+## Why columns, the analyst's question
 
 - average temperature of **every** mote, **all** month
 - daily energy across the floor, **all** year
-- the distribution of one channel over **all** history
+- distribution of one channel over **all** history
 
-Nothing to narrow. The index has nothing to prune.
-
----
-
-## So the database reads the whole table
-
-And in a **row store**, reading every row
-means reading every **column**.
-
-Six columns in `readings`. To average one,
-it drags all six off disk, for all **2.3M** rows.
+Nothing to narrow. The index has nothing to prune, so the database reads the whole table.
 
 ---
 
-## Cost that depends on nothing you asked for
+## Why columns, the row store reads everything
 
-The work grows with the **width** of the table
-and the **height** of the table.
+In a **row store**, reading every row means reading every column.
 
-The answer, an average of one column,
-depends on **neither**.
+- `readings` has six columns; to average one, it drags all six off disk
+- for all **2.3M** rows, then throws almost all of it away
+- cost grows with the **width** and **height** of the table
+
+The answer, an average of one column, depends on neither.
 
 ---
 
-## The fix is the layout, not the data
+## Why columns, the fix is the layout
 
 Store each **column** together instead of each **row**.
 
-Then `avg(temperature)` reads only the temperature values,
-in one run, already compressed.
+Then `avg(temperature)` reads only the temperature values, in one run, already compressed.
 
-Same data. Different bytes. Today, measured: **~80× faster, ~5× smaller.**
+Same data, different bytes. Measured today: **~80× faster, ~5× smaller.**
 
 ---
 
 <!-- _class: section -->
 
-# Row stores
-## and column stores
+# Row stores and column stores
 
 ---
 
-## Two ways to place a table on disk
+## Row stores and column stores
 
-**Row store:** row 1's columns, then row 2's, then row 3's.
+- **Row store**: keeps the values of each row together on disk, one whole row after another.
 
-**Column store:** all timestamps, then all motes, then all temps.
+<div class="definition">
 
-Same logical table. Different things sit **next to each other**.
+**Column store**: keeps the values of each column together on disk, every row's value for one column in a run.
+
+</div>
+
+Same logical table. Different values sit next to each other.
 
 ---
 
@@ -108,7 +101,21 @@ Same logical table. Different things sit **next to each other**.
 
 ---
 
-## OLTP vs OLAP
+## Row stores and column stores, OLTP and OLAP
+
+- **OLTP**: online transaction processing, many small operations that insert, update, or fetch whole rows by key.
+
+<div class="definition">
+
+**OLAP**: online analytical processing, scanning a few columns across many rows to compute an aggregate or trend.
+
+</div>
+
+The question is which workload this is. A serious platform runs both.
+
+---
+
+## Row stores and column stores, OLTP vs OLAP
 
 | OLTP (row store) | OLAP (column store) |
 |---|---|
@@ -116,11 +123,9 @@ Same logical table. Different things sit **next to each other**.
 | insert, update, fetch by key | aggregate, trend, report |
 | PostgreSQL (L3) | Parquet + DuckDB (today) |
 
-Not "which is better." **Which workload is this?**
-
 ---
 
-## The query in question
+## Row stores and column stores, the query
 
 ```sql
 SELECT mote_id, avg(temperature)
@@ -128,70 +133,41 @@ FROM readings
 GROUP BY mote_id;
 ```
 
-One column, aggregated over every row.
-The whole session is about making this cheap.
+One column, aggregated over every row. The whole session is about making this cheap.
 
 ---
 
-## Win 1: projection
+## Row stores and column stores, the wins
 
-A query that names two columns reads **two columns**.
+<div class="definition">
 
-Cost scales with the columns you **ask for**,
-not the width of the table.
+**Column projection**: reads only the columns a query names, so cost scales with columns asked for, not table width.
 
----
+</div>
 
-## Win 2: compression
-
-One column holds **one type** of similar values.
-
-A temperature near the last temperature,
-a mote id repeated thousands of times.
-
-That compresses far harder than a row's mixed bytes.
+- **Compression**: a column holds one type of similar values (a temperature near the last, a mote id repeated thousands of times), which shrinks far harder than a row's mixed bytes.
 
 ---
 
-## Win 3: predicate pushdown
+## Row stores and column stores, predicate pushdown
 
-Each block carries its **min and max**.
-
-A block whose range can't match your `WHERE`
-is **skipped without being read**.
+- **Predicate pushdown**: each block carries its min and max, so a block whose range cannot match your `WHERE` is skipped without being read.
 
 The three wins compound. Smaller data is also less to read.
 
 ---
 
-## When columns win
+## Row stores and column stores, when to use which
 
-Wide analytical scans:
+Columns win the wide analytical scan:
 
-- aggregate one channel across all of history
+- aggregate one channel across all history
 - scan a few columns of a very wide table
 - compress cold data you rarely rewrite
 
----
+Rows win the point write and lookup: one whole row, or one update, touches every column block.
 
-## When columns lose
-
-The mirror runs both ways.
-
-- one whole row = gather from **every** column block
-- one update = touch **every** column block
-
-**Point writes and updates** are the row store's job.
-
----
-
-## The trade, in one line
-
-> Column stores win the wide analytical scan.
-> Row stores win the point write and lookup.
-
-So the column store **complements** L3's database,
-it does not replace it.
+A column store complements the L3 row store; each handles the workload the other is slow at.
 
 [Kleppmann, DDIA ch. 3](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781491903063/)
 
@@ -200,70 +176,54 @@ it does not replace it.
 <!-- _class: section -->
 
 # Parquet
+
 ## the columnar file
 
 ---
 
-## Parquet is columnar, on disk
+<!-- _class: definition -->
 
-The standard on-disk form of a column store.
-A file, not a server, that any tool can read.
+## Parquet
 
----
-
-## Inside a Parquet file
-
-- **row groups**: horizontal slices of rows
-- **column chunks**: each column stored together, compressed on its own
-- a **footer** written last, with the schema and per-column stats
+**Parquet** is the standard on-disk file format for a column store: a self-contained file, not a server, that any tool can read.
 
 ---
 
-## The footer earns its keep
+## Parquet, inside the file
 
-The **schema travels in the file**, so a reader needs
-no external definition to make sense of it.
+- **Row group**: a horizontal slice of the rows, a few hundred thousand at a time.
+- **Column chunk**: one column's values within a row group, encoded and compressed on its own.
 
-The per-column **min/max** are what let a reader
-skip row groups that cannot match a filter.
+A **footer** written last carries the schema and per-column min/max, so the file needs no external definition and a reader can skip row groups that cannot match a filter.
 
 ---
 
-## Compression is the free win
+## Parquet, compression and encoding
 
 Measured on the Intel Lab readings:
 
-**101 MB CSV → 18 MB Parquet.**
+**101 MB CSV → 18 MB Parquet.** About 5× smaller, which is also less data to read from disk.
 
-About 5× smaller, and every byte saved is a byte not read.
+Per column, Parquet applies **dictionary** encoding for repeated values and **run-length** encoding for runs, then compresses on top. A mote id repeated thousands of times nearly vanishes.
 
 [Apache Parquet, file format](https://parquet.apache.org/docs/file-format/)
 
 ---
 
-## Encoding, not just compression
+## Parquet, partitioning
 
-Parquet does not merely zip bytes. Per column it applies
-**dictionary** encoding for repeated values and
-**run-length** encoding for runs, then compresses on top.
-
-A mote id repeated thousands of times nearly vanishes.
-
----
-
-## Partitioning prunes whole files
+- **Partition pruning**: a directory tree encodes a column's value in folder names, so a filtered query opens only the matching folders.
 
 ```text
 readings/date=2004-03-01/part.parquet
 readings/date=2004-03-02/part.parquet
 ```
 
-A query filtered to one date opens **one folder**.
 Partition on what you filter by; keep partitions from getting tiny.
 
 ---
 
-## Writing it is one line
+## Parquet, writing it
 
 ```python
 df.to_parquet("readings.parquet", compression="snappy")
@@ -273,39 +233,35 @@ From pandas or PyArrow. Read it back the same way.
 
 ---
 
-## Parquet is a file, not a database
+## Parquet, a file not a database
 
 - no indexes you build
 - no transactions
 - no in-place update: rewrite the file, or write new files
 
-Great for batch analytics.
-Need point updates? That data belongs in the **row store**.
+Great for batch analytics. Point-updated data belongs in the row store.
 
 ---
 
 <!-- _class: section -->
 
 # DuckDB
+
 ## SQL analytics in your process
 
 ---
 
-## In-process OLAP
+<!-- _class: definition -->
 
-DuckDB runs **inside your process**.
+## DuckDB
 
-- no server to start, no connection to manage
-- an analytical (OLAP) SQL engine
-- roughly: **SQLite, but for analytics**
+**DuckDB** is an in-process OLAP SQL engine that runs inside your program, with no server to start and no connection to manage. Roughly: SQLite, but for analytics.
 
-`import duckdb` and you are querying.
-
-[Why DuckDB](https://duckdb.org/why_duckdb)
+`import duckdb` and you are querying. [Why DuckDB](https://duckdb.org/why_duckdb)
 
 ---
 
-## It queries Parquet directly
+## DuckDB, queries Parquet directly
 
 ```sql
 SELECT mote_id, avg(temperature)
@@ -313,48 +269,37 @@ FROM 'readings/*.parquet'
 GROUP BY mote_id;
 ```
 
-No `CREATE TABLE`. No load. It reads the files where they sit,
-with projection and row-group skipping.
+No `CREATE TABLE`, no load. It reads the files where they sit, with projection and row-group skipping.
 
 [DuckDB: reading Parquet](https://duckdb.org/docs/stable/data/parquet/overview)
 
 ---
 
-## And prunes partitions for free
+## DuckDB, prunes partitions
 
 ```sql
 FROM read_parquet('readings/**/*.parquet', hive_partitioning = true)
 WHERE date = '2004-03-01'
 ```
 
-The folder name becomes a column; the filter opens **one folder**.
+The folder name becomes a column; the filter opens one folder.
 
 ---
 
-## It reaches into PostgreSQL too
+## DuckDB, reaches into PostgreSQL
 
 ```sql
 ATTACH 'dbname=labdata host=localhost' AS pg (TYPE postgres);
 SELECT * FROM pg.readings LIMIT 5;
 ```
 
-Query the **live** L3 database with no export.
+Query the live L3 database with no export. One query can join a small PostgreSQL table against a large Parquet history, the OLTP store and the OLAP engine on speaking terms.
 
 [DuckDB: postgres extension](https://duckdb.org/docs/stable/core_extensions/postgres)
 
 ---
 
-## Which bridges OLTP and OLAP
-
-One query can join a small table living in **PostgreSQL**
-against a large history living in **Parquet**.
-
-The transactional store and the analytical engine,
-on speaking terms, with nothing exported.
-
----
-
-## Write results back out
+## DuckDB, write results back
 
 ```sql
 COPY (SELECT mote_id, avg(temperature) AS avg_temp
@@ -362,37 +307,25 @@ COPY (SELECT mote_id, avg(temperature) AS avg_temp
 TO 'mote_avg.parquet' (FORMAT parquet);
 ```
 
-Query in, Parquet out, no dataframe round-trip.
+Query in, Parquet out. DuckDB can also read a pandas dataframe in place and hand results back as one.
 
 ---
-
-## It reads a dataframe, too
-
-DuckDB can query a pandas dataframe in place
-and hand results back as one.
-
-So it is not "leave pandas." It is another tool
-that meets your data where it already is.
-
----
-
-## The payoff, measured
 
 ![w:1000](figures/columnar-scan.png)
 
 ---
 
-## Read that figure
+## DuckDB, read the figure
 
 - row store: cost **climbs with the table** (reads everything)
 - columnar: **nearly flat** (reads 2 columns of 6, vectorized)
-- and the file is several times **smaller**
+- and the file is several times smaller
 
 `≈80×` on the whole-table aggregate at 2.3M rows.
 
 ---
 
-## pandas, DuckDB, or PostgreSQL?
+## DuckDB, which tool
 
 | Tool | Reach for it when |
 |---|---|
@@ -407,61 +340,53 @@ They interoperate. The choice is rarely exclusive.
 <!-- _class: section -->
 
 # The wider landscape
+
 ## not everything is a table
 
 ---
 
-## Document stores
+## The wider landscape, document stores
 
-**MongoDB**: data as documents, schema varies per document.
+<div class="definition">
+
+**Document store**: keeps data as JSON-like documents whose fields can vary from one document to the next.
+
+</div>
 
 - wrong for uniform sensor readings (you *want* the schema)
-- right for **heterogeneous experiment metadata**:
-  run A logged 3 params, run B logged 11
+- right for heterogeneous experiment metadata: run A logged 3 params, run B logged 11
 
-[MongoDB: document databases](https://www.mongodb.com/resources/basics/databases/document-databases)
-
----
-
-## Key-value stores
-
-**Redis**: a dictionary, often entirely in memory.
-
-No rich queries, no joins, that is not the job.
-The job is a **cache**, a config store, a hot lookup
-that has to be instant.
-
-[Redis](https://redis.io/about/)
+**MongoDB** is the archetype. [MongoDB: document databases](https://www.mongodb.com/resources/basics/databases/document-databases)
 
 ---
 
-## Time-series databases
+## The wider landscape, key-value and time-series
 
-**InfluxDB**: bucketing, retention, and high-rate ingest
-built in, for workloads that are millions of points a second
-and almost nothing else.
+- **Key-value store**: puts a value under a key and gets it back by that key, often entirely in memory.
+- **Time-series database**: builds in bucketing, retention, and high-rate ingest for millions of points a second.
 
-[InfluxDB](https://docs.influxdata.com/influxdb/v2/get-started/)
-
----
-
-## Vector stores (a preview)
-
-Not "find the row with this key" but
-"find the items most **similar** to this one."
-
-Store embeddings, search by nearest-neighbor.
-The machinery under **RAG**, later in the course.
-
-Name it now; do not build one yet. [FAISS](https://github.com/facebookresearch/faiss/wiki)
+**Redis** for caches, configs, hot lookups. **InfluxDB** for the high-ingest end.
+[Redis](https://redis.io/about/) · [InfluxDB](https://docs.influxdata.com/influxdb/v2/get-started/)
 
 ---
 
-## The common thread
+## The wider landscape, vector stores (a preview)
 
-Each of these drops a relational guarantee,
-usually the **schema**, the **joins**, or the **transactions**,
-in exchange for a fit to one access pattern.
+<div class="definition">
+
+**Vector store**: holds embeddings and searches them by nearest-neighbor similarity rather than exact match.
+
+</div>
+
+The machinery under **RAG**, later in the course. Name it now; do not build one yet.
+
+[FAISS](https://github.com/facebookresearch/faiss/wiki)
+
+---
+
+## The wider landscape, the common thread
+
+Each of these drops a relational guarantee, usually the schema, the joins, or the transactions, in exchange for a fit to one access pattern.
 
 Choose one when your pattern demands it.
 
@@ -473,66 +398,29 @@ Choose one when your pattern demands it.
 
 ---
 
-## Wrong home for writes and updates
+## Where columns stop helping, writes and lookups
 
-Parquet is effectively **immutable**.
+Parquet is effectively **immutable**: add data = write new files, change a row = rewrite its file.
 
-- add data = write new files
-- change a row = rewrite its file
+Columns are fast for "average this one column" and **slow** for "give me this whole row," which gathers from every column block.
 
-Constantly-corrected data belongs in the row store.
-
----
-
-## The layout must match the query
-
-Columns are fast for "average this one column."
-
-They are **slow** for "give me this whole row,"
-which has to gather from every column block.
-
-That point lookup is the row store's home turf.
+Constantly-corrected data and point lookups are the row store's home turf.
 
 ---
 
-## DuckDB is an engine, not a server
+## Where columns stop helping, DuckDB is an engine
 
 One process. Superb for one analyst, one pipeline.
 
-**Not** a shared backend that many clients write to
-concurrently with transactions.
-
-That is still PostgreSQL's job. DuckDB **complements** it.
+It is not a shared backend that many clients write to concurrently with transactions. That is still PostgreSQL's job, and DuckDB complements it through the `postgres` attachment.
 
 ---
 
-## Small data needs none of this
+## Where columns stop helping, size and composition
 
-The 80× shows at millions of rows.
-
-At data that fits in memory, a pandas `groupby`
-is simpler and fast enough.
-
-Match the tool to the **size**, not just the pattern.
-
----
-
-## OLTP and OLAP compose
-
-"Just use DuckDB for everything" is a trap.
-
-Real platforms run **both**: Postgres takes the live writes,
-Parquet + DuckDB scan the history, and you move data
-across the seam. The `postgres` attachment is that bridge.
-
----
-
-## NoSQL trades away your guarantees
-
-Reach for a document, key-value, or time-series store
-because your **access pattern** demands it.
-
-Never just to dodge designing a schema.
+- the 80× shows at millions of rows; at in-memory sizes, a pandas `groupby` is simpler and fast enough
+- real platforms run **both**: Postgres takes live writes, Parquet + DuckDB scan history, and you move data across the seam
+- reach for a document, key-value, or time-series store because your **access pattern** demands it, not to dodge designing a schema
 
 ---
 
@@ -542,19 +430,15 @@ Never just to dodge designing a schema.
 
 ## `l04-storage.ipynb`
 
-Intel Lab data → Parquet → the same query in
-pandas, a SQLite row store, and DuckDB.
-Then zero-import over Parquet and PostgreSQL.
+Intel Lab data → Parquet → the same query in pandas, a SQLite row store, and DuckDB. Then zero-import over Parquet and PostgreSQL.
 
 ---
 
 ## What to watch
 
-1. The analytical scan: the row store **climbs**,
-   DuckDB over Parquet stays **flat**.
+1. The analytical scan: the row store **climbs**, DuckDB over Parquet stays **flat**.
 
-2. DuckDB answering a query over Parquet and over
-   the live Postgres it **never loaded**.
+2. DuckDB answering a query over Parquet and over the live Postgres it **never loaded**.
 
 ---
 
@@ -564,7 +448,7 @@ Then zero-import over Parquet and PostgreSQL.
 - Row store / OLTP for writes and point reads (L3)
 - Column store / OLAP for wide scans: Parquet + DuckDB
 - Measured: `≈80×` faster, `≈5×` smaller on the scan
-- DuckDB queries files and databases with **zero import**
+- DuckDB queries files and databases with zero import
 - Document, key-value, time-series, vector: each fits one pattern
 
 ---
@@ -573,7 +457,6 @@ Then zero-import over Parquet and PostgreSQL.
 
 **Assignment** A2 (from L3): its Parquet + DuckDB half is now unblocked
 **Reading** DuckDB Parquet docs; Kleppmann ch. 3
-**L5** Up a layer: dataframes and scalable processing
-with pandas and Polars, and batch pipelines
+**L5** Up a layer: dataframes and scalable processing with pandas and Polars, and batch pipelines
 
 Full notes, with all sources: `lectures/l04/notes.md`

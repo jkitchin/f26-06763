@@ -146,7 +146,8 @@ frontmatter `title:` and expect it to render.
 7. `## Resources`, annotated links, one line each on why it is worth reading.
 8. `## Assignment`, a pointer and a deadline, never a copy of the rubric.
 
-**Writing.** Write it as a chapter of a book, not a set of slides rendered as prose. That
+**Writing.** Follow `scientific_writing.md` (repo root) for the prose standard. Write it as a
+chapter of a book, not a set of slides rendered as prose. That
 means developed, connected paragraphs that carry an argument from one to the next, full
 sentences rather than fragments, and enough breadth that a student who missed class can follow
 the whole thread from the notes alone. Prefer one idea developed properly over four mentioned
@@ -361,11 +362,46 @@ and the slide should carry the pointer instead.
 **Sessions are 110 minutes.** Budget accordingly, and note that this is long enough that a
 deck which merely names topics will run dry well before the room does.
 
-Slides here are deliberately sparse, roughly one idea each, so they run fast: about 1.5
-minutes for a fragment slide, three or four for a table, a quote, or a figure you actually
-talk through. For 110 minutes with a 20-minute demo that lands around **55 to 70 slides**.
-L1 is 63. If a draft comes in at 30, the problem is usually not pacing, it is that the
-content is thinner than the session length demands.
+**Title by topic, not by headline.** A deck should read like a conference talk. Group the
+content under a handful of topics, each opened by a `<!-- _class: section -->` divider, and
+give the content slides under a topic the topic itself as their heading rather than a fresh
+sentence each. Let the heading stay stable while the content builds, with at most a short
+subtitle after a comma to mark progress (`Windows`, then `Windows, event time`). The topic is
+what a student navigates by. A deck where every slide has its own distinct, punchy headline is
+a reliable sign of machine-generated slides, and it multiplies the coda-and-aphorism habit
+from section 7, because those headlines become the aphorisms. Slide headings are plain labels
+in sentence case, and they never use the constructions section 7 bans.
+
+Slides can be moderately dense, as long as the deck carries the same amount of content the
+session needs. A topic slide may hold a few related points, or a small table plus a line of
+framing, instead of a single fragment. It stays fragments and pointers rather than paragraphs,
+because the slide anchors what you say and does not replace it. Budget by content and by time
+rather than by a fixed slide count: a 110-minute session with a 20-minute demo runs to roughly
+**35 to 55 topic slides**. Too much text on a single slide is a worse failure than too few
+slides, so if a deck feels thin, add topics and real content. L1 and L2 predate this
+convention and are sparser, one idea per slide; migrate them to topic titles when they are
+next revised.
+
+**Definitions get a green box.** Bring the notes' green definition ribbons onto the slides.
+Reserve the box for the handful of genuine key terms, the same ones the notes give a ribbon,
+not every noun on the slide. A deck where most slides are green boxes has lost the emphasis the
+box is meant to carry; aim for roughly the ribbon count of the matching notes. When a slide
+introduces one of those key terms, put the plain definition in the theme's green box instead of
+a bare bullet, so the scaffolding a student leans on looks the same in both places.
+For a definition inside a content slide, wrap it in a div and leave blank lines around the text
+so the markdown still renders:
+
+```html
+<div class="definition">
+
+**Watermark**: an estimate of the event time up to which all data has arrived.
+
+</div>
+```
+
+For a definition that earns its own slide, mark the slide `<!-- _class: definition -->`, which
+tints the whole slide green. The box holds one plain sentence, humanized to the same standard
+as the rest of the deck (see `scientific_writing.md`), and never a paragraph.
 
 **Every deck needs links and figures.** A deck with neither is a deck that cannot be
 revisited by a student and cannot be checked by anyone. Put the source link on the slide
@@ -379,14 +415,19 @@ a lecture.
 
 **Rules:**
 
-- One idea per slide. Six lines maximum, fewer is better.
+- Title by topic: slide headings name the topic and repeat across that topic's build slides.
+  They are plain labels in sentence case, not unique per-slide headlines or aphorisms.
+- One topic per slide, a few related points at most. Aim for eight lines or fewer, and never
+  a paragraph.
 - Fragments, not sentences. The slide is the pointer; the instructor is the explanation.
 - Code on a slide is for reading aloud. More than about ten lines belongs in the demo.
 - Frontmatter is fixed: `marp: true`, `theme: course`, `paginate: true`, plus `header`
   (`"06-763 · LNN"`) and `footer` (the course title).
 - Slide classes from the shared theme: `<!-- _class: title -->` for the opener,
   `<!-- _class: section -->` for arc dividers, `<!-- _class: demo -->` for the switch to
-  live code.
+  live code, and `<!-- _class: definition -->` for a full-slide green definition.
+- Definitions and key concepts go in the green box (an inline `<div class="definition">` or a
+  `<!-- _class: definition -->` slide), mirroring the notes' ribbons. Keep the wording plain.
 - Speaker notes go in HTML comments and show up in presenter view. Use them for timing
   cues and the things you always forget to say.
 - Tables earn their space when they contrast two things (naive versus what we do).
@@ -483,6 +524,11 @@ depend on data that is not in the repo.
 
 ## 7. Writing style
 
+The full writing standard for the course is `scientific_writing.md` in the repo root: how to
+state a claim (lead with it, quantify, cite, report enough to reproduce), and the
+machine-writing patterns to cut. Read it before writing notes or slides, and treat it as
+binding for both. The essentials:
+
 - **No em-dashes.** Use commas, parentheses, colons, or separate sentences.
 - Prose over bullets in the notes. Bullets are correct in slides, in learning objectives,
   and in reference tables like the ones in this file.
@@ -493,6 +539,45 @@ depend on data that is not in the repo.
 - Name the engineering context. This course is distinguished from a generic ML course by
   sensor data, simulation output, experimental measurement, and surrogate models. Examples
   should reflect that rather than defaulting to MNIST or the iris dataset.
+
+### Constructions to avoid
+
+One family of constructions marks machine-generated prose more reliably than any single word,
+and it should be cut on sight: a plain sentence followed by a clause that reframes it as the
+important takeaway instead of adding anything. The tells that make it up:
+
+- **Anaphoric metacommentary.** A phrase like "that is the point" or "this is the lesson" that
+  refers back to the whole previous sentence rather than advancing the argument.
+- **Evaluative coda.** A tag that tells the reader how to relate to a statement: "worth
+  sitting with", "worth keeping in mind", "the part worth holding onto".
+- **Therapeutic idiom.** Counseling or wellness register used outside its literal sense, such
+  as "sit with" or "lean into", which LLMs reach for disproportionately.
+- **Contrast through understatement.** An understated negation where a concrete word is
+  sharper: "not catastrophic" instead of "small", "not uncommon" instead of "frequent". Name
+  the thing.
+- **Artificial emphasis.** "And that is the point", "and that distinction matters", which
+  inflate an ordinary statement into a small revelation.
+
+The broader family includes "that is the key point", "that is worth emphasizing", "that is the
+thing to keep in mind", "and that is what makes this important", "X is what makes Y", and "the
+word X is load-bearing". None of these are ungrammatical, and people do write them. The problem
+is that LLMs overproduce the pattern, especially the combination of a statement, an anaphoric
+evaluative coda, and a contemplative phrase. The fix is almost always deletion, since the
+sentence before it already made the point: cut the coda, or replace it with the concrete claim
+it gestures at. "The gap is tiny. That is the point:" becomes "The gap is tiny, so the seed has
+to be logged or neither number is reconstructible." Keep at most one plain, useful memorable
+line per section, and never as a reflex.
+
+Two related habits, also cut on sight:
+
+- **Negative parallelism.** "Not X but Y", "not merely A, it is B", and clipped tailing
+  negations ("no guessing", "not a headline"). Write the positive statement instead.
+- **Manufactured drama by fragmentation.** A run of clipped one-line sentences to force
+  emphasis. One short sentence for emphasis is fine; a machine-gun run of them is its own tell.
+
+Reinforcing section 4: open each concept with one plain sentence before any elaboration, and
+split sentences that run past about thirty words, because long comma-chained sentences are the
+main thing that makes notes hard to read aloud.
 
 ---
 
