@@ -32,7 +32,7 @@ compare both sensors and limit the size and repetition of its automatic input.
 
 Every element of that finding maps onto a topic this session covers under a different name.
 A single, unredundant input feeding an automated decision with no cross-check is exactly the
-**guardrail failure** this session asks you to name and design against explicitly, input
+**guardrail failure** this session asks you to name and design against explicitly: input
 validation and a domain check would have asked whether one sensor's reading was even
 plausible given the other's. A system whose failure modes were not adequately analyzed before
 it reached production is a **responsible-AI and documentation** failure: the people who needed
@@ -40,11 +40,11 @@ to know what the system could do wrong, pilots and regulators, were not told, wh
 what a model card or system card exists to prevent. And a system given authority to act
 repeatedly on a physical control surface with no requirement that a human confirm each
 intervention is the **human-in-the-loop for high-consequence decisions** guardrail, stated in
-its most literal form. MCAS is not a machine-learned model, and this session is not about
-aviation. It is about what happens, in any engineering system that automates a consequential
+its most literal form. MCAS is not a machine-learned model, and this session's subject is
+broader than aviation: what happens, in any engineering system that automates a consequential
 decision, when nobody was required to ask "what if this one input is wrong" before the system
-shipped. That question is this session's actual subject, and every tool below, a CI gate, a
-drift alarm, a guardrail table, a documentation requirement, is a concrete answer to it.
+shipped. Every tool below, a CI gate, a drift alarm, a guardrail table, a documentation
+requirement, is a concrete answer to that question.
 
 ## Learning objectives
 
@@ -110,8 +110,8 @@ A model's accuracy can degrade in production long before you have any labels to 
 against, because ground truth for an engineering prediction, whether a part actually failed,
 whether the maintenance recommendation was correct, often arrives weeks or months later, if it
 arrives in a form you can use at all. Monitoring input distributions rather than only output
-correctness is what closes that gap, and it comes in three flavors worth distinguishing by
-name because each points at a different root cause.
+correctness closes that gap. It comes in three flavors, worth distinguishing by name because
+each points at a different root cause.
 
 **Data drift** (also called covariate drift) is a change in the distribution of the inputs
 themselves: a compressor gets retrofitted and now runs at pressures the training data never
@@ -151,8 +151,8 @@ once, **latency and cost**, and **output-length creep**, a model's answers gradu
 longer for the same class of question, which is frequently the first visible symptom of prompt
 or context bloat before it becomes a cost problem.
 
-Choosing a threshold is itself a decision with a real trade-off, not a default you copy from a
-tutorial. A **static threshold** is simple and auditable but can be wrong for a system whose
+Choosing a threshold is itself a decision with a real trade-off, specific to the system it
+monitors rather than a default copied from a tutorial. A **static threshold** is simple and auditable but can be wrong for a system whose
 normal operating range genuinely varies by season or by shift. A **rolling baseline**, comparing
 this week against a trailing window rather than a fixed reference, adapts to genuine seasonal
 change but can be slower to catch a sudden shift, since a rolling baseline that includes the
@@ -167,7 +167,7 @@ more.
 A drift alert tells you a distribution moved. It does not tell you whether that movement makes
 the model wrong, and treating every alert as an incident invites exactly the alarm fatigue that
 makes people stop responding to real ones. The first response to an alert should be to ask
-which of the three drift types it is consistent with, not to assume the model has failed.
+which of the three drift types it is consistent with.
 :::
 
 ## Cost in production, tracked over time
@@ -179,17 +179,16 @@ which of the three drift types it is consistent with, not to assume the model ha
 ```{index} pair: failure mode; runaway agent loop
 ```
 
-Cost per request is not a number you compute once at launch and file away; it moves, usually
-upward, for reasons that are individually small and cumulatively expensive. **Prompt and
+Cost per request moves after launch, usually upward, for reasons that are individually small
+and cumulatively expensive. **Prompt and
 context bloat**, a RAG system's retrieved context growing as the corpus grows, or a system
 prompt accumulating one more instruction every time someone fixes an edge case, quietly raises
 the token count on every single call. **Retry storms**, a downstream service degrading and a
 client retrying aggressively, can multiply cost by the retry count exactly when the system is
 already under stress. **Runaway agent loops**, the failure L19's bounded loop exists to prevent,
-turn a single user request into dozens of billed model calls if nothing stops them. None of
-these show up in a one-time cost estimate; all of them show up in cost tracked as a time series,
-logged the same way L21 logged eval metrics, which is the entire argument for treating cost as
-something you monitor rather than something you calculated once. **Budgets and rate limits**,
+turn a single user request into dozens of billed model calls if nothing stops them. A one-time
+cost estimate misses all three; only cost logged as a time series, the same way L21 logged eval
+metrics, catches them. **Budgets and rate limits**,
 a hard cap on spend per hour or per user, are the blunt but reliable backstop for the case where
 monitoring catches the trend too late to matter.
 
@@ -198,8 +197,8 @@ monitoring catches the trend too late to matter.
 ```{index} guardrail
 ```
 
-A guardrail that is not tied to a specific, named failure mode is not a guardrail, it is a
-sentence that sounds like one. The module's own teaching note is blunt about this: "we'll add
+A guardrail tied to no specific, named failure mode is a sentence that sounds like one.
+The module's own teaching note is blunt about this: "we'll add
 safety checks" is not an answer, and the discipline this session asks for is a table, one row
 per failure mode, naming the mechanism that catches it.
 
@@ -216,13 +215,12 @@ per failure mode, naming the mechanism that catches it.
 | Surrogate / ML | Stale model | Drift monitoring on the input distribution, tied to a retraining or revalidation trigger, not a calendar guess |
 | Surrogate / ML | Silent input-unit error | Named, typed feature columns; a units assertion at every system boundary (L7's Mars Climate Orbiter case) |
 
-Notice that most of these guardrails are things this course has already built, not new
-material: a step budget is L19's, a faithfulness check is L21's, an input-range check is L7's
-and L13's. This session's contribution is the discipline of a table that forces you to name a
-mechanism for every failure you can think of, rather than a paragraph of good intentions, and
-the module's suggested exercise, filling this table for your own system and marking which rows
-require a human sign-off before the guarded action proceeds, is worth doing on paper before
-your final project, not after something goes wrong.
+Notice that most of these guardrails are things this course has already built: a step budget
+is L19's, a faithfulness check is L21's, an input-range check is L7's and L13's. This session's
+contribution is the discipline of a table that forces you to name a mechanism for every failure
+you can think of, rather than a paragraph of good intentions, and the module's suggested
+exercise, filling this table for your own system and marking which rows require a human
+sign-off before the guarded action proceeds, is worth doing on paper before your final project.
 
 ## Responsible AI for engineering decisions
 
@@ -231,9 +229,8 @@ your final project, not after something goes wrong.
 ```{index} pair: failure mode; automation bias
 ```
 
-Engineering AI is distinguished from a general-purpose chatbot by exactly the thing that makes
-this section non-optional: its recommendations frequently feed decisions with physical, safety,
-environmental, or economic consequences that a wrong chat response does not carry. A maintenance
+Engineering AI's recommendations frequently feed decisions with physical, safety, environmental,
+or economic consequences that a wrong chat response does not carry. A maintenance
 agent that recommends deferring a repair, a surrogate that clears a design point as safe, a
 classifier that flags a part as passing inspection, each of these outputs can become an action
 in the physical world, and the responsible-AI themes below are the questions worth answering
@@ -244,7 +241,7 @@ and the honest answer is never "the model." A named person or role has to own th
 act on a recommendation, which means the system has to make clear, at the point of use, that a
 recommendation is a recommendation and not a decision already made. **Transparency** asks
 whether you can explain *why* the system recommended what it did, in terms a domain expert
-without an ML background can evaluate, not merely that it did. **Appropriate reliance**, often
+without an ML background can evaluate. **Appropriate reliance**, often
 discussed under the name **automation bias**, is the failure mode where a human notionally in
 the loop stops meaningfully checking the system's output because it has been right often enough
 that checking starts to feel like wasted effort, the exact posture pilots were put in by MCAS
@@ -253,13 +250,13 @@ when they were not even told the system existed to check.
 **Documentation** turns these good intentions into an artifact someone can actually read before
 relying on the system. A **model card**, following Mitchell and colleagues' 2019 proposal, states
 a model's intended use, its known limitations, the population and range it was validated on, and
-its performance broken down by the same kind of slice L21 argued for, not just an aggregate
+its performance broken down by the same kind of slice L21 argued for, alongside the aggregate
 number. A **datasheet for a dataset**, per Gebru and colleagues, documents provenance, collection
 method, and known biases in the data a model was trained on. For an agent, the equivalent is a
 **system card**: what tools it can call, what it cannot do, and what guardrails are in place.
-None of these documents exist to satisfy a compliance checkbox; they exist so the next engineer
-who inherits the system, quite possibly not you, can find out what it is safe to trust it with
-without re-deriving that knowledge from scratch or, worse, from an incident.
+These documents exist so the next engineer who inherits the system, quite possibly not you, can
+find out what it is safe to trust it with, without re-deriving that knowledge from scratch or,
+worse, from an incident.
 
 The **NIST AI Risk Management Framework** (AI RMF 1.0, 2023) organizes this into a repeatable
 process rather than a one-time checklist: govern (who is accountable and how is that structured),
@@ -269,22 +266,20 @@ worth knowing this framework exists and roughly what its four functions cover, b
 is becoming a reference point regulators and customers ask about and because its structure is a
 reasonable checklist for a system with no formal framework requirement at all.
 
-The theme underneath all of this, and the one most often skipped, is **knowing when not to
-deploy AI at all**. A recommendation system for a decision where the cost of a rare, hard-to-
-detect wrong answer is severe, and where the validation data available cannot credibly rule out
-that failure mode, is a case for a simpler, more auditable method, or for keeping a human
-fully in charge, not a case for a more sophisticated model. That judgment is itself an
+The most often skipped responsible-AI question is **knowing when not to deploy AI at all**.
+A recommendation system for a decision where the cost of a rare, hard-to-detect wrong answer
+is severe, and where the validation data available cannot credibly rule out that failure mode,
+is a case for a simpler, more auditable method, or for keeping a human fully in charge. That judgment is itself an
 engineering decision, and making it explicitly, in writing, before deployment is a better
 outcome than discovering the answer was "no" after the fact.
 
 :::{admonition} What a practitioner should take from this
 :class: tip
 
-Write the model card or system card before the system goes into anyone else's hands, not after
-someone asks for it. Name, in a table, the specific failure modes your system can produce and
-the specific mechanism that catches each one. And treat "should a human have to approve this"
-as a question with a real, sometimes uncomfortable answer, not a formality to satisfy on the
-way to shipping.
+Write the model card or system card before the system goes into anyone else's hands. Name, in
+a table, the specific failure modes your system can produce and the specific mechanism that
+catches each one. And treat "should a human have to approve this" as a question with a real,
+sometimes uncomfortable answer.
 :::
 
 ## In-class demo
@@ -303,21 +298,20 @@ data L3, L4, L19, and L21 use and needs no API key or live CI run to verify.
 
 ## Summary
 
-MCAS is what happens when an automated system acts on a single unverified input, its failure
-modes were not fully analyzed before it shipped, and the people who needed to know what it
-could do wrong were not told, and this session's tools are the concrete, checkable answers to
-each part of that failure. A CI pipeline that gates a merge on a frozen eval metric turns "we
-tested it once" into "it is tested on every change," and refuses to build the very artifact
-that would have shipped a regression. Drift monitoring, PSI and the KS test on input
-distributions, catches a model quietly leaving the world it was trained on before a labeled
-failure ever surfaces, and this session's own measurements show that real, unforced sensor
-drift and an injected sudden shift can look identical to the alert, which is exactly why a human
-still has to interpret what an alert means. A named failure mode with a concrete guardrail
+MCAS acted on a single unverified input, its failure modes were not fully analyzed before it
+shipped, and the people who needed to know what it could do wrong were not told. This session's
+tools are concrete, checkable answers to each part of that failure. A CI pipeline that gates a
+merge on a frozen eval metric turns "we tested it once" into "it is tested on every change,"
+and refuses to build the very artifact that would have shipped a regression. Drift monitoring,
+PSI and the KS test on input distributions, catches a model quietly leaving the world it was
+trained on before a labeled failure ever surfaces; this session's own measurements show that
+real, unforced sensor drift and an injected sudden shift can look identical to the alert, so a
+human still has to interpret what an alert means. A named failure mode with a concrete guardrail
 beats a paragraph of good intentions, and documentation, a model card, a system card, a
-NIST AI RMF-style process, is what lets the next person who relies on your system know what it
-is safe to trust it with. None of this replaces judgment about whether a system belongs in a
-physical or safety-critical decision loop at all; it is what makes that judgment possible to
-make honestly, on evidence, before an incident forces the question. The next session is a
+NIST AI RMF-style process, lets the next person who relies on your system know what it is safe
+to trust it with. None of this replaces judgment about whether a system belongs in a
+physical or safety-critical decision loop at all; it makes that judgment possible to make
+honestly, on evidence, before an incident forces the question. The next session is a
 studio, no new content, dedicated to wiring exactly this, an eval gate, a drift hook, a
 guardrail table, onto your own final project before Week 14's presentations.
 

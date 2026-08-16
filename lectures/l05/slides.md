@@ -326,7 +326,7 @@ The decimal shows up on row **1,458** of 1,567.
 
 | approach | read | outcome |
 |---|---|---|
-| default (100 rows) | – | **raises** |
+| default (100 rows) | n/a | **raises** |
 | `infer_schema_length=None` | ~110 ms | scans everything |
 | `schema_overrides=...` | **~38 ms** | decides nothing |
 | pandas, for reference | ~75 ms | silently upcasts |
@@ -368,7 +368,7 @@ a library boundary is cheap. Pick each stage's tool on merit.
 Each one a pure function: typed input, typed output.
 
 Testable and cacheable **one stage at a time**.
-Debug stage 3 without rerunning stages 1–2.
+Debug stage 3 without rerunning stages 1 and 2.
 
 ---
 
@@ -643,7 +643,7 @@ Catalyst optimizer, much bigger operational footprint.
 
 ---
 
-## The question that actually matters
+## Overhead paid before the work starts
 
 Partitioning, shuffles, a scheduler:
 all overhead paid **before** one useful byte is processed.
@@ -676,7 +676,7 @@ First section title, in full:
 > almost always worse than normal data tools
 > while those remain appropriate.
 
-**Distributed is a phase of a pipeline, not an identity.**
+**A pipeline moves in and out of distributed execution as data size changes.**
 
 <!-- Their second section is "Reduce, and then use pandas": even on genuinely
      large data there's a step where a filter or aggregate cuts it down to one
@@ -714,7 +714,7 @@ Shared Arrow layout → converting later is cheap.
 
 ---
 
-## Distributed systems: what you're really paying for
+## Distributed systems: the costs
 
 - A scheduler to reason about
 - A new failure mode: a worker dying mid-shuffle

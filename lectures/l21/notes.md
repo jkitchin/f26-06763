@@ -30,9 +30,9 @@ subject: the gap between "this model scores well against our historical backtest
 model is still scoring well against reality, right now, at the volume we are currently
 operating it," was a gap nobody was measuring continuously enough, on the actual slice of the
 market, at the actual pace of deployment, to catch before the losses were already large. A
-surrogate model that quietly stops matching the world it was trained on is not a hypothetical
-in this course. It is the entire second half of L13, and it is what happens when a company
-builds the model, ships it, and stops watching.
+surrogate model that quietly stops matching the world it was trained on is the subject of the
+entire second half of L13: what happens when a company builds the model, ships it, and stops
+watching.
 
 That is the argument for everything in this session. An evaluation you run once, before
 shipping, tells you whether a system was good enough on the day you checked. A frozen,
@@ -40,9 +40,8 @@ versioned eval harness you can rerun against every change, and observability tha
 what a live system is actually doing on every real request, are what would have told Zillow
 the ground had shifted while there was still time to do something about it rather than after a
 quarter's earnings call did. The tools this session builds, a test set you do not let drift, a
-judge you validate before you trust it, and traces you actually keep, are not process for its
-own sake. They are the difference between a number you can defend and a number you found out
-was wrong from a write-down.
+judge you validate before you trust it, and traces you actually keep, are the difference between
+a number you can defend and a number you found out was wrong from a write-down.
 
 ## Learning objectives
 
@@ -67,9 +66,9 @@ decision to update them. Versioned means that set lives in the repository, commi
 the code, so a run from three months ago and a run from this morning were scored against the
 literal same target and are actually comparable. The demo's `EVAL_SET`, four questions with
 fixed reference answers and a required citation for each, is small enough to read in ten
-seconds and is exactly the kind of artifact this session is arguing for: not because four
-questions are enough for a real system, A11 asks for more, but because the *shape*, a checked-
-in file scoring never wanders away from, is the point.
+seconds and is exactly the kind of artifact this session is arguing for. Four questions are not
+enough for a real system (A11 asks for more), but the same shape applies at any size: a
+checked-in file that scoring cannot silently wander away from.
 
 The module's own teaching note names the two ways this discipline gets violated in practice,
 and both are worth watching for in your own habits. The first is tuning on the test set: if you
@@ -80,8 +79,8 @@ way you cannot easily undo. The second is a test set that silently drifts, becau
 "just fixed a typo" in a reference answer, or added a question, without treating that edit as
 the version bump it actually is. **Deterministic scoring**, the same inputs always producing
 the same score, and **logging every run to MLflow** so that runs are comparable across code
-changes, are the two mechanical habits that make "frozen and versioned" something you can prove
-rather than something you promise.
+changes, are the two mechanical habits that make "frozen and versioned" verifiable rather than
+assumed.
 
 ## ML metrics recap, and why one number hides the failure that matters
 
@@ -106,14 +105,14 @@ which matters enormously whenever the classes are imbalanced, and a **PR curve**
 trade-off across every possible threshold rather than the one you happened to pick.
 
 **Calibration** deserves its own mention because it answers a different question than accuracy
-does entirely: not "is the prediction close," but "when the model says 90% confident, is it
-actually right about 90% of the time." A **reliability diagram** plots claimed confidence
+does: accuracy asks whether the prediction is close, while calibration asks whether, when the
+model says 90% confident, it is actually right about 90% of the time. A **reliability diagram** plots claimed confidence
 against observed accuracy, and **expected calibration error (ECE)** summarizes the gap between
 them in one number. This session's demo makes the case for checking this concretely rather
 than trusting it: a random forest's tree-to-tree spread is a common, convenient way to produce
 a predictive interval, and on real Intel Lab sensor data, checking its stated 95% interval
 against what actually happened shows it capturing the true value only about 14% of the time.
-That is not a slightly optimistic interval. It is an interval that is not doing the job an
+A stated 95% interval that covers the truth 14% of the time is failing at the one job an
 interval exists to do, and nothing about the training process would have told you that; only
 checking coverage against held-out truth does. An over-confident surrogate is genuinely
 dangerous specifically because a design loop or an optimizer that trusts a stated 95% interval
@@ -124,8 +123,8 @@ mode at a smaller scale.
 **bootstrap confidence interval**, resampling your test set's residuals with replacement and
 recomputing the metric many times, turns "MAE = 2.49" into "MAE = 2.49, 95% CI roughly
 [2.47, 2.51] on this test set," which is an honestly different and more defensible claim.
-**Per-slice metrics** are the single most important idea in this section, and the demo proves
-the point with real numbers rather than an illustration: the same fitted model, evaluated on
+**Per-slice metrics** show what an aggregate number hides, and the demo proves it with real
+numbers rather than an illustration: the same fitted model, evaluated on
 sensor readings above L3's 2.4-volt trustworthiness threshold, scores an MAE of 2.49; evaluated
 on readings below that threshold, the same model scores 6.11, roughly two and a half times
 worse. A report that only ever states the aggregate number, computed across both slices at
@@ -161,8 +160,8 @@ correct answer genuinely exists to compare against. This session's demo shows ex
 specific fragility directly: a system answer that is factually correct fails a literal
 substring check because the source text says "1.5 times **the vessel's** maximum allowable
 working pressure" and the reference string says "1.5 times **the** maximum allowable working
-pressure," a difference of exactly one possessive. Exact match is not wrong to use; it is
-narrow, and the module lists it alongside embedding similarity and numeric tolerance
+pressure," a difference of exactly one possessive. Exact match is narrow rather than wrong, and
+the module lists it alongside embedding similarity and numeric tolerance
 specifically because none of the three alone covers every case reference-based checking needs
 to handle.
 
@@ -210,13 +209,13 @@ side by side can favor whichever one it saw first, independent of quality. **Len
 means judges frequently reward longer answers even when the extra length adds nothing.
 **Self-preference** means a model asked to judge output, including its own family's output,
 tends to score it more favorably than an independent judge would. None of these make LLM-as-
-judge useless; they make it a measurement instrument with known systematic errors, which is a
-reason to calibrate it, not a reason to throw it out.
+judge useless. They make it a measurement instrument with known systematic errors, a reason to
+calibrate it rather than discard it.
 
 Doing it carefully has a specific, checkable shape. Write an **explicit rubric** with a fixed
 scale, precise enough that two different people reading it would score the same answer the
 same way, because a vague rubric produces a vague judge. Ask for **structured output**, a score
-plus a written justification, not prose you then have to parse, both because it is more
+plus a written justification instead of freeform prose you then have to parse, both because it is more
 reliable to extract and because writing the justification is frequently what makes the judge's
 reasoning inspectable at all. Use a **strong model as judge**, generally stronger than the
 model being judged, since a judge has to be at least as capable as the system it is grading to
@@ -236,16 +235,15 @@ blind spot: the heuristic cannot tell a citation that actually supports the answ
 does not, because it never looks at the citation at all, and it cannot tell a right number from
 a wrong one sitting inside an otherwise identical sentence, because word overlap does not
 distinguish "48 mm" from "36 mm" as sharply as a person instantly does. A real LLM judge, given
-the right rubric, would likely close some of these gaps and not others, and the entire point of
-running the validation is that you find out which, on your rubric, with your judge, rather than
-assuming.
+the right rubric, would likely close some of these gaps and not others, and running the
+validation tells you which, on your rubric, with your judge, rather than leaving you to assume.
 
 :::{admonition} What a practitioner should take from this
 :class: tip
 
 Treat a judge's kappa against human labels the way you would treat a surrogate's calibration
-coverage: a number you check, not a property you assume. A judge that fails validation is not
-a reason to skip validation next time, it is what validation exists to catch, and the fix is
+coverage: a number you check rather than a property you assume. A judge that fails validation is
+exactly what validation exists to catch, and the fix is
 almost always a sharper rubric or an added programmatic check for the specific dimension the
 judge is blind to, not a bigger model.
 :::
@@ -256,8 +254,8 @@ judge is blind to, not a bigger model.
 ```
 
 You cannot debug or improve a system you cannot see, and "see" here means a specific, concrete
-list of fields captured on every single request, not a log line when something looks wrong.
-For an LLM or agent system: the prompt and inputs, any retrieved context, every tool call with
+list of fields captured on every single request, rather than a log line written only when
+something looks wrong. For an LLM or agent system: the prompt and inputs, any retrieved context, every tool call with
 its arguments and result, the final output, input and output token counts, wall-clock latency
 per step (not just end to end, since "where did the time go, retrieval or generation or a tool
 call" is usually the actionable question), the model name and version, and the cost. This
@@ -291,8 +289,8 @@ another, testing against a target that has quietly stopped being the right one.
 this session's demo catches a citation that points at the wrong chunk. It says nothing about
 whether the cited chunk's *content* actually supports the claim attached to it, a real and
 different failure mode, nor does it know a chunk is stale relative to a newer document revision.
-A programmatic check that passes tells you one specific thing did not go wrong, not that
-nothing did.
+A programmatic check that passes tells you one specific thing did not go wrong. It does not
+tell you that nothing did.
 
 **LLM-as-judge scores can look precise while being unreliable, and a low kappa can hide behind
 a plausible-looking score distribution.** A judge that gives every answer a 3 or a 4 will
@@ -300,10 +298,10 @@ produce a tidy, narrow-looking histogram that tells you nothing, and it takes th
 agreement check, not a glance at the scores, to catch a judge that is not actually discriminating
 between good and bad answers.
 
-**Observability that is not looked at is just storage.** Logging every request's trace costs
+**Observability only pays off if someone reviews the traces.** Logging every request's trace costs
 you nothing if nobody ever queries it, and a genuinely useful tracing setup implies a habit of
-actually reviewing traces, especially the ones attached to a low score or a user complaint, not
-merely the infrastructure to produce them.
+actually reviewing traces, especially the ones attached to a low score or a user complaint,
+beyond having the infrastructure to produce them.
 
 **Evaluation infrastructure itself has a cost that scales with how seriously you take it.**
 Hand-labeling fifty examples, maintaining a judge rubric, and reviewing traces are real
@@ -342,9 +340,9 @@ moving, was not being run continuously enough, at the right granularity, to catc
 before the losses were already booked. Reference-based checks, programmatic checks, and LLM-
 as-judge are three different tools for three different situations, in roughly that order of
 cost and reliability, and observability, capturing every request's inputs, outputs, tool calls,
-latency, and cost, is what turns "the system seemed to get worse" into a traceable, debuggable
-claim. None of this is process for its own sake; it is the difference between finding a problem
-in a notebook and finding it in a quarterly earnings call. Next session takes a system that has
+latency, and cost, turns "the system seemed to get worse" into a traceable, debuggable claim.
+The payoff shows up as timing: finding a problem in a notebook instead of finding it in a
+quarterly earnings call. Next session takes a system that has
 passed this evaluation and asks the remaining question: how do you actually ship it, behind a
 service, in a container, on real infrastructure, without losing any of what this session just
 taught you to check.

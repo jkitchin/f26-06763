@@ -299,10 +299,10 @@ four and a half times too weak.
 The solar array was **asymmetric**, unlike Mars
 Global Surveyor's.
 
-Desaturation firings happened **10–14× more often
+Desaturation firings happened **10-14× more often
 than the navigation team expected.**
 
-4.45× error × 10–14× more often × 9 months.
+4.45× error × 10-14× more often × 9 months.
 
 ---
 
@@ -311,7 +311,7 @@ than the navigation team expected.**
 | | km |
 |---|---|
 | planned first periapsis | **226** |
-| a week out | 150–170 |
+| a week out | 150-170 |
 | one hour out | 110 |
 | **minimum survivable** | **80** |
 | reconstructed actual | **57** |
