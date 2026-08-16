@@ -16,7 +16,7 @@ section 8), slides are **MARP** markdown, and CI publishes both to GitHub Pages.
 
 **The repository is private. The rendered site is public.**
 
-The GitHub Pages site at <http://kitchingroup.cheme.cmu.edu/f26-06763/> is world-readable
+The GitHub Pages site at <https://kitchingroup.cheme.cmu.edu/f26-06763/> is world-readable
 even though the repo is not.
 
 | Published | Private |
@@ -700,6 +700,29 @@ Measured on the green run that introduced it, 14 decks and 874 pages: 49s to ren
 deck PDFs and 9s to check them, so about a minute on top of the job. The per-deck PDFs are
 intermediates in `_build/slides-pdf/` and are not published; only the merged file is.
 
+**The site is HTTPS, and enforces it.** Pages holds a valid certificate for the custom
+domain and serves over HTTP/2; `https_enforced` was turned on 2026-08-08, so `http://`
+now answers `301` to the `https://` URL rather than serving the page. Check it with
+`gh api repos/jkitchin/f26-06763/pages --jq '{https_enforced, cert: .https_certificate.state}'`.
+
+Two consequences. Write `https://` in any script that fetches the site, because `curl -s`
+without `-L` does not follow the redirect and hands back nginx's `301 Moved Permanently`
+page instead. That is the nasty shape of failure: it is a 200-looking body of HTML where
+JSON was expected, so a check that greps it fails with a confusing message rather than a
+connection error. The `verify` job in `book.yml` is already safe, because it fetches with
+`curl -fsSL`. And the origin is now a *secure context*, which is the gate
+on `crypto.subtle`, `RTCPeerConnection`, service workers and `SharedArrayBuffer`. Nothing
+in the repository depends on that yet, deliberately: `game/src/seed.ts` uses
+`@noble/hashes` because the derivation has to be synchronous and has to run under node,
+which are reasons that outlive the scheme. Treat it as headroom, not as a dependency, and
+check the setting before relying on it rather than assuming it stayed on.
+
+The switch was safe because the built site embeds no absolute `http://` subresource;
+Jupyter Book 1.x emits relative asset paths, which is the same property section 8 relies
+on for the `/f26-06763/` subpath. Verified by grepping the rendered pages for
+`src="http://` before enabling it. If a future page hardcodes an `http://` image or script,
+it will be blocked as mixed content rather than merely look untidy.
+
 **Verifying a deploy.** There are three separate things here and they fail independently.
 
 *The page returns 200.* That does not tell you it rendered. Confirm an asset URL from the
@@ -708,7 +731,7 @@ page source also returns 200, or screenshot it:
 ```bash
 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless \
   --virtual-time-budget=8000 --window-size=1280,900 \
-  --screenshot=/tmp/site.png http://kitchingroup.cheme.cmu.edu/f26-06763/
+  --screenshot=/tmp/site.png https://kitchingroup.cheme.cmu.edu/f26-06763/
 ```
 
 *The run is green.* That does not tell you the site updated, and this one is nastier
@@ -723,7 +746,7 @@ deploying and fails if it is not this commit. To check by hand at any time, whic
 "what is actually published" rather than "did the last run go green":
 
 ```bash
-curl -s http://kitchingroup.cheme.cmu.edu/f26-06763/build-info.json
+curl -s https://kitchingroup.cheme.cmu.edu/f26-06763/build-info.json
 ```
 
 Two things in that job are load-bearing and should not be tidied away. It **polls** for
