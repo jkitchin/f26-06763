@@ -341,8 +341,8 @@ What transfers is the *shape*, not the magnitude. There is a fixed cost per kern
 every accelerator, so the crossover exists on every accelerator; a bigger card moves it and
 raises the plateau. The practical consequence is the same either way, and it is the one the
 module's teaching notes give: **debug on CPU with a tiny subset, then launch the real run on
-the GPU.** For a model the size of this session's, the CPU is not a fallback, it is the correct
-choice.
+the GPU.** For a model the size of this session's, the CPU is the correct choice, not a
+consolation prize.
 :::
 
 `torch.autocast` and `GradScaler` are worth knowing about but not worth using yet. Mixed
@@ -492,7 +492,7 @@ as bad as it should be, and gives no indication that anything is wrong.
 :::{admonition} What a practitioner should take from this
 :class: tip
 
-Adam's per-parameter step size is what makes it forgiving, and forgiveness is not always a
+Adam's per-parameter step size makes it forgiving, and forgiveness is not always a
 kindness. SGD tells you about a scaling bug by exploding; Adam absorbs the same bug and hands
 you a mediocre model. If you have never scaled your inputs and your Adam-trained network is
 merely disappointing, scale them before you touch the architecture.

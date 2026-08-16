@@ -461,7 +461,7 @@ The crossover sits between 64 and 256 hidden units.
 
 Apple MPS on a laptop, because that is what
 generated these figures. A datacentre CUDA card
-(what A6 gives you) reaches 10–50× on a big model.
+(what A6 gives you) reaches 10 to 50× on a big model.
 
 What transfers is the **shape**, not the magnitude:
 every accelerator has a per-launch cost, so
@@ -669,7 +669,7 @@ Total failure, not gradual. Nothing to diagnose.
 
 At **lr = 1.0**, across six seed-and-loop
 combinations: `nan` in three, and divergence
-to 90–170 MPa in the others.
+to 90 or 170 MPa in the others.
 
 A learning rate is not "stable". It is stable
 **for this initialisation**.

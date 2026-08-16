@@ -690,7 +690,7 @@ UCI Air Quality → plot → naive split → fresh checkout
 3. **NumPy version**, and *which* cell failed told you which version you have
 
 Compare failures with your neighbour on 3.
-Every one of these is mundane. **That is the point.**
+**None of the three announces itself while you are making it.**
 
 ---
 

@@ -407,8 +407,8 @@ bug's in the loop, the prompt, or the model's choices.
 
 ## Record traces
 
-The full step-by-step log is what makes
-that second class of bug diagnosable at all.
+Without the full step-by-step log,
+that second class of bug is not diagnosable.
 
 ---
 

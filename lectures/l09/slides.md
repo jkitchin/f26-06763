@@ -62,8 +62,7 @@ No error message. Every number too small.
 
 ## The engineering consequence
 
-A surrogate that promised ±3 MW and delivers ±8
-does not merely disappoint.
+A surrogate promised ±3 MW. It delivers ±8.
 
 It invalidates whatever downstream decision
 was **sized against the ±3**.
@@ -111,7 +110,7 @@ try again. There is no way to un-look.
 ## Framing: this session's dataset
 
 **UCI Combined Cycle Power Plant.** 9,568 hourly rows,
-one plant at full load, 2006–2011. Ambient temp,
+one plant at full load, 2006 to 2011. Ambient temp,
 vacuum, pressure, humidity → net MW.
 
 **Cheap-to-measure in, expensive-to-measure out.**
@@ -229,7 +228,7 @@ Published in *Nature*, 2009, by Google + CDC.
 > Combining the **N=45** highest-scoring queries
 > was found to obtain the best fit
 
-Fitted on 2003–2007: [1,152 observations](https://research.google.com/archive/papers/detecting-influenza-epidemics.pdf).
+Fitted on 2003 to 2007: [1,152 observations](https://research.google.com/archive/papers/detecting-influenza-epidemics.pdf).
 
 # ≈ 43,000 candidates per data point
 
