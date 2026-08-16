@@ -7,6 +7,25 @@
 > Logistics (term, meeting times, room, instructor/TA contacts, office hours, course
 > management system) are filled in per offering — see `[TERM DETAILS]` placeholders below.
 
+## Class 
+
+The course will be Mondays and Wednesdays from 3:30pm to 4:50pm in [CIC 1201](https://maps.app.goo.gl/93pZEYznGGC6EynS9). Attendance in person is expected. 
+
+
+
+## Instructors
+- John Kitchin (jkitchin@andrew.cmu.edu)
+- Victor Alves (vcunhaal@andrew.cmu.edu )
+
+## Teaching assistants
+- Tirtha Vinchurkar (tvinchur@andrew.cmu.edu)
+- Robert Jimenez (robertoj@andrew.cmu.edu)
+- Nicolas Smits (nsmits@andrew.cmu.edu)
+- TBD
+
+
+
+
 :::{admonition} The whole course as one PDF
 :class: tip
 
@@ -76,45 +95,38 @@ are named where relevant so skills transfer.
 
 ## Assessment
 
-| Component | Weight |
-|---|---|
-| Module assignments (A1–A11) | 45% |
-| Miniproject (surrogate model, integrative) | 15% |
-| Final project (open, student-chosen) | 30% |
-| Participation & in-class quizzes | 10% |
+| Component                            | Weight |
+|--------------------------------------|--------|
+| Weekly quizzes                       | 15%    |
+| Module assignments           | 42%    |
+| Miniproject                          | 20%    |
+| Final project (open, student-chosen) | 40%    |
+
 
 There is **no proctored final exam**; assessment is project- and portfolio-based.
 
-- **Assignments (A1–A11):** one focused assignment per module, each reinforcing that
+- **Assignments:** one focused assignment per module, each reinforcing that
   week's tools. Submitted via a course Git organization. Typically due one week after
   release. Assignments use **per-module datasets** chosen to fit the topic.
-- **Miniproject:** launches Week 7 and gets a **dedicated mini-project week (Week 8)** with
-  a build/studio day and a demo day; due at the end of Week 8. Integrates the data → train →
+- **Miniproject:** launches Week 7 and gets a **dedicated mini-project week (Week 8)**. Integrates the data → train →
   evaluate arc into a **surrogate/predictive model on an engineering dataset**, with a
   short report and a code walkthrough.
 - **Final project:** **student-chosen**, proposed Week 11, presented Week 14. Must
   integrate back-half topics — an **LLM/agentic system** with real **evaluation and
   deployment**. Deliverables: proposal, build (repo), recorded demo, and in-class
   presentation.
-- **Participation & quizzes:** short in-class concept checks and engagement, plus
-  the <a href="../game/">practice modules</a>, one per lecture, roughly ten
-  minutes each. Finish a module and it produces a PDF; upload that. **Credit is
-  for completing them, not for the score**, so a module you find hard is worth
-  exactly as much as one you find easy.
+- **Participation & quizzes:** one per week based on lectures and notes. Finish a module and it produces a PDF; upload that. 
 
-  Two things worth stating plainly, because you will find them out anyway. Your
-  questions are selected from your Andrew ID, so they differ from your
-  neighbour's, and a submitted PDF is checked against the set your ID generates.
-  And the answer key ships inside the JavaScript, because the grading happens in
-  your browser and there is nowhere else for it to be. That is a deliberate
-  trade, not an oversight: the alternative buys nothing at this weighting.
-  **If you reverse-engineer how the questions are selected and write up what you
-  found, that is worth more credit than the modules themselves.** Come and show
-  me.
+  
 
 ### Grading scale
-A ≥ 90 (A− from 90, A from 93) · B [80–90) · C [70–80) · D [60–70) · R/F < 60. `+/−`
-used for granularity. (Adjust per program norms in `[TERM DETAILS]`.)
+| A  | 95 |
+| A- | 90 |
+| B+ | 85 |
+| B  | 80 |
+| B- | 75 |
+| C  | 60   |
+
 
 ## Policies
 
