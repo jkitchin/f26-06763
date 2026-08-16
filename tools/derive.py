@@ -117,30 +117,75 @@ class Rng:
         return out
 
 
-def select_items(seed: bytes, pool_ids: list[str], k: int) -> list[str]:
+def select_items(seed: bytes, pool_ids: list[str], k: int, offset: int = 0) -> list[str]:
     """Hash-and-take-lowest, not shuffle-and-slice.
 
     Two properties worth the extra line. It is order-independent, so reordering
     the YAML file does not reshuffle every student. And when the pool grows, one
     item is displaced rather than the whole selection being reshuffled, so
     adding a question does not invalidate PDFs already issued.
+
+    `offset` walks a window along that ranking, which is how a retake gets fresh
+    questions. It wraps, so a window is always full: with a pool of 11 and k = 5,
+    attempt 3 starts at rank 10 and takes ranks 10, 0, 1, 2, 3.
+
+    THE RANKING MUST NOT DEPEND ON THE ATTEMPT, which is why this takes an
+    offset rather than a reseeded ordering. Reseeding per attempt would draw an
+    independent sample each time, and an independent 5-of-10 sample overlaps the
+    first by 2.5 items on average. Ranking once and sliding a window is what
+    makes attempts 1 and 2 provably disjoint whenever the pool is at least 2k.
     """
     keyed = sorted(
         (hashlib.sha256(b"06763/pick/v1\x00" + seed + b"\x00" + iid.encode()).hexdigest(), iid)
         for iid in pool_ids
     )
-    return [iid for _, iid in keyed[:k]]
+    ranked = [iid for _, iid in keyed]
+    n = len(ranked)
+    if not n:
+        return []
+    # Capped at n so a bank whose serve exceeds its pool cannot serve one item
+    # twice in a single sitting, which would double-count it in the score.
+    take = min(k, n)
+    start = offset % n
+    return [ranked[(start + i) % n] for i in range(take)]
 
 
-def derive(andrew_id: str, lecture: str, pool: dict, pool_version: int, k: int) -> list[dict]:
+def attempt_offset(attempt: int, k: int, pool_size: int) -> int:
+    """Where attempt `n`'s window starts. Attempt 1 is offset 0.
+
+    Attempts are 1-based because that is how the PDF prints them and how a
+    student counts; an off-by-one here re-serves attempt 1's questions to
+    someone on their second run, which is what this exists to prevent.
+    """
+    if pool_size <= 0:
+        return 0
+    return ((max(1, int(attempt)) - 1) * k) % pool_size
+
+
+def derive(
+    andrew_id: str,
+    lecture: str,
+    pool: dict,
+    pool_version: int,
+    k: int,
+    attempt: int = 1,
+) -> list[dict]:
     """The served item list: which items, which variant, which option order.
 
     `pool` maps item id -> item dict. The iteration order below is part of the
     contract: variant first, then option order, per item, in selection order.
+
+    `attempt` is 1-based and is the retake defence: it moves the selection
+    window and seeds the option shuffle, so an item that does come back on a
+    later attempt comes back with its options reordered. The verifier reads it
+    from the MAC'd payload rather than recomputing it, because an honest retake
+    must re-derive to exactly what the student was served.
     """
     seed = selection_seed(andrew_id, lecture, pool_version)
-    picked = select_items(seed, sorted(pool.keys()), k)
-    rng = Rng(hashlib.sha256(b"06763/order/v1\x00" + seed).digest())
+    ids = sorted(pool.keys())
+    n = max(1, int(attempt))
+    picked = select_items(seed, ids, k, attempt_offset(n, k, len(ids)))
+    rng = Rng(hashlib.sha256(b"06763/order/v2\x00" + seed + b"\x00" + str(n).encode()).digest())
 
     served = []
     for iid in picked:

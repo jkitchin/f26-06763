@@ -11,8 +11,8 @@ status: published
 # Ten items and a serve of 8 means two students share most of their draw, which
 # weakens the item-set half of the evidence design. Serving 6 until the bank
 # grows past 15. GROWTH TARGET: 15+ items.
-serve: 6
-pool_version: 1
+serve: 5
+pool_version: 2
 provenance:
   drafted_by: hand
   reviewed_by: jkitchin

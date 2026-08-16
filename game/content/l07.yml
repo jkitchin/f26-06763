@@ -3,8 +3,8 @@ lecture: l07
 title: "Features for time-series and physical data: transforms, scaling, leakage"
 source_notes: lectures/l07/notes.md
 status: published
-serve: 6
-pool_version: 1
+serve: 5
+pool_version: 2
 provenance:
   drafted_by: hand
   reviewed_by: jkitchin

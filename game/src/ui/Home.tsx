@@ -12,7 +12,9 @@
  */
 
 import type { Bank } from '../content/load.ts'
-import { bestScoreFor, levelFor, type Event } from '../store/log.ts'
+import {
+  WRONG_PENALTY, bestScoreFor, levelFor, nextAttemptFor, type Event,
+} from '../store/log.ts'
 
 interface Props {
   banks: Record<string, Bank>
@@ -56,23 +58,27 @@ export function Home({ banks, log, andrewId, storageOk, onStart, onEvidence, onM
 
       <p className="mb-4 text-sm text-[var(--muted)]">
         A <span className="text-[var(--correct)]">✓</span> means the module is
-        complete, and that is the whole requirement. The percentage is just for
-        you.
+        complete. Each question is worth a point, less {WRONG_PENALTY.toFixed(2)}{' '}
+        for every wrong answer, and the average is the participation score printed
+        on your PDF. Answering carefully is worth more than answering fast.
       </p>
 
       <p className="mb-6 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-3 text-sm text-[var(--muted)]">
         <strong className="text-[var(--ink)]">Progress is saved in this browser
         only.</strong>{' '}
         On another computer, or in a private window, you will start a module
-        again from the beginning. Your questions are chosen from your Andrew ID,
-        so they are the same wherever you sign in. The PDF is the thing that
-        counts, so finish a module and download it in one sitting.
+        again from the beginning. Your questions are chosen from your Andrew ID
+        and from which attempt you are on, so a first attempt is the same
+        wherever you sign in, and practising again gives you different questions
+        from the same bank. The PDF is the thing that counts, so finish a module
+        and download it in one sitting.
       </p>
 
       <ul className="space-y-3">
         {lectures.map((bank) => {
           const best = bestScoreFor(log, bank.lecture)
           const done = levelFor(log, bank.lecture) > 0
+          const next = nextAttemptFor(log, bank.lecture)
           return (
             <li
               key={bank.lecture}
@@ -96,6 +102,10 @@ export function Home({ banks, log, andrewId, storageOk, onStart, onEvidence, onM
                 {done && best !== null && (
                   <> · best run {Math.round(best * 100)}%</>
                 )}
+                {/* Say which attempt is next before they click, not after. A
+                    student who has finished once should know their next run
+                    draws different questions and issues its own PDF. */}
+                {next > 1 && <> · next is attempt {next}</>}
               </p>
               <div className="mt-3 flex gap-2">
                 <button type="button" onClick={() => onStart(bank.lecture)} className="btn-primary">

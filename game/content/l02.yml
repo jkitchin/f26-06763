@@ -3,8 +3,8 @@ lecture: l02
 title: "Reproducible environments, versioning, and notebooks to packages"
 source_notes: lectures/l02/notes.md
 status: published
-serve: 6
-pool_version: 1
+serve: 5
+pool_version: 2
 provenance:
   drafted_by: hand
   reviewed_by: jkitchin

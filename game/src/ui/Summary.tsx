@@ -13,7 +13,9 @@ import { poolOf } from '../content/load.ts'
 import { derive } from '../seed.ts'
 import { buildAttestation, type ItemRecord } from '../evidence/payload.ts'
 import { buildPdf, filenameFor } from '../evidence/pdf.ts'
-import { itemScore, latestCompleted, sittingScore, type Event } from '../store/log.ts'
+import {
+  WRONG_PENALTY, attemptOf, itemScore, latestCompleted, sittingScore, type Event,
+} from '../store/log.ts'
 import { Markdown } from './Markdown.tsx'
 
 const APP_VERSION = '0.1.0'
@@ -47,7 +49,14 @@ export function Summary({ bank, log, andrewId, displayName, onHome }: Props) {
 
   async function download() {
     try {
-      const served = derive(andrewId, bank.lecture, poolOf(bank), bank.pool_version, bank.serve)
+      // The attempt comes from the sitting's opened event, never from today's
+      // log. Recomputing it here would count sittings finished *after* this one
+      // and re-derive to a set of items this student was never served, which is
+      // the "judge past work by present content" bug in its purest form.
+      const attempt = attemptOf(session!)
+      const served = derive(
+        andrewId, bank.lecture, poolOf(bank), bank.pool_version, bank.serve, attempt,
+      )
 
       // Order the log entries by the served order rather than by time, so the
       // payload's item list and the re-derived list line up positionally and
@@ -75,6 +84,7 @@ export function Summary({ bank, log, andrewId, displayName, onHome }: Props) {
         lecture: bank.lecture,
         poolVersion: bank.pool_version,
         serve: bank.serve,
+        attempt,
         appVersion: APP_VERSION,
         buildCommit: BUILD_COMMIT,
         contentSha256: '',
@@ -104,6 +114,7 @@ export function Summary({ bank, log, andrewId, displayName, onHome }: Props) {
         andrewId,
         lecture: bank.lecture,
         lectureTitle: bank.title,
+        attempt,
         finishedAtLocal: new Date(session!.finishedAt).toLocaleString(),
         elapsedMs: session!.finishedAt - session!.startedAt,
         activeMs: session!.activeMs,
@@ -137,12 +148,14 @@ export function Summary({ bank, log, andrewId, displayName, onHome }: Props) {
           <strong>{Math.round(score * 100)}%</strong>
           <span className="text-[var(--muted)]">
             {' '}
-            (a second attempt is worth half, a revealed answer nothing).
+            (one point a question, less {WRONG_PENALTY.toFixed(2)} per wrong answer,
+            and nothing at all for a revealed one).
           </span>
         </p>
       )}
       <p className="mt-1 text-sm text-[var(--muted)]">
-        The grade is for finishing, not for the score.
+        This is attempt {attemptOf(session)}, and it is the score on your PDF.
+        Practising again gives you different questions from the same bank.
       </p>
 
       <button type="button" onClick={download} className="btn-primary mt-8 w-full">

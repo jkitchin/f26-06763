@@ -40,8 +40,12 @@ interface Person {
   msPerItem: number
 }
 
-async function session(p: Person, opts: { label: string; overrideId?: string } = { label: 'clean' }) {
-  const served = derive(p.andrewId, LECTURE, POOL, bank.pool_version, bank.serve)
+async function session(
+  p: Person,
+  opts: { label: string; overrideId?: string; attempt?: number } = { label: 'clean' },
+) {
+  const ATTEMPT = opts.attempt ?? 1
+  const served = derive(p.andrewId, LECTURE, POOL, bank.pool_version, bank.serve, ATTEMPT)
 
   const items: ItemRecord[] = served.map((s, i) => {
     const item = BY_ID[s.id]!
@@ -75,6 +79,7 @@ async function session(p: Person, opts: { label: string; overrideId?: string } =
     lecture: LECTURE,
     poolVersion: bank.pool_version,
     serve: bank.serve,
+    attempt: ATTEMPT,
     appVersion: '0.1.0',
     buildCommit: '0'.repeat(40),
     contentSha256: 'f'.repeat(64),
@@ -105,6 +110,7 @@ async function session(p: Person, opts: { label: string; overrideId?: string } =
     andrewId: opts.overrideId ?? p.andrewId,
     lecture: LECTURE,
     lectureTitle: bank.title,
+    attempt: ATTEMPT,
     finishedAtLocal: '2026-09-14 14:11 EDT',
     elapsedMs: activeMs + 64000,
     activeMs,
@@ -129,6 +135,14 @@ const a = await session(JK)
 const b = await session(VA)
 const overlap = a.served.filter((s, i) => s.id === b.served[i]?.id).length
 console.log(`     (item sets agree in ${overlap}/${a.served.length} positions)`)
+
+// 1b. The same student's second attempt. It must draw entirely different items,
+//     which is the claim the attempt window makes and the thing a TA will be
+//     asked about the first time a student retakes a module.
+const a2 = await session(JK, { label: 'attempt2', attempt: 2 })
+const repeated = a2.served.filter((s) => a.served.some((t) => t.id === s.id)).length
+console.log(`     (attempt 2 repeats ${repeated}/${a2.served.length} of attempt 1's items)`)
+if (repeated !== 0) throw new Error(`attempt 2 should be disjoint, repeated ${repeated}`)
 
 // 2. The forgery the derivation exists to catch: a real session re-issued under
 //    a different Andrew ID. The payload is internally consistent and the MAC is
@@ -162,6 +176,7 @@ await session(JK, { label: 'copied', overrideId: 'valves' })
     lecture: LECTURE,
     poolVersion: bank.pool_version,
     serve: bank.serve,
+    attempt: 1,
     appVersion: '0.1.0',
     buildCommit: '0'.repeat(40),
     contentSha256: 'f'.repeat(64),
@@ -183,6 +198,7 @@ await session(JK, { label: 'copied', overrideId: 'valves' })
     andrewId: 'mreed',            // <- the edit
     lecture: LECTURE,
     lectureTitle: bank.title,
+    attempt: 1,
     finishedAtLocal: '2026-09-14 14:11 EDT',
     elapsedMs: activeMs,
     activeMs,
@@ -205,6 +221,7 @@ await session(JK, { label: 'copied', overrideId: 'valves' })
     andrewId: 'sfake',
     lecture: LECTURE,
     lectureTitle: bank.title,
+    attempt: 1,
     finishedAtLocal: '2026-09-14 23:58 EDT',
     elapsedMs: 300000,
     activeMs: 298000,

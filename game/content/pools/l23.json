@@ -96,6 +96,102 @@
         }
       },
       "serve": 6
+    },
+    "2": {
+      "items": {
+        "l23-q01": {
+          "answer": "Concept drift: familiar inputs, changed input-to-output relationship",
+          "options": [
+            "Data drift, since the operating conditions have moved away from the training distribution",
+            "Concept drift: familiar inputs, changed input-to-output relationship",
+            "Prediction drift, since the model's output distribution is what shifts first in this scenario",
+            "Label drift, since the ground truth definition has changed while the inputs have not"
+          ]
+        },
+        "l23-q02": {
+          "answer": "The input distribution, and the model's own output distribution",
+          "options": [
+            "Nothing meaningful; without labels there is no measurable notion of model quality",
+            "The input distribution, and the model's own output distribution",
+            "The model's confidence scores, which fall predictably when the inputs move out of domain",
+            "Inference latency, which rises when inputs fall outside the regions the model was optimised for"
+          ]
+        },
+        "l23-q03": {
+          "answer": "Above 0.25, with 0.1 to 0.25 worth watching and under 0.1 no meaningful shift",
+          "options": [
+            "Above 0.05, since anything measurable indicates the distribution has moved",
+            "Above 0.25, with 0.1 to 0.25 worth watching and under 0.1 no meaningful shift",
+            "Above 0.5, since PSI is a log-scaled quantity and small values are expected",
+            "Above 1.0, which is the point at which the distributions no longer overlap"
+          ]
+        },
+        "l23-q04": {
+          "answer": "A guardrail not tied to a named failure mode is not a guardrail",
+          "options": [
+            "Nothing, provided the checks are implemented before release and reviewed",
+            "A guardrail not tied to a named failure mode is not a guardrail",
+            "Safety checks belong in the monitoring section rather than the design document",
+            "It should quantify the residual risk, since an unquantified safety claim cannot be reviewed"
+          ]
+        },
+        "l23-q05": {
+          "answer": "Treat retrieved documents and tool outputs as untrusted input",
+          "options": [
+            "A content filter on retrieved documents, removing any text that resembles an instruction",
+            "Treat retrieved documents and tool outputs as untrusted input",
+            "A stricter system prompt telling the model to ignore instructions found in documents",
+            "A human review step for any document ingested into the index"
+          ]
+        },
+        "l23-q06": {
+          "answer": "An explicit input-range check before every prediction",
+          "options": [
+            "Calibration checked against held-out truth, so the reported interval widens appropriately",
+            "An explicit input-range check before every prediction",
+            "Drift monitoring on the input distribution, tied to a retraining trigger",
+            "Output validation against a versioned schema, so a malformed prediction fails loudly"
+          ]
+        },
+        "l23-q07": {
+          "answer": "It fails the build when a key metric drops below a threshold",
+          "options": [
+            "It runs the test suite against the trained model rather than the code, catching model-level regressions",
+            "It fails the build when a key metric drops below a threshold",
+            "It gates deployment on manual approval, so a human signs off before any model reaches production",
+            "It compares the new model against the previous one and deploys whichever scores higher"
+          ]
+        },
+        "l23-q08": {
+          "answer": "Automation bias, and the response belongs in the system design",
+          "options": [
+            "A training problem: operators need clearer instruction on when to override the model",
+            "Automation bias, and the response belongs in the system design",
+            "A calibration problem: the model was over-confident and should have reported a wider interval",
+            "A user-interface problem: the recommendation should be less prominent on the screen"
+          ]
+        },
+        "l23-q09": {},
+        "l23-q10": {
+          "answer": "To show what the detector says when nothing has changed, so a positive result elsewhere means something",
+          "options": [
+            "To calibrate the thresholds, since the null case sets the floor for what counts as a shift",
+            "To show what the detector says when nothing has changed, so a positive result elsewhere means something",
+            "To warm the cache, so the subsequent comparisons run at a comparable speed",
+            "To demonstrate that PSI and the KS test disagree even when there is no drift"
+          ]
+        },
+        "l23-q11": {
+          "answer": "Because the artifact that was tested is the artifact that ships",
+          "options": [
+            "Because containers are faster to start than a fresh environment, which matters when scaling out inference workers",
+            "Because the artifact that was tested is the artifact that ships",
+            "Because container registries provide the versioning that git cannot give to model weights",
+            "Because most cloud serving platforms accept only containers, so it is a deployment requirement"
+          ]
+        }
+      },
+      "serve": 5
     }
   }
 }

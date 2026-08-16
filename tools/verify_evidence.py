@@ -82,7 +82,12 @@ import yaml
 sys.path.insert(0, str(Path(__file__).parent))
 from derive import derive, normalize_id, selection_hash  # noqa: E402
 
-SCHEMA = "cmu-06763-attest/1"
+#: Must match SCHEMA in game/src/evidence/payload.ts. Bumped to /2 when the
+#: payload gained `derive.attempt` and a scored `score` block; a /1 file has no
+#: attempt, so it cannot be re-derived and is reported as such rather than being
+#: quietly mis-verified against attempt 1.
+SCHEMA = "cmu-06763-attest/2"
+KNOWN_OLD_SCHEMAS = {"cmu-06763-attest/1"}
 BEGIN = "-----BEGIN 06763 ATTESTATION-----"
 END = "-----END 06763 ATTESTATION-----"
 DOMAIN = b"06763/attest/v1\x00"
@@ -214,8 +219,21 @@ def extract(path: Path) -> Extract:
             payload = json.loads(raw)
         except (binascii.Error, ValueError, UnicodeDecodeError):
             continue
-        if isinstance(payload, dict) and payload.get("schema") == SCHEMA:
+        if not isinstance(payload, dict):
+            continue
+        if payload.get("schema") == SCHEMA:
             out.payload_bytes, out.payload, out.channel = raw, payload, channel
+            return out
+        if payload.get("schema") in KNOWN_OLD_SCHEMAS:
+            # Readable, just older than this verifier. Say so: dropping it into
+            # the generic bucket below would tell a TA the student's file was
+            # corrupt, when in fact the repository is what moved.
+            out.error = (
+                f"attestation is {payload.get('schema')}, this verifier reads {SCHEMA}. "
+                "The PDF was issued by an older build of the game; re-run "
+                "tools/verify_evidence.py from the commit that built it, or have "
+                "the student redo the module on the current site."
+            )
             return out
 
     if not out.error:
@@ -235,6 +253,12 @@ class Result:
     channel: str = "none"
     completed: int = 0
     first_try: int = 0
+    #: 1-based, from the payload. A high attempt is not misconduct and is never
+    #: treated as such here: it is printed so a grader can apply whatever retake
+    #: policy the syllabus states, which is a decision for a human.
+    attempt: int = 1
+    #: Participation percent, recomputed from `items` rather than trusted.
+    percent: "int | None" = None
     active_ms: int = 0
     elapsed_ms: int = 0
     code: str = ""
@@ -272,6 +296,17 @@ def check_printed_text_agrees(res: Result, ex: Extract) -> None:
     printed_first_try = f"{score.get('first_try')} of {score.get('completed')}"
     if printed_first_try not in text:
         missing.append("first-try score")
+
+    # The two numbers that leave this page: the one a TA types into a gradebook
+    # and the one that says which run produced it. Both are drawn on page 1 and
+    # both are in the MAC'd payload, so editing either in a text editor puts the
+    # two out of step and lands here.
+    percent = score.get("percent")
+    if percent is not None and f"{percent}%" not in text:
+        missing.append("participation score")
+    attempt = p.get("derive", {}).get("attempt")
+    if attempt is not None and f"Attempt {attempt}" not in text:
+        missing.append("attempt")
 
     res.checks["txt"] = "ok" if not missing else "MISM"
     if missing:
@@ -359,6 +394,10 @@ def check_derivation(res: Result, ex: Extract, pool: dict, pool_version: int) ->
             pool,
             module.get("pool_version", pool_version),
             module.get("serve", len(p.get("items", []))),
+            # The attempt is part of the derivation, so it has to come from the
+            # PDF. Defaulting to 1 rather than erroring keeps a schema/1 file
+            # readable; it will simply fail `drv` if it was a real retake.
+            p.get("derive", {}).get("attempt", 1),
         )
     except Exception as exc:  # noqa: BLE001
         res.checks["drv"] = "ERR"
@@ -386,6 +425,63 @@ def check_derivation(res: Result, ex: Extract, pool: dict, pool_version: int) ->
     reported = p.get("derive", {}).get("selection_hash")
     if reported and reported != selection_hash(served):
         res.notes.append("selection_hash disagrees with the re-derived list")
+
+
+#: Deducted per wrong answer. Must equal WRONG_PENALTY in game/src/store/log.ts.
+#: Unlike the derivation, this pair is not covered by the generated vectors, so
+#: it is checked the only other way available: game/tests/test_derive.py asserts
+#: the two constants agree by reading them out of both files.
+WRONG_PENALTY = 0.25
+
+
+def score_from_tries(tries: int, revealed: bool) -> float:
+    """One point a question, less WRONG_PENALTY for each wrong answer.
+
+    The mirror of `scoreFromTries` in game/src/store/log.ts. Kept as a function
+    rather than inlined so the rule appears exactly once on this side too.
+    """
+    if revealed:
+        return 0.0
+    return max(0.0, 1.0 - WRONG_PENALTY * max(0, int(tries) - 1))
+
+
+def participation_percent(items: list) -> "int | None":
+    """Recompute the participation score from the per-item record.
+
+    Recomputed, never read out of `score.percent`, and the difference matters:
+    `tries` is cross-checked against the pool by `check_answers`, so a score
+    derived from it inherits that check. A percent taken on trust would only
+    ever prove that the payload agrees with itself.
+
+    Items with no chosen option are the free-recall kind, which the student
+    scores against a checklist. They are excluded here exactly as they are in
+    the app, because counting them would hand everybody a free point.
+    """
+    graded = [i for i in items if i.get("ans")]
+    if not graded:
+        return None
+    milli = sum(round(score_from_tries(i.get("tries", 1), bool(i.get("revealed"))) * 1000)
+                for i in graded)
+    return round(milli / len(graded) / 10)
+
+
+def check_score(res: Result, ex: Extract) -> None:
+    """Does the printed participation score match the items it was built from?"""
+    p = ex.payload or {}
+    recomputed = participation_percent(p.get("items", []))
+    res.percent = recomputed
+    claimed = (p.get("score") or {}).get("percent")
+
+    if recomputed is None:
+        res.checks["pct"] = "-"
+        return
+    if claimed is not None and int(claimed) != recomputed:
+        res.checks["pct"] = "MISM"
+        res.problems.append(
+            f"payload claims {claimed}% but its own items compute to {recomputed}%"
+        )
+        return
+    res.checks["pct"] = "ok"
 
 
 def check_answers(res: Result, ex: Extract, bank: dict) -> None:
@@ -457,6 +553,7 @@ def verify_one(path: Path, bank: dict, mac_key: str) -> Result:
     score = p.get("score", {})
     res.completed = score.get("completed", 0)
     res.first_try = score.get("first_try", 0)
+    res.attempt = p.get("derive", {}).get("attempt", 1)
     session = p.get("session", {})
     res.active_ms = session.get("active_ms", 0)
     res.elapsed_ms = session.get("elapsed_ms", 0)
@@ -470,6 +567,7 @@ def verify_one(path: Path, bank: dict, mac_key: str) -> Result:
 
     check_printed_text_agrees(res, ex)
     check_mac(res, ex, mac_key)
+    check_score(res, ex)
 
     if against is None:
         # Never a REVIEW: the student did nothing. The pool they were served was
@@ -510,6 +608,31 @@ def find_duplicates(results: list[Result]) -> None:
                 )
                 r.verdict = "REVIEW"
 
+    # One student, one lecture, the same attempt number twice, two different
+    # codes. Honest work cannot produce this: the attempt counter only advances,
+    # so a repeated number means the counter went backwards, and the way it does
+    # that is site data being cleared between two runs. Clearing storage also
+    # re-serves that attempt's questions, which is the retake this design is
+    # trying to make more expensive than simply answering.
+    #
+    # A NOTE rather than a REVIEW, and deliberately. There are innocent paths to
+    # it: a student who cleared their browser, or one who genuinely lost their
+    # save and redid the work. The note tells a grader where to look; it does not
+    # decide anything, and nothing here is evidence of intent.
+    by_attempt: dict[tuple, list[Result]] = defaultdict(list)
+    for r in results:
+        if r.andrew_id and r.lecture:
+            by_attempt[(r.andrew_id, r.lecture, r.attempt)].append(r)
+    for (aid, lec, att), group in by_attempt.items():
+        if len(group) > 1 and len({canon_code(r.code) for r in group}) > 1:
+            for r in group:
+                r.notes.append(
+                    f"{aid} submitted attempt {att} of {lec} {len(group)} times with "
+                    f"different codes; the attempt counter does not repeat on its own"
+                )
+                if r.verdict == "PASS":
+                    r.verdict = "PASS*"
+
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Verify submitted module PDFs.")
@@ -549,18 +672,25 @@ def main() -> int:
             if r.verdict == "PASS":
                 r.verdict = "PASS*"
 
+    # `score` and `att` sit next to each other because they are read together:
+    # a score means something different on a third attempt than on a first.
     head = (
         f"{'andrew_id':<12} {'name':<16} {'lec':<5} {'done':>5} {'1st':>5} "
-        f"{'active':>8} {'chan':<5} {'mac':<5} {'drv':<5} {'ans':<5} {'txt':<5} verdict"
+        f"{'score':>6} {'att':>4} "
+        f"{'active':>8} {'chan':<5} {'mac':<5} {'drv':<5} {'ans':<5} {'txt':<5} "
+        f"{'pct':<5} verdict"
     )
     print(head)
     print("-" * len(head))
     for r in sorted(results, key=lambda x: (x.verdict != "PASS", x.andrew_id)):
+        shown = f"{r.percent}%" if r.percent is not None else "-"
         print(
             f"{r.andrew_id or '?':<12} {r.name[:16]:<16} {r.lecture:<5} "
-            f"{r.completed:>5} {r.first_try:>5} {r.active_ms / 1000:>7.0f}s "
+            f"{r.completed:>5} {r.first_try:>5} {shown:>6} {r.attempt:>4} "
+            f"{r.active_ms / 1000:>7.0f}s "
             f"{r.channel:<5} {r.checks.get('mac', '-'):<5} {r.checks.get('drv', '-'):<5} "
-            f"{r.checks.get('ans', '-'):<5} {r.checks.get('txt', '-'):<5} {r.verdict}"
+            f"{r.checks.get('ans', '-'):<5} {r.checks.get('txt', '-'):<5} "
+            f"{r.checks.get('pct', '-'):<5} {r.verdict}"
         )
         if r.pool_source != "current":
             print(f"{'':<12} pool: {r.pool_source}, the one this student was served")
@@ -585,10 +715,14 @@ def main() -> int:
     if args.csv:
         with args.csv.open("w", newline="") as fh:
             w = csv.writer(fh)
-            w.writerow(["andrew_id", "name", "lecture", "completed", "first_try",
-                        "active_s", "verdict", "problems"])
+            # `score` is the gradebook column. It is second after the id on
+            # purpose: this file gets opened in a spreadsheet and the two
+            # left-most useful columns are the ones that get pasted.
+            w.writerow(["andrew_id", "score", "name", "lecture", "attempt",
+                        "completed", "first_try", "active_s", "verdict", "problems"])
             for r in results:
-                w.writerow([r.andrew_id, r.name, r.lecture, r.completed, r.first_try,
+                w.writerow([r.andrew_id, "" if r.percent is None else r.percent,
+                            r.name, r.lecture, r.attempt, r.completed, r.first_try,
                             round(r.active_ms / 1000), r.verdict, "; ".join(r.problems)])
         print(f"wrote {args.csv}")
 

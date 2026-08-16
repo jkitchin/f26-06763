@@ -52,6 +52,22 @@ export interface SessionOpened {
   andrewId: string
   plan: PlannedItem[]
   /**
+   * Which run at this lecture this is, 1-based, fixed when the sitting opens.
+   *
+   * It selects the questions (see `derive`), so it is a premise of the sitting
+   * and not a statistic about it. Stamped here rather than recomputed at PDF
+   * time for the reason the plan above is: a student who finishes a second
+   * module between starting and finishing this one would otherwise have their
+   * attempt number move underneath them, and the PDF would re-derive to items
+   * they were never served.
+   *
+   * Not tamper-proof, and nothing here pretends otherwise: clearing site data
+   * resets it to 1 and re-serves attempt 1's questions. It raises the cost of a
+   * retake above the cost of answering, which is the whole design goal, and
+   * tools/verify_evidence.py flags the same attempt arriving twice.
+   */
+  attempt: number
+  /**
    * Diagnostic only. Never read by any derivation: if you find yourself
    * consulting `content.serve` to decide something, the bug is back.
    */
@@ -220,21 +236,80 @@ export function completedFor(
 }
 
 /**
- * How well one item was answered, from 1 down to 0.
+ * Which attempt a sitting started *now* would be. 1-based.
+ *
+ * Counts completed sittings only, so abandoning a module halfway does not burn
+ * an attempt and push a student onto questions they have not earned their way
+ * to. Someone who opens L9, answers two items and walks away resumes the same
+ * sitting when they come back, because `openSessionFor` hands them the
+ * unfinished one and this is never consulted.
+ *
+ * Call it once, when the sitting opens, and store the answer. Reading it later
+ * gives a different number.
+ */
+export function nextAttemptFor(log: readonly Event[], lecture: string): number {
+  return completedFor(log, lecture).length + 1
+}
+
+/**
+ * The attempt a sitting was opened under.
+ *
+ * Defaulted rather than required at the read site because a save exported
+ * before attempts existed has no such field, and the honest reading of a log
+ * that never recorded one is that it was a first run.
+ */
+export function attemptOf(s: SessionSummary): number {
+  return s.opened.attempt ?? 1
+}
+
+/** Deducted per wrong answer. One knob, so the rule can be restated in a line. */
+export const WRONG_PENALTY = 0.25
+
+/**
+ * How well one item was answered. Each item is worth a point, and each wrong
+ * answer costs a quarter of it.
  *
  *   right first time      1
- *   right on the second   0.5
- *   third                 0.33
+ *   one wrong first       0.75
+ *   two wrong             0.5
+ *   three wrong           0.25
  *   revealed              0
  *
- * 1/tries rather than a lookup table, because it needs no thresholds and
- * degrades sensibly however many options an item has. Revealing scores zero
- * whatever was clicked afterwards: the escape hatch exists so a stuck student
- * can finish, and finishing is what earns the credit, but it is not knowing.
+ * This replaced `1 / tries`, and the reason to write the arithmetic down is that
+ * the replacement is *softer*, which is not what anyone expects a change made to
+ * discourage guessing to be. Every graded item here has four options and is
+ * retry-until-right, so a student who knows nothing has the answer in a uniform
+ * position and averages 1.5 wrong attempts: 0.625 under this rule, against
+ * 0.521 under `1 / tries`. The teeth in this design are the attempt window and
+ * the fresh questions on a retake, not the size of this deduction.
+ *
+ * Revealing scores zero whatever was clicked afterwards: the escape hatch exists
+ * so a stuck student can finish, and finishing is still what earns the credit,
+ * but it is not knowing. It is the one path to a genuine zero, which is why the
+ * floor below is not reachable by answering badly.
  */
+export function scoreFromTries(tries: number, revealed: boolean): number {
+  if (revealed) return 0
+  return Math.max(0, 1 - WRONG_PENALTY * Math.max(0, tries - 1))
+}
+
 export function itemScore(entry: LogEntry): number {
-  if (entry.revealed) return 0
-  return 1 / Math.max(1, entry.tries)
+  return scoreFromTries(entry.tries, entry.revealed)
+}
+
+/**
+ * The score as integer thousandths, which is what the payload carries.
+ *
+ * The evidence payload holds no floats anywhere, deliberately: they are the
+ * classic cross-language serialization mismatch and the verifier has to agree
+ * with this file exactly. Every value this rule produces is a multiple of
+ * 0.25, so thousandths are exact and would stay exact if the penalty moved to
+ * a tenth.
+ */
+export function earnedMilli(entries: readonly LogEntry[]): number {
+  return entries
+    .filter(isGradeable)
+    .reduce((n, e) => n + Math.round(itemScore(e) * 1000), 0)
 }
 
 /**
@@ -259,9 +334,15 @@ export function sittingScore(entries: readonly LogEntry[]): number | null {
 /**
  * Score at which each level is reached. Five is "everything first time".
  *
- * Deliberately not a straight percentage: on a six-item module one second
- * attempt costs 0.083, and a student who got everything right except one they
+ * Deliberately not a straight percentage: on a five-item module one wrong
+ * answer costs 0.05, and a student who got everything right except one they
  * needed two goes at should not drop two levels for it.
+ *
+ * These thresholds were set against `1 / tries` and still sit sensibly under
+ * the quarter-point rule: a clean run is level 5, one wrong answer holds level
+ * 5, two drops to 4, and the 0.625 a pure guesser averages lands at level 2.
+ * Levels are the practice display only. The participation score on the PDF is
+ * `sittingScore` unrounded, and nothing here feeds it.
  */
 const LEVEL_AT = [0.95, 0.8, 0.65, 0.45] as const
 

@@ -159,16 +159,51 @@ export class Rng {
  * Order-independent, so reordering the YAML file does not reshuffle every
  * student; and when the pool grows one item is displaced rather than the whole
  * selection, so adding a question does not invalidate PDFs already issued.
+ *
+ * `offset` walks a window along that ranking, which is how a retake gets fresh
+ * questions. It wraps, so a window is always full: with a pool of 11 and k = 5,
+ * attempt 3 starts at rank 10 and takes ranks 10, 0, 1, 2, 3.
+ *
+ * THE RANKING MUST NOT DEPEND ON THE ATTEMPT, and that is the whole reason this
+ * takes an offset rather than a reseeded ordering. Reseeding per attempt would
+ * draw an independent sample each time, and an independent 5-of-10 sample
+ * overlaps the first one by 2.5 items on average. Ranking once and sliding a
+ * window is what makes attempts 1 and 2 provably disjoint whenever the pool is
+ * at least twice `k`.
  */
-export function selectItems(seed: Uint8Array, poolIds: readonly string[], k: number): string[] {
-  return [...poolIds]
+export function selectItems(
+  seed: Uint8Array,
+  poolIds: readonly string[],
+  k: number,
+  offset = 0,
+): string[] {
+  const ranked = [...poolIds]
     .map((id) => ({
       key: hex(sha256(concat(concat(bytes('06763/pick/v1\x00'), seed), bytes(`\x00${id}`)))),
       id,
     }))
     .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : a.id < b.id ? -1 : 1))
-    .slice(0, k)
     .map((x) => x.id)
+
+  const n = ranked.length
+  if (!n) return []
+  // Capped at n so a bank whose serve exceeds its pool cannot serve one item
+  // twice in a single sitting, which would double-count it in the score.
+  const take = Math.min(k, n)
+  const start = ((offset % n) + n) % n
+  return Array.from({ length: take }, (_, i) => ranked[(start + i) % n]!)
+}
+
+/**
+ * Where attempt `n`'s window starts. Attempt 1 is offset 0.
+ *
+ * Attempts are 1-based because that is how the PDF prints them and how a
+ * student counts; an off-by-one here re-serves attempt 1's questions to someone
+ * on their second run, which is precisely the failure this exists to prevent.
+ */
+export function attemptOffset(attempt: number, k: number, poolSize: number): number {
+  if (poolSize <= 0) return 0
+  return ((Math.max(1, Math.floor(attempt)) - 1) * k) % poolSize
 }
 
 export interface ServedItem {
@@ -182,17 +217,34 @@ export interface PoolItem {
   variants?: readonly { id: string; options?: readonly string[] }[]
 }
 
-/** The served list: which items, which variant, which option order. */
+/**
+ * The served list: which items, which variant, which option order.
+ *
+ * `attempt` is 1-based and is the retake defence. It moves the selection window
+ * (see `selectItems`) and it seeds the option shuffle, so an item that does come
+ * back on a later attempt comes back with its options in a different order.
+ *
+ * The attempt is recorded in the sitting's `SessionOpened` event and travels in
+ * the MAC'd payload, because the verifier has to re-derive with the same number
+ * or every honest retake fails. Do not recompute it from today's log at PDF
+ * time: the log grows, and that is the "judge past work by present content" bug
+ * that CLAUDE.md section 9c says this system has already produced twice.
+ */
 export function derive(
   andrewId: string,
   lecture: string,
   pool: Record<string, PoolItem>,
   poolVersion: number,
   k: number,
+  attempt = 1,
 ): ServedItem[] {
   const seed = selectionSeed(andrewId, lecture, poolVersion)
-  const picked = selectItems(seed, Object.keys(pool).sort(), k)
-  const rng = new Rng(sha256(concat(bytes('06763/order/v1\x00'), seed)))
+  const ids = Object.keys(pool).sort()
+  const n = Math.max(1, Math.floor(attempt))
+  const picked = selectItems(seed, ids, k, attemptOffset(n, k, ids.length))
+  const rng = new Rng(
+    sha256(concat(concat(bytes('06763/order/v2\x00'), seed), bytes(`\x00${n}`))),
+  )
 
   return picked.map((id) => {
     const item = pool[id]!

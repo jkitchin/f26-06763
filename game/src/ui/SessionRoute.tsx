@@ -27,7 +27,7 @@
 import { useEffect, useMemo } from 'react'
 import { poolOf, type Bank } from '../content/load.ts'
 import { derive } from '../seed.ts'
-import { openSessionFor, type LogEntry, type PlannedItem } from '../store/log.ts'
+import { nextAttemptFor, openSessionFor, type LogEntry, type PlannedItem } from '../store/log.ts'
 import { useProgress } from '../store/useProgress.ts'
 import { SessionPlayer } from './SessionPlayer.tsx'
 
@@ -47,13 +47,17 @@ export function SessionRoute({ bank, andrewId, onFinish, onQuit }: Props) {
 
   useEffect(() => {
     if (open) return
+    // Read once, here, and hand the same number to both the derivation and the
+    // log. Deriving with one attempt and recording another would serve a student
+    // items their own PDF then fails to reproduce.
+    const attempt = nextAttemptFor(log, bank.lecture)
     const plan: PlannedItem[] = derive(
-      andrewId, bank.lecture, poolOf(bank), bank.pool_version, bank.serve,
+      andrewId, bank.lecture, poolOf(bank), bank.pool_version, bank.serve, attempt,
     ).map((s) => ({ id: s.id, variant: s.variant, opts: s.option_order }))
     openSession(bank.lecture, andrewId, plan, {
       pool_version: bank.pool_version, serve: bank.serve,
-    })
-  }, [open, bank, andrewId, openSession])
+    }, attempt)
+  }, [open, log, bank, andrewId, openSession])
 
   // Planned items that are still answerable, in the order they were planned.
   const { served, missing } = useMemo(() => {

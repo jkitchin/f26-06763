@@ -23,8 +23,8 @@ status: published
 # GROWTH TARGET: 20+ items, at which point serve can go back to 12 with real
 # set-level personalization. The twelve below are the hand-written exemplars;
 # Phase 2 drafts the rest against them.
-serve: 8
-pool_version: 1
+serve: 6
+pool_version: 2
 provenance:
   drafted_by: hand
   reviewed_by: jkitchin

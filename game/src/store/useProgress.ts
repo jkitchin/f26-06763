@@ -53,6 +53,7 @@ export interface ProgressState extends SaveData {
     andrewId: string,
     plan: PlannedItem[],
     content: { pool_version: number; serve: number },
+    attempt: number,
   ) => string
   setSettings: (patch: Partial<Settings>) => void
   exportSave: () => string
@@ -140,13 +141,14 @@ export const useProgress = create<ProgressState>()(
       },
 
       openSession(lecture: string, andrewId: string, plan: PlannedItem[],
-                  content: { pool_version: number; serve: number }): string {
+                  content: { pool_version: number; serve: number },
+                  attempt: number): string {
         const existing = openSessionFor(getState().log, lecture)
         if (existing) return existing.session
         const at = Date.now()
         const session = `${andrewId}/${lecture}/${at}`
         const opened: SessionOpened = {
-          t: 'opened', session, lecture, andrewId, plan, content, at,
+          t: 'opened', session, lecture, andrewId, plan, attempt, content, at,
         }
         setState({ log: [...getState().log, opened] })
         return session

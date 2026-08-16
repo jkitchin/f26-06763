@@ -703,6 +703,59 @@ participation credit. The same app carries the course map at `#/map`. It is one 
 purpose: the map opens the modules that already exist rather than needing a second set of
 content.
 
+**The participation score is on the PDF, and the rule is one line.** Each question is worth
+a point, each wrong answer deducts `WRONG_PENALTY` (0.25), a revealed answer scores zero,
+and the score is the mean over the questions that had an answer chosen. Free-recall items
+are excluded, because the student scores those against a checklist and counting them would
+hand everybody a free point. The rule lives in `game/src/store/log.ts` and is mirrored in
+`tools/verify_evidence.py`; `game/tests/test_derive.py` reads both files and fails if the
+two constants disagree, because a disagreement means the number on a student's PDF is not
+the number their TA records.
+
+Be careful reasoning about how hard that penalty is. It replaced `1 / tries` and it is
+*softer*: every graded item has four options and is retry-until-right, so a student who
+knows nothing averages 1.5 wrong attempts and scores 0.625, against 0.521 under the old
+rule. The deduction is not what discourages guessing. The attempt window below is.
+
+**Retakes get different questions, and the attempt number is on the PDF.** The seed was
+always `(salt, andrew id, lecture, pool version)` with no attempt term, so a student could
+finish a module, read the answers off the review screen, run it again and score 100% on an
+identical draw. Now `derive()` takes a 1-based `attempt`, which slides a window along the
+ranking: attempt 1 takes ranks 0..k-1, attempt 2 takes ranks k..2k-1, and later attempts
+wrap.
+
+Two things about that are load-bearing and easy to undo by accident:
+
+- **The ranking must not depend on the attempt.** Only the offset moves. Reseeding per
+  attempt would draw an independent sample, and an independent 5-of-10 sample overlaps the
+  first by 2.5 items on average, which is most of the way back to the bug. This is why
+  `selectItems` takes an offset rather than a fresh seed.
+- **`serve` must be at most half the pool**, or attempt 2 cannot be disjoint. Every bank is
+  `serve = pool // 2` for exactly this reason, which is what moved the serve-6 banks to 5
+  and the serve-8 banks to 6. `test_derive.py` asserts it across every shipped bank, so
+  growing a pool and raising `serve` to match will fail rather than quietly re-serving
+  attempt 1's questions.
+
+The attempt is stamped into `SessionOpened` when the sitting opens and travels in the MAC'd
+payload, and both halves matter. Recomputing it at PDF time would count sittings finished
+*after* this one and re-derive to items the student was never served, which is section 9c's
+own "never judge past work by present content" bug; and the verifier must re-derive with the
+attempt from the payload or every honest retake fails.
+
+**None of this is tamper-proof, and the code says so rather than implying otherwise.**
+Clearing site data resets the attempt counter to 1 and re-serves attempt 1's questions, and
+the MAC key ships in the public bundle. The goal is unchanged from what
+`tools/verify_evidence.py` has always said: make the cheapest successful forgery cost at
+least as much as doing the module honestly. `find_duplicates` notes the same student
+submitting the same attempt twice with different codes, as a `PASS*` for a human to look at
+and never as an accusation, because clearing a browser is something honest people do.
+
+Changing the payload shape means bumping `SCHEMA` in **both** `game/src/evidence/payload.ts`
+and `tools/verify_evidence.py`. Bumping only the first makes every PDF report `UNREADABLE`,
+which is the false-positive bucket, so the failure reaches a TA as "your file is corrupt"
+addressed to students who did nothing wrong. Nothing caught that until the `quiz` job grew a
+step that issues sample PDFs and runs the verifier over them end to end.
+
 **It runs entirely in the browser.** No `fetch`, no external host, no runtime network call
 of any kind; the item banks are inlined at build time by an eager `import.meta.glob`,
 progress lives in IndexedDB, and the PDF is generated in the tab. The grading side is the

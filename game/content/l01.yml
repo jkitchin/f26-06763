@@ -3,8 +3,8 @@ lecture: l01
 title: "AI engineering landscape and the system view"
 source_notes: lectures/l01/notes.md
 status: published
-serve: 6
-pool_version: 1
+serve: 5
+pool_version: 2
 provenance:
   drafted_by: hand
   reviewed_by: jkitchin

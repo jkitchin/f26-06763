@@ -6,8 +6,8 @@ lecture: l09
 title: "Train, validate, select: baselines, cross-validation, metrics"
 source_notes: lectures/l09/notes.md
 status: published
-serve: 8
-pool_version: 1
+serve: 6
+pool_version: 2
 provenance:
   drafted_by: hand
   reviewed_by: jkitchin

@@ -72,10 +72,15 @@ function serve() {
 async function playModule(page: Page, andrewId: string, name: string): Promise<string[]> {
   await page.goto(`http://localhost:${PORT}${BASE}`, { waitUntil: 'networkidle0' })
 
-  await page.waitForSelector('#andrew')
-  await page.type('#andrew', andrewId)
-  await page.type('#name', name)
-  await page.click('button.btn-primary')
+  // The identity form appears only until it has been answered. A second run in
+  // the same browser goes straight to the module list, which is the whole point
+  // of the retake test below.
+  const idForm = await page.$('#andrew')
+  if (idForm) {
+    await page.type('#andrew', andrewId)
+    await page.type('#name', name)
+    await page.click('button.btn-primary')
+  }
 
   // Home -> start the first module.
   await page.waitForSelector('button.btn-primary')
@@ -181,6 +186,38 @@ async function main() {
 
     const heading = await page.$eval('h1', (el) => el.textContent ?? '').catch(() => '')
     check(heading.includes('complete'), 'reaches the summary screen', heading)
+
+    // The summary must say which attempt this was, because that number is what
+    // a grader reads next to the score.
+    const firstSummary = await page.$eval('body', (el) => el.textContent ?? '')
+    check(/This is attempt 1\b/.test(firstSummary), 'the first run reports attempt 1')
+    check(/scored \d+%/.test(firstSummary), 'and reports a participation score',
+      (firstSummary.match(/scored \d+%/) ?? [''])[0])
+
+    // THE RETAKE. This is the one seam the unit tests cannot reach: the app has
+    // to count the completed sitting, derive the next attempt from it, and store
+    // that number on the new sitting. Same browser, same student, same module,
+    // straight after finishing it once.
+    const retake = await playModule(page, 'jkitchin', 'John Kitchin')
+    const repeated = retake.filter((q) => first.includes(q))
+    check(retake.length > 0, 'the module can be played a second time',
+      `${retake.length} items answered`)
+    check(repeated.length === 0,
+      'a retake serves entirely different questions',
+      `${repeated.length} of ${retake.length} repeated from the first run`)
+
+    const retakeSummary = await page.$eval('body', (el) => el.textContent ?? '')
+    check(/This is attempt 2\b/.test(retakeSummary), 'and the summary says attempt 2')
+
+    // The retake left us on its own summary, whose primary button is already
+    // "Download the PDF". Go back to the module list and re-enter through the
+    // "Download PDF" button instead, because that is the path a student
+    // actually uses the next day, and it is the one that regenerates a PDF from
+    // the log rather than from anything still in component state.
+    await page.goto(`http://localhost:${PORT}${BASE}`, { waitUntil: 'networkidle0' })
+    await page.waitForSelector('button.btn-quiet')
+    await page.click('button.btn-quiet')
+    await page.waitForSelector('button.btn-primary')
 
     // The PDF download.
     const client = await page.createCDPSession()

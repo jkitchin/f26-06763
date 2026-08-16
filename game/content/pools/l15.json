@@ -105,6 +105,111 @@
         }
       },
       "serve": 8
+    },
+    "2": {
+      "items": {
+        "l15-q01": {
+          "answer": "1,263, about 63% more than the local count",
+          "options": [
+            "About 780, within 1% of the local count",
+            "924, the same as Claude Haiku 4.5",
+            "1,263, about 63% more than the local count",
+            "About 590, because a newer tokenizer compresses better"
+          ]
+        },
+        "l15-q02": {
+          "answer": "An alarm table flattened out of a PDF, at 2.35 characters per token",
+          "options": [
+            "Technical prose, at 4.82 characters per token, since English words are what the vocabulary was fitted on",
+            "A pump datasheet, at 3.05 characters per token",
+            "Python source, at 2.56 characters per token, because identifiers and punctuation fragment badly",
+            "An alarm table flattened out of a PDF, at 2.35 characters per token"
+          ]
+        },
+        "l15-q03": {
+          "answer": "The estimate came in 31% low, well outside the documented range",
+          "options": [
+            "15-20% was confirmed, so the documented figure is safe to budget with and the vendor number can be trusted directly",
+            "The estimate came in 31% low, well outside the documented range",
+            "The estimate came in 31% high, so the budget has slack rather than a shortfall",
+            "The two counts agreed, because both tokenizers now share a vocabulary"
+          ]
+        },
+        "l15-q04": {
+          "answer": "Trimming the output; the 128-fold output cut saves about 22 seconds while the 130-fold input cut saves about 0.4 seconds",
+          "options": [
+            "Trimming the input; long prompts dominate latency, because the model must attend over every pair of positions before it can answer",
+            "Trimming the output; the 128-fold output cut saves about 22 seconds while the 130-fold input cut saves about 0.4 seconds",
+            "Both about equally, since latency is roughly linear in total tokens",
+            "Neither; latency is set by the provider's queue rather than by token counts"
+          ]
+        },
+        "l15-q05": {},
+        "l15-q06": {
+          "answer": "There is no token meaning \"not in the source\", so permit an explicit NOT FOUND answer",
+          "options": [
+            "The temperature is too high; set it to 0 so the model stops guessing and returns only what the datasheet actually supports",
+            "There is no token meaning \"not in the source\", so permit an explicit NOT FOUND answer",
+            "The datasheet was truncated before the relevant page; raise the context window",
+            "The model is lying, and the fix is a stronger instruction not to fabricate"
+          ]
+        },
+        "l15-q07": {
+          "answer": "The window is shared between input and output, so there is room for about 10,000 tokens of answer whatever `max_tokens` says",
+          "options": [
+            "You get up to 64,000 tokens back, because `max_tokens` governs generation and the window governs input, and the two are budgeted separately",
+            "The window is shared between input and output, so there is room for about 10,000 tokens of answer whatever `max_tokens` says",
+            "The provider silently truncates the input to make room for the output",
+            "The oldest part of the input is evicted automatically, sliding-window style"
+          ]
+        },
+        "l15-q08": {
+          "answer": "C (0.971) > B (0.694) > A (0.532)",
+          "options": [
+            "C (0.971) > B (0.694) > A (0.532)",
+            "A (0.971) > C (0.694) > B (0.532), the same-event pair scoring highest",
+            "C (0.971) > A (0.694) > B (0.532)",
+            "A (0.694) > B (0.532) > C (0.361), with the unit mismatch scoring lowest of the three"
+          ]
+        },
+        "l15-q09": {
+          "answer": "In the pipeline: unit normalization has to be an explicit, typed, tested step, with the original value retained",
+          "options": [
+            "In the embedding model: switch to one trained on technical text, which will encode degC and degF as the distinct quantities they are",
+            "In the threshold: raise the cosine cut until these two fall apart",
+            "In the pipeline: unit normalization has to be an explicit, typed, tested step, with the original value retained",
+            "In the LLM: add a downstream judge call that checks the units agree"
+          ]
+        },
+        "l15-q10": {
+          "answer": "One call and 455 tokens, after which every comparison is a dot product",
+          "options": [
+            "561 embedding calls, one per pair, but each is far cheaper than an LLM call so the total cost still falls by orders of magnitude",
+            "One call and 455 tokens, after which every comparison is a dot product",
+            "34 calls, one per entry, then 561 cosine comparisons",
+            "One call, but the comparison still needs an LLM to interpret the scores"
+          ]
+        },
+        "l15-q11": {
+          "answer": "Nothing about the model. On 34 records the curve cannot be monotonic; this is sampling noise, and tuning a storage decision on a sample this small is the mistake",
+          "options": [
+            "512 dimensions is genuinely the sweet spot for this model, so truncate there and take both the storage saving and the accuracy",
+            "Nothing about the model. On 34 records the curve cannot be monotonic; this is sampling noise, and tuning a storage decision on a sample this small is the mistake",
+            "The Matryoshka training failed for this model, so truncation is unsafe here",
+            "The 1,024 measurement is a bug and should be re-run until it exceeds the 512 row"
+          ]
+        },
+        "l15-q12": {
+          "answer": "The datasheet is more dense: fewer characters per token than prose, by about 1.6x",
+          "options": [
+            "The datasheet is less dense: more characters per token than prose, by about 1.6x",
+            "The datasheet is more dense: fewer characters per token than prose, by about 1.6x",
+            "They come out within a few percent of each other",
+            "The datasheet is more dense by more than 5x, since almost every line is numbers and units rather than words"
+          ]
+        }
+      },
+      "serve": 6
     }
   }
 }

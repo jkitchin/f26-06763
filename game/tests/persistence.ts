@@ -69,7 +69,7 @@ function finishedSitting(poolSize: number, serve: number): Event[] {
     .map((s) => ({ id: s.id, variant: s.variant, opts: s.option_order }))
   const session = `${ID}/${LECTURE}/1000`
   return [
-    { t: 'opened', session, lecture: LECTURE, andrewId: ID, plan,
+    { t: 'opened', session, lecture: LECTURE, andrewId: ID, plan, attempt: 1,
       content: { pool_version: 1, serve }, at: 1000 },
     ...plan.map((p, i) => answer(session, p, 1001 + i)),
   ]
@@ -145,7 +145,7 @@ check(levelFor(rescued, LECTURE) === 5,
 
 // Answering nothing is not a way to complete a module.
 const empty: Event[] = [{
-  t: 'opened', session: 's', lecture: LECTURE, andrewId: ID,
+  t: 'opened', session: 's', lecture: LECTURE, andrewId: ID, attempt: 1,
   plan: [{ id: 'x', variant: '-', opts: [] }],
   content: { pool_version: 1, serve: 1 }, at: 1,
 }, { t: 'withdrawn', session: 's', itemId: 'x', at: 2 }]

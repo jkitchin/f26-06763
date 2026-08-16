@@ -3,8 +3,8 @@ lecture: l05
 title: "Dataframes, batch pipelines, and distributed concepts"
 source_notes: lectures/l05/notes.md
 status: published
-serve: 6
-pool_version: 1
+serve: 5
+pool_version: 2
 provenance:
   drafted_by: hand
   reviewed_by: jkitchin

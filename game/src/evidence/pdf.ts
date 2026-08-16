@@ -18,7 +18,8 @@
  */
 
 import type { jsPDF } from 'jspdf'
-import { attestationLines, type Attestation, type ItemRecord } from './payload.ts'
+import { WRONG_PENALTY } from '../store/log.ts'
+import { attestationLines, percentOf, type Attestation, type ItemRecord } from './payload.ts'
 
 export interface PdfInput {
   attestation: Attestation
@@ -26,6 +27,8 @@ export interface PdfInput {
   andrewId: string
   lecture: string
   lectureTitle: string
+  /** 1-based, from the sitting's opened event. Printed, and inside the MAC. */
+  attempt: number
   finishedAtLocal: string
   elapsedMs: number
   activeMs: number
@@ -73,6 +76,7 @@ export async function buildPdf(input: PdfInput): Promise<jsPDF> {
   // --- the facts a grader reads -------------------------------------------
   y += 26
   const firstTry = input.items.filter((i) => i.first_ok).length
+  const percent = percentOf(input.items)
   const rows: [string, string][] = [
     ['Student', `${input.name}  (${input.andrewId})`],
     ['Module', `${input.lecture.toUpperCase()}  ${input.lectureTitle}`],
@@ -84,11 +88,36 @@ export async function buildPdf(input: PdfInput): Promise<jsPDF> {
     ],
     ['Items', `${input.items.length} completed`],
     ['First-try correct', `${firstTry} of ${input.items.length}`],
+    // The attempt sits directly above the score because the two are read
+    // together or not at all: a 100% on attempt 3 and a 100% on attempt 1 are
+    // different facts, and a grader scanning a stack of these should not have
+    // to hunt for the second one.
+    ['Attempt', String(input.attempt)],
   ]
   doc.setFontSize(10)
   for (const [label, value] of rows) {
     doc.setFont('helvetica', 'normal').setTextColor(MUTED).text(label, L, y)
     doc.setFont('helvetica', 'bold').setTextColor(INK).text(value, L + 108, y)
+    y += 16
+  }
+
+  // The participation score, drawn larger than the rows above it because it is
+  // the one number that leaves this page and goes into a gradebook. The rule is
+  // spelled out beside it so a student querying their score can check the
+  // arithmetic against the per-item table below without asking anybody.
+  if (percent !== null) {
+    doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(MUTED)
+    doc.text('Participation score', L, y)
+    doc.setFont('helvetica', 'bold').setFontSize(15).setTextColor(CMU_RED)
+    doc.text(`${percent}%`, L + 108, y + 1)
+    y += 14
+    doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(MUTED)
+    doc.text(
+      `one point per question, less ${WRONG_PENALTY.toFixed(2)} per wrong answer, averaged` +
+        ' over the questions with a chosen answer',
+      L + 108,
+      y,
+    )
     y += 16
   }
 

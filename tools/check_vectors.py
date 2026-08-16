@@ -85,8 +85,12 @@ def main() -> int:
                 )
                 continue
 
+            # `attempt` defaults to 1 only for vectors predating the retake
+            # window. A vector file that has it must exercise it, so read it
+            # rather than letting the signature default quietly hide a drift.
             got = derive(
-                v["raw_id"], v["lecture"], rebuild_pool(v), v["pool_version"], v["k"]
+                v["raw_id"], v["lecture"], rebuild_pool(v), v["pool_version"], v["k"],
+                v.get("attempt", 1),
             )
         except Exception as exc:  # noqa: BLE001
             failures.append(f"[{i}] {v['case']}/{v['raw_id']}: raised {exc!r}")

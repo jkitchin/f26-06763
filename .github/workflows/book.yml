@@ -95,6 +95,60 @@ jobs:
       - name: Run the quiz tests
         run: python -m pytest game/tests/ -q
 
+      - name: Issue sample PDFs and verify them end to end
+        # The two halves of the evidence chain are written in different
+        # languages and only meet here. Everything above this checks one side:
+        # the vectors prove the derivations agree, pytest proves the properties
+        # hold, and neither notices if the app writes a payload the verifier
+        # will not read.
+        #
+        # That is not hypothetical. Bumping SCHEMA in payload.ts without
+        # bumping it in verify_evidence.py made every PDF report UNREADABLE,
+        # which is the false-positive bucket, so the failure would have reached
+        # a TA as "your file is corrupt" addressed to students who did nothing
+        # wrong. Green everywhere else at the time.
+        #
+        # The samples are gitignored, so they are built here rather than
+        # committed, which also means they cannot go stale.
+        run: |
+          pip install pypdf
+          cd game && npm run --silent samples && cd ..
+          python tools/verify_evidence.py game/tests/samples/ \
+            --pool game/content/l15.yml | tee /tmp/verify.txt
+
+          # The expected shape of that run, asserted rather than eyeballed. Two
+          # honest first attempts, one honest *second* attempt, and the three
+          # forgeries the samples exist to demonstrate.
+          python - <<'PY'
+          import re, sys
+          text = open('/tmp/verify.txt').read()
+          rows = [l for l in text.splitlines() if re.search(r'\b(PASS|REVIEW|UNREADABLE)\s*$', l)]
+          fails = []
+
+          tally = text.strip().splitlines()
+          if '3 PASS, 2 REVIEW, 1 UNREADABLE' not in text:
+              fails.append('verdict tally is not 3 PASS, 2 REVIEW, 1 UNREADABLE')
+
+          # The retake must verify. If the attempt is not carried in the payload
+          # and used to re-derive, this row fails `drv` and an honest student
+          # who practised twice is sent to their instructor.
+          a2 = [r for r in rows if re.search(r'\s2\s+\d+s', r) and r.rstrip().endswith('PASS')]
+          if not a2:
+              fails.append('no PASSing attempt-2 row: a legitimate retake does not verify')
+
+          # Every passing row must carry a participation score, since that is
+          # the number the whole change exists to deliver to a gradebook.
+          for r in rows:
+              if r.rstrip().endswith('PASS') and not re.search(r'\d+%', r):
+                  fails.append(f'passing row has no score: {r.strip()}')
+
+          if fails:
+              for f in fails:
+                  print(f'::error::{f}')
+              sys.exit(1)
+          print('evidence chain OK: honest work passes, retakes verify, forgeries do not')
+          PY
+
       - name: Run the game's logic tests
         # These existed and ran nowhere. Plain node scripts under
         # --experimental-strip-types, no browser and no build, about a second

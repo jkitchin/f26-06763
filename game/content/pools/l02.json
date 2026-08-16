@@ -87,6 +87,93 @@
         }
       },
       "serve": 6
+    },
+    "2": {
+      "items": {
+        "l02-q01": {
+          "answer": "Reproducible is not the same as correct: a pipeline with an off-by-one error will reproduce the wrong answer with perfect fidelity",
+          "options": [
+            "Nothing, provided the lockfile is regenerated whenever a dependency changes",
+            "Reproducible is not the same as correct: a pipeline with an off-by-one error will reproduce the wrong answer with perfect fidelity",
+            "Seeds do not make a result reproducible across platforms, so the claim overstates what pinning buys",
+            "Tracking is only meaningful if the tracked run is also deployed, which this does not say"
+          ]
+        },
+        "l02-q02": {
+          "answer": "The compiled bytes: platform-specific wheels differ between macOS and Linux, and system C libraries are not covered at all",
+          "options": [
+            "The random seed, which has to be set separately in code",
+            "The compiled bytes: platform-specific wheels differ between macOS and Linux, and system C libraries are not covered at all",
+            "Transitive dependencies, which resolve freshly on each install",
+            "The Python interpreter version, which is recorded separately"
+          ]
+        },
+        "l02-q03": {
+          "answer": "No for a genuinely throwaway exploration, but the trap is that results cross the line into needing it quietly",
+          "options": [
+            "Yes, always; the discipline is cheap and retrofitting is expensive",
+            "No for a genuinely throwaway exploration, but the trap is that results cross the line into needing it quietly",
+            "No; scaffolding is only warranted once a result is going to be published",
+            "Yes, because an unlocked environment cannot produce a result worth acting on at all"
+          ]
+        },
+        "l02-q04": {
+          "answer": "Which rows changed, whether the change was a fix or a corruption, or whether it matters",
+          "options": [
+            "Whether the file is genuinely different, since hashes collide in practice",
+            "Which rows changed, whether the change was a fix or a corruption, or whether it matters",
+            "When the change happened, which requires a timestamp alongside the hash",
+            "Who made the change, which requires an audit log rather than a hash"
+          ]
+        },
+        "l02-q05": {
+          "answer": "Tracking records, it does not enforce: MLflow will faithfully log a run whose environment was never locked",
+          "options": [
+            "Nothing; a logged seed plus logged parameters is what reproducibility means in practice",
+            "Tracking records, it does not enforce: MLflow will faithfully log a run whose environment was never locked",
+            "Seeds are per-library, so one logged seed does not cover NumPy, PyTorch and Python's own RNG",
+            "The seed should be logged as a tag rather than a parameter, or it will not be searchable"
+          ]
+        },
+        "l02-q06": {
+          "answer": "Git stores a full copy of every version, so a repeatedly-changed binary makes the history unusable to clone",
+          "options": [
+            "Git rejects files above a fixed size limit, so they cannot be committed at all",
+            "Git stores a full copy of every version, so a repeatedly-changed binary makes the history unusable to clone",
+            "Git cannot compute diffs for binary content, so the commits carry no information",
+            "Binary files break the working tree on checkout across operating systems"
+          ]
+        },
+        "l02-q07": {
+          "answer": "It becomes testable and callable, so the thing you validated can be run again by something other than a human clicking cells",
+          "options": [
+            "Speed, since a script runs faster than the same code in a notebook kernel",
+            "It becomes testable and callable, so the thing you validated can be run again by something other than a human clicking cells",
+            "Notebooks cannot be version-controlled, so moving to a script is what makes the work reviewable",
+            "It reduces memory use, since a script releases state between stages"
+          ]
+        },
+        "l02-q08": {},
+        "l02-q09": {
+          "answer": "Re-implementing the analysis independently, which is how the Duke errors were actually found",
+          "options": [
+            "Comparing lockfiles, since a dependency difference is the likeliest cause of a numeric disagreement",
+            "Re-implementing the analysis independently, which is how the Duke errors were actually found",
+            "Re-running each pipeline on the other lab's data, which isolates data from code",
+            "Increasing precision, since disagreements of this kind usually trace to floating-point accumulation"
+          ]
+        },
+        "l02-q10": {
+          "answer": "A lockfile recording what was actually installed, including transitive dependencies, rather than what was asked for",
+          "options": [
+            "A faster install, since uv resolves dependencies in parallel",
+            "A lockfile recording what was actually installed, including transitive dependencies, rather than what was asked for",
+            "A virtual environment, which requirements.txt cannot create",
+            "A dependency graph, which requirements.txt flattens and loses"
+          ]
+        }
+      },
+      "serve": 5
     }
   }
 }

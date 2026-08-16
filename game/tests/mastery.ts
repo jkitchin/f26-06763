@@ -1,6 +1,7 @@
 /** Mastery scoring: run with `npm run mastery`. */
 import {
-  bestScoreFor, entriesFor, isGradeable, itemScore, levelFor, sittingScore,
+  WRONG_PENALTY, attemptOf, bestScoreFor, completedFor, earnedMilli, entriesFor,
+  isGradeable, itemScore, levelFor, nextAttemptFor, sittingScore,
   type Event, type LogEntry,
 } from '../src/store/log.ts'
 
@@ -33,7 +34,7 @@ function sitting(
   const plan = Array.from({ length: planSize }, (_, i) =>
     ({ id: `l09-q0${i}`, variant: '-', opts: [0, 1, 2, 3] }))
   const opened: Event = {
-    t: 'opened', session: id, lecture: 'l09', andrewId: 'test', plan,
+    t: 'opened', session: id, lecture: 'l09', andrewId: 'test', plan, attempt: 1,
     content: { pool_version: 1, serve: SERVE }, at: 0,
   }
   return [
@@ -47,28 +48,43 @@ function sitting(
   ]
 }
 
+/** The answers out of a sitting. Scoring grades answers, not events. */
+const answersOf = (log: Event[]) => entriesFor(log, 's')
+
 console.log('mastery:')
 
 // --- per item -------------------------------------------------------------
+// One point a question, less WRONG_PENALTY for each wrong answer. Every graded
+// item in the course has four options, so three wrong answers is the worst a
+// student can do without revealing, and 0.25 is the floor rather than zero.
 check(itemScore(entry({ itemId: 'a', tries: 1 })) === 1, 'right first time scores 1')
-check(itemScore(entry({ itemId: 'a', tries: 2 })) === 0.5, 'second attempt scores a half')
+check(itemScore(entry({ itemId: 'a', tries: 2 })) === 0.75, 'one wrong answer costs a quarter')
 check(Math.abs(itemScore(entry({ itemId: 'a', tries: 4 })) - 0.25) < 1e-9,
-  'fourth attempt scores a quarter')
+  'three wrong answers leave a quarter point')
 check(itemScore(entry({ itemId: 'a', tries: 1, revealed: true })) === 0,
   'a revealed answer scores nothing however many tries')
+check(itemScore(entry({ itemId: 'a', tries: 9 })) === 0,
+  'the score floors at zero rather than going negative')
+check(WRONG_PENALTY === 0.25, 'the penalty is a quarter point', String(WRONG_PENALTY))
+
+// The payload carries integer thousandths, never a float. Both halves of the
+// evidence chain read this, so a rounding difference here is a verification
+// failure for an honest student.
+check(earnedMilli(answersOf(sitting('s', [1, 2, 3]))) === 1000 + 750 + 500,
+  'earnedMilli sums integer thousandths',
+  String(earnedMilli(answersOf(sitting('s', [1, 2, 3])))))
 
 // --- free response --------------------------------------------------------
 check(!isGradeable(entry({ itemId: 'a', chosen: [] })),
   'a free-response item does not count toward mastery')
-/** The answers out of a sitting. sittingScore grades answers, not events. */
-const answers = (log: Event[]) => entriesFor(log, 's')
+const answers = answersOf
 
 const mixed = [...sitting('s', [1, 1]), entry({ itemId: 'free', chosen: [], session: 's', at: 9 })]
 check(sittingScore(answers(mixed)) === 1, 'free-response items do not inflate the score')
 
 // --- whole sitting --------------------------------------------------------
 check(sittingScore(answers(sitting('s', [1, 1, 1, 1]))) === 1, 'all first time is 100%')
-check(sittingScore(answers(sitting('s', [2, 2, 2, 2]))) === 0.5, 'all second time is 50%')
+check(sittingScore(answers(sitting('s', [2, 2, 2, 2]))) === 0.75, 'all with one wrong is 75%')
 check(sittingScore([]) === null, 'a sitting that graded nothing has no score')
 
 // --- levels ---------------------------------------------------------------
@@ -76,7 +92,7 @@ const lvl = (tries: number[], rev: boolean[] = []) =>
   levelFor(sitting('s1', tries, rev), 'l09')
 check(lvl([1, 1, 1, 1]) === 5, 'everything first time is level 5', String(lvl([1, 1, 1, 1])))
 check(lvl([1, 1, 1, 2]) === 4, 'one second attempt costs a level', String(lvl([1, 1, 1, 2])))
-check(lvl([2, 2, 2, 2]) === 2, 'everything on the second go is level 2', String(lvl([2, 2, 2, 2])))
+check(lvl([2, 2, 2, 2]) === 3, 'everything on the second go is level 3', String(lvl([2, 2, 2, 2])))
 check(lvl([1, 1, 1, 1], [true, true, true, true]) === 1,
   'revealing everything still completes the module', String(lvl([1, 1, 1, 1], [true, true, true, true])))
 check(levelFor([], 'l09') === 0, 'never attempted is level 0')
@@ -99,6 +115,28 @@ check(
   (bestScoreFor([...sloppy, ...good], 'l09') ?? 0) === 1,
   'the best run is the one that counts, whichever order they happened in',
 )
+
+// --- attempts -------------------------------------------------------------
+// The retake defence. `nextAttemptFor` decides which questions a student is
+// about to see, so an off-by-one here hands somebody attempt 1's items on their
+// second run, which is the whole thing this was built to stop.
+check(nextAttemptFor([], 'l09') === 1, 'a first run is attempt 1')
+check(nextAttemptFor(good, 'l09') === 2, 'after one completed sitting the next is attempt 2',
+  String(nextAttemptFor(good, 'l09')))
+check(nextAttemptFor([...good, ...sloppy], 'l09') === 3, 'and two completed makes it 3')
+check(nextAttemptFor(good, 'l11') === 1, 'attempts are counted per lecture, not globally')
+
+// An abandoned sitting must not burn an attempt. A student who opens a module,
+// answers two of five and closes the tab resumes that same sitting; if this
+// counted them they would come back to a different set of questions and their
+// two recorded answers would be orphaned.
+check(nextAttemptFor(sitting('s1', [1, 1], [], SERVE), 'l09') === 1,
+  'an unfinished sitting does not burn an attempt',
+  String(nextAttemptFor(sitting('s1', [1, 1], [], SERVE), 'l09')))
+
+// The PDF reads the attempt off the sitting, never off today's log.
+const s1 = completedFor(good, 'l09')[0]!
+check(attemptOf(s1) === 1, 'a sitting reports the attempt it was opened under')
 
 console.log(fails ? `\n${fails} failed` : '\nall checks passed')
 process.exit(fails ? 1 : 0)

@@ -25,8 +25,17 @@
 import { hmac } from '@noble/hashes/hmac'
 import { sha256 } from '@noble/hashes/sha256'
 import { selectionHash, type ServedItem } from '../seed.ts'
+import { scoreFromTries } from '../store/log.ts'
 
-export const SCHEMA = 'cmu-06763-attest/1'
+/**
+ * Bumped from /1 when the attempt window and the participation score landed.
+ *
+ * The payload gained `derive.attempt`, which the verifier must have to
+ * re-derive an honest retake, and a scored `score` block. A /1 PDF cannot be
+ * checked by the current verifier and should be rejected rather than
+ * misread, which the version string is what makes possible.
+ */
+export const SCHEMA = 'cmu-06763-attest/2'
 export const BEGIN = '-----BEGIN 06763 ATTESTATION-----'
 export const END = '-----END 06763 ATTESTATION-----'
 
@@ -82,6 +91,8 @@ export interface PayloadInput {
   lecture: string
   poolVersion: number
   serve: number
+  /** 1-based, as recorded when the sitting opened. Never recomputed here. */
+  attempt: number
   appVersion: string
   buildCommit: string
   contentSha256: string
@@ -144,7 +155,35 @@ function concatDomain(bytes: Uint8Array): Uint8Array {
   return out
 }
 
+/**
+ * Items that count toward the participation score.
+ *
+ * `ans` empty means no option was chosen, which is the free-recall items: the
+ * student scores those against a checklist themselves. Same exclusion
+ * `isGradeable` applies in the store, expressed against the record shape the
+ * payload uses.
+ */
+function gradeableOf(items: readonly ItemRecord[]): ItemRecord[] {
+  return items.filter((i) => i.ans.length > 0)
+}
+
+/**
+ * The participation score as a whole percent, which is the number a TA types
+ * into the gradebook.
+ *
+ * Rounded once, here, so the figure printed on the PDF, the figure in the
+ * payload and the figure the verifier prints are the same figure. Rounding
+ * twice in two places is how a student's PDF says 88 and the TA's CSV says 87.
+ */
+export function percentOf(items: readonly ItemRecord[]): number | null {
+  const graded = gradeableOf(items)
+  if (!graded.length) return null
+  const milli = graded.reduce((n, i) => n + Math.round(scoreFromTries(i.tries, i.revealed) * 1000), 0)
+  return Math.round(milli / graded.length / 10)
+}
+
 export function buildAttestation(input: PayloadInput): Attestation {
+  const graded = gradeableOf(input.items)
   const payload = {
     schema: SCHEMA,
     student: { andrew_id: input.andrewId, name: input.name },
@@ -167,12 +206,18 @@ export function buildAttestation(input: PayloadInput): Attestation {
       tz_offset_min: input.tzOffsetMin,
       resumes: input.resumes,
     },
-    derive: { selection_hash: selectionHash(input.served) },
+    derive: { selection_hash: selectionHash(input.served), attempt: input.attempt },
     items: input.items,
     score: {
       served: input.serve,
       completed: input.items.length,
       first_try: input.items.filter((i) => i.first_ok).length,
+      // Graded items only: free-recall items carry no chosen option, commit with
+      // tries = 1 by construction, and would hand everybody a free point.
+      graded: graded.length,
+      // Integer thousandths, summed. No floats in this payload, ever.
+      earned_milli: graded.reduce((n, i) => n + Math.round(scoreFromTries(i.tries, i.revealed) * 1000), 0),
+      percent: percentOf(graded),
     },
   }
 

@@ -3,8 +3,8 @@ lecture: l13
 title: "Surrogate modeling, physics-informed models, and uncertainty"
 source_notes: lectures/l13/notes.md
 status: published
-serve: 8
-pool_version: 1
+serve: 6
+pool_version: 2
 provenance:
   drafted_by: hand
   reviewed_by: jkitchin
