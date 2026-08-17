@@ -23,6 +23,7 @@
     "l07",
     "l08",
     "l09",
+    "l10",
     "l11",
     "l13",
     "l15",
@@ -114,6 +115,34 @@
       "to": "l07",
       "weight": 4,
       "where": "[L7](../l07/notes.md)'s C-MAPSS fleet. Take a model with a flat, perfectly uniform 15-cycle",
+      "origin": "link"
+    },
+    {
+      "from": "l10",
+      "to": "l02",
+      "weight": 1,
+      "where": "That list is specific, and it ties this session back to the rest of the course. Log the **hyperparameters** and the **metrics** (per fold, not just the average,",
+      "origin": "link"
+    },
+    {
+      "from": "l10",
+      "to": "l07",
+      "weight": 1,
+      "where": "The power-plant result is the caution: TPE beat random by 0.009 MW, a difference smaller than the fold noise. Bayesian optimization earns its complexity on expe",
+      "origin": "link"
+    },
+    {
+      "from": "l10",
+      "to": "l08",
+      "weight": 2,
+      "where": "That list is specific, and it ties this session back to the rest of the course. Log the **hyperparameters** and the **metrics** (per fold, not just the average,",
+      "origin": "link"
+    },
+    {
+      "from": "l10",
+      "to": "l09",
+      "weight": 2,
+      "where": "[L9](../l09/notes.md) built the workflow that produces those runs: baselines, cross-validation, metrics, and the discipline of touching the test set once. This ",
       "origin": "link"
     },
     {
@@ -331,14 +360,15 @@
   ],
   "in_degree": {
     "l01": 2,
-    "l02": 1,
+    "l02": 2,
     "l03": 5,
     "l04": 2,
     "l05": 4,
     "l06": 1,
-    "l07": 6,
-    "l08": 0,
-    "l09": 3,
+    "l07": 7,
+    "l08": 1,
+    "l09": 4,
+    "l10": 0,
     "l11": 2,
     "l13": 4,
     "l15": 0,
@@ -349,14 +379,15 @@
   },
   "in_weight": {
     "l01": 2,
-    "l02": 2,
+    "l02": 3,
     "l03": 6,
     "l04": 2,
     "l05": 5,
     "l06": 1,
-    "l07": 10,
-    "l08": 0,
-    "l09": 7,
+    "l07": 11,
+    "l08": 2,
+    "l09": 9,
+    "l10": 0,
     "l11": 2,
     "l13": 4,
     "l15": 0,
@@ -375,6 +406,7 @@
     "l07": 3,
     "l08": 3,
     "l09": 2,
+    "l10": 4,
     "l11": 2,
     "l13": 4,
     "l15": 5,
@@ -384,7 +416,7 @@
     "l23": 5
   },
   "unreferenced": [
-    "l08",
+    "l10",
     "l15",
     "l23"
   ],

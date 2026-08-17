@@ -282,3 +282,21 @@
   lecture: l08
   text: >-
     Run a data-centric improvement loop and attribute gains to data changes.
+
+# L10, published notes and no bank yet (game/content/l10.yml, status: unwritten).
+# Registered so whoever writes that bank maps onto objectives that already exist.
+
+- id: l10-o1
+  lecture: l10
+  text: >-
+    Instrument a training script so every run is logged, comparable, and reproducible.
+
+- id: l10-o2
+  lecture: l10
+  text: >-
+    Run grid, random, and Bayesian hyperparameter search and interpret the results honestly.
+
+- id: l10-o3
+  lecture: l10
+  text: >-
+    Register a selected model with its metrics, params, and data lineage.
