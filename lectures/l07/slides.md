@@ -37,7 +37,7 @@ footer: "Systems & Toolchains for AI in Engineering"
 
 ---
 
-## A feature is a translation
+## Why this matters
 
 Physical measurement in. A number a model
 can multiply out.
@@ -47,7 +47,7 @@ where meaning goes missing unnoticed.
 
 ---
 
-## Nothing crashes when it goes wrong
+## Why this matters, nothing crashes when it goes wrong
 
 Wrong units. A leaked statistic. A raw value
 with no physical context.
@@ -62,16 +62,14 @@ Predictions look exactly as plausible.
 
 ---
 
-## The second failure: leakage
+## Why this matters, the second failure: leakage
 
 Quieter. No units mismatch required.
 
 A statistic computed to describe "training data"
 quietly peeked at "data I'll be judged on."
 
----
-
-## The question that decides everything
+**The question that decides everything.**
 
 Every transform, a mean, a std, a category list,
 is a statistic computed over **some set of rows**.
@@ -83,12 +81,17 @@ Which rows, is the whole question.
 <!-- _class: section -->
 
 # Time-series features
-## from a per-unit trajectory
 
 ---
 
-## This session's dataset
+## Time-series features
 
+
+<div class="definition">
+
+**Lag feature**: the value of a channel some fixed number of steps earlier in the same unit's history.
+
+</div>
 **NASA C-MAPSS**: simulated turbofan engines,
 run-to-failure, one row per engine per cycle.
 
@@ -100,7 +103,7 @@ FD001: 100 train / 100 test engines, median life 199 cycles.
 
 ---
 
-## First: look at what you actually have
+## Time-series features, first: look at what you actually have
 
 ![w:1000](figures/sensor-degradation.png)
 
@@ -109,16 +112,14 @@ FD001: 100 train / 100 test engines, median life 199 cycles.
 
 ---
 
-## Six dead channels of twenty-one
+## Time-series features, six dead channels of twenty-one
 
 A rolling mean of a constant is a constant.
 Its rolling std is 0. Its delta-from-cycle-1 is 0.
 
 **Four columns of nothing, per dead channel.**
 
----
-
-## And the trap in detecting them
+**And the trap in detecting them.**
 
 L5 said: constant ⟺ `std == 0`. True in arithmetic.
 
@@ -132,7 +133,7 @@ or a tolerance. Never `== 0` on a computed float.
 
 ---
 
-## The structural rule
+## Time-series features, the structural rule
 
 Every feature must respect: data is
 **grouped by engine**, **ordered by cycle**.
@@ -140,9 +141,7 @@ Every feature must respect: data is
 Get the grouping wrong, and you fabricate
 a feature without an error ever firing.
 
----
-
-## The vocabulary: lag & difference
+**The vocabulary: lag & difference.**
 
 **Lag**: `sensor.shift(k)`, what was this doing
 k steps ago.
@@ -152,7 +151,13 @@ it change since last cycle.
 
 ---
 
-## The vocabulary: rolling & expanding
+## Time-series features, the vocabulary: rolling & expanding
+
+<div class="definition">
+
+**Rolling window feature**: a statistic over the last k samples, recomputed at every step, and never reaching forward in time.
+
+</div>
 
 **Rolling** mean/std/min/max: smooths noise,
 surfaces trend. Window length is a real choice.
@@ -162,7 +167,7 @@ no fixed length.
 
 ---
 
-## The vocabulary: rate-of-change & time-since-event
+## Time-series features, the vocabulary: rate-of-change & time-since-event
 
 **Rate-of-change**: a difference, normalized by
 elapsed time.
@@ -170,9 +175,7 @@ elapsed time.
 **Time-since-event**: cycles since a condition
 last held, exactly what an alarm model needs.
 
----
-
-## Always inside a group
+**Always inside a group.**
 
 ```python
 g = df.groupby('unit', group_keys=False)
@@ -183,7 +186,7 @@ df['sensor4_roll_mean_5'] = (
 
 ---
 
-## What that looks like, measured
+## Time-series features, what that looks like, measured
 
 ![w:820](figures/grouped-vs-not.png)
 
@@ -193,7 +196,7 @@ df['sensor4_roll_mean_5'] = (
 
 ---
 
-## Why it's worse than noise
+## Time-series features, why it's worse than noise
 
 pandas **will not complain.** The contamination is
 worst at each engine's **first** cycles, where RUL
@@ -204,7 +207,7 @@ previous engine's **end of life.**
 
 ---
 
-## Resampling irregular data
+## Time-series features, resampling irregular data
 
 C-MAPSS is a clean, regular grid. Real sensors
 often aren't: recall the Intel Lab motes (L3),
@@ -213,9 +216,7 @@ often aren't: recall the Intel Lab motes (L3),
 Resample to a fixed cadence; choose a policy
 for the gap: forward-fill, interpolate, or leave null.
 
----
-
-## The policy is itself a feature decision
+**The policy is itself a feature decision.**
 
 Forward-filling a dropout invents continuity
 that wasn't there.
@@ -227,12 +228,17 @@ that dropouts predict anything.
 
 <!-- _class: section -->
 
-# Physical and
-## domain features
+# Physical and domain features
 
 ---
 
-## Dimensionless groups
+## Physical and domain features
+
+<div class="definition">
+
+**Dimensionless group**: a ratio of physical quantities whose units cancel, so it transfers across scales.
+
+</div>
 
 Ratios engineered to be independent of scale:
 Reynolds number, power factor.
@@ -242,7 +248,7 @@ the model to learn it away from raw values.
 
 ---
 
-## Energy & power features
+## Physical and domain features, energy & power features
 
 Usually **derived**, not measured: kinetic energy
 from shaft speed, specific power from pressure
@@ -253,7 +259,7 @@ coincidental correlation.
 
 ---
 
-## Calibration corrections
+## Physical and domain features, calibration corrections
 
 A channel's raw output degrades over an
 instrument's lifetime (L1's drift argument, again).
@@ -261,9 +267,7 @@ instrument's lifetime (L1's drift argument, again).
 The correction belongs in the pipeline,
 applied consistently, not patched in after.
 
----
-
-## Unit consistency
+**Unit consistency.**
 
 The discipline tying all of this together.
 
@@ -272,7 +276,7 @@ An engineering requirement.
 
 ---
 
-## Case: a specification nobody checked
+## Physical and domain features, case: a specification nobody checked
 
 **Mars Climate Orbiter**, launched 11 Dec 1998.
 Signal lost 09:04:52 UTC, 23 September 1999.
@@ -284,7 +288,7 @@ newton-seconds**. The code wrote **pound-seconds**.
 
 ---
 
-## The error had a number
+## Physical and domain features, the error had a number
 
 > underestimated the effect on the spacecraft
 > trajectory by **a factor of 4.45**
@@ -292,9 +296,7 @@ newton-seconds**. The code wrote **pound-seconds**.
 1 lbf = 4.45 N. Every firing modeled as
 four and a half times too weak.
 
----
-
-## Why "small forces" weren't small
+**Why "small forces" weren't small.**
 
 The solar array was **asymmetric**, unlike Mars
 Global Surveyor's.
@@ -306,7 +308,7 @@ than the navigation team expected.**
 
 ---
 
-## The altitudes, from the report
+## Physical and domain features, the altitudes, from the report
 
 | | km |
 |---|---|
@@ -321,7 +323,7 @@ than the navigation team expected.**
 
 ---
 
-## About that $327 million
+## Physical and domain features, about that $327 million
 
 The MIB report **never mentions cost.**
 
@@ -335,7 +337,7 @@ The verified facts are damning enough.
 
 ---
 
-## The mechanism is a feature engineering failure
+## Physical and domain features, the mechanism is a feature engineering failure
 
 A physical quantity, computed correctly in one
 team's units, consumed by a system expecting another.
@@ -343,9 +345,7 @@ team's units, consumed by a system expecting another.
 Nothing marked which convention the number was in.
 Both are just a float.
 
----
-
-## The part that should worry you more
+**The part that should worry you more.**
 
 > concerns existed at the working level regarding
 > discrepancies observed between navigation solutions
@@ -357,7 +357,7 @@ Doppler solutions consistently disagreed.
 
 ---
 
-## Months, not minutes
+## Physical and domain features, months, not minutes
 
 The discrepancy was visible **spring and summer 1999.**
 
@@ -371,7 +371,7 @@ Same shape as L5's 97 unread "Power Peg disabled" emails.
 
 ---
 
-## What a practitioner should take from this
+## Physical and domain features, what a practitioner should take from this
 
 Never let a column imply its own units.
 `thrust_lbf`, not `thrust`.
@@ -381,9 +381,7 @@ It didn't help, because nothing checked compliance.
 
 **A data contract that isn't executed is a comment.**
 
----
-
-## Spectral features
+**Spectral features.**
 
 Vibration/acoustic data: the information isn't
 in the level, it's in **which frequencies** carry energy.
@@ -393,7 +391,13 @@ frequency components.
 
 ---
 
-## Band energy
+## Physical and domain features, band energy
+
+<div class="definition">
+
+**Band energy**: the power in a named frequency band, which turns a spectrum into a small number of features.
+
+</div>
 
 ```python
 def band_energy(signal, fs, f_lo, f_hi):
@@ -409,12 +413,11 @@ Which bands matter is a physical judgment
 
 <!-- _class: section -->
 
-# Scaling, encoding, and
-## fitting on train only
+# Scaling, encoding, fitting on train only
 
 ---
 
-## Four ways to scale
+## Scaling, encoding, fitting on train only
 
 | Method | Use when |
 |---|---|
@@ -427,7 +430,7 @@ Which bands matter is a physical judgment
 
 ---
 
-## Categorical encoding
+## Scaling, encoding, fitting on train only, categorical encoding
 
 One-hot or target encoding for an equipment ID
 or an operating regime.
@@ -437,7 +440,13 @@ determines generalization to an unseen regime.
 
 ---
 
-## Every transform is fit from data
+## Scaling, encoding, fitting on train only, every transform is fit from data
+
+<div class="definition">
+
+**Data leakage**: any path by which information from outside the training fold reaches the model fit on it.
+
+</div>
 
 A mean. A standard deviation. A Box-Cox lambda.
 A category list.
@@ -446,7 +455,7 @@ Every one is a statistic. Every one can leak.
 
 ---
 
-## The rule, stated once
+## Scaling, encoding, fitting on train only, the rule, stated once
 
 > Fit every transform on the training split only.
 > Apply the already-fitted transform to
@@ -457,16 +466,14 @@ has already seen something it shouldn't.
 
 ---
 
-## Today's demo tests this directly
+## Scaling, encoding, fitting on train only, today's demo tests this directly
 
 `StandardScaler` fit on **training engines only**
 vs. the same scaler fit on **train + test combined**.
 
 Compare RUL error.
 
----
-
-## The honest result
+**Encoding, fitting on train only, the honest result.**
 
 Gap in RMSE: **+0.002 cycles.** Out of ~19.
 
@@ -474,7 +481,7 @@ Not a typo. Not a scare number.
 
 ---
 
-## But the leak definitely happened
+## Scaling, encoding, fitting on train only, but the leak definitely happened
 
 The two scalers disagree about where a feature sits by
 **up to 23%**, and about its spread by **up to 9%**.
@@ -484,13 +491,13 @@ and the metric reported ~nothing.
 
 ---
 
-## The actual lesson
+## Scaling, encoding, fitting on train only, the actual lesson
 
 # Your metric is not a leak detector.
 
 ---
 
-## One leak, four models
+## Scaling, encoding, fitting on train only, one leak, four models
 
 ![w:900](figures/leakage-by-model.png)
 
@@ -499,7 +506,7 @@ and the metric reported ~nothing.
 
 ---
 
-## Read the third bar again
+## Scaling, encoding, fitting on train only, read the third bar again
 
 | model | gap |
 |---|---|
@@ -513,16 +520,14 @@ It makes your score **meaningless**.
 
 ---
 
-## So you cannot audit this with metrics
+## Scaling, encoding, fitting on train only, so you cannot audit this with metrics
 
 You have to audit the **code**:
 
 find every `.fit()` and check what was
 in scope when it ran.
 
----
-
-## Fit on train only, on principle
+**Encoding, fitting on train only, fit on train only, on principle.**
 
 You cannot know in advance which model,
 which dataset, which year, is the one
@@ -532,12 +537,17 @@ where the shortcut costs you.
 
 <!-- _class: section -->
 
-# A leakage-safe
-## pipeline
+# A leakage-safe pipeline
 
 ---
 
-## `Pipeline` and `ColumnTransformer`
+## A leakage-safe pipeline
+
+<div class="definition">
+
+**scikit-learn pipeline**: a single estimator holding every transform and the model, so fitting it can only ever see the training fold.
+
+</div>
 
 Not for convenience. For making the rule
 **structurally hard to break**.
@@ -547,7 +557,7 @@ using only what you handed it.
 
 ---
 
-## No path back to the leak
+## A leakage-safe pipeline, no path back to the leak
 
 ```python
 pipeline = Pipeline([
@@ -562,7 +572,7 @@ No `.fit()` call anywhere has `X_test` in scope.
 
 ---
 
-## Persist the whole pipeline
+## A leakage-safe pipeline, persist the whole pipeline
 
 `joblib.dump(pipeline, ...)` saves weights **and**
 every transform's fitted statistics, together.
@@ -570,9 +580,7 @@ every transform's fitted statistics, together.
 Reload it a month later: exact same predictions.
 Not a script's best attempt at reconstructing them.
 
----
-
-## Feature stores (concept, not built here)
+**Feature stores (concept, not built here).**
 
 Centralize feature **definitions** so training
 and serving compute the same feature the same way.
@@ -584,20 +592,17 @@ at the scale of one project.
 
 <!-- _class: section -->
 
-# Where this
-## pushes back
+# Where this pushes back
 
 ---
 
-## More features isn't more signal
+## Where this pushes back
 
 A hundred engines, a few hundred generated
 lag/rolling/delta columns: a recipe for
 overfitting the training fleet.
 
----
-
-## Automated extraction raises the stakes
+**Automated extraction raises the stakes.**
 
 [tsfresh](https://tsfresh.readthedocs.io/) can generate hundreds of
 candidate features from one signal, one call.
@@ -607,7 +612,7 @@ some correlate **by chance alone**.
 
 ---
 
-## A clipped RUL target is an assumption
+## Where this pushes back, a clipped RUL target is an assumption
 
 Capping at 125 cycles assumes health is
 roughly constant, then declines late.
@@ -617,7 +622,7 @@ a sudden-fault mode would break it.
 
 ---
 
-## Transforms complicate the number you report
+## Where this pushes back, transforms complicate the number you report
 
 Predict log-RUL, and RMSE in that space
 isn't cycles until you exponentiate back.
@@ -625,9 +630,7 @@ isn't cycles until you exponentiate back.
 Easy to report a wrong number that
 looks exactly like a right one.
 
----
-
-## A safe pipeline defends one leak, not every leak
+**A safe pipeline defends one leak, not every leak.**
 
 Fitting on the training fold stops **this**
 session's bug.
@@ -637,7 +640,7 @@ that puts cycle 150 in train, 151 in test.
 
 ---
 
-## That's next session
+## Where this pushes back, that's next session
 
 No `Pipeline` catches a split-level leak:
 the split happens before the pipeline
@@ -646,9 +649,7 @@ ever sees the data.
 L8: the full leakage taxonomy, grouped
 and temporal splits.
 
----
-
-## What a practitioner should take from this
+**What a practitioner should take from this.**
 
 Fewer features you can explain physically >
 many you generated and hope correlate.

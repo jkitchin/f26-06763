@@ -40,7 +40,7 @@ footer: "Systems & Toolchains for AI in Engineering"
 
 ---
 
-## Two aircraft, five months apart
+## Why this matters
 
 Lion Air 610, October 2018: 189 dead.
 Ethiopian Airlines 302, March 2019: 157 dead.
@@ -50,7 +50,7 @@ automated system both times.
 
 ---
 
-## MCAS
+## Why this matters, MCAS
 
 Maneuvering Characteristics Augmentation System.
 
@@ -59,7 +59,7 @@ compensate for the plane's redesigned engines.
 
 ---
 
-## One input, no cross-check
+## Why this matters, one input, no cross-check
 
 Decided to act based on **one** angle-of-attack
 sensor. Two existed on the plane.
@@ -68,7 +68,7 @@ No requirement that they agree before it acted.
 
 ---
 
-## What investigators found
+## Why this matters, what investigators found
 
 A faulty sensor fed MCAS an erroneous reading.
 
@@ -77,7 +77,7 @@ Not trained to counteract it.
 
 ---
 
-## What certification missed
+## Why this matters, what certification missed
 
 Failure modes not adequately analyzed
 before the system reached production.
@@ -89,14 +89,14 @@ found insufficient.
 
 ---
 
-## The fleet was grounded worldwide
+## Why this matters, the fleet was grounded worldwide
 
 ~20 months, while MCAS was redesigned to
 compare both sensors and limit its own authority.
 
 ---
 
-## Every finding maps to this session
+## Why this matters, every finding maps to this session
 
 Single unredundant input, no cross-check
 → **guardrail failure.**
@@ -106,7 +106,7 @@ Failure modes not analyzed before shipping
 
 ---
 
-## And the third mapping
+## Why this matters, and the third mapping
 
 Authority to act repeatedly on a physical
 control, no human confirmation required
@@ -114,7 +114,7 @@ control, no human confirmation required
 
 ---
 
-## This isn't about aviation
+## Why this matters, this isn't about aviation
 
 It's about what happens in *any* system that
 automates a consequential decision, when nobody
@@ -124,12 +124,17 @@ was required to ask "what if this input is wrong."
 
 <!-- _class: section -->
 
-# CI/CD
-## for ML and LLM systems
+# CI/CD for ML and LLM systems
 
 ---
 
-## What's different from normal CI
+## CI/CD for ML and LLM systems
+
+<div class="definition">
+
+**Continuous delivery for ML**: testing data and models, not only code, and shipping through staged rollout with a way back.
+
+</div>
 
 Ordinary CI: does the code still pass its tests?
 
@@ -138,14 +143,14 @@ behavior degrades. A prompt edit. A rebuilt index.
 
 ---
 
-## You test behavior on data, not just code
+## CI/CD for ML and LLM systems, you test behavior on data, not just code
 
 That needs a pipeline stage ordinary
 software CI doesn't have.
 
 ---
 
-## The pipeline, in order
+## CI/CD for ML and LLM systems, the pipeline, in order
 
 1. Lint + unit tests (cheap, fail fast)
 2. Build the container
@@ -155,7 +160,7 @@ software CI doesn't have.
 
 ---
 
-## The gate makes this an ML pipeline
+## CI/CD for ML and LLM systems, the gate makes this an ML pipeline
 
 Not "report the number and hope someone notices."
 
@@ -164,7 +169,7 @@ Surrogate MAE regressed > X%? Red, not yellow.
 
 ---
 
-## Nondeterminism: don't pretend it away
+## CI/CD for ML and LLM systems, nondeterminism: don't pretend it away
 
 Pin every seed. `temperature=0` wherever the
 provider allows it, for anything you gate on.
@@ -176,12 +181,17 @@ Can't get true determinism? Gate on a
 
 <!-- _class: section -->
 
-# Detecting drift
-## without waiting for labels
+# Detecting drift without labels
 
 ---
 
-## Ground truth arrives late, or never
+## Detecting drift without labels
+
+<div class="definition">
+
+**Drift**: the input or prediction distribution moving away from what the model was trained on, detectable before any label arrives.
+
+</div>
 
 Did the part actually fail? Was the maintenance
 call correct? Could be weeks. Could be never.
@@ -190,7 +200,7 @@ Monitor input distributions instead.
 
 ---
 
-## Three kinds, one name each
+## Detecting drift without labels, three kinds, one name each
 
 **Data drift**: inputs move outside training distribution.
 **Concept drift**: same inputs, the right answer changed.
@@ -198,7 +208,7 @@ Monitor input distributions instead.
 
 ---
 
-## Concept drift is the sneaky one
+## Detecting drift without labels, concept drift is the sneaky one
 
 Inputs look completely familiar.
 
@@ -207,7 +217,7 @@ means something different in week 4 than week 1.
 
 ---
 
-## PSI and the KS test
+## Detecting drift without labels, PSI and the KS test
 
 **PSI**: how much probability mass moved between
 reference bins and a new sample. <0.1 fine, >0.25 alert.
@@ -217,7 +227,7 @@ the same distribution? A p-value, not a vibe.
 
 ---
 
-## Three real comparisons, real Intel Lab data
+## Detecting drift without labels, three real comparisons, real Intel Lab data
 
 | Comparison | PSI |
 |---|---|
@@ -227,7 +237,7 @@ the same distribution? A p-value, not a vibe.
 
 ---
 
-## The instructive part
+## Detecting drift without labels, the instructive part
 
 PSI can't tell "battery aging on schedule"
 from "something changed overnight."
@@ -236,7 +246,7 @@ from "something changed overnight."
 
 ---
 
-## LLM/agent drift signals
+## Detecting drift without labels, LLM/agent drift signals
 
 Refusal rate. Tool-error rate. Judge scores,
 **tracked over time**, not measured once.
@@ -245,7 +255,7 @@ Latency, cost, and output-length creep.
 
 ---
 
-## Static threshold vs. rolling baseline
+## Detecting drift without labels, static threshold vs. rolling baseline
 
 Static: simple, auditable, wrong if the normal
 range genuinely varies by season.
@@ -255,7 +265,7 @@ into the very baseline it's compared against.
 
 ---
 
-## The trade-off you're actually choosing
+## Detecting drift without labels, the trade-off you're actually choosing
 
 False alarms → alarm fatigue → people stop
 responding to real ones.
@@ -264,7 +274,7 @@ Missed drift → silent until it's expensive.
 
 ---
 
-## The pitfall
+## Detecting drift without labels, the pitfall
 
 A drift alert says a distribution moved.
 It does **not** say the model is now wrong.
@@ -277,11 +287,10 @@ consistent with? Not: panic.
 <!-- _class: section -->
 
 # Cost in production
-## tracked over time
 
 ---
 
-## Cost moves. Usually up.
+## Cost in production
 
 **Prompt/context bloat**: the corpus grows,
 the system prompt accumulates "just one more rule."
@@ -291,7 +300,7 @@ retries multiply cost exactly when stressed.
 
 ---
 
-## Runaway agent loops
+## Cost in production, runaway agent loops
 
 L19's bounded loop exists for exactly this:
 one user request, dozens of billed calls,
@@ -299,7 +308,7 @@ if nothing stops it.
 
 ---
 
-## None of this shows up in a one-time estimate
+## Cost in production, none of this shows up in a one-time estimate
 
 Log cost as a time series, same as L21 logged
 eval metrics. Budgets and rate limits: the backstop
@@ -309,19 +318,24 @@ for when monitoring catches it too late.
 
 <!-- _class: section -->
 
-# Failure modes
-## and concrete guardrails
+# Failure modes and guardrails
 
 ---
 
-## "We'll add safety checks" is not an answer
+## Failure modes and guardrails
+
+<div class="definition">
+
+**Guardrail**: a mechanism tied to a specific, named failure mode. Without the named failure it is not a guardrail.
+
+</div>
 
 A guardrail not tied to a **named** failure mode
 is a sentence that sounds like one.
 
 ---
 
-## The table, LLM/RAG side
+## Failure modes and guardrails, the table, LLM/RAG side
 
 | Failure | Guardrail |
 |---|---|
@@ -332,7 +346,7 @@ is a sentence that sounds like one.
 
 ---
 
-## The table, surrogate/ML side
+## Failure modes and guardrails, the table, surrogate/ML side
 
 | Failure | Guardrail |
 |---|---|
@@ -343,7 +357,7 @@ is a sentence that sounds like one.
 
 ---
 
-## Most of these rows are already yours
+## Failure modes and guardrails, most of these rows are already yours
 
 A step budget: L19's. A faithfulness check: L21's.
 An input-range check: L7's and L13's.
@@ -356,11 +370,10 @@ This session's job: name a mechanism for
 <!-- _class: section -->
 
 # Responsible AI
-## for engineering decisions
 
 ---
 
-## What makes engineering AI different
+## Responsible AI
 
 Recommendations feed decisions with physical,
 safety, environmental, or economic consequences.
@@ -369,7 +382,7 @@ A wrong chat response doesn't carry that weight.
 
 ---
 
-## Accountability
+## Responsible AI, accountability
 
 Who signs off before a recommendation
 becomes an action?
@@ -378,7 +391,7 @@ Never "the model." A named person or role.
 
 ---
 
-## Transparency and appropriate reliance
+## Responsible AI, transparency and appropriate reliance
 
 Can you explain *why*, to a domain expert
 without an ML background?
@@ -388,7 +401,7 @@ stopped meaningfully checking. MCAS's pilots, exactly.
 
 ---
 
-## Documentation makes it real
+## Responsible AI, documentation makes it real
 
 **Model card** (Mitchell et al. 2019): intended use,
 limits, validated range, performance **by slice**.
@@ -398,7 +411,7 @@ limits, validated range, performance **by slice**.
 
 ---
 
-## Not a compliance checkbox
+## Responsible AI, not a compliance checkbox
 
 So the next engineer who inherits the system
 can find out what it's safe to trust it with,
@@ -406,7 +419,7 @@ without re-deriving that from an incident.
 
 ---
 
-## NIST AI RMF: a process, not a one-time list
+## Responsible AI, NIST AI RMF: a process, not a one-time list
 
 **Govern** → who's accountable
 **Map** → this system's context, who it affects
@@ -415,7 +428,7 @@ without re-deriving that from an incident.
 
 ---
 
-## The theme most often skipped
+## Responsible AI, the theme most often skipped
 
 **Knowing when not to deploy AI at all.**
 
@@ -424,7 +437,7 @@ can't rule it out → simpler method, or a human fully in charge.
 
 ---
 
-## What a practitioner should take from this
+## Responsible AI, what a practitioner should take from this
 
 Write the model/system card before it ships,
 not after someone asks.

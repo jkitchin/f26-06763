@@ -1,0 +1,13 @@
+schema: 1
+lecture: l10
+title: "Experiment tracking and hyperparameter search"
+source_notes: lectures/l10/notes.md
+# The notes are published, the item bank is not written yet. See
+# game/content/l06.yml for why this stub exists rather than nothing.
+status: unwritten
+serve: 0
+pool_version: 1
+provenance:
+  drafted_by: none
+  reviewed_by: none
+items: []

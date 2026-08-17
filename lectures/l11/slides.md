@@ -38,16 +38,14 @@ footer: "Systems & Toolchains for AI in Engineering"
 
 ---
 
-## Five weeks of everything but the model
+## Why this matters
 
 Today you finally write the model.
 
 A training loop is ~15 lines
 and about six ways to go silently wrong.
 
----
-
-## You have met this failure mode before
+**You have met this failure mode before.**
 
 A leaky scaler does not raise.
 A grouped split does not raise.
@@ -56,7 +54,7 @@ A missing `zero_grad()` does not raise either.
 
 ---
 
-## What it costs, measured today
+## Why this matters, what it costs, measured today
 
 | run | validation RMSE |
 |---|---|
@@ -66,9 +64,7 @@ A missing `zero_grad()` does not raise either.
 
 One line → **11% of the available improvement.**
 
----
-
-## The uncomfortable property
+**The uncomfortable property.**
 
 Every other tool in this course rejects bad input.
 A database refuses a malformed query.
@@ -81,12 +77,17 @@ graph you built**, including the accidental one.
 
 <!-- _class: section -->
 
-# Tensors, and the dtype
-## that will bite you
+# Tensors and dtype
 
 ---
 
-## A tensor is a NumPy array that knows two more things
+## Tensors and dtype
+
+<div class="definition">
+
+**Tensor**: an n-dimensional array with a dtype and a device, which is the unit every framework operation consumes and returns.
+
+</div>
 
 **Which device** it lives on.
 **What was done to it**, so it can be differentiated.
@@ -95,7 +96,7 @@ And it has a `dtype` NumPy would not have chosen.
 
 ---
 
-## The batch dimension comes first
+## Tensors and dtype, the batch dimension comes first
 
 `(N, features)` for an MLP
 `(N, channels, H, W)` for a 2D conv
@@ -104,9 +105,7 @@ And it has a `dtype` NumPy would not have chosen.
 Not a law: a **convention**, so a batch is one
 contiguous slab you can ship to a device.
 
----
-
-## Read a shape error as a sentence
+**Read a shape error as a sentence.**
 
 ```
 mat1 and mat2 shapes cannot be multiplied
@@ -121,7 +120,7 @@ downstream wanted a different orientation.
 
 ---
 
-## Now the trap
+## Tensors and dtype, now the trap
 
 ```python
 torch.tensor(3.14).dtype            # torch.float32
@@ -131,9 +130,7 @@ torch.tensor(np.float64(3.14)).dtype  # torch.float64
 NumPy defaults to float64.
 PyTorch defaults to float32.
 
----
-
-## This is not hypothetical
+**This is not hypothetical.**
 
 Today's autodiff figure was drafted to show
 "torch and JAX both match the analytic gradient."
@@ -146,7 +143,7 @@ between the two libraries.
 
 ---
 
-## It was two Python floats
+## Tensors and dtype, it was two Python floats
 
 `1.234` and a bare `rng.normal()`, both stored
 as float32 by `torch.tensor`.
@@ -156,9 +153,7 @@ float32 epsilon: **1.19 × 10⁻⁷**.
 
 Fix the two scalars → PyTorch matches at 1.7 × 10⁻¹⁸.
 
----
-
-## Why nothing warned you
+**Why nothing warned you.**
 
 float32 **promotes** to float64 on contact.
 
@@ -172,12 +167,17 @@ found it. Checking it at the boundary would.
 
 <!-- _class: section -->
 
-# Automatic differentiation,
-## demystified
+# Automatic differentiation
 
 ---
 
-## Small enough to differentiate by hand
+## Automatic differentiation
+
+<div class="definition">
+
+**Automatic differentiation**: recording each operation on a tape, then replaying it backwards to get exact gradients without hand-deriving anything.
+
+</div>
 
 $$z = Wx + b, \quad a = \tanh(z)$$
 $$\hat{y} = v \cdot a + c, \quad L = (\hat{y} - y)^2$$
@@ -186,7 +186,7 @@ Four parameter blocks. One example. One scalar loss.
 
 ---
 
-## The chain rule, in four lines
+## Automatic differentiation, the chain rule, in four lines
 
 $$\frac{\partial L}{\partial \hat{y}} = 2(\hat{y}-y)$$
 $$\frac{\partial L}{\partial v} = \frac{\partial L}{\partial \hat{y}}\, a
@@ -198,7 +198,7 @@ $$\frac{\partial L}{\partial W} = \frac{\partial L}{\partial z}\, x^{\top}$$
 
 ---
 
-## That reuse *is* reverse-mode autodiff
+## Automatic differentiation, that reuse *is* reverse-mode autodiff
 
 Forward pass: compute and **remember** each intermediate.
 
@@ -210,9 +210,7 @@ gives every parameter's derivative.
 
 [Goodfellow et al., *Deep Learning*, §6.5](https://www.deeplearningbook.org/contents/mlp.html)
 
----
-
-## The alternative: just perturb it
+**The alternative: just perturb it.**
 
 Two forward passes per parameter.
 And it is not exact: you are trading
@@ -223,7 +221,7 @@ Too small, catastrophic cancellation.
 
 ---
 
-## Four ways to get the same gradient
+## Automatic differentiation, four ways to get the same gradient
 
 ![w:1080](figures/autodiff-vs-fd.png)
 
@@ -232,7 +230,7 @@ Too small, catastrophic cancellation.
 
 ---
 
-## The numbers
+## Automatic differentiation, the numbers
 
 | method | error vs analytic |
 |---|---|
@@ -246,7 +244,7 @@ the exact answer was available.
 
 ---
 
-## Two designs, same mathematics
+## Automatic differentiation, two designs, same mathematics
 
 **PyTorch records a tape.** Operations on tensors with
 `requires_grad` are appended to a graph.
@@ -254,9 +252,7 @@ the exact answer was available.
 **JAX transforms functions.** `jax.grad(f)` returns a
 *new function* that computes the gradient.
 
----
-
-## PyTorch: mutable, accumulating
+**PyTorch: mutable, accumulating.**
 
 ```python
 loss = loss_fn(model(x), y)
@@ -267,7 +263,7 @@ optimizer.step()
 
 ---
 
-## JAX: functional, nothing to zero
+## Automatic differentiation, JAX: functional, nothing to zero
 
 ```python
 def loss(params, x, y):
@@ -283,7 +279,7 @@ No tape. No mutable `.grad`. **Nothing to forget.**
 
 ---
 
-## So *why* does PyTorch accumulate?
+## Automatic differentiation, so *why* does PyTorch accumulate?
 
 Not an oversight.
 
@@ -294,9 +290,7 @@ big for memory into micro-batches, call
 The API optimises for that. The common case
 pays one extra line.
 
----
-
-## `zero_grad()` is the line everyone omits once
+**`zero_grad()` is the line everyone omits once.**
 
 Gradient at step *k* becomes the **sum** of steps 1…*k*.
 The effective step size grows through the epoch.
@@ -306,7 +300,7 @@ like a hyperparameter problem.
 
 ---
 
-## Two more pieces of the API
+## Automatic differentiation, two more pieces of the API
 
 `torch.no_grad()`: stop recording the tape.
 Wrap every evaluation pass in it.
@@ -323,12 +317,17 @@ validation score another script cannot reproduce.
 
 <!-- _class: section -->
 
-# The anatomy of
-## a training loop
+# Anatomy of a training loop
 
 ---
 
-## Four objects
+## Anatomy of a training loop
+
+<div class="definition">
+
+**Training loop**: forward pass, loss, backward pass, optimizer step, and zeroing the gradient accumulator before the next iteration.
+
+</div>
 
 **`Dataset`**: `__len__` and `__getitem__`
 **`DataLoader`**: batching, shuffling, `num_workers`
@@ -340,7 +339,7 @@ For a table in memory you can skip the first two.
 
 ---
 
-## Five lines
+## Anatomy of a training loop, five lines
 
 ```python
 for xb, yb in loader:
@@ -353,7 +352,7 @@ for xb, yb in loader:
 
 ---
 
-## Losses and optimizers
+## Anatomy of a training loop, losses and optimizers
 
 `MSELoss`: large errors hurt quadratically
 `L1Loss`: they do not
@@ -367,7 +366,7 @@ for xb, yb in loader:
 
 ---
 
-## JAX writes the same loop inside out
+## Anatomy of a training loop, JAX writes the same loop inside out
 
 ```python
 def predict_one(params, x):        # no batch dimension at all
@@ -382,7 +381,7 @@ an axis you are mapping over, not a model property.
 
 ---
 
-## And it agrees with the loop it replaces
+## Anatomy of a training loop, and it agrees with the loop it replaces
 
 `vmap` vs an explicit Python loop over 256 examples:
 
@@ -392,7 +391,7 @@ Faster, too: one batched kernel instead of 256 small ones.
 
 ---
 
-## `jax.jit` is not a free lunch
+## Anatomy of a training loop, `jax.jit` is not a free lunch
 
 | workload | eager | jit | |
 |---|---|---|---|
@@ -410,12 +409,17 @@ Fusion pays when there are many small ops.
 
 <!-- _class: section -->
 
-# Devices, and what an
-## accelerator actually buys
+# Devices and accelerators
 
 ---
 
-## The rules are few
+## Devices and accelerators
+
+<div class="definition">
+
+**Device**: where a tensor lives. Moving between CPU and GPU is an explicit copy, and it costs more than the arithmetic on small models.
+
+</div>
 
 `model.to(device)`, `x.to(device)`: same device, or an error
 Anything you print or plot needs `.cpu()`
@@ -426,7 +430,7 @@ you **queued** the work.
 
 ---
 
-## The thing to internalise
+## Devices and accelerators, the thing to internalise
 
 # A GPU is a throughput device
 # with a fixed cost per launch.
@@ -436,7 +440,7 @@ It makes **wide** operations cheaper per element.
 
 ---
 
-## So where is the crossover?
+## Devices and accelerators, so where is the crossover?
 
 ![w:1050](figures/device-crossover.png)
 
@@ -445,7 +449,7 @@ It makes **wide** operations cheaper per element.
 
 ---
 
-## Today's model on the accelerator
+## Devices and accelerators, today's model on the accelerator
 
 | | ms/epoch |
 |---|---|
@@ -455,9 +459,7 @@ It makes **wide** operations cheaper per element.
 **2.5× slower** for moving to the accelerator.
 The crossover sits between 64 and 256 hidden units.
 
----
-
-## An honest caveat about these numbers
+**An honest caveat about these numbers.**
 
 Apple MPS on a laptop, because that is what
 generated these figures. A datacentre CUDA card
@@ -469,7 +471,7 @@ every accelerator has a crossover.
 
 ---
 
-## Which gives the practical rule
+## Devices and accelerators, which gives the practical rule
 
 Debug on **CPU**, tiny subset, few epochs.
 Then launch the real run on the GPU.
@@ -479,9 +481,7 @@ It is the correct choice.
 
 [Bourke, *Learn PyTorch for Deep Learning*](https://www.learnpytorch.io/)
 
----
-
-## Mixed precision, in one slide
+**Mixed precision, in one slide.**
 
 `torch.autocast` runs the arithmetic in fp16/bf16
 while keeping fp32 weights. Halves memory,
@@ -496,12 +496,11 @@ Reach for it when a model does not fit. Not before.
 
 <!-- _class: section -->
 
-# Does the net actually
-## beat the tree?
+# Does the net beat the tree?
 
 ---
 
-## The dataset was chosen to make this hard
+## Does the net beat the tree?
 
 **UCI Concrete Compressive Strength**, Yeh 1998.
 1,030 mixes → cement, slag, fly ash, water,
@@ -514,7 +513,7 @@ Exactly the trade a surrogate exists to make.
 
 ---
 
-## First: are these rows exchangeable?
+## Does the net beat the tree?, first: are these rows exchangeable?
 
 Group by the **seven mix components**, ignoring age.
 
@@ -524,9 +523,7 @@ Those cover **76% of all rows.**
 
 Plus **25 exact duplicate rows.**
 
----
-
-## You have seen this shape before
+**You have seen this shape before.**
 
 The same batch of concrete appears at
 3, 7, 28 and 90 days as separate rows.
@@ -539,7 +536,7 @@ in a different material.
 
 ---
 
-## How much scatter is even there?
+## Does the net beat the tree?, how much scatter is even there?
 
 8 settings have the same mix and age measured twice:
 differences of 0.89, 1.28, 1.48, 1.68, 1.97, 2.86, 3.44, 6.60 MPa.
@@ -552,7 +549,7 @@ the test's own reproducibility.
 
 ---
 
-## The comparison, run honestly
+## Does the net beat the tree?, the comparison, run honestly
 
 ![w:1100](figures/dl-vs-trees.png)
 
@@ -561,7 +558,7 @@ the test's own reproducibility.
 
 ---
 
-## Random k-fold: the tree wins
+## Does the net beat the tree?, random k-fold: the tree wins
 
 | model | RMSE |
 |---|---|
@@ -571,9 +568,7 @@ the test's own reproducibility.
 Gap **+0.41 ± 0.09** MPa. Over four standard errors.
 This is the result everyone expects.
 
----
-
-## GroupKFold by mix: they tie
+**GroupKFold by mix: they tie.**
 
 | model | RMSE |
 |---|---|
@@ -585,7 +580,7 @@ Smaller than its own standard error.
 
 ---
 
-## What changed, and why
+## Does the net beat the tree?, what changed, and why
 
 Both got worse. The **tree got worse faster**:
 it gained 1.27 MPa from the leak, the MLP 0.94.
@@ -598,7 +593,7 @@ near-duplicate row than a small MLP is.
 
 ---
 
-## Do not over-read this
+## Does the net beat the tree?, do not over-read this
 
 One dataset, 1,030 rows, is not a refutation.
 
@@ -610,9 +605,7 @@ on medium-sized tabular data.
 The narrower claim is the useful one: **check
 it is not a split artefact first.**
 
----
-
-## And one seed is not a result
+**And one seed is not a result.**
 
 The first version of this comparison ran one seed
 and showed the **MLP winning** under the honest split.
@@ -626,12 +619,17 @@ spread here is as large as the model-family gap.
 
 <!-- _class: section -->
 
-# Three ways a first
-## training loop dies
+# Three ways a training loop dies
 
 ---
 
-## All three, measured on one fold
+## Three ways a training loop dies
+
+<div class="definition">
+
+**Exploding and vanishing gradients**: updates so large the loss becomes NaN, or so small the parameters never move.
+
+</div>
 
 ![w:1120](figures/training-pathologies.png)
 
@@ -639,7 +637,7 @@ spread here is as large as the model-family gap.
 
 ---
 
-## 1. Forgetting `zero_grad()`
+## Three ways a training loop dies, 1. Forgetting `zero_grad()`
 
 17.8 MPa against 6.0, where predicting the
 training mean scores **19.2**.
@@ -650,9 +648,7 @@ working one earned.
 And it **oscillates** rather than diverging,
 so it reads as a tuning problem.
 
----
-
-## 2. The learning rate
+**2. The learning rate.**
 
 With plain SGD:
 
@@ -665,7 +661,7 @@ Total failure, not gradual. Nothing to diagnose.
 
 ---
 
-## But the boundary is fuzzy
+## Three ways a training loop dies, but the boundary is fuzzy
 
 At **lr = 1.0**, across six seed-and-loop
 combinations: `nan` in three, and divergence
@@ -677,9 +673,7 @@ A learning rate is not "stable". It is stable
 <!-- Which is the reproducibility argument again, arriving from a new direction.
      A single surviving run is not evidence. -->
 
----
-
-## 3. Unscaled inputs
+**3. Unscaled inputs.**
 
 Cement is in the hundreds of kg/m³.
 Superplasticizer is in single digits.
@@ -690,7 +684,7 @@ instead of 6.0.
 
 ---
 
-## Read that again
+## Three ways a training loop dies, read that again
 
 Adam's per-parameter step size **absorbs** the bug.
 
@@ -703,12 +697,11 @@ bad as it should be, and says nothing is wrong.
 
 <!-- _class: section -->
 
-# Where this
-## pushes back
+# Where this pushes back
 
 ---
 
-## Deep learning is not the default
+## Where this pushes back
 
 The tree trains in under a second, has no learning
 rate, no scaling requirement, no device to place,
@@ -718,9 +711,7 @@ Learn PyTorch because it is the only option once
 the input has structure a tree cannot exploit.
 That is L12.
 
----
-
-## Autodiff is exact, not free, not universal
+**Autodiff is exact, not free, not universal.**
 
 Reverse mode **stores every forward intermediate**,
 so memory scales with graph depth (hence checkpointing).
@@ -731,7 +722,7 @@ gradient, and nothing warns you.
 
 ---
 
-## JAX and PyTorch are not interchangeable
+## Where this pushes back, JAX and PyTorch are not interchangeable
 
 PyTorch: pretrained models, deployment tooling,
 the volume of examples. A6 assumes it.
@@ -743,9 +734,7 @@ a simulator, an ODE solve, a physical model.
 Cost: purity, `lax.cond`, immutable arrays,
 float32 by default. [Read Sharp Bits first.](https://docs.jax.dev/en/latest/notebooks/Common_Gotchas_in_JAX.html)
 
----
-
-## And the GPU is a tool, not a virtue
+**And the GPU is a tool, not a virtue.**
 
 A model that runs 2.5× slower on the accelerator
 is not an unusual case.

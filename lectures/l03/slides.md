@@ -34,11 +34,10 @@ footer: "Systems & Toolchains for AI in Engineering"
 <!-- _class: section -->
 
 # Why a database
-## and not a spreadsheet
 
 ---
 
-## The questions are one-liners
+## Why a database
 
 - Which sensor ran hottest last Tuesday?
 - How many readings did node 12 drop overnight?
@@ -49,7 +48,7 @@ The **shape of the data** is the hard part.
 
 ---
 
-## The tempting shape: one column per sensor
+## Why a database, the tempting shape: one column per sensor
 
 | ts | m1 | m2 | m3 | … | m54 |
 |---|---|---|---|---|---|
@@ -60,7 +59,7 @@ Falls apart on a real deployment.
 
 ---
 
-## Why wide falls apart
+## Why a database, why wide falls apart
 
 - New node → **add a column** → every query breaks
 - Node offline → column of blanks (offline? or zero?)
@@ -70,7 +69,7 @@ You cannot put a `WHERE` clause on a **column name**.
 
 ---
 
-## The quieter failure
+## Why a database, the quieter failure
 
 A CSV has no opinion about what belongs in a cell.
 
@@ -86,7 +85,7 @@ Nothing marks them impossible.
 
 ---
 
-## A schema is a contract
+## Why a database, a schema is a contract
 
 A database lets you state, once and **enforceably**:
 
@@ -102,11 +101,16 @@ into something you can **answer questions from and defend**.
 <!-- _class: section -->
 
 # The relational model
-## long beats wide
 
 ---
 
-## Two ideas on top of tables
+## The relational model
+
+<div class="definition">
+
+**Long format**: one row per (entity, time, quantity) measurement, rather than one column per sensor.
+
+</div>
 
 **Keys**
 
@@ -118,12 +122,18 @@ Enforced on every insert.
 
 ---
 
-## Integrity, enforced for you
+## The relational model, integrity, enforced for you
 
 ```sql
 INSERT INTO readings VALUES (999, now(), 'temperature', 21.0);
 -- ERROR: violates foreign key constraint "readings_sensor_id_fkey"
 ```
+
+<div class="definition">
+
+**Foreign key**: a column whose value must already exist in another table, so a reading cannot name a mote that does not exist.
+
+</div>
 
 A mote that isn't in `sensors` is rejected, not silently stored.
 And `(sensor_id, ts, variable)` as the primary key means
@@ -131,10 +141,15 @@ the **same reading twice** is a duplicate the database refuses.
 
 ---
 
-## Normalization
+## The relational model, normalization
 
-> Store each fact once, in the place it belongs,
-> and refer to it by key everywhere else.
+<div class="definition">
+
+**Normalization**: storing each fact once, in the place it belongs, and referring to it by key everywhere else.
+
+</div>
+
+
 
 - Location & unit don't change per reading → `sensors` table
 - Readings carry only a `sensor_id` pointer
@@ -147,7 +162,7 @@ Fix a calibration in **one row**, not two million.
 
 ---
 
-## The long form, in SQL
+## The relational model, the long form, in SQL
 
 ```sql
 CREATE TABLE sensors (             -- static per-mote metadata
@@ -167,7 +182,7 @@ Units and plausible ranges live in a small `variables` table.
 
 ---
 
-## Tidy vs typed
+## The relational model, tidy vs typed
 
 | Fully tidy | Typed columns |
 |---|---|
@@ -179,7 +194,7 @@ Both beat wide. Pick deliberately; justify it in A2.
 
 ---
 
-## The pitfall to resist
+## The relational model, the pitfall to resist
 
 Column names should never be **entities**
 (sensor ids, machine ids, run numbers).
@@ -195,12 +210,17 @@ Entities go in **rows**.
 
 <!-- _class: section -->
 
-# Types that carry
-## physical meaning
+# Types that carry meaning
 
 ---
 
-## Time: `timestamptz`, in UTC
+## Types that carry meaning
+
+<div class="definition">
+
+**timestamptz**: an instant in time stored in UTC, so it means the same thing wherever it is read.
+
+</div>
 
 `timestamp` = wall clock, no zone → **ambiguous**
 `timestamptz` = an instant, stored UTC → **well defined**
@@ -214,7 +234,7 @@ happened twice, or never.
 
 ---
 
-## Time punishes the overconfident
+## Types that carry meaning, time punishes the overconfident
 
 Case: the leap second of **30 June 2012**
 
@@ -223,7 +243,7 @@ Case: the leap second of **30 June 2012**
 
 ---
 
-## Who fell over
+## Types that carry meaning, who fell over and who didn't
 
 Reddit · LinkedIn · Mozilla · Yelp · Foursquare · StumbleUpon
 
@@ -231,10 +251,6 @@ Reddit · LinkedIn · Mozilla · Yelp · Foursquare · StumbleUpon
 → Qantas & Virgin Australia checked in passengers **by hand**
 
 [The Register, 2 Jul 2012](https://www.theregister.com/2012/07/02/leap_second_crashes_airlines/)
-
----
-
-## Who didn't
 
 Google saw it coming: spread the extra second across
 many tiny clock adjustments. A **"leap smear."**
@@ -248,7 +264,7 @@ Store UTC · use `timestamptz` · let tested code do the math.
 
 ---
 
-## `numeric` vs `double precision`
+## Types that carry meaning, `numeric` vs `double precision`
 
 | `double precision` | `numeric` |
 |---|---|
@@ -263,7 +279,7 @@ Measurement uncertainty ≫ float error.
 
 ---
 
-## `interval`: a real duration
+## Types that carry meaning, `interval`: a real duration
 
 `ts - lag(ts)` yields an **`interval`**, not a bare number.
 
@@ -272,7 +288,13 @@ No juggling epoch seconds by hand.
 
 ---
 
-## A typed column is not a validated one
+## Types that carry meaning, a typed column is not a validated one
+
+<div class="definition">
+
+**Type versus constraint**: a type says what shape a value has; a CHECK constraint says which values are allowed. Only the second one knows the instrument.
+
+</div>
 
 `double precision` accepts **386°C** as happily as 19.
 
@@ -283,7 +305,7 @@ and a threshold that knows the instrument.
 
 ---
 
-## Push the check into the schema
+## Types that carry meaning, push the check into the schema
 
 ```sql
 ALTER TABLE readings ADD CONSTRAINT plausible_value
@@ -299,7 +321,7 @@ Set the bound from the instrument, not from hope.
 
 ---
 
-## Voltage is a data-quality signal
+## Types that carry meaning, voltage is a data-quality signal
 
 - Batteries drain past **~2.4 V** over the month
 - Below that, the temperature channel **lies**
@@ -310,7 +332,7 @@ The cleaning rule isn't a guess. It's in the data.
 
 ---
 
-## So store the context
+## Types that carry meaning, so store the context
 
 Units and calibration live in the `sensors` table,
 **beside** the values they explain.
@@ -322,12 +344,11 @@ Units and calibration live in the `sensors` table,
 
 <!-- _class: section -->
 
-# SQL that answers
-## engineering questions
+# SQL for engineering questions
 
 ---
 
-## SQL is declarative
+## SQL for engineering questions
 
 You describe the **result** you want.
 The database decides **how** to compute it.
@@ -337,7 +358,7 @@ with no rewrite from you. (That's what an index changes.)
 
 ---
 
-## The vocabulary
+## SQL for engineering questions, the vocabulary
 
 - `SELECT` the columns
 - `FROM` the table, `JOIN` another by key
@@ -348,7 +369,7 @@ Almost every sensor question is a short combination of these.
 
 ---
 
-## Time bucketing with `date_trunc`
+## SQL for engineering questions, time bucketing with `date_trunc`
 
 Hourly average temperature per sensor:
 
@@ -367,7 +388,7 @@ GROUP  BY sensor_id, hour;
 
 ---
 
-## `HAVING`: filter the groups
+## SQL for engineering questions, `HAVING`: filter the groups
 
 Dropped motes = motes with too few readings.
 
@@ -384,9 +405,15 @@ ORDER  BY n;
 
 ---
 
-## Window functions
+## SQL for engineering questions, window functions
 
-Compute across neighbouring rows **without collapsing them**.
+<div class="definition">
+
+**Window function**: a computation across neighbouring rows that does not collapse them, so each row keeps its identity and sees its neighbours.
+
+</div>
+
+
 
 Each reading keeps its identity **and** sees its neighbours.
 
@@ -398,7 +425,7 @@ The part of SQL that makes time-series tractable.
 
 ---
 
-## `lag`: turn gaps into a column
+## SQL for engineering questions, `lag`: turn gaps into a column
 
 ```sql
 SELECT sensor_id, ts,
@@ -414,7 +441,7 @@ Any `gap` ≫ 31 s is a dropout, located in time.
 
 ---
 
-## Rolling average, by time not rows
+## SQL for engineering questions, rolling average, by time not rows
 
 ```sql
 avg(value) OVER (
@@ -429,7 +456,7 @@ PostgreSQL writes it almost as you'd say it.
 
 ---
 
-## `WHERE` + `CASE`: flag, don't just drop
+## SQL for engineering questions, `WHERE` + `CASE`: flag, don't just drop
 
 ```sql
 WHERE r.value < 0 OR r.value > 50   -- impossible indoors
@@ -444,7 +471,7 @@ Label rather than discard, when that's what you want.
 
 ---
 
-## `JOIN`: attach the context
+## SQL for engineering questions, `JOIN`: attach the context
 
 ```sql
 SELECT r.sensor_id, s.x_m, s.y_m, avg(r.value)
@@ -458,7 +485,7 @@ The reading's value, placed where it was measured.
 
 ---
 
-## Aggregates summarize a sensor
+## SQL for engineering questions, aggregates summarize a sensor
 
 ```sql
 SELECT sensor_id,
@@ -476,12 +503,11 @@ GROUP  BY sensor_id;
 
 <!-- _class: section -->
 
-# Loading, indexes,
-## and query cost
+# Loading, indexes, query cost
 
 ---
 
-## Getting data in: not a loop of INSERTs
+## Loading, indexes, query cost
 
 2M single-row `INSERT`s = 2M round trips = an afternoon.
 
@@ -499,7 +525,7 @@ Orders of magnitude faster.
 
 ---
 
-## The paths from Python
+## Loading, indexes, query cost, the paths from Python
 
 - **`psql`**: interactive client, `\copy` from the client side
 - **[`psycopg`](https://www.psycopg.org/psycopg3/docs/)**: direct driver, `cursor.copy()`
@@ -507,7 +533,7 @@ Orders of magnitude faster.
 
 ---
 
-## Real data resists the loader
+## Loading, indexes, query cost, real data resists the loader
 
 This file has:
 
@@ -520,7 +546,7 @@ Cleaning rules become **queries**, and the FK catches the rest.
 
 ---
 
-## The dominant query: a range scan
+## Loading, indexes, query cost, the dominant query: a range scan
 
 One sensor, one window of time.
 
@@ -530,10 +556,15 @@ even for a 100-row answer.
 
 ---
 
-## The B-tree index
+## Loading, indexes, query cost, the B-tree index
 
-Keeps keys **sorted**, so a range lookup is
-a descent + a walk. Cost tracks the **result**, not the table.
+<div class="definition">
+
+**B-tree index**: an ordered structure that keeps keys sorted, so a range lookup is a descent plus a walk and its cost tracks the result size, not the table size.
+
+</div>
+
+
 
 For per-sensor time ranges:
 
@@ -551,7 +582,7 @@ Composite, **in that order**: cluster by sensor, sort by time.
 
 ---
 
-## `EXPLAIN ANALYZE`: read two things
+## Loading, indexes, query cost, `EXPLAIN ANALYZE`: read two things
 
 Run the query; print the real plan and timings.
 
@@ -570,7 +601,7 @@ WHERE sensor_id = 5
 
 ---
 
-## Reading the plan
+## Loading, indexes, query cost, reading the plan
 
 Before the index (9.1M rows):
 
@@ -592,7 +623,7 @@ Execution Time: ~0.04 ms
 
 ---
 
-## Indexes are not free
+## Loading, indexes, query cost, indexes are not free
 
 - Each one costs **space**
 - Each one slows every **write** (maintained on insert)
@@ -605,7 +636,7 @@ confirm with `EXPLAIN ANALYZE`.
 
 ---
 
-## When time-access dominates: hypertables
+## Loading, indexes, query cost, when time-access dominates: hypertables
 
 **[TimescaleDB](https://docs.timescale.com/use-timescale/latest/hypertables/)** auto-partitions a table into
 time **chunks**.
@@ -617,7 +648,7 @@ Same SQL, same relational model, tuned for time-series.
 
 ---
 
-## Today's database is OLTP
+## Loading, indexes, query cost, today's database is OLTP
 
 Optimized for **many correct writes** and **point/range reads**:
 transactions, joins, constraints, one row at a time.

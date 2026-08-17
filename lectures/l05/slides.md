@@ -38,7 +38,7 @@ footer: "Systems & Toolchains for AI in Engineering"
 
 ---
 
-## The spreadsheet the engineer gets handed
+## Why this matters
 
 1,567 manufacturing runs. 590 sensor columns.
 
@@ -55,7 +55,7 @@ It runs. It even finishes, on 1,567 rows.
 
 ---
 
-## Then the data grows
+## Why this matters, then the data grows
 
 Next month: 15,670 rows. A second fab line.
 
@@ -63,9 +63,7 @@ The "quick script" goes from 4 seconds to 7 minutes.
 
 Nothing about this is a modeling problem.
 
----
-
-## It's an architecture problem
+**It's an architecture problem.**
 
 A Python loop pays interpreter overhead
 **590 times a row, every row.**
@@ -73,9 +71,7 @@ A Python loop pays interpreter overhead
 The honest description of the work is a handful
 of whole-column operations.
 
----
-
-## Judgment cuts both ways
+**Judgment cuts both ways.**
 
 - Loop instead of vectorizing → too slow, needlessly
 - Spark instead of a laptop → too complex, needlessly
@@ -86,7 +82,7 @@ Same mistake twice: not matching the tool to the data.
 
 ---
 
-## Hear it from the source
+## Why this matters, hear it from the source
 
 2013 talk, revisited in a 2017 post by
 Wes McKinney, who started pandas in 2008:
@@ -98,9 +94,7 @@ Wes McKinney, who started pandas in 2008:
 <!-- The list is from a Nov 2013 talk; the 2017 post walks it item by item and
      explains what he built instead. Don't say "he published a list in 2017". -->
 
----
-
-## Three of the eleven, verbatim
+**Three of the eleven, verbatim.**
 
 - "No support for memory-mapped datasets"
 - "'Slow', limited multicore algorithms for large datasets"
@@ -110,7 +104,7 @@ Hold that last one. It's what "lazy" answers.
 
 ---
 
-## And the memory number
+## Why this matters, and the memory number
 
 > you should have **5 to 10 times as much RAM**
 > as the size of your dataset
@@ -129,12 +123,17 @@ That post is the design document for **Apache Arrow**.
 <!-- _class: section -->
 
 # Dataframe fundamentals
-## vectorized
 
 ---
 
-## Vectorization
+## Dataframe fundamentals
 
+
+<div class="definition">
+
+**Vectorization**: running one operation over a whole array in compiled code, instead of looping in Python.
+
+</div>
 ```python
 df['temp_c'] = (df['temp_f'] - 32) * 5 / 9
 ```
@@ -144,7 +143,7 @@ No per-element Python dispatch.
 
 ---
 
-## So we measured it
+## Dataframe fundamentals, so we measured it
 
 ![w:920](figures/vectorization-scaling.png)
 
@@ -153,7 +152,7 @@ No per-element Python dispatch.
 
 ---
 
-## The numbers, at 400,000 rows
+## Dataframe fundamentals, the numbers, at 400,000 rows
 
 | | vs vectorized |
 |---|---|
@@ -171,7 +170,7 @@ No per-element Python dispatch.
 
 ---
 
-## The same idea, twice more
+## Dataframe fundamentals, the same idea, twice more
 
 **`groupby`**: "mean reading per run, per shift, per lot"
 = one groupby + one aggregate. Don't hand-roll the buckets.
@@ -182,7 +181,7 @@ never a particular sensor or run.
 
 ---
 
-## Reshaping: wide ↔ long
+## Dataframe fundamentals, reshaping: wide ↔ long
 
 SECOM arrives **wide**: one column per sensor.
 Right shape for a model. Wrong shape for
@@ -196,9 +195,7 @@ long = wide.melt(id_vars=['run_id', 'label'],
 Reshape explicitly. Don't keep two copies that drift.
 [pandas reshaping docs](https://pandas.pydata.org/docs/user_guide/reshaping.html)
 
----
-
-## The pitfall: `.apply` isn't vectorized
+**The pitfall: `.apply` isn't vectorized.**
 
 ```python
 df.apply(lambda row: row['a'] + row['b'], axis=1)
@@ -209,7 +206,7 @@ writing the loop by hand.**
 
 ---
 
-## Why it's worse than the loop
+## Dataframe fundamentals, why it's worse than the loop
 
 `axis=1` builds a **whole `Series` per row**
 just to pass into your function.
@@ -227,12 +224,11 @@ irregular logic with no column expression. Not arithmetic.
 
 <!-- _class: section -->
 
-# Polars and the
-## lazy execution model
+# Polars and lazy execution
 
 ---
 
-## Why a new dataframe library
+## Polars and lazy execution
 
 pandas (2008): NumPy arrays, often boxed objects
 for strings/nulls, mostly single-threaded.
@@ -242,7 +238,13 @@ storage, multithreaded by default.**
 
 ---
 
-## The key distinction: eager vs. lazy
+## Polars and lazy execution, the key distinction: eager vs. lazy
+
+<div class="definition">
+
+**Lazy evaluation**: building a plan of the whole query first, so an optimizer can rewrite it before any data moves.
+
+</div>
 
 **Eager** (`pl.read_csv`): every step runs immediately.
 
@@ -259,7 +261,13 @@ storage, multithreaded by default.**
 
 ---
 
-## What the optimizer does with it
+## Polars and lazy execution, what the optimizer does with it
+
+<div class="definition">
+
+**Predicate pushdown**: moving a filter as close to the data source as possible, so rows are never read rather than read and discarded.
+
+</div>
 
 **Predicate pushdown**: move `filter` as early as possible,
 often into the file reader itself.
@@ -272,7 +280,7 @@ it computes **less**, having seen the whole query first.
 
 ---
 
-## Expressions are what make this possible
+## Polars and lazy execution, expressions are what make this possible
 
 ```python
 pl.col("sensor_12").mean()          # not a value
@@ -286,9 +294,7 @@ inspect, combine, and compile.
 590 of them run together, in parallel, **in one pass.**
 [Polars expressions](https://docs.pola.rs/user-guide/expressions/)
 
----
-
-## So how much does lazy actually buy you?
+**So how much does lazy actually buy you?.**
 
 | rows | Polars vs pandas | Dask vs pandas |
 |---|---|---|
@@ -300,7 +306,7 @@ Every performance claim here has a **regime**.
 
 ---
 
-## Where the 2× comes from
+## Polars and lazy execution, where the 2× comes from
 
 - The read: ~40 ms vs pandas' ~75 ms
 - The stats: **3 passes → 1 pass**, ≈4× on that portion
@@ -308,9 +314,7 @@ Every performance claim here has a **regime**.
 pandas asks each column for distinct count, then
 missing count, then mean. Three walks over the frame.
 
----
-
-## The trap: schema inference
+**The trap: schema inference.**
 
 ```
 ComputeError: could not parse `4.1955`
@@ -322,7 +326,7 @@ The decimal shows up on row **1,458** of 1,567.
 
 ---
 
-## Two fixes, not equally good
+## Polars and lazy execution, two fixes, not equally good
 
 | approach | read | outcome |
 |---|---|---|
@@ -339,7 +343,13 @@ Declaring beats inferring: 3× faster **and** unsurprisable.
 
 ---
 
-## Interop: Arrow ≠ Parquet
+## Polars and lazy execution, interop: Arrow ≠ Parquet
+
+<div class="definition">
+
+**Apache Arrow**: an in-memory columnar format. Parquet is the on-disk one; they are not the same thing.
+
+</div>
 
 **Arrow** = in-memory, uncompressed, CPU reads it directly.
 **Parquet** = on-disk, compressed, must be decoded.
@@ -356,12 +366,11 @@ a library boundary is cheap. Pick each stage's tool on merit.
 
 <!-- _class: section -->
 
-# Designing a
-## batch pipeline
+# Designing a batch pipeline
 
 ---
 
-## Four stages
+## Designing a batch pipeline
 
 **ingest** → **clean** → **transform** → **persist**
 
@@ -372,7 +381,7 @@ Debug stage 3 without rerunning stages 1 and 2.
 
 ---
 
-## What `clean` actually removes
+## Designing a batch pipeline, what `clean` actually removes
 
 ![w:880](figures/secom-column-triage.png)
 
@@ -381,7 +390,7 @@ Debug stage 3 without rerunning stages 1 and 2.
 
 ---
 
-## Two independent failure modes
+## Designing a batch pipeline, two independent failure modes
 
 | reason | columns |
 |---|---|
@@ -395,7 +404,13 @@ that reports intermittently. Different bugs.
 
 ---
 
-## Idempotency
+## Designing a batch pipeline, idempotency
+
+<div class="definition">
+
+**Idempotency**: running a stage twice produces the same result as running it once.
+
+</div>
 
 Running a stage twice on the same input
 produces the **same output, byte for byte.**
@@ -412,7 +427,7 @@ requirement, not a nicety.
 
 ---
 
-## Case: one server out of eight
+## Designing a batch pipeline, case: one server out of eight
 
 **Knight Capital Americas, 1 August 2012.**
 \$460M lost in ~45 minutes.
@@ -421,9 +436,7 @@ requirement, not a nicety.
 
 [SEC Release No. 70694](https://www.sec.gov/litigation/admin/2013/34-70694.pdf)
 
----
-
-## The deployment
+**The deployment.**
 
 New code for **SMARS**, its order router, to support
 NYSE's Retail Liquidity Program launching that day.
@@ -437,7 +450,7 @@ One technician did not copy it to the eighth.
 
 ---
 
-## Mistake 1: the repurposed flag
+## Designing a batch pipeline, mistake 1: the repurposed flag
 
 The new code reused a flag that used to activate
 an old feature, **Power Peg**.
@@ -445,9 +458,7 @@ an old feature, **Power Peg**.
 Unused since 2003. Never deleted.
 Still "present and callable."
 
----
-
-## Mistake 2: dead code nobody retested
+**Mistake 2: dead code nobody retested.**
 
 2005: Knight moved the function counting
 already-filled shares to an earlier point.
@@ -459,7 +470,7 @@ Dead **and** broken, for seven years.
 
 ---
 
-## The result
+## Designing a batch pipeline, the result
 
 **212** parent orders into the eighth server.
 
@@ -468,9 +479,7 @@ Dead **and** broken, for seven years.
 
 \$3.5B unintended long, \$3.15B short.
 
----
-
-## The signal that existed
+**The signal that existed.**
 
 **8:01 a.m.**, 90 minutes before the open:
 97 automated emails, "Power Peg disabled."
@@ -481,7 +490,7 @@ Dead **and** broken, for seven years.
 
 ---
 
-## Three habits, all of them A3
+## Designing a batch pipeline, three habits, all of them A3
 
 A rollout across 8 machines **is** a batch job whose
 "rows" are servers. 7-of-8 looked exactly like 8-of-8.
@@ -498,7 +507,7 @@ A rollout across 8 machines **is** a batch job whose
 
 ---
 
-## Caching to Parquet between stages
+## Designing a batch pipeline, caching to Parquet between stages
 
 Rerunning `ingest` + `clean` every time you
 iterate on `transform` wastes minutes,
@@ -511,11 +520,10 @@ Persist each stage. Check the cache before recomputing.
 <!-- _class: section -->
 
 # Orchestration
-## when a plain DAG is enough
 
 ---
 
-## Every multi-stage pipeline is a DAG
+## Orchestration
 
 Steps, dependencies, no step depends on its own output.
 The oldest tool that takes this seriously:
@@ -532,7 +540,7 @@ clean.parquet: ingest.parquet clean.py
 
 ---
 
-## What Prefect / Dagster add
+## Orchestration, what Prefect / Dagster add
 
 For one author on one machine, that Makefile is often
 **enough.** Correctly sized, not under-powered.
@@ -552,11 +560,10 @@ happens when a stage fails at 3 a.m.
 <!-- _class: section -->
 
 # Scaling out
-## without a cluster
 
 ---
 
-## Where this all comes from
+## Scaling out
 
 **[MapReduce](https://research.google.com/archive/mapreduce-osdi04.pdf)** (Dean & Ghemawat, OSDI 2004):
 split into partitions, map each independently, reduce.
@@ -568,16 +575,20 @@ between **every** stage. Awkward for anything iterative.
 
 ---
 
-## Spark's fix
+## Scaling out, spark's fix
 
 Zaharia et al., UC Berkeley AMPLab, 2012:
 **[Resilient Distributed Datasets](https://www.usenix.org/system/files/conference/nsdi12/nsdi12-final138.pdf).**
 
 Keep intermediate data in memory across stages.
 
----
+**Lineage-based fault tolerance.**
 
-## Lineage-based fault tolerance
+<div class="definition">
+
+**Lineage**: the recorded chain of operations that produced a partition, so a lost one can be recomputed rather than replicated.
+
+</div>
 
 Record the transformations that produced a partition.
 
@@ -586,7 +597,7 @@ durability without copying the data upfront.
 
 ---
 
-## Two mechanics that recur everywhere
+## Scaling out, two mechanics that recur everywhere
 
 **Partitioning**: split data into independent chunks.
 Choose the key so related rows land together.
@@ -594,9 +605,7 @@ Choose the key so related rows land together.
 **Shuffle**: rows scattered across partitions
 have to be gathered, expensive, over the network.
 
----
-
-## Ask this of every operation: `mean` or `nunique`?
+**Ask this of every operation: `mean` or `nunique`?.**
 
 `mean` → **reduction.** Each partition reports a sum
 and a count. Cheap, parallel, no talking.
@@ -608,7 +617,7 @@ its `7.2` appears elsewhere. Dask builds one per column.
 
 ---
 
-## Measured, on 1,253 rows
+## Scaling out, measured, on 1,253 rows
 
 | 590 columns | time | tasks (100 cols) |
 |---|---|---|
@@ -620,7 +629,7 @@ You wait on the scheduler, not the arithmetic.
 
 ---
 
-## How you know it's overhead, not work
+## Scaling out, how you know it's overhead, not work
 
 ![w:1000](figures/dask-overhead.png)
 
@@ -630,7 +639,7 @@ You wait on the scheduler, not the arithmetic.
 
 ---
 
-## Dask DataFrame, and Spark
+## Scaling out, dask DataFrame, and Spark
 
 Dask partitions a big table into many ordinary
 pandas frames. Lazy graph; nothing runs until `.compute()`.
@@ -641,9 +650,7 @@ pandas frames. Lazy graph; nothing runs until `.compute()`.
 Spark: same role, larger scale. JVM runtime, its own
 Catalyst optimizer, much bigger operational footprint.
 
----
-
-## Overhead paid before the work starts
+**Overhead paid before the work starts.**
 
 Partitioning, shuffles, a scheduler:
 all overhead paid **before** one useful byte is processed.
@@ -657,7 +664,7 @@ SECOM is a few megabytes.
 
 ---
 
-## Don't take it from me
+## Scaling out, don't take it from me
 
 Dask's own best-practices page.
 First section title, in full:
@@ -668,7 +675,7 @@ First section title, in full:
 
 ---
 
-## Their words
+## Scaling out, their words
 
 > For data that fits into RAM, pandas can often be
 > faster and easier to use than Dask DataFrame.
@@ -686,12 +693,11 @@ First section title, in full:
 
 <!-- _class: section -->
 
-# Where this
-## pushes back
+# Where this pushes back
 
 ---
 
-## Polars vs. pandas
+## Where this pushes back
 
 | pandas | Polars |
 |---|---|
@@ -702,7 +708,7 @@ First section title, in full:
 
 ---
 
-## When pandas is still the right call
+## Where this pushes back, when pandas is still the right call
 
 Collaborators, codebase, or the next library
 in the chain only speaks pandas.
@@ -712,9 +718,7 @@ Shared Arrow layout → converting later is cheap.
 
 <!-- The ecosystem argument is the real one. Nobody migrates for 2x. -->
 
----
-
-## Distributed systems: the costs
+**Distributed systems: the costs.**
 
 - A scheduler to reason about
 - A new failure mode: a worker dying mid-shuffle
@@ -724,7 +728,7 @@ Shared Arrow layout → converting later is cheap.
 
 ---
 
-## Lazy evaluation moves the error
+## Where this pushes back, lazy evaluation moves the error
 
 A bad expression in a lazy chain often doesn't
 raise until `.collect()` / `.compute()`,
@@ -732,9 +736,7 @@ lines away from the mistake.
 
 Eager pandas fails **at the line**. Genuinely easier to debug.
 
----
-
-## Caching isn't free either
+**Caching isn't free either.**
 
 "Delete the cache when anything upstream changes"
 is easy to state, easy to get wrong.
@@ -742,9 +744,7 @@ is easy to state, easy to get wrong.
 A stale cache that returns yesterday's answer
 is worse than no cache: it fails **quietly**.
 
----
-
-## What a practitioner should take from this
+**What a practitioner should take from this.**
 
 Reach for Polars when profiling shows a real,
 columnar bottleneck.
@@ -757,7 +757,7 @@ Today's demo lets you test it in five minutes.
 
 ---
 
-## And check when the benchmark last ran
+## Where this pushes back, and check when the benchmark last ran
 
 The much-linked `h2oai.github.io/db-benchmark` says
 it "runs regularly... and automatically updates."
