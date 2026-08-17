@@ -41,7 +41,7 @@ footer: "Systems & Toolchains for AI in Engineering"
 
 ---
 
-## A code freeze
+## Why this matters
 
 July 2025. A founder tells Replit's AI coding
 agent: **no more edits** while he's away.
@@ -50,7 +50,7 @@ The agent had database access, and a goal.
 
 ---
 
-## What happened next
+## Why this matters, what happened next
 
 Widely reported: the agent ran a command
 that wiped the **production database**.
@@ -59,7 +59,7 @@ Weeks of real user data, gone.
 
 ---
 
-## The part that makes it worse
+## Why this matters, the part that makes it worse
 
 According to the account: the agent's own
 status updates said everything was fine.
@@ -70,7 +70,7 @@ Replit's CEO publicly acknowledged the incident.
 
 ---
 
-## The fix Replit announced
+## Why this matters, the fix Replit announced
 
 Automatic backup/restore. A **planning** mode
 separated from an **acting** mode.
@@ -80,7 +80,7 @@ unless a human explicitly grants otherwise.
 
 ---
 
-## What's different about today's session
+## Why this matters, what's different about today's session
 
 Every session so far: one call to a model, in and out, done.
 
@@ -89,7 +89,7 @@ what to do next. No human approving each step.
 
 ---
 
-## Nothing about the model needs to be malicious
+## Why this matters, nothing about the model needs to be malicious
 
 A model that occasionally makes a bad call
 is an accepted cost of using one at all.
@@ -99,7 +99,7 @@ write access and no one watching** is different.
 
 ---
 
-## This session's actual subject
+## Why this matters, this session's actual subject
 
 Not "can a model use a tool." You already know it can.
 
@@ -110,12 +110,17 @@ is bounded, recoverable, and visible, not catastrophic.
 
 <!-- _class: section -->
 
-# What "agent"
-## means here
+# What "agent" means here
 
 ---
 
-## Workflow vs. agent
+## What "agent" means here
+
+<div class="definition">
+
+**Agent**: a loop in which a model chooses a tool, your code executes it, and the result returns to the model until a stop condition is met.
+
+</div>
 
 **Workflow**: you write the control flow.
 The model fills in one step.
@@ -125,7 +130,7 @@ call to call, from inside its own output.
 
 ---
 
-## The defining property
+## What "agent" means here, the defining property
 
 Not intelligence.
 
@@ -134,7 +139,7 @@ your source file, or the model's output.
 
 ---
 
-## A spectrum, not a switch
+## What "agent" means here, a spectrum, not a switch
 
 One tool call bolted onto a fixed pipeline:
 barely past "workflow."
@@ -144,7 +149,7 @@ revises: near the "agent" end.
 
 ---
 
-## The rule from Anthropic's own guidance
+## What "agent" means here, the rule from Anthropic's own guidance
 
 "Building Effective Agents," 2024:
 
@@ -155,7 +160,7 @@ workflow genuinely can't express the task.
 
 ---
 
-## Not because it demos well
+## What "agent" means here, not because it demos well
 
 Same logic as Dask over pandas in L5:
 
@@ -167,11 +172,10 @@ Pick the heavier tool because the simpler one
 <!-- _class: section -->
 
 # The tool-calling loop
-## concretely
 
 ---
 
-## Five steps, repeated
+## The tool-calling loop
 
 1. Send messages + tool definitions
 2. Model returns a tool request, or a final answer
@@ -181,7 +185,7 @@ Pick the heavier tool because the simpler one
 
 ---
 
-## In code
+## The tool-calling loop, in code
 
 ```python
 messages = [{'role': 'user', 'content': task}]
@@ -196,7 +200,7 @@ while True:
 
 ---
 
-## The line worth reading twice
+## The tool-calling loop, the line worth reading twice
 
 `harness_execute`.
 
@@ -205,7 +209,7 @@ It only ever **asks**.
 
 ---
 
-## Where every guardrail attaches
+## The tool-calling loop, where every guardrail attaches
 
 The boundary between what the model **asks for**
 and what your code **does**.
@@ -217,12 +221,17 @@ side read-only.
 
 <!-- _class: section -->
 
-# Designing tools
-## an LLM can use correctly
+# Designing tools an LLM can use
 
 ---
 
-## A tool is a function *plus a prompt*
+## Designing tools an LLM can use
+
+<div class="definition">
+
+**Tool schema**: the typed description of a function the model may call. It is a prompt as much as an interface.
+
+</div>
 
 The description is what the model reads
 to decide **when** and **how** to call it.
@@ -232,7 +241,7 @@ look like "the model is dumb." It's a spec bug.
 
 ---
 
-## Bad vs. good, side by side
+## Designing tools an LLM can use, bad vs. good, side by side
 
 | Bad | Good |
 |---|---|
@@ -240,7 +249,7 @@ look like "the model is dumb." It's a spec bug.
 
 ---
 
-## Type and validate every argument
+## Designing tools an LLM can use, type and validate every argument
 
 JSON Schema: integer with min/max, enum for a
 restricted variable name.
@@ -250,7 +259,7 @@ itself. Request `strict` validation where supported.
 
 ---
 
-## The most consequential design decision
+## Designing tools an LLM can use, the most consequential design decision
 
 What does a tool do on invalid input?
 
@@ -259,7 +268,7 @@ What does a tool do on invalid input?
 
 ---
 
-## Why: a crash stops the whole agent
+## Designing tools an LLM can use, why: a crash stops the whole agent
 
 A missing mote, an out-of-range input:
 return an error the model can read and react to.
@@ -269,7 +278,7 @@ It fails the *entire* loop, on the first mistake.
 
 ---
 
-## The pitfall
+## Designing tools an LLM can use, the pitfall
 
 A description written for a human reader
 ≠ a description written for the model calling it.
@@ -281,19 +290,18 @@ Only the string in the schema.
 
 <!-- _class: section -->
 
-# Planning
-## patterns
+# Planning patterns
 
 ---
 
-## Single-step tool use
+## Planning patterns
 
 One tool, called once. The right shape
 when the task genuinely resolves in one lookup.
 
 ---
 
-## ReAct: reason, then act
+## Planning patterns, ReAct: reason, then act
 
 Yao et al., 2022: interleave a visible reasoning
 trace with each action.
@@ -305,7 +313,7 @@ next call. Auditable, one step at a time.
 
 ---
 
-## Plan-then-execute
+## Planning patterns, plan-then-execute
 
 Produce the **full plan** before executing any of it.
 
@@ -314,7 +322,7 @@ is expensive to discover late.
 
 ---
 
-## When explicit planning is wasted motion
+## Planning patterns, when explicit planning is wasted motion
 
 Short tasks, where reasoning and acting in
 lockstep would've caught a bad turn just as fast.
@@ -323,12 +331,17 @@ lockstep would've caught a bad turn just as fast.
 
 <!-- _class: section -->
 
-# Bounding
-## the loop
+# Bounding the loop
 
 ---
 
-## An unbounded loop is not a feature
+## Bounding the loop
+
+<div class="definition">
+
+**Step budget**: a hard cap on tool calls, so a loop that is not converging stops rather than burning money at machine speed.
+
+</div>
 
 It's an unmanaged liability.
 
@@ -337,7 +350,7 @@ to not be able to forget.
 
 ---
 
-## Four kinds of bound
+## Bounding the loop, four kinds of bound
 
 **Max-step budget**: stop after N tool calls
 **Cost/token budget**: stop at a dollar line
@@ -346,7 +359,7 @@ to not be able to forget.
 
 ---
 
-## Loop detection, specifically
+## Bounding the loop, loop detection, specifically
 
 Same tool. Same arguments. Same error. Again.
 
@@ -355,14 +368,14 @@ and breaks after the third identical failure.
 
 ---
 
-## The harness decides, not the model
+## Bounding the loop, the harness decides, not the model
 
 A model that hasn't noticed it's stuck after
 two identical failures won't notice on the third.
 
 ---
 
-## Log every step
+## Bounding the loop, log every step
 
 Prompt, tool call, arguments, result, token usage.
 
@@ -373,12 +386,11 @@ An agent trace is a run, same as a training run.
 
 <!-- _class: section -->
 
-# Determinism
-## and testing
+# Determinism and testing
 
 ---
 
-## Low temperature for tool selection
+## Determinism and testing
 
 Choosing which tool, with what arguments,
 is closer to classification than creative writing.
@@ -388,14 +400,14 @@ on identical inputs. Nothing else.
 
 ---
 
-## Unit-test every tool, independently of the model
+## Determinism and testing, unit-test every tool, independently of the model
 
 Plain Python functions. Test them the way
 you test any function. No model in the loop.
 
 ---
 
-## Why this separation matters
+## Determinism and testing, why this separation matters
 
 Tool fails its unit test → the tool is wrong.
 No model behavior fixes that.
@@ -405,7 +417,7 @@ bug's in the loop, the prompt, or the model's choices.
 
 ---
 
-## Record traces
+## Determinism and testing, record traces
 
 Without the full step-by-step log,
 that second class of bug is not diagnosable.
@@ -414,12 +426,11 @@ that second class of bug is not diagnosable.
 
 <!-- _class: section -->
 
-# Where this
-## pushes back
+# Where this pushes back
 
 ---
 
-## Every tool call is latency and cost
+## Where this pushes back
 
 A 4-step loop = at minimum 4 round trips to a
 model + whatever the tools themselves take.
@@ -429,7 +440,7 @@ genuinely stopped being enough. Not by default.
 
 ---
 
-## A working demo proves the harness, not the model
+## Where this pushes back, a working demo proves the harness, not the model
 
 This session's demo is provably correct against
 a model that **cannot reason at all**.
@@ -439,7 +450,7 @@ that's A10 and L20's evaluation section.
 
 ---
 
-## Determinism is a preference, not a guarantee
+## Where this pushes back, determinism is a preference, not a guarantee
 
 Low temperature: more consistent, not identical.
 
@@ -448,7 +459,7 @@ behavior on the exact same prompt. No version bump.
 
 ---
 
-## A bounded loop is a limited loop, not a safe one
+## Where this pushes back, a bounded loop is a limited loop, not a safe one
 
 A step budget stops it running forever.
 
@@ -457,7 +468,7 @@ It does not stop it doing something harmful
 
 ---
 
-## What a practitioner should take from this
+## Where this pushes back, what a practitioner should take from this
 
 Build the loop, the schemas, the bounds first.
 Prove them without a real model call.

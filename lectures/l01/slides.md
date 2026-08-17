@@ -30,7 +30,13 @@ footer: "Systems & Toolchains for AI in Engineering"
 
 ---
 
-## The picture that started this course
+<!-- _class: section -->
+
+# Why the model is the small box
+
+---
+
+## Why the model is the small box
 
 > "The box labeled 'ML Code' is actually tiny
 > in proportion to the rest of the system."
@@ -47,7 +53,7 @@ Sculley et al., NeurIPS 2015
 
 ---
 
-## An aside on that claim
+## Why the model is the small box, the number that is not in the paper
 
 You will see this cited as **"less than 10% is ML code."**
 
@@ -60,7 +66,7 @@ That number is **not in the paper.**
 
 ---
 
-## The stages
+## Why the model is the small box, the stages
 
 **data → storage → pipelines → features → training → evaluation → deployment → monitoring**
 
@@ -70,7 +76,7 @@ That number is **not in the paper.**
 
 ---
 
-## Where failures actually cluster
+## Why the model is the small box, where failures cluster
 
 Not in the model class. In the joints:
 
@@ -78,18 +84,21 @@ Not in the model class. In the joints:
 - Feature computed one way in training, another in serving
 - A source silently starts returning nulls
 
-**Integration failures.** Cross-validation cannot see them.
+<div class="definition">
+
+**Integration failure**: a fault in the joints between components, not inside any one of them. Cross-validation cannot see it.
+
+</div>
 
 ---
 
 <!-- _class: section -->
 
-# Case 1
-## The model was not involved
+# Case 1: Public Health England
 
 ---
 
-## Public Health England, September 2020
+## Case 1: Public Health England
 
 Pipeline: commercial labs → PHE → contact tracing
 
@@ -101,7 +110,7 @@ Pipeline: commercial labs → PHE → contact tracing
 
 ---
 
-## What that meant in practice
+## Case 1: Public Health England, what that meant
 
 - Several rows per test result
 - So ~**1,400 cases** per template
@@ -113,7 +122,7 @@ No error. No rejection. Just gone.
 
 ---
 
-## The cost
+## Case 1: Public Health England, the cost
 
 **15,841** positive cases, 25 Sep to 2 Oct 2020
 
@@ -126,7 +135,7 @@ No error. No rejection. Just gone.
 
 ---
 
-## Read the failure carefully
+## Case 1: Public Health England, read the failure carefully
 
 Every model downstream computed **correctly**
 on the data it received.
@@ -139,35 +148,38 @@ thing in the pipeline:
 
 ---
 
-## Three names worth carrying
+## Case 1: Public Health England, three names worth carrying
 
-- **Glue code**: connective tissue that only moves data; dominates the codebase
-- **Pipeline jungles**: glue accreting without redesign
-- **Undeclared consumers**: someone depends on your output, you do not know they exist
+<div class="definition">
 
-Hold onto the third one.
+**Glue code**: connective tissue that only moves data between components. It dominates the codebase.
+
+</div>
+
+<div class="definition">
+
+**Undeclared consumer**: someone depends on your output and you do not know they exist.
+
+</div>
+
+**Pipeline jungles**: glue accreting without redesign.
+
+Hold onto the undeclared consumer.
 
 ---
 
 <!-- _class: section -->
 
-# Case 2
-## It validated beautifully
+# Case 2: Google Flu Trends
 
 ---
 
-## Google Flu Trends, 2008
+## Case 2: Google Flu Trends
 
-The premise was good:
+The premise was good: flu surveillance ran on a **1 to 2 week lag**,
+search queries are available immediately. See the epidemic sooner.
 
-- Flu surveillance ran on a **1 to 2 week lag**
-- Search queries are available immediately
-
-See the epidemic sooner.
-
----
-
-## The validation was good too
+The validation was good too:
 
 - 50M candidate queries screened to **45**
 - Held-out data, excluded from every prior step
@@ -179,7 +191,7 @@ Stricter than most deployed ML gets today.
 
 ---
 
-## Then
+## Case 2: Google Flu Trends, then
 
 - **2012-13 season:** more than **double** the CDC figure
 - Too high in **100 of 108 weeks** (Aug 2011 to Sep 2013)
@@ -190,7 +202,7 @@ Wrong, in the same direction, for two years.
 
 ---
 
-## Cause 1: big data hubris
+## Case 2: Google Flu Trends, big data hubris
 
 Search 50M terms against ~1,000 points
 → you *will* find winter.
@@ -204,7 +216,7 @@ Missed the non-seasonal **2009 H1N1** entirely.
 
 ---
 
-## Cause 2: algorithm dynamics
+## Case 2: Google Flu Trends, algorithm dynamics
 
 Google shipped **86 search changes** in Jun-Jul 2012
 
@@ -219,7 +231,7 @@ consumed their output.
 
 ---
 
-## The part that should bother you
+## Case 2: Google Flu Trends, what should bother you
 
 100 wrong weeks out of 108, same direction.
 
@@ -237,7 +249,7 @@ It was the **absence of a baseline comparison** in production.
 
 ---
 
-## Units and calibration
+## Engineering data is different, units and calibration
 
 Raw sensor voltage ≠ calibrated concentration
 
@@ -248,7 +260,7 @@ Surfaces when someone recalibrates.
 
 ---
 
-## Drift, measured not asserted
+## Engineering data is different, drift measured not asserted
 
 UCI Air Quality: metal-oxide sensors, Italian roadside,
 hourly for ~13 months, 9,357 records
@@ -264,19 +276,19 @@ Apply it for the rest of the deployment.
 
 ---
 
-## That is not decay, it is season
+## Engineering data is different, that is season not decay
 
 - **Best** in August, *below* the fitted-period error
 - **Worst** in Nov-Dec, ~**1.9x** the fitted-period error
 
-The model did not get stale.
-**It learned spring.**
+The model learned spring, so it is worst
+exactly when conditions are least like spring.
 
 Same failure as Flu Trends, on a gas sensor.
 
 ---
 
-## The protocol matters as much as the model
+## Engineering data is different, the protocol matters as much as the model
 
 Same data. Same model. Two ways of scoring it.
 
@@ -284,22 +296,25 @@ Same data. Same model. Two ways of scoring it.
 
 ---
 
-## Why that gap is the dangerous kind
+## Engineering data is different, why that gap is the dangerous kind
 
 Random split → $R^2 = 0.78$
 Temporal split → $R^2 = 0.68$
 
-**Not catastrophic.** That is the problem.
+The gap is small enough to pass unnoticed.
 
 If you only ever saw 0.78, nothing would look wrong.
 This is how the error survives review.
 
 ---
 
-## Provenance
+## Engineering data is different, provenance
 
-> Which data, which code, which parameters
-> produced this number?
+<div class="definition">
+
+**Provenance**: the record of which data, which code, and which parameters produced a given number.
+
+</div>
 
 If the answer is "a notebook run out of order
 on a laptop that has been reimaged,"
@@ -309,12 +324,11 @@ there is no answer.
 
 <!-- _class: section -->
 
-# Case 3
-## When provenance is safety-critical
+# Case 3: MCAS
 
 ---
 
-## MCAS
+## Case 3: MCAS
 
 Control function commanding nose-down stabilizer trim.
 
@@ -326,7 +340,7 @@ One bad sensor was sufficient.
 
 ---
 
-## Lion Air 610
+## Case 3: MCAS, Lion Air 610
 
 Left AoA sensor biased by **~21°**
 
@@ -341,7 +355,7 @@ driving a flight control surface.
 
 ---
 
-## The analysis modelled the wrong failure
+## Case 3: MCAS, the analysis modelled the wrong failure
 
 Boeing's hazard assessment evaluated
 erroneous data from **both** air data channels
@@ -353,7 +367,7 @@ But the MCAS path was exposed to a **single** failure.
 
 ---
 
-## What the investigations concluded
+## Case 3: MCAS, what the investigations concluded
 
 Incorrect assumptions about flight crew response,
 plus incomplete review of flight deck effects,
@@ -364,7 +378,7 @@ ET302, Mar 2019: 157 killed.
 
 ---
 
-## Three questions for any input you trust
+## Case 3: MCAS, three questions for any input you trust
 
 1. Where did this measurement come from?
 2. Is it independently corroborated?
@@ -378,20 +392,16 @@ that needs **evidence**, not assumption.
 <!-- _class: section -->
 
 # A tour of the stack
+
 ## The rest of the semester, in one pass
 
 ---
 
-## Storage: past the CSV
+## A tour of the stack, storage
 
 A CSV has no schema, no types, no constraints,
 and no way to read one column without reading all of them.
-
 PHE is the far end of that road.
-
----
-
-## Three storage models
 
 | Model | Example | Good at |
 |---|---|---|
@@ -403,7 +413,7 @@ A fourth, the **vector store**, indexes by similarity. Week 10.
 
 ---
 
-## The practitioner question
+## A tour of the stack, the practitioner question
 
 Not *"which database is best"* but
 **"what is my access pattern?"**
@@ -415,17 +425,10 @@ Not *"which database is best"* but
 
 ---
 
-## Pipelines: moving data without losing it
+## A tour of the stack, pipelines
 
-**Batch** runs on a schedule over bounded data.
-Most engineering work needs only this.
-
-**Streaming** processes records as they arrive.
-Buys latency, costs correctness.
-
----
-
-## The habit worth forming now
+**Batch** runs on a schedule over bounded data. Most engineering work needs only this.
+**Streaming** processes records as they arrive: buys latency, costs correctness.
 
 A pipeline that silently passes bad data
 is worse than one that crashes.
@@ -439,7 +442,7 @@ Fail loudly when reality disagrees.
 
 ---
 
-## Training: what actually happens
+## A tour of the stack, training
 
 It is an optimization loop.
 
@@ -448,22 +451,19 @@ It is an optimization loop.
 3. Gradient of loss w.r.t. every parameter
 4. Step downhill. Repeat.
 
----
+<div class="definition">
 
-## Automatic differentiation
+**Automatic differentiation**: frameworks record the operations you perform, then replay them backwards for exact gradients.
 
-Frameworks **record** the operations you perform,
-then **replay them backwards** for exact gradients.
+</div>
 
-You never hand-derive anything.
-
-That is the whole trick behind PyTorch.
+You never hand-derive anything. That is the whole trick behind PyTorch.
 
 [torch.autograd, gently](https://docs.pytorch.org/tutorials/beginner/blitz/autograd_tutorial.html) · **Weeks 5-6**
 
 ---
 
-## When deep learning earns its place
+## A tour of the stack, when deep learning earns its place
 
 Where there is structure to exploit:
 
@@ -478,7 +478,7 @@ a neural net on bad ones, most of the time.
 
 ---
 
-## Evaluation is the whole game
+## A tour of the stack, evaluation and tracking
 
 Both failures today were evaluation failures.
 
@@ -486,45 +486,32 @@ Both failures today were evaluation failures.
 - Metrics that reflect the **decision**
 - A baseline you are required to beat
 
----
-
-## Experiment tracking
-
 After a hundred runs, *"which config produced this?"*
-is unanswerable from memory.
-
-**One run = one reproducible fact.**
-
-Parameters, metrics, artifacts, logged per run.
+is unanswerable from memory. **One run = one reproducible fact.**
 
 [MLflow quickstart](https://mlflow.org/docs/latest/ml/tracking/quickstart/) · **Week 5**
 
 ---
 
-## Deployment: your laptop is not a deliverable
+## A tour of the stack, deployment
 
 Making it run **somewhere else, repeatedly,
 for someone who is not you.**
 
----
+<div class="definition">
 
-## Containers
+**Container**: an image bundling code, dependencies and system libraries into one artifact that runs anywhere the runtime exists.
 
-An image bundles code + dependencies + system libs
-into one artifact that runs anywhere the runtime exists.
+</div>
 
-Much stronger than a `requirements.txt`.
-
-**VM vs container:**
-a VM virtualizes hardware and boots an OS;
-a container shares the host kernel, isolates the process.
-Milliseconds, not tens of seconds.
+A VM virtualizes hardware and boots an OS; a container shares the host kernel
+and isolates the process. Milliseconds, not tens of seconds.
 
 [What is a container?](https://www.docker.com/resources/what-container/)
 
 ---
 
-## Being called
+## A tour of the stack, being called
 
 **FastAPI**: your model as an HTTP endpoint,
 with typed request and response schemas.
@@ -538,7 +525,7 @@ latency budget · throughput · cost per prediction · behaviour under load
 
 ---
 
-## Monitoring: where the lifetime begins
+## A tour of the stack, monitoring
 
 Most courses stop at deployment.
 
@@ -548,22 +535,15 @@ exactly as the calibration figure showed.
 Watch: input distributions · prediction distributions ·
 the gap against ground truth once labels arrive
 
----
-
-## MLOps
-
-Automating that loop:
-
-- CI that tests **data and models**, not only code
-- Reproducible retraining
-- Staged rollout, so a bad model does not reach everyone
-- The ability to **roll back**
+**MLOps** automates that loop: CI that tests **data and models** and not only
+code, reproducible retraining, staged rollout so a bad model does not reach
+everyone, and the ability to **roll back**.
 
 Flu Trends is what absence looks like. **Week 13**
 
 ---
 
-## Language models, at systems level
+## A tour of the stack, language models
 
 A next-token predictor trained on a very large corpus.
 
@@ -574,9 +554,7 @@ What matters operationally:
 - You pay per token, in money *and* latency
 - Outputs are **sampled**, not deterministic
 
----
-
-## Three integration patterns
+Three integration patterns:
 
 - **Prompting**: instructions and data in the context
 - **RAG**: search your own corpus, put hits in the context
@@ -589,7 +567,7 @@ than people expect.
 
 ---
 
-## What an agent actually is
+## A tour of the stack, what an agent actually is
 
 1. Give the model descriptions of functions it may call
 2. It emits a structured request to call one
@@ -603,23 +581,16 @@ your simulation, your instrument. **Week 11**
 
 ---
 
-## Security: new attack surface
+## A tour of the stack, security
 
-**Prompt injection.**
+<div class="definition">
 
-If untrusted text reaches the context window,
-that text can carry instructions.
+**Prompt injection**: untrusted text reaching the context window carries instructions, and the model has no reliable way to tell data from commands.
 
-The model has **no reliable way** to distinguish
-data from commands.
+</div>
 
----
-
-## The structural consequence
-
-An agent that both
-**reads untrusted input** and **holds a capability to act**
-is exposed by construction.
+An agent that both **reads untrusted input** and
+**holds a capability to act** is exposed by construction.
 
 Capability scoping > clever prompting.
 
@@ -627,7 +598,7 @@ Capability scoping > clever prompting.
 
 ---
 
-## And the older questions
+## A tour of the stack, and the older questions
 
 - Who may see this data?
 - What if the model is wrong in the direction that hurts?
@@ -647,7 +618,7 @@ MCAS is a reminder these have consequences.
 
 ---
 
-## One stack, all semester
+## The toolchain, one stack all semester
 
 | Layer | Tool | Prevents | Wk |
 |---|---|---|---|
@@ -659,15 +630,9 @@ MCAS is a reminder these have consequences.
 | Deep learning | PyTorch | hand-derived gradients | 6 |
 | Serving | FastAPI/Docker | "works on my machine" | 12 |
 
----
-
-## Deliberately not standardized
-
-**LLM and agent frameworks** (Wks 9-11)
-
-- That ecosystem turns over faster than a semester
-- We teach interfaces and evaluation discipline
-- Not a vendor's abstractions
+**LLM and agent frameworks** (Wks 9-11) are deliberately not standardized:
+that ecosystem turns over faster than a semester, so we teach interfaces
+and evaluation discipline rather than a vendor's abstractions.
 
 ---
 

@@ -40,7 +40,7 @@ footer: "Systems & Toolchains for AI in Engineering"
 
 ---
 
-## A grandmother's funeral, a chatbot, a policy
+## Why this matters
 
 2022: Jake Moffatt asks Air Canada's chatbot about
 bereavement fares.
@@ -48,9 +48,7 @@ bereavement fares.
 Bot: book now, apply for the discount within 90 days
 **after** travel.
 
----
-
-## The airline's actual policy
+**The airline's actual policy.**
 
 Discount had to be requested **before** travel.
 
@@ -59,7 +57,7 @@ Canada's Civil Resolution Tribunal.
 
 ---
 
-## Air Canada's defense
+## Why this matters, air Canada's defense
 
 The chatbot was "a separate legal entity ...
 responsible for its own actions."
@@ -69,7 +67,7 @@ policy page himself.
 
 ---
 
-## The tribunal's answer
+## Why this matters, the tribunal's answer
 
 February 2024: "a remarkable submission."
 
@@ -80,7 +78,7 @@ on its website, chatbot or static page.
 
 ---
 
-## The engineering failure, precisely
+## Why this matters, the engineering failure, precisely
 
 A factual question about a document that
 **already existed, in full, retrievably**.
@@ -90,7 +88,7 @@ instead of being shown the actual policy.
 
 ---
 
-## Not lying. Doing exactly what it does.
+## Why this matters, not lying. Doing exactly what it does.
 
 No source to constrain it →
 plausible, fluent, fluent-and-wrong text.
@@ -100,7 +98,7 @@ properties that often coincide. Not always.
 
 ---
 
-## What RAG actually buys you
+## Why this matters, what RAG actually buys you
 
 Not "smarter." **Traceable to a source
 a human can go check.**
@@ -108,9 +106,7 @@ a human can go check.**
 Plus: freshness (update the doc, not the model)
 and cost (retrieve 3 paragraphs, not fine-tune).
 
----
-
-## Why not just use a huge context window?
+**Why not just use a huge context window?.**
 
 Billed per token, every call, whether the
 model needed most of them or not.
@@ -122,12 +118,17 @@ uniformly. More on this later.
 
 <!-- _class: section -->
 
-# The anatomy of
-## a RAG pipeline
+# Anatomy of a RAG pipeline
 
 ---
 
-## Two paths, different clocks
+## Anatomy of a RAG pipeline
+
+<div class="definition">
+
+**Retrieval-augmented generation**: retrieving passages from your own corpus and putting them in the context, so the model answers from them rather than from memory.
+
+</div>
 
 **Ingestion** (offline, once per doc change):
 load → clean → chunk → embed → index
@@ -137,7 +138,7 @@ embed query → retrieve top-k → assemble prompt → generate + cite
 
 ---
 
-## Where the name comes from
+## Anatomy of a RAG pipeline, where the name comes from
 
 Lewis et al., NeurIPS 2020: "Retrieval-Augmented
 Generation for Knowledge-Intensive NLP Tasks"
@@ -149,7 +150,7 @@ a generator conditioned on the query **and** what came back.
 
 ---
 
-## What's changed since 2020
+## Anatomy of a RAG pipeline, what's changed since 2020
 
 Embeddings better. Indexes faster.
 Context windows longer.
@@ -161,12 +162,17 @@ hasn't moved.
 
 <!-- _class: section -->
 
-# Chunking
-## strategy
+# Chunking strategy
 
 ---
 
-## A chunk is the unit you can retrieve
+## Chunking strategy
+
+<div class="definition">
+
+**Chunk**: the unit you embed and retrieve. Too large and the match is diluted; too small and the passage loses the context that made it meaningful.
+
+</div>
 
 Too large → one query drags in unrelated clauses,
 dilutes the signal.
@@ -176,7 +182,7 @@ makes it unambiguous.
 
 ---
 
-## Fixed-size chunking
+## Chunking strategy, fixed-size chunking
 
 Pick a token count (256? 1024?), cut there,
 overlap a bit at the boundary.
@@ -184,9 +190,7 @@ overlap a bit at the boundary.
 Trivial to implement. **Blind to the document's
 own structure.**
 
----
-
-## Why that's bad for engineering docs
+**Why that's bad for engineering docs.**
 
 A fixed window doesn't know clause 4.2 ends
 where it ends.
@@ -196,7 +200,7 @@ a bolt size, severed from its torque value.
 
 ---
 
-## Structure-aware chunking
+## Chunking strategy, structure-aware chunking
 
 One chunk per section, per clause, per table.
 Uses the document's own boundaries.
@@ -206,7 +210,7 @@ Never splits a fact in half.
 
 ---
 
-## Measured, not asserted
+## Chunking strategy, measured, not asserted
 
 15-query gold set, this session's demo:
 
@@ -217,7 +221,7 @@ Never splits a fact in half.
 
 ---
 
-## What the two real misses look like
+## Chunking strategy, what the two real misses look like
 
 One: a value stitched into a mostly-irrelevant
 neighboring window.
@@ -230,7 +234,7 @@ Both invisible in an aggregate score alone.
 
 ---
 
-## Keep metadata with every chunk
+## Chunking strategy, keep metadata with every chunk
 
 Source document. Section/clause number.
 Page. **Revision.**
@@ -238,9 +242,7 @@ Page. **Revision.**
 A citation with no section number isn't
 a citation a reader can check.
 
----
-
-## The pitfall: silent truncation
+**The pitfall: silent truncation.**
 
 Chunk built without checking the embedding
 model's max input length?
@@ -252,12 +254,17 @@ just never makes it into the vector.
 
 <!-- _class: section -->
 
-# Vector databases
-## and indexes
+# Vector databases and indexes
 
 ---
 
-## What a vector DB actually provides
+## Vector databases and indexes
+
+<div class="definition">
+
+**Approximate nearest neighbour**: an index that trades exact recall for speed, returning most of the true nearest vectors in a fraction of the time.
+
+</div>
 
 **Approximate nearest-neighbor search** at scale.
 **Metadata filtering** (current revision only).
@@ -265,7 +272,7 @@ just never makes it into the vector.
 
 ---
 
-## Name the real options
+## Vector databases and indexes, name the real options
 
 **FAISS**: a library, in-process, no server.
 **Chroma / Qdrant**: purpose-built vector DBs, a server, filtering built in.
@@ -273,7 +280,7 @@ just never makes it into the vector.
 
 ---
 
-## Pick by access pattern, not hype
+## Vector databases and indexes, pick by access pattern, not hype
 
 | | FAISS | Chroma/Qdrant | pgvector |
 |---|---|---|---|
@@ -282,7 +289,7 @@ just never makes it into the vector.
 
 ---
 
-## Exact vs. approximate
+## Vector databases and indexes, exact vs. approximate
 
 **Exact**: check every vector. Always right.
 Cost grows linearly with corpus size.
@@ -292,7 +299,7 @@ Near-flat latency into the millions of vectors.
 
 ---
 
-## When the trade-off starts to matter
+## Vector databases and indexes, when the trade-off starts to matter
 
 Thousands to low millions of chunks:
 exact search is often fast enough already.
@@ -305,11 +312,10 @@ already be noticeable to a user.
 <!-- _class: section -->
 
 # Retrieval mechanics
-## dense, keyword, hybrid
 
 ---
 
-## Dense retrieval
+## Retrieval mechanics
 
 Same vector space, query and chunk both embedded.
 Rank by cosine similarity.
@@ -320,7 +326,7 @@ Rank by cosine similarity.
 
 ---
 
-## Keyword retrieval: BM25
+## Retrieval mechanics, keyword retrieval: BM25
 
 Score by exact term overlap, weighted by
 how rare each term is corpus-wide.
@@ -330,16 +336,14 @@ Can't see past a paraphrase.
 
 ---
 
-## When you want BM25, specifically
+## Retrieval mechanics, when you want BM25, specifically
 
 A query for a part number, an error code,
 a clause number.
 
 "Similar to part 4471-B" isn't a coherent idea.
 
----
-
-## Hybrid: run both, combine rankings
+**Hybrid: run both, combine rankings.**
 
 Catches the paraphrase case **and**
 the exact-identifier case.
@@ -348,7 +352,7 @@ Cost: two indexes, a combination rule.
 
 ---
 
-## Re-ranking with a cross-encoder
+## Retrieval mechanics, re-ranking with a cross-encoder
 
 Retriever scores each chunk **independently**,
 cheaply, across the whole corpus.
@@ -356,9 +360,7 @@ cheaply, across the whole corpus.
 Cross-encoder scores query + **one** candidate
 **jointly**, sees interactions, too slow at scale.
 
----
-
-## The standard two-stage pattern
+**The standard two-stage pattern.**
 
 Fast retriever → narrow to ~dozens of candidates.
 
@@ -369,19 +371,24 @@ Spend the expense only where you can afford it.
 
 <!-- _class: section -->
 
-# Grounding
-## the generation
+# Grounding the generation
 
 ---
 
-## Retrieval only gets you halfway
+## Grounding the generation
+
+<div class="definition">
+
+**Grounding**: instructing the model to answer only from the retrieved context, and treating an unsupported claim as a failure.
+
+</div>
 
 The generation step has to be told, explicitly,
 to use what it was given, not what it remembers.
 
 ---
 
-## Why a similarity threshold can't do this job
+## Grounding the generation, why a similarity threshold can't do this job
 
 A PVC-conduit question retrieves an RMC-conduit
 chunk at a score **indistinguishable** from genuine matches.
@@ -391,7 +398,7 @@ No pre-generation number tells them apart.
 
 ---
 
-## The instruction has to be explicit
+## Grounding the generation, the instruction has to be explicit
 
 > Answer only from the provided context.
 > Cite the section for every claim.
@@ -401,7 +408,7 @@ Enforced by the model **reading**, not a number.
 
 ---
 
-## Why "fixed words" matters
+## Grounding the generation, why "fixed words" matters
 
 A model told only to "be careful" still often
 produces something plausible-sounding.
@@ -411,7 +418,7 @@ to grep for when you audit later.
 
 ---
 
-## Conflicting or duplicate chunks
+## Grounding the generation, conflicting or duplicate chunks
 
 Two chunks, almost the same claim: an old and
 a new revision, or two manuals disagreeing.
@@ -419,9 +426,7 @@ a new revision, or two manuals disagreeing.
 Hand both over with no guidance →
 the model arbitrarily favors whichever came first.
 
----
-
-## Handle it on purpose
+**Handle it on purpose.**
 
 Prefer the chunk with the newer revision tag.
 Deduplicate near-identical chunks before the prompt.
@@ -433,11 +438,16 @@ Or: ask the model to name the conflict explicitly.
 <!-- _class: section -->
 
 # Evaluating retrieval
-## separately from the answer
 
 ---
 
-## The most common mistake
+## Evaluating retrieval
+
+<div class="definition">
+
+**Recall@k and nDCG**: whether the right passage is in the top k at all, and how highly it is ranked when it is.
+
+</div>
 
 Judging a RAG system by reading the final
 answers and deciding if they sound right.
@@ -447,7 +457,7 @@ Skips the one measurement that shows
 
 ---
 
-## Build a gold set
+## Evaluating retrieval, build a gold set
 
 Queries paired with the chunk(s) that actually
 answer each one. A human who knows the corpus writes it.
@@ -456,7 +466,7 @@ This session's demo: 15 queries, toy scale, same discipline.
 
 ---
 
-## Four retrieval metrics
+## Evaluating retrieval, four retrieval metrics
 
 **recall@k**: is the answer anywhere in the top k
 **precision@k**: what fraction of top k is relevant
@@ -465,7 +475,7 @@ This session's demo: 15 queries, toy scale, same discipline.
 
 ---
 
-## Keep answer-quality metrics separate
+## Evaluating retrieval, keep answer-quality metrics separate
 
 **Faithfulness**: does the answer follow from the context
 **Correctness**: is it actually right
@@ -475,7 +485,7 @@ A system can ace retrieval and fail all three.
 
 ---
 
-## RAGAS: a starting vocabulary
+## Evaluating retrieval, RAGAS: a starting vocabulary
 
 Es et al., 2023: faithfulness, answer relevance,
 context relevance, worked out as metrics.
@@ -486,7 +496,7 @@ Not mandatory. A reasonable place to not start from scratch.
 
 ---
 
-## LLM-as-judge: a tool, with a caveat
+## Evaluating retrieval, LLM-as-judge: a tool, with a caveat
 
 A second model call scores faithfulness because
 no string match can.
@@ -498,12 +508,11 @@ moves the trust problem. (Full treatment: Week 12.)
 
 <!-- _class: section -->
 
-# Where this
-## pushes back
+# Where this pushes back
 
 ---
 
-## A confident wrong answer looks identical to a right one
+## Where this pushes back
 
 Nothing about a fluent, cited-looking answer
 tells you retrieval quietly failed.
@@ -513,7 +522,7 @@ obviously safer than no RAG at all.
 
 ---
 
-## Long context isn't a free substitute
+## Where this pushes back, long context isn't a free substitute
 
 Cost: billed per token, every call.
 
@@ -524,7 +533,7 @@ a fact **drops** when it sits mid-context, regardless of relevance.
 
 ---
 
-## Embedding/index mismatch fails silently
+## Where this pushes back, embedding/index mismatch fails silently
 
 Re-embed a query with a different model than
 built the index?
@@ -532,16 +541,14 @@ built the index?
 No error. Nearest neighbors in a space the
 query was never correctly placed in.
 
----
-
-## Pin the embedding model
+**Pin the embedding model.**
 
 Same discipline as a pinned random seed
 or a pinned library version, elsewhere in this course.
 
 ---
 
-## Chunking is lossy, and not undoable downstream
+## Where this pushes back, chunking is lossy, and not undoable downstream
 
 No re-ranker recovers a fact that structure-blind
 chunking already split at ingestion.
@@ -551,16 +558,14 @@ spent on a fancier retriever after the fact.
 
 ---
 
-## Hybrid + re-ranking: real cost, not a free upgrade
+## Where this pushes back, hybrid + re-ranking: real cost, not a free upgrade
 
 More indexes. More latency. More to keep in sync.
 
 Measure the recall/nDCG gain against your gold set
 before adding either.
 
----
-
-## What a practitioner should take from this
+**What a practitioner should take from this.**
 
 Build the gold set and measure recall@k **before**
 judging any generated answer.

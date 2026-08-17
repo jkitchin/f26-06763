@@ -39,7 +39,7 @@ footer: "Systems & Toolchains for AI in Engineering"
 
 ---
 
-## One number leaves the room with you
+## Why this matters
 
 "RMSE of 3.4 MW."
 "92% of faults detected."
@@ -47,9 +47,7 @@ footer: "Systems & Toolchains for AI in Engineering"
 That is not a measurement of your model.
 It is a **prediction about the future.**
 
----
-
-## Nobody lies. The workflow leaks.
+**Nobody lies. The workflow leaks..**
 
 - Try five models, report the best → a **maximum**, not a typical value
 - Tune on the validation score → it is no longer independent
@@ -60,7 +58,7 @@ No error message. Every number too small.
 
 ---
 
-## The engineering consequence
+## Why this matters, the engineering consequence
 
 A surrogate promised ±3 MW. It delivers ±8.
 
@@ -79,7 +77,7 @@ was **sized against the ±3**.
 
 ---
 
-## Name the stages, keep the accounting
+## The supervised workflow
 
 framing → **baseline** → model family → validation
 → selection → **held-out test** → error analysis
@@ -92,7 +90,7 @@ A test set is an **instrument**. It works once.
 
 ---
 
-## The rule
+## The supervised workflow, the rule
 
 # The test set is touched once,
 # at the end.
@@ -107,7 +105,7 @@ try again. There is no way to un-look.
 
 ---
 
-## Framing: this session's dataset
+## The supervised workflow, framing: this session's dataset
 
 **UCI Combined Cycle Power Plant.** 9,568 hourly rows,
 one plant at full load, 2006 to 2011. Ambient temp,
@@ -127,13 +125,18 @@ Pump curves, engine maps, yield: every surrogate.
 
 <!-- _class: section -->
 
-# Baselines that have
-## to be beaten
+# Baselines that must be beaten
 
 ---
 
-## A baseline is a unit, not a courtesy
+## Baselines that must be beaten
 
+
+<div class="definition">
+
+**Baseline**: the simplest predictor you would accept, which every reported score must beat to mean anything.
+
+</div>
 | baseline | what it tells you |
 |---|---|
 | predict the mean | the floor; equals the target's std |
@@ -150,7 +153,7 @@ It is an expensive way to describe the recent past.
 
 ---
 
-## The ladder, measured
+## Baselines that must be beaten, the ladder, measured
 
 ![w:1050](figures/baseline-ladder.png)
 
@@ -159,7 +162,7 @@ It is an expensive way to describe the recent past.
 
 ---
 
-## Two numbers from that plot
+## Baselines that must be beaten, two numbers from that plot
 
 **Predict the mean: 17.07 MW.** That is the target's
 own standard deviation, to three figures,
@@ -169,9 +172,7 @@ by construction.
 One variable, one straight line, and **85% of the
 entire gap** is closed.
 
----
-
-## Why: a gas turbine breathes air
+**Why: a gas turbine breathes air.**
 
 Colder air is denser → more mass per unit volume
 through the compressor → more power.
@@ -183,7 +184,7 @@ Any engineer on that plant knew this before we fitted anything.
 
 ---
 
-## The rest of the ladder
+## Baselines that must be beaten, the rest of the ladder
 
 | model | RMSE | gap closed |
 |---|---|---|
@@ -199,9 +200,7 @@ The whole tournament is **2.07 MW** wide.
      is what tells a reader whether the last increment justifies a scikit-learn
      dependency in a control room. -->
 
----
-
-## And keep the noise beside it
+**And keep the noise beside it.**
 
 Refit the same linear model across the five
 published shuffles: RMSE moves **±0.05 MW**.
@@ -213,12 +212,11 @@ A 0.03 MW win would not have been.
 
 <!-- _class: section -->
 
-# Case: 50 million candidates,
-## one missing baseline
+# Case: Google Flu Trends
 
 ---
 
-## Google Flu Trends is a model-selection study
+## Case: Google Flu Trends
 
 Published in *Nature*, 2009, by Google + CDC.
 
@@ -234,7 +232,7 @@ Fitted on 2003 to 2007: [1,152 observations](https://research.google.com/archive
 
 ---
 
-## They saw the warning sign
+## Case: Google Flu Trends, they saw the warning sign
 
 Queries just outside the top 45 included
 "**high school basketball**."
@@ -242,9 +240,7 @@ Queries just outside the top 45 included
 > A steep drop in model performance occurs after
 > adding query 81, which is "**oscar nominations**"
 
----
-
-## And they held out a season, correctly
+**And they held out a season, correctly.**
 
 > The final model was validated on 42 points per
 > region of previously untested data from 2007-2008,
@@ -256,7 +252,7 @@ A real, clean, held-out test.
 
 ---
 
-## It still failed
+## Case: Google Flu Trends, it still failed
 
 > predicting **more than double** the proportion of
 > doctor visits for influenza-like illness than the
@@ -269,7 +265,7 @@ A real, clean, held-out test.
 
 ---
 
-## The diagnosis
+## Case: Google Flu Trends, the diagnosis
 
 > The odds of finding search terms that match the
 > propensity of the flu but are **structurally
@@ -282,9 +278,7 @@ A real, clean, held-out test.
 <!-- Best one-line description of a confounded feature set anyone has written.
      Read it out loud twice. -->
 
----
-
-## The baseline that ended it
+**The baseline that ended it.**
 
 | model | mean absolute error |
 |---|---|
@@ -297,7 +291,7 @@ A real, clean, held-out test.
 
 ---
 
-## Three things, and the third is the hard one
+## Case: Google Flu Trends, three things, and the third is the hard one
 
 1. **Know your candidates-to-observations ratio.**
 2. **The target's own history is the baseline to beat.**
@@ -314,12 +308,17 @@ more data like what I already have?*
 
 <!-- _class: section -->
 
-# Metrics, and the cost
-## of being wrong
+# Metrics and the cost of being wrong
 
 ---
 
-## Four metrics, four declarations of cost
+## Metrics and the cost of being wrong
+
+<div class="definition">
+
+**RMSE and MAE**: RMSE penalizes large errors quadratically; MAE weights every error equally. Choosing between them is a statement about cost.
+
+</div>
 
 | metric | use it when | watch out |
 |---|---|---|
@@ -335,7 +334,7 @@ If RMSE and MAE rank your models differently, **that is the finding.**
 
 ---
 
-## MAPE explodes near zero
+## Metrics and the cost of being wrong, MAPE explodes near zero
 
 Take C-MAPSS remaining useful life (L7).
 Give a model a **flat, uniform 15-cycle error**
@@ -351,7 +350,7 @@ It diverges exactly where the prediction must be right.
 
 ---
 
-## Residuals say what no scalar can
+## Metrics and the cost of being wrong, residuals say what no scalar can
 
 vs **fitted value** → unmodelled nonlinearity
 vs **each input** → the variable it handles badly
@@ -361,9 +360,7 @@ recalibrated in March
 A great RMSE with a smile-shaped residual plot
 is a **correctable** deficiency.
 
----
-
-## Fault detection changes the shape
+**Fault detection changes the shape.**
 
 **UCI SECOM** (from L5): 1,567 semiconductor runs,
 590 process sensors, **104 failures = 6.6%**.
@@ -375,7 +372,7 @@ Declare everything a pass and score **93.4%**.
 
 ---
 
-## One model, three summaries
+## Metrics and the cost of being wrong, one model, three summaries
 
 ![w:1120](figures/imbalance.png)
 
@@ -384,7 +381,7 @@ Declare everything a pass and score **93.4%**.
 
 ---
 
-## ROC-AUC 0.72. PR-AUC 0.18.
+## Metrics and the cost of being wrong, ROC-AUC 0.72. PR-AUC 0.18.
 
 **Same predictions.**
 
@@ -395,9 +392,7 @@ still a small false positive rate.
 Precision divides by **alarms raised**.
 No large denominator to hide in.
 
----
-
-## The operator's units
+**The operator's units.**
 
 | recall | wafers chased per real fault |
 |---|---|
@@ -412,7 +407,7 @@ That trade is the product decision. Neither AUC states it.
 
 ---
 
-## Case: Milford Haven, 24 July 1994
+## Metrics and the cost of being wrong, case: Milford Haven, 24 July 1994
 
 Lightning strike → process upset → explosion
 about five hours later. 26 injured, ~£48 million.
@@ -427,9 +422,7 @@ HSE's first listed factor:
 
 [HSE, *Better alarm handling*, Chemicals Sheet No 6](https://www.hse.gov.uk/pubns/chis6.pdf)
 
----
-
-## Against a published budget
+**Against a published budget.**
 
 > the long-term average alarm rate during normal
 > operation should be **no more than one every ten
@@ -440,7 +433,7 @@ HSE's first listed factor:
 
 ---
 
-## Now do it for your detector
+## Metrics and the cost of being wrong, now do it for your detector
 
 1,000 process tags, scored once a minute,
 **1% false positive rate**.
@@ -452,7 +445,7 @@ Most people would call that excellent.
 
 ---
 
-## So write the cost matrix first
+## Metrics and the cost of being wrong, so write the cost matrix first
 
 What does a **missed fault** cost? Scrap, downtime, risk.
 What does a **false alarm** cost? Investigation time, and
@@ -469,12 +462,17 @@ the person deciding whether to switch it on.
 
 <!-- _class: section -->
 
-# Choosing a
-## cross-validation scheme
+# Choosing a cross-validation scheme
 
 ---
 
-## k-fold, and its silent assumption
+## Choosing a cross-validation scheme
+
+<div class="definition">
+
+**Cross-validation**: repeatedly refitting on part of the data and scoring on the rest, to estimate how a procedure generalizes.
+
+</div>
 
 Partition into k parts, train k times, average.
 
@@ -486,7 +484,13 @@ It returns a number, and the number is optimistic.
 
 ---
 
-## Two structural failures, two splitters
+## Choosing a cross-validation scheme, two structural failures, two splitters
+
+<div class="definition">
+
+**GroupKFold and TimeSeriesSplit**: splitters that keep a group whole, or keep the future out of the past, where plain k-fold would not.
+
+</div>
 
 **Grouped**: rows share a physical unit. Cycles from one
 engine, specimens from one batch, points from one
@@ -500,7 +504,7 @@ wind-tunnel run. → **`GroupKFold`**
 
 ---
 
-## The demonstration dataset
+## Choosing a cross-validation scheme, the demonstration dataset
 
 **NASA Airfoil Self-Noise.** 1,503 anechoic
 wind-tunnel measurements.
@@ -514,7 +518,7 @@ Group by configuration → **106 groups**, ~14 rows each.
 
 ---
 
-## Same data, two fold schemes
+## Choosing a cross-validation scheme, same data, two fold schemes
 
 ![w:1080](figures/cv-schemes.png)
 
@@ -523,7 +527,7 @@ Group by configuration → **106 groups**, ~14 rows each.
 
 ---
 
-## The numbers
+## Choosing a cross-validation scheme, the numbers
 
 | model | KFold | GroupKFold | |
 |---|---|---|---|
@@ -534,9 +538,7 @@ Group by configuration → **106 groups**, ~14 rows each.
 
 The number a paper would print is **52% too low.**
 
----
-
-## Why, and which models it reaches
+**Why, and which models it reaches.**
 
 One configuration is a smooth SPL-vs-frequency curve,
 ~19 points. A random fold holds out 3 or 4 of them,
@@ -550,7 +552,7 @@ Forest, many memorising trees: **+52%**.
 
 ---
 
-## What did *not* change
+## Choosing a cross-validation scheme, what did *not* change
 
 The **ranking survived**. The forest is still best,
 the linear model still worse. What broke was the
@@ -559,9 +561,7 @@ number, not the decision.
 That will not always be true, and it is
 a poor thing to rely on.
 
----
-
-## A scandal in our own dataset
+**A scandal in our own dataset.**
 
 `Folds5x2_pp.xlsx` has **five sheets**.
 
@@ -573,7 +573,7 @@ orders**. Verify it in three lines; the demo does.
 
 ---
 
-## Which means you cannot check
+## Choosing a cross-validation scheme, which means you cannot check
 
 Six years of hourly measurements, and: no plot against
 time, no autocorrelation, no `TimeSeriesSplit`,
@@ -587,7 +587,7 @@ Unanswerable with the file as published. Which *is* the finding.
 
 ---
 
-## The lesson is about publishing
+## Choosing a cross-validation scheme, the lesson is about publishing
 
 # A row ordering is metadata.
 # Shuffling is destructive.
@@ -600,12 +600,11 @@ a question they cannot answer.
 
 <!-- _class: section -->
 
-# The leakage catalogue,
-## from the modelling side
+# The leakage catalogue
 
 ---
 
-## Four shapes
+## The leakage catalogue
 
 1. Fitting a transform on all the data
 2. Target leakage from the future
@@ -615,9 +614,7 @@ a question they cannot answer.
 L7 saw these from the feature side.
 Same failure, new vantage point.
 
----
-
-## 1. The scaler leak, measured
+**1. The scaler leak, measured.**
 
 Fit `StandardScaler` on everything, then CV.
 
@@ -636,7 +633,7 @@ Largest effect **0.0015 MW**, against fold noise of **±0.05**.
 
 ---
 
-## So the leak is real and worth nothing
+## The leakage catalogue, so the leak is real and worth nothing
 
 # You cannot audit leakage
 # by looking at your metrics.
@@ -646,7 +643,7 @@ and check what was in scope when it ran.
 
 ---
 
-## 2. Target leakage from the future
+## The leakage catalogue, 2. Target leakage from the future
 
 A feature that will not exist at prediction time.
 
@@ -657,9 +654,13 @@ is diagnosed*.
 The tell is temporal, not statistical: *at the instant
 the prediction is needed, does this value exist yet?*
 
----
+**3. Group leakage: the one that hurts.**
 
-## 3. Group leakage: the one that hurts
+<div class="definition">
+
+**Group leakage**: the same entity appearing in both training and validation, so the model is scored on units it has already seen.
+
+</div>
 
 Measured: **+52%** on the airfoil forest.
 
@@ -669,7 +670,7 @@ ever sees the data.
 
 ---
 
-## 4. Selecting on the test set
+## The leakage catalogue, 4. Selecting on the test set
 
 Consult a score, change something, and that
 score's data has been spent.
@@ -683,7 +684,7 @@ the whole procedure on data the inner loop never saw.
 
 ---
 
-## How much is that worth?
+## The leakage catalogue, how much is that worth?
 
 ![w:900](figures/selection-bias.png)
 
@@ -693,7 +694,7 @@ the whole procedure on data the inner loop never saw.
 
 ---
 
-## Read the shape
+## The leakage catalogue, read the shape
 
 | rows | selection bias |
 |---|---|
@@ -707,7 +708,7 @@ It is the **ratio of candidates to rows** that matters:
 
 ---
 
-## The extreme case (ESL §7.10.2)
+## The leakage catalogue, the extreme case (ESL §7.10.2)
 
 50 samples. 5,000 predictors. **All pure noise.**
 Labels by coin flip. True error: 50%.
@@ -727,12 +728,17 @@ Move the identical screen **inside** each fold:
 
 <!-- _class: section -->
 
-# Bias, variance, and
-## reading a learning curve
+# Bias, variance, learning curves
 
 ---
 
-## Three capacities, one dataset
+## Bias, variance, learning curves
+
+<div class="definition">
+
+**Learning curve**: score against training-set size, which separates a model that is too simple from one that needs more data.
+
+</div>
 
 ![w:1150](figures/learning-curves.png)
 
@@ -741,7 +747,7 @@ Move the identical screen **inside** each fold:
 
 ---
 
-## The diagnosis
+## Bias, variance, learning curves, the diagnosis
 
 | shape | verdict | action |
 |---|---|---|
@@ -753,9 +759,7 @@ Linear gap **0.002**. Tree gap **4.64**. Forest gap **2.10**.
 
 Zero training error is a confession: every leaf holds one sample.
 
----
-
-## Run it once, early
+**Variance, learning curves, run it once, early.**
 
 Cheapest diagnostic in this session,
 and the most often skipped.
@@ -768,12 +772,11 @@ two answers have wildly different costs.
 
 <!-- _class: section -->
 
-# Where this
-## pushes back
+# Where this pushes back
 
 ---
 
-## A CV score is a random variable
+## Where this pushes back
 
 Same linear model, five published shuffles:
 range **0.21 MW**, std **0.05**.
@@ -785,9 +788,7 @@ by the experiment that produced it.
 of the best, take the **simplest**. Report "3.36 ± 0.1",
 not "3.3612". Bootstrap your test predictions.
 
----
-
-## Nested CV: expensive, and about a *procedure*
+**Nested CV: expensive, and about a *procedure*.**
 
 5-fold outer × 5-fold inner × 36 candidates
 = **900 model fits.** Minutes for a forest,
@@ -800,7 +801,7 @@ fit and a held-out test for what you ship.
 
 ---
 
-## Everything assumes the future looks like the past
+## Where this pushes back, everything assumes the future looks like the past
 
 k-fold, `GroupKFold`, `TimeSeriesSplit`, nested CV:
 all estimate performance **under the distribution

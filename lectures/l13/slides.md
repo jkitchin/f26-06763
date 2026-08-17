@@ -39,7 +39,7 @@ footer: "Systems & Toolchains for AI in Engineering"
 
 ---
 
-## The situation
+## Why this matters
 
 A CFD run takes six hours. A DFT calculation
 takes a day. A tunnel campaign takes a technician.
@@ -53,7 +53,7 @@ Measured today: **33,000×** faster per query.
 
 ---
 
-## And then the trouble starts
+## Why this matters, and then the trouble starts
 
 An optimizer does **not** sample evenly. It goes
 exactly where the surrogate says the answer is best,
@@ -66,9 +66,7 @@ against your own model's optimism.
 <!-- The largest predictions of a model fitted to sparse noisy data are
      disproportionately the ones that got lucky. Say that slowly. -->
 
----
-
-## Today's uncomfortable number
+**Today's uncomfortable number.**
 
 Two surrogates. Same data. Same split.
 
@@ -84,12 +82,17 @@ Accuracy will never show you that.
 
 <!-- _class: section -->
 
-# What a surrogate is,
-## and when it pays for itself
+# What a surrogate is
 
 ---
 
-## Definitions, and the one that matters
+## What a surrogate is
+
+<div class="definition">
+
+**Surrogate model**: a cheap statistical stand-in for an expensive simulation or experiment, fit to a limited budget of runs.
+
+</div>
 
 **Surrogate** = emulator = response surface = metamodel.
 A cheap function fitted to the input-output behaviour
@@ -101,7 +104,7 @@ to the cost of the thing it imitates.
 
 ---
 
-## Where it earns its keep
+## What a surrogate is, where it earns its keep
 
 - **optimization inner loops**, thousands of objective calls
 - **real-time / embedded control**, where latency disqualifies the solver
@@ -117,7 +120,7 @@ building the wrong thing.
 
 ---
 
-## The economics, measured
+## What a surrogate is, the economics, measured
 
 ![w:1120](figures/surrogate-economics.png)
 
@@ -128,7 +131,7 @@ building the wrong thing.
 
 ---
 
-## The numbers, and the one that matters
+## What a surrogate is, the numbers, and the one that matters
 
 | one solve | **49 ms** |
 |---|---|
@@ -145,12 +148,17 @@ you need, before you build anything.
 
 <!-- _class: section -->
 
-# Spending a
-## simulation budget
+# Spending a simulation budget
 
 ---
 
-## You have 100 runs. Where do they go?
+## Spending a simulation budget
+
+<div class="definition">
+
+**Design of experiments**: choosing where to sample before you sample, so a fixed budget of runs covers the input space rather than clustering.
+
+</div>
 
 The instinct is a **full factorial grid**. In 1-2
 dimensions: excellent, do it. In 4: a disaster.
@@ -168,7 +176,7 @@ first order, at the dimensions engineering has.
 
 ---
 
-## The fix: space-filling designs
+## Spending a simulation budget, the fix: space-filling designs
 
 **Latin hypercube** (McKay, Beckman & Conover 1979):
 $N$ bins per variable, one point in each, paired at
@@ -182,7 +190,7 @@ deterministically, and are **extensible**.
 
 ---
 
-## Look at the projections
+## Spending a simulation budget, look at the projections
 
 ![w:1120](figures/sampling-designs.png)
 
@@ -191,7 +199,7 @@ deterministically, and are **extensible**.
 
 ---
 
-## What that costs, on the heat problem
+## Spending a simulation budget, what that costs, on the heat problem
 
 | budget | grid | random | LHS | Sobol |
 |---|---|---|---|---|
@@ -208,7 +216,7 @@ budget, and it is free to fix.
 
 ---
 
-## A footgun worth knowing
+## Spending a simulation budget, a footgun worth knowing
 
 **Sobol wants a power-of-two sample size.**
 Mean discrepancy over 8 scrambles:
@@ -223,7 +231,7 @@ Mean discrepancy over 8 scrambles:
 
 ---
 
-## Interpolation is not extrapolation
+## Spending a simulation budget, interpolation is not extrapolation
 
 Inside the convex hull of your training points:
 the easy case. Outside it: error can be arbitrarily
@@ -239,9 +247,7 @@ And report extrapolation error **separately**.
 | held-out configurations | 2.07 dB |
 | held-out velocity (71.3 m/s) | **3.04 dB** |
 
----
-
-## And write the split down yourself
+**And write the split down yourself.**
 
 Today's grouped split is four lines in the repo,
 not `GroupKFold`, because **scikit-learn 1.8 and 1.9
@@ -257,7 +263,7 @@ this was caught: bigger than most of today's effects.
 
 ---
 
-## Count the knobs, not the columns
+## Spending a simulation budget, count the knobs, not the columns
 
 **NASA airfoil self-noise**, from L9: 1,503 tunnel
 measurements, [Brooks, Pope & Marcolini, NASA RP-1218](https://ntrs.nasa.gov/citations/19890016302),
@@ -277,12 +283,17 @@ answers anyway.
 
 <!-- _class: section -->
 
-# Choosing a
-## surrogate family
+# Choosing a surrogate family
 
 ---
 
-## Gaussian process (kriging)
+## Choosing a surrogate family
+
+<div class="definition">
+
+**Gaussian process**: a surrogate that returns a distribution rather than a point, so its uncertainty grows away from the data by construction.
+
+</div>
 
 The default for smooth, low-dimensional, expensive.
 
@@ -296,7 +307,7 @@ The uncertainty is not bolted on. It falls out.
 
 ---
 
-## The kernel is the modelling assumption
+## Choosing a surrogate family, the kernel is the modelling assumption
 
 `Matern(nu=2.5)`: twice differentiable. Weaker and
 safer than RBF's infinite smoothness.
@@ -308,9 +319,7 @@ which variables matter. One pinned at its bound means
 Cost: $O(n^3)$ to fit. Caps you at a few thousand points.
 [scikit-learn: Gaussian Processes](https://scikit-learn.org/stable/modules/gaussian_process.html)
 
----
-
-## The other three families
+**The other three families.**
 
 **RBF interpolants**: same idea, no probability. Fast, exact, **no uncertainty.**
 
@@ -320,7 +329,7 @@ Cost: $O(n^3)$ to fit. Caps you at a few thousand points.
 
 ---
 
-## Fields, and then function spaces
+## Choosing a surrogate family, fields, and then function spaces
 
 A CNN or U-Net maps an input field (geometry, source,
 boundary condition) to an output field. That is what
@@ -331,9 +340,7 @@ spaces*, so one model handles any discretisation.
 [DeepONet](https://arxiv.org/abs/1910.03193) · [Fourier Neural Operator](https://arxiv.org/abs/2010.08895), which claims up to
 three orders of magnitude over traditional solvers.
 
----
-
-## Today: a GP and a deep ensemble
+**Today: a GP and a deep ensemble.**
 
 **GP**: sklearn, Matern 5/2 + ARD + `WhiteKernel`.
 
@@ -345,7 +352,7 @@ Gaussian NLL rather than MSE.
 
 ---
 
-## Both, on a sweep neither model saw
+## Choosing a surrogate family, both, on a sweep neither model saw
 
 ![w:1120](figures/gp-vs-ensemble.png)
 
@@ -354,7 +361,7 @@ Gaussian NLL rather than MSE.
 
 ---
 
-## The point predictions tie. The intervals do not.
+## Choosing a surrogate family, the point predictions tie. The intervals do not.
 
 | | RMSE | mean σ | covers "95%" |
 |---|---|---|---|
@@ -366,9 +373,7 @@ The less accurate model reports the **narrower**
 interval. One point in five falls outside one
 that was meant to miss one in twenty.
 
----
-
-## Now leave the training envelope
+**Now leave the training envelope.**
 
 Hold out **every row at 71.3 m/s**:
 
@@ -382,7 +387,7 @@ Growing the interval is not the hard part.
 
 ---
 
-## Why the GP widens
+## Choosing a surrogate family, why the GP widens
 
 A stationary kernel has a finite correlation length,
 so far from any training point there is nothing to
@@ -398,8 +403,7 @@ It tells you it does not know, not the right answer.
 
 <!-- _class: section -->
 
-# Putting physics
-## into the model
+# Putting physics into the model
 
 <!-- Three versions, three prices, and we go in this order:
      1. change of coordinates, free, before the model sees anything
@@ -408,7 +412,7 @@ It tells you it does not know, not the right answer.
 
 ---
 
-## The cheapest version
+## Putting physics into the model
 
 Trailing-edge noise does not depend on frequency
 and velocity separately. It depends on the
@@ -421,7 +425,7 @@ Nothing added, nothing removed: new coordinates.
 
 ---
 
-## Watch it collapse
+## Putting physics into the model, watch it collapse
 
 ![w:1120](figures/physics-features.png)
 
@@ -430,7 +434,7 @@ Nothing added, nothing removed: new coordinates.
 
 ---
 
-## Measured, and only partly
+## Putting physics into the model, measured, and only partly
 
 Largest chord, zero incidence: spread **2.26 → 1.47 dB**.
 All 33 settings with >1 velocity: **2.91 → 2.34 dB**,
@@ -442,9 +446,7 @@ Dramatic at 22.2° on the smallest chord: **6.45 → 1.55**.
 BPM has separate suction-side, pressure-side and
 separation terms. One group cannot carry three.
 
----
-
-## And the GP follows exactly that structure
+**And the GP follows exactly that structure.**
 
 | hold-out | raw | Strouhal/Mach | |
 |---|---|---|---|
@@ -458,7 +460,7 @@ becomes **interpolation**. Stall is a different mechanism.
 
 ---
 
-## So say it out loud
+## Putting physics into the model, so say it out loud
 
 # A physics feature is a claim,
 # not a free improvement.
@@ -470,7 +472,7 @@ sentence than the roughly-zero average of that table.
 
 ---
 
-## A warning that changed this lecture
+## Putting physics into the model, a warning that changed this lecture
 
 Trailing-edge intensity ~ $U^5$, so the level should
 rise like $50\log_{10}U$. Fitted from this data, over
@@ -483,7 +485,7 @@ The shape collapse is there. The level scaling is not.
 
 ---
 
-## The lesson is not aeroacoustics
+## Putting physics into the model, the lesson is not aeroacoustics
 
 A physics prior we were about to impose as a hard
 constraint was, in this dataset, **false**.
@@ -496,7 +498,7 @@ and a wrong constraint is not a small mistake.
 
 ---
 
-## The expensive version: PINNs
+## Putting physics into the model, the expensive version: PINNs
 
 $$\mathcal{L} = \underbrace{\textstyle\sum_i (T_\theta(x_i) - T_i)^2}_{\text{data}}
 + \lambda \underbrace{\textstyle\sum_j \mathcal{R}[T_\theta](x_j)^2}_{\text{PDE residual}}
@@ -510,7 +512,7 @@ the **inputs**, inside the **loss**.
 
 ---
 
-## One implementation detail that is not a detail
+## Putting physics into the model, one implementation detail that is not a detail
 
 # Use `tanh`, not ReLU.
 
@@ -523,7 +525,7 @@ cannot reduce.
 
 ---
 
-## When is a PINN actually the right tool?
+## Putting physics into the model, when is a PINN actually the right tool?
 
 Know the equation, the BCs **and** the source? The
 physics loss alone determines the answer, you need
@@ -535,7 +537,7 @@ a handful of noisy temperatures. $k$ is a learnable scalar.
 
 ---
 
-## Four ways, same eight points
+## Putting physics into the model, four ways, same eight points
 
 ![w:1120](figures/soft-physics.png)
 
@@ -544,7 +546,7 @@ a handful of noisy temperatures. $k$ is a learnable scalar.
 
 ---
 
-## What physics buys
+## Putting physics into the model, what physics buys
 
 **Roughly halves the field error at every budget.**
 
@@ -555,9 +557,7 @@ net matches what the data-only net needs about
 And it recovers the conductivity: $\hat{k}$ = 2.38 at four
 points, 2.54 at eight, against a true **2.5**.
 
----
-
-## Now the failure
+**Now the failure.**
 
 Omit the localised hot spot from the source term.
 A plausible modelling oversight.
@@ -575,7 +575,7 @@ against the evidence, because you said it was true.
 
 ---
 
-## Soft against hard constraints
+## Putting physics into the model, soft against hard constraints
 
 Boundary condition as a **penalty**: soft.
 By **construction**: $T_\theta(x) = x(1-x)\,N_\theta(x)$,
@@ -591,7 +591,7 @@ downstream divides by it.
 
 ---
 
-## Hard constraints you already know how to write
+## Putting physics into the model, hard constraints you already know how to write
 
 **Positivity**: predict $\log y$, or softplus the output.
 **Monotonicity**: monotone architecture, or a gradient-sign penalty.
@@ -611,12 +611,17 @@ PINNs fail to train. [(Wang, Teng & Perdikaris)](https://arxiv.org/abs/2001.0453
 
 <!-- _class: section -->
 
-# Two kinds
-## of uncertainty
+# Two kinds of uncertainty
 
 ---
 
-## Aleatoric
+## Two kinds of uncertainty
+
+<div class="definition">
+
+**Aleatoric and epistemic**: noise inherent in the process, which more data cannot remove, against ignorance from too few samples, which it can.
+
+</div>
 
 Scatter in the **process**: sensor noise, batch
 variation, turbulence, two identical specimens
@@ -628,7 +633,7 @@ a better instrument.
 
 ---
 
-## Epistemic
+## Two kinds of uncertainty, epistemic
 
 The **model's ignorance**: regions of the design
 space too few points constrain. More data removes it.
@@ -637,9 +642,7 @@ And it is what a design loop should chase: large
 epistemic uncertainty marks an experiment that
 would actually teach you something.
 
----
-
-## The law of total variance splits them
+**The law of total variance splits them.**
 
 $$\underbrace{\mathrm{Var}[y]}_{\text{total}}
 = \underbrace{\mathbb{E}_m[\sigma_m^2]}_{\text{aleatoric}}
@@ -652,7 +655,7 @@ A GP does it directly: the `WhiteKernel` level, and the rest.
 
 ---
 
-## On a problem where we know the answer
+## Two kinds of uncertainty, on a problem where we know the answer
 
 ![w:1080](figures/calibration.png)
 
@@ -661,7 +664,7 @@ A GP does it directly: the `WhiteKernel` level, and the rest.
 
 ---
 
-## And on the real data, it misbehaves
+## Two kinds of uncertainty, and on the real data, it misbehaves
 
 Same GP decomposition, airfoil:
 
@@ -686,12 +689,17 @@ replicates at a few settings beat a hundred unique runs.
 
 <!-- _class: section -->
 
-# Checking it:
-## coverage and sharpness
+# Coverage and sharpness
 
 ---
 
-## Five ways to get an interval
+## Coverage and sharpness
+
+<div class="definition">
+
+**Coverage**: the fraction of held-out points that fall inside a predicted interval. A 95% interval covering 80% is overconfident.
+
+</div>
 
 | method | cost | gives you |
 |---|---|---|
@@ -703,9 +711,7 @@ replicates at a few settings beat a hundred unique runs.
 
 [Gal & Ghahramani on dropout](https://arxiv.org/abs/1506.02142)
 
----
-
-## Conformal prediction, in five lines
+**Conformal prediction, in five lines.**
 
 Hold out a calibration set. Compute $|y - \hat{y}|$.
 Take the $\lceil (n{+}1)(1{-}\alpha)\rceil/n$ quantile.
@@ -717,7 +723,7 @@ Any model. Any distribution. [Angelopoulos & Bates](https://arxiv.org/abs/2107.0
 
 ---
 
-## Two numbers, and you need both
+## Coverage and sharpness, two numbers, and you need both
 
 **PICP**: the fraction of held-out points actually
 inside the nominal interval.
@@ -733,7 +739,7 @@ Zero width is maximally sharp and always wrong.
 
 ---
 
-## Everything, same data, nominal 95%
+## Coverage and sharpness, everything, same data, nominal 95%
 
 | method | random rows | held-out configs | held-out velocity |
 |---|---|---|---|
@@ -747,9 +753,7 @@ Zero width is maximally sharp and always wrong.
 of five land between 88% and 99%. Validate that way and
 you will ship an overconfident model.
 
----
-
-## One column over, the ensemble has failed
+**One column over, the ensemble has failed.**
 
 **79.9%** coverage on held-out configurations.
 
@@ -763,7 +767,7 @@ all the nets you might have trained.
 
 ---
 
-## Under extrapolation, two intervals got *narrower*
+## Coverage and sharpness, under extrapolation, two intervals got *narrower*
 
 | method | held-out configs | held-out velocity |
 |---|---|---|
@@ -777,7 +781,7 @@ While the actual error rose by **half**.
 
 ---
 
-## But conformal has a *proof*. What happened?
+## Coverage and sharpness, but conformal has a *proof*. What happened?
 
 Fix the model. Re-partition a held-out pool into
 calibration and test **at random**, 400 times, so that
@@ -798,7 +802,7 @@ design region is a declaration that they are not.
 
 ---
 
-## And it fails in the wrong direction
+## Coverage and sharpness, and it fails in the wrong direction
 
 Calibration residuals come from the **easy**
 interpolation regime.
@@ -811,9 +815,7 @@ issues more confident answers.**
 <!-- Sections 4.5 and 4.6 of Angelopoulos & Bates cover covariate shift and
      distribution drift. Point people there for what to do about it. -->
 
----
-
-## Which is the shape of every failure today
+**Which is the shape of every failure today.**
 
 The method is fine. The **claim** it makes is
 conditional on a property of your data, and it is
@@ -828,12 +830,11 @@ Today: the calibration set that shared a velocity.
 
 <!-- _class: section -->
 
-# Where this
-## pushes back
+# Where this pushes back
 
 ---
 
-## A surrogate models your simulator, not reality
+## Where this pushes back
 
 Every error the solver makes, the surrogate
 reproduces. Then it adds its own.
@@ -844,9 +845,7 @@ CFD 8% off the tunnel + surrogate 2% off the CFD
 Validate surrogate↔solver and solver↔reality
 **separately**.
 
----
-
-## Neither of today's models scales
+**Neither of today's models scales.**
 
 **GPs**, in two directions. $O(n^3)$ is the famous one and
 the easier one: sparse methods handle it. The harder
@@ -859,7 +858,7 @@ you still have to check: today, **80% coverage** where
 
 ---
 
-## PINNs are seductive and finicky
+## Where this pushes back, PINNs are seductive and finicky
 
 Elegant in a paper. Two weeks of debugging a
 loss weight in practice.
@@ -870,9 +869,7 @@ stiff PDEs, and a failure mode that is
 
 For a two-week project: a hard constraint, not a PINN.
 
----
-
-## Calibration does not transfer
+**Calibration does not transfer.**
 
 A model calibrated on one operating regime
 is not calibrated on the next.
@@ -885,7 +882,7 @@ what you do not have.
 
 ---
 
-## And the honest limit
+## Where this pushes back, and the honest limit
 
 Without a surrogate you would have
 **run the experiment**.

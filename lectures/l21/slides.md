@@ -39,7 +39,7 @@ footer: "Systems & Toolchains for AI in Engineering"
 
 ---
 
-## The algorithm was the business
+## Why this matters
 
 Zillow Offers: buy houses using the company's
 own valuation model, renovate, resell.
@@ -49,7 +49,7 @@ It **set** it.
 
 ---
 
-## November 2021
+## Why this matters, november 2021
 
 Q3 earnings: an inventory write-down in the
 hundreds of millions, on homes bought at the
@@ -59,7 +59,7 @@ model's own prices.
 
 ---
 
-## What the CEO said
+## Why this matters, what the CEO said
 
 In substance: the algorithm couldn't forecast
 future prices accurately enough, at that scale,
@@ -69,14 +69,14 @@ once the market started moving differently.
 
 ---
 
-## What did NOT fail
+## Why this matters, what did NOT fail
 
 Not an untested model. Years of real
 transaction data, real financial stakes.
 
 ---
 
-## What actually failed
+## Why this matters, what actually failed
 
 The gap between "scores well on our historical
 backtest" and "still scoring well, right now."
@@ -86,7 +86,7 @@ enough to catch it before the losses were booked.
 
 ---
 
-## This is L13's second half, at a company's scale
+## Why this matters, this is L13's second half, at a company's scale
 
 A surrogate that quietly stops matching the
 world it was trained on.
@@ -95,7 +95,7 @@ Ships. Nobody keeps watching.
 
 ---
 
-## What would have caught it
+## Why this matters, what would have caught it
 
 Not a better model. **A frozen, rerunnable eval
 harness** + **observability into what's happening now.**
@@ -107,12 +107,17 @@ in a notebook, and finding it in an earnings call.
 
 <!-- _class: section -->
 
-# The eval mindset
-## a frozen, versioned test set
+# A frozen, versioned test set
 
 ---
 
-## Frozen. Versioned. Or it means nothing.
+## A frozen, versioned test set
+
+<div class="definition">
+
+**Frozen test set**: a fixed, versioned set of cases that does not change between runs, so two scores are comparable.
+
+</div>
 
 **Frozen**: questions, references, scoring rule
 don't change without a deliberate, recorded decision.
@@ -122,7 +127,7 @@ from 3 months ago is comparable to one from today.
 
 ---
 
-## Two ways this gets violated
+## A frozen, versioned test set, two ways this gets violated
 
 **Tuning on the test set**: adjust a prompt because
 it improved the eval score, keep reporting that
@@ -133,7 +138,7 @@ answer, not treated as the version bump it is.
 
 ---
 
-## Two mechanical habits
+## A frozen, versioned test set, two mechanical habits
 
 **Deterministic scoring**: same inputs, same score, every time.
 
@@ -144,12 +149,11 @@ comparable across code changes, not just "this run."
 
 <!-- _class: section -->
 
-# ML metrics
-## and what one number hides
+# ML metrics and what one number hides
 
 ---
 
-## The regression vocabulary
+## ML metrics and what one number hides
 
 **MAE**: same units as the target, easy to explain
 **RMSE**: penalizes large errors more
@@ -160,7 +164,7 @@ show more than any one of these alone.
 
 ---
 
-## Classification: decompose "accuracy"
+## ML metrics and what one number hides, classification: decompose "accuracy"
 
 **Precision / recall / F1**: how many positives
 caught, how many positive calls were real.
@@ -170,7 +174,7 @@ every threshold, not just the one you picked.
 
 ---
 
-## Calibration asks a different question
+## ML metrics and what one number hides, calibration asks a different question
 
 Not "is the prediction close."
 
@@ -179,7 +183,7 @@ is it right about 90% of the time?"**
 
 ---
 
-## Measured, not assumed
+## ML metrics and what one number hides, measured, not assumed
 
 Random forest tree-spread as a "95% interval,"
 checked against real Intel Lab data:
@@ -188,7 +192,7 @@ checked against real Intel Lab data:
 
 ---
 
-## A badly miscalibrated interval
+## ML metrics and what one number hides, a badly miscalibrated interval
 
 Fails the one job an interval has to do.
 
@@ -197,7 +201,7 @@ Only checking coverage against held-out truth does.
 
 ---
 
-## Uncertainty in the metric itself
+## ML metrics and what one number hides, uncertainty in the metric itself
 
 "MAE = 2.49" is a point estimate from one split.
 
@@ -206,7 +210,7 @@ Only checking coverage against held-out truth does.
 
 ---
 
-## Per-slice metrics: what aggregates hide
+## ML metrics and what one number hides, per-slice metrics: what aggregates hide
 
 Same fitted model. Same data source.
 
@@ -219,7 +223,7 @@ Same fitted model. Same data source.
 
 ---
 
-## The pitfall
+## ML metrics and what one number hides, the pitfall
 
 An aggregate metric is a weighted average over
 whatever slices happen to be in your test set.
@@ -232,11 +236,10 @@ not a statement about which failures matter.
 <!-- _class: section -->
 
 # LLM and agent evaluation
-## three ways
 
 ---
 
-## Reference-based
+## LLM and agent evaluation
 
 Exact match, F1, embedding similarity,
 numeric tolerance. Cheapest, most reliable.
@@ -246,7 +249,7 @@ genuinely exists.
 
 ---
 
-## Exact match's specific fragility
+## LLM and agent evaluation, exact match's specific fragility
 
 Source: "1.5 times **the vessel's** maximum
 allowable working pressure"
@@ -257,7 +260,7 @@ One possessive. Exact match fails a **correct** answer.
 
 ---
 
-## Rubric / programmatic checks
+## LLM and agent evaluation, rubric / programmatic checks
 
 Did the output validate against its schema?
 Did the agent call the right tool?
@@ -268,7 +271,7 @@ of the three that actually apply here.
 
 ---
 
-## Faithfulness, demonstrated
+## LLM and agent evaluation, faithfulness, demonstrated
 
 Inject a citation that points at a chunk
 **not** in the retrieved set.
@@ -278,7 +281,7 @@ The check catches it immediately:
 
 ---
 
-## LLM-as-judge
+## LLM and agent evaluation, LLM-as-judge
 
 For what's left: open-ended text, no single
 reference answer. Explanations, summaries, rationale.
@@ -288,7 +291,7 @@ The only one that can grade open-ended output at all.
 
 ---
 
-## Agent-specific evaluation
+## LLM and agent evaluation, agent-specific evaluation
 
 Task success rate. Tool-call correctness.
 Steps and cost per task.
@@ -300,12 +303,17 @@ argument, infinite loop, gave up.
 
 <!-- _class: section -->
 
-# LLM-as-judge
-## done carefully
+# LLM-as-judge, done carefully
 
 ---
 
-## Known biases, by name
+## LLM-as-judge, done carefully
+
+<div class="definition">
+
+**LLM-as-judge**: using a model to score another model's output against a rubric, which is a measurement instrument with known systematic biases.
+
+</div>
 
 **Position bias**: favors whichever answer it saw first.
 **Length bias**: rewards longer, even when it adds nothing.
@@ -315,7 +323,7 @@ Not reasons to abandon judging. Reasons to calibrate it.
 
 ---
 
-## Doing it carefully
+## LLM-as-judge, done carefully, doing it carefully
 
 Write an **explicit rubric**, fixed scale, precise
 enough two humans would score the same way.
@@ -326,7 +334,7 @@ Use a **stronger model** as judge than the one being judged.
 
 ---
 
-## The non-negotiable step
+## LLM-as-judge, done carefully, the non-negotiable step
 
 **Validate the judge against humans
 before you trust it on anything else.**
@@ -336,7 +344,7 @@ Cohen's kappa, not just eyeballing it.
 
 ---
 
-## Measured, not assumed (again)
+## LLM-as-judge, done carefully, measured, not assumed (again)
 
 This session's demo: 8 constructed cases,
 a deliberately naive lexical-overlap judge.
@@ -346,7 +354,7 @@ No better than chance.
 
 ---
 
-## Every disagreement traces to a real blind spot
+## LLM-as-judge, done carefully, every disagreement traces to a real blind spot
 
 Can't tell a citation that supports the answer
 from one that doesn't: never looks at it.
@@ -356,7 +364,7 @@ otherwise-identical sentence: word overlap doesn't care.
 
 ---
 
-## What a real LLM judge would and wouldn't fix
+## LLM-as-judge, done carefully, what a real LLM judge would and wouldn't fix
 
 Would likely close the paraphrase gap.
 
@@ -365,7 +373,7 @@ depends entirely on whether your **rubric** asked it to check.
 
 ---
 
-## What a practitioner should take from this
+## LLM-as-judge, done carefully, what a practitioner should take from this
 
 Validation exists to catch a failing kappa
 like this one.
@@ -377,12 +385,17 @@ Not, by default, a bigger model.
 
 <!-- _class: section -->
 
-# Observability
-## and tracing
+# Observability and tracing
 
 ---
 
-## You cannot debug what you cannot see
+## Observability and tracing
+
+<div class="definition">
+
+**Trace**: the recorded sequence of prompts, tool calls, and results for one request, which turns "it did something odd" into a debuggable incident.
+
+</div>
 
 Not "a log line when something looks wrong."
 
@@ -391,7 +404,7 @@ captured on **every single request**.
 
 ---
 
-## What to capture
+## Observability and tracing, what to capture
 
 Prompt/inputs. Retrieved context. Every tool call
 + args + result. Final output.
@@ -401,7 +414,7 @@ just end-to-end. Model + version. Cost.
 
 ---
 
-## Why per-step latency
+## Observability and tracing, why per-step latency
 
 "Where did the time go, retrieval, generation,
 a tool call?" is usually the actionable question.
@@ -409,7 +422,7 @@ End-to-end alone can't answer it.
 
 ---
 
-## Two formats, both work
+## Observability and tracing, two formats, both work
 
 **Structured logs** (JSON lines): simple, no new
 infra, trivially greppable.
@@ -421,12 +434,11 @@ structured queries, latency breakdowns, visualization.
 
 <!-- _class: section -->
 
-# Where this
-## pushes back
+# Where this pushes back
 
 ---
 
-## A frozen eval set is a commitment, and it ages
+## Where this pushes back
 
 The world it was written against changes.
 A manual gets revised. A regulation changes.
@@ -436,7 +448,7 @@ failure (tuning on it) for another (testing stale).
 
 ---
 
-## Programmatic checks only check what they check
+## Where this pushes back, programmatic checks only check what they check
 
 Faithfulness catches a wrong citation.
 
@@ -445,7 +457,7 @@ content actually *supports* the claim.
 
 ---
 
-## A judge score can look precise while being noise
+## Where this pushes back, a judge score can look precise while being noise
 
 A judge that gives everything a 3 or 4 produces
 a tidy histogram that tells you nothing.
@@ -454,7 +466,7 @@ Only the human-agreement check catches that.
 
 ---
 
-## Traces only help if someone reads them
+## Where this pushes back, traces only help if someone reads them
 
 Logging every trace costs nothing if nobody
 queries it.
@@ -464,7 +476,7 @@ especially traces attached to a low score or complaint.
 
 ---
 
-## Eval infrastructure has a cost, proportionate to stakes
+## Where this pushes back, eval infrastructure has a cost, proportionate to stakes
 
 Zillow's algorithm priced purchases in the
 hundreds of thousands each. Deserved every check.

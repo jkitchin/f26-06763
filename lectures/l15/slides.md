@@ -38,13 +38,13 @@ footer: "Systems & Toolchains for AI in Engineering"
 
 ---
 
-## Eight characters
+## Why this matters
 
 # `±0.05 mm`
 
 ---
 
-## What the model receives
+## Why this matters, what the model receives
 
 ```
 '±'   '0'   '.'   '05'   ' mm'
@@ -60,7 +60,7 @@ exist in the model's input.
 
 ---
 
-## And it costs a different amount everywhere
+## Why this matters, and it costs a different amount everywhere
 
 The same 2,365-character datasheet:
 
@@ -73,9 +73,7 @@ The same 2,365-character datasheet:
 **+63%** over the local estimate.
 **+37%** over another model from the same vendor.
 
----
-
-## Today's claim
+**Today's claim.**
 
 An LLM is a **next-token predictor over subword
 fragments.**
@@ -88,12 +86,17 @@ all fall out of that one sentence.
 
 <!-- _class: section -->
 
-# What the model
-## actually does
+# What the model actually does
 
 ---
 
-## Five stages, in a loop
+## What the model actually does
+
+<div class="definition">
+
+**Decoder-only language model**: a next-token predictor: it consumes a sequence of tokens and returns a distribution over the token that follows.
+
+</div>
 
 1. **Tokenize** → integers from a fixed vocabulary
 2. **Embed + position** → one vector per token
@@ -105,7 +108,7 @@ all fall out of that one sentence.
 
 ---
 
-## Attention, in one slide
+## What the model actually does, attention, in one slide
 
 Each position emits a **query**.
 Every position exposes a **key** and a **value**.
@@ -121,7 +124,7 @@ still refers to the pump.
 
 ---
 
-## You already built the pieces
+## What the model actually does, you already built the pieces
 
 L11: tensors, matmul on a GPU, autodiff, batching.
 
@@ -131,9 +134,7 @@ in a particular order, repeated.**
 What is new is the scale and the training
 objective, not the machinery.
 
----
-
-## The one structural fact that matters
+**The one structural fact that matters.**
 
 **Reading input is parallel.**
 All of it at once.
@@ -148,7 +149,7 @@ before step 199 finishes.
 
 ---
 
-## "Foundation model"
+## What the model actually does, "Foundation model"
 
 [Bommasani et al. 2021](https://arxiv.org/abs/2108.07258):
 trained once on broad data, adapted to many tasks.
@@ -167,7 +168,7 @@ modes are your engineering problem.
 
 ---
 
-## The model computes a distribution
+## Predict the next token
 
 Not an answer. A **probability for every token
 in the vocabulary.**
@@ -179,7 +180,7 @@ about an LLM comes from this.
 
 ---
 
-## Measured, four ways
+## Predict the next token, measured, four ways
 
 ![w:1140](figures/next-token.png)
 
@@ -187,7 +188,7 @@ about an LLM comes from this.
 
 ---
 
-## Answer is in the prompt
+## Predict the next token, answer is in the prompt
 
 | token | probability |
 |---|---|
@@ -198,9 +199,7 @@ about an LLM comes from this.
 Not reasoning about pressure. Completing a
 pattern the context made overwhelming.
 
----
-
-## Part number does not exist
+**Part number does not exist.**
 
 `Kessler-Voss KV-7710/B`, a pump that does not exist
 
@@ -214,7 +213,7 @@ pattern the context made overwhelming.
 
 ---
 
-## Why it cannot say "I don't know"
+## Predict the next token, why it cannot say "I don't know"
 
 There is **no token** in the vocabulary
 that means *not in the source*.
@@ -226,7 +225,7 @@ has nowhere to go except onto plausible numbers.
 
 ---
 
-## Give it the token
+## Predict the next token, give it the token
 
 Add eleven words:
 
@@ -241,7 +240,7 @@ Add eleven words:
 
 ---
 
-## Temperature and top-p
+## Predict the next token, temperature and top-p
 
 **Temperature** divides the logits: <1 sharpens, >1 flattens.
 **Top-p** keeps the smallest set whose mass exceeds *p*.
@@ -254,7 +253,7 @@ Add eleven words:
 
 ---
 
-## "It worked once" is not a passing test
+## Predict the next token, "It worked once" is not a passing test
 
 Same prompt, byte identical, sent **5 times**.
 Reading the returned distribution, not the sample:
@@ -278,7 +277,13 @@ hardware. Float addition is not associative.
 
 ---
 
-## The vocabulary is learned
+## Tokenization
+
+<div class="definition">
+
+**Token**: the subword unit a model actually reads. Token counts, not characters or words, are what you are billed for.
+
+</div>
 
 Nobody decided that ` MP` should be a token
 and `MPa` should not.
@@ -292,7 +297,7 @@ freeze the merge list.
 
 ---
 
-## Everything follows from the corpus
+## Tokenization, everything follows from the corpus
 
 Frequent on the web → merged early → one token.
 
@@ -303,7 +308,7 @@ Frequent in **your documents**, rare on the web
 
 ---
 
-## Look at it
+## Tokenization, look at it
 
 ![w:1180](figures/tokenization.png)
 
@@ -311,7 +316,7 @@ Frequent in **your documents**, rare on the web
 
 ---
 
-## Four ways engineering text breaks
+## Tokenization, four ways engineering text breaks
 
 - **Units detach**: `10.5 MPa` → `10` `.` `5` ` MP` `a`
 - **Digits group by three, not by meaning**: `1500` → `150` `0`
@@ -320,7 +325,7 @@ Frequent in **your documents**, rare on the web
 
 ---
 
-## Why LLMs are bad at arithmetic
+## Tokenization, why LLMs are bad at arithmetic
 
 `1500` → `150` + `0`
 `4140` → `414` + `0`
@@ -331,9 +336,7 @@ The representation does not respect place value.
 The model never sees the number.
 It sees a chunk and a leftover.
 
----
-
-## Case and spacing are not free
+**Case and spacing are not free.**
 
 | string | tokens |
 |---|---|
@@ -346,7 +349,7 @@ They cost more, and the model sees different symbols.
 
 ---
 
-## What it adds up to per page
+## Tokenization, what it adds up to per page
 
 | kind of text | chars / token |
 |---|---|
@@ -359,9 +362,7 @@ They cost more, and the model sees different symbols.
 A datasheet page costs **1.6×** a prose page.
 A table costs **2×**.
 
----
-
-## So the rule of thumb is wrong
+**So the rule of thumb is wrong.**
 
 "About four characters per token"
 is a fact about **English prose**.
@@ -373,7 +374,7 @@ in the expensive direction.
 
 ---
 
-## Count, do not estimate
+## Tokenization, count, do not estimate
 
 | tokenizer | datasheet | vs `cl100k` |
 |---|---|---|
@@ -387,7 +388,7 @@ same vendor, 37% apart.
 
 ---
 
-## Two providers, opposite trade-offs
+## Tokenization, two providers, opposite trade-offs
 
 | | OpenAI `tiktoken` | Anthropic `count_tokens` |
 |---|---|---|
@@ -403,7 +404,7 @@ the other's bill always is.
 
 ---
 
-## The measured cost of guessing
+## Tokenization, the measured cost of guessing
 
 146-page report, one document:
 
@@ -420,12 +421,17 @@ Multiply by ten thousand documents.
 
 <!-- _class: section -->
 
-# The context window
-## as a budget
+# The context window as a budget
 
 ---
 
-## Tokens in **plus** tokens out
+## The context window as a budget
+
+<div class="definition">
+
+**Context window**: the hard limit on tokens a model can attend to at once, shared between what you send and what it generates.
+
+</div>
 
 Send 190K to a 200K-window model and you have
 left room for 10K of answer, whatever
@@ -434,9 +440,7 @@ left room for 10K of answer, whatever
 Exceeding it is a **request error**, not a
 silent truncation. That is the merciful case.
 
----
-
-## The truncation that actually bites you
+**The truncation that actually bites you.**
 
 Is in **your** code:
 
@@ -448,7 +452,7 @@ Nobody gets an error. The answer is just wrong.
 
 ---
 
-## A real document
+## The context window as a budget, a real document
 
 ![w:1180](figures/context-cost.png)
 
@@ -458,7 +462,7 @@ Nobody gets an error. The answer is just wrong.
 
 ---
 
-## Three numbers, three decisions
+## The context window as a budget, three numbers, three decisions
 
 | | |
 |---|---|
@@ -469,9 +473,7 @@ Nobody gets an error. The answer is just wrong.
 Windows got big. **Cost replaced capacity**
 as the binding constraint.
 
----
-
-## Input is cheap in time. Output is not.
+**Input is cheap in time. Output is not..**
 
 | varied | from | to | median latency |
 |---|---|---|---|
@@ -483,7 +485,7 @@ as the binding constraint.
 
 ---
 
-## The ratio to remember
+## The context window as a budget, the ratio to remember
 
 # 1 output token ≈ 1000 input tokens
 # of wall-clock time
@@ -493,7 +495,7 @@ That is the serial loop, and you cannot buy your way out.
 
 ---
 
-## So optimize the right term
+## The context window as a budget, so optimize the right term
 
 | you want | you trim |
 |---|---|
@@ -506,9 +508,7 @@ optimizes the wrong budget.
 <!-- For an extraction task returning small JSON: you pay input tokens in
      dollars and output tokens in seconds. Two budgets, two fixes. -->
 
----
-
-## Before you build anything
+**Before you build anything.**
 
 Three numbers, for **one** representative document:
 
@@ -527,7 +527,13 @@ None can be guessed reliably.
 
 ---
 
-## Two different things share the name
+## Embeddings
+
+<div class="definition">
+
+**Embedding**: a fixed-length vector for a piece of text, positioned so that similar meanings sit close together.
+
+</div>
 
 **Token embeddings**: the lookup table at the model's
 input. One row per *fragment*. `SS316L` has three.
@@ -541,7 +547,7 @@ Averaging the first is not the second.
 
 ---
 
-## Who has one
+## Embeddings, who has one
 
 | provider | embedding model |
 |---|---|
@@ -554,7 +560,7 @@ They are properties of *that model*, not of embeddings.
 
 ---
 
-## Cosine similarity
+## Embeddings, cosine similarity
 
 $$\cos(\mathbf{u}, \mathbf{v}) = \frac{\mathbf{u} \cdot \mathbf{v}}{\|\mathbf{u}\|\,\|\mathbf{v}\|}$$
 
@@ -565,7 +571,7 @@ Values are **not comparable across models.**
 
 ---
 
-## 34 maintenance log entries
+## Embeddings, 34 maintenance log entries
 
 ![w:1140](figures/embeddings.png)
 
@@ -574,7 +580,7 @@ Values are **not comparable across models.**
 
 ---
 
-## The pair that makes the case
+## Embeddings, the pair that makes the case
 
 > `brg vibration p101 high at startup`
 > `Operator reports growling from the drive end bearing on P-101`
@@ -589,7 +595,7 @@ Every keyword search misses this.
 
 ---
 
-## When embeddings beat an LLM call
+## Embeddings, when embeddings beat an LLM call
 
 Deduplicating 34 entries pairwise:
 
@@ -601,9 +607,7 @@ Deduplicating 34 entries pairwise:
 At 100,000 records the first is not expensive,
 it is **arithmetically impossible**.
 
----
-
-## The rule
+**The rule.**
 
 **"Which of these are alike?"** → embeddings
 dedup, clustering, retrieval
@@ -616,7 +620,7 @@ then spend tokens on the tens. That is L17.
 
 ---
 
-## Dimensionality is a storage decision
+## Embeddings, dimensionality is a storage decision
 
 1M chunks × 1536 float32 = **6 GB** before indexing.
 
@@ -630,9 +634,7 @@ renormalize, and it still works.
 | 256 | 1024 | 85.3% |
 | 64 | 256 | 67.6% |
 
----
-
-## Read that table honestly
+**Read that table honestly.**
 
 1024 dims scored **97.1%**.
 512 dims scored **100%**.
@@ -645,7 +647,7 @@ would be tuning on noise.
 
 ---
 
-## Changing embedding model is a migration
+## Embeddings, changing embedding model is a migration
 
 Vectors from two models are **not comparable**,
 and there is no conversion.
@@ -661,12 +663,11 @@ Also: `input_type` for asymmetric models, and
 
 <!-- _class: section -->
 
-# Where cosine
-## pushes back
+# Where cosine pushes back
 
 ---
 
-## Two entries
+## Where cosine pushes back
 
 > `Mechanical seal leaking, approx 8 drops/min, pump P-101`
 > `P-101 seal inspected, no leak found`
@@ -677,7 +678,7 @@ One is a fault. The other is its refutation.
 
 ---
 
-## Compare
+## Where cosine pushes back, compare
 
 | pair | means | cosine |
 |---|---|---|
@@ -688,7 +689,7 @@ One is a fault. The other is its refutation.
 
 ---
 
-## Not a near miss
+## Where cosine pushes back, not a near miss
 
 ![w:1150](figures/embedding-limits.png)
 
@@ -697,7 +698,7 @@ One is a fault. The other is its refutation.
 
 ---
 
-## There is no threshold
+## Where cosine pushes back, there is no threshold
 
 Not a badly chosen one. **There is no value.**
 
@@ -707,9 +708,7 @@ precision never exceeds **0.62**.
 Cosine measures *what a text is about*.
 A leak and a no-leak are maximally about the same thing.
 
----
-
-## Units are invisible
+**Units are invisible.**
 
 > `Bearing temperature 85 degC steady on the drive end`
 > `Bearing temperature 85 degF steady on the drive end`
@@ -722,7 +721,7 @@ One is at its alarm limit. One is room temperature.
 
 ---
 
-## Which is about A8
+## Where cosine pushes back, which is about A8
 
 Unit normalization cannot be delegated to:
 
@@ -732,9 +731,7 @@ Unit normalization cannot be delegated to:
 It is an **explicit, typed, tested** pipeline stage.
 Units in the schema. Original *and* normalized retained.
 
----
-
-## The principled objection
+**The principled objection.**
 
 [Steck, Ekanadham & Kallus 2024](https://arxiv.org/abs/2403.05440),
 *Is Cosine-Similarity of Embeddings Really About Similarity?*
@@ -747,7 +744,7 @@ Not "never use it". "It carries no guarantee."
 
 ---
 
-## And the ground moves
+## Where cosine pushes back, and the ground moves
 
 Model ids deprecate. Tokenizers get revised.
 Prices and windows change.
