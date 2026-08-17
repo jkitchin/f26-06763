@@ -24,7 +24,7 @@ import { createServer } from 'node:http'
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { extname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import puppeteer, { type Browser, type Page } from 'puppeteer-core'
+import puppeteer, { type Browser, type KeyInput, type Page } from 'puppeteer-core'
 import { CHROME } from './chrome.ts'
 
 const DIST = fileURLToPath(new URL('../dist/', import.meta.url))
@@ -273,14 +273,29 @@ async function main() {
         ps.map((p) => p.textContent ?? '').find((t) => /rooms visited/.test(t)) ?? '')
     const before = await coverageOf()
 
-    // Up from spawn into L1, then right along the top row as far as L3.
+    // Walk from spawn to L3, on a route computed from the world rather than
+    // typed out as key presses.
     //
     // L3 specifically, and this is not arbitrary. The first version stopped at
     // L2 and asserted a corridor was lit, which failed: L2 has no corridors at
     // all, citing nothing and cited by nothing. That is a true fact about the
     // course rather than a bug, and the assertion was the thing that was wrong.
-    const walk = ['ArrowUp', 'ArrowUp', 'ArrowUp', 'ArrowUp',
-                  'ArrowRight', 'ArrowRight', 'ArrowRight'] as const
+    //
+    // The route is derived because the hardcoded one broke the moment a lecture
+    // was added: L10 shifted the grid from five regions to seven, the fixed
+    // four-up-three-right path landed on empty floor, and the failure surfaced
+    // as "no element matching section h2" rather than as anything about the map.
+    const world = JSON.parse(
+      readFileSync(fileURLToPath(new URL('../src/map/world.json', import.meta.url)), 'utf8'),
+    ) as { spawn: { x: number; y: number }; rooms: { id: string; x: number; y: number }[] }
+    const target = world.rooms.find((r) => r.id === 'l03')
+    if (!target) throw new Error('l03 is not on the map')
+    const vert: KeyInput = target.y < world.spawn.y ? 'ArrowUp' : 'ArrowDown'
+    const horiz: KeyInput = target.x < world.spawn.x ? 'ArrowLeft' : 'ArrowRight'
+    const walk: KeyInput[] = [
+      ...Array<KeyInput>(Math.abs(target.y - world.spawn.y)).fill(vert),
+      ...Array<KeyInput>(Math.abs(target.x - world.spawn.x)).fill(horiz),
+    ]
     for (const key of walk) {
       await page.keyboard.press(key)
       await new Promise((r) => setTimeout(r, 60))
