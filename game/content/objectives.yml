@@ -300,3 +300,21 @@
   lecture: l10
   text: >-
     Register a selected model with its metrics, params, and data lineage.
+
+# L12, published notes and no bank yet (game/content/l12.yml, status: unwritten).
+# Registered so whoever writes that bank maps onto objectives that already exist.
+
+- id: l12-o1
+  lecture: l12
+  text: >-
+    Match model architecture to the structure of the input (vector, field/image, sequence).
+
+- id: l12-o2
+  lecture: l12
+  text: >-
+    Implement a 1D-CNN or RNN for sensor time series and a 2D-CNN for field/image data.
+
+- id: l12-o3
+  lecture: l12
+  text: >-
+    Apply regularization and normalization appropriate to each architecture.

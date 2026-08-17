@@ -2,7 +2,7 @@
   "generated_by": "tools/world.py",
   "note": "Rooms are the sessions in course/schedule.md, regions are the arcs the notes declare, corridors are the edges tools/graph.py verified. Nothing is placed by hand.",
   "grid": {
-    "width": 22,
+    "width": 28,
     "height": 5,
     "cols_per_region": 2
   },
@@ -52,10 +52,24 @@
     {
       "name": "Machine learning & deep learning",
       "x0": 13,
-      "rows": 3,
+      "rows": 1,
       "rooms": [
-        "l11",
-        "l12",
+        "l11"
+      ]
+    },
+    {
+      "name": "Machine learning and deep learning",
+      "x0": 16,
+      "rows": 1,
+      "rooms": [
+        "l12"
+      ]
+    },
+    {
+      "name": "Machine learning & deep learning",
+      "x0": 19,
+      "rows": 2,
+      "rooms": [
         "l13",
         "l14",
         "mp1",
@@ -64,7 +78,7 @@
     },
     {
       "name": "LLM & agentic engineering",
-      "x0": 16,
+      "x0": 22,
       "rows": 3,
       "rooms": [
         "l15",
@@ -77,7 +91,7 @@
     },
     {
       "name": "Production & responsibility",
-      "x0": 19,
+      "x0": 25,
       "rows": 2,
       "rooms": [
         "l21",
@@ -235,13 +249,13 @@
       "id": "l12",
       "date": "2026-10-05",
       "title": "Architectures for engineering data (MLP, CNN for fields/images, sequence models)",
-      "written": false,
-      "arc_source": "inherited",
-      "arc": "Machine learning & deep learning",
-      "region": 4,
-      "x": 14,
+      "written": true,
+      "arc_source": "declared",
+      "arc": "Machine learning and deep learning",
+      "region": 5,
+      "x": 16,
       "y": 1,
-      "notes": null
+      "notes": "../lectures/l12/notes.html"
     },
     {
       "session": "L13",
@@ -251,9 +265,9 @@
       "written": true,
       "arc_source": "declared",
       "arc": "Machine learning & deep learning",
-      "region": 4,
-      "x": 13,
-      "y": 2,
+      "region": 6,
+      "x": 19,
+      "y": 1,
       "notes": "../lectures/l13/notes.html"
     },
     {
@@ -264,9 +278,9 @@
       "written": false,
       "arc_source": "inherited",
       "arc": "Machine learning & deep learning",
-      "region": 4,
-      "x": 14,
-      "y": 2,
+      "region": 6,
+      "x": 20,
+      "y": 1,
       "notes": null
     },
     {
@@ -277,9 +291,9 @@
       "written": false,
       "arc_source": "inherited",
       "arc": "Machine learning & deep learning",
-      "region": 4,
-      "x": 13,
-      "y": 3,
+      "region": 6,
+      "x": 19,
+      "y": 2,
       "notes": null
     },
     {
@@ -290,9 +304,9 @@
       "written": false,
       "arc_source": "inherited",
       "arc": "Machine learning & deep learning",
-      "region": 4,
-      "x": 14,
-      "y": 3,
+      "region": 6,
+      "x": 20,
+      "y": 2,
       "notes": null
     },
     {
@@ -303,8 +317,8 @@
       "written": true,
       "arc_source": "declared",
       "arc": "LLM & agentic engineering",
-      "region": 5,
-      "x": 16,
+      "region": 7,
+      "x": 22,
       "y": 1,
       "notes": "../lectures/l15/notes.html"
     },
@@ -316,8 +330,8 @@
       "written": false,
       "arc_source": "inherited",
       "arc": "LLM & agentic engineering",
-      "region": 5,
-      "x": 17,
+      "region": 7,
+      "x": 23,
       "y": 1,
       "notes": null
     },
@@ -329,8 +343,8 @@
       "written": true,
       "arc_source": "declared",
       "arc": "LLM & agentic engineering",
-      "region": 5,
-      "x": 16,
+      "region": 7,
+      "x": 22,
       "y": 2,
       "notes": "../lectures/l17/notes.html"
     },
@@ -342,8 +356,8 @@
       "written": false,
       "arc_source": "inherited",
       "arc": "LLM & agentic engineering",
-      "region": 5,
-      "x": 17,
+      "region": 7,
+      "x": 23,
       "y": 2,
       "notes": null
     },
@@ -355,8 +369,8 @@
       "written": true,
       "arc_source": "declared",
       "arc": "LLM & agentic engineering",
-      "region": 5,
-      "x": 16,
+      "region": 7,
+      "x": 22,
       "y": 3,
       "notes": "../lectures/l19/notes.html"
     },
@@ -368,8 +382,8 @@
       "written": false,
       "arc_source": "inherited",
       "arc": "LLM & agentic engineering",
-      "region": 5,
-      "x": 17,
+      "region": 7,
+      "x": 23,
       "y": 3,
       "notes": null
     },
@@ -381,8 +395,8 @@
       "written": true,
       "arc_source": "declared",
       "arc": "Production & responsibility",
-      "region": 6,
-      "x": 19,
+      "region": 8,
+      "x": 25,
       "y": 1,
       "notes": "../lectures/l21/notes.html"
     },
@@ -394,8 +408,8 @@
       "written": false,
       "arc_source": "inherited",
       "arc": "Production & responsibility",
-      "region": 6,
-      "x": 20,
+      "region": 8,
+      "x": 26,
       "y": 1,
       "notes": null
     },
@@ -407,8 +421,8 @@
       "written": true,
       "arc_source": "declared",
       "arc": "Production & responsibility",
-      "region": 6,
-      "x": 19,
+      "region": 8,
+      "x": 25,
       "y": 2,
       "notes": "../lectures/l23/notes.html"
     }
@@ -557,6 +571,30 @@
       "relation": null,
       "why": null,
       "where": "[L9](../l09/notes.md), which is why this session comes after it and not before."
+    },
+    {
+      "from": "l12",
+      "to": "l07",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "One habit from earlier weeks does not go away because the model is now a neural network. Feature scaling still matters, because gradient descent on unscaled inp"
+    },
+    {
+      "from": "l12",
+      "to": "l08",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "Which to reach for is a genuine engineering choice, and the answer has shifted. For years the reflex was an RNN for anything sequential, but Bai, Kolter, and Ko"
+    },
+    {
+      "from": "l12",
+      "to": "l11",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "[L11](../l11/notes.md) built the machinery: tensors, autograd, a training loop, and a multilayer perceptron on tabular concrete data. It also delivered an uncom"
     },
     {
       "from": "l13",

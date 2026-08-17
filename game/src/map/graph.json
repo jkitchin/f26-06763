@@ -25,6 +25,7 @@
     "l09",
     "l10",
     "l11",
+    "l12",
     "l13",
     "l15",
     "l17",
@@ -157,6 +158,27 @@
       "to": "l09",
       "weight": 3,
       "where": "[L9](../l09/notes.md), which is why this session comes after it and not before.",
+      "origin": "link"
+    },
+    {
+      "from": "l12",
+      "to": "l07",
+      "weight": 1,
+      "where": "One habit from earlier weeks does not go away because the model is now a neural network. Feature scaling still matters, because gradient descent on unscaled inp",
+      "origin": "link"
+    },
+    {
+      "from": "l12",
+      "to": "l08",
+      "weight": 2,
+      "where": "Which to reach for is a genuine engineering choice, and the answer has shifted. For years the reflex was an RNN for anything sequential, but Bai, Kolter, and Ko",
+      "origin": "link"
+    },
+    {
+      "from": "l12",
+      "to": "l11",
+      "weight": 2,
+      "where": "[L11](../l11/notes.md) built the machinery: tensors, autograd, a training loop, and a multilayer perceptron on tabular concrete data. It also delivered an uncom",
       "origin": "link"
     },
     {
@@ -365,11 +387,12 @@
     "l04": 2,
     "l05": 4,
     "l06": 1,
-    "l07": 7,
-    "l08": 1,
+    "l07": 8,
+    "l08": 2,
     "l09": 4,
     "l10": 0,
-    "l11": 2,
+    "l11": 3,
+    "l12": 0,
     "l13": 4,
     "l15": 0,
     "l17": 4,
@@ -384,11 +407,12 @@
     "l04": 2,
     "l05": 5,
     "l06": 1,
-    "l07": 11,
-    "l08": 2,
+    "l07": 12,
+    "l08": 4,
     "l09": 9,
     "l10": 0,
-    "l11": 2,
+    "l11": 4,
+    "l12": 0,
     "l13": 4,
     "l15": 0,
     "l17": 5,
@@ -408,6 +432,7 @@
     "l09": 2,
     "l10": 4,
     "l11": 2,
+    "l12": 3,
     "l13": 4,
     "l15": 5,
     "l17": 0,
@@ -417,6 +442,7 @@
   },
   "unreferenced": [
     "l10",
+    "l12",
     "l15",
     "l23"
   ],

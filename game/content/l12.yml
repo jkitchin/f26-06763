@@ -1,0 +1,13 @@
+schema: 1
+lecture: l12
+title: "Architectures for engineering data: MLP, CNN, and sequence models"
+source_notes: lectures/l12/notes.md
+# See game/content/l06.yml and l08.yml. The notes are published and the bank is
+# not written yet; the graded items are authored and reviewed by hand separately.
+status: unwritten
+serve: 0
+pool_version: 1
+provenance:
+  drafted_by: none
+  reviewed_by: none
+items: []
