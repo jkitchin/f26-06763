@@ -46,3 +46,7 @@ mlartifacts/
 
 # pytest, from the quiz tests
 .pytest_cache/
+
+# PyTorch checkpoints written by demo notebooks
+*.pt
+*.pth
