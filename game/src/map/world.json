@@ -275,13 +275,13 @@
       "id": "l14",
       "date": "2026-10-19",
       "title": "Bayesian optimization & active learning for design",
-      "written": false,
-      "arc_source": "inherited",
+      "written": true,
+      "arc_source": "declared",
       "arc": "Machine learning & deep learning",
       "region": 6,
       "x": 20,
       "y": 1,
-      "notes": null
+      "notes": "../lectures/l14/notes.html"
     },
     {
       "session": "MP-1",

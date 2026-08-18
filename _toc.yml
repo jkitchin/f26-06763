@@ -55,6 +55,9 @@ parts:
       - file: lectures/l13/notes
         sections:
           - file: lectures/l13/l13-surrogates-uq
+      - file: lectures/l14/notes
+        sections:
+          - file: lectures/l14/l14-bayesopt-design
       - file: lectures/l15/notes
         sections:
           - file: lectures/l15/l15-tokens-embeddings

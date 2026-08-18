@@ -318,3 +318,21 @@
   lecture: l12
   text: >-
     Apply regularization and normalization appropriate to each architecture.
+
+# L14, published notes and no bank yet (game/content/l14.yml, status: unwritten).
+# Registered so whoever writes that bank maps onto objectives that already exist.
+
+- id: l14-o1
+  lecture: l14
+  text: >-
+    Explain the Bayesian-optimization loop and the role of the surrogate + acquisition.
+
+- id: l14-o2
+  lecture: l14
+  text: >-
+    Choose and compare acquisition functions for exploration vs. exploitation.
+
+- id: l14-o3
+  lecture: l14
+  text: >-
+    Set up an active-learning loop that chooses the next expensive query.
