@@ -327,13 +327,13 @@
       "id": "l16",
       "date": "2026-11-02",
       "title": "API / prompt / structured-output interface; context, cost, latency; prompting",
-      "written": false,
-      "arc_source": "inherited",
+      "written": true,
+      "arc_source": "declared",
       "arc": "LLM & agentic engineering",
       "region": 7,
       "x": 23,
       "y": 1,
-      "notes": null
+      "notes": "../lectures/l16/notes.html"
     },
     {
       "session": "L17",
