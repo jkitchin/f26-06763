@@ -21,11 +21,11 @@ console.log('map:')
 
 check(world.rooms.length === 25, 'every session on the schedule is a room',
   `${world.rooms.length} rooms`)
-// Eighteen written, not fourteen: L6, L8, L10 and L12 gained notes. Each has a
-// bank stub marked `status: unwritten`, so they are readable rooms with no
+// Nineteen written, not fourteen: L6, L8, L10, L12 and L14 gained notes. Each
+// has a bank stub marked `status: unwritten`, so they are readable rooms with no
 // practice module, which is a third state the room panel says out loud.
-check(world.rooms.filter((r) => r.written).length === 18,
-  'eighteen of them are written', `${world.rooms.filter((r) => r.written).length}`)
+check(world.rooms.filter((r) => r.written).length === 19,
+  'nineteen of them are written', `${world.rooms.filter((r) => r.written).length}`)
 
 // L18 and L19 carry a conference annotation in the schedule that an earlier
 // parser silently dropped. L19 anchors five authored corridors, so losing it
