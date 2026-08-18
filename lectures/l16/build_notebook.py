@@ -1,0 +1,304 @@
+#!/usr/bin/env python3
+"""Generate lectures/l16/l16-structured-extraction.ipynb.
+
+The L16 demo turns component datasheets into a validated parts table and shows
+the four things the notes argue for:
+
+  1. schema-constrained extraction validated with a Pydantic model,
+  2. the repair loop: a validation failure is fed back to the model, not raised,
+  3. cost accounting from the response's token-usage block,
+  4. prompt evaluation: a naive prompt vs an improved one, scored on a small
+     gold set, with the accuracy delta beside the cost delta.
+
+The "flight-simulator" design (CLAUDE.md section 6, runs top-to-bottom for
+everyone): with no API key the notebook uses a deterministic stand-in that
+returns provider-shaped responses (including a deliberately broken one and a
+"field not present -> null" one), so validation, the repair loop, cost
+accounting and gold-set scoring all execute offline. With ANTHROPIC_API_KEY (or
+OPENAI_API_KEY) set, the same call site hits a real provider instead.
+
+Design notes:
+  - No network and no non-stdlib deps beyond pydantic (already in the env).
+  - Datasheets are inlined as strings (like L15), so nothing lives under the
+    gitignored data/ path.
+  - The mock's outputs are canned to illustrate the machinery; with a real key
+    they become real model outputs. The prices are dated and drift-prone.
+"""
+import json
+from pathlib import Path
+
+OUT = Path(__file__).parent / "l16-structured-extraction.ipynb"
+
+_n = 0
+
+
+def _next_id(kind):
+    global _n
+    _n += 1
+    return f"{kind}-{_n:02d}"
+
+
+def md(*lines):
+    return {"cell_type": "markdown", "id": _next_id("md"),
+            "metadata": {}, "source": list(lines)}
+
+
+def code(*lines):
+    return {"cell_type": "code", "id": _next_id("code"), "execution_count": None,
+            "metadata": {}, "outputs": [], "source": list(lines)}
+
+
+cells = [
+    md("# L16 demo: structured extraction from datasheets\n",
+       "\n",
+       "We turn messy component datasheets into a validated parts table, and show what keeps it\n",
+       "honest: a schema, a validator, a repair loop, cost accounting, and a gold set.\n",
+       "\n",
+       "> Companion notes: [`notes.md`](notes.md). Assignment: **A8** builds this for real.\n",
+       "\n",
+       "**Runs for everyone.** With no API key this notebook uses a deterministic stand-in that\n",
+       "returns provider-shaped responses, so every step executes offline. Set `ANTHROPIC_API_KEY`\n",
+       "(or `OPENAI_API_KEY`) and the same call site hits a real model instead."),
+
+    md("## Setup"),
+    code("import os, json, re, time\n",
+         "from pydantic import BaseModel, field_validator, ValidationError\n",
+         "\n",
+         "HAVE_KEY = bool(os.environ.get('ANTHROPIC_API_KEY') or os.environ.get('OPENAI_API_KEY'))\n",
+         "print('live API' if HAVE_KEY else 'offline stand-in (no key found): the demo still runs end to end')\n",
+         "\n",
+         "# Claude Sonnet 5 pricing, observed 2026-08-18. Providers change this; pin what you use.\n",
+         "PRICE_IN_PER_MTOK = 2.0\n",
+         "PRICE_OUT_PER_MTOK = 10.0\n",
+         "MODEL = 'claude-sonnet-5'   # pin the exact model id in your report"),
+
+    md("## The datasheets\n",
+       "\n",
+       "Four heterogeneous parts, no two laid out the same. Note the traps: the valve quotes\n",
+       "pressure in **bar**, not MPa, and the bolt has **no pressure rating at all** (a good\n",
+       "extractor must return null, not invent one)."),
+    code("DATASHEETS = {\n",
+         "'FS-BV200-SS': '''FLOWSTAR BV-200 SERIES | 2-INCH STAINLESS BALL VALVE\n",
+         "Part No.: FS-BV200-SS\n",
+         "Body material: SS316L stainless steel\n",
+         "Working pressure: 40 bar max at 20 C\n",
+         "Temperature range: -20 C to 180 C\n",
+         "Mass: 3.4 kg | End connection: ANSI 150 flanged''',\n",
+         "\n",
+         "'HC-CP4L-1500': '''HYDROCORE CP-4L/1500 CENTRIFUGAL PROCESS PUMP\n",
+         "Model / Part: HC-CP4L-1500\n",
+         "Wetted material: Duplex 2205\n",
+         "Max discharge pressure: 2.5 MPa\n",
+         "Operating temperature: 5 C ... 95 C\n",
+         "Dry weight: 82 kg | Rated flow: 45 m3/h''',\n",
+         "\n",
+         "'VG-PR24': '''VOLTGUARD PR-24 PRESSURE TRANSMITTER\n",
+         "Part: VG-PR24 | Housing: 316 stainless steel\n",
+         "Proof pressure: 6.0 MPa\n",
+         "Media temperature: -40 to 125 C\n",
+         "Weight: 0.45 kg''',\n",
+         "\n",
+         "'TF-HX-M12-1290': '''TITANFAST M12 HEX CAP SCREW - GRADE 12.9\n",
+         "Part number: TF-HX-M12-1290\n",
+         "Material: Alloy steel, zinc-plated\n",
+         "Proof load: 87 kN | Thread: M12 x 1.75\n",
+         "Mass per unit: 0.089 kg''',\n",
+         "}\n",
+         "print(f'{len(DATASHEETS)} datasheets')"),
+
+    md("## The schema we validate against\n",
+       "\n",
+       "A Pydantic model is the contract. Optional fields are `None` when the datasheet does not\n",
+       "state them; the validators reject impossible values, which is what turns a schema from a\n",
+       "shape check into a correctness check."),
+    code("class Component(BaseModel):\n",
+         "    part_number: str\n",
+         "    material: str\n",
+         "    max_pressure_MPa: float | None = None       # None when not stated\n",
+         "    operating_temp_min_C: float | None = None\n",
+         "    operating_temp_max_C: float | None = None\n",
+         "    mass_kg: float | None = None\n",
+         "\n",
+         "    @field_validator('max_pressure_MPa', 'mass_kg')\n",
+         "    @classmethod\n",
+         "    def positive(cls, v):\n",
+         "        if v is not None and v <= 0:\n",
+         "            raise ValueError('must be positive')\n",
+         "        return v\n",
+         "\n",
+         "    @field_validator('max_pressure_MPa')\n",
+         "    @classmethod\n",
+         "    def plausible_pressure(cls, v):\n",
+         "        if v is not None and v > 1000:\n",
+         "            raise ValueError('pressure implausibly large for a component (MPa?)')\n",
+         "        return v"),
+
+    md("## The model call: one site, two backends\n",
+       "\n",
+       "`call_model` is the only place that talks to an LLM. Offline it returns a canned,\n",
+       "provider-shaped response; with a key it calls the real provider. Everything downstream,\n",
+       "validation, repair, cost, scoring, is identical either way.\n",
+       "\n",
+       "The stand-in is scripted to exercise the interesting cases: the improved prompt gets the\n",
+       "pump **wrong on its first attempt** (mass as a string) so we can watch the repair loop\n",
+       "fix it, and the naive prompt makes the two mistakes the notes warn about, an unconverted\n",
+       "`40 bar` and a hallucinated pressure for the bolt."),
+    code("# Canned responses: RESPONSES[mode][part] is a list of attempts. The first\n",
+         "# element is the model's first reply; later elements are what it returns after\n",
+         "# being asked to repair. Most parts are right the first time.\n",
+         "def _j(**kw):\n",
+         "    return json.dumps(kw)\n",
+         "\n",
+         "GOLD_JSON = {\n",
+         "  'FS-BV200-SS': _j(part_number='FS-BV200-SS', material='SS316L stainless steel',\n",
+         "                    max_pressure_MPa=4.0, operating_temp_min_C=-20, operating_temp_max_C=180, mass_kg=3.4),\n",
+         "  'HC-CP4L-1500': _j(part_number='HC-CP4L-1500', material='Duplex 2205',\n",
+         "                     max_pressure_MPa=2.5, operating_temp_min_C=5, operating_temp_max_C=95, mass_kg=82.0),\n",
+         "  'VG-PR24': _j(part_number='VG-PR24', material='316 stainless steel',\n",
+         "                max_pressure_MPa=6.0, operating_temp_min_C=-40, operating_temp_max_C=125, mass_kg=0.45),\n",
+         "  'TF-HX-M12-1290': _j(part_number='TF-HX-M12-1290', material='Alloy steel, zinc-plated',\n",
+         "                       max_pressure_MPa=None, operating_temp_min_C=None, operating_temp_max_C=None, mass_kg=0.089),\n",
+         "}\n",
+         "\n",
+         "# improved prompt: all correct, but the pump's first reply has mass as a string\n",
+         "# (a type error Pydantic will catch) and is repaired on the second attempt.\n",
+         "_pump_broken = _j(part_number='HC-CP4L-1500', material='Duplex 2205', max_pressure_MPa=2.5,\n",
+         "                  operating_temp_min_C=5, operating_temp_max_C=95, mass_kg='82 kg')\n",
+         "RESPONSES = {\n",
+         "  'improved': {k: [v] for k, v in GOLD_JSON.items()},\n",
+         "  'naive': {\n",
+         "     # forgot bar -> MPa (40 bar is 4.0 MPa)\n",
+         "     'FS-BV200-SS': [_j(part_number='FS-BV200-SS', material='SS316L stainless steel',\n",
+         "                        max_pressure_MPa=40.0, operating_temp_min_C=-20, operating_temp_max_C=180, mass_kg=3.4)],\n",
+         "     'HC-CP4L-1500': [GOLD_JSON['HC-CP4L-1500']],\n",
+         "     'VG-PR24': [GOLD_JSON['VG-PR24']],\n",
+         "     # invented a pressure and a temperature range for a bolt that has neither\n",
+         "     'TF-HX-M12-1290': [_j(part_number='TF-HX-M12-1290', material='Alloy steel, zinc-plated',\n",
+         "                           max_pressure_MPa=16.0, operating_temp_min_C=-20, operating_temp_max_C=150, mass_kg=0.089)],\n",
+         "  },\n",
+         "}\n",
+         "RESPONSES['improved']['HC-CP4L-1500'] = [_pump_broken, GOLD_JSON['HC-CP4L-1500']]"),
+    code("def _est_tokens(text):\n",
+         "    return max(1, len(text) // 4)     # a rough token estimate for offline cost\n",
+         "\n",
+         "def call_model(system, user, part_id, mode, attempt):\n",
+         "    '''Return (json_text, usage). Offline: canned. With a key: real provider.'''\n",
+         "    if HAVE_KEY and os.environ.get('ANTHROPIC_API_KEY'):\n",
+         "        import anthropic                        # only imported on the live path\n",
+         "        client = anthropic.Anthropic()\n",
+         "        resp = client.messages.create(model=MODEL, max_tokens=512, temperature=0,\n",
+         "            system=system, messages=[{'role': 'user', 'content': user}])\n",
+         "        return resp.content[0].text, {'input_tokens': resp.usage.input_tokens,\n",
+         "                                      'output_tokens': resp.usage.output_tokens}\n",
+         "    # offline stand-in\n",
+         "    attempts = RESPONSES[mode][part_id]\n",
+         "    text = attempts[min(attempt, len(attempts) - 1)]\n",
+         "    usage = {'input_tokens': _est_tokens(system + user), 'output_tokens': _est_tokens(text)}\n",
+         "    return text, usage\n",
+         "\n",
+         "def cost_usd(usage):\n",
+         "    return (usage['input_tokens'] / 1e6 * PRICE_IN_PER_MTOK\n",
+         "            + usage['output_tokens'] / 1e6 * PRICE_OUT_PER_MTOK)"),
+
+    md("## The extract / validate / repair loop\n",
+       "\n",
+       "The whole point: a validation error is fed back to the model as a repair request, not\n",
+       "raised. We cap the attempts and, if it never validates, flag the document instead of\n",
+       "writing a bad record."),
+    code("SYSTEM = {\n",
+         "  'naive': 'Extract the component fields as JSON.',\n",
+         "  'improved': ('You extract component data from datasheets into JSON matching the schema. '\n",
+         "     'Convert all pressures to MPa (1 MPa = 10 bar). If a field is not stated in the text, '\n",
+         "     'return null; never guess. A bolt proof load is not a pressure. '\n",
+         "     'Example: \"Working pressure: 40 bar\" -> max_pressure_MPa: 4.0.'),\n",
+         "}\n",
+         "\n",
+         "def extract(part_id, text, mode, max_repairs=2, log=False):\n",
+         "    system, user = SYSTEM[mode], f'Datasheet:\\n{text}'\n",
+         "    total = {'input_tokens': 0, 'output_tokens': 0}\n",
+         "    for attempt in range(max_repairs + 1):\n",
+         "        raw, usage = call_model(system, user, part_id, mode, attempt)\n",
+         "        for k in total: total[k] += usage[k]\n",
+         "        try:\n",
+         "            rec = Component.model_validate_json(raw)\n",
+         "            if log and attempt: print(f'    repaired on attempt {attempt + 1}')\n",
+         "            return rec, total, True\n",
+         "        except ValidationError as e:\n",
+         "            msg = e.errors()[0]\n",
+         "            if log: print(f'    attempt {attempt + 1} invalid: {msg[\"loc\"]} {msg[\"msg\"]}')\n",
+         "            user = (f'Datasheet:\\n{text}\\n\\nYour previous JSON was {raw}\\n'\n",
+         "                    f'It failed validation: {msg[\"loc\"]}: {msg[\"msg\"]}. Return corrected JSON.')\n",
+         "    return None, total, False"),
+
+    md("## Run it: a clean extraction, a repair, and a null\n",
+       "\n",
+       "Watch three things: the pump is **repaired** after its first reply fails validation, the\n",
+       "bolt returns **null** pressure instead of a hallucinated number, and every call reports\n",
+       "its token usage and cost."),
+    code("table = []\n",
+         "for pid, text in DATASHEETS.items():\n",
+         "    print(f'{pid}:')\n",
+         "    rec, usage, ok = extract(pid, text, 'improved', log=True)\n",
+         "    print(f'    -> {rec.material}, {rec.max_pressure_MPa} MPa, mass {rec.mass_kg} kg '\n",
+         "          f'| {usage[\"input_tokens\"]}+{usage[\"output_tokens\"]} tok, {cost_usd(usage)*100:.3f} cents')\n",
+         "    table.append(rec)\n",
+         "print(f'\\nextracted {len(table)} validated records')"),
+    code("print('the bolt has no pressure rating; the extractor returned:')\n",
+         "bolt = [r for r in table if r.part_number == 'TF-HX-M12-1290'][0]\n",
+         "print(f'  max_pressure_MPa = {bolt.max_pressure_MPa!r}  (null, not a hallucinated number)')\n",
+         "valve = [r for r in table if r.part_number == 'FS-BV200-SS'][0]\n",
+         "print(f'  valve: 40 bar in the datasheet -> {valve.max_pressure_MPa} MPa in the record')"),
+
+    md("## Prompt evaluation on a gold set\n",
+       "\n",
+       "The only way to know a prompt is better is to score it. We hand-label the correct answer\n",
+       "for each datasheet, then measure field-level accuracy for the naive prompt and the improved\n",
+       "one, and put the accuracy delta next to the cost delta."),
+    code("GOLD = {pid: Component.model_validate_json(js) for pid, js in GOLD_JSON.items()}\n",
+         "FIELDS = ['material', 'max_pressure_MPa', 'operating_temp_min_C', 'operating_temp_max_C', 'mass_kg']\n",
+         "\n",
+         "def score(mode):\n",
+         "    right = total_fields = 0\n",
+         "    cost = 0.0\n",
+         "    for pid, text in DATASHEETS.items():\n",
+         "        rec, usage, ok = extract(pid, text, mode)\n",
+         "        cost += cost_usd(usage)\n",
+         "        for f in FIELDS:\n",
+         "            total_fields += 1\n",
+         "            if ok and getattr(rec, f) == getattr(GOLD[pid], f):\n",
+         "                right += 1\n",
+         "    return right / total_fields, cost\n",
+         "\n",
+         "for mode in ('naive', 'improved'):\n",
+         "    acc, cost = score(mode)\n",
+         "    print(f'{mode:9s}  field accuracy {acc:5.1%}   cost {cost*100:.3f} cents for {len(DATASHEETS)} datasheets')"),
+    md("The improved prompt fixes the unconverted `40 bar` and the invented bolt pressure, so its\n",
+       "field accuracy is higher. It also costs more, because its instructions and example add\n",
+       "input tokens on every call. That is the real decision: **accuracy per dollar**, not\n",
+       "accuracy alone. With a real key, these numbers become your own model's."),
+
+    md("---\n",
+       "\n",
+       "## Takeaway\n",
+       "\n",
+       "A reliable extractor is a loop, not a single call: constrain the output to a schema,\n",
+       "validate it with Pydantic, and repair on failure. Read token usage off every response so\n",
+       "cost is a number you design around, and score prompts on a small gold set so a change is\n",
+       "measured rather than guessed. A schema guarantees shape; the units, the null, and the gold\n",
+       "set are what guarantee the record is worth writing down. This is exactly assignment A8, at\n",
+       "the scale of four datasheets instead of a few hundred."),
+]
+
+nb = {
+    "cells": cells,
+    "metadata": {
+        "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
+        "language_info": {"name": "python", "version": "3.12"},
+    },
+    "nbformat": 4,
+    "nbformat_minor": 5,
+}
+
+OUT.parent.mkdir(parents=True, exist_ok=True)
+OUT.write_text(json.dumps(nb, indent=1) + "\n")
+print(f"wrote {OUT} ({len(cells)} cells)")

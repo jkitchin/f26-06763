@@ -336,3 +336,21 @@
   lecture: l14
   text: >-
     Set up an active-learning loop that chooses the next expensive query.
+
+# L16, published notes and no bank yet (game/content/l16.yml, status: unwritten).
+# Registered so whoever writes that bank maps onto objectives that already exist.
+
+- id: l16-o1
+  lecture: l16
+  text: >-
+    Call a hosted LLM API robustly and account for cost and latency as first-class engineering metrics.
+
+- id: l16-o2
+  lecture: l16
+  text: >-
+    Get validated, schema-constrained output out of an LLM and handle the cases where it fails.
+
+- id: l16-o3
+  lecture: l16
+  text: >-
+    Apply a disciplined prompting method and measure prompt quality on a small labeled set.
