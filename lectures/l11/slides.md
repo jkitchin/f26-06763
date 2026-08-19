@@ -3,7 +3,7 @@ marp: true
 theme: course
 paginate: true
 header: "06-763 · L11"
-footer: "Systems & Toolchains for AI in Engineering"
+footer: "Systems and Toolchains for AI Engineers"
 ---
 
 <!-- _class: title -->
@@ -12,7 +12,7 @@ footer: "Systems & Toolchains for AI in Engineering"
 
 ## Week 6 · Machine learning & deep learning
 
-**Systems & Toolchains for AI in Engineering**
+**Systems and Toolchains for AI Engineers**
 
 ---
 

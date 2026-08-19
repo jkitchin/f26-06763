@@ -2,7 +2,7 @@
 # Build with:  jupyter-book build .
 # Docs: https://jupyterbook.org/en/stable/customize/config.html
 
-title: Systems & Toolchains for AI in Engineering
+title: Systems and Toolchains for AI Engineers
 author: John Kitchin and Victor Alves
 copyright: "2026"
 
@@ -43,13 +43,13 @@ latex:
   # all 34 with no per-character configuration.
   latex_engine: xelatex
   latex_documents:
-    # Both keys are load-bearing. Without targetname the output is called
-    # projectnamenotset.pdf. Without title, Jupyter Book copies the book title
-    # into \title{} unescaped, and the "&" in it fails the LaTeX run with
-    # "Misplaced alignment tab character &". See jupyter_book/config.py, which
-    # sets latex_doc_overrides["title"] from the top-level title: key.
+    # targetname is load-bearing: without it the output is called
+    # projectnamenotset.pdf. The title override just pins the document title.
+    # It used to escape an "&" in the course title (an unescaped "&" fails the
+    # LaTeX run with "Misplaced alignment tab character &"), but the title no
+    # longer contains one, so a plain string is fine.
     targetname: course.tex
-    title: "Systems \\& Toolchains for AI in Engineering"
+    title: "Systems and Toolchains for AI Engineers"
 
 repository:
   url: https://github.com/jkitchin/f26-06763

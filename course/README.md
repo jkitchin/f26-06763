@@ -1,4 +1,4 @@
-# Systems & Toolchains for AI in Engineering — Course Package
+# Systems and Toolchains for AI Engineers — Course Package
 
 A redesign of CMU's *Systems and Toolchains for AI Engineers* for an **MS in AI in
 Engineering** program. 14 weeks · 2 sessions/week (28 sessions: 26 lectures + a dedicated mini-project week) · hands-on, project-based.

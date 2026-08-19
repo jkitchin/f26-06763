@@ -651,9 +651,11 @@ Three things about it are load-bearing and live under `latex:` in `_config.yml`:
   handles all of them. CI installs `texlive-xetex` and `fonts-freefont-otf` for this.
 - **`latex_documents.targetname`.** Without it the output is `projectnamenotset.pdf`.
 - **`latex_documents.title`.** Jupyter Book copies the top-level `title:` into `\title{}`
-  *unescaped* (see `jupyter_book/config.py`, `latex_doc_overrides`), and the `&` in this
-  course's title fails the LaTeX run with `Misplaced alignment tab character &`. The
-  override supplies an escaped `\&`. Do not "simplify" it away.
+  *unescaped* (see `jupyter_book/config.py`, `latex_doc_overrides`). The course title used
+  to contain an `&`, which fails the LaTeX run with `Misplaced alignment tab character &`,
+  so the override supplied an escaped `\&`. The title is now "Systems and Toolchains for AI
+  Engineers" with no `&`, so the override is a plain string. If a future title reintroduces
+  an `&` (or another LaTeX special), it has to be escaped here again.
 
 The PDF carries an index of its own, typeset at the end from the same `{index}` entries by
 `makeindex` running under `latexmk`. Two things about that are worth knowing. The processor

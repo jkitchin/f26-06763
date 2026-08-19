@@ -1,4 +1,4 @@
-# Course Schedule — Systems & Toolchains for AI in Engineering
+# Course Schedule — Systems and Toolchains for AI Engineers
 
 14 weeks · 2 sessions/week (28 sessions total): 26 numbered lectures (L1–L26) plus a
 dedicated **mini-project week** (Week 8, sessions MP-1/MP-2). Assignment release/due dates

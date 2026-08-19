@@ -1,4 +1,4 @@
-# Systems & Toolchains for AI in Engineering
+# Systems and Toolchains for AI Engineers
 
 Course notes for the MS in AI in Engineering. Fourteen weeks, two sessions per week:
 twenty-six lectures, a dedicated mini-project week, and a student-chosen capstone.
