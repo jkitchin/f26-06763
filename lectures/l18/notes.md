@@ -56,7 +56,7 @@ To decide for or against fine-tuning you need a working picture of what it is, s
 :width: 100%
 
 LoRA freezes the large weight matrix $W$ and trains a small low-rank detour $BA$ beside it. Because the rank $r$ is tiny, the adapter adds very few trainable parameters, and at inference $BA$ can be folded into $W$ so there is no extra latency.
-:::
+```
 
 The payoff is dramatic, and it is worth seeing as a number. For a mid-size model with LoRA applied to the attention projections, the trainable parameters come to well under one percent of the model.
 
@@ -65,7 +65,7 @@ The payoff is dramatic, and it is worth seeing as a number. For a mid-size model
 :width: 100%
 
 Trainable parameters for a 7B model, computed for LoRA of rank 8 on the query and value projections. LoRA trains about 0.06% of the weights. Hu and colleagues, who introduced LoRA, report reducing trainable parameters by 10,000 times and GPU memory by 3 times relative to fully fine-tuning GPT-3 175B, with quality on par or better and no added inference latency.
-:::
+```
 
 Two extensions round out the picture. **QLoRA** quantizes the frozen base model to 4-bit precision so it takes a quarter of the memory, then trains LoRA adapters on top; Dettmers and colleagues used it to fine-tune a 65-billion-parameter model on a single 48GB GPU while preserving full 16-bit task performance, and their Guanaco model reached 99.3% of ChatGPT's score on one benchmark after 24 hours of training on that single GPU. The knobs you will actually turn are the rank $r$, a scaling factor `alpha`, which weight matrices to adapt, the learning rate, and the number of epochs, and the failure you will actually hit on a small engineering dataset is **overfitting**: with a few hundred examples it is easy to train a model that memorizes them and generalizes worse than the base. None of this, notice, changes what fine-tuning is *for*. It makes fine-tuning cheap; it does not make it the right tool for knowledge.
 
@@ -98,7 +98,7 @@ The demo does this honestly on a small scale, pitting prompting against retrieva
 :width: 100%
 
 Prompting versus RAG on the same gold set, scored the same way. On knowledge lookups the bare prompt guesses every one wrong while retrieval grounds its answers in a cited chunk. On the query whose answer is deliberately absent from the corpus, retrieval declines while the prompt invents a confident value. On the formatting task the two tie, because there is nothing to retrieve. Computed in the demo and in `figures/make_figures.py`.
-:::
+```
 
 Two details in that figure repay attention. Retrieval scores four of five on the knowledge lookups, one short of a clean sweep: the bolt-torque query pulled in a distractor sentence about torque in general instead of the one with the actual value, so the grounded answer was on topic and wrong. That is L17's lesson resurfacing, retrieval quality is not free, and it is exactly the kind of honest result a real evaluation surfaces and a confident assertion would have hidden. And on the formatting task retrieval and prompting tie, which is the framework in miniature: retrieval added nothing because the gap there was never knowledge.
 
