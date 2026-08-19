@@ -11,18 +11,21 @@ declare, and the corridors are the edges tools/graph.py already verified. That
 is the same standard the lecture figures hold: compute the claim rather than
 assert it, so the map cannot quietly disagree with the course it describes.
 
-A NOTE ON THE PARSER, because it already bit. Two schedule rows carry a
-conference annotation between the date and the title:
+A NOTE ON THE PARSER, because it already bit. The session cell names the session
+and carries the date and weekday, and two rows add a conference annotation inside
+the weekday parenthesis:
 
-    | L18  [2026-11-09 Mon] AICHE | Adaptation: prompting vs RAG vs ...
+    | Lecture 18: 11-09-2026 (Monday, AIChE) | Prompting, RAG, or fine-tuning ...
 
-The first version of this regex required the date bracket to be followed by the
-column separator, so it silently dropped L18 and L19 and reported a clean parse
-of 24 rows. L19 is a *written* lecture that anchors five authored map edges, so
-the map would have shipped with a room missing and five corridors leading out of
-nothing, with no error anywhere. Hence EXPECTED_SESSIONS: a parser that can
-under-count silently is worse than one that crashes, and this one now refuses to
-emit anything if the count moves without the constant being updated.
+An earlier version of this regex (against the older bracketed date format)
+required the annotation to sit in its own token and silently dropped L18 and L19,
+reporting a clean parse of 24 rows. L19 is a *written* lecture that anchors five
+authored map edges, so the map would have shipped with a room missing and five
+corridors leading out of nothing, with no error anywhere. Hence EXPECTED_SESSIONS:
+a parser that can under-count silently is worse than one that crashes, and this
+one now refuses to emit anything if the count moves without the constant being
+updated. The weekday parenthesis is matched as a whole, so an annotation inside
+it (Monday, AIChE) no longer breaks the parse.
 
 ARCS. Each written lecture declares its own arc in its notes ("**Arc** Data
 Systems"). The twelve sessions with no notes cannot, so they inherit the arc of
@@ -62,10 +65,11 @@ EXPECTED_SESSIONS = 25
 COLS = 2
 
 ROW = re.compile(
-    r"^\|\s*(L\d+|MP-\d)\s+"          # session
-    r"\[(\d{4}-\d{2}-\d{2})\s+\w+\]"  # date
-    r"[^|]*\|"                        # anything else in that cell (AICHE, etc.)
-    r"\s*(.*?)\s*\|"                  # title
+    r"^\|\s*"
+    r"(?:Lecture\s+(\d+)|Mini-project day\s+(\d+))"   # session (one group set)
+    r":\s*(\d{2})-(\d{2})-(\d{4})"                    # date, month-day-year
+    r"\s*\([^)]*\)"                                   # (weekday) or (weekday, AIChE)
+    r"\s*\|\s*(.*?)\s*\|"                             # title
 )
 ARC = re.compile(r"\*\*Arc\*\*\s+(.+?)\s*$")
 
@@ -95,7 +99,9 @@ def sessions() -> list[dict]:
     for line in SCHEDULE.read_text(encoding="utf-8").split("\n"):
         m = ROW.match(line)
         if m:
-            session, date, title = m.groups()
+            lec, mp, mm, dd, yyyy, title = m.groups()
+            session = f"L{lec}" if lec else f"MP-{mp}"
+            date = f"{yyyy}-{mm}-{dd}"  # store ISO so the JSON is stable and sorts
             rows.append({"session": session, "id": slug(session), "date": date,
                          "title": title.replace("**", "").strip()})
 
