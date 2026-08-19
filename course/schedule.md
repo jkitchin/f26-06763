@@ -38,7 +38,7 @@ to the site.
 | L15  [2026-10-28 Wed]       | Foundation models & LLMs at a systems level: architecture, tokenization, embeddings                       | **A8 released**                                            |
 | L16  [2026-11-02 Mon]       | API / prompt / structured-output interface; context, cost, latency; prompting                             |                                                            |
 | L17  [2026-11-04 Wed]       | Retrieval-augmented generation & vector databases (chunking, retrieval, grounding, retrieval eval)        | A8 due · **A9 released**                                   |
-| L18  [2026-11-09 Mon] AICHE | Adaptation: prompting vs RAG vs fine-tuning; LoRA/PEFT hands-on                                           |                                                            |
+| L18  [2026-11-09 Mon] AICHE | Adaptation: prompting vs RAG vs fine-tuning; choosing the right lever                                           |                                                            |
 | L19  [2026-11-11 Wed] AICHE | Agent fundamentals: tool use, function calling, planning/execution loops                                  | A9 due · **A10 released** · **Final-project proposal due** |
 | L20  [2026-11-16 Mon]       | Multi-agent orchestration, frameworks, guardrails; agents over engineering tools/data                     |                                                            |
 | L21  [2026-11-18 Wed]       | Evaluating ML & LLM/agent systems: eval harnesses, LLM-as-judge, tracing/observability                    | A10 due · **A11 released**                                 |
