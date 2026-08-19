@@ -109,19 +109,19 @@ and **MP-2 = demo day** (see `modules/wk08.md`).
 
 ## Rubric (100 pts) — 15% of course grade
 
-| Criterion | Pts |
-|---|---|
-| Problem framing + engineering motivation; sensible scope | 10 |
-| Reproducible, validated data pipeline + versioned/hashed data | 10 |
-| Correct splits: grouped/time-aware + a real extrapolation hold-out | 10 |
-| Strong baseline, fairly compared on the same split | 10 |
-| Surrogate/DL (or physics-constrained) model, appropriate and well-trained | 15 |
-| Uncertainty quantification: principled method, aleatoric vs. epistemic articulated | 15 |
-| Calibration & evaluation: point + UQ metrics; interpolation vs. extrapolation reported | 10 |
-| MLflow tracking: complete and reproducible (params/metrics/artifacts/SHA/hash/seed) | 5 |
-| Honest error analysis + stated operating envelope | 5 |
-| Report clarity + recorded walkthrough (defends design + a failure mode) | 10 |
-| **Total** | **100** |
+| Criterion                                                                              | Pts     |
+|----------------------------------------------------------------------------------------|---------|
+| Problem framing + engineering motivation; sensible scope                               | 10      |
+| Reproducible, validated data pipeline + versioned/hashed data                          | 10      |
+| Correct splits: grouped/time-aware + a real extrapolation hold-out                     | 10      |
+| Strong baseline, fairly compared on the same split                                     | 10      |
+| Surrogate/DL (or physics-constrained) model, appropriate and well-trained              | 15      |
+| Uncertainty quantification: principled method, aleatoric vs. epistemic articulated     | 15      |
+| Calibration & evaluation: point + UQ metrics; interpolation vs. extrapolation reported | 10      |
+| MLflow tracking: complete and reproducible (params/metrics/artifacts/SHA/hash/seed)    | 5       |
+| Honest error analysis + stated operating envelope                                      | 5       |
+| Report clarity + recorded walkthrough (defends design + a failure mode)                | 10      |
+| **Total**                                                                              | **100** |
 
 ## Allowed tools & AI-use note
 Python + `uv`, PyTorch, scikit-learn, MLflow, and any of GPyTorch/BoTorch/Ax, Optuna,
