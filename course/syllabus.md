@@ -1,17 +1,14 @@
 # Systems & Toolchains for AI in Engineering
 
 **Program:** MS, AI in Engineering
-**Units / Format:** 12 units · 2 sessions/week × 14 weeks (28 sessions: 26 lectures + a dedicated mini-project week) · in-person, hands-on
+**Units / Format:** 12 units · 2 sessions/week,  in-person, hands-on
 **Prerequisites:** Basic programming skill (Python preferred). No prior ML required; a Week-0/Week-1 Python + numerical-computing refresher is provided.
-
-> Logistics (term, meeting times, room, instructor/TA contacts, office hours, course
-> management system) are filled in per offering — see `[TERM DETAILS]` placeholders below.
 
 ## Class 
 
 The course will be Mondays and Wednesdays from 3:30pm to 4:50pm in [CIC 1201](https://maps.app.goo.gl/93pZEYznGGC6EynS9). Attendance in person is expected. 
 
-
+The course is run on [Canvas](https://canvas.cmu.edu/courses/54976).
 
 ## Instructors
 - John Kitchin (jkitchin@andrew.cmu.edu)
@@ -22,8 +19,6 @@ The course will be Mondays and Wednesdays from 3:30pm to 4:50pm in [CIC 1201](ht
 - Robert Jimenez (robertoj@andrew.cmu.edu)
 - Nicolas Smits (nsmits@andrew.cmu.edu)
 - TBD
-
-
 
 
 :::{admonition} The whole course as one PDF
@@ -75,7 +70,7 @@ By the end of the course, students will be able to:
   **uncertainty quantification**, and use **Bayesian optimization / active learning** for
   design.
 - Use **foundation models** effectively (prompting, structured output, embeddings), build
-  **RAG** systems, and adapt models with **LoRA/PEFT**.
+  **RAG** systems.
 - Engineer **agents** that use tools, plan, and are guarded and **evaluated**.
 - **Deploy, monitor, and operate** AI systems, and reason about safety, cost, and
   responsible use in an engineering context.
@@ -86,19 +81,18 @@ To keep the course coherent, the following are standardized across materials; al
 are named where relevant so skills transfer.
 
 - **Language & environments:** Python, managed with **uv** (reproducible, lockfile-based).
-- **Deep learning:** **PyTorch**.
+- **Deep learning:** **PyTorch, jax**.
 - **Experiment tracking:** **MLflow**.
 - **Data:** PostgreSQL, DuckDB/Parquet, pandas/Polars; a vector store for the LLM arc.
-- **LLM / agentic:** framework- and provider-**agnostic** — students use a hosted LLM API
-  (e.g., Anthropic or OpenAI) plus small local models for fine-tuning exercises, and may
+- **LLM / agentic:** framework- and provider-**agnostic** — students may
   choose their agent framework. Concepts are taught so they transfer across providers.
 
 ## Assessment
 
-| Component                            | Weight |
+| Component                            | Weight | 
 |--------------------------------------|--------|
-| Weekly quizzes                       | 15%    |
-| Module assignments           | 42%    |
+| Weekly quizzes                       | 15%     |
+| Module assignments                   | 25%    |
 | Miniproject                          | 20%    |
 | Final project (open, student-chosen) | 40%    |
 
@@ -106,12 +100,12 @@ are named where relevant so skills transfer.
 There is **no proctored final exam**; assessment is project- and portfolio-based.
 
 - **Assignments:** one focused assignment per module, each reinforcing that
-  week's tools. Submitted via a course Git organization. Typically due one week after
+  week's tools. Submitted via Canvas. Typically due one week after
   release. Assignments use **per-module datasets** chosen to fit the topic.
-- **Miniproject:** launches Week 7 and gets a **dedicated mini-project week (Week 8)**. Integrates the data → train →
+- **Miniproject:**  Integrates the data → train →
   evaluate arc into a **surrogate/predictive model on an engineering dataset**, with a
   short report and a code walkthrough.
-- **Final project:** **student-chosen**, proposed Week 11, presented Week 14. Must
+- **Final project:** **student-chosen**. Must
   integrate back-half topics — an **LLM/agentic system** with real **evaluation and
   deployment**. Deliverables: proposal, build (repo), recorded demo, and in-class
   presentation.
@@ -120,17 +114,19 @@ There is **no proctored final exam**; assessment is project- and portfolio-based
   
 
 ### Grading scale
-| A  | 95 |
-| A- | 90 |
-| B+ | 85 |
-| B  | 80 |
-| B- | 75 |
-| C  | 60   |
+| letter | grade |
+|--------|-------|
+| A      | 95    |
+| A-     | 90    |
+| B+     | 85    |
+| B      | 80    |
+| B-     | 75    |
+| C      | 60    |
 
 
 ## Policies
 
-- **Late work:** graduated penalty (define per offering); final-project late work is not
+- **Late work:** Canvas will apply a 15% penalty per late day; final-project late work is not
   accepted after the presentation date. Plan for compute/queue delays — they are not
   grounds for extension.
 - **Collaboration:** discussing concepts and strategies is encouraged; submitted code and
@@ -143,10 +139,9 @@ There is **no proctored final exam**; assessment is project- and portfolio-based
   explain) is not permitted. When in doubt, disclose.
 - **Academic integrity:** governed by program/university policy; violations are reported.
 - **Accommodations, wellness, and inclusion:** the course follows university policy;
-  students needing accommodations should contact the instructor early. Support-resource
-  links are provided in `[TERM DETAILS]`.
+  students needing accommodations should contact the instructor early.
 
 ## Schedule
 
-See `schedule.md` for the full 24-lecture calendar with assignment release/due dates.
-Per-module detail (objectives, topics, activities, readings) is in `modules/`.
+See [schedule.md](./schedule.md) for the full calendar.
+
