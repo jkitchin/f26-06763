@@ -1,4 +1,4 @@
-# Systems & Toolchains for AI in Engineering
+# Systems and Toolchains for AI Engineers
 
 **Program:** MS, AI in Engineering
 **Units / Format:** 12 units · 2 sessions/week,  in-person, hands-on

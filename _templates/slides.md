@@ -3,7 +3,7 @@ marp: true
 theme: course
 paginate: true
 header: "06-763 · L00"
-footer: "Systems & Toolchains for AI in Engineering"
+footer: "Systems and Toolchains for AI Engineers"
 ---
 
 <!--
@@ -22,7 +22,7 @@ See CLAUDE.md for the full convention.
 
 ## Week 00 · Arc name
 
-**Systems & Toolchains for AI in Engineering**
+**Systems and Toolchains for AI Engineers**
 
 ---
 

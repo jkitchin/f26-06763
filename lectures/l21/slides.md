@@ -3,7 +3,7 @@ marp: true
 theme: course
 paginate: true
 header: "06-763 · L21"
-footer: "Systems & Toolchains for AI in Engineering"
+footer: "Systems and Toolchains for AI Engineers"
 ---
 
 <!-- _class: title -->
@@ -12,7 +12,7 @@ footer: "Systems & Toolchains for AI in Engineering"
 
 ## Week 12 · Production & responsibility
 
-**Systems & Toolchains for AI in Engineering**
+**Systems and Toolchains for AI Engineers**
 
 ---
 
