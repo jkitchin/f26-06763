@@ -352,14 +352,14 @@
       "session": "L18",
       "id": "l18",
       "date": "2026-11-09",
-      "title": "Adaptation: prompting vs RAG vs fine-tuning; LoRA/PEFT hands-on",
-      "written": false,
-      "arc_source": "inherited",
+      "title": "Adaptation: prompting vs RAG vs fine-tuning; choosing the right lever",
+      "written": true,
+      "arc_source": "declared",
       "arc": "LLM & agentic engineering",
       "region": 7,
       "x": 23,
       "y": 2,
-      "notes": null
+      "notes": "../lectures/l18/notes.html"
     },
     {
       "session": "L19",

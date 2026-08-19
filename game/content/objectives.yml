@@ -354,3 +354,21 @@
   lecture: l16
   text: >-
     Apply a disciplined prompting method and measure prompt quality on a small labeled set.
+
+# L18, published notes and no bank yet (game/content/l18.yml, status: unwritten).
+# Registered so whoever writes that bank maps onto objectives that already exist.
+
+- id: l18-o1
+  lecture: l18
+  text: >-
+    Give a defensible answer to "should I prompt, retrieve, or fine-tune?" for a concrete engineering task.
+
+- id: l18-o2
+  lecture: l18
+  text: >-
+    Explain what fine-tuning and LoRA/PEFT do, when fine-tuning is the right tool, and why engineering knowledge usually belongs in RAG instead.
+
+- id: l18-o3
+  lecture: l18
+  text: >-
+    Compare prompting, RAG, and fine-tuning on cost, latency, freshness, and failure modes on the same task and metric.
