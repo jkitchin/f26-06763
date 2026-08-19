@@ -9,7 +9,7 @@ Goals:
 - Make and defend engineering trade-offs (accuracy vs. latency vs. cost; automation vs. human-in-the-loop).
 - Communicate the system, its evaluation, and its limitations honestly to a technical audience.
 
-## Constraints (required — a project missing any of these will be capped)
+## Constraints (required)
 Your system **must** integrate all three:
 1. **LLM/agentic component** — at least one of: an agent that uses tools, a RAG system, structured-output extraction/reasoning over natural language, or an LLM orchestrating a surrogate/optimizer. (A pure surrogate with no LLM/agent element does not satisfy this; wrap it in an agent, a natural-language interface, or an LLM-driven design loop.)
 2. **Real evaluation** — a frozen, versioned eval set and a harness producing defensible metrics (programmatic checks + LLM-as-judge with human validation, or ML metrics with per-slice error bars). Results logged to MLflow. Cherry-picked demos do not count.
