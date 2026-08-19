@@ -1,7 +1,7 @@
 # Systems and Toolchains for AI Engineers
 
-Course notes for the MS in AI in Engineering. Fourteen weeks, two sessions per week:
-twenty-six lectures, a dedicated mini-project week, and a student-chosen capstone.
+Course notes for the MS in AI in Engineering. Fourteen weeks of twice-weekly sessions, a
+dedicated mini-project week, and a student-chosen capstone.
 
 The course is organized around one claim: a model in a notebook is not a system. Most of
 the engineering effort in a deployed AI system lives in the data infrastructure around the
@@ -23,19 +23,18 @@ notes.
 
 Every technology, format, method, failure mode, and case study the course names is
 collected in the {ref}`general index <genindex>`, with each term linked to the section that
-introduces it. When you remember the idea but not which of the twenty-six sessions covered
-it, start there rather than with search.
+introduces it. When you remember the idea but not which session covered it, start there
+rather than with search.
 
 :::{admonition} The whole course as two PDFs
 :class: tip
 
-<a href="course.pdf"><strong>Download course.pdf</strong></a>, the written record: the
-syllabus, the schedule, every set of notes, every demo notebook, the assignments, and the
-optional material, with a table of contents, numbered sections and figures, and page
-numbers.
+<a href="course.pdf"><strong>Download course.pdf</strong></a>: the syllabus, the schedule,
+every set of notes, every demo notebook, the assignments, and the optional material, in one
+searchable file with numbered sections, figures, and pages.
 
-<a href="slides.pdf"><strong>Download slides.pdf</strong></a>, the projected record: every
-deck of the semester in session order, with a bookmark per session.
+<a href="slides.pdf"><strong>Download slides.pdf</strong></a>: every deck of the semester in
+session order, one bookmark per session.
 
 Both are rebuilt on every change to this site. Useful for reading offline, for annotating,
 and for searching the whole semester at once. The decks are also published as live HTML,
@@ -64,7 +63,9 @@ locked.
 
 ## Toolchain
 
-Python with `uv` for environments, PyTorch for deep learning, MLflow for experiment
-tracking, and PostgreSQL, DuckDB, and Parquet with a vector store for data. The LLM and
-agent material is deliberately framework-agnostic and provider-agnostic, since that part
-of the ecosystem turns over faster than a semester.
+- **Environments:** Python, managed with `uv`.
+- **Deep learning:** PyTorch.
+- **Experiment tracking:** MLflow.
+- **Data:** PostgreSQL, DuckDB, and Parquet, with a vector store for the LLM work.
+- **LLMs and agents:** framework- and provider-agnostic, since that corner of the ecosystem
+  turns over faster than a semester.

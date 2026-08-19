@@ -1,7 +1,6 @@
 # CLAUDE.md, working conventions for this repo
 
-Course materials for **06-763 Systems & Toolchains for AI in
-Engineering** (Fall 2026). This file is the contract for how lecture material is
+Course materials for **06-763 Systems and Toolchains for AI Engineers** (Fall 2026). This file is the contract for how lecture material is
 structured, so that notes and slides written weeks apart, by different people or in
 different sessions, read as one course.
 
