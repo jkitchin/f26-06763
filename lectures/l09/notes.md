@@ -705,7 +705,7 @@ that machinery costs and where it stops working.
 **Cross-validation is expensive, and nested cross-validation is expensive squared.** A 5-fold
 outer loop around a 5-fold inner loop over 36 candidates is about 900 model fits. For a random
 forest on 9,568 rows that is minutes; for a neural network on a real dataset it can be days,
-which is why the deep learning arc starting at Lecture 11 mostly does not do it.
+which is why deep learning work mostly does not do it.
 The honest position is that k-fold is a small-data technique that stopped scaling, and at
 large n a single well-constructed train/validation/test split with an explicit uncertainty
 estimate is both cheaper and nearly as good.
@@ -737,7 +737,7 @@ drawn from. Not one of them can see a new operating regime, a replaced sensor ve
 different fuel, or a control system upgrade. Google Flu Trends had a correct held-out season
 and was destroyed by Google changing its own search suggestions, which no resampling scheme
 could have anticipated. The defences against that are not in this session: they are monitoring
-and drift detection, which arrive in the MLOps session at Lecture 23, and the practice of keeping a
+and drift detection, and the practice of keeping a
 dumb baseline running in production so that the day your model stops beating it, you find out.
 
 **And the metric is always a proxy for a cost you did not write down.** RMSE is not the money.
@@ -790,10 +790,7 @@ literature warns about is worth 0.0015 MW here, and the group split nobody menti
 half your reported accuracy. Use nested cross-validation when the ratio of candidates to rows
 makes selection bias real, which the measurement puts at a few hundred rows rather than a few
 thousand. And read a learning curve before you tune anything, because it is the only cheap
-diagnostic that tells you whether to buy more data or build a better model. Lecture 10 takes the
-study you can now run correctly and makes it *auditable*: every run tracked in MLflow with its
-parameters, metrics, data hash and git SHA, and a systematic hyperparameter search whose
-results you can read without fooling yourself.
+diagnostic that tells you whether to buy more data or build a better model.
 
 ## Resources
 
@@ -848,12 +845,11 @@ results you can read without fooling yourself.
 ## Assignment
 
 Assignment 4 is due today. Assignment 5, "Model-selection study with tracked experiments," is released this
-session (Wednesday 23 September 2026) and is due roughly one week later, at Lecture 11. It asks you
+session (Wednesday 23 September 2026) and is due roughly one week later. It asks you
 to take one engineering regression dataset from raw data to a defended model choice: baselines
 built and beaten, a justified cross-validation scheme, all preprocessing inside a `Pipeline`,
 at least three model families, a real hyperparameter search, and a single held-out test number
-with an uncertainty attached. Lecture 10 supplies the MLflow half of the requirement, so nothing is
-blocked before then.
+with an uncertainty attached.
 
 Two warnings drawn directly from this session's measurements, since the assignment asks you to
 justify a scheme and audit for leakage.

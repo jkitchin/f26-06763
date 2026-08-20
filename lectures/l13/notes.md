@@ -126,7 +126,7 @@ splitting discipline from [Lecture 9](../l09/notes.md) reappears in a harsher fo
 surrogate is not validated by a random hold-out; it is validated by asking it questions
 outside the region it was fitted on. **Deploy** puts it in the loop. **Refine** adds
 points where the surrogate is worst, which is active learning, and closes the loop back to
-the first stage. That last arrow is next session's subject.
+the first stage.
 
 ## Spending a simulation budget
 
@@ -342,7 +342,7 @@ stationary kernel has a finite correlation length, so far from any training poin
 posterior has nothing to condition on and relaxes back to the prior: prior mean, prior
 variance. **The GP's uncertainty grows away from data by construction, not by cleverness.**
 That property makes it the default surrogate inside a Bayesian optimization loop,
-which is next session's subject, and it is also why a GP is *conservative* rather than
+and it is also why a GP is *conservative* rather than
 *correct* outside the training envelope. It will tell you it does not know. It will not tell
 you the right answer.
 
@@ -827,9 +827,9 @@ mis-specified. And every uncertainty in this session is a conditional claim: on 
 split almost every method looks calibrated, on a held-out configuration split a five-member
 deep ensemble covers 80% of a nominal 95% interval while reporting the narrowest error bar
 of any model in the comparison, and under a held-out velocity two of the five methods
-responded to a 50% rise in error by making their intervals *narrower*. Lecture 14 takes the one
-property that survived, the GP posterior variance that grows where data is sparse, and turns
-it into a rule for choosing the next experiment.
+responded to a 50% rise in error by making their intervals *narrower*. The one property that
+survived every split was the GP posterior variance that grows where data is sparse, which is
+why it is the uncertainty estimate to trust when a query runs past the training envelope.
 
 ## Resources
 

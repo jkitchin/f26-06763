@@ -104,156 +104,156 @@
       "id": "l03",
       "date": "2026-08-31",
       "title": "Databases for engineering data",
-      "written": true,
+      "written": false,
       "arc_source": "declared",
       "arc": "Data Systems",
       "region": 1,
       "x": 4,
       "y": 1,
-      "notes": "../lectures/l03/notes.html"
+      "notes": null
     },
     {
       "session": "L4",
       "id": "l04",
       "date": "2026-09-02",
       "title": "Columnar storage and the wider data landscape",
-      "written": true,
+      "written": false,
       "arc_source": "declared",
       "arc": "Data Systems",
       "region": 1,
       "x": 5,
       "y": 1,
-      "notes": "../lectures/l04/notes.html"
+      "notes": null
     },
     {
       "session": "L5",
       "id": "l05",
       "date": "2026-09-09",
       "title": "Dataframes and scalable data processing",
-      "written": true,
+      "written": false,
       "arc_source": "declared",
       "arc": "Data Systems",
       "region": 1,
       "x": 4,
       "y": 2,
-      "notes": "../lectures/l05/notes.html"
+      "notes": null
     },
     {
       "session": "L6",
       "id": "l06",
       "date": "2026-09-14",
       "title": "Streaming data and data validation",
-      "written": true,
+      "written": false,
       "arc_source": "declared",
       "arc": "Data Systems",
       "region": 1,
       "x": 5,
       "y": 2,
-      "notes": "../lectures/l06/notes.html"
+      "notes": null
     },
     {
       "session": "L7",
       "id": "l07",
       "date": "2026-09-16",
       "title": "Features for time-series and physical data",
-      "written": true,
+      "written": false,
       "arc_source": "declared",
       "arc": "Data Systems",
       "region": 1,
       "x": 4,
       "y": 3,
-      "notes": "../lectures/l07/notes.html"
+      "notes": null
     },
     {
       "session": "L8",
       "id": "l08",
       "date": "2026-09-21",
       "title": "Data quality, versioning, and leakage-free splits",
-      "written": true,
+      "written": false,
       "arc_source": "declared",
       "arc": "Data Systems",
       "region": 1,
       "x": 5,
       "y": 3,
-      "notes": "../lectures/l08/notes.html"
+      "notes": null
     },
     {
       "session": "L9",
       "id": "l09",
       "date": "2026-09-23",
       "title": "The machine learning (ML) workflow: baselines, validation, and metrics",
-      "written": true,
+      "written": false,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
       "region": 2,
       "x": 7,
       "y": 1,
-      "notes": "../lectures/l09/notes.html"
+      "notes": null
     },
     {
       "session": "L10",
       "id": "l10",
       "date": "2026-09-28",
       "title": "Experiment tracking and hyperparameter search/tuning",
-      "written": true,
+      "written": false,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
       "region": 2,
       "x": 8,
       "y": 1,
-      "notes": "../lectures/l10/notes.html"
+      "notes": null
     },
     {
       "session": "L11",
       "id": "l11",
       "date": "2026-09-30",
       "title": "ML with PyTorch/JAX",
-      "written": true,
+      "written": false,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
       "region": 2,
       "x": 7,
       "y": 2,
-      "notes": "../lectures/l11/notes.html"
+      "notes": null
     },
     {
       "session": "L12",
       "id": "l12",
       "date": "2026-10-05",
       "title": "ML architectures for engineering data",
-      "written": true,
+      "written": false,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
       "region": 2,
       "x": 8,
       "y": 2,
-      "notes": "../lectures/l12/notes.html"
+      "notes": null
     },
     {
       "session": "L13",
       "id": "l13",
       "date": "2026-10-07",
       "title": "Surrogates, physics-informed models, and uncertainty quantification",
-      "written": true,
+      "written": false,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
       "region": 2,
       "x": 7,
       "y": 3,
-      "notes": "../lectures/l13/notes.html"
+      "notes": null
     },
     {
       "session": "L14",
       "id": "l14",
       "date": "2026-10-19",
       "title": "Bayesian optimization (BO) and active learning (AL)",
-      "written": true,
+      "written": false,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
       "region": 2,
       "x": 8,
       "y": 3,
-      "notes": "../lectures/l14/notes.html"
+      "notes": null
     },
     {
       "session": "MP-1",
@@ -286,65 +286,65 @@
       "id": "l15",
       "date": "2026-10-28",
       "title": "Large Language Models (LLMs) - Intro",
-      "written": true,
+      "written": false,
       "arc_source": "declared",
       "arc": "LLM and agentic engineering",
       "region": 3,
       "x": 10,
       "y": 1,
-      "notes": "../lectures/l15/notes.html"
+      "notes": null
     },
     {
       "session": "L16",
       "id": "l16",
       "date": "2026-11-02",
       "title": "Large Language Models (LLMs) II",
-      "written": true,
+      "written": false,
       "arc_source": "declared",
       "arc": "LLM and agentic engineering",
       "region": 3,
       "x": 11,
       "y": 1,
-      "notes": "../lectures/l16/notes.html"
+      "notes": null
     },
     {
       "session": "L17",
       "id": "l17",
       "date": "2026-11-04",
       "title": "Retrieval-augmented generation (RAG)",
-      "written": true,
+      "written": false,
       "arc_source": "declared",
       "arc": "LLM and agentic engineering",
       "region": 3,
       "x": 10,
       "y": 2,
-      "notes": "../lectures/l17/notes.html"
+      "notes": null
     },
     {
       "session": "L18",
       "id": "l18",
       "date": "2026-11-09",
       "title": "LLMs - Lecture III",
-      "written": true,
+      "written": false,
       "arc_source": "declared",
       "arc": "LLM and agentic engineering",
       "region": 3,
       "x": 11,
       "y": 2,
-      "notes": "../lectures/l18/notes.html"
+      "notes": null
     },
     {
       "session": "L19",
       "id": "l19",
       "date": "2026-11-11",
       "title": "LLM Agents",
-      "written": true,
+      "written": false,
       "arc_source": "declared",
       "arc": "LLM and agentic engineering",
       "region": 3,
       "x": 10,
       "y": 3,
-      "notes": "../lectures/l19/notes.html"
+      "notes": null
     },
     {
       "session": "L20",
@@ -364,13 +364,13 @@
       "id": "l21",
       "date": "2026-11-18",
       "title": "Evaluating and observing ML and LLM systems",
-      "written": true,
+      "written": false,
       "arc_source": "declared",
       "arc": "Production and responsibility",
       "region": 4,
       "x": 13,
       "y": 1,
-      "notes": "../lectures/l21/notes.html"
+      "notes": null
     },
     {
       "session": "L22",
@@ -390,13 +390,13 @@
       "id": "l23",
       "date": "2026-11-30",
       "title": "MLOps and responsible AI",
-      "written": true,
+      "written": false,
       "arc_source": "declared",
       "arc": "Production and responsibility",
       "region": 4,
       "x": 13,
       "y": 2,
-      "notes": "../lectures/l23/notes.html"
+      "notes": null
     }
   ],
   "doors": [
@@ -415,14 +415,6 @@
       "relation": null,
       "why": null,
       "where": "`sensors` and `readings` tables in [Lecture 3](../l03/notes.md), and the same warning applies here that"
-    },
-    {
-      "from": "l05",
-      "to": "l07",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "distinction [Lecture 7](../l07/notes.md) runs into on a different dataset. A column holding the single"
     },
     {
       "from": "l06",
@@ -625,22 +617,6 @@
       "where": "[Lecture 9](../l09/notes.md) and [Lecture 13](../l13/notes.md); this is the report itself. It is 146"
     },
     {
-      "from": "l15",
-      "to": "l17",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "retrieval-augmented generation, the subject of [Lecture 17](../l17/notes.md) in two sessions'"
-    },
-    {
-      "from": "l15",
-      "to": "l19",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "retrieval index, and [Lecture 19](../l19/notes.md), where the model starts calling tools."
-    },
-    {
       "from": "l19",
       "to": "l03",
       "origin": "authored",
@@ -761,16 +737,5 @@
       "where": "unit-tested against Lecture 21's actual measured numbers as a passing case"
     }
   ],
-  "signs": [
-    {
-      "lecture": "l20",
-      "promised_by": "l19",
-      "where": "is where every guardrail in Lecture 20 attaches"
-    },
-    {
-      "lecture": "l22",
-      "promised_by": "l21",
-      "where": "shared with Lecture 22, deploy that system behind a FastAPI and Docker service"
-    }
-  ]
+  "signs": []
 }

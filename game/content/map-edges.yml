@@ -196,20 +196,10 @@ edges:
 
 # Signs on the rooms that are not written yet.
 #
-# Twelve lectures have no notes. They show as shuttered rooms rather than as
-# absences, so the shape of the whole course is legible from week one and the
-# map grows by opening a shutter rather than by being redrawn. A shutter that
-# an existing lecture already promises can carry the promise as its sign.
-shutters:
-  - lecture: l20
-    promised_by: l19
-    source:
-      file: lectures/l19/notes.md
-      quote: is where every guardrail in Lecture 20 attaches
-
-  - lecture: l22
-    promised_by: l21
-    source:
-      file: lectures/l21/notes.md
-      quote: >-
-        shared with Lecture 22, deploy that system behind a FastAPI and Docker service
+# Lectures with no notes show as shuttered rooms rather than as absences, so the
+# shape of the whole course is legible from week one and the map grows by opening
+# a shutter rather than by being redrawn. A shutter used to be able to carry a
+# "sign" quoted from a lecture that promised it, but the course no longer makes
+# forward references, so there are no promise quotes to carry. Shuttered rooms
+# stand on their own.
+shutters: []

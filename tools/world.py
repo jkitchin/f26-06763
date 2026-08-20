@@ -49,6 +49,23 @@ REPO = Path(__file__).resolve().parent.parent
 OUT = REPO / "game" / "src" / "map" / "world.json"
 GRAPH = REPO / "game" / "src" / "map" / "graph.json"
 SCHEDULE = REPO / "course" / "schedule.md"
+TOC = REPO / "_toc.yml"
+
+#: A room is "open" (has a clickable notes link, drawn as reachable) only once
+#: its lecture is RELEASED, meaning listed in _toc.yml. The course ships one week
+#: at a time, so a lecture whose notes.md exists on disk but is not yet in _toc.yml
+#: is drawn as a shuttered room, exactly like a lecture that has no notes at all.
+#: Without this the map would link every future lecture to a notes.html the site
+#: never built. Regions and arcs still come from the notes on disk, so the shape
+#: of the whole course stays legible; only the open/shut state follows _toc.yml.
+def released_ids() -> set[str]:
+    """Lecture ids (l01, l19, ...) released in _toc.yml.
+
+    Matches only real, uncommented `- file:` entries, so commenting a lecture
+    out of _toc.yml (the weekly-release mechanism) correctly reads as unreleased.
+    """
+    text = TOC.read_text(encoding="utf-8") if TOC.is_file() else ""
+    return set(re.findall(r"^\s*-\s*file:\s*lectures/(l\d\d)/notes\b", text, re.M))
 
 #: L1 through L23 plus the two mini-project sessions. Update deliberately.
 #:
@@ -115,14 +132,16 @@ def sessions() -> list[dict]:
         )
 
     arcs = written()
+    released = released_ids()
     current = None
     for r in rows:
-        r["written"] = r["id"] in arcs
-        if r["written"]:
+        has_arc = r["id"] in arcs
+        if has_arc:
             current = arcs[r["id"]]
-            r["arc_source"] = "declared"
-        else:
-            r["arc_source"] = "inherited"
+        # A room is open only once its lecture is released in _toc.yml; the arc
+        # is still read from the notes on disk so regions do not move.
+        r["written"] = r["id"] in released
+        r["arc_source"] = "declared" if has_arc else "inherited"
         if current is None:
             raise SystemExit(
                 f"{r['session']} precedes every written lecture, so it has no arc "

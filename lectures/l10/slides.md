@@ -307,7 +307,5 @@ Honesty reports the second.
 
 **Assignment 5** (from Lecture 9): its tracking and search half is now unblocked
 **Reading** MLflow + Optuna docs; Bergstra & Bengio (2012)
-**Lecture 11** Into deep learning, where training runs get long enough
-that pruning and tracking become necessities, not conveniences
 
 Full notes, with all sources: `lectures/l10/notes.md`

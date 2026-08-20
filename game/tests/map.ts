@@ -1,6 +1,7 @@
 /** The map world and its walking rules. Run with `npm run map`. */
 
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import {
   coverage, doorsOf, doorVisible, roomAt, roomById, signFor, step, world,
 } from '../src/map/world.ts'
@@ -21,11 +22,18 @@ console.log('map:')
 
 check(world.rooms.length === 25, 'every session on the schedule is a room',
   `${world.rooms.length} rooms`)
-// Twenty-one written, not fourteen: L6, L8, L10, L12, L14, L16 and L18 gained
-// notes. Each has a bank stub marked `status: unwritten`, so they are readable
-// rooms with no practice module, a third state the room panel says out loud.
-check(world.rooms.filter((r) => r.written).length === 21,
-  'twenty-one of them are written', `${world.rooms.filter((r) => r.written).length}`)
+// The written (open) rooms are exactly the lectures released in _toc.yml. The
+// course ships one week at a time, so this set grows week by week; the test
+// derives it from _toc.yml rather than hard-coding a count a release would break.
+const toc = readFileSync(new URL('../../_toc.yml', import.meta.url), 'utf8')
+const releasedIds = new Set(
+  [...toc.matchAll(/^\s*-\s*file:\s*lectures\/(l\d\d)\/notes/gm)].map((m) => m[1]))
+const writtenIds = world.rooms.filter((r) => r.written).map((r) => r.id).sort()
+const expectedWritten = world.rooms
+  .filter((r) => releasedIds.has(r.id)).map((r) => r.id).sort()
+check(JSON.stringify(writtenIds) === JSON.stringify(expectedWritten),
+  'written rooms are exactly the lectures released in _toc.yml',
+  `written: ${writtenIds.join(',') || '(none)'}`)
 
 // L18 and L19 carry a conference annotation in the schedule that an earlier
 // parser silently dropped. L19 anchors five authored corridors, so losing it
@@ -108,7 +116,9 @@ check(doorVisible(oneDoor, both), 'and drawn once both have been')
 check(coverage(none).seen === 0 && coverage(none).total === 25, 'coverage starts at zero of 25')
 check(coverage(both).seen === 2, 'and counts the rooms actually stood in')
 
-check(signFor('l20')?.promised_by === 'l19', 'the L20 shutter carries L19s promise')
+// Shuttered rooms no longer carry a promise sign: the promises were forward
+// references from earlier lectures, and the course no longer makes any.
+check(signFor('l20') === undefined, 'a shuttered room carries no promise sign')
 check(signFor('l01') === undefined, 'a written room has no shutter sign')
 
 // --- visits are inert to everything that grades ----------------------------

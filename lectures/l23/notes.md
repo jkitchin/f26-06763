@@ -312,9 +312,7 @@ beats a paragraph of good intentions, and documentation, a model card, a system 
 NIST AI RMF-style process, lets the next person who relies on your system know what it is safe
 to trust it with. None of this replaces judgment about whether a system belongs in a
 physical or safety-critical decision loop at all; it makes that judgment possible to make
-honestly, on evidence, before an incident forces the question. The next session is a
-studio, no new content, dedicated to wiring exactly this, an eval gate, a drift hook, a
-guardrail table, onto your own final project before Week 14's presentations.
+honestly, on evidence, before an incident forces the question.
 
 ## Resources
 
@@ -346,6 +344,5 @@ guardrail table, onto your own final project before Week 14's presentations.
 
 No new assignment this week. Effort goes to the **final project**: wire a CI eval gate, a
 drift or observability hook, and a system-specific failure-mode-to-guardrail table onto your
-own system, ready for the Lecture 24 studio to help you close whichever gap remains before Week 14's
-presentations. Assignment 11 from Week 12 may be folded directly into the project rather than treated as
+own system. Assignment 11 from Week 12 may be folded directly into the project rather than treated as
 separate work. Full spec: `course/final-project.md`.

@@ -13,7 +13,7 @@ schema: 1
 lecture: l15
 title: "Foundation models and LLMs at a systems level"
 source_notes: lectures/l15/notes.md
-status: published
+status: unwritten
 
 # Serve fewer than the pool holds, or every student gets every item and the
 # item-set half of the anti-forgery design does nothing. Measured on this pool:

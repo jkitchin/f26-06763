@@ -2,7 +2,7 @@ schema: 1
 lecture: l13
 title: "Surrogate modeling, physics-informed models, and uncertainty"
 source_notes: lectures/l13/notes.md
-status: published
+status: unwritten
 serve: 6
 pool_version: 2
 provenance:

@@ -141,7 +141,11 @@ frontmatter `title:` and expect it to render.
    to reach for something else. When it applies it usually sets up the next arc. L3's "Where
    the relational model pushes back" is the worked model.
 5. `## In-class demo`, short orientation, pointing at `demo.ipynb`.
-6. `## Summary`, a paragraph, not bullets. Connect forward to the next session.
+6. `## Summary`, a paragraph, not bullets, closing the session on its own terms.
+   **Do not point forward to later sessions.** The course is released one week at a
+   time, so a released lecture must not reference material that is not out yet: no
+   "next session we...", no "we return to this in week N", no links or names of
+   later lectures. Backward references to earlier lectures are fine and encouraged.
 7. `## Resources`, annotated links, one line each on why it is worth reading.
 8. `## Assignment`, a pointer and a deadline, never a copy of the rubric.
 
@@ -234,10 +238,10 @@ case studies section 4 requires every set of notes to carry, which are otherwise
 across a semester with nothing that lists them.
 
 It is linked from `index.md` with `` {ref}`general index <genindex>` ``. That is a role
-rather than the raw HTML anchor the decks and the PDFs need, and the difference is not
+rather than the raw HTML anchor the decks need, and the difference is not
 inconsistency: `genindex` is a label Sphinx knows about, so Sphinx computes the relative
 href itself and the link is correct from the landing page and from a lecture page alike,
-with no `/f26-06763/` hardcoded anywhere. The decks and the PDFs are not Sphinx documents at
+with no `/f26-06763/` hardcoded anywhere. The decks are not Sphinx documents at
 all, which is why they get anchors.
 
 An index is only as good as the entries somebody remembered to write, and a lecture that
@@ -295,12 +299,12 @@ following a page reference always lands you somewhere that explains the term.
 **Where the directive goes.** Immediately after the heading of the section that defines the
 terms, with a blank line either side, at the top level of the document. The index link then
 lands the reader at the section that explains the term rather than at the top of the page.
-Never put one inside an `:::{admonition}` body, a figure, or a table: those become fragile
-LaTeX environments in the PDF build, and an `\index{}` inside one breaks it for a reason
-nobody will guess from the error.
+Keep them at the top level, not inside an `:::{admonition}` body, a figure, or a table, so
+the index link lands on the section rather than inside a box and the entries stay easy to
+lint.
 
 **Entry text is more constrained than it looks**, and every one of these fails silently
-rather than loudly, because Sphinx parses the entry long before LaTeX sees it. A comma in an
+rather than loudly, because Sphinx's index parser rewrites the entry without complaint. A comma in an
 untyped entry splits it in two. A semicolon splits an entry from its subentry. A leading `!`
 promotes it to a main entry. A leading `module:`, `keyword:`, `operator:`, `object:`,
 `exception:`, or `statement:` is reinterpreted as a legacy Python index type. So: no commas,
@@ -308,17 +312,16 @@ no semicolons, no leading `!`, and no leading reserved word plus colon. If a ter
 contains a comma, rewrite the term.
 
 Beyond those, keep out `| " \ { } $ % # ^ ~ < >`, and keep entries ASCII. Both are checked
-by CI. Everything else is safe, including the characters that look dangerous: `Recall@k`
-and `zero_grad` are fine entries, because `sphinx/writers/latex.py` escapes `@`, `!`, `"`,
-`|` and the LaTeX specials before the index processor ever sees them. The hazard is
-Sphinx's own entry parser, not LaTeX's.
+by CI's index lint. Everything else is safe, including characters that look dangerous:
+`Recall@k` and `zero_grad` are fine entries. The hazard is Sphinx's own entry parser, which
+splits and reinterprets the reserved sequences above.
 
-The ASCII rule is the one that comes from outside Sphinx. The body of these notes carries
-34 distinct non-ASCII characters and that is fine, but the *index* is typeset by
-`makeindex`, which sorts non-ASCII text badly. `_config.yml` selects it with
-`latex_use_xindy: false`, because Sphinx's default index processor for xelatex is xindy, a
-separate apt package the CI TeX install does not carry. Write `R-squared` rather than `R²`,
-and `Karman vortex street` rather than the accented spelling.
+The ASCII rule is a lint convention rather than a hard technical constraint, now that the
+course ships as HTML only and there is no PDF index processor to mis-sort accented text. It
+stays because it costs nothing here and keeps entries sortable and portable: the body of
+these notes carries 34 distinct non-ASCII characters and that is fine, but write
+`R-squared` rather than `R²` in an index entry, and `Karman vortex street` rather than the
+accented spelling.
 
 **Canonical form.** Proper nouns keep their own capitalization, including the deliberately
 lowercase ones: Parquet, DuckDB, PostgreSQL, nDCG, `uv`. Everything else is lowercase:
@@ -356,7 +359,11 @@ cleanest in the course.
 prose lives in the notes; if a slide needs a paragraph, that paragraph belongs in the notes
 and the slide should carry the pointer instead.
 
-**Required structure:** title → roadmap → content sections → demo marker → recap → next.
+**Required structure:** title → roadmap → content sections → demo marker → recap → handoff.
+The final "handoff" slide carries only operational logistics that reveal no future content,
+the readings and the assignment for this week and any prep to do before the next class. It
+**must not preview the next lecture's number or topic**, because the course releases weekly
+and that lecture is not out yet. Same rule as the notes Summary in section 4.
 
 **Sessions are 110 minutes.** Budget accordingly, and note that this is long enough that a
 deck which merely names topics will run dry well before the room does.
@@ -603,14 +610,8 @@ jupyter-book build . --warningiserror --keep-going
 # Force a clean rebuild after moving or renaming files
 jupyter-book build . --all
 
-# The whole course as one PDF, into _build/latex/course.pdf
-jupyter-book build . --builder pdflatex
-
 # One deck to HTML
 npx @marp-team/marp-cli lectures/l01/slides.md -o /tmp/l01.html
-
-# One deck to PDF (needs Chromium). --allow-local-files or the figures drop out
-npx @marp-team/marp-cli lectures/l01/slides.md --pdf --allow-local-files -o /tmp/l01.pdf
 
 # Watch a deck while writing it
 npx @marp-team/marp-cli -w lectures/l01/slides.md -o /tmp/l01.html
@@ -621,85 +622,19 @@ npx @marp-team/marp-cli -w lectures/l01/slides.md -o /tmp/l01.html
 open _build/html/genindex.html
 ```
 
-CI (`.github/workflows/book.yml`) builds the book, builds the course PDF, renders every
-`lectures/*/slides.md` to `_build/html/slides/lNN/index.html` and again to PDF for the
-merged `slides.pdf`, checks that no `course/modules/` page leaked into the output, deploys
-to Pages on push to `main`, and then verifies that the deploy actually landed. Pull
-requests build as a check but do not deploy.
+CI (`.github/workflows/book.yml`) builds the book, renders every `lectures/*/slides.md`
+whose lecture is released in `_toc.yml` to `_build/html/slides/lNN/index.html`, checks that
+no `course/modules/` page leaked into the output, deploys to Pages on push to `main`, and
+then verifies that the deploy actually landed. Pull requests build as a check but do not
+deploy. There is no PDF build: the course ships as online notes and slides only.
 
 **The index** is checked twice, for the reason section 4b gives: missing entries are
-invisible in a green build. A source lint runs before anything is installed, so it fails in
-seconds rather than after the TeX install, and it rejects a lecture carrying fewer than ten
-entries, an entry holding a character that Sphinx's parser or `makeindex` would mishandle,
-and any term written two ways across two lectures. Then an artifact check reads
+invisible in a green build. A source lint runs first and rejects a lecture carrying fewer than ten
+entries, an entry holding a character that Sphinx's index parser would mishandle, and any
+term written two ways across two lectures. Then an artifact check reads
 `_build/html/genindex.html` back and fails if it is missing or thin, because an empty index
 builds perfectly. Both scripts are self-contained `python3` heredocs in the workflow; run
 them by hand before pushing.
-
-**The PDF.** `--builder pdflatex` produces the whole course as one document, and CI copies
-it to `_build/html/course.pdf` so it is downloadable at `/f26-06763/course.pdf`. It is
-linked from `index.md` with a raw HTML anchor, for the same reason the slide decks are: the
-PDF is not a Sphinx document, so markdown link syntax would fail `myst.xref_missing` under
-`--warningiserror`.
-
-Three things about it are load-bearing and live under `latex:` in `_config.yml`:
-
-- **`latex_engine: xelatex`.** These sources carry 34 distinct non-ASCII characters
-  (arrows, box drawing, Greek, superscripts, the micro sign). The pdflatex default cannot
-  set them without a `\DeclareUnicodeCharacter` per character; xelatex plus GNU FreeFont
-  handles all of them. CI installs `texlive-xetex` and `fonts-freefont-otf` for this.
-- **`latex_documents.targetname`.** Without it the output is `projectnamenotset.pdf`.
-- **`latex_documents.title`.** Jupyter Book copies the top-level `title:` into `\title{}`
-  *unescaped* (see `jupyter_book/config.py`, `latex_doc_overrides`). The course title used
-  to contain an `&`, which fails the LaTeX run with `Misplaced alignment tab character &`,
-  so the override supplied an escaped `\&`. The title is now "Systems and Toolchains for AI
-  Engineers" with no `&`, so the override is a plain string. If a future title reintroduces
-  an `&` (or another LaTeX special), it has to be escaped here again.
-
-The PDF carries an index of its own, typeset at the end from the same `{index}` entries by
-`makeindex` running under `latexmk`. Two things about that are worth knowing. The processor
-is `makeindex` only because `_config.yml` sets `latex_use_xindy: false`; Sphinx's default
-for xelatex is xindy, which is an apt package (and a clisp dependency) the TeX install here
-does not carry, and the resulting `latexmkrc` would call a binary that is not there. That
-would not have failed before this: with no index entries the `.idx` file is empty, latexmk
-skips the index step, and the missing processor never comes up. Second, nothing in the chain
-fails loudly even now, because if the index step is skipped `\printindex` simply produces
-nothing and the document ships with a blank Index page. So CI asserts that
-`_build/latex/course.ind` came out non-empty, that file being the evidence the chain ran.
-
-Measured on a green run rather than estimated: the whole CI job takes 4m46s, of which the
-TeX install is 134s, the PDF build 55s, and the artifact check 13s. The PDF build runs on
-pull requests as well as on `main` on purpose: a PDF that only breaks after merge is the
-kind of silent failure the rest of this workflow exists to prevent. The check inspects the
-artifact rather than the exit code, because a LaTeX run can succeed and still emit
-something truncated.
-
-**The slides PDF.** The decks get the same treatment, one document for the whole semester
-at `/f26-06763/slides.pdf`, next to `course.pdf` and linked from `index.md` by the same raw
-HTML anchor. CI renders each `lectures/*/slides.md` a second time with `--pdf`, then merges
-the results with `pypdf`, one bookmark per session. Four things about it are worth knowing
-before editing that job:
-
-- **It needs a browser.** MARP has no PDF path that is not headless Chrome. The step uses
-  the runner image's `google-chrome-stable` and falls back to fetching Chrome for Testing
-  through puppeteer. It deliberately does not `apt-get install chromium`, which on Ubuntu 24
-  is a snap wrapper that will not run on a runner.
-- **`--allow-local-files` is required.** Without it every `figures/*.png` is silently
-  dropped from the PDF, verified by rendering L1 both ways: three figures with the flag,
-  zero without. The HTML export needs no such flag, which is exactly why this is easy to
-  lose in an edit.
-- **Session order is not filename order.** `mp1`/`mp2` sort to the end of a glob but belong
-  in Week 8, between L14 and L15, so the merge sorts on an explicit session key.
-- **The checks are not decoration.** One page per slide (a deck that renders short is
-  caught), the title text of every deck present in the merged text, and at least as many
-  embedded images as the deck references figures. Each was tested by breaking it on purpose:
-  truncating a deck to ten pages and dropping the local-files flag both fail the job. The
-  title probe compares with whitespace removed, because a long title wraps on the rendered
-  slide and L17's does.
-
-Measured on the green run that introduced it, 14 decks and 874 pages: 49s to render the
-deck PDFs and 9s to check them, so about a minute on top of the job. The per-deck PDFs are
-intermediates in `_build/slides-pdf/` and are not published; only the merged file is.
 
 **The site is HTTPS, and enforces it.** Pages holds a valid certificate for the custom
 domain and serves over HTTP/2; `https_enforced` was turned on 2026-08-08, so `http://`

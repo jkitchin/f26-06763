@@ -446,7 +446,7 @@ This session's demo is provably correct against
 a model that **cannot reason at all**.
 
 Does a real model choose well? Untested here,
-that's Assignment 10 and Lecture 20's evaluation section.
+that's Assignment 10.
 
 ---
 
@@ -513,7 +513,5 @@ sensor query, stats, surrogate.
 **Assignment 10** released today, due ~1 week
 **Also due this week**: final-project proposal
 **Reading** Yao et al. 2022 (ReAct); Anthropic, "Building Effective Agents"
-**Lecture 20** Multi-agent orchestration, frameworks, and the guardrails
-this session's harness doesn't have yet
 
 Full notes, with all sources: `lectures/l19/notes.md`

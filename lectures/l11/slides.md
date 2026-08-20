@@ -709,7 +709,6 @@ and **ties** the network.
 
 Learn PyTorch because it is the only option once
 the input has structure a tree cannot exploit.
-That is Lecture 12.
 
 **Autodiff is exact, not free, not universal.**
 
@@ -795,8 +794,5 @@ Every one of those was a draft claim a run corrected.
 
 **Assignment 6**, out today, due ~1 week, Assignment 5 due now
 **Reading** [PyTorch: Learn the Basics](https://docs.pytorch.org/tutorials/beginner/basics/intro.html), [autograd tutorial](https://docs.pytorch.org/tutorials/beginner/blitz/autograd_tutorial.html), [Grinsztajn et al. 2022](https://arxiv.org/abs/2207.08815)
-**Lecture 12** Architectures that match the structure of the
-input: MLP, CNN for fields, 1D-CNN and RNN for sensor
-time series, where a net does what a tree cannot
 
 Full notes, with all sources: `lectures/l11/notes.md`

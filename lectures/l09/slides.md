@@ -811,7 +811,7 @@ None sees a new operating regime, a replaced sensor
 vendor, a different fuel. GFT had a correct holdout and
 was destroyed by **Google changing its own search suggestions**.
 
-The answers are **monitoring** (Lecture 23), and keeping a
+The answers are **monitoring**, and keeping a
 **dumb baseline running in production**.
 
 ---
@@ -870,7 +870,5 @@ Every one of those was a draft claim that a run corrected.
 
 **Assignment 5**, out today, due ~1 week, Assignment 4 due now
 **Reading** [ESL ch. 7](https://hastie.su.domains/ElemStatLearn/download.html) (esp. §7.10.2), [sklearn CV](https://scikit-learn.org/stable/modules/cross_validation.html), [sklearn pitfalls](https://scikit-learn.org/stable/common_pitfalls.html), [Raschka arXiv:1811.12808](https://arxiv.org/abs/1811.12808)
-**Lecture 10** The same study, made auditable: MLflow tracking
-and hyperparameter search with Optuna
 
 Full notes, with all sources: `lectures/l09/notes.md`

@@ -2,7 +2,7 @@ schema: 1
 lecture: l07
 title: "Features for time-series and physical data: transforms, scaling, leakage"
 source_notes: lectures/l07/notes.md
-status: published
+status: unwritten
 serve: 5
 pool_version: 2
 provenance:

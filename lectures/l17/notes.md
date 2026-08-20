@@ -300,7 +300,7 @@ worked set of these metrics if you want a starting point rather than building yo
 
 **LLM-as-judge**, using a second language model call to score faithfulness or correctness
 because no simple string match can, is worth introducing here as a tool you will reach for, with
-one caveat stated plainly now and addressed later in the course: a judge model has its own
+one caveat stated plainly: a judge model has its own
 biases and blind spots, and treating its score as ground truth without ever checking it against
 human judgment just moves the trust problem rather than solving it.
 
@@ -383,9 +383,7 @@ your actual scale, retrieve with dense, keyword, or hybrid search depending on w
 queries are paraphrases or exact identifiers, and instruct the generation step, explicitly and
 checkably, to answer only from what it was given. None of that is safe to assume works until you
 measure it, and retrieval evaluation, recall@k first, is the measurement this whole argument
-depends on. Next session turns the question around: given prompting, RAG, and
-fine-tuning all on the table, which one actually fits a given engineering task, and what does a
-LoRA fine-tune on the course GPU look like when behavior, not knowledge, is what needs fixing.
+depends on.
 
 ## Resources
 

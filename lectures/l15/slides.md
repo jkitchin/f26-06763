@@ -616,7 +616,7 @@ dedup, clustering, retrieval
 extraction, summarization, judgment
 
 Real pipelines: narrow millions to tens with vectors,
-then spend tokens on the tens. That is Lecture 17.
+then spend tokens on the tens.
 
 ---
 
@@ -783,8 +783,6 @@ Which pairs cluster? How many tokens is that part number?
 ## Next
 
 **Reading** linked at the end of the notes
-**Assignment 8** released today, due Lecture 17 (2026-11-04)
-**Next session** Lecture 16: the API, structured output,
-validation and repair, cost accounting, prompt evaluation
+**Assignment 8** released today, due 2026-11-04
 
 Notes for this lecture: `lectures/l15/notes.md`
