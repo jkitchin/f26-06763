@@ -2,15 +2,15 @@
 marp: true
 theme: course
 paginate: true
-header: "06-763 · L6"
+header: "06-763 / L6"
 footer: "Systems and Toolchains for AI Engineers"
 ---
 
 <!-- _class: title -->
 
-# L6 · Streaming and data validation
+# Lecture 6: Streaming and data validation
 
-## Week 3 · Data Systems
+## Week 3, Data Systems
 
 **Systems and Toolchains for AI Engineers**
 
@@ -35,7 +35,7 @@ footer: "Systems and Toolchains for AI Engineers"
 
 ## Two facts that break a batch pipeline
 
-L5 built a batch pipeline: a clean sequence of stages over a **fixed, finished** dataset.
+Lecture 5 built a batch pipeline: a clean sequence of stages over a **fixed, finished** dataset.
 
 The right picture most of the time.
 
@@ -263,7 +263,7 @@ Every pipeline, batch or streaming, has data entering it that some upstream proc
 - **Statistical check**: asserts distributions (null rate, uniqueness, drift).
 - **Physical-plausibility check**: asserts what the domain knows (temperature in range, time not backwards).
 
-The physical checks earn their keep: the impossible temperatures from L3 come from motes whose batteries drained, and a range check and a voltage check reject the same rows.
+The physical checks earn their keep: the impossible temperatures from Lecture 3 come from motes whose batteries drained, and a range check and a voltage check reject the same rows.
 
 ---
 
@@ -353,7 +353,7 @@ Statistical checks ask whether the **distribution** moved:
 - a null rate creeping up
 - a sensor's mean sliding month to month
 
-The seam into **monitoring** (L20): the same checks, run forever. A written schema is also documentation, the shape the next person or service can rely on.
+The seam into **monitoring** (Lecture 20): the same checks, run forever. A written schema is also documentation, the shape the next person or service can rely on.
 
 ---
 
@@ -450,9 +450,9 @@ The gate turns silent corruption into a loud failure.
 
 ## Next
 
-**Assignment** A3 (from L5): its validation half is now unblocked
+**Assignment 3** (from Lecture 5): its validation half is now unblocked
 **Reading** Akidau, "The Dataflow Model"; pandera docs
-**L7** From guarding data to shaping it: features for time-series
+**Lecture 7** From guarding data to shaping it: features for time-series
 and physical data, and the trap of **leakage**
 
 Full notes, with all sources: `lectures/l06/notes.md`

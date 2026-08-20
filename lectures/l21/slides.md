@@ -2,15 +2,15 @@
 marp: true
 theme: course
 paginate: true
-header: "06-763 · L21"
+header: "06-763 / L21"
 footer: "Systems and Toolchains for AI Engineers"
 ---
 
 <!-- _class: title -->
 
-# L21 · Evaluating ML & LLM/agent systems
+# Lecture 21: Evaluating ML & LLM/agent systems
 
-## Week 12 · Production & responsibility
+## Week 12, Production & responsibility
 
 **Systems and Toolchains for AI Engineers**
 
@@ -28,7 +28,7 @@ footer: "Systems and Toolchains for AI Engineers"
 
 <!-- 110 min. Budget roughly 10/15/15/15/15/10/30 demo.
      No hosted LLM in the demo -- the "judge" is an explicit, naive heuristic.
-     Real Intel Lab data (L3/L4) for the ML-eval half; real MLflow logging.
+     Real Intel Lab data (Lecture 3/Lecture 4) for the ML-eval half; real MLflow logging.
      If running long, cut the observability slides, not the demo. -->
 
 ---
@@ -86,7 +86,7 @@ enough to catch it before the losses were booked.
 
 ---
 
-## Why this matters, this is L13's second half, at a company's scale
+## Why this matters, this is Lecture 13's second half, at a company's scale
 
 A surrogate that quietly stops matching the
 world it was trained on.
@@ -216,7 +216,7 @@ Same fitted model. Same data source.
 
 | Slice | MAE |
 |---|---|
-| Good voltage (≥2.4V, L3's threshold) | 2.49 |
+| Good voltage (≥2.4V, Lecture 3's threshold) | 2.49 |
 | Low voltage (<2.4V) | 6.11 |
 
 **2.5× worse**, hidden by any aggregate number.
@@ -519,9 +519,9 @@ you validate + a surrogate you audit by slice.
 
 ## Next
 
-**Assignment** A11 released today (lighter; folds into the final project)
+**Assignment 11** released today (lighter; folds into the final project)
 **Reading** Huyen, *Designing ML Systems* (eval/monitoring); Zheng et al. 2023
-**L22** Deployment: FastAPI, Docker, cloud serving,
+**Lecture 22** Deployment: FastAPI, Docker, cloud serving,
 and running this same harness against what you actually shipped
 
 Full notes, with all sources: `lectures/l21/notes.md`

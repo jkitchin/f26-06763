@@ -4,12 +4,12 @@
     {
       "lecture": "l20",
       "promised_by": "l19",
-      "where": "is where every guardrail in L20 attaches"
+      "where": "is where every guardrail in Lecture 20 attaches"
     },
     {
       "lecture": "l22",
       "promised_by": "l21",
-      "where": "shared with L22, deploy that system behind a FastAPI and Docker service"
+      "where": "shared with Lecture 22, deploy that system behind a FastAPI and Docker service"
     }
   ],
   "note": "Markdown cross-links, plus the hand-authored edges in game/content/map-edges.yml for the back half of the course, where lectures cite each other only in prose. See the module docstring.",
@@ -41,56 +41,56 @@
       "from": "l04",
       "to": "l03",
       "weight": 1,
-      "where": "At the end of [L3](../l03/notes.md) we had the Intel Berkeley Lab readings in a relational database, indexed on `(sensor_id, ts)` so that a selective query, one",
+      "where": "At the end of [Lecture 3](../l03/notes.md) we had the Intel Berkeley Lab readings in a relational database, indexed on `(sensor_id, ts)` so that a selective que",
       "origin": "link"
     },
     {
       "from": "l05",
       "to": "l03",
       "weight": 2,
-      "where": "`sensors` and `readings` tables in [L3](../l03/notes.md), and the same warning applies here that",
+      "where": "`sensors` and `readings` tables in [Lecture 3](../l03/notes.md), and the same warning applies here that",
       "origin": "link"
     },
     {
       "from": "l05",
       "to": "l07",
       "weight": 1,
-      "where": "distinction [L7](../l07/notes.md) runs into on a different dataset. A column holding the single",
+      "where": "distinction [Lecture 7](../l07/notes.md) runs into on a different dataset. A column holding the single",
       "origin": "link"
     },
     {
       "from": "l06",
       "to": "l05",
       "weight": 1,
-      "where": "The pipeline we built in [L5](../l05/notes.md) was a batch pipeline: a clean sequence of stages over a fixed, finished dataset. That is the right picture most o",
+      "where": "The pipeline we built in [Lecture 5](../l05/notes.md) was a batch pipeline: a clean sequence of stages over a fixed, finished dataset. That is the right picture",
       "origin": "link"
     },
     {
       "from": "l07",
       "to": "l01",
       "weight": 1,
-      "where": "directly back to the sensor drift you measured in [L1](../l01/notes.md): if a channel's raw",
+      "where": "directly back to the sensor drift you measured in [Lecture 1](../l01/notes.md): if a channel's raw",
       "origin": "link"
     },
     {
       "from": "l07",
       "to": "l03",
       "weight": 1,
-      "where": "data to a fixed grid**. For that, recall the Intel Berkeley Lab motes from [L3](../l03/notes.md),",
+      "where": "data to a fixed grid**. For that, recall the Intel Berkeley Lab motes from [Lecture 3](../l03/notes.md),",
       "origin": "link"
     },
     {
       "from": "l07",
       "to": "l05",
       "weight": 2,
-      "where": "[L5](../l05/notes.md) offers a neat shortcut for finding constant columns: a numeric column is",
+      "where": "[Lecture 5](../l05/notes.md) offers a neat shortcut for finding constant columns: a numeric column is",
       "origin": "link"
     },
     {
       "from": "l08",
       "to": "l02",
       "weight": 2,
-      "where": "Reproducibility, from [L2](../l02/notes.md), is the ability to take your data and your code and get your numbers back. L2 versioned the code with git and kept t",
+      "where": "Reproducibility, from [Lecture 2](../l02/notes.md), is the ability to take your data and your code and get your numbers back. Lecture 2 versioned the code with ",
       "origin": "link"
     },
     {
@@ -104,21 +104,21 @@
       "from": "l08",
       "to": "l07",
       "weight": 2,
-      "where": "[L7](../l07/notes.md) ended on a leak so small you could miss it. Fitting a scaler on the test data instead of the training data changed the reported error by a",
+      "where": "[Lecture 7](../l07/notes.md) ended on a leak so small you could miss it. Fitting a scaler on the test data instead of the training data changed the reported err",
       "origin": "link"
     },
     {
       "from": "l09",
       "to": "l05",
       "weight": 1,
-      "where": "[L5](../l05/notes.md): 1,567 semiconductor production runs with 590 process sensors each, of",
+      "where": "[Lecture 5](../l05/notes.md): 1,567 semiconductor production runs with 590 process sensors each, of",
       "origin": "link"
     },
     {
       "from": "l09",
       "to": "l07",
       "weight": 4,
-      "where": "[L7](../l07/notes.md)'s C-MAPSS fleet. Take a model with a flat, perfectly uniform 15-cycle",
+      "where": "[Lecture 7](../l07/notes.md)'s C-MAPSS fleet. Take a model with a flat, perfectly uniform 15-cycle",
       "origin": "link"
     },
     {
@@ -146,21 +146,21 @@
       "from": "l10",
       "to": "l09",
       "weight": 2,
-      "where": "[L9](../l09/notes.md) built the workflow that produces those runs: baselines, cross-validation, metrics, and the discipline of touching the test set once. This ",
+      "where": "[Lecture 9](../l09/notes.md) built the workflow that produces those runs: baselines, cross-validation, metrics, and the discipline of touching the test set once",
       "origin": "link"
     },
     {
       "from": "l11",
       "to": "l07",
       "weight": 1,
-      "where": "exactly as in [L7](../l07/notes.md). The habit does not change because the model is now a",
+      "where": "exactly as in [Lecture 7](../l07/notes.md). The habit does not change because the model is now a",
       "origin": "link"
     },
     {
       "from": "l11",
       "to": "l09",
       "weight": 3,
-      "where": "[L9](../l09/notes.md), which is why this session comes after it and not before.",
+      "where": "[Lecture 9](../l09/notes.md), which is why this session comes after it and not before.",
       "origin": "link"
     },
     {
@@ -181,77 +181,77 @@
       "from": "l12",
       "to": "l11",
       "weight": 2,
-      "where": "[L11](../l11/notes.md) built the machinery: tensors, autograd, a training loop, and a multilayer perceptron on tabular concrete data. It also delivered an uncom",
+      "where": "[Lecture 11](../l11/notes.md) built the machinery: tensors, autograd, a training loop, and a multilayer perceptron on tabular concrete data. It also delivered a",
       "origin": "link"
     },
     {
       "from": "l13",
       "to": "l01",
       "weight": 1,
-      "where": "This is [L1](../l01/notes.md)'s `np.trapz` lesson in a new costume, and the fix is the same",
+      "where": "This is [Lecture 1](../l01/notes.md)'s `np.trapz` lesson in a new costume, and the fix is the same",
       "origin": "link"
     },
     {
       "from": "l13",
       "to": "l07",
       "weight": 1,
-      "where": "of the leakage failures in [L7](../l07/notes.md) and [L9](../l09/notes.md) too. The method",
+      "where": "of the leakage failures in [Lecture 7](../l07/notes.md) and [Lecture 9](../l09/notes.md) too. The method",
       "origin": "link"
     },
     {
       "from": "l13",
       "to": "l09",
       "weight": 3,
-      "where": "splitting discipline from [L9](../l09/notes.md) reappears in a harsher form, because a",
+      "where": "splitting discipline from [Lecture 9](../l09/notes.md) reappears in a harsher form, because a",
       "origin": "link"
     },
     {
       "from": "l13",
       "to": "l11",
       "weight": 1,
-      "where": "**collocation points** where no measurement exists. This is [L11](../l11/notes.md)'s",
+      "where": "**collocation points** where no measurement exists. This is [Lecture 11](../l11/notes.md)'s",
       "origin": "link"
     },
     {
       "from": "l15",
       "to": "l09",
       "weight": 1,
-      "where": "[L9](../l09/notes.md) and [L13](../l13/notes.md); this is the report itself. It is 146",
+      "where": "[Lecture 9](../l09/notes.md) and [Lecture 13](../l13/notes.md); this is the report itself. It is 146",
       "origin": "link"
     },
     {
       "from": "l15",
       "to": "l11",
       "weight": 1,
-      "where": "Nothing in that stack is new to this course. [L11](../l11/notes.md) covered tensors,",
+      "where": "Nothing in that stack is new to this course. [Lecture 11](../l11/notes.md) covered tensors,",
       "origin": "link"
     },
     {
       "from": "l15",
       "to": "l13",
       "weight": 1,
-      "where": "[L9](../l09/notes.md) and [L13](../l13/notes.md); this is the report itself. It is 146",
+      "where": "[Lecture 9](../l09/notes.md) and [Lecture 13](../l13/notes.md); this is the report itself. It is 146",
       "origin": "link"
     },
     {
       "from": "l15",
       "to": "l17",
       "weight": 2,
-      "where": "retrieval-augmented generation, the subject of [L17](../l17/notes.md) in two sessions'",
+      "where": "retrieval-augmented generation, the subject of [Lecture 17](../l17/notes.md) in two sessions'",
       "origin": "link"
     },
     {
       "from": "l15",
       "to": "l19",
       "weight": 1,
-      "where": "retrieval index, and [L19](../l19/notes.md), where the model starts calling tools.",
+      "where": "retrieval index, and [Lecture 19](../l19/notes.md), where the model starts calling tools.",
       "origin": "link"
     },
     {
       "from": "l19",
       "to": "l03",
       "weight": 1,
-      "where": "against the same Intel Lab sensor Parquet file from L3 and L4",
+      "where": "against the same Intel Lab sensor Parquet file from Lecture 3 and Lecture 4",
       "origin": "authored",
       "relation": "shares-data",
       "why": "The Intel Lab sensor data, still the spine of the course's examples."
@@ -260,16 +260,16 @@
       "from": "l19",
       "to": "l04",
       "weight": 1,
-      "where": "against the same Intel Lab sensor Parquet file from L3 and L4",
+      "where": "against the same Intel Lab sensor Parquet file from Lecture 3 and Lecture 4",
       "origin": "authored",
       "relation": "shares-data",
-      "why": "Same file, reached through the columnar path L4 introduces."
+      "why": "Same file, reached through the columnar path Lecture 4 introduces."
     },
     {
       "from": "l19",
       "to": "l05",
       "weight": 1,
-      "where": "Reuse the structured logging and MLflow tracking from L5",
+      "where": "Reuse the structured logging and MLflow tracking from Lecture 5",
       "origin": "authored",
       "relation": "reuses",
       "why": "Agent observability is not a new subject; it is the logging from the streaming session pointed at a different kind of run."
@@ -278,7 +278,7 @@
       "from": "l19",
       "to": "l13",
       "weight": 1,
-      "where": "small surrogate standing in for L13's airfoil noise model, sharing that model's five inputs",
+      "where": "small surrogate standing in for Lecture 13's airfoil noise model, sharing that model's five inputs",
       "origin": "authored",
       "relation": "reuses",
       "why": "The agent's tool is a surrogate, so the demo only works if the surrogate session already happened. A genuine prerequisite rather than a callback."
@@ -287,7 +287,7 @@
       "from": "l19",
       "to": "l17",
       "weight": 1,
-      "where": "A RAG pipeline in L17 always retrieves, then always generates; the order and the branching are yours, fixed in code",
+      "where": "A RAG pipeline in Lecture 17 always retrieves, then always generates; the order and the branching are yours, fixed in code",
       "origin": "authored",
       "relation": "contrasts",
       "why": "The cleanest statement of what an agent is, and it is a negative definition: retrieval always happens, tool use is decided. Walking this corridor should feel like the distinction landing."
@@ -296,16 +296,16 @@
       "from": "l21",
       "to": "l03",
       "weight": 1,
-      "where": "sensor readings above L3's 2.4-volt trustworthiness threshold",
+      "where": "sensor readings above Lecture 3's 2.4-volt trustworthiness threshold",
       "origin": "authored",
       "relation": "builds-on",
-      "why": "The 2.4-volt threshold is a specific number decided in L3. Evaluating against it is meaningless without knowing where it came from."
+      "why": "The 2.4-volt threshold is a specific number decided in Lecture 3. Evaluating against it is meaningless without knowing where it came from."
     },
     {
       "from": "l21",
       "to": "l04",
       "weight": 1,
-      "where": "data L3, L4, and L19 use and needs no API key or external service",
+      "where": "data Lecture 3, Lecture 4, and Lecture 19 use and needs no API key or external service",
       "origin": "authored",
       "relation": "shares-data",
       "why": "Same sensor data, no API key, which is why the demo runs anywhere."
@@ -314,25 +314,25 @@
       "from": "l21",
       "to": "l13",
       "weight": 1,
-      "where": "the subject of the entire second half of L13: what happens when a company builds the model, ships it, and stops watching",
+      "where": "the subject of the entire second half of Lecture 13: what happens when a company builds the model, ships it, and stops watching",
       "origin": "authored",
       "relation": "builds-on",
-      "why": "The strongest claim of dependency anywhere in the back half. Not \"recall L13\" but \"this is L13, continued\"."
+      "why": "The strongest claim of dependency anywhere in the back half. Not \"recall Lecture 13\" but \"this is Lecture 13, continued\"."
     },
     {
       "from": "l21",
       "to": "l17",
       "weight": 1,
-      "where": "eval harness for a small RAG assistant in the spirit of L17's system",
+      "where": "eval harness for a small RAG assistant in the spirit of Lecture 17's system",
       "origin": "authored",
       "relation": "reuses",
-      "why": "The eval harness is built against the RAG system L17 leaves behind."
+      "why": "The eval harness is built against the RAG system Lecture 17 leaves behind."
     },
     {
       "from": "l21",
       "to": "l19",
       "weight": 1,
-      "where": "L19's harness already logs everything a failure taxonomy needs, every tool call, every result, every stop condition",
+      "where": "Lecture 19's harness already logs everything a failure taxonomy needs, every tool call, every result, every stop condition",
       "origin": "authored",
       "relation": "builds-on",
       "why": "The evaluation session consumes exactly what the agent session already emits, which is why the two are adjacent rather than merely related."
@@ -341,7 +341,7 @@
       "from": "l23",
       "to": "l07",
       "weight": 1,
-      "where": "a units assertion at every system boundary (L7's Mars Climate Orbiter case)",
+      "where": "a units assertion at every system boundary (Lecture 7's Mars Climate Orbiter case)",
       "origin": "authored",
       "relation": "prevents",
       "why": "The course's oldest case study, reached again from the far end. Naming the same failure twice, four sessions apart, is the point."
@@ -350,25 +350,25 @@
       "from": "l23",
       "to": "l13",
       "weight": 1,
-      "where": "refuse or flag rather than silently extrapolate (L7, L13)",
+      "where": "refuse or flag rather than silently extrapolate (Lecture 7, Lecture 13)",
       "origin": "authored",
       "relation": "prevents",
-      "why": "Extrapolation is the surrogate failure mode L13 defines; the input-range check is what stops it reaching production."
+      "why": "Extrapolation is the surrogate failure mode Lecture 13 defines; the input-range check is what stops it reaching production."
     },
     {
       "from": "l23",
       "to": "l17",
       "weight": 1,
-      "where": "instruction (L17); a faithfulness check verifying the cited chunk is in the retrieved set (L21)",
+      "where": "instruction (Lecture 17); a faithfulness check verifying the cited chunk is in the retrieved set (Lecture 21)",
       "origin": "authored",
       "relation": "builds-on",
-      "why": "Grounding and the faithfulness check are L17's mechanisms, audited here."
+      "why": "Grounding and the faithfulness check are Lecture 17's mechanisms, audited here."
     },
     {
       "from": "l23",
       "to": "l19",
       "weight": 1,
-      "where": "the failure L19's bounded loop exists to prevent",
+      "where": "the failure Lecture 19's bounded loop exists to prevent",
       "origin": "authored",
       "relation": "prevents",
       "why": "A failure named in one session and defended in another. This is the bestiary pattern the map is for."
@@ -377,10 +377,10 @@
       "from": "l23",
       "to": "l21",
       "weight": 1,
-      "where": "unit-tested against L21's actual measured numbers as a passing case",
+      "where": "unit-tested against Lecture 21's actual measured numbers as a passing case",
       "origin": "authored",
       "relation": "builds-on",
-      "why": "The pipeline's regression test asserts against numbers L21 measured, so the two sessions are joined by a specific value rather than a theme."
+      "why": "The pipeline's regression test asserts against numbers Lecture 21 measured, so the two sessions are joined by a specific value rather than a theme."
     }
   ],
   "in_degree": {

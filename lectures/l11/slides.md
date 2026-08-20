@@ -2,15 +2,15 @@
 marp: true
 theme: course
 paginate: true
-header: "06-763 · L11"
+header: "06-763 / L11"
 footer: "Systems and Toolchains for AI Engineers"
 ---
 
 <!-- _class: title -->
 
-# L11 · Tensors, autodiff, training loops, GPUs
+# Lecture 11: Tensors, autodiff, training loops, GPUs
 
-## Week 6 · Machine learning & deep learning
+## Week 6, Machine learning & deep learning
 
 **Systems and Toolchains for AI Engineers**
 
@@ -463,7 +463,7 @@ The crossover sits between 64 and 256 hidden units.
 
 Apple MPS on a laptop, because that is what
 generated these figures. A datacentre CUDA card
-(what A6 gives you) reaches 10 to 50× on a big model.
+(what Assignment 6 gives you) reaches 10 to 50× on a big model.
 
 What transfers is the **shape**, not the magnitude:
 every accelerator has a per-launch cost, so
@@ -509,7 +509,7 @@ superplasticizer, 2 aggregates, age → MPa.
 Predict a **28-day destructive test** from the recipe.
 Exactly the trade a surrogate exists to make.
 
-[UCI 165](https://archive.ics.uci.edu/dataset/165/concrete+compressive+strength) · [Yeh 1998](https://doi.org/10.1016/S0008-8846(98)00165-3)
+[UCI 165](https://archive.ics.uci.edu/dataset/165/concrete+compressive+strength), [Yeh 1998](https://doi.org/10.1016/S0008-8846(98)00165-3)
 
 ---
 
@@ -531,7 +531,7 @@ The same batch of concrete appears at
 A random k-fold asks the model to predict a
 curing curve **it has already seen most of**.
 
-That is L9's wind-tunnel frequency sweep,
+That is Lecture 9's wind-tunnel frequency sweep,
 in a different material.
 
 ---
@@ -709,7 +709,7 @@ and **ties** the network.
 
 Learn PyTorch because it is the only option once
 the input has structure a tree cannot exploit.
-That is L12.
+That is Lecture 12.
 
 **Autodiff is exact, not free, not universal.**
 
@@ -725,7 +725,7 @@ gradient, and nothing warns you.
 ## Where this pushes back, JAX and PyTorch are not interchangeable
 
 PyTorch: pretrained models, deployment tooling,
-the volume of examples. A6 assumes it.
+the volume of examples. Assignment 6 assumes it.
 
 JAX: when the thing you differentiate is **not a net**,
 a simulator, an ODE solve, a physical model.
@@ -793,9 +793,9 @@ Every one of those was a draft claim a run corrected.
 
 ## Next
 
-**Assignment** [A6](../../course/assignments/a06.md), out today, due ~1 week · A5 due now
-**Reading** [PyTorch: Learn the Basics](https://docs.pytorch.org/tutorials/beginner/basics/intro.html) · [autograd tutorial](https://docs.pytorch.org/tutorials/beginner/blitz/autograd_tutorial.html) · [Grinsztajn et al. 2022](https://arxiv.org/abs/2207.08815)
-**L12** Architectures that match the structure of the
+**Assignment 6**, out today, due ~1 week, Assignment 5 due now
+**Reading** [PyTorch: Learn the Basics](https://docs.pytorch.org/tutorials/beginner/basics/intro.html), [autograd tutorial](https://docs.pytorch.org/tutorials/beginner/blitz/autograd_tutorial.html), [Grinsztajn et al. 2022](https://arxiv.org/abs/2207.08815)
+**Lecture 12** Architectures that match the structure of the
 input: MLP, CNN for fields, 1D-CNN and RNN for sensor
 time series, where a net does what a tree cannot
 

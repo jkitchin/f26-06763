@@ -1,19 +1,20 @@
-# L16 · The API, prompt, and structured-output interface
+# Lecture 16: The API, prompt, and structured-output interface
 
-:::{admonition} At a glance
+:::{admonition} Overview
 :class: tip
 
-- **Session** L16, Week 9 · **Arc** LLM & agentic engineering
+- **Session** Lecture 16, Week 9
+- **Arc** LLM and agentic engineering
 - **Slides** <a href="../../slides/l16/">Deck for this session</a>
 - **Demo** [`l16-structured-extraction.ipynb`](l16-structured-extraction.ipynb), a datasheet turned into a validated parts record, and what happens when it cannot be
-- **Assignment** A8 released last session, due about a week out
+- **Assignment 8** released last session, due about a week out
 :::
 
 ## Why this matters
 
 The previous session treated a large language model as an object of study: tokens in, a next-token distribution out. This session treats it as a component in a system you are responsible for. You call it over an API, you pay for every token in both directions, it answers on its own schedule, and the thing it hands back is text that you now have to trust enough to write into a database. Every one of those is an engineering constraint, and none of them is visible from a chat window.
 
-Here is the task that makes them concrete, and it is the task behind assignment A8. You have a few hundred component datasheets, one per valve or pump or fastener, each a page of units-heavy prose and half-tables, no two laid out the same way. You want a clean parts table: part number, material, maximum pressure in megapascals, operating temperature range, mass. A language model can read a datasheet and produce that record, which is exactly the kind of messy-text-to-structured-data job that used to need a human. The trouble is what "produce that record" hides.
+Here is the task that makes them concrete, and it is the task behind Assignment 8. You have a few hundred component datasheets, one per valve or pump or fastener, each a page of units-heavy prose and half-tables, no two laid out the same way. You want a clean parts table: part number, material, maximum pressure in megapascals, operating temperature range, mass. A language model can read a datasheet and produce that record, which is exactly the kind of messy-text-to-structured-data job that used to need a human. The trouble is what "produce that record" hides.
 
 Consider the ways it goes wrong, none of which raise an exception. The model returns valid JSON with `max_pressure_MPa: 42`, and the datasheet said 42 bar, which is 4.2 MPa, so your table is off by a factor of ten and nothing complained. The model is handed a datasheet that genuinely omits the pressure rating and, rather than leave the field empty, it invents a plausible 16 MPa because inventing plausible text is what it was trained to do. Someone pastes a sixty-page manual into a single call, the input runs past the context window, the provider silently drops the end, and the answer is extracted from a truncated document. In each case you got JSON back, the program ran, and the number is wrong. **"The model returned JSON" is not the same claim as "the JSON is correct,"** and the entire discipline of this session is the gap between those two.
 
@@ -77,7 +78,7 @@ class Component(BaseModel):
 :width: 100%
 
 The extract, validate, repair loop. When schema validation fails, send the error message back to the model and ask it to correct its output; only after a small number of failed repairs do you give up and flag the document for a human rather than write a bad record.
-:::
+```
 
 When validation fails, the useful move is to send the model its own broken output together with the validator's error message and ask it to fix that specific problem. Models are good at this, because the error is concrete ("mass_kg: expected number, got string '2.3 kg'") and the fix is local. You cap the number of repair attempts so a genuinely unparseable datasheet cannot spin forever, and when the cap is reached you flag the document for a human rather than write a record you do not trust. A crash on the first malformed response throws away a document the model could have fixed on the second try; a silent accept of the malformed response writes garbage into the table. The repair loop is the middle path, and it is why the validator and the API call belong in one function together rather than in separate scripts.
 
@@ -97,7 +98,7 @@ That last case is where **prompt caching** earns its keep. When many calls share
 :width: 100%
 
 Cost of reusing one 20,000-token context across many calls, with and without prompt caching, computed from Anthropic Sonnet 5 pricing on 2026-08-18. Caching turns a per-call cost into a one-time write plus a tenth-price read, so by 30 calls it is about 4.6 times cheaper. The break-even is at the second call. Providers change these multipliers, so treat the shape as the lesson and the numbers as a snapshot.
-:::
+```
 
 The other lever is choosing the right model and the right amount of context. A small, fast, cheap model is often perfectly good at an easy subtask like classifying a line or normalizing a unit, and reserving the large model for the hard reasoning is a real cost and latency win. And more context is not free even when it fits.
 
@@ -157,4 +158,4 @@ The lesson of this session is that a hosted LLM is a system component like any o
 
 ## Assignment
 
-Assignment A8, structured extraction from engineering documents, was released last session and is due about a week later. It asks you to build and evaluate a schema-constrained LLM extractor that turns messy engineering text into a validated, normalized table, with per-call cost logging and a small gold set to measure prompt quality, which is exactly the pipeline this session builds in miniature. The full specification is in [`course/assignments/a08.md`](../../course/assignments/a08.md); this page does not restate the rubric.
+Assignment 8, structured extraction from engineering documents, was released last session and is due about a week later. It asks you to build and evaluate a schema-constrained LLM extractor that turns messy engineering text into a validated, normalized table, with per-call cost logging and a small gold set to measure prompt quality, which is exactly the pipeline this session builds in miniature. This page does not restate the rubric.

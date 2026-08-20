@@ -2,15 +2,15 @@
 marp: true
 theme: course
 paginate: true
-header: "06-763 · L10"
+header: "06-763 / L10"
 footer: "Systems and Toolchains for AI Engineers"
 ---
 
 <!-- _class: title -->
 
-# L10 · Experiment tracking and hyperparameter search
+# Lecture 10: Experiment tracking and hyperparameter search
 
-## Week 5 · Machine learning
+## Week 5, Machine learning
 
 **Systems and Toolchains for AI Engineers**
 
@@ -46,11 +46,11 @@ A folder of timestamped files and your memory is not an answer.
 
 ## Which run produced this number?, the two halves
 
-L9 produced the runs (baselines, CV, metrics, test once). This session keeps the record and searches honestly.
+Lecture 9 produced the runs (baselines, CV, metrics, test once). This session keeps the record and searches honestly.
 
 They are one problem twice: a **search generates hundreds of runs and picks the best**, and picking the best is where an unrecorded study lies to you.
 
-Same dataset as L9: CCPP, 9,568 rows, four ambient measurements to power output in MW.
+Same dataset as Lecture 9: CCPP, 9,568 rows, four ambient measurements to power output in MW.
 
 ---
 
@@ -66,8 +66,8 @@ The record has to be enough to rebuild the run. Log:
 
 - **hyperparameters** and **metrics** (per fold, not just the mean)
 - the **git SHA** of the code
-- the **data hash** (L8) and the **seed**
-- the **environment** (`uv.lock`, L2)
+- the **data hash** (Lecture 8) and the **seed**
+- the **environment** (`uv.lock`, Lecture 2)
 - **artifacts**: the fitted pipeline, plots, importances
 
 One run = one fact you can reproduce. A search multiplies runs by 100.
@@ -101,7 +101,7 @@ mlflow.set_experiment("ccpp-search")
 
 with mlflow.start_run(run_name="hgb-trial-7"):
     mlflow.log_params(params)
-    mlflow.log_param("data_md5", data_hash)      # lineage, from L8
+    mlflow.log_param("data_md5", data_hash)      # lineage, from Lecture 8
     mlflow.log_metric("val_rmse", rmse)
     mlflow.sklearn.log_model(model, name="model")
 ```
@@ -269,7 +269,7 @@ Selection bias is a **small-data** problem. **Nested CV** is insurance when data
 
 - **A tracker you do not read is overhead.** Autolog makes it easy to record everything and examine nothing. The value is in opening the UI and sorting.
 - **Search can overfit the validation set.** Cap the budget, keep a locked test set, apply the 1-SE rule.
-- **Sampler < search < data.** TPE beat random by 0.009 MW, below the fold noise. A better feature (L7/L8) moves the score more than any sampler.
+- **Sampler < search < data.** TPE beat random by 0.009 MW, below the fold noise. A better feature (Lecture 7/Lecture 8) moves the score more than any sampler.
 - **The registry records a decision, not a good one.** A model from a leaky split is a well-organized mistake.
 
 ---
@@ -305,9 +305,9 @@ Honesty reports the second.
 
 ## Next
 
-**Assignment** A5 (from L9): its tracking and search half is now unblocked
+**Assignment 5** (from Lecture 9): its tracking and search half is now unblocked
 **Reading** MLflow + Optuna docs; Bergstra & Bengio (2012)
-**L11** Into deep learning, where training runs get long enough
+**Lecture 11** Into deep learning, where training runs get long enough
 that pruning and tracking become necessities, not conveniences
 
 Full notes, with all sources: `lectures/l10/notes.md`

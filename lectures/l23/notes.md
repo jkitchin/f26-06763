@@ -1,9 +1,10 @@
-# L23 · MLOps: CI/CD for ML, drift and regression monitoring, cost; safety and responsible AI
+# Lecture 23: MLOps: CI/CD for ML, drift and regression monitoring, cost; safety and responsible AI
 
-:::{admonition} At a glance
+:::{admonition} Overview
 :class: tip
 
-- **Session** L23, Week 13 · **Arc** Production & responsibility
+- **Session** Lecture 23, Week 13
+- **Arc** Production and responsibility
 - **Slides** <a href="../../slides/l23/">Deck for this session</a>
 - **Demo** [`l23-mlops.ipynb`](l23-mlops.ipynb), an eval gate that fails CI, and drift measured before it costs you
 - **Assignment** none new; effort goes to the final project
@@ -73,12 +74,12 @@ A pipeline built for this has a specific shape, and the order matters. **Lint an
 run first, cheaply, so a syntax error or a broken function is caught in seconds rather than
 after minutes of eval harness execution. **Build the container** next, so the environment the
 eval harness runs in is the same one that would actually ship. **Run the eval harness on the
-frozen set** from L21, producing a metrics file. Then, the step that makes this an ML pipeline
+frozen set** from Lecture 21, producing a metrics file. Then, the step that makes this an ML pipeline
 rather than a software one: **gate on a metric threshold**, failing the build outright if a key
 number has regressed, RAG faithfulness below 0.9, a surrogate's MAE regressed by more than some
 tolerance, rather than merely reporting the number and letting a human notice. Only on a pass
 does the pipeline **deploy**. This session's demo builds exactly this gate as a plain Python
-function, unit-tested against L21's actual measured numbers as a passing case and two
+function, unit-tested against Lecture 21's actual measured numbers as a passing case and two
 constructed regressions, a dropped-citation prompt change and a quietly worse surrogate, as
 failing cases, then wires it into a real, syntax-validated GitHub Actions workflow where the
 container-build job's `needs: eval` line means the deployable artifact simply never gets built
@@ -90,7 +91,7 @@ The fix is not to pretend this away; it is to design the gate around it. Pin eve
 affects a result. Set `temperature=0` wherever the provider allows it, for tool selection and
 for anything you intend to gate on. And where true determinism is not achievable at all, gate
 on a **distribution or a tolerance band** rather than an exact match, a metric averaged over a
-handful of repeated runs against a confidence interval, in the same spirit as L21's bootstrap
+handful of repeated runs against a confidence interval, in the same spirit as Lecture 21's bootstrap
 CI, rather than a single number compared with `==`.
 
 ## Detecting drift without waiting for labels
@@ -185,9 +186,9 @@ context bloat**, a RAG system's retrieved context growing as the corpus grows, o
 prompt accumulating one more instruction every time someone fixes an edge case, quietly raises
 the token count on every single call. **Retry storms**, a downstream service degrading and a
 client retrying aggressively, can multiply cost by the retry count exactly when the system is
-already under stress. **Runaway agent loops**, the failure L19's bounded loop exists to prevent,
+already under stress. **Runaway agent loops**, the failure Lecture 19's bounded loop exists to prevent,
 turn a single user request into dozens of billed model calls if nothing stops them. A one-time
-cost estimate misses all three; only cost logged as a time series, the same way L21 logged eval
+cost estimate misses all three; only cost logged as a time series, the same way Lecture 21 logged eval
 metrics, catches them. **Budgets and rate limits**,
 a hard cap on spend per hour or per user, are the blunt but reliable backstop for the case where
 monitoring catches the trend too late to matter.
@@ -204,19 +205,19 @@ per failure mode, naming the mechanism that catches it.
 
 | System | Failure mode | Concrete guardrail |
 |---|---|---|
-| LLM / RAG | Hallucinated fact or citation | Retrieval grounding with an explicit "answer only from context" instruction (L17); a faithfulness check verifying the cited chunk is in the retrieved set (L21) |
+| LLM / RAG | Hallucinated fact or citation | Retrieval grounding with an explicit "answer only from context" instruction (Lecture 17); a faithfulness check verifying the cited chunk is in the retrieved set (Lecture 21) |
 | LLM / RAG | Confident wrong number | Numeric-tolerance reference check against a known value where one exists; flag, don't silently accept, an unsourced quantity |
 | LLM / agent | Prompt injection via retrieved or tool content | Treat all retrieved documents and tool outputs as untrusted input; never let instructions embedded in them change the system prompt's authority |
-| Agent | Unsafe tool action (writes, actuation) | Tool allow-lists, read-only credentials by default (L19), a dry-run mode, human-in-the-loop approval before any consequential call executes |
-| Agent | Infinite or repeating loop | Step budget, cost cap, and repeated-identical-call detection (L19) |
+| Agent | Unsafe tool action (writes, actuation) | Tool allow-lists, read-only credentials by default (Lecture 19), a dry-run mode, human-in-the-loop approval before any consequential call executes |
+| Agent | Infinite or repeating loop | Step budget, cost cap, and repeated-identical-call detection (Lecture 19) |
 | LLM / agent | Silent schema drift | Output validation against a versioned schema; fail loudly, not by silently coercing a malformed response |
-| Surrogate / ML | Extrapolation beyond the training domain | An explicit input-range check before every prediction, refuse or flag rather than silently extrapolate (L7, L13) |
-| Surrogate / ML | Over-confident uncertainty | Calibration checked against held-out truth, not assumed from the model's own reported interval (L13, L21) |
+| Surrogate / ML | Extrapolation beyond the training domain | An explicit input-range check before every prediction, refuse or flag rather than silently extrapolate (Lecture 7, Lecture 13) |
+| Surrogate / ML | Over-confident uncertainty | Calibration checked against held-out truth, not assumed from the model's own reported interval (Lecture 13, Lecture 21) |
 | Surrogate / ML | Stale model | Drift monitoring on the input distribution, tied to a retraining or revalidation trigger, not a calendar guess |
-| Surrogate / ML | Silent input-unit error | Named, typed feature columns; a units assertion at every system boundary (L7's Mars Climate Orbiter case) |
+| Surrogate / ML | Silent input-unit error | Named, typed feature columns; a units assertion at every system boundary (Lecture 7's Mars Climate Orbiter case) |
 
 Notice that most of these guardrails are things this course has already built: a step budget
-is L19's, a faithfulness check is L21's, an input-range check is L7's and L13's. This session's
+is Lecture 19's, a faithfulness check is Lecture 21's, an input-range check is Lecture 7's and Lecture 13's. This session's
 contribution is the discipline of a table that forces you to name a mechanism for every failure
 you can think of, rather than a paragraph of good intentions, and the module's suggested
 exercise, filling this table for your own system and marking which rows require a human
@@ -250,7 +251,7 @@ when they were not even told the system existed to check.
 **Documentation** turns these good intentions into an artifact someone can actually read before
 relying on the system. A **model card**, following Mitchell and colleagues' 2019 proposal, states
 a model's intended use, its known limitations, the population and range it was validated on, and
-its performance broken down by the same kind of slice L21 argued for, alongside the aggregate
+its performance broken down by the same kind of slice Lecture 21 argued for, alongside the aggregate
 number. A **datasheet for a dataset**, per Gebru and colleagues, documents provenance, collection
 method, and known biases in the data a model was trained on. For an agent, the equivalent is a
 **system card**: what tools it can call, what it cannot do, and what guardrails are in place.
@@ -284,7 +285,7 @@ sometimes uncomfortable answer.
 
 ## In-class demo
 
-We build a CI eval gate as a small, unit-tested Python function, verify it passes on L21's real
+We build a CI eval gate as a small, unit-tested Python function, verify it passes on Lecture 21's real
 measured metrics and fails, for a named reason, on two constructed regressions, then validate a
 real GitHub Actions workflow file whose container-build job cannot start until the gate's job
 succeeds. In parallel, we measure drift on real Intel Lab sensor data three ways: a random
@@ -294,7 +295,7 @@ shift standing in for a retrofitted compressor, all scored with PSI and the Kolm
 test against the same alert thresholds a production monitor would use.
 
 The runnable notebook is [`l23-mlops.ipynb`](l23-mlops.ipynb). It downloads the same Intel Lab
-data L3, L4, L19, and L21 use and needs no API key or live CI run to verify.
+data Lecture 3, Lecture 4, Lecture 19, and Lecture 21 use and needs no API key or live CI run to verify.
 
 ## Summary
 
@@ -323,7 +324,7 @@ guardrail table, onto your own final project before Week 14's presentations.
 - [Mitchell et al., "Model Cards for Model Reporting"](https://arxiv.org/abs/1810.03993),
   FAT* 2019. The paper defining the model-card format named in this session.
 - [Gebru et al., "Datasheets for Datasets"](https://arxiv.org/abs/1803.09010), 2021. The dataset-
-  side counterpart to a model card; already cited in L2's conventions, worth rereading here.
+  side counterpart to a model card; already cited in Lecture 2's conventions, worth rereading here.
 - Chip Huyen, *Designing Machine Learning Systems* (O'Reilly, 2022), the chapters on data
   distribution shifts, monitoring, and continual learning. The deepest single treatment of this
   session's drift material.
@@ -333,7 +334,7 @@ guardrail table, onto your own final project before Week 14's presentations.
 - [GitHub Actions documentation: Workflow syntax](https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions).
   The concrete syntax behind this session's example eval-gate workflow.
 - [Sculley et al., "Hidden Technical Debt in Machine Learning Systems"](https://papers.nips.cc/paper/2015/hash/86df7dcfd896fcaf2674f757a2463eba-Abstract.html),
-  NeurIPS 2015. First cited in L1 for the "the model is a small fraction of the system" argument;
+  NeurIPS 2015. First cited in Lecture 1 for the "the model is a small fraction of the system" argument;
   worth rereading here for the monitoring and configuration-debt sections specifically.
 - [Federal Aviation Administration, "Joint Authorities Technical Review: Boeing 737 MAX Flight
   Control System"](https://www.faa.gov/foia/electronic_reading_room/boeing_737_max_faa_review),
@@ -345,6 +346,6 @@ guardrail table, onto your own final project before Week 14's presentations.
 
 No new assignment this week. Effort goes to the **final project**: wire a CI eval gate, a
 drift or observability hook, and a system-specific failure-mode-to-guardrail table onto your
-own system, ready for the L24 studio to help you close whichever gap remains before Week 14's
-presentations. A11 from Week 12 may be folded directly into the project rather than treated as
+own system, ready for the Lecture 24 studio to help you close whichever gap remains before Week 14's
+presentations. Assignment 11 from Week 12 may be folded directly into the project rather than treated as
 separate work. Full spec: `course/final-project.md`.

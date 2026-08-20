@@ -2,15 +2,15 @@
 marp: true
 theme: course
 paginate: true
-header: "06-763 · L9"
+header: "06-763 / L9"
 footer: "Systems and Toolchains for AI Engineers"
 ---
 
 <!-- _class: title -->
 
-# L9 · Train, validate, select
+# Lecture 9: Train, validate, select
 
-## Week 5 · Machine learning & deep learning
+## Week 5, Machine learning and deep learning
 
 **Systems and Toolchains for AI Engineers**
 
@@ -336,7 +336,7 @@ If RMSE and MAE rank your models differently, **that is the finding.**
 
 ## Metrics and the cost of being wrong, MAPE explodes near zero
 
-Take C-MAPSS remaining useful life (L7).
+Take C-MAPSS remaining useful life (Lecture 7).
 Give a model a **flat, uniform 15-cycle error**
 on every test engine.
 
@@ -362,7 +362,7 @@ is a **correctable** deficiency.
 
 **Fault detection changes the shape.**
 
-**UCI SECOM** (from L5): 1,567 semiconductor runs,
+**UCI SECOM** (from Lecture 5): 1,567 semiconductor runs,
 590 process sensors, **104 failures = 6.6%**.
 
 Accuracy is useless here by inspection.
@@ -514,7 +514,7 @@ Each row is one *frequency* in one configuration
 
 Group by configuration → **106 groups**, ~14 rows each.
 
-[UCI 291](https://archive.ics.uci.edu/dataset/291/airfoil+self+noise) · [Brooks, Pope & Marcolini, NASA RP-1218 (1989)](https://ntrs.nasa.gov/citations/19890016302)
+[UCI 291](https://archive.ics.uci.edu/dataset/291/airfoil+self+noise), [Brooks, Pope & Marcolini, NASA RP-1218 (1989)](https://ntrs.nasa.gov/citations/19890016302)
 
 ---
 
@@ -611,7 +611,7 @@ a question they cannot answer.
 3. Group leakage across the split
 4. Selecting on the test set
 
-L7 saw these from the feature side.
+Lecture 7 saw these from the feature side.
 Same failure, new vantage point.
 
 **1. The scaler leak, measured.**
@@ -627,7 +627,7 @@ Fit `StandardScaler` on everything, then CV.
 
 Largest effect **0.0015 MW**, against fold noise of **±0.05**.
 
-<!-- A mean over 9,568 rows vs 7,654 random ones barely moves. Same result L7
+<!-- A mean over 9,568 rows vs 7,654 random ones barely moves. Same result Lecture 7
      got on C-MAPSS, for the same reason. In two of four cases the leaky
      pipeline scores very slightly BETTER. -->
 
@@ -811,7 +811,7 @@ None sees a new operating regime, a replaced sensor
 vendor, a different fuel. GFT had a correct holdout and
 was destroyed by **Google changing its own search suggestions**.
 
-The answers are **monitoring** (L23), and keeping a
+The answers are **monitoring** (Lecture 23), and keeping a
 **dumb baseline running in production**.
 
 ---
@@ -868,9 +868,9 @@ Every one of those was a draft claim that a run corrected.
 
 ## Next
 
-**Assignment** [A5](../../course/assignments/a05.md), out today, due ~1 week · A4 due now
-**Reading** [ESL ch. 7](https://hastie.su.domains/ElemStatLearn/download.html) (esp. §7.10.2) · [sklearn CV](https://scikit-learn.org/stable/modules/cross_validation.html) · [sklearn pitfalls](https://scikit-learn.org/stable/common_pitfalls.html) · [Raschka arXiv:1811.12808](https://arxiv.org/abs/1811.12808)
-**L10** The same study, made auditable: MLflow tracking
+**Assignment 5**, out today, due ~1 week, Assignment 4 due now
+**Reading** [ESL ch. 7](https://hastie.su.domains/ElemStatLearn/download.html) (esp. §7.10.2), [sklearn CV](https://scikit-learn.org/stable/modules/cross_validation.html), [sklearn pitfalls](https://scikit-learn.org/stable/common_pitfalls.html), [Raschka arXiv:1811.12808](https://arxiv.org/abs/1811.12808)
+**Lecture 10** The same study, made auditable: MLflow tracking
 and hyperparameter search with Optuna
 
 Full notes, with all sources: `lectures/l09/notes.md`

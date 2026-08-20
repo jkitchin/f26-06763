@@ -1,12 +1,13 @@
-# L21 · Evaluating ML and LLM/agent systems; observability
+# Lecture 21: Evaluating ML and LLM/agent systems; observability
 
-:::{admonition} At a glance
+:::{admonition} Overview
 :class: tip
 
-- **Session** L21, Week 12 · **Arc** Production & responsibility
+- **Session** Lecture 21, Week 12
+- **Arc** Production and responsibility
 - **Slides** <a href="../../slides/l21/">Deck for this session</a>
 - **Demo** [`l21-eval.ipynb`](l21-eval.ipynb), an eval harness, a judge you validate, a surrogate you audit by slice
-- **Assignment** A11 released this session
+- **Assignment 11** released this session
 :::
 
 ## Why this matters
@@ -31,7 +32,7 @@ model is still scoring well against reality, right now, at the volume we are cur
 operating it," was a gap nobody was measuring continuously enough, on the actual slice of the
 market, at the actual pace of deployment, to catch before the losses were already large. A
 surrogate model that quietly stops matching the world it was trained on is the subject of the
-entire second half of L13: what happens when a company builds the model, ships it, and stops
+entire second half of Lecture 13: what happens when a company builds the model, ships it, and stops
 watching.
 
 That is the argument for everything in this session. An evaluation you run once, before
@@ -67,7 +68,7 @@ the code, so a run from three months ago and a run from this morning were scored
 literal same target and are actually comparable. The demo's `EVAL_SET`, four questions with
 fixed reference answers and a required citation for each, is small enough to read in ten
 seconds and is exactly the kind of artifact this session is arguing for. Four questions are not
-enough for a real system (A11 asks for more), but the same shape applies at any size: a
+enough for a real system (Assignment 11 asks for more), but the same shape applies at any size: a
 checked-in file that scoring cannot silently wander away from.
 
 The module's own teaching note names the two ways this discipline gets violated in practice,
@@ -125,7 +126,7 @@ recomputing the metric many times, turns "MAE = 2.49" into "MAE = 2.49, 95% CI r
 [2.47, 2.51] on this test set," which is an honestly different and more defensible claim.
 **Per-slice metrics** show what an aggregate number hides, and the demo proves it with real
 numbers rather than an illustration: the same fitted model, evaluated on
-sensor readings above L3's 2.4-volt trustworthiness threshold, scores an MAE of 2.49; evaluated
+sensor readings above Lecture 3's 2.4-volt trustworthiness threshold, scores an MAE of 2.49; evaluated
 on readings below that threshold, the same model scores 6.11, roughly two and a half times
 worse. A report that only ever states the aggregate number, computed across both slices at
 once, would land somewhere in between and hide both the fact that a large fraction of the data
@@ -189,7 +190,7 @@ use it responsibly rather than as a shortcut.
 system takes more than one step: **task success rate** against a fixed suite with known-good
 outcomes, **tool-call correctness** (right tool, right arguments), **steps and cost per task**,
 and a **failure taxonomy** that names how an agent failed rather than only that it did, wrong
-tool selected, a hallucinated argument, an infinite loop, or the agent simply giving up. L19's
+tool selected, a hallucinated argument, an infinite loop, or the agent simply giving up. Lecture 19's
 harness already logs everything a failure taxonomy needs, every tool call, every result, every
 stop condition; this session's contribution is turning that log into the aggregate numbers a
 reviewer can actually act on.
@@ -312,21 +313,21 @@ version of the same idea rather than the full treatment.
 
 ## In-class demo
 
-We build a roughly sixty-line eval harness for a small RAG assistant in the spirit of L17's
+We build a roughly sixty-line eval harness for a small RAG assistant in the spirit of Lecture 17's
 system: a frozen four-question eval set, a retriever over a small constructed corpus, two
 programmatic checks (faithfulness and reference match) that catch a deliberately injected
 hallucinated citation and a real exact-match brittleness, and an LLM-as-judge stand-in
 validated against eight hand-labeled cases, landing at a Cohen's kappa of about -0.11 with
 every disagreement traced to a specific, nameable blind spot. In parallel, we evaluate a
-regression model on real Intel Lab sensor data the way L3 first introduced it: an MAE of 2.49
+regression model on real Intel Lab sensor data the way Lecture 3 first introduced it: an MAE of 2.49
 on trustworthy, high-voltage readings that becomes 6.11, two and a half times worse, on the
-low-voltage readings L3 already flagged as suspect, a bootstrap confidence interval around the
+low-voltage readings Lecture 3 already flagged as suspect, a bootstrap confidence interval around the
 good-slice number, and a calibration check showing a stated 95% interval that actually covers
 the truth only about 14% of the time. Both passes log their metrics and artifacts to a local
 MLflow store.
 
 The runnable notebook is [`l21-eval.ipynb`](l21-eval.ipynb). It downloads the same Intel Lab
-data L3, L4, and L19 use and needs no API key or external service.
+data Lecture 3, Lecture 4, and Lecture 19 use and needs no API key or external service.
 
 ## Summary
 
@@ -372,9 +373,8 @@ taught you to check.
 
 ## Assignment
 
-A11, "Eval harness + deployed API," is released this session. It asks you to build a versioned
+Assignment 11, "Eval harness + deployed API," is released this session. It asks you to build a versioned
 evaluation harness, ML metrics or a validated LLM-as-judge, for one of your existing systems
-(the Wk7 surrogate, the Wk10 RAG system, or the Wk11 agent), then, in the lighter second half
-shared with L22, deploy that system behind a FastAPI and Docker service and run the same
-harness against the live endpoint rather than only the local function. The full spec and
-rubric are in `course/assignments/a11.md`; this paragraph is a pointer, not the rubric.
+(the week 7 surrogate, the week 10 RAG system, or the week 11 agent), then, in the lighter second half
+shared with Lecture 22, deploy that system behind a FastAPI and Docker service and run the same
+harness against the live endpoint rather than only the local function. This is a pointer, not the rubric.

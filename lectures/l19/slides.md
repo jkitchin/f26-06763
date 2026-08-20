@@ -2,15 +2,15 @@
 marp: true
 theme: course
 paginate: true
-header: "06-763 · L19"
+header: "06-763 / L19"
 footer: "Systems and Toolchains for AI Engineers"
 ---
 
 <!-- _class: title -->
 
-# L19 · Agent fundamentals
+# Lecture 19: Agent fundamentals
 
-## Week 11 · LLM & agentic engineering
+## Week 11, LLM & agentic engineering
 
 **Systems and Toolchains for AI Engineers**
 
@@ -162,7 +162,7 @@ workflow genuinely can't express the task.
 
 ## What "agent" means here, not because it demos well
 
-Same logic as Dask over pandas in L5:
+Same logic as Dask over pandas in Lecture 5:
 
 Pick the heavier tool because the simpler one
 **stopped being adequate.** Not by default.
@@ -379,7 +379,7 @@ two identical failures won't notice on the third.
 
 Prompt, tool call, arguments, result, token usage.
 
-Reuse L5's structured logging / MLflow.
+Reuse Lecture 5's structured logging / MLflow.
 An agent trace is a run, same as a training run.
 
 ---
@@ -446,7 +446,7 @@ This session's demo is provably correct against
 a model that **cannot reason at all**.
 
 Does a real model choose well? Untested here,
-that's A10 and L20's evaluation section.
+that's Assignment 10 and Lecture 20's evaluation section.
 
 ---
 
@@ -510,10 +510,10 @@ sensor query, stats, surrogate.
 
 ## Next
 
-**Assignment** A10 released today, due ~1 week
+**Assignment 10** released today, due ~1 week
 **Also due this week**: final-project proposal
 **Reading** Yao et al. 2022 (ReAct); Anthropic, "Building Effective Agents"
-**L20** Multi-agent orchestration, frameworks, and the guardrails
+**Lecture 20** Multi-agent orchestration, frameworks, and the guardrails
 this session's harness doesn't have yet
 
 Full notes, with all sources: `lectures/l19/notes.md`

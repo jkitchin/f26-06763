@@ -2,15 +2,15 @@
 marp: true
 theme: course
 paginate: true
-header: "06-763 · L18"
-footer: "Systems & Toolchains for AI in Engineering"
+header: "06-763 / L18"
+footer: "Systems and Toolchains for AI Engineers"
 ---
 
 <!-- _class: title -->
 
-# L18 · Prompting, RAG, or fine-tuning
+# Lecture 18: Prompting, RAG, or fine-tuning
 
-## Week 10 · LLM & agentic engineering
+## Week 10, LLM & agentic engineering
 
 **Systems & Toolchains for AI in Engineering**
 
@@ -122,7 +122,7 @@ The task names the lever. Most engineering gaps are knowledge, so most are RAG.
 
 <div class="definition">
 
-**LoRA**: freeze the base weights `W`, train a small low-rank detour `B·A` beside them, so `h = Wx + BAx`. Only `A` and `B` train.
+**LoRA**: freeze the base weights `W`, train a small low-rank detour `BA` beside them, so `h = Wx + BAx`. Only `A` and `B` train.
 
 </div>
 
@@ -251,7 +251,7 @@ Prompting guesses every lookup; RAG grounds and cites, and declines on the absen
 
 Two honest details in that bake-off:
 
-- RAG scores **4 of 5**, not a sweep: a distractor sentence outranked the answer (L17's lesson)
+- RAG scores **4 of 5**, not a sweep: a distractor sentence outranked the answer (Lecture 17's lesson)
 - on formatting, RAG and prompting **tie**: the gap there was never knowledge
 
 The framework, measured.
@@ -341,7 +341,7 @@ Fine-tuning is discussed, not trained: that is the optional GPU lab.
 ## Next
 
 **Reading** Ovadia et al. (fine-tuning vs retrieval); Hu et al. (LoRA)
-**Assignment** A9, the RAG system, due about a week out
-**Next session** L19, agent fundamentals: tool use and planning loops
+**Assignment 9**, the RAG system, due about a week out
+**Next session** Lecture 19, agent fundamentals: tool use and planning loops
 
 Notes for this lecture: `lectures/l18/notes.md`

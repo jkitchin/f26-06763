@@ -2,15 +2,15 @@
 marp: true
 theme: course
 paginate: true
-header: "06-763 · L15"
+header: "06-763 / L15"
 footer: "Systems and Toolchains for AI Engineers"
 ---
 
 <!-- _class: title -->
 
-# L15 · Tokens, context, and vectors
+# Lecture 15: Tokens, context, and vectors
 
-## Week 9 · LLM & agentic engineering
+## Week 9, LLM & agentic engineering
 
 **Systems and Toolchains for AI Engineers**
 
@@ -27,7 +27,7 @@ footer: "Systems and Toolchains for AI Engineers"
 7. Live demo: a datasheet and a log book
 
 <!-- 110 min. Budget roughly 10 / 15 / 22 / 18 / 18 / 12 / 20 demo.
-     A8 is released today: hold 5 min at the end for it.
+     Assignment 8 is released today: hold 5 min at the end for it.
      If running long, cut the sampling-knob slides, not the negation result. -->
 
 ---
@@ -113,7 +113,7 @@ all fall out of that one sentence.
 Each position emits a **query**.
 Every position exposes a **key** and a **value**.
 
-Query · keys → weights.
+Query dot keys → weights.
 Weights × values → what this position attends to.
 
 That is how "it" three sentences later
@@ -126,7 +126,7 @@ still refers to the pump.
 
 ## What the model actually does, you already built the pieces
 
-L11: tensors, matmul on a GPU, autodiff, batching.
+Lecture 11: tensors, matmul on a GPU, autodiff, batching.
 
 A transformer block is **those operations,
 in a particular order, repeated.**
@@ -292,7 +292,7 @@ and `MPa` should not.
 the most frequent adjacent pair, repeat ~50k times,
 freeze the merge list.
 
-[Gage 1994](https://en.wikipedia.org/wiki/Byte_pair_encoding) as compression ·
+[Gage 1994](https://en.wikipedia.org/wiki/Byte_pair_encoding) as compression,
 [Sennrich et al. 2016](https://arxiv.org/abs/1508.07909) for language
 
 ---
@@ -456,7 +456,7 @@ Nobody gets an error. The answer is just wrong.
 
 ![w:1180](figures/context-cost.png)
 
-<!-- NASA RP-1218, the report behind the airfoil data from L9 and L13. 1989
+<!-- NASA RP-1218, the report behind the airfoil data from Lecture 9 and Lecture 13. 1989
      scan, so the text layer is OCR: figure axis labels, running heads, garbage
      like 'TEj LE'. You pay tokens for whatever the extractor emits. -->
 
@@ -616,7 +616,7 @@ dedup, clustering, retrieval
 extraction, summarization, judgment
 
 Real pipelines: narrow millions to tens with vectors,
-then spend tokens on the tens. That is L17.
+then spend tokens on the tens. That is Lecture 17.
 
 ---
 
@@ -721,7 +721,7 @@ One is at its alarm limit. One is room temperature.
 
 ---
 
-## Where cosine pushes back, which is about A8
+## Where cosine pushes back, which is about Assignment 8
 
 Unit normalization cannot be delegated to:
 
@@ -783,8 +783,8 @@ Which pairs cluster? How many tokens is that part number?
 ## Next
 
 **Reading** linked at the end of the notes
-**Assignment** A8 released today, due L17 (2026-11-04)
-**Next session** L16: the API, structured output,
+**Assignment 8** released today, due Lecture 17 (2026-11-04)
+**Next session** Lecture 16: the API, structured output,
 validation and repair, cost accounting, prompt evaluation
 
 Notes for this lecture: `lectures/l15/notes.md`

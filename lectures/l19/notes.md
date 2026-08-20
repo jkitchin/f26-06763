@@ -1,12 +1,13 @@
-# L19 · Agent fundamentals: tool use, function calling, planning and execution loops
+# Lecture 19: Agent fundamentals: tool use, function calling, planning and execution loops
 
-:::{admonition} At a glance
+:::{admonition} Overview
 :class: tip
 
-- **Session** L19, Week 11 · **Arc** LLM & agentic engineering
+- **Session** Lecture 19, Week 11
+- **Arc** LLM and agentic engineering
 - **Slides** <a href="../../slides/l19/">Deck for this session</a>
 - **Demo** [`l19-agent.ipynb`](l19-agent.ipynb), a hand-rolled tool-using agent, no framework
-- **Assignment** A10 released this session · **Final-project proposal due this week**
+- **Assignment 10** released this session, **Final-project proposal due this week**
 :::
 
 ## Why this matters
@@ -52,7 +53,7 @@ By the end of this session you should be able to:
 ```
 
 Every system in this course before today has been a **workflow**: you, the engineer, wrote the
-control flow, and the model filled in one step of it. A RAG pipeline in L17 always retrieves,
+control flow, and the model filled in one step of it. A RAG pipeline in Lecture 17 always retrieves,
 then always generates; the order and the branching are yours, fixed in code, and the model
 never decides what happens next. An **agent** inverts that: the model is handed a goal, a set of
 tools, and an observation of what happened last, and it is the model, not your code, that decides
@@ -69,7 +70,7 @@ simplest pattern that solves the problem**, and treat an autonomous, model-drive
 as something you reach for because a fixed workflow genuinely cannot express the task, not
 because it demos well. Everything in this session assumes you have already tried the fixed
 workflow and it was not enough; the tool-calling loop is a heavier tool than a pipeline, and it
-should be picked for the same reason you would pick Dask over pandas in L5, because the simpler
+should be picked for the same reason you would pick Dask over pandas in Lecture 5, because the simpler
 thing stopped being adequate, not because it is the more impressive-looking option.
 
 ## The tool-calling loop, concretely
@@ -102,7 +103,7 @@ The line worth reading twice is `harness_execute`. The model never touches your 
 filesystem, or your surrogate model directly. It only ever emits a request to do so, structured
 as data, and every consequence of that request passes through code you wrote and can inspect,
 log, rate-limit, or refuse. That boundary, between what the model *asks for* and what your
-code *does*, is where every guardrail in L20 attaches, and it is also exactly the boundary the
+code *does*, is where every guardrail in Lecture 20 attaches, and it is also exactly the boundary the
 Replit incident's fix targets: making the default on the "does" side of that line read-only.
 
 ## Designing tools an LLM can use correctly
@@ -194,7 +195,7 @@ harness decides, on the model's behalf, that this line of attempts is over.
 
 **Logging every step**, the prompt sent, the tool called, the arguments, the result, and the
 token usage, turns "the agent did something weird" into a debuggable incident. Reuse the
-structured logging and MLflow tracking from L5 rather than inventing a new
+structured logging and MLflow tracking from Lecture 5 rather than inventing a new
 mechanism: an agent trace is a run, the same as a training run, and it deserves the same
 discipline about being recorded rather than trusted to memory.
 
@@ -208,7 +209,7 @@ several tools to call, and with what arguments, is doing something closer to cla
 creative writing, and the variance a higher temperature introduces here buys you nothing but
 inconsistent tool choices on functionally identical inputs. This session's demo cannot show a
 temperature setting doing anything, since there is no real model call in it at all, but the
-principle carries directly into A10, where you will set it.
+principle carries directly into Assignment 10, where you will set it.
 
 What this session's demo can show, and does, is the other half of testing an agent: **unit-test
 every tool independently of the model**. `query_sensor_db`, `compute_stats`, and `call_surrogate`
@@ -236,7 +237,7 @@ whether a real model will decide well.** This session deliberately shows you a h
 correct against a model that cannot actually reason, because that is the part you can fully
 verify without a live API call. The much harder, unresolved question, does a real model choose
 the right tool, with the right arguments, at the right time, is untested by anything in this
-notebook, and it is the question A10 and L20's evaluation section actually measure.
+notebook, and it is the question Assignment 10 and Lecture 20's evaluation section actually measure.
 
 **Low temperature makes determinism more likely. It does not guarantee it.** A model's tool
 choices become more consistent, not identical, and a model update on the provider's side can
@@ -248,7 +249,7 @@ version as tightly as your provider allows.
 **Limiting a loop is not the same as making it safe.** A step budget, a cost cap, and loop
 detection stop an agent from running forever or repeating a failure indefinitely, and none
 of them stop it from doing something genuinely harmful within those bounds, three tool calls is
-plenty to delete something if the tool it calls can delete something. That is why L20's
+plenty to delete something if the tool it calls can delete something. That is why Lecture 20's
 guardrails, read-only data access, output validation, and a human approval gate before any
 consequential action, belong to a later stage of the story: the part this session's harness has
 not yet built.
@@ -266,8 +267,8 @@ something that can actually decide to do the wrong thing.
 ## In-class demo
 
 We hand-build a tool-using agent with no framework, over three real tools: a read-only query
-against the same Intel Lab sensor Parquet file from L3 and L4, a stats helper, and a call into a
-small surrogate standing in for L13's airfoil noise model, sharing that model's five inputs and
+against the same Intel Lab sensor Parquet file from Lecture 3 and Lecture 4, a stats helper, and a call into a
+small surrogate standing in for Lecture 13's airfoil noise model, sharing that model's five inputs and
 validated ranges. A scripted model plays the loop end to end, querying a mote's recent voltage,
 summarizing it, and sweeping angle of attack to report the setting with the lowest predicted
 noise, in the same request/response shape a real tool-calling API uses. We then watch the same
@@ -277,7 +278,7 @@ harness after three identical failing calls. There is no hosted-model call anywh
 notebook; every one of those four outcomes is a property of the harness, not of the model.
 
 The runnable notebook is [`l19-agent.ipynb`](l19-agent.ipynb). It downloads the same Intel Lab
-data L3 and L4 use and needs no API key.
+data Lecture 3 and Lecture 4 use and needs no API key.
 
 ## Summary
 
@@ -309,17 +310,16 @@ even when it decides well.
   engineered scaffold.
 - Your hosted-LLM provider's tool-use or function-calling guide (current version). The exact
   message shapes and field names this session's loop deliberately abstracts away; read the
-  concrete version for whichever provider A10 uses.
+  concrete version for whichever provider Assignment 10 uses.
 - ["Replit AI coding agent deleted a production database, then covered it up"](https://www.pcmag.com/news/vibe-coding-service-replit-deleted-a-companys-database-then-covered-it-up),
   PCMag, July 2025. Coverage of the incident behind this session's opening case study; read it
   alongside Replit's own public response for both sides of the account.
 
 ## Assignment
 
-A10, "Build a tool-using engineering agent," is released this session and due roughly one week
+Assignment 10, "Build a tool-using engineering agent," is released this session and due roughly one week
 later. It asks you to hand-build (or, if you can explain the loop underneath, adopt a framework
 for) an agent that queries real engineering data and calls a surrogate model as tools, bound the
-loop with a step and cost budget, and evaluate it on a fixed task suite, before L20 adds
+loop with a step and cost budget, and evaluate it on a fixed task suite, before Lecture 20 adds
 guardrails and multi-agent orchestration on top. **Your final-project proposal is also due this
-week**; a well-scoped A10 is a strong seed for it. The full spec and rubric are in
-`course/assignments/a10.md`; this paragraph is a pointer, not the rubric.
+week**; a well-scoped Assignment 10 is a strong seed for it. This is a pointer, not the rubric.

@@ -2,15 +2,15 @@
 marp: true
 theme: course
 paginate: true
-header: "06-763 · L13"
+header: "06-763 / L13"
 footer: "Systems and Toolchains for AI Engineers"
 ---
 
 <!-- _class: title -->
 
-# L13 · Surrogates, physics, and uncertainty
+# Lecture 13: Surrogates, physics, and uncertainty
 
-## Week 7 · Machine learning & deep learning
+## Week 7, Machine learning & deep learning
 
 **Systems and Toolchains for AI Engineers**
 
@@ -116,7 +116,7 @@ building the wrong thing.
 
 <!-- The lifecycle: design of experiments -> train -> validate -> deploy ->
      refine. Sampling has the most leverage and gets the least attention, and
-     that is the next section. Refinement is L14. -->
+     that is the next section. Refinement is Lecture 14. -->
 
 ---
 
@@ -258,14 +258,14 @@ The figures and the demo notebook disagreed at
 **2.08 vs 1.50 dB** and **91% vs 94%** coverage before
 this was caught: bigger than most of today's effects.
 
-<!-- This is L1's np.trapz lesson in a new costume. Ask whether anyone has been
+<!-- This is Lecture 1's np.trapz lesson in a new costume. Ask whether anyone has been
      bitten by a library default changing under them. -->
 
 ---
 
 ## Spending a simulation budget, count the knobs, not the columns
 
-**NASA airfoil self-noise**, from L9: 1,503 tunnel
+**NASA airfoil self-noise**, from Lecture 9: 1,503 tunnel
 measurements, [Brooks, Pope & Marcolini, NASA RP-1218](https://ntrs.nasa.gov/citations/19890016302),
 5 inputs → scaled SPL in dB. [(UCI 291)](https://archive.ics.uci.edu/dataset/291/airfoil+self+noise)
 
@@ -333,11 +333,11 @@ Cost: $O(n^3)$ to fit. Caps you at a few thousand points.
 
 A CNN or U-Net maps an input field (geometry, source,
 boundary condition) to an output field. That is what
-L12's architectures were for.
+Lecture 12's architectures were for.
 
 **Neural operators** go further: maps between *function
 spaces*, so one model handles any discretisation.
-[DeepONet](https://arxiv.org/abs/1910.03193) · [Fourier Neural Operator](https://arxiv.org/abs/2010.08895), which claims up to
+[DeepONet](https://arxiv.org/abs/1910.03193), [Fourier Neural Operator](https://arxiv.org/abs/2010.08895), which claims up to
 three orders of magnitude over traditional solvers.
 
 **Today: a GP and a deep ensemble.**
@@ -505,7 +505,7 @@ $$\mathcal{L} = \underbrace{\textstyle\sum_i (T_\theta(x_i) - T_i)^2}_{\text{dat
 + \text{BCs}$$
 
 Residual by autodiff at **collocation points** where no
-measurement exists. L11's autodiff, but differentiating
+measurement exists. Lecture 11's autodiff, but differentiating
 the **inputs**, inside the **loss**.
 
 [Raissi, Perdikaris & Karniadakis, JCP 378 (2019)](https://doi.org/10.1016/j.jcp.2018.10.045)
@@ -821,9 +821,9 @@ The method is fine. The **claim** it makes is
 conditional on a property of your data, and it is
 always the same property.
 
-L7: the scaler fitted on everything.
-L9: the split that shared a tunnel run.
-L11: the fold that shared a concrete mix.
+Lecture 7: the scaler fitted on everything.
+Lecture 9: the split that shared a tunnel run.
+Lecture 11: the fold that shared a concrete mix.
 Today: the calibration set that shared a velocity.
 
 ---
@@ -925,7 +925,7 @@ narrower interval, and which actually contains 95%?
 - Break-even ≈ your training-set size, not the speedup
 - A full grid was **10× worse than random** at every budget; LHS/Sobol fix it free
 - Validate by holding out a **region**, and report it separately
-- GP σ grows away from data **by construction**; that is L14's lever
+- GP σ grows away from data **by construction**; that is Lecture 14's lever
 - Physics is a **claim**: −51% on chord, +10% on stall
 - A wrong physics prior does **not** wash out with data
 - On a random split everything looks calibrated. It is not.
@@ -945,9 +945,9 @@ Each was a draft claim that a run corrected.
 
 ## Next
 
-**Assignment** A6 due now · **[Miniproject (A7)](../../course/miniproject.md) launches today**, due end of Wk 8
-**Reading** [Rasmussen & Williams ch. 2](https://gaussianprocess.org/gpml/chapters/RW.pdf) · [Angelopoulos & Bates](https://arxiv.org/abs/2107.07511) · [Lakshminarayanan et al.](https://arxiv.org/abs/1612.01474)
-**L14** Bayesian optimization and active learning: turning
+**Assignment 6** due now, **[Miniproject (Assignment 7)](../../course/miniproject.md) launches today**, due end of week 8
+**Reading** [Rasmussen & Williams ch. 2](https://gaussianprocess.org/gpml/chapters/RW.pdf), [Angelopoulos & Bates](https://arxiv.org/abs/2107.07511), [Lakshminarayanan et al.](https://arxiv.org/abs/1612.01474)
+**Lecture 14** Bayesian optimization and active learning: turning
 the posterior variance into a rule for choosing the
 next expensive experiment
 

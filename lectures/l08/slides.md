@@ -2,15 +2,15 @@
 marp: true
 theme: course
 paginate: true
-header: "06-763 · L8"
+header: "06-763 / L8"
 footer: "Systems and Toolchains for AI Engineers"
 ---
 
 <!-- _class: title -->
 
-# L8 · Data quality, versioning, and leakage-free splits
+# Lecture 8: Data quality, versioning, and leakage-free splits
 
-## Week 4 · Data Systems
+## Week 4, Data Systems
 
 **Systems and Toolchains for AI Engineers**
 
@@ -36,7 +36,7 @@ footer: "Systems and Toolchains for AI Engineers"
 
 ## The split that inflates a score
 
-L7's scaler leak moved the error by 0.002 cycles, almost invisible.
+Lecture 7's scaler leak moved the error by 0.002 cycles, almost invisible.
 
 This one is the opposite: a leak that makes a model look **37% better** than it is, and that you would ship, because the number looks good.
 
@@ -170,7 +170,7 @@ A higher score is then worse news. You find leakage by reasoning about each feat
 
 ## Versioning data and features, DVC
 
-L2 versioned code with git and kept raw data out behind a hash. DVC closes the gap for the data itself.
+Lecture 2 versioned code with git and kept raw data out behind a hash. DVC closes the gap for the data itself.
 
 <div class="definition">
 
@@ -321,9 +321,9 @@ The per-unit split reports the number the model will actually earn on a new engi
 
 ## Next
 
-**Assignment** A4 (from L7): its dataset-versioning half is now unblocked
+**Assignment 4** (from Lecture 7): its dataset-versioning half is now unblocked
 **Reading** sklearn cross-validation; Kaufman "Leakage in Data Mining"; DVC docs
-**L9** From trustworthy data to trustworthy models: model selection
+**Lecture 9** From trustworthy data to trustworthy models: model selection
 and evaluation, standing on an honest split
 
 Full notes, with all sources: `lectures/l08/notes.md`

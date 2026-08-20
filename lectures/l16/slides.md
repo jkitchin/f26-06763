@@ -2,15 +2,15 @@
 marp: true
 theme: course
 paginate: true
-header: "06-763 · L16"
+header: "06-763 / L16"
 footer: "Systems and Toolchains for AI Engineers"
 ---
 
 <!-- _class: title -->
 
-# L16 · The API, prompt, and structured-output interface
+# Lecture 16: The API, prompt, and structured-output interface
 
-## Week 9 · LLM & agentic engineering
+## Week 9, LLM & agentic engineering
 
 **Systems and Toolchains for AI Engineers**
 
@@ -28,8 +28,8 @@ footer: "Systems and Toolchains for AI Engineers"
 8. Live demo: a datasheet to a validated record
 
 <!-- 110 min. Budget roughly 10 / 12 / 20 / 16 / 14 / 8 / 10 / 20 demo.
-     Task throughout: component datasheets -> a normalized parts table (A8).
-     A8 was released last session; tie the demo back to it at the end. -->
+     Task throughout: component datasheets -> a normalized parts table (Assignment 8).
+     Assignment 8 was released last session; tie the demo back to it at the end. -->
 
 ---
 
@@ -41,7 +41,7 @@ footer: "Systems and Toolchains for AI Engineers"
 
 ## Why this matters
 
-The task behind A8: a few hundred component datasheets,
+The task behind Assignment 8: a few hundred component datasheets,
 one clean parts table.
 
 Part number, material, max pressure (MPa),
@@ -317,7 +317,7 @@ An LLM API is a networked service. Treat it like one:
 
 - **retry with backoff** on 429 / 5xx, with jitter and a cap
 - make writes **idempotent** so a retry does not double-charge
-- log prompt + response + usage (reuse the Wk5 tracking discipline)
+- log prompt + response + usage (reuse the week 5 tracking discipline)
 - count tokens before sending; never truncate an input silently
 
 ---
@@ -387,7 +387,7 @@ Datasheets to a validated parts table. Runs offline; real API with a key.
 ## Next
 
 **Reading** Liu et al., "Lost in the Middle", and your provider's structured-output guide
-**Assignment** A8, the structured extractor, due about a week out
-**Next session** L17, retrieval-augmented generation: when the answer is not in the prompt
+**Assignment 8**, the structured extractor, due about a week out
+**Next session** Lecture 17, retrieval-augmented generation: when the answer is not in the prompt
 
 Notes for this lecture: `lectures/l16/notes.md`

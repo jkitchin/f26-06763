@@ -2,15 +2,15 @@
 marp: true
 theme: course
 paginate: true
-header: "06-763 · L7"
+header: "06-763 / L7"
 footer: "Systems and Toolchains for AI Engineers"
 ---
 
 <!-- _class: title -->
 
-# L7 · Features for time-series & physical data
+# Lecture 7: Features for time-series & physical data
 
-## Week 4 · Data Systems
+## Week 4, Data Systems
 
 **Systems and Toolchains for AI Engineers**
 
@@ -121,7 +121,7 @@ Its rolling std is 0. Its delta-from-cycle-1 is 0.
 
 **And the trap in detecting them.**
 
-L5 said: constant ⟺ `std == 0`. True in arithmetic.
+Lecture 5 said: constant ⟺ `std == 0`. True in arithmetic.
 
 ```
 sensor5:  one value (14.62),  std() = 5.3e-15
@@ -210,7 +210,7 @@ previous engine's **end of life.**
 ## Time-series features, resampling irregular data
 
 C-MAPSS is a clean, regular grid. Real sensors
-often aren't: recall the Intel Lab motes (L3),
+often aren't: recall the Intel Lab motes (Lecture 3),
 ~31s cadence, unpredictable dropouts.
 
 Resample to a fixed cadence; choose a policy
@@ -262,7 +262,7 @@ coincidental correlation.
 ## Physical and domain features, calibration corrections
 
 A channel's raw output degrades over an
-instrument's lifetime (L1's drift argument, again).
+instrument's lifetime (Lecture 1's drift argument, again).
 
 The correction belongs in the pipeline,
 applied consistently, not patched in after.
@@ -332,7 +332,7 @@ program. The orbiter itself: nearer \$125M.
 
 The verified facts are damning enough.
 
-<!-- Same discipline as L1's "<10% of code is ML code" non-claim. Check whether
+<!-- Same discipline as Lecture 1's "<10% of code is ML code" non-claim. Check whether
      the source you're citing contains the number you're citing it for. -->
 
 ---
@@ -364,7 +364,7 @@ The discrepancy was visible **spring and summer 1999.**
 Root cause identified **29 September**:
 six days *after* the spacecraft was gone.
 
-Same shape as L5's 97 unread "Power Peg disabled" emails.
+Same shape as Lecture 5's 97 unread "Power Peg disabled" emails.
 
 <!-- This is the through-line of the whole course. Say it explicitly: an anomaly
      that is "noted informally" is not monitoring. -->
@@ -426,7 +426,7 @@ Which bands matter is a physical judgment
 | Robust (median/IQR) | heavy-tailed outliers, fault spikes |
 | Log / Box-Cox | naturally skewed physical quantities |
 
-[sklearn preprocessing](https://scikit-learn.org/stable/modules/preprocessing.html) · [Box-Cox (NIST)](https://www.itl.nist.gov/div898/handbook/eda/section3/eda336.htm)
+[sklearn preprocessing](https://scikit-learn.org/stable/modules/preprocessing.html), [Box-Cox (NIST)](https://www.itl.nist.gov/div898/handbook/eda/section3/eda336.htm)
 
 ---
 
@@ -646,7 +646,7 @@ No `Pipeline` catches a split-level leak:
 the split happens before the pipeline
 ever sees the data.
 
-L8: the full leakage taxonomy, grouped
+Lecture 8: the full leakage taxonomy, grouped
 and temporal splits.
 
 **What a practitioner should take from this.**
@@ -715,9 +715,9 @@ Every one of those was a draft claim that a run corrected.
 
 ## Next
 
-**Assignment** [A4](../../course/assignments/a04.md), out today, due ~1 week
-**Reading** [sklearn pitfalls & leakage](https://scikit-learn.org/stable/common_pitfalls.html) · [Pipelines](https://scikit-learn.org/stable/modules/compose.html) · Saxena et al. 2008
-**L8** Same C-MAPSS fleet: the full leakage taxonomy, correct
+**Assignment 4**, out today, due ~1 week
+**Reading** [sklearn pitfalls & leakage](https://scikit-learn.org/stable/common_pitfalls.html), [Pipelines](https://scikit-learn.org/stable/modules/compose.html), Saxena et al. 2008
+**Lecture 8** Same C-MAPSS fleet: the full leakage taxonomy, correct
 grouped/temporal splits, and versioning the pipeline with DVC
 
 Full notes, with all sources: `lectures/l07/notes.md`

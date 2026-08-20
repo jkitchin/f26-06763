@@ -2,15 +2,15 @@
 marp: true
 theme: course
 paginate: true
-header: "06-763 · L3"
+header: "06-763 / L3"
 footer: "Systems and Toolchains for AI Engineers"
 ---
 
 <!-- _class: title -->
 
-# L3 · Relational data & SQL
+# Lecture 3: Relational data & SQL
 
-## Week 2 · Data Systems
+## Week 2, Data Systems
 
 **Systems and Toolchains for AI Engineers**
 
@@ -190,7 +190,7 @@ Units and plausible ranges live in a small `variables` table.
 | new channel = new **rows** | new channel = **ALTER TABLE** |
 | one type for all | a type per channel |
 
-Both beat wide. Pick deliberately; justify it in A2.
+Both beat wide. Pick deliberately; justify it in Assignment 2.
 
 ---
 
@@ -245,7 +245,7 @@ Case: the leap second of **30 June 2012**
 
 ## Types that carry meaning, who fell over and who didn't
 
-Reddit · LinkedIn · Mozilla · Yelp · Foursquare · StumbleUpon
+Reddit, LinkedIn, Mozilla, Yelp, Foursquare, StumbleUpon
 
 **Amadeus Altea** reservation system offline ~1 hour
 → Qantas & Virgin Australia checked in passengers **by hand**
@@ -260,7 +260,7 @@ Lesson at every scale:
 > Calendar arithmetic is full of edge cases.
 > Don't be the one reimplementing it.
 
-Store UTC · use `timestamptz` · let tested code do the math.
+Store UTC, use `timestamptz`, let tested code do the math.
 
 ---
 
@@ -655,7 +655,7 @@ transactions, joins, constraints, one row at a time.
 
 Scanning three columns across ten years is a **different** job.
 
-That's **OLAP**, and it's L4: Parquet & DuckDB.
+That's **OLAP**, and it's Lecture 4: Parquet & DuckDB.
 
 ---
 
@@ -693,9 +693,9 @@ Watch the top node flip: `Seq Scan` → `Index Only Scan`.
 
 ## Next
 
-**Assignment** A2 released today, due ~1 week
+**Assignment 2** released today, due ~1 week
 **Reading** PostgreSQL window functions; Kleppmann Ch. 3
-**L4** Same data, new home: Parquet & DuckDB, and when a
+**Lecture 4** Same data, new home: Parquet & DuckDB, and when a
 column store beats today's row store
 
 Full notes, with all sources: `lectures/l03/notes.md`

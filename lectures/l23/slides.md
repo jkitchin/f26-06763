@@ -2,15 +2,15 @@
 marp: true
 theme: course
 paginate: true
-header: "06-763 · L23"
+header: "06-763 / L23"
 footer: "Systems and Toolchains for AI Engineers"
 ---
 
 <!-- _class: title -->
 
-# L23 · MLOps, drift, safety & responsible AI
+# Lecture 23: MLOps, drift, safety & responsible AI
 
-## Week 13 · Production & responsibility
+## Week 13, Production & responsibility
 
 **Systems and Toolchains for AI Engineers**
 
@@ -29,7 +29,7 @@ footer: "Systems and Toolchains for AI Engineers"
 <!-- 110 min. Budget roughly 15/15/20/10/15/15/20 demo.
      No live GitHub Actions run in the demo -- the workflow file is validated
      for correct YAML/logic, not watched turning red in a real CI UI.
-     Real Intel Lab data (L3/L4) for the drift half. If running long, cut the
+     Real Intel Lab data (Lecture 3/Lecture 4) for the drift half. If running long, cut the
      cost-in-production slides, not the demo. -->
 
 ---
@@ -302,7 +302,7 @@ retries multiply cost exactly when stressed.
 
 ## Cost in production, runaway agent loops
 
-L19's bounded loop exists for exactly this:
+Lecture 19's bounded loop exists for exactly this:
 one user request, dozens of billed calls,
 if nothing stops it.
 
@@ -310,7 +310,7 @@ if nothing stops it.
 
 ## Cost in production, none of this shows up in a one-time estimate
 
-Log cost as a time series, same as L21 logged
+Log cost as a time series, same as Lecture 21 logged
 eval metrics. Budgets and rate limits: the backstop
 for when monitoring catches it too late.
 
@@ -339,10 +339,10 @@ is a sentence that sounds like one.
 
 | Failure | Guardrail |
 |---|---|
-| Hallucinated citation | Faithfulness check (L21) |
+| Hallucinated citation | Faithfulness check (Lecture 21) |
 | Confident wrong number | Numeric-tolerance reference check |
 | Prompt injection | Retrieved/tool content is untrusted, always |
-| Unsafe tool action | Allow-list, read-only default, human approval (L19) |
+| Unsafe tool action | Allow-list, read-only default, human approval (Lecture 19) |
 
 ---
 
@@ -350,8 +350,8 @@ is a sentence that sounds like one.
 
 | Failure | Guardrail |
 |---|---|
-| Extrapolation | Input-range check before every prediction (L7, L13) |
-| Over-confident uncertainty | Calibration checked against held-out truth (L13, L21) |
+| Extrapolation | Input-range check before every prediction (Lecture 7, Lecture 13) |
+| Over-confident uncertainty | Calibration checked against held-out truth (Lecture 13, Lecture 21) |
 | Stale model | Drift monitoring tied to a retraining trigger |
 | Silent unit error | Named, typed columns; assert units at boundaries |
 
@@ -359,8 +359,8 @@ is a sentence that sounds like one.
 
 ## Failure modes and guardrails, most of these rows are already yours
 
-A step budget: L19's. A faithfulness check: L21's.
-An input-range check: L7's and L13's.
+A step budget: Lecture 19's. A faithfulness check: Lecture 21's.
+An input-range check: Lecture 7's and Lecture 13's.
 
 This session's job: name a mechanism for
 **every** failure, in a table, on paper.
@@ -460,7 +460,7 @@ on real data, three ways.
 
 ## What to watch
 
-- The gate passing on L21's real numbers, failing on two named regressions
+- The gate passing on Lecture 21's real numbers, failing on two named regressions
 - A real GitHub Actions YAML: the build job can't start until the gate job passes
 - PSI/KS: no drift, real unforced drift, and an injected shift, read side by side
 
@@ -479,7 +479,7 @@ on real data, three ways.
 ## Next
 
 **No new assignment**, effort goes to the final project
-**L24**: capstone studio/clinic. Wire a CI gate, a drift hook, and your
+**Lecture 24**: capstone studio/clinic. Wire a CI gate, a drift hook, and your
 guardrail table onto your own system before Week 14's presentations
 
 Full notes, with all sources: `lectures/l23/notes.md`

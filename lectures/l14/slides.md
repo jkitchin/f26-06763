@@ -2,15 +2,15 @@
 marp: true
 theme: course
 paginate: true
-header: "06-763 · L14"
+header: "06-763 / L14"
 footer: "Systems and Toolchains for AI Engineers"
 ---
 
 <!-- _class: title -->
 
-# L14 · Bayesian optimization and active learning
+# Lecture 14: Bayesian optimization and active learning
 
-## Week 7 · Machine learning & deep learning
+## Week 7, Machine learning & deep learning
 
 **Systems and Toolchains for AI Engineers**
 
@@ -28,8 +28,8 @@ footer: "Systems and Toolchains for AI Engineers"
 8. Live demo: the loop by hand, then in BoTorch
 
 <!-- 110 min. Budget roughly 8 / 12 / 14 / 16 / 12 / 14 / 12 / 20 demo.
-     Dataset: NASA airfoil self-noise, carried over from L13.
-     The miniproject (A7) is under way; tie the demo back to it at the end.
+     Dataset: NASA airfoil self-noise, carried over from Lecture 13.
+     The miniproject (Assignment 7) is under way; tie the demo back to it at the end.
      If running long, cut the extensions survey, not the honest-evaluation slide. -->
 
 ---
@@ -59,7 +59,7 @@ The question is no longer "what is my model."
 
 It is **"which single experiment do I run next?"**
 
-L13 gave you a surrogate that reports where it is unsure.
+Lecture 13 gave you a surrogate that reports where it is unsure.
 This session spends that uncertainty.
 
 ---
@@ -308,7 +308,7 @@ Sometimes the deliverable is the emulator, and its worst region is what bites.
 - **Uncertainty sampling**: query the point of highest posterior variance
 - **Query-by-committee**: query where an ensemble disagrees most
 
-This is L13's **epistemic** uncertainty at work: the reducible kind, the part a well-chosen experiment removes.
+This is Lecture 13's **epistemic** uncertainty at work: the reducible kind, the part a well-chosen experiment removes.
 
 ---
 
@@ -406,7 +406,7 @@ Two moments: the **sign check** on EI, and how wide the **seed bands** are.
 ## Next
 
 **Reading** Frazier's tutorial and the Shahriari review, linked in the notes
-**Assignment** the miniproject (A7) is under way, due Week 8
-**Next session** L15, foundation models and LLMs at a systems level
+**Assignment** the miniproject (Assignment 7) is under way, due Week 8
+**Next session** Lecture 15, foundation models and LLMs at a systems level
 
 Notes for this lecture: `lectures/l14/notes.md`
