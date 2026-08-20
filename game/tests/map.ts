@@ -19,18 +19,21 @@ console.log('map:')
 
 // --- the generated world holds together ------------------------------------
 
-check(world.rooms.length === 25, 'every session on the schedule is a room',
+check(world.rooms.length === 22, 'every session on the schedule is a room',
   `${world.rooms.length} rooms`)
-// Twenty-one written, not fourteen: L6, L8, L10, L12, L14, L16 and L18 gained
-// notes. Each has a bank stub marked `status: unwritten`, so they are readable
-// rooms with no practice module, a third state the room panel says out loud.
-check(world.rooms.filter((r) => r.written).length === 21,
-  'twenty-one of them are written', `${world.rooms.filter((r) => r.written).length}`)
+// Twenty, not twenty-one: the two mini-project days lost their sessions and L18
+// was folded into L17, so L18 keeps its notes and its bank stub while having no
+// schedule row and therefore no room. That is a known gap, tracked by the merge
+// issue, and it is the reason this number moved rather than the room count alone.
+check(world.rooms.filter((r) => r.written).length === 20,
+  'twenty of them are written', `${world.rooms.filter((r) => r.written).length}`)
 
-// L18 and L19 carry a conference annotation in the schedule that an earlier
-// parser silently dropped. L19 anchors five authored corridors, so losing it
-// would have left five edges pointing out of a room that was not drawn.
-for (const id of ['l18', 'l19']) {
+// Two rows carry a conference annotation in the schedule that an earlier parser
+// silently dropped. The annotation belongs to the dates rather than the lectures,
+// so dropping the mini-project days moved it from L18/L19 onto L21/L22. L21
+// anchors authored corridors, so losing it would have left edges pointing out of
+// a room that was not drawn.
+for (const id of ['l21', 'l22']) {
   check(roomById(id) !== undefined, `${id} survived the schedule parse`)
 }
 
@@ -105,7 +108,7 @@ check(!doorVisible(oneDoor, none), 'a corridor is hidden until both ends are vis
 check(!doorVisible(oneDoor, new Set(['l21'])), 'one end is not enough')
 check(doorVisible(oneDoor, both), 'and drawn once both have been')
 
-check(coverage(none).seen === 0 && coverage(none).total === 25, 'coverage starts at zero of 25')
+check(coverage(none).seen === 0 && coverage(none).total === 22, 'coverage starts at zero of 22')
 check(coverage(both).seen === 2, 'and counts the rooms actually stood in')
 
 check(signFor('l20')?.promised_by === 'l19', 'the L20 shutter carries L19s promise')

@@ -50,7 +50,7 @@ OUT = REPO / "game" / "src" / "map" / "world.json"
 GRAPH = REPO / "game" / "src" / "map" / "graph.json"
 SCHEDULE = REPO / "course" / "schedule.md"
 
-#: L1 through L23 plus the two mini-project sessions. Update deliberately.
+#: L1 through L23, less L18. Update deliberately.
 #:
 #: Was 26, for L1 through L24. L24 was a capstone studio row that never had a
 #: lecture directory and was dropped from the schedule; the two final-project
@@ -58,7 +58,14 @@ SCHEDULE = REPO / "course" / "schedule.md"
 #: L23 is counted because it is written: it has notes, a notebook, an item bank
 #: and a room on the map, and a schedule edit briefly dropped its row while all
 #: four remained, which is the state this constant exists to refuse.
-EXPECTED_SESSIONS = 25
+#:
+#: Then 25 to 22: the two mini-project days lost their dedicated sessions, and
+#: L18 was folded into L17 so that the back half of the course fits between fall
+#: break and the presentations. L18 is the case this constant is least able to
+#: help with, because lectures/l18/ still exists: until the merge lands, L18 has
+#: notes, a deck and an item bank but no schedule row, so no room on the map and
+#: no way for a student to reach its questions. See the merge issue.
+EXPECTED_SESSIONS = 22
 
 #: Rooms per row within a region. Two reads as a course sequence going down the
 #: page, and keeps the widest region from dominating the layout.
