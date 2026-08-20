@@ -108,7 +108,7 @@ Goodfellow: convolution leverages **sparse interactions, parameter sharing, and 
 
 An MLP would learn each position's edge detector separately, from far more data.
 
-Encoder-decoder / **U-Net** shapes map a whole field to a whole field (Week 7).
+Encoder-decoder / **U-Net** shapes map a whole field to a whole field.
 
 [Goodfellow, ch. 9](https://www.deeplearningbook.org/), [CS231n](https://cs231n.github.io/convolutional-networks/)
 
@@ -142,7 +142,7 @@ Bai et al. (2018): "a simple convolutional architecture outperforms canonical re
 
 - **temporal CNN**: fixed windows, faster (timesteps compute in parallel), the sensible default
 - **LSTM / GRU**: genuinely long-range, variable dependence
-- **attention / Transformers**: long-range and complex (Week 8 on)
+- **attention / Transformers**: long-range and complex
 
 Normalize on train stats only; never window across a unit boundary (Lecture 8).
 
@@ -274,7 +274,5 @@ The grouping by engine is what keeps the comparison honest instead of flattering
 
 **Assignment 6** (from Lecture 11): build, train, and honestly evaluate a deep model
 **Reading** PyTorch CNN/LSTM tutorials; Goodfellow ch. 9-10; Grinsztajn et al.
-**Lecture 13** Toward surrogate models and the uncertainty an engineering
-prediction has to carry
 
 Full notes, with all sources: `lectures/l12/notes.md`

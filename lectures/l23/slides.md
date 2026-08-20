@@ -479,7 +479,5 @@ on real data, three ways.
 ## Next
 
 **No new assignment**, effort goes to the final project
-**Lecture 24**: capstone studio/clinic. Wire a CI gate, a drift hook, and your
-guardrail table onto your own system before Week 14's presentations
 
 Full notes, with all sources: `lectures/l23/notes.md`

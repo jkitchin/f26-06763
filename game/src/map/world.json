@@ -417,14 +417,6 @@
       "where": "`sensors` and `readings` tables in [Lecture 3](../l03/notes.md), and the same warning applies here that"
     },
     {
-      "from": "l05",
-      "to": "l07",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "distinction [Lecture 7](../l07/notes.md) runs into on a different dataset. A column holding the single"
-    },
-    {
       "from": "l06",
       "to": "l05",
       "origin": "link",
@@ -625,22 +617,6 @@
       "where": "[Lecture 9](../l09/notes.md) and [Lecture 13](../l13/notes.md); this is the report itself. It is 146"
     },
     {
-      "from": "l15",
-      "to": "l17",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "retrieval-augmented generation, the subject of [Lecture 17](../l17/notes.md) in two sessions'"
-    },
-    {
-      "from": "l15",
-      "to": "l19",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "retrieval index, and [Lecture 19](../l19/notes.md), where the model starts calling tools."
-    },
-    {
       "from": "l19",
       "to": "l03",
       "origin": "authored",
@@ -761,16 +737,5 @@
       "where": "unit-tested against Lecture 21's actual measured numbers as a passing case"
     }
   ],
-  "signs": [
-    {
-      "lecture": "l20",
-      "promised_by": "l19",
-      "where": "is where every guardrail in Lecture 20 attaches"
-    },
-    {
-      "lecture": "l22",
-      "promised_by": "l21",
-      "where": "shared with Lecture 22, deploy that system behind a FastAPI and Docker service"
-    }
-  ]
+  "signs": []
 }

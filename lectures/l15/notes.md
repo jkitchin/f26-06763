@@ -40,7 +40,7 @@ input bill by **31%**.
 Both of those failures come from the same place: not knowing what the model actually
 consumes. That is what this session is about. An LLM is not a black box that reads
 English, it is a next-token predictor over a fixed vocabulary of subword fragments, and
-almost every engineering constraint you will meet in the next four weeks (what fits, what
+almost every engineering constraint you will meet with these models (what fits, what
 it costs, how long it takes, what it gets wrong about numbers) falls out of that one
 sentence. The point of building the mental model is not theoretical interest. It is that
 once you have it, the failures become predictable in advance instead of surprising in
@@ -485,8 +485,7 @@ LLM when the question is "what does this one say."** Deduplication, clustering, 
 duplicate detection, and retrieval are the first kind. Extraction, summarization, and
 judgment are the second. Most real pipelines use embeddings to narrow a corpus from
 millions to tens, and then spend LLM tokens only on the tens. That pipeline is
-retrieval-augmented generation, the subject of [Lecture 17](../l17/notes.md) in two sessions'
-time, and this is the half of it you can build today.
+retrieval-augmented generation, and this is the half of it you can build today.
 
 ### Dimensionality is a storage decision
 
@@ -652,13 +651,9 @@ vectors whose distances mean something, which finds near-duplicates that share n
 all, and which is blind to negation and to units in ways that will bite an extraction
 pipeline that trusts them too far.
 
-Next session takes all of this to the interface. Lecture 16 covers the request and response shape,
-schema-constrained structured output, validation and repair loops, prompt caching and cost
-accounting, and how to evaluate a prompt against a gold set instead of by reading the
-output and nodding. The extractor you build there is Assignment 8, and the three habits from today
-(count the tokens, ground the question, give it a way to say no) are the ones it is built
-on. From there the arc continues into [Lecture 17](../l17/notes.md), where these vectors become a
-retrieval index, and [Lecture 19](../l19/notes.md), where the model starts calling tools.
+The three habits worth carrying out of this session are the ones Assignment 8 is built on:
+count the tokens with the model you will actually call, ground every question in the
+context, and give the model a token that means "not found."
 
 ## Resources
 
@@ -704,8 +699,8 @@ retrieval index, and [Lecture 19](../l19/notes.md), where the model starts calli
 
 ## Assignment
 
-**Assignment 8, structured extraction from engineering documents**, is released today and is due at
-the start of Lecture 17 on 2026-11-04. You will build and *evaluate* an LLM extractor that turns
+**Assignment 8, structured extraction from engineering documents**, is released today and is due on
+2026-11-04. You will build and *evaluate* an LLM extractor that turns
 messy engineering text into a schema-validated, normalized table, with a gold set, a
 measured prompt iteration, and per-call cost accounting. This is a pointer, not the rubric.
 

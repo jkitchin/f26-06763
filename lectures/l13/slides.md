@@ -116,7 +116,7 @@ building the wrong thing.
 
 <!-- The lifecycle: design of experiments -> train -> validate -> deploy ->
      refine. Sampling has the most leverage and gets the least attention, and
-     that is the next section. Refinement is Lecture 14. -->
+     that is the next section. -->
 
 ---
 
@@ -925,7 +925,7 @@ narrower interval, and which actually contains 95%?
 - Break-even ≈ your training-set size, not the speedup
 - A full grid was **10× worse than random** at every budget; LHS/Sobol fix it free
 - Validate by holding out a **region**, and report it separately
-- GP σ grows away from data **by construction**; that is Lecture 14's lever
+- GP σ grows away from data **by construction**
 - Physics is a **claim**: −51% on chord, +10% on stall
 - A wrong physics prior does **not** wash out with data
 - On a random split everything looks calibrated. It is not.
@@ -947,8 +947,5 @@ Each was a draft claim that a run corrected.
 
 **Assignment 6** due now, **[Miniproject (Assignment 7)](../../course/miniproject.md) launches today**, due end of week 8
 **Reading** [Rasmussen & Williams ch. 2](https://gaussianprocess.org/gpml/chapters/RW.pdf), [Angelopoulos & Bates](https://arxiv.org/abs/2107.07511), [Lakshminarayanan et al.](https://arxiv.org/abs/1612.01474)
-**Lecture 14** Bayesian optimization and active learning: turning
-the posterior variance into a rule for choosing the
-next expensive experiment
 
 Full notes, with all sources: `lectures/l13/notes.md`

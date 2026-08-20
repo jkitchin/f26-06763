@@ -521,7 +521,5 @@ you validate + a surrogate you audit by slice.
 
 **Assignment 11** released today (lighter; folds into the final project)
 **Reading** Huyen, *Designing ML Systems* (eval/monitoring); Zheng et al. 2023
-**Lecture 22** Deployment: FastAPI, Docker, cloud serving,
-and running this same harness against what you actually shipped
 
 Full notes, with all sources: `lectures/l21/notes.md`

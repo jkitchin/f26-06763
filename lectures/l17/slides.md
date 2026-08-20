@@ -609,7 +609,5 @@ evaluate on a 15-query gold set, sweep chunking, ground.
 
 **Assignment 9** released today, due ~1 week
 **Reading** Lewis et al. 2020 (RAG); Liu et al. 2023 (Lost in the Middle)
-**Lecture 18** Prompting vs. RAG vs. fine-tuning: a decision framework,
-plus a real LoRA fine-tune on the course GPU
 
 Full notes, with all sources: `lectures/l17/notes.md`

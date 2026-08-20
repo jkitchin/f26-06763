@@ -1,17 +1,6 @@
 {
   "generated_by": "tools/graph.py",
-  "shutters": [
-    {
-      "lecture": "l20",
-      "promised_by": "l19",
-      "where": "is where every guardrail in Lecture 20 attaches"
-    },
-    {
-      "lecture": "l22",
-      "promised_by": "l21",
-      "where": "shared with Lecture 22, deploy that system behind a FastAPI and Docker service"
-    }
-  ],
+  "shutters": [],
   "note": "Markdown cross-links, plus the hand-authored edges in game/content/map-edges.yml for the back half of the course, where lectures cite each other only in prose. See the module docstring.",
   "lectures": [
     "l01",
@@ -49,13 +38,6 @@
       "to": "l03",
       "weight": 2,
       "where": "`sensors` and `readings` tables in [Lecture 3](../l03/notes.md), and the same warning applies here that",
-      "origin": "link"
-    },
-    {
-      "from": "l05",
-      "to": "l07",
-      "weight": 1,
-      "where": "distinction [Lecture 7](../l07/notes.md) runs into on a different dataset. A column holding the single",
       "origin": "link"
     },
     {
@@ -234,20 +216,6 @@
       "origin": "link"
     },
     {
-      "from": "l15",
-      "to": "l17",
-      "weight": 2,
-      "where": "retrieval-augmented generation, the subject of [Lecture 17](../l17/notes.md) in two sessions'",
-      "origin": "link"
-    },
-    {
-      "from": "l15",
-      "to": "l19",
-      "weight": 1,
-      "where": "retrieval index, and [Lecture 19](../l19/notes.md), where the model starts calling tools.",
-      "origin": "link"
-    },
-    {
       "from": "l19",
       "to": "l03",
       "weight": 1,
@@ -390,7 +358,7 @@
     "l04": 2,
     "l05": 4,
     "l06": 1,
-    "l07": 8,
+    "l07": 7,
     "l08": 2,
     "l09": 4,
     "l10": 0,
@@ -400,9 +368,9 @@
     "l14": 0,
     "l15": 0,
     "l16": 0,
-    "l17": 4,
+    "l17": 3,
     "l18": 0,
-    "l19": 3,
+    "l19": 2,
     "l21": 1,
     "l23": 0
   },
@@ -413,7 +381,7 @@
     "l04": 2,
     "l05": 5,
     "l06": 1,
-    "l07": 12,
+    "l07": 11,
     "l08": 4,
     "l09": 9,
     "l10": 0,
@@ -423,9 +391,9 @@
     "l14": 0,
     "l15": 0,
     "l16": 0,
-    "l17": 5,
+    "l17": 3,
     "l18": 0,
-    "l19": 3,
+    "l19": 2,
     "l21": 1,
     "l23": 0
   },
@@ -434,7 +402,7 @@
     "l02": 0,
     "l03": 0,
     "l04": 1,
-    "l05": 2,
+    "l05": 1,
     "l06": 1,
     "l07": 3,
     "l08": 3,
@@ -444,7 +412,7 @@
     "l12": 3,
     "l13": 4,
     "l14": 0,
-    "l15": 5,
+    "l15": 3,
     "l16": 0,
     "l17": 0,
     "l18": 0,

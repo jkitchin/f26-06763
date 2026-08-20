@@ -328,7 +328,7 @@ So they belong in **different tools**.
 | Artifact | Tool | What you version |
 |---|---|---|
 | Code | git | the source, as commits |
-| Data | git-ignored + a hash (git-lfs/DVC, week 4) | a pointer, not the bytes |
+| Data | git-ignored + a hash (git-lfs/DVC) | a pointer, not the bytes |
 | Models | an MLflow run | the inputs that made it |
 
 ---
@@ -368,8 +368,8 @@ keep the raw bytes out. Removing a committed big file rewrites history.
 
 git is the wrong home for large binaries.
 
-Tools that version data **by content**,
-`git-lfs` and **DVC**, get a real treatment in **week 4**.
+Tools that version data **by content**:
+`git-lfs` and **DVC**.
 
 For now: a hash and a source, not the bytes.
 
@@ -543,7 +543,6 @@ Log enough to **rebuild** the run:
 > next to the metric.
 
 That triple is the provenance the Duke work lacked.
-The miniproject requires exactly it.
 
 ---
 
@@ -573,7 +572,7 @@ The Duke errors surfaced only when outsiders
 It does **not** pin the system libraries, the OS,
 or the platform-specific wheels underneath.
 
-Whole-stack reproducibility is a **container**. That is week 12.
+Whole-stack reproducibility is a **container**.
 
 ---
 
@@ -624,7 +623,5 @@ Empty folder → tracked run in ~15 minutes:
 
 **Assignment 1** released this week, due ~1 week: scaffold `sensorlab`
 **Reading** uv docs; Pro Git ch. 1-2; MLflow quickstart; The Turing Way
-**Lecture 3** Give the data a real home: relational databases & SQL
-for engineering time series
 
 Full notes, with all sources: `lectures/l02/notes.md`

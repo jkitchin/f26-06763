@@ -7,7 +7,7 @@
 - **Arc** Foundations
 - **Slides** <a href="../../slides/l01/">Deck for this session</a>
 - **Demo** [`l01-reproducibility.ipynb`](l01-reproducibility.ipynb), the notebook that does not reproduce
-- **Assignment 1**, released at Lecture 2
+- **Assignment 1**, released this week
 :::
 
 ## Why this matters
@@ -66,7 +66,7 @@ By the end of this session you should be able to:
 ```{index} integration failure
 ```
 
-Name the stages explicitly, because each one becomes a later arc of the course: data
+Name the stages explicitly: data
 acquisition, storage, pipelines, features, training, evaluation, deployment, and
 monitoring. Read left to right that looks like a linear process, which is the first thing
 to unlearn. Real systems iterate hard between features and evaluation, and the monitoring
@@ -309,7 +309,7 @@ is a design decision requiring evidence, not an assumption you are entitled to m
 The **stack** (or **toolchain**) is the full set of tools and layers a system is built from, from storage at the bottom through pipelines, training, and evaluation up to serving and monitoring at the top. This course standardizes one stack, so class time goes to concepts rather than to choosing tools, and the tour below walks it one layer at a time.
 :::
 
-The rest of this session is a quick tour, not a deep dive. Each subsection is one layer of the system diagram and a later arc of the course, so the goal today is a mental map: what each layer is for, what tends to break in it, and where in the semester we come back to it. Read it for orientation, and do not worry about mastering any single layer yet.
+The rest of this session is a quick tour, not a deep dive. Each subsection is one layer of the system diagram, so the goal today is a mental map: what each layer is for and what tends to break in it. Read it for orientation, and do not worry about mastering any single layer yet.
 
 ### Storage: where engineering data actually lives
 
@@ -328,12 +328,11 @@ and compressed, so reading one channel out of two hundred touches only that chan
 is why they dominate analytical workloads. **Embedded analytical engines** (DuckDB) run SQL
 directly over Parquet with no server at all, which for a laptop-scale engineering dataset
 is frequently the entire answer. A fourth model, the **vector store**, indexes embeddings
-by similarity rather than by value, and only becomes relevant once retrieval arrives in
-Week 10.
+by similarity rather than by value.
 
 The practitioner question is not "which database is best" but "what access pattern do I
 have." Writing one row at a time while several consumers read concurrently is a relational
-problem. Scanning three columns across ten years is a columnar problem. Weeks 2 through 4.
+problem. Scanning three columns across ten years is a columnar problem.
 
 ### Pipelines: moving data without losing it
 
@@ -352,7 +351,7 @@ data is worse than one that crashes, because the failure surfaces months later i
 result nobody can explain. Declaring what you expect (column types, physical ranges, null
 rates, row counts) and failing loudly when reality disagrees is the single highest-value
 habit in this course. Tools like `pandera` and Great Expectations exist to make those
-declarations executable. Weeks 3 and 4.
+declarations executable.
 
 ### Training: what actually happens
 
@@ -372,7 +371,7 @@ matter because the underlying operations are large matrix multiplications, which
 problem shape GPUs are built for. But the honest framing is the one this course keeps
 returning to: a gradient-boosted tree on well-constructed features beats a neural network
 on badly constructed ones, most of the time, and the strong baseline is the thing you must
-beat before claiming anything. Weeks 5 and 6.
+beat before claiming anything.
 
 ### Evaluation and experiment tracking
 
@@ -388,7 +387,7 @@ a baseline you must beat.
 **Experiment tracking** is the infrastructure underneath it. When you have run a hundred
 variants, "which configuration produced this number" becomes unanswerable from memory, and
 the provenance requirement from earlier becomes unmeetable. MLflow records parameters,
-metrics, and artifacts per run, so one run equals one reproducible fact. Week 5.
+metrics, and artifacts per run, so one run equals one reproducible fact.
 
 ### Packaging and deployment: containers
 
@@ -410,7 +409,6 @@ Around the container you need a way to be called. **FastAPI** and similar framew
 your model as an HTTP endpoint with typed request and response schemas, which is also a
 data contract with your callers. Then the questions become operational rather than
 statistical: latency budget, throughput, cost per prediction, and what happens under load.
-Week 12.
 
 ### Monitoring and operations
 
@@ -426,7 +424,7 @@ arrive.
 **MLOps** is the practice of automating that loop: continuous integration that tests data
 and models rather than only code, reproducible retraining, staged rollout so a bad model
 does not reach everyone at once, and the ability to roll back. Flu Trends is what this
-looks like when it is absent. Week 13.
+looks like when it is absent.
 
 ### Language models and agents
 
@@ -450,7 +448,7 @@ may call, it emits a structured request to call one, your code executes it and r
 result, and the loop repeats until the task is done. That is the whole idea; the
 frameworks are conveniences around it. For engineering work the interesting version is
 agents over your own tools, querying a database, running a simulation, or driving an
-instrument. Weeks 9 through 11.
+instrument.
 
 ### Security and responsibility
 
@@ -468,7 +466,7 @@ Beyond that sit the concerns that predate LLMs and still dominate in engineering
 who is allowed to see this data, what happens if the model is wrong in the direction that
 hurts, whether the training data licenses what you are doing with it, and whether the
 system's failure modes are documented well enough for someone to sign a safety case. MCAS
-is a reminder that these questions have answers with consequences. Weeks 12 and 13.
+is a reminder that these questions have answers with consequences.
 
 ## The standardized toolchain
 
@@ -476,18 +474,18 @@ We fix one toolchain across all of the above so class time goes to concepts rath
 tool selection. Each choice exists to prevent a specific failure, and it is worth naming
 the failure rather than the feature.
 
-| Layer | Tool | The failure it prevents | Week |
-|---|---|---|---|
-| Environments | Python + `uv` | rebuilds that are merely probable | 1 |
-| Storage | PostgreSQL, DuckDB, Parquet | CSV sprawl, silent truncation | 2 |
-| Dataframes | pandas, Polars | out-of-memory, unreadable transforms | 3 |
-| Validation | pandera | bad data passing silently | 4 |
-| Tracking | MLflow | results nobody can attribute | 5 |
-| Deep learning | PyTorch | hand-derived gradients | 6 |
-| Retrieval | a vector store | answers ungrounded in your corpus | 10 |
-| Serving | FastAPI, Docker | "works on my machine" | 12 |
+| Layer | Tool | The failure it prevents |
+|---|---|---|
+| Environments | Python + `uv` | rebuilds that are merely probable |
+| Storage | PostgreSQL, DuckDB, Parquet | CSV sprawl, silent truncation |
+| Dataframes | pandas, Polars | out-of-memory, unreadable transforms |
+| Validation | pandera | bad data passing silently |
+| Tracking | MLflow | results nobody can attribute |
+| Deep learning | PyTorch | hand-derived gradients |
+| Retrieval | a vector store | answers ungrounded in your corpus |
+| Serving | FastAPI, Docker | "works on my machine" |
 
-The LLM and agent material in Weeks 9 through 11 is deliberately framework-agnostic and
+The LLM and agent material is deliberately framework-agnostic and
 provider-agnostic. That part of the ecosystem turns over faster than a semester, so the
 course teaches the interfaces and the evaluation discipline rather than a specific vendor's
 abstractions.
@@ -527,9 +525,7 @@ because nobody was watching it against a baseline. MCAS treated one uncorroborat
 as ground truth, and the safety analysis had modeled a different failure than the one the
 design was exposed to. Engineering data sharpens all of this by adding units, calibration,
 drift, and traceability. The toolchain we standardize on is not arbitrary; each piece
-answers a specific way that undisciplined work falls apart. Next session we build the
-reproducible scaffold for real, from an empty directory to a tracked, rerunnable
-experiment.
+answers a specific way that undisciplined work falls apart.
 
 ## Resources
 
@@ -540,7 +536,7 @@ experiment.
 - [Excel: Why using Microsoft's tool caused Covid-19 results to be lost](https://www.bbc.co.uk/news/technology-54423988). BBC, for the technical mechanism. The clearest published account of how the truncation actually happened.
 - [The Design, Development & Certification of the Boeing 737 MAX](https://www.govinfo.gov/content/pkg/GOVPUB-Y4_T68_2-PURL-gpo144993/pdf/GOVPUB-Y4_T68_2-PURL-gpo144993.pdf). US House Committee on Transportation and Infrastructure, September 2020. Long; the single-sensor discussion is around p. 106.
 - [UCI Air Quality Data Set](https://archive.ics.uci.edu/dataset/360/air+quality). dataset description and citation. Read the note on cross-sensitivities and drift before Thursday.
-- [uv documentation, Getting started](https://docs.astral.sh/uv/getting-started/). Install it before Lecture 2, because we build live.
+- [uv documentation, Getting started](https://docs.astral.sh/uv/getting-started/). Install it before class, because we build live.
 - [The Turing Way, Reproducible Research](https://book.the-turing-way.org/reproducible-research/reproducible-research). The broader case, if the motivation section left you unconvinced.
 
 ### For the tour of the stack
@@ -548,7 +544,7 @@ experiment.
 None of these are required reading. They are the place to start on any layer that sounded
 unfamiliar, and each is the source I would send a colleague to first.
 
-- [DuckDB documentation](https://duckdb.org/docs/stable/index). Start here if the storage section was new. Reading Parquet with SQL and no server is a ten-minute experiment worth doing before Week 2.
+- [DuckDB documentation](https://duckdb.org/docs/stable/index). Start here if the storage section was new. Reading Parquet with SQL and no server is a ten-minute experiment worth doing.
 - [Apache Parquet file format](https://parquet.apache.org/docs/file-format/). Why columnar layout changes what is cheap to read.
 - [pandera](https://pandera.readthedocs.io/en/stable/). Executable data contracts. The quickest way to see the point of the validation argument.
 - [PyTorch, A Gentle Introduction to torch.autograd](https://docs.pytorch.org/tutorials/beginner/blitz/autograd_tutorial.html). What automatic differentiation is actually doing.
@@ -560,7 +556,7 @@ unfamiliar, and each is the source I would send a colleague to first.
 
 ## Assignment
 
-Assignment 1, the reproducible project scaffold, is released at Lecture 2 and due the
-following week, at Lecture 3 (08-31-2026). It asks you to stand up a `uv`-managed,
+Assignment 1, the reproducible project scaffold, is released this week and due
+08-31-2026. It asks you to stand up a `uv`-managed,
 git-tracked project that pulls an engineering dataset and converts an exploratory notebook
 into a runnable module. This is a pointer, not the rubric.

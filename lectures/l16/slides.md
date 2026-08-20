@@ -153,7 +153,7 @@ to corrupt a batch. Two better routes, both hand the model a schema:
 - **tool / function calling**: a tool with a typed `input_schema`
 
 Close cousins: both send a schema, both return a payload shaped to it.
-Tool calling is older, universal, and reused for agents later.
+Tool calling is older, universal, and reused for agents.
 
 ---
 
@@ -346,7 +346,7 @@ Schema-valid is not correct; low temperature is not determinism.
 - **provider drift**: model IDs, limits, prices, even these structured-output params change
 - **no answer in the prompt?** no schema conjures it, and stuffing context invites lost-in-the-middle
 
-The fix for the last one is retrieval, next session.
+The fix for the last one is retrieval.
 
 ---
 
@@ -388,6 +388,5 @@ Datasheets to a validated parts table. Runs offline; real API with a key.
 
 **Reading** Liu et al., "Lost in the Middle", and your provider's structured-output guide
 **Assignment 8**, the structured extractor, due about a week out
-**Next session** Lecture 17, retrieval-augmented generation: when the answer is not in the prompt
 
 Notes for this lecture: `lectures/l16/notes.md`

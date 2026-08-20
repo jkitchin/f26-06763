@@ -103,7 +103,7 @@ The line worth reading twice is `harness_execute`. The model never touches your 
 filesystem, or your surrogate model directly. It only ever emits a request to do so, structured
 as data, and every consequence of that request passes through code you wrote and can inspect,
 log, rate-limit, or refuse. That boundary, between what the model *asks for* and what your
-code *does*, is where every guardrail in Lecture 20 attaches, and it is also exactly the boundary the
+code *does*, is where every guardrail attaches, and it is also exactly the boundary the
 Replit incident's fix targets: making the default on the "does" side of that line read-only.
 
 ## Designing tools an LLM can use correctly
@@ -237,7 +237,7 @@ whether a real model will decide well.** This session deliberately shows you a h
 correct against a model that cannot actually reason, because that is the part you can fully
 verify without a live API call. The much harder, unresolved question, does a real model choose
 the right tool, with the right arguments, at the right time, is untested by anything in this
-notebook, and it is the question Assignment 10 and Lecture 20's evaluation section actually measure.
+notebook, and it is the question Assignment 10 actually measures.
 
 **Low temperature makes determinism more likely. It does not guarantee it.** A model's tool
 choices become more consistent, not identical, and a model update on the provider's side can
@@ -249,9 +249,9 @@ version as tightly as your provider allows.
 **Limiting a loop is not the same as making it safe.** A step budget, a cost cap, and loop
 detection stop an agent from running forever or repeating a failure indefinitely, and none
 of them stop it from doing something genuinely harmful within those bounds, three tool calls is
-plenty to delete something if the tool it calls can delete something. That is why Lecture 20's
-guardrails, read-only data access, output validation, and a human approval gate before any
-consequential action, belong to a later stage of the story: the part this session's harness has
+plenty to delete something if the tool it calls can delete something. That is why guardrails,
+read-only data access, output validation, and a human approval gate before any
+consequential action, are a separate stage this session's harness has
 not yet built.
 
 :::{admonition} What a practitioner should take from this
@@ -292,10 +292,7 @@ decides what actually happens. Tool descriptions are prompts and deserve prompt-
 typed schemas and informative errors are what let a model recover from its own mistakes instead
 of crashing the loop; and a step budget, a cost cap, and loop detection are what stand between an
 agent that fails small and one that fails the way Replit's did. None of that requires a real
-model to build or test, which is exactly why this session's demo does not use one. Next session
-keeps this same harness and asks the two questions it cannot yet answer: when does an agent
-actually need more than one of itself, and what stops it from doing something it should not,
-even when it decides well.
+model to build or test, which is exactly why this session's demo does not use one.
 
 ## Resources
 
@@ -320,6 +317,6 @@ even when it decides well.
 Assignment 10, "Build a tool-using engineering agent," is released this session and due roughly one week
 later. It asks you to hand-build (or, if you can explain the loop underneath, adopt a framework
 for) an agent that queries real engineering data and calls a surrogate model as tools, bound the
-loop with a step and cost budget, and evaluate it on a fixed task suite, before Lecture 20 adds
-guardrails and multi-agent orchestration on top. **Your final-project proposal is also due this
-week**; a well-scoped Assignment 10 is a strong seed for it. This is a pointer, not the rubric.
+loop with a step and cost budget, and evaluate it on a fixed task suite. **Your final-project
+proposal is also due this week**; a well-scoped Assignment 10 is a strong seed for it. This is a
+pointer, not the rubric.

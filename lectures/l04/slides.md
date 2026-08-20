@@ -370,7 +370,7 @@ They interoperate. The choice is rarely exclusive.
 
 ---
 
-## The wider landscape, vector stores (a preview)
+## The wider landscape, vector stores
 
 <div class="definition">
 
@@ -378,7 +378,7 @@ They interoperate. The choice is rarely exclusive.
 
 </div>
 
-The machinery under **RAG**, later in the course. Name it now; do not build one yet.
+The machinery under **RAG**. Named here so the landscape is complete.
 
 [FAISS](https://github.com/facebookresearch/faiss/wiki)
 
@@ -457,6 +457,5 @@ Intel Lab data → Parquet → the same query in pandas, a SQLite row store, and
 
 **Assignment 2** (from Lecture 3): its Parquet + DuckDB half is now unblocked
 **Reading** DuckDB Parquet docs; Kleppmann ch. 3
-**Lecture 5** Up a layer: dataframes and scalable processing with pandas and Polars, and batch pipelines
 
 Full notes, with all sources: `lectures/l04/notes.md`

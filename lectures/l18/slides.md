@@ -342,6 +342,5 @@ Fine-tuning is discussed, not trained: that is the optional GPU lab.
 
 **Reading** Ovadia et al. (fine-tuning vs retrieval); Hu et al. (LoRA)
 **Assignment 9**, the RAG system, due about a week out
-**Next session** Lecture 19, agent fundamentals: tool use and planning loops
 
 Notes for this lecture: `lectures/l18/notes.md`

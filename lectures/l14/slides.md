@@ -407,6 +407,5 @@ Two moments: the **sign check** on EI, and how wide the **seed bands** are.
 
 **Reading** Frazier's tutorial and the Shahriari review, linked in the notes
 **Assignment** the miniproject (Assignment 7) is under way, due Week 8
-**Next session** Lecture 15, foundation models and LLMs at a systems level
 
 Notes for this lecture: `lectures/l14/notes.md`
