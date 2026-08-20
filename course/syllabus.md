@@ -1,7 +1,7 @@
 # Systems and Toolchains for AI Engineers
 
 **Program:** MS, AI in Engineering
-**Units / Format:** 12 units · 2 sessions/week,  in-person, hands-on
+**Units / Format:** 12 units, 2 sessions/week, in-person, hands-on
 **Prerequisites:** Basic programming skill (Python preferred). No prior ML required; a Week-0/Week-1 Python + numerical-computing refresher is provided.
 
 ## Class 
@@ -52,8 +52,8 @@ The course is balanced across three pillars:
 3. **LLM & agentic engineering:** foundation models, retrieval, adaptation, and building
    evaluated, tool-using agents.
 
-A production-and-responsibility arc ties them together: evaluation, deployment, MLOps,
-monitoring, and responsible AI for engineering decisions.
+Running through all three is a focus on production and responsibility: evaluation,
+deployment, MLOps, monitoring, and responsible AI for engineering decisions.
 
 ## Learning Objectives
 
@@ -83,7 +83,7 @@ are named where relevant so skills transfer.
 - **Language & environments:** Python, managed with **uv** (reproducible, lockfile-based).
 - **Deep learning:** **PyTorch, jax**.
 - **Experiment tracking:** **MLflow**.
-- **Data:** PostgreSQL, DuckDB/Parquet, pandas/Polars; a vector store for the LLM arc.
+- **Data:** PostgreSQL, DuckDB/Parquet, pandas/Polars; a vector store for the LLM work.
 - **LLM / agentic:** framework- and provider-**agnostic**. Students may
   choose their agent framework. Concepts are taught so they transfer across providers.
 
@@ -92,7 +92,7 @@ are named where relevant so skills transfer.
 | Component                            | Weight | 
 |--------------------------------------|--------|
 | Module assignments                   | 25%    |
-| Miniproject                          | 20%    |
+| Mini-project                         | 20%    |
 | Final project (open, student-chosen) | 40%    |
 | Participation & quizzes              | 15%    |
 
@@ -102,9 +102,9 @@ There is **no proctored final exam**; assessment is project- and portfolio-based
 - **Assignments:** one focused assignment per module, each reinforcing that
   week's tools. Submitted via Canvas. Typically due one week after
   release. Assignments use **per-module datasets** chosen to fit the topic.
-- **Miniproject:**  Integrates the data → train →
-  evaluate arc into a **surrogate/predictive model on an engineering dataset**, with a
-  short report and a code walkthrough.
+- **Mini-project:** takes an engineering dataset through the full workflow of acquiring
+  data, training a model, and evaluating it, ending in a **surrogate or predictive model**
+  with a short report and a code walkthrough.
 - **Final project:** **student-chosen**. Must
   integrate back-half topics: an **LLM/agentic system** with real **evaluation and
   deployment**. Deliverables: proposal, build (repo), recorded demo, and in-class

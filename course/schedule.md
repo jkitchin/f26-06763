@@ -1,68 +1,46 @@
-# Course Schedule — Systems and Toolchains for AI Engineers
+# Course schedule
 
-14 weeks · 2 sessions/week (28 sessions total): 26 numbered lectures (L1–L26) plus a
-dedicated **mini-project week** (Week 8, sessions MP-1/MP-2). Assignment release/due dates
-assume a release-then-due-one-week-later cadence; adjust to the academic calendar per
-offering.
+Every session for the semester, with the assignment released or due that week. Dates are
+month-day-year and follow the Fall 2026 calendar; they may shift as the semester runs.
 
-:::{admonition} The whole course as one PDF
-:class: tip
+The whole course is also available as a single PDF, linked from the [home page](../index.md).
 
-<a href="../course.pdf"><strong>Download course.pdf</strong></a>: the syllabus, this
-schedule, every set of lecture notes, every demo notebook, the assignments, and the
-optional material, in one searchable document with page numbers. Rebuilt on every change
-to the site.
-:::
-
-| Session                     | Topic                                                                                                     | Deliverables                                               |
-|-----------------------------|-----------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
-| L1  [2026-08-24 Mon]        | AI engineering landscape & the system view; the modern toolchain                                          | **A1 released**                                            |
-| L2  [2026-08-26 Wed]        | Reproducible environments (uv), version control for code/data/models, notebooks→scripts→packages          |                                                            |
-| L3  [2026-08-31 Mon]        | Relational data & PostgreSQL for engineering/time-series data; SQL essentials                             | A1 due · **A2 released**                                   |
-| L4  [2026-09-02 Wed]        | Beyond relational: document/NoSQL, columnar/Parquet, DuckDB; vector-store preview                         |                                                            |
-| [2026-09-07 Mon]            | LABOR DAY                                                                                                 |                                                            |
-| L5  [2026-09-09 Wed]        | Dataframes & scalable processing (pandas/Polars); batch pipelines; distributed concepts (Spark/Dask demo) | A2 due · **A3 released**                                   |
-| L6  [2026-09-14 Mon]        | Streaming concepts for sensor data; data validation (pandera/Great Expectations)                          |                                                            |
-| L7  [2026-09-16 Wed]        | Features for time-series/physical data; transforms, scaling, leakage                                      | A3 due · **A4 released**                                   |
-| L8  [2026-09-21 Mon]        | Data quality, versioning, splits; data-centric iteration                                                  |                                                            |
-| L9  [2026-09-23 Wed]        | ML workflow: train/validate/select, cross-validation, metrics, strong baselines                           | A4 due · **A5 released**                                   |
-| L10 [2026-09-28 Mon]        | Experiment tracking (MLflow) + hyperparameter search                                                      |                                                            |
-| L11 [2026-09-30 Wed]        | Deep learning with PyTorch: tensors, autodiff, training loops, GPUs                                       | A5 due · **A6 released**                                   |
-| L12 [2026-10-05 Mon]        | Architectures for engineering data (MLP, CNN for fields/images, sequence models)                          |                                                            |
-| L13 [2026-10-07 Wed]        | Applied engineering ML: surrogate modeling, physics-informed/constrained models, UQ                       | A6 due · **Miniproject launched (A7)**                     |
-| [2026-10-12 Mon]            | FALL BREAK                                                                                                |                                                            |
-| [2026-10-14 Wed]            | FALL BREAK                                                                                                |                                                            |
-| L14 [2026-10-19 Mon]        | Bayesian optimization & active learning for design                                                        |                                                            |
-| MP-1 [2026-10-21 Wed]       | **Mini-project day 1**                                                                                    |                                                            |
-| MP-2 [2026-10-26 Mon]       | **Mini-project day 2**                                                                                    | **Miniproject due (end of week)**                          |
-| L15  [2026-10-28 Wed]       | Foundation models & LLMs at a systems level: architecture, tokenization, embeddings                       | **A8 released**                                            |
-| L16  [2026-11-02 Mon]       | API / prompt / structured-output interface; context, cost, latency; prompting                             |                                                            |
-| L17  [2026-11-04 Wed]       | Retrieval-augmented generation & vector databases (chunking, retrieval, grounding, retrieval eval)        | A8 due · **A9 released**                                   |
-| L18  [2026-11-09 Mon] AICHE | Adaptation: prompting vs RAG vs fine-tuning; choosing the right lever                                           |                                                            |
-| L19  [2026-11-11 Wed] AICHE | Agent fundamentals: tool use, function calling, planning/execution loops                                  | A9 due · **A10 released** · **Final-project proposal due** |
-| L20  [2026-11-16 Mon]       | Multi-agent orchestration, frameworks, guardrails; agents over engineering tools/data                     |                                                            |
-| L21  [2026-11-18 Wed]       | Evaluating ML & LLM/agent systems: eval harnesses, LLM-as-judge, tracing/observability                    | A10 due · **A11 released**                                 |
-| L22   [2026-11-23 Mon]      | Deployment: FastAPI, Docker, cloud serving, latency/cost                                                  |                                                            |
-| [2026-11-25 Wed]            | THANKSGIVING                                                                                              |                                                            |
-| L23  [2026-11-30 Mon]       | MLOps: CI/CD for ML, drift/regression monitoring, cost; safety, failure modes, responsible AI             | A11 due                                                    |
-|                          | **Final project presentations — Day 1**                                                                   |                                                            |
-|                          | **Final project presentations — Day 2 + course wrap**                                                     | **Final project due**                                      |
+| Session | Topic | Deliverables |
+|---------|-------|--------------|
+| Lecture 1: 08-24-2026 (Monday) | The AI-engineering landscape and the course toolchain | **Assignment 1 released** |
+| Lecture 2: 08-26-2026 (Wednesday) | Reproducible environments and version control | |
+| Lecture 3: 08-31-2026 (Monday) | Relational databases and SQL for engineering data | Assignment 1 due, **Assignment 2 released** |
+| Lecture 4: 09-02-2026 (Wednesday) | Columnar storage and the wider data landscape | |
+| 09-07-2026 (Monday) | Labor Day, no class | |
+| Lecture 5: 09-09-2026 (Wednesday) | Dataframes and scalable data processing | Assignment 2 due, **Assignment 3 released** |
+| Lecture 6: 09-14-2026 (Monday) | Streaming data and data validation | |
+| Lecture 7: 09-16-2026 (Wednesday) | Features for time-series and physical data | Assignment 3 due, **Assignment 4 released** |
+| Lecture 8: 09-21-2026 (Monday) | Data quality, versioning, and leakage-free splits | |
+| Lecture 9: 09-23-2026 (Wednesday) | The ML workflow: baselines, validation, and metrics | Assignment 4 due, **Assignment 5 released** |
+| Lecture 10: 09-28-2026 (Monday) | Experiment tracking and hyperparameter search | |
+| Lecture 11: 09-30-2026 (Wednesday) | Deep learning with PyTorch | Assignment 5 due, **Assignment 6 released** |
+| Lecture 12: 10-05-2026 (Monday) | Neural architectures for engineering data | |
+| Lecture 13: 10-07-2026 (Wednesday) | Surrogates, physics-informed models, and uncertainty | Assignment 6 due, **Mini-project launched** |
+| 10-12-2026 (Monday) | Fall break, no class | |
+| 10-14-2026 (Wednesday) | Fall break, no class | |
+| Lecture 14: 10-19-2026 (Monday) | Bayesian optimization and active learning | |
+| Mini-project day 1: 10-21-2026 (Wednesday) | Mini-project build | |
+| Mini-project day 2: 10-26-2026 (Monday) | Mini-project demos | **Mini-project due (end of week)** |
+| Lecture 15: 10-28-2026 (Wednesday) | Foundation models and LLMs at a systems level | **Assignment 8 released** |
+| Lecture 16: 11-02-2026 (Monday) | Working with the LLM API: prompting and structured output | |
+| Lecture 17: 11-04-2026 (Wednesday) | Retrieval-augmented generation and vector databases | Assignment 8 due, **Assignment 9 released** |
+| Lecture 18: 11-09-2026 (Monday, AIChE) | Prompting, RAG, or fine-tuning: choosing the right lever | |
+| Lecture 19: 11-11-2026 (Wednesday, AIChE) | Agent fundamentals: tools and planning loops | Assignment 9 due, **Assignment 10 released**, **Final-project proposal due** |
+| Lecture 20: 11-16-2026 (Monday) | Multi-agent systems, orchestration, and guardrails | |
+| Lecture 21: 11-18-2026 (Wednesday) | Evaluating and observing ML and LLM systems | Assignment 10 due, **Assignment 11 released** |
+| Lecture 22: 11-23-2026 (Monday) | Deployment: serving, containers, latency, and cost | |
+| 11-25-2026 (Wednesday) | Thanksgiving, no class | |
+| Lecture 23: 11-30-2026 (Monday) | MLOps and responsible AI | Assignment 11 due |
+| Final presentations, day 1 (Week 14) | Student project presentations | |
+| Final presentations, day 2 (Week 14) | Student project presentations and course wrap | **Final project due** |
 
 ## Assessment map
 
-- **A1–A11**: one assignment per teaching module (Weeks 1–13; the Week-8 mini-project week
-  and Week-14 presentation week carry no separate weekly assignment). **A7 is the
-  miniproject.**
-- **Miniproject**: launched Wk 7 (L13) → dedicated **Week 8** (MP-1 build + MP-2 demos) →
-  **due end of Week 8**.
-- **Final project**: proposal due Wk 11 → build/evaluate/deploy Wks 12–13 → **presented &
-  due Week 14** (L25–L26).
-
-## Pillar balance (design check)
-
-- **Data infrastructure & engineering:** Wks 1–4 (~4 wks)
-- **ML / DL / applied engineering ML:** Wks 5–7 (~3 wks)
-- **Mini-project week (integrative checkpoint):** Wk 8
-- **LLM & agentic engineering:** Wks 9–11 (~3 wks)
-- **Production & responsibility:** Wks 12–13 (~2 wks)
-- **Final presentations:** Wk 14
+- **Weekly assignments:** one per teaching module, released one week and due the next. In the mini-project week the mini-project takes the place of the weekly assignment.
+- **Mini-project:** launched in Week 7 and carried through the dedicated mini-project week (Week 8), where it is due.
+- **Final project:** proposed in Week 11, built through Weeks 12 and 13, and presented and due in Week 14.
