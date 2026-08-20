@@ -287,9 +287,13 @@ async function main() {
     // as "no element matching section h2" rather than as anything about the map.
     const world = JSON.parse(
       readFileSync(fileURLToPath(new URL('../src/map/world.json', import.meta.url)), 'utf8'),
-    ) as { spawn: { x: number; y: number }; rooms: { id: string; x: number; y: number }[] }
-    const target = world.rooms.find((r) => r.id === 'l03')
-    if (!target) throw new Error('l03 is not on the map')
+    ) as { spawn: { x: number; y: number };
+           rooms: { id: string; x: number; y: number; written: boolean }[] }
+    // Walk to a released (open) room and confirm its panel shows what it covers.
+    // Target the last released room so this holds as the course releases weekly.
+    const released = world.rooms.filter((r) => r.written)
+    const target = released[released.length - 1]
+    if (!target) throw new Error('no released rooms on the map')
     const vert: KeyInput = target.y < world.spawn.y ? 'ArrowUp' : 'ArrowDown'
     const horiz: KeyInput = target.x < world.spawn.x ? 'ArrowLeft' : 'ArrowRight'
     const walk: KeyInput[] = [

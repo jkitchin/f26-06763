@@ -25,21 +25,6 @@ collected in the {ref}`general index <genindex>`, with each term linked to the s
 introduces it. When you remember the idea but not which session covered it, start there
 rather than with search.
 
-:::{admonition} The whole course as two PDFs
-:class: tip
-
-<a href="course.pdf"><strong>Download course.pdf</strong></a>: the syllabus, the schedule,
-every set of notes, every demo notebook, the assignments, and the optional material, in one
-searchable file with numbered sections, figures, and pages.
-
-<a href="slides.pdf"><strong>Download slides.pdf</strong></a>: every deck of the semester in
-session order, one bookmark per session.
-
-Both are rebuilt on every change to this site. Useful for reading offline, for annotating,
-and for searching the whole semester at once. The decks are also published as live HTML,
-linked from the top of each set of notes.
-:::
-
 :::{admonition} Practice modules
 :class: tip
 

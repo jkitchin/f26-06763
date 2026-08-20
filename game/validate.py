@@ -124,9 +124,14 @@ def toc_files() -> set[str]:
 
 
 def toc_lectures() -> list[str]:
-    """Lecture ids published in _toc.yml, in course order."""
+    """Lecture ids published in _toc.yml, in course order.
+
+    Only real, uncommented `- file:` entries count, so a lecture commented out of
+    _toc.yml for weekly release reads as unpublished (matches tools/world.py).
+    """
     raw = (REPO / "_toc.yml").read_text(encoding="utf-8")
-    return [m.group(1) for m in re.finditer(r"lectures/(l\d\d)/notes", raw)]
+    return [m.group(1) for m in
+            re.finditer(r"^\s*-\s*file:\s*lectures/(l\d\d)/notes", raw, re.M)]
 
 
 # --- sections --------------------------------------------------------------

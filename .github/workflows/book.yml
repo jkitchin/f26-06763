@@ -277,33 +277,7 @@ jobs:
         # Pinned to 1.x. Jupyter Book 2 (MyST) derives page URLs from the file
         # basename, so every lectures/*/notes.md would collapse onto a single
         # /notes URL, silently. 1.x mirrors the directory structure instead.
-        run: pip install "jupyter-book<2" pypdf
-
-      - name: Install TeX for the PDF build
-        # xelatex, not pdflatex: the sources carry non-ASCII engineering
-        # notation (arrows, box drawing, Greek, superscripts, the micro sign)
-        # that pdflatex will not set without a declaration per character.
-        # fonts-freefont-otf supplies FreeSerif/FreeSans/FreeMono, which is what
-        # Sphinx's xelatex configuration asks for and where the glyph coverage
-        # comes from.
-        #
-        # The document loads 61 CTAN bundles, and the two -extra packages are
-        # not optional padding. They were derived from course.fls after a local
-        # build, then each uncertain file was looked up in the Ubuntu package
-        # index rather than guessed:
-        #   texlive-fonts-extra  bbm.sty (loaded transitively; the first CI
-        #                        failure was "File `bbm.sty' not found"),
-        #                        fontawesome5.sty
-        #   texlive-pictures     pict2e.sty, ellipse.sty
-        # A local TeX Live install is usually far more complete than this, so a
-        # PDF that builds on a laptop does not prove the CI package set. Check
-        # course.fls, not your own machine.
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends \
-            texlive-xetex texlive-latex-recommended texlive-latex-extra \
-            texlive-fonts-recommended texlive-fonts-extra texlive-pictures \
-            fonts-freefont-otf latexmk
+        run: pip install "jupyter-book<2"
 
       - name: Build the book
         run: jupyter-book build . --warningiserror --keep-going
@@ -353,70 +327,26 @@ jobs:
           print(f"OK: genindex.html carries {anchors} indexed targets")
           PY
 
-      - name: Build the course PDF
-        # The whole course as one document. Config lives under `latex:` in
-        # _config.yml. This is deliberately not restricted to main: a PDF that
-        # only breaks after merge is exactly the silent failure the rest of this
-        # workflow exists to prevent.
-        run: |
-          jupyter-book build . --builder pdflatex
-          # The index at the end of the PDF is typeset by makeindex under
-          # latexmk, and nothing in that chain fails loudly: skip it and
-          # \printindex simply emits nothing, leaving a blank Index page. The
-          # .ind file is the evidence the chain ran. makeindex comes from
-          # texlive-binaries, which latexmk depends on, and _config.yml sets
-          # latex_use_xindy: false so that is the binary latexmkrc asks for.
-          test -s _build/latex/course.ind || {
-            echo "::error::makeindex produced no course.ind, so the PDF's Index is empty"
-            echo "Index processor configured in _build/latex/latexmkrc:"
-            grep makeindex _build/latex/latexmkrc || true
-            command -v makeindex || echo "makeindex is not installed"
-            exit 1
-          }
-          cp _build/latex/course.pdf _build/html/course.pdf
-
-      - name: Check the PDF is a whole course and not a stub
-        # A LaTeX run can succeed and still produce something truncated, so
-        # check the artifact rather than the exit code: it has to be book-sized
-        # and it has to contain text from both ends of the semester.
-        run: |
-          python - <<'PY'
-          import sys
-          from pypdf import PdfReader
-
-          reader = PdfReader("_build/html/course.pdf")
-          pages = len(reader.pages)
-          text = "\n".join((p.extract_text() or "") for p in reader.pages)
-
-          problems = []
-          if pages < 200:
-              problems.append(f"only {pages} pages; expected a whole course")
-          for probe, label in [
-              ("tiny in proportion", "L1"),
-              ("retrieval", "L17"),
-              ("Grading", "the syllabus"),
-              ("→", "non-ASCII typography (font coverage)"),
-          ]:
-              if probe not in text:
-                  problems.append(f"no text from {label} (probe {probe!r})")
-
-          if problems:
-              for p in problems:
-                  print(f"::error::course.pdf {p}")
-              sys.exit(1)
-          print(f"OK: course.pdf is {pages} pages, {len(text.split()):,} words")
-          PY
-
       - name: Render MARP slide decks
         # Each deck renders into its OWN directory as index.html, and that
         # lecture's figures/ are copied in beside it. MARP does not inline local
         # images, it emits <img src="figures/x.png">, so the relative path has to
         # resolve identically whether the deck is opened from lectures/lNN/ during
         # authoring or served from /slides/lNN/ in production.
+        #
+        # Only decks whose lecture is RELEASED in _toc.yml are rendered, so the
+        # course ships one week at a time: a lecture commented out of _toc.yml
+        # keeps its slides off the public site, matching its notes. Same lever
+        # tools/world.py and game/validate.py read.
         run: |
           shopt -s nullglob
+          released=$(grep -oE '^[[:space:]]*-[[:space:]]*file:[[:space:]]*lectures/l[0-9][0-9]/notes' _toc.yml | grep -oE 'l[0-9][0-9]')
           for deck in lectures/*/slides.md; do
             id=$(basename "$(dirname "$deck")")
+            if ! grep -qx "$id" <<< "$released"; then
+              echo "Skipping $id: not released in _toc.yml"
+              continue
+            fi
             out="_build/html/slides/$id"
             mkdir -p "$out"
             echo "Rendering $deck -> slides/$id/"
@@ -445,160 +375,6 @@ jobs:
           done
           exit $fail
 
-      - name: Build slides.pdf, every deck as one document
-        # The companion to course.pdf: the notes are one PDF, the decks are the
-        # other, both at the site root.
-        #
-        # Two things about this are easy to get wrong. MARP's PDF export goes
-        # through headless Chrome (there is no other path), so a browser has to
-        # exist; the runner image ships google-chrome-stable, and the fallback
-        # fetches Chrome for Testing rather than apt chromium, which on Ubuntu 24
-        # is a snap wrapper that will not run here. And --allow-local-files is
-        # required or every figures/*.png is dropped from the PDF. The HTML
-        # export needs no such flag, so this fails silently and only in the PDF.
-        run: |
-          set -euo pipefail
-          CHROME_PATH="$(command -v google-chrome-stable || command -v google-chrome \
-                         || command -v chromium || command -v chromium-browser || true)"
-          if [ -z "$CHROME_PATH" ]; then
-            echo "No system Chrome on the runner; fetching Chrome for Testing"
-            CHROME_PATH="$(npx -y puppeteer@latest browsers install chrome | awk '{print $NF}')"
-          fi
-          export CHROME_PATH
-          echo "Rendering deck PDFs with $CHROME_PATH"
-
-          mkdir -p _build/slides-pdf
-          shopt -s nullglob
-          for deck in lectures/*/slides.md; do
-            id=$(basename "$(dirname "$deck")")
-            npx -y @marp-team/marp-cli@latest "$deck" \
-              --pdf \
-              --allow-local-files \
-              -o "_build/slides-pdf/$id.pdf"
-          done
-
-          python - <<'PY'
-          from pathlib import Path
-
-          from pypdf import PdfReader, PdfWriter
-
-
-          def session_order(deck_id):
-              # Lecture number, then the Week 8 mini-project sessions, which sit
-              # between L14 and L15 in course/schedule.md and would otherwise sort
-              # to the end of the document on their filename.
-              if deck_id.startswith("mp"):
-                  return (14, int(deck_id[2:]))
-              return (int(deck_id[1:]), 0)
-
-
-          def deck_title(deck_id):
-              for line in Path(f"lectures/{deck_id}/slides.md").read_text().splitlines():
-                  if line.startswith("# "):
-                      return line[2:].strip()
-              return deck_id.upper()
-
-
-          decks = sorted((p.parent.name for p in Path("lectures").glob("*/slides.md")),
-                         key=session_order)
-
-          writer = PdfWriter()
-          for deck_id in decks:
-              source = f"_build/slides-pdf/{deck_id}.pdf"
-              title = deck_title(deck_id)
-              # One bookmark per session, so the merged document is navigable
-              # rather than several hundred undifferentiated pages.
-              writer.append(source, outline_item=title)
-              print(f"{deck_id}: {len(PdfReader(source).pages)} slides, {title}")
-
-          writer.write("_build/html/slides.pdf")
-          print(f"slides.pdf: {len(decks)} decks, {len(PdfReader('_build/html/slides.pdf').pages)} pages")
-          PY
-
-      - name: Check slides.pdf is every deck, whole, with its figures
-        # Same reasoning as the course.pdf check: a Chrome run can succeed and
-        # still emit something truncated or picture-free. Three invariants, each
-        # of which has a real failure behind it:
-        #   pages       one page per slide, so a deck that rendered short is caught
-        #   title text  the deck is present and its text is text, not a bitmap
-        #   images      the figures survived, which is what --allow-local-files buys
-        run: |
-          python - <<'PY'
-          import re
-          import sys
-          from pathlib import Path
-
-          from pypdf import PdfReader
-
-
-          def expected_slides(source):
-              # MARP breaks a deck on a thematic-break `---`. Skip the YAML
-              # frontmatter, ignore anything inside a code fence, and require the
-              # preceding line to be blank, which is what separates a page break
-              # from a setext heading underline.
-              lines = source.split("\n")
-              start = 0
-              if lines and lines[0].strip() == "---":
-                  start = 1
-                  while start < len(lines) and lines[start].strip() != "---":
-                      start += 1
-                  start += 1
-              breaks, fenced, prev_blank = 0, False, True
-              for line in lines[start:]:
-                  stripped = line.strip()
-                  if stripped.startswith("```"):
-                      fenced = not fenced
-                  elif not fenced and stripped == "---" and prev_blank:
-                      breaks += 1
-                  prev_blank = stripped == ""
-              return breaks + 1
-
-
-          def squashed(text):
-              # A long title slide wraps, so the extracted text carries a newline
-              # the markdown does not (L17 is the one that does it today).
-              # Comparing without whitespace at all sidesteps that.
-              return "".join(text.split())
-
-
-          problems = []
-          merged = PdfReader("_build/html/slides.pdf")
-          merged_text = squashed("\n".join((p.extract_text() or "") for p in merged.pages))
-          bookmarks = {o.title for o in merged.outline if hasattr(o, "title")}
-
-          total = 0
-          for deck in sorted(Path("lectures").glob("*/slides.md")):
-              deck_id = deck.parent.name
-              source = deck.read_text()
-              rendered = PdfReader(f"_build/slides-pdf/{deck_id}.pdf")
-              pages, wanted = len(rendered.pages), expected_slides(source)
-              total += pages
-              if pages != wanted:
-                  problems.append(f"{deck_id}: {pages} pages rendered from {wanted} slides")
-
-              title = next((ln[2:].strip() for ln in source.splitlines()
-                            if ln.startswith("# ")), None)
-              if title and squashed(title) not in merged_text:
-                  problems.append(f"{deck_id}: no text from its title slide ({title!r})")
-              if title and title not in bookmarks:
-                  problems.append(f"{deck_id}: no bookmark ({title!r})")
-
-              figures = set(re.findall(r'figures/[^\s")\']+\.png', source))
-              embedded = sum(len(p.images) for p in rendered.pages)
-              if embedded < len(figures):
-                  problems.append(
-                      f"{deck_id}: {embedded} images in the PDF for {len(figures)} figures "
-                      "referenced (is --allow-local-files still set?)")
-
-          if len(merged.pages) != total:
-              problems.append(f"slides.pdf has {len(merged.pages)} pages, decks total {total}")
-
-          if problems:
-              for problem in problems:
-                  print(f"::error::slides.pdf {problem}")
-              sys.exit(1)
-          print(f"OK: slides.pdf is {len(merged.pages)} pages across {len(bookmarks)} decks")
-          PY
       - name: Build the practice game
         # Same pattern as the MARP step above: a non-Sphinx artifact built
         # separately and copied into the output tree before it is uploaded.
@@ -671,8 +447,6 @@ jobs:
       - name: Check the build produced something
         run: |
           test -f _build/html/index.html || { echo "::error::book build produced no index.html"; exit 1; }
-          test -f _build/html/course.pdf || { echo "::error::course.pdf did not reach the site"; exit 1; }
-          test -f _build/html/slides.pdf || { echo "::error::slides.pdf did not reach the site"; exit 1; }
           echo "Slide decks rendered:"
           ls -1 _build/html/slides/ 2>/dev/null || echo "  (none yet)"
 

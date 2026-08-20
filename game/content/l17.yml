@@ -2,7 +2,7 @@ schema: 1
 lecture: l17
 title: "Retrieval-augmented generation and vector databases"
 source_notes: lectures/l17/notes.md
-status: published
+status: unwritten
 serve: 5
 pool_version: 2
 provenance:

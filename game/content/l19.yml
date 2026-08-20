@@ -7,7 +7,7 @@ schema: 1
 lecture: l19
 title: "Agent fundamentals: tool use, function calling, planning loops"
 source_notes: lectures/l19/notes.md
-status: published
+status: unwritten
 # Ten items and a serve of 8 means two students share most of their draw, which
 # weakens the item-set half of the evidence design. Serving 6 until the bank
 # grows past 15. GROWTH TARGET: 15+ items.
