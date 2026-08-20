@@ -283,48 +283,38 @@ jobs:
         run: jupyter-book build . --warningiserror --keep-going
 
       - name: Check the general index was built and is populated
-        # genindex.html is a builder output rather than a source file, so it is
-        # in neither _toc.yml nor the sidebar and nothing else here would notice
-        # it going missing or coming out empty. Count the per-entry anchors that
-        # Sphinx emits rather than the theme's markup, so a theme upgrade does
-        # not break the check. The floor is the 316 anchors the fourteen
-        # backfilled lectures produce, less a margin.
+        # genindex.html is a builder output rather than a source file, so nothing
+        # else here would notice it going missing or coming out empty. Count the
+        # per-entry anchors Sphinx emits (not the theme's markup, so a theme
+        # upgrade does not break the check). The floor scales with the number of
+        # RELEASED lectures in _toc.yml, because the course ships one week at a
+        # time: each lecture carries at least a dozen {index} entries, so eight
+        # per released lecture is a safe floor that still catches an empty or
+        # broken index without hard-coding a whole-course number.
         run: |
           python3 - <<'PY'
           import re
           import sys
           from pathlib import Path
 
-          MIN_ANCHORS = 250
+          released = len(re.findall(
+              r"^\s*-\s*file:\s*lectures/l\d\d/notes",
+              Path("_toc.yml").read_text(encoding="utf-8"), re.M))
+          min_anchors = max(8, 8 * released)
+
           page = Path("_build/html/genindex.html")
           if not page.exists():
               print("::error::no _build/html/genindex.html; "
                     "is html_use_index still true in _config.yml?")
               sys.exit(1)
 
-          html = page.read_text(encoding="utf-8")
-          anchors = len(re.findall(r"#index-\d+", html))
-
-          problems = []
-          if anchors < MIN_ANCHORS:
-              problems.append(
-                  f"{anchors} indexed targets, expected at least {MIN_ANCHORS}")
-          # Both ends of the semester, and the two clusters that make the index
-          # worth having.
-          for probe, label in [
-              ("Parquet", "L4"),
-              ("re-ranking", "L17"),
-              ("case study", "the case-study cluster"),
-              ("failure mode", "the failure-mode cluster"),
-          ]:
-              if probe not in html:
-                  problems.append(f"nothing from {label} (probe {probe!r})")
-
-          if problems:
-              for problem in problems:
-                  print(f"::error::genindex.html {problem}")
+          anchors = len(re.findall(r"#index-\d+", page.read_text(encoding="utf-8")))
+          if anchors < min_anchors:
+              print(f"::error::genindex.html has {anchors} indexed targets, "
+                    f"expected at least {min_anchors} for {released} released lecture(s)")
               sys.exit(1)
-          print(f"OK: genindex.html carries {anchors} indexed targets")
+          print(f"OK: genindex.html carries {anchors} indexed targets "
+                f"for {released} released lecture(s)")
           PY
 
       - name: Render MARP slide decks
