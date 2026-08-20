@@ -2,15 +2,15 @@
 marp: true
 theme: course
 paginate: true
-header: "06-763 · L4"
+header: "06-763 / L4"
 footer: "Systems and Toolchains for AI Engineers"
 ---
 
 <!-- _class: title -->
 
-# L4 · Columnar storage, Parquet, DuckDB
+# Lecture 4: Columnar storage, Parquet, DuckDB
 
-## Week 2 · Data Systems
+## Week 2, Data Systems
 
 **Systems and Toolchains for AI Engineers**
 
@@ -38,7 +38,7 @@ footer: "Systems and Toolchains for AI Engineers"
 
 ## Why columns
 
-L3 left the Intel Lab readings in PostgreSQL, indexed on `(sensor_id, ts)`.
+Lecture 3 left the Intel Lab readings in PostgreSQL, indexed on `(sensor_id, ts)`.
 
 - one sensor, one hour → a few hundredths of a ms
 - that is the dashboard query, and the row store is superb at it
@@ -121,7 +121,7 @@ The question is which workload this is. A serious platform runs both.
 |---|---|
 | small reads/writes of whole rows | scan few columns over many rows |
 | insert, update, fetch by key | aggregate, trend, report |
-| PostgreSQL (L3) | Parquet + DuckDB (today) |
+| PostgreSQL (Lecture 3) | Parquet + DuckDB (today) |
 
 ---
 
@@ -167,7 +167,7 @@ Columns win the wide analytical scan:
 
 Rows win the point write and lookup: one whole row, or one update, touches every column block.
 
-A column store complements the L3 row store; each handles the workload the other is slow at.
+A column store complements the Lecture 3 row store; each handles the workload the other is slow at.
 
 [Kleppmann, DDIA ch. 3](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781491903063/)
 
@@ -293,7 +293,7 @@ ATTACH 'dbname=labdata host=localhost' AS pg (TYPE postgres);
 SELECT * FROM pg.readings LIMIT 5;
 ```
 
-Query the live L3 database with no export. One query can join a small PostgreSQL table against a large Parquet history, the OLTP store and the OLAP engine on speaking terms.
+Query the live Lecture 3 database with no export. One query can join a small PostgreSQL table against a large Parquet history, the OLTP store and the OLAP engine on speaking terms.
 
 [DuckDB: postgres extension](https://duckdb.org/docs/stable/core_extensions/postgres)
 
@@ -366,7 +366,7 @@ They interoperate. The choice is rarely exclusive.
 - **Time-series database**: builds in bucketing, retention, and high-rate ingest for millions of points a second.
 
 **Redis** for caches, configs, hot lookups. **InfluxDB** for the high-ingest end.
-[Redis](https://redis.io/about/) · [InfluxDB](https://docs.influxdata.com/influxdb/v2/get-started/)
+[Redis](https://redis.io/about/), [InfluxDB](https://docs.influxdata.com/influxdb/v2/get-started/)
 
 ---
 
@@ -445,7 +445,7 @@ Intel Lab data → Parquet → the same query in pandas, a SQLite row store, and
 ## Recap
 
 - Layout should match the access pattern
-- Row store / OLTP for writes and point reads (L3)
+- Row store / OLTP for writes and point reads (Lecture 3)
 - Column store / OLAP for wide scans: Parquet + DuckDB
 - Measured: `≈80×` faster, `≈5×` smaller on the scan
 - DuckDB queries files and databases with zero import
@@ -455,8 +455,8 @@ Intel Lab data → Parquet → the same query in pandas, a SQLite row store, and
 
 ## Next
 
-**Assignment** A2 (from L3): its Parquet + DuckDB half is now unblocked
+**Assignment 2** (from Lecture 3): its Parquet + DuckDB half is now unblocked
 **Reading** DuckDB Parquet docs; Kleppmann ch. 3
-**L5** Up a layer: dataframes and scalable processing with pandas and Polars, and batch pipelines
+**Lecture 5** Up a layer: dataframes and scalable processing with pandas and Polars, and batch pipelines
 
 Full notes, with all sources: `lectures/l04/notes.md`

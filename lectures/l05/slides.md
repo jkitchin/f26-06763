@@ -2,15 +2,15 @@
 marp: true
 theme: course
 paginate: true
-header: "06-763 · L5"
+header: "06-763 / L5"
 footer: "Systems and Toolchains for AI Engineers"
 ---
 
 <!-- _class: title -->
 
-# L5 · Dataframes & scalable processing
+# Lecture 5: Dataframes & scalable processing
 
-## Week 3 · Data Systems
+## Week 3, Data Systems
 
 **Systems and Toolchains for AI Engineers**
 
@@ -176,7 +176,7 @@ No per-element Python dispatch.
 = one groupby + one aggregate. Don't hand-roll the buckets.
 
 **Joins**: attach calibration or recipe metadata by key.
-Same rule as [L3](https://pandas.pydata.org/docs/user_guide/merging.html): a column is a *kind* of measurement,
+Same rule as [Lecture 3](https://pandas.pydata.org/docs/user_guide/merging.html): a column is a *kind* of measurement,
 never a particular sensor or run.
 
 ---
@@ -360,7 +360,7 @@ So: **Parquet between stages, Arrow within one.**
 Polars ↔ pandas ↔ DuckDB share the layout, so crossing
 a library boundary is cheap. Pick each stage's tool on merit.
 
-[parquet.apache.org](https://parquet.apache.org/docs/file-format/) · [duckdb.org](https://duckdb.org/)
+[parquet.apache.org](https://parquet.apache.org/docs/file-format/), [duckdb.org](https://duckdb.org/)
 
 ---
 
@@ -490,7 +490,7 @@ Dead **and** broken, for seven years.
 
 ---
 
-## Designing a batch pipeline, three habits, all of them A3
+## Designing a batch pipeline, three habits, all of them Assignment 3
 
 A rollout across 8 machines **is** a batch job whose
 "rows" are servers. 7-of-8 looked exactly like 8-of-8.
@@ -553,7 +553,7 @@ For one author on one machine, that Makefile is often
 Not the graph. **Who can operate it**, and what
 happens when a stage fails at 3 a.m.
 
-[Prefect](https://docs.prefect.io/) · [Dagster](https://docs.dagster.io/)
+[Prefect](https://docs.prefect.io/), [Dagster](https://docs.dagster.io/)
 
 ---
 
@@ -827,9 +827,9 @@ Scanning to be "safe" cost more than declaring.
 
 ## Next
 
-**Assignment** A3, out today, due at L7, Wed 16 Sep
-**Reading** [Polars lazy API](https://docs.pola.rs/user-guide/lazy/using/) · [Dask best practices](https://docs.dask.org/en/stable/dataframe-best-practices.html) · Kleppmann Ch. 10
-**L6** Same SECOM matrix, a different question: not how fast
+**Assignment 3**, out today, due at Lecture 7, Wed 16 Sep
+**Reading** [Polars lazy API](https://docs.pola.rs/user-guide/lazy/using/), [Dask best practices](https://docs.dask.org/en/stable/dataframe-best-practices.html), Kleppmann Ch. 10
+**Lecture 6** Same SECOM matrix, a different question: not how fast
 you can clean it, but how you *prove* it's clean, automatically,
 before a bad value reaches a model
 

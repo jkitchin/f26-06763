@@ -1,17 +1,18 @@
-# L18 · Prompting, RAG, or fine-tuning: choosing the right lever
+# Lecture 18: Prompting, RAG, or fine-tuning: choosing the right lever
 
-:::{admonition} At a glance
+:::{admonition} Overview
 :class: tip
 
-- **Session** L18, Week 10 · **Arc** LLM & agentic engineering
+- **Session** Lecture 18, Week 10
+- **Arc** LLM and agentic engineering
 - **Slides** <a href="../../slides/l18/">Deck for this session</a>
 - **Demo** [`l18-prompt-vs-rag.ipynb`](l18-prompt-vs-rag.ipynb), one corpus, one gold set, two systems scored the same way
-- **Assignment** A9 is under way, released last session and due about a week out
+- **Assignment 9** is under way, released last session and due about a week out
 :::
 
 ## Why this matters
 
-The last two sessions gave you two ways to make a general model useful on your problem. L16 was prompting: instruct the model well and constrain its output. L17 was retrieval: put the right documents in front of it. This session adds the third and, more importantly, tells you how to choose among all three, because the wrong choice is expensive and common.
+The last two sessions gave you two ways to make a general model useful on your problem. Lecture 16 was prompting: instruct the model well and constrain its output. Lecture 17 was retrieval: put the right documents in front of it. This session adds the third and, more importantly, tells you how to choose among all three, because the wrong choice is expensive and common.
 
 Here is the mistake, and it is made constantly. A team wants an assistant that knows their equipment: the specs, the standards, the internal manuals. Someone proposes to fine-tune a model "on our documents" so it learns them. They collect the PDFs, run a fine-tune, and the result is disappointing in a specific way. The model sounds more like their domain, but it still gets the actual numbers wrong, invents part numbers that look right, and cannot tell you which document any answer came from. Weeks of GPU time bought a model that is confidently wrong about the very facts it was supposed to learn. The tool was wrong for the job. Facts that must be correct, current, and cited belong in retrieval, and fine-tuning is for something else entirely.
 
@@ -97,10 +98,10 @@ The demo does this honestly on a small scale, pitting prompting against retrieva
 :alt: A grouped bar chart. For "knowledge lookup", prompting is 0% and RAG about 80%. For "absent (must decline)", prompting 0% and RAG 100%. For "formatting", both 100%. A note says RAG misses one lookup to a distractor.
 :width: 100%
 
-Prompting versus RAG on the same gold set, scored the same way. On knowledge lookups the bare prompt guesses every one wrong while retrieval grounds its answers in a cited chunk. On the query whose answer is deliberately absent from the corpus, retrieval declines while the prompt invents a confident value. On the formatting task the two tie, because there is nothing to retrieve. Computed in the demo and in `figures/make_figures.py`.
+Prompting versus RAG on the same gold set, scored the same way. On knowledge lookups the bare prompt guesses every one wrong while retrieval grounds its answers in a cited chunk. On the query whose answer is deliberately absent from the corpus, retrieval declines while the prompt invents a confident value. On the formatting task the two tie, because there is nothing to retrieve.
 ```
 
-Two details in that figure repay attention. Retrieval scores four of five on the knowledge lookups, one short of a clean sweep: the bolt-torque query pulled in a distractor sentence about torque in general instead of the one with the actual value, so the grounded answer was on topic and wrong. That is L17's lesson resurfacing, retrieval quality is not free, and it is exactly the kind of honest result a real evaluation surfaces and a confident assertion would have hidden. And on the formatting task retrieval and prompting tie, which is the framework in miniature: retrieval added nothing because the gap there was never knowledge.
+Two details in that figure repay attention. Retrieval scores four of five on the knowledge lookups, one short of a clean sweep: the bolt-torque query pulled in a distractor sentence about torque in general instead of the one with the actual value, so the grounded answer was on topic and wrong. That is Lecture 17's lesson resurfacing, retrieval quality is not free, and it is exactly the kind of honest result a real evaluation surfaces and a confident assertion would have hidden. And on the formatting task retrieval and prompting tie, which is the framework in miniature: retrieval added nothing because the gap there was never knowledge.
 
 ## Cost, latency, and ops
 
@@ -133,4 +134,4 @@ The lever follows the need. Knowledge the model lacks is retrieval's job, becaus
 
 ## Assignment
 
-Assignment A9, a RAG system over an engineering corpus, was released last session and is due about a week later. It asks you to build a retrieval-augmented QA system and measure both retrieval quality and answer quality against a gold set, which is the retrieval half of this session's bake-off built for real and at scale. The full specification is in [`course/assignments/a09.md`](../../course/assignments/a09.md); this page does not restate the rubric.
+Assignment 9, a RAG system over an engineering corpus, was released last session and is due about a week later. It asks you to build a retrieval-augmented QA system and measure both retrieval quality and answer quality against a gold set, which is the retrieval half of this session's bake-off built for real and at scale. This page does not restate the rubric.

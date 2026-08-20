@@ -1,4 +1,4 @@
-#+TITLE: Systems and Toolchains for AI in Engineering
+#+TITLE: Systems and Toolchains for AI Engineers
 
 Course materials for 06-763 / 14-763 / 18-763, Fall 2026.
 
@@ -37,7 +37,6 @@ GitHub Pages via ~.github/workflows/book.yml~.
 
 * Conventions
 
-Lecture notes are narrative documents meant to be read outside class; slides are
-projection scaffolding for use during it. They are separate artifacts with
+Lecture notes are narrative documents meant to be read outside class. Slides are for presentation of the content during lectures. They are separate artifacts with
 separate jobs, both derived from the corresponding lecture block in
 ~course/modules/wkNN.md~. The full contract is in [[file:CLAUDE.md][CLAUDE.md]].

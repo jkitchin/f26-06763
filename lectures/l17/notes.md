@@ -1,12 +1,13 @@
-# L17 · Retrieval-augmented generation and vector databases
+# Lecture 17: Retrieval-augmented generation and vector databases
 
-:::{admonition} At a glance
+:::{admonition} Overview
 :class: tip
 
-- **Session** L17, Week 10 · **Arc** LLM & agentic engineering
+- **Session** Lecture 17, Week 10
+- **Arc** LLM and agentic engineering
 - **Slides** <a href="../../slides/l17/">Deck for this session</a>
 - **Demo** [`l17-rag.ipynb`](l17-rag.ipynb), a RAG pipeline measured end to end
-- **Assignment** A9 released this session
+- **Assignment 9** released this session
 :::
 
 ## Why this matters
@@ -299,7 +300,7 @@ worked set of these metrics if you want a starting point rather than building yo
 
 **LLM-as-judge**, using a second language model call to score faithfulness or correctness
 because no simple string match can, is worth introducing here as a tool you will reach for, with
-one caveat stated plainly now and expanded on properly in Week 12: a judge model has its own
+one caveat stated plainly now and addressed later in the course: a judge model has its own
 biases and blind spots, and treating its score as ground truth without ever checking it against
 human judgment just moves the trust problem rather than solving it.
 
@@ -365,7 +366,7 @@ it, and a walk through one query the retriever gets confidently wrong to show wh
 threshold cannot rescue you and why the grounding instruction belongs in the prompt sent to
 generation. There is no hosted LLM call in this notebook; it assembles and shows you the exact
 grounded prompt a real model would receive, which is as far as a network-free notebook can take
-the generation step. A9 is where you connect that prompt to an actual model and measure what
+the generation step. Assignment 9 is where you connect that prompt to an actual model and measure what
 comes back.
 
 The runnable notebook is [`l17-rag.ipynb`](l17-rag.ipynb). It requires no external data
@@ -412,9 +413,8 @@ LoRA fine-tune on the course GPU look like when behavior, not knowledge, is what
 
 ## Assignment
 
-A9, "RAG system over an engineering corpus," is released this session and due roughly one week
+Assignment 9, "RAG system over an engineering corpus," is released this session and due roughly one week
 later. It asks you to build a retrieval-augmented QA system over an engineering corpus and
 measure, not assume, both retrieval quality and answer quality against a gold set, connecting
-the assembled grounded prompt this session's demo stops at to an actual hosted-LLM call. The
-full spec and rubric are in `course/assignments/a09.md`; this paragraph is a pointer, not the
-rubric.
+the assembled grounded prompt this session's demo stops at to an actual hosted-LLM call. This
+paragraph is a pointer, not the rubric.

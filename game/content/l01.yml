@@ -4,7 +4,7 @@ title: "AI engineering landscape and the system view"
 source_notes: lectures/l01/notes.md
 status: published
 serve: 5
-pool_version: 2
+pool_version: 3
 provenance:
   drafted_by: hand
   reviewed_by: jkitchin
@@ -81,7 +81,7 @@ items:
     prompt: |
       Google Flu Trends screened 50 million candidate queries down to 45 and
       reported a mean correlation of 0.97 across nine regions, on held-out data
-      excluded from every prior modelling step.
+      excluded from every prior modeling step.
 
       Before you look: was the validation protocol the problem?
     predict:
@@ -91,20 +91,20 @@ items:
       - "Yes; screening 50 million candidates guarantees spurious correlations survive to the held-out set"
       - "No. The protocol was more disciplined than a great deal of deployed machine learning gets, and it still failed in production"
       - "Yes; nine regions is too few to support a correlation estimate"
-      - "No, and the failure was purely an infrastructure outage rather than a modelling issue"
+      - "No, and the failure was purely an infrastructure outage rather than a modeling issue"
     answer: "No. The protocol was more disciplined than a great deal of deployed machine learning gets, and it still failed in production"
     evidence: |
       This is the uncomfortable one, and it is why the case is in the notes.
       Held-out validation was done properly and the system still degraded, because
-      the world changed underneath it: search behaviour was not a stable proxy for
+      the world changed underneath it: search behavior was not a stable proxy for
       influenza, and the relationship the model learned did not survive. Validating
       well is not evidence that a system works. It is evidence that it worked on
       data you already had.
     source:
       file: lectures/l01/notes.md
       heading: "Validating well is not evidence that a system works"
-      quote: "held-out data that had been excluded from every prior modelling step"
-    verify: {mode: quote, needle: "excluded from every prior modelling step", volatility: stable}
+      quote: "held-out data that had been excluded from every prior modeling step"
+    verify: {mode: quote, needle: "excluded from every prior modeling step", volatility: stable}
     tags: [validation, drift, case-study]
 
   - id: l01-q04
@@ -118,7 +118,7 @@ items:
     options:
       - "It is larger, so the tooling has to scale further than a tutorial's does"
       - "It carries provenance and traceability requirements, because the outputs feed decisions with physical and safety consequences"
-      - "It is noisier, so more of the effort goes into cleaning than into modelling"
+      - "It is noisier, so more of the effort goes into cleaning than into modeling"
       - "It is proprietary, so it cannot be shared and every project starts from scratch"
     answer: "It carries provenance and traceability requirements, because the outputs feed decisions with physical and safety consequences"
     evidence: |
@@ -131,7 +131,7 @@ items:
     source:
       file: lectures/l01/notes.md
       heading: "Why engineering data is different"
-      quote: "**Provenance.** In a regulated or safety-relevant setting you may be required to"
+      quote: "**Provenance:** In a regulated or safety-relevant setting you may be required to"
     verify: {mode: quote, needle: "provenance", volatility: stable}
     tags: [provenance, engineering-data]
 
@@ -300,7 +300,7 @@ items:
 
       What is the most likely explanation, and where does the response belong?
     options:
-      - "The users are wrong; a stable test score means stable behaviour"
+      - "The users are wrong; a stable test score means stable behavior"
       - "The world moved and the frozen test set did not, so the response is monitoring the input distribution rather than re-scoring the same data"
       - "The model has degraded numerically, so retraining on the same data will restore it"
       - "The test set has leaked into training, which inflates the score while real performance falls"

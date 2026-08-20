@@ -65,7 +65,7 @@ AUTHORED = REPO / "game" / "content" / "map-edges.yml"
 
 RELATIONS = {"builds-on", "contrasts", "reuses", "shares-data", "prevents"}
 
-LINK = re.compile(r"\[L(\d+)\]\(\.\./(l\d\d)/notes\.md\)")
+LINK = re.compile(r"\[(?:L|Lecture )(\d+)\]\(\.\./(l\d\d)/notes\.md\)")
 ANY_LINK = re.compile(r"\]\(\.\./(l\d\d)/notes\.md\)")
 
 
@@ -80,15 +80,16 @@ def norm(text: str) -> str:
 
 
 def names(lecture: str, text: str) -> bool:
-    """Does this text refer to `lecture` by its L-number?
+    """Does this text refer to `lecture` by its number?
 
     The anti-invention check, and the one that does the real work here. An
     authored edge is a claim that one session depends on another; a quote that
     never mentions the target is not evidence of anything, it is a sentence
-    somebody liked. Both spellings occur in the notes, L7 and L07.
+    somebody liked. Accepts every spelling the notes use: the short forms L7 and
+    L07, and the spelled-out "Lecture 7".
     """
     n = int(lecture[1:])
-    return re.search(rf"\bL0?{n}\b", text) is not None
+    return re.search(rf"\b(?:L0?{n}|Lecture {n})\b", text) is not None
 
 
 def authored() -> tuple[list[dict], list[dict], list[str]]:

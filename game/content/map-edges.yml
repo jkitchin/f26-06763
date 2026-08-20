@@ -4,13 +4,13 @@ schema: cmu-06763-map-edges/1
 #
 # tools/graph.py extracts the dependency graph from markdown cross-links, which
 # is the right default because a link is unambiguous and machine-checkable. It
-# stops at L15. The four late lectures cite earlier sessions only in prose, so
+# stops at Lecture 15. The four late lectures cite earlier sessions only in prose, so
 # an extracted map would leave the entire LLM and production arc unconnected,
 # which is the half students reach when they are most lost.
 #
 # The alternative considered and rejected was extracting prose mentions. Checked
 # rather than assumed: every mention in the corpus today is of the form "from
-# L3" or "as in L5", and the reversing forms ("unlike L5", "rather than L5") do
+# Lecture 3" or "as in Lecture 5", and the reversing forms ("unlike Lecture 5", "rather than Lecture 5") do
 # not currently occur, so a regex would in fact work right now. It is still the
 # wrong source of truth. Nothing stops the reversing form from being written
 # next week, a corridor built on one would be a prerequisite the notes
@@ -23,7 +23,7 @@ schema: cmu-06763-map-edges/1
 # prerequisite, and inventing prerequisites is precisely what this course
 # teaches against.
 #
-# L17 is absent on purpose. It cites nothing, by link or in prose, and that is a
+# Lecture 17 is absent on purpose. It cites nothing, by link or in prose, and that is a
 # true fact about the course rather than a gap in this file. It should show on
 # the map as the dead end it is.
 
@@ -37,7 +37,7 @@ relations:
   prevents:    the session's mechanism prevents a failure the target named
 
 edges:
-  # --- L19, agents ---------------------------------------------------------
+  # --- Lecture 19, agents ---------------------------------------------------------
   - from: l19
     to: l17
     relation: contrasts
@@ -48,7 +48,7 @@ edges:
     source:
       file: lectures/l19/notes.md
       quote: >-
-        A RAG pipeline in L17 always retrieves, then always generates; the order
+        A RAG pipeline in Lecture 17 always retrieves, then always generates; the order
         and the branching are yours, fixed in code
 
   - from: l19
@@ -59,7 +59,7 @@ edges:
       streaming session pointed at a different kind of run.
     source:
       file: lectures/l19/notes.md
-      quote: Reuse the structured logging and MLflow tracking from L5
+      quote: Reuse the structured logging and MLflow tracking from Lecture 5
 
   - from: l19
     to: l03
@@ -67,15 +67,15 @@ edges:
     why: The Intel Lab sensor data, still the spine of the course's examples.
     source:
       file: lectures/l19/notes.md
-      quote: against the same Intel Lab sensor Parquet file from L3 and L4
+      quote: against the same Intel Lab sensor Parquet file from Lecture 3 and Lecture 4
 
   - from: l19
     to: l04
     relation: shares-data
-    why: Same file, reached through the columnar path L4 introduces.
+    why: Same file, reached through the columnar path Lecture 4 introduces.
     source:
       file: lectures/l19/notes.md
-      quote: against the same Intel Lab sensor Parquet file from L3 and L4
+      quote: against the same Intel Lab sensor Parquet file from Lecture 3 and Lecture 4
 
   - from: l19
     to: l13
@@ -86,31 +86,31 @@ edges:
     source:
       file: lectures/l19/notes.md
       quote: >-
-        small surrogate standing in for L13's airfoil noise model, sharing that
+        small surrogate standing in for Lecture 13's airfoil noise model, sharing that
         model's five inputs
 
-  # --- L21, evaluation and observability -----------------------------------
+  # --- Lecture 21, evaluation and observability -----------------------------------
   - from: l21
     to: l13
     relation: builds-on
     why: >-
       The strongest claim of dependency anywhere in the back half. Not "recall
-      L13" but "this is L13, continued".
+      Lecture 13" but "this is Lecture 13, continued".
     source:
       file: lectures/l21/notes.md
       quote: >-
-        the subject of the entire second half of L13: what happens when a
+        the subject of the entire second half of Lecture 13: what happens when a
         company builds the model, ships it, and stops watching
 
   - from: l21
     to: l03
     relation: builds-on
     why: >-
-      The 2.4-volt threshold is a specific number decided in L3. Evaluating
+      The 2.4-volt threshold is a specific number decided in Lecture 3. Evaluating
       against it is meaningless without knowing where it came from.
     source:
       file: lectures/l21/notes.md
-      quote: sensor readings above L3's 2.4-volt trustworthiness threshold
+      quote: sensor readings above Lecture 3's 2.4-volt trustworthiness threshold
 
   - from: l21
     to: l19
@@ -121,17 +121,17 @@ edges:
     source:
       file: lectures/l21/notes.md
       quote: >-
-        L19's harness already logs everything a failure taxonomy needs, every
+        Lecture 19's harness already logs everything a failure taxonomy needs, every
         tool call, every result, every stop condition
 
   - from: l21
     to: l17
     relation: reuses
-    why: The eval harness is built against the RAG system L17 leaves behind.
+    why: The eval harness is built against the RAG system Lecture 17 leaves behind.
     source:
       file: lectures/l21/notes.md
       quote: >-
-        eval harness for a small RAG assistant in the spirit of L17's system
+        eval harness for a small RAG assistant in the spirit of Lecture 17's system
 
   - from: l21
     to: l04
@@ -139,18 +139,18 @@ edges:
     why: Same sensor data, no API key, which is why the demo runs anywhere.
     source:
       file: lectures/l21/notes.md
-      quote: data L3, L4, and L19 use and needs no API key or external service
+      quote: data Lecture 3, Lecture 4, and Lecture 19 use and needs no API key or external service
 
-  # --- L23, MLOps and responsibility ---------------------------------------
+  # --- Lecture 23, MLOps and responsibility ---------------------------------------
   - from: l23
     to: l21
     relation: builds-on
     why: >-
-      The pipeline's regression test asserts against numbers L21 measured, so
+      The pipeline's regression test asserts against numbers Lecture 21 measured, so
       the two sessions are joined by a specific value rather than a theme.
     source:
       file: lectures/l23/notes.md
-      quote: unit-tested against L21's actual measured numbers as a passing case
+      quote: unit-tested against Lecture 21's actual measured numbers as a passing case
 
   - from: l23
     to: l19
@@ -160,17 +160,17 @@ edges:
       bestiary pattern the map is for.
     source:
       file: lectures/l23/notes.md
-      quote: the failure L19's bounded loop exists to prevent
+      quote: the failure Lecture 19's bounded loop exists to prevent
 
   - from: l23
     to: l17
     relation: builds-on
-    why: Grounding and the faithfulness check are L17's mechanisms, audited here.
+    why: Grounding and the faithfulness check are Lecture 17's mechanisms, audited here.
     source:
       file: lectures/l23/notes.md
       quote: >-
-        instruction (L17); a faithfulness check verifying the cited chunk is in
-        the retrieved set (L21)
+        instruction (Lecture 17); a faithfulness check verifying the cited chunk is in
+        the retrieved set (Lecture 21)
 
   - from: l23
     to: l07
@@ -181,18 +181,18 @@ edges:
     source:
       file: lectures/l23/notes.md
       quote: >-
-        a units assertion at every system boundary (L7's Mars Climate Orbiter
+        a units assertion at every system boundary (Lecture 7's Mars Climate Orbiter
         case)
 
   - from: l23
     to: l13
     relation: prevents
     why: >-
-      Extrapolation is the surrogate failure mode L13 defines; the input-range
+      Extrapolation is the surrogate failure mode Lecture 13 defines; the input-range
       check is what stops it reaching production.
     source:
       file: lectures/l23/notes.md
-      quote: refuse or flag rather than silently extrapolate (L7, L13)
+      quote: refuse or flag rather than silently extrapolate (Lecture 7, Lecture 13)
 
 # Signs on the rooms that are not written yet.
 #
@@ -205,11 +205,11 @@ shutters:
     promised_by: l19
     source:
       file: lectures/l19/notes.md
-      quote: is where every guardrail in L20 attaches
+      quote: is where every guardrail in Lecture 20 attaches
 
   - lecture: l22
     promised_by: l21
     source:
       file: lectures/l21/notes.md
       quote: >-
-        shared with L22, deploy that system behind a FastAPI and Docker service
+        shared with Lecture 22, deploy that system behind a FastAPI and Docker service

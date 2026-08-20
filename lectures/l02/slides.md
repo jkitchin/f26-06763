@@ -2,15 +2,15 @@
 marp: true
 theme: course
 paginate: true
-header: "06-763 · L2"
+header: "06-763 / L2"
 footer: "Systems and Toolchains for AI Engineers"
 ---
 
 <!-- _class: title -->
 
-# L2 · Reproducible environments
+# Lecture 2: Reproducible environments
 
-## Week 1 · Foundations
+## Week 1, Foundations
 
 **Systems and Toolchains for AI Engineers**
 
@@ -136,7 +136,7 @@ More than the packages you named:
 
 ## Environments you can rebuild, small differences and real bugs
 
-The L1 demo broke because a version was never recorded.
+The Lecture 1 demo broke because a version was never recorded.
 
 - a function changes between two releases
 - a default value moves
@@ -306,7 +306,7 @@ and **the code that runs**
 is drawn in the folder layout,
 so it does not live in your memory.
 
-A1 reuses this exact structure all semester.
+Assignment 1 reuses this exact structure all semester.
 
 ---
 
@@ -328,7 +328,7 @@ So they belong in **different tools**.
 | Artifact | Tool | What you version |
 |---|---|---|
 | Code | git | the source, as commits |
-| Data | git-ignored + a hash (git-lfs/DVC, Wk4) | a pointer, not the bytes |
+| Data | git-ignored + a hash (git-lfs/DVC, week 4) | a pointer, not the bytes |
 | Models | an MLflow run | the inputs that made it |
 
 ---
@@ -369,7 +369,7 @@ keep the raw bytes out. Removing a committed big file rewrites history.
 git is the wrong home for large binaries.
 
 Tools that version data **by content**,
-`git-lfs` and **DVC**, get a real treatment in **Wk4**.
+`git-lfs` and **DVC**, get a real treatment in **week 4**.
 
 For now: a hash and a source, not the bytes.
 
@@ -472,7 +472,7 @@ so they cannot drift apart.
 
 </div>
 
-L1's problem two: the seed was never fixed,
+Lecture 1's problem two: the seed was never fixed,
 so the score moved every run.
 
 **The habit:** run from a clean start (Restart and Run All).
@@ -573,7 +573,7 @@ The Duke errors surfaced only when outsiders
 It does **not** pin the system libraries, the OS,
 or the platform-specific wheels underneath.
 
-Whole-stack reproducibility is a **container**. That is Wk12.
+Whole-stack reproducibility is a **container**. That is week 12.
 
 ---
 
@@ -622,9 +622,9 @@ Empty folder → tracked run in ~15 minutes:
 
 ## Next
 
-**Assignment** A1 released today, due ~1 week: scaffold `sensorlab`
+**Assignment 1** released this week, due ~1 week: scaffold `sensorlab`
 **Reading** uv docs; Pro Git ch. 1-2; MLflow quickstart; The Turing Way
-**L3** Give the data a real home: relational databases & SQL
+**Lecture 3** Give the data a real home: relational databases & SQL
 for engineering time series
 
 Full notes, with all sources: `lectures/l02/notes.md`

@@ -1,22 +1,21 @@
 # Systems and Toolchains for AI Engineers
 
-Course notes for the MS in AI in Engineering. Fourteen weeks of twice-weekly sessions, a
-dedicated mini-project week, and a student-chosen capstone.
+These are the course notes for Systems and Toolchains for AI Engineers.
 
-The course is organized around one claim: a model in a notebook is not a system. Most of
+Our course is organized around one central idea: That most of
 the engineering effort in a deployed AI system lives in the data infrastructure around the
-model, in the evaluation that tells you whether it works, and in the operational practice
-that tells you when it has stopped working. The semester walks that whole path with
-engineering data throughout, meaning sensor and IoT time series, simulation output,
+model, in the systematic evaluation that tells you whether it works, and in the operational practice
+that tells you when it has stopped working. This course goes through this whole path with
+engineering data throughout, meaning engineering datasets, simulation outputs,
 experimental measurements, and surrogate models.
 
 ## Where to start
 
-Read the [syllabus](course/syllabus.md) for objectives, the standardized toolchain, and
+Read the [syllabus](course/syllabus.md) for objectives, the standardized toolchain considered, and
 grading. The [schedule](course/schedule.md) maps every session to its topic and to the
 assignment released or due that week.
 
-Lecture notes are the narrative record of each session. They are written to be read before
+The lecture notes are the "textbok" of each session. They are written to be read before
 or after class rather than projected during it, so they carry the full argument and the
 links to primary sources. The slides used in class are linked from the top of each set of
 notes.

@@ -2,15 +2,15 @@
 marp: true
 theme: course
 paginate: true
-header: "06-763 · L12"
+header: "06-763 / L12"
 footer: "Systems and Toolchains for AI Engineers"
 ---
 
 <!-- _class: title -->
 
-# L12 · Architectures for engineering data
+# Lecture 12: Architectures for engineering data
 
-## Week 6 · Deep learning
+## Week 6, Deep learning
 
 **Systems and Toolchains for AI Engineers**
 
@@ -59,13 +59,13 @@ Flatten either and the model relearns, from scratch, structure you already knew.
 
 ## MLPs, briefly
 
-L11 built one. The choices that shape it:
+Lecture 11 built one. The choices that shape it:
 
 - **width** and **depth**: capacity, and overfitting past what the data supports
 - **activation**: ReLU or GELU, not saturating sigmoids
 - **regularizers**: dropout, weight decay, batch/layer norm
 
-Scaling still matters: fit the scaler on **training data only** (L7). A neural net does not repeal the leakage rules.
+Scaling still matters: fit the scaler on **training data only** (Lecture 7). A neural net does not repeal the leakage rules.
 
 ---
 
@@ -110,7 +110,7 @@ An MLP would learn each position's edge detector separately, from far more data.
 
 Encoder-decoder / **U-Net** shapes map a whole field to a whole field (Week 7).
 
-[Goodfellow, ch. 9](https://www.deeplearningbook.org/) · [CS231n](https://cs231n.github.io/convolutional-networks/)
+[Goodfellow, ch. 9](https://www.deeplearningbook.org/), [CS231n](https://cs231n.github.io/convolutional-networks/)
 
 ---
 
@@ -144,7 +144,7 @@ Bai et al. (2018): "a simple convolutional architecture outperforms canonical re
 - **LSTM / GRU**: genuinely long-range, variable dependence
 - **attention / Transformers**: long-range and complex (Week 8 on)
 
-Normalize on train stats only; never window across a unit boundary (L8).
+Normalize on train stats only; never window across a unit boundary (Lecture 8).
 
 ---
 
@@ -186,7 +186,7 @@ The learning-rate schedule is the most consequential knob. Large steps early, pr
 | train low, val rising | overfitting | regularize, stop earlier |
 | oscillating or exploding | bad optimization | lower LR, normalize inputs |
 
-L11's broken loops were all the third kind, the one mistaken for a modeling problem.
+Lecture 11's broken loops were all the third kind, the one mistaken for a modeling problem.
 
 ---
 
@@ -198,11 +198,11 @@ L11's broken loops were all the third kind, the one mistaken for a modeling prob
 
 ## Does the architecture earn its keep?, the setup
 
-**Remaining useful life** on C-MAPSS FD001 turbofans (from L8):
+**Remaining useful life** on C-MAPSS FD001 turbofans (from Lecture 8):
 
 - sliding **30-cycle windows** over 17 sensor/setting channels
 - piecewise-linear RUL target (constant at 125, then linear)
-- **GroupKFold by engine**: no engine in both train and validation (L8)
+- **GroupKFold by engine**: no engine in both train and validation (Lecture 8)
 
 Two models: a **1D-CNN** on raw windows vs **gradient boosting** on window features (mean, std, last).
 
@@ -236,7 +236,7 @@ The CNN earns its advantage from **scale**, from **tuning** (schedule, regulariz
 
 - **A matched architecture is a prior, not a guarantee.** A CNN assumes locality and translation invariance; a global constraint or symmetry can make that a liability.
 - **Depth needs data.** A hundred engines is small; parameter sharing reduces but does not remove the appetite. Small data favors a strong classical model.
-- **The accelerator is not free** (L11: GPU 2.5x slower on a small model), and bigger is not better past the capacity the data supports. Debug on CPU.
+- **The accelerator is not free** (Lecture 11: GPU 2.5x slower on a small model), and bigger is not better past the capacity the data supports. Debug on CPU.
 
 ---
 
@@ -272,9 +272,9 @@ The grouping by engine is what keeps the comparison honest instead of flattering
 
 ## Next
 
-**Assignment** A6 (from L11): build, train, and honestly evaluate a deep model
+**Assignment 6** (from Lecture 11): build, train, and honestly evaluate a deep model
 **Reading** PyTorch CNN/LSTM tutorials; Goodfellow ch. 9-10; Grinsztajn et al.
-**L13** Toward surrogate models and the uncertainty an engineering
+**Lecture 13** Toward surrogate models and the uncertainty an engineering
 prediction has to carry
 
 Full notes, with all sources: `lectures/l12/notes.md`

@@ -2,15 +2,15 @@
 marp: true
 theme: course
 paginate: true
-header: "06-763 · L17"
+header: "06-763 / L17"
 footer: "Systems and Toolchains for AI Engineers"
 ---
 
 <!-- _class: title -->
 
-# L17 · Retrieval-augmented generation & vector databases
+# Lecture 17: Retrieval-augmented generation & vector databases
 
-## Week 10 · LLM & agentic engineering
+## Week 10, LLM & agentic engineering
 
 **Systems and Toolchains for AI Engineers**
 
@@ -112,7 +112,7 @@ Billed per token, every call, whether the
 model needed most of them or not.
 
 And: a model doesn't read a long context
-uniformly. More on this later.
+uniformly.
 
 ---
 
@@ -502,7 +502,7 @@ A second model call scores faithfulness because
 no string match can.
 
 It has its own biases. Trusting it blindly just
-moves the trust problem. (Full treatment: Week 12.)
+moves the trust problem.
 
 ---
 
@@ -591,7 +591,7 @@ evaluate on a 15-query gold set, sweep chunking, ground.
 - Structure-aware vs. naive fixed: recall and nDCG, measured
 - The PVC-conduit miss: score 0.827, sitting inside the true-match range
 - The assembled grounded prompt: what a real model would receive
-- No hosted LLM call here, that's A9
+- No hosted LLM call here, that's Assignment 9
 
 ---
 
@@ -607,9 +607,9 @@ evaluate on a 15-query gold set, sweep chunking, ground.
 
 ## Next
 
-**Assignment** A9 released today, due ~1 week
+**Assignment 9** released today, due ~1 week
 **Reading** Lewis et al. 2020 (RAG); Liu et al. 2023 (Lost in the Middle)
-**L18** Prompting vs. RAG vs. fine-tuning: a decision framework,
+**Lecture 18** Prompting vs. RAG vs. fine-tuning: a decision framework,
 plus a real LoRA fine-tune on the course GPU
 
 Full notes, with all sources: `lectures/l17/notes.md`
