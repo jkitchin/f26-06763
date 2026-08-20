@@ -70,7 +70,6 @@ That number is **not in the paper.**
 
 **data → storage → pipelines → features → training → evaluation → deployment → monitoring**
 
-- Each stage is a later arc of this course
 - Reading it as linear is the first thing to unlearn
 - Monitoring feeds back into acquisition
 
@@ -409,7 +408,7 @@ PHE is the far end of that road.
 | Columnar file | Parquet | scanning few columns of many |
 | Embedded analytical | DuckDB | SQL over Parquet, no server |
 
-A fourth, the **vector store**, indexes by similarity. Week 10.
+A fourth, the **vector store**, indexes by similarity.
 
 ---
 
@@ -421,7 +420,7 @@ Not *"which database is best"* but
 - One row at a time, many concurrent readers → relational
 - Three columns across ten years → columnar
 
-[DuckDB](https://duckdb.org/docs/stable/index), [Parquet format](https://parquet.apache.org/docs/file-format/), **Weeks 2-4**
+[DuckDB](https://duckdb.org/docs/stable/index), [Parquet format](https://parquet.apache.org/docs/file-format/)
 
 ---
 
@@ -438,7 +437,7 @@ column types, physical ranges, null rates, **row counts**
 
 Fail loudly when reality disagrees.
 
-[pandera](https://pandera.readthedocs.io/en/stable/), **Weeks 3-4**
+[pandera](https://pandera.readthedocs.io/en/stable/)
 
 ---
 
@@ -459,7 +458,7 @@ It is an optimization loop.
 
 You never hand-derive anything. That is the whole trick behind PyTorch.
 
-[torch.autograd, gently](https://docs.pytorch.org/tutorials/beginner/blitz/autograd_tutorial.html), **Weeks 5-6**
+[torch.autograd, gently](https://docs.pytorch.org/tutorials/beginner/blitz/autograd_tutorial.html)
 
 ---
 
@@ -489,7 +488,7 @@ Both failures today were evaluation failures.
 After a hundred runs, *"which config produced this?"*
 is unanswerable from memory. **One run = one reproducible fact.**
 
-[MLflow quickstart](https://mlflow.org/docs/latest/ml/tracking/quickstart/), **Week 5**
+[MLflow quickstart](https://mlflow.org/docs/latest/ml/tracking/quickstart/)
 
 ---
 
@@ -521,7 +520,7 @@ That schema is also a **data contract** with your callers.
 Then the questions turn operational:
 latency budget, throughput, cost per prediction, behavior under load
 
-[FastAPI](https://fastapi.tiangolo.com/), **Week 12**
+[FastAPI](https://fastapi.tiangolo.com/)
 
 ---
 
@@ -539,7 +538,7 @@ the gap against ground truth once labels arrive
 code, reproducible retraining, staged rollout so a bad model does not reach
 everyone, and the ability to **roll back**.
 
-Flu Trends is what absence looks like. **Week 13**
+Flu Trends is what absence looks like.
 
 ---
 
@@ -563,8 +562,6 @@ Three integration patterns:
 Fine-tuning is the right answer far less often
 than people expect.
 
-**Weeks 9-10**
-
 ---
 
 ## A tour of the stack, what an agent actually is
@@ -577,7 +574,7 @@ than people expect.
 That is the whole idea. Frameworks are conveniences.
 
 For engineering: agents over your database,
-your simulation, your instrument. **Week 11**
+your simulation, your instrument.
 
 ---
 
@@ -608,7 +605,7 @@ Capability scoping > clever prompting.
 
 MCAS is a reminder these have consequences.
 
-[NIST AI RMF](https://www.nist.gov/itl/ai-risk-management-framework), **Weeks 12-13**
+[NIST AI RMF](https://www.nist.gov/itl/ai-risk-management-framework)
 
 ---
 
@@ -620,17 +617,17 @@ MCAS is a reminder these have consequences.
 
 ## The toolchain, one stack all semester
 
-| Layer | Tool | Prevents | Wk |
-|---|---|---|---|
-| Environments | `uv` | merely-probable rebuilds | 1 |
-| Storage | Postgres/DuckDB/Parquet | CSV sprawl, truncation | 2 |
-| Dataframes | pandas/Polars | OOM, unreadable transforms | 3 |
-| Validation | pandera | bad data passing silently | 4 |
-| Tracking | MLflow | unattributable results | 5 |
-| Deep learning | PyTorch | hand-derived gradients | 6 |
-| Serving | FastAPI/Docker | "works on my machine" | 12 |
+| Layer | Tool | Prevents |
+|---|---|---|
+| Environments | `uv` | merely-probable rebuilds |
+| Storage | Postgres/DuckDB/Parquet | CSV sprawl, truncation |
+| Dataframes | pandas/Polars | OOM, unreadable transforms |
+| Validation | pandera | bad data passing silently |
+| Tracking | MLflow | unattributable results |
+| Deep learning | PyTorch | hand-derived gradients |
+| Serving | FastAPI/Docker | "works on my machine" |
 
-**LLM and agent frameworks** (Wks 9-11) are deliberately not standardized:
+**LLM and agent frameworks** are deliberately not standardized:
 that ecosystem turns over faster than a semester, so we teach interfaces
 and evaluation discipline rather than a vendor's abstractions.
 
@@ -671,8 +668,7 @@ Compare failures with your neighbour on 3.
 
 ## Next
 
-**Install before Lecture 2** `git`, Python 3.11+, [`uv`](https://docs.astral.sh/uv/getting-started/)
+**Install before next class** `git`, Python 3.11+, [`uv`](https://docs.astral.sh/uv/getting-started/)
 **Assignment 1** released next session
-**Lecture 2** Reproducible environments, notebook → script → package
 
 Full notes, with all sources: `lectures/l01/notes.md`

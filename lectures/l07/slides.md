@@ -640,14 +640,11 @@ that puts cycle 150 in train, 151 in test.
 
 ---
 
-## Where this pushes back, that's next session
+## Where this pushes back, a leak no pipeline catches
 
 No `Pipeline` catches a split-level leak:
 the split happens before the pipeline
 ever sees the data.
-
-Lecture 8: the full leakage taxonomy, grouped
-and temporal splits.
 
 **What a practitioner should take from this.**
 
@@ -717,7 +714,5 @@ Every one of those was a draft claim that a run corrected.
 
 **Assignment 4**, out today, due ~1 week
 **Reading** [sklearn pitfalls & leakage](https://scikit-learn.org/stable/common_pitfalls.html), [Pipelines](https://scikit-learn.org/stable/modules/compose.html), Saxena et al. 2008
-**Lecture 8** Same C-MAPSS fleet: the full leakage taxonomy, correct
-grouped/temporal splits, and versioning the pipeline with DVC
 
 Full notes, with all sources: `lectures/l07/notes.md`

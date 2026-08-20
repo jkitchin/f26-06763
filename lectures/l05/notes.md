@@ -230,8 +230,7 @@ value 1,458 rows into a 1,567-row file, about 93% of the way through. The reflex
 read, because it scans the whole file to determine what you already knew. Declaring the schema
 instead, `schema_overrides={...: pl.Float64}`, is the fastest option at around 40 ms and the only
 one that cannot be surprised by a value near the end of the file. Stating your assumptions in
-code is both cheaper and safer than having the library guess at them, which is exactly the
-argument Lecture 6 makes at greater length about data validation: a schema is the
+code is both cheaper and safer than having the library guess at them: a schema is the
 cheapest executable check you will ever write.
 
 This is the first appearance of a pattern the rest of the session leans on. Every performance
@@ -506,8 +505,7 @@ there is very often a combinable reduction that answers the same question.
 :::{admonition} One caveat on "constant iff the standard deviation is zero"
 :class: warning
 
-That equivalence is exact in arithmetic and only nearly exact in floating point, which is a
-distinction [Lecture 7](../l07/notes.md) runs into on a different dataset. A column holding the single
+That equivalence is exact in arithmetic and only nearly exact in floating point. A column holding the single
 value `14.62` in every row has a true variance of zero, but the variance is *computed* from
 sums of squared deviations, and the rounding can leave you with `5.3e-15` instead of `0.0`. A
 literal `std == 0` test then declares that constant column non-constant and keeps it.
@@ -658,9 +656,7 @@ measurable threshold rather than a matter of taste, that most of the data in thi
 well below it, and that the way you tell is to time both. Along the way, three of the bugs in
 the demo notebook, a quoted timestamp, an over-eager schema inference, and a per-column
 shuffle, were all found the same way: a number came back that did not match what somebody
-expected. Next session keeps the same SECOM matrix and turns that habit into infrastructure,
-asking how you prove, automatically and before a bad value reaches a model, that it is clean
-at all.
+expected.
 
 ## Resources
 
@@ -709,7 +705,7 @@ at all.
   and worth it for section 3.1 alone, on how the framework hides failure from the job author.
 - M. Kleppmann, *Designing Data-Intensive Applications*, Chapter 10 ("Batch Processing").
   Recommended for the deeper argument behind MapReduce-style batch systems and their trade-offs
-  against streaming, which is where Lecture 6 picks up.
+  against streaming.
 - [In the Matter of Knight Capital Americas LLC](https://www.sec.gov/litigation/admin/2013/34-70694.pdf),
   SEC Release No. 70694, 16 October 2013. The primary source for the deployment failure
   discussed above.
@@ -719,8 +715,8 @@ at all.
 ## Assignment
 
 Assignment 3, "Reproducible, validated data pipeline," is released this session (Wednesday 9 September
-2026) and is due at the start of Lecture 7, Wednesday 16 September 2026. It asks you to build the
+2026) and is due Wednesday 16 September 2026. It asks you to build the
 four-stage pipeline this session covers on SECOM (or a documented fallback), in pandas and/or
 Polars, with pandera or Great Expectations checks that fail the pipeline on injected bad data,
-logged to MLflow. The validation half of it is Lecture 6's material, so start on the pipeline stages
-now and add the checks after Monday. This is a pointer, not the rubric.
+logged to MLflow. Start on the pipeline stages now and add the validation checks as you go. This
+is a pointer, not the rubric.

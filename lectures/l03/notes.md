@@ -524,7 +524,7 @@ table in the middle of a live deployment is a real operation with real risk, and
 manage it with migration tooling and versioning rather than ad-hoc `ALTER` statements. Where
 the data itself is heterogeneous, experiment metadata in which every run records a different
 and unpredictable set of fields, the rigid schema stops helping and starts fighting you, and
-this is exactly the territory where the document stores of the next session earn their place.
+this is exactly the territory where document stores earn their place.
 
 ### NULL is not a value, and three-valued logic will surprise you
 
@@ -583,7 +583,7 @@ have chosen on purpose.
 
 ### Row stores are the wrong tool for wide analytical scans
 
-The deepest limitation, and the one that sets up the rest of this arc, is structural. A
+The deepest limitation is structural. A
 relational database like PostgreSQL is a *row store*: it keeps all of a row's columns together
 on disk. That layout is ideal for the transactional pattern of reading or writing whole rows,
 and it is close to the worst possible layout for the analytical pattern of scanning a single
@@ -592,8 +592,8 @@ still pull every column of every row off the disk to get at it. Our index win wa
 *selective* query that touched a hundred rows; a full analytical aggregate over one channel of
 the whole table reads everything, and no index rescues a query that genuinely needs all the
 rows. This single fact is why a relational OLTP database is not the end of the storage story,
-and it is exactly the problem that the columnar formats and the embedded analytical engine of
-the next session are built to solve.
+and it is exactly the problem that columnar formats and embedded analytical engines are built
+to solve.
 
 ### Writes scale up but not easily out, and the server has weight
 
@@ -620,7 +620,7 @@ interrelated engineering data is most of the time. Reach past it deliberately wh
 pattern is wide analytical scans, where a column store wins; when your data is genuinely
 schema-heterogeneous, where a document store fits; or when your write volume outgrows a single
 machine, where distributed and time-series systems come in. The skill is not loyalty to one
-tool. It is matching the store to the access pattern, and the rest of this arc is that map.
+tool. It is matching the store to the access pattern.
 :::
 
 ## In-class demo
@@ -654,10 +654,8 @@ actually have about time-series, `COPY` gets the data in quickly, and a B-tree o
 ts)`, confirmed with `EXPLAIN ANALYZE`, turns the dominant range query from a full scan into a
 seek. And because no tool is universal, the honest close is the list of places the relational
 model pushes back, from three-valued `NULL` logic to the row store's poor fit for wide
-analytical scans. That last limitation is the door into the next session, where we keep this
-exact dataset and change only where it lives, into columnar Parquet files and the embedded
-engine DuckDB, and ask when an analytical column store beats the row-oriented database we built
-today.
+analytical scans, each one a reminder that the relational database is a strong default rather
+than a universal answer.
 
 ## Resources
 
@@ -692,10 +690,9 @@ today.
   paper, and still the clearest statement of why logical structure should be independent of
   physical storage.
 - Kleppmann, *Designing Data-Intensive Applications*, Chapter 3 ("Storage and Retrieval"). The
-  clearest single explanation of why row stores and column stores make opposite choices; the
-  bridge into next session.
+  clearest single explanation of why row stores and column stores make opposite choices.
 - [DuckDB: Reading and Writing Parquet Files](https://duckdb.org/docs/current/data/parquet/overview).
-  A ten-minute preview of Lecture 4: SQL over columnar files with no server at all.
+  SQL over columnar files with no server at all.
 
 ## Assignment
 
@@ -703,5 +700,5 @@ Assignment 2, "Sensor data into PostgreSQL + DuckDB," is released this session a
 later. It asks you to design a schema for the Intel Lab data (or a documented fallback), load
 it into PostgreSQL, and answer a set of engineering queries including a window function and a
 time-bucketed aggregate, then add an index and interpret `EXPLAIN ANALYZE` before and after.
-The second half moves the same data into Parquet and DuckDB, which is Lecture 4's material, so you can
-start the PostgreSQL half now. This is a pointer, not the rubric.
+The second half moves the same data into Parquet and DuckDB, so you can start the PostgreSQL
+half now. This is a pointer, not the rubric.

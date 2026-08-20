@@ -32,24 +32,6 @@ exclude_patterns:
 execute:
   execute_notebooks: 'off'
 
-# PDF build:  jupyter-book build . --builder pdflatex
-# Produces _build/latex/course.pdf, the whole course as one document. CI copies
-# it to the site root so it is downloadable at /f26-06763/course.pdf.
-latex:
-  # NOT the pdflatex default. These sources carry 34 distinct non-ASCII
-  # characters (arrows, box drawing, Greek, superscripts, the micro sign), and
-  # pdflatex needs a \DeclareUnicodeCharacter for each one before it will set
-  # them. xelatex with the GNU FreeFont family that ships with TeX Live covers
-  # all 34 with no per-character configuration.
-  latex_engine: xelatex
-  latex_documents:
-    # targetname is load-bearing: without it the output is called
-    # projectnamenotset.pdf. The title override just pins the document title.
-    # It used to escape an "&" in the course title (an unescaped "&" fails the
-    # LaTeX run with "Misplaced alignment tab character &"), but the title no
-    # longer contains one, so a plain string is fine.
-    targetname: course.tex
-    title: "Systems and Toolchains for AI Engineers"
 
 repository:
   url: https://github.com/jkitchin/f26-06763
@@ -83,16 +65,6 @@ sphinx:
     # also why it cannot be listed in _toc.yml.
     html_use_index: true
     html_split_index: false
-    # The same entries are typeset at the end of course.pdf, and Sphinx picks the
-    # index processor from the LaTeX engine: xelatex means xindy by default, which
-    # is a separate apt package (pulling in clisp) that the CI TeX install does
-    # not carry. makeindex ships with texlive-binaries, which latexmk already
-    # depends on, so this gets the PDF an index with no new dependency. The cost
-    # is that makeindex sorts non-ASCII entry text badly, which is why CI rejects
-    # a non-ASCII index entry. Nothing here would have surfaced before the first
-    # {index} directive: with an empty .idx, latexmk skips the index step, so the
-    # PDF built fine for a year without any index processor installed at all.
-    latex_use_xindy: false
     # Do NOT add html_theme_options here. Jupyter Book merges sphinx.config into
     # its own defaults without recursing, so setting it would replace the theme
     # options built from the html: block above and drop use_repository_button

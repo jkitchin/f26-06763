@@ -1,6 +1,7 @@
 /** The map world and its walking rules. Run with `npm run map`. */
 
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import {
   coverage, doorsOf, doorVisible, roomAt, roomById, signFor, step, world,
 } from '../src/map/world.ts'
@@ -21,12 +22,20 @@ console.log('map:')
 
 check(world.rooms.length === 22, 'every session on the schedule is a room',
   `${world.rooms.length} rooms`)
-// Twenty, not twenty-one: the two mini-project days lost their sessions and L18
-// was folded into L17, so L18 keeps its notes and its bank stub while having no
-// schedule row and therefore no room. That is a known gap, tracked by the merge
-// issue, and it is the reason this number moved rather than the room count alone.
-check(world.rooms.filter((r) => r.written).length === 20,
-  'twenty of them are written', `${world.rooms.filter((r) => r.written).length}`)
+// The written (open) rooms are exactly the lectures released in _toc.yml. The
+// course ships one week at a time, so this set grows week by week; the test
+// derives it from _toc.yml rather than hard-coding a count a release would break.
+// (L18 keeps its notes and bank stub but has no schedule row now that it is
+// folded into L17, so it is never a room and never released.)
+const toc = readFileSync(new URL('../../_toc.yml', import.meta.url), 'utf8')
+const releasedIds = new Set(
+  [...toc.matchAll(/^\s*-\s*file:\s*lectures\/(l\d\d)\/notes/gm)].map((m) => m[1]))
+const writtenIds = world.rooms.filter((r) => r.written).map((r) => r.id).sort()
+const expectedWritten = world.rooms
+  .filter((r) => releasedIds.has(r.id)).map((r) => r.id).sort()
+check(JSON.stringify(writtenIds) === JSON.stringify(expectedWritten),
+  'written rooms are exactly the lectures released in _toc.yml',
+  `written: ${writtenIds.join(',') || '(none)'}`)
 
 // Two rows carry a conference annotation in the schedule that an earlier parser
 // silently dropped. The annotation belongs to the dates rather than the lectures,
@@ -111,7 +120,9 @@ check(doorVisible(oneDoor, both), 'and drawn once both have been')
 check(coverage(none).seen === 0 && coverage(none).total === 22, 'coverage starts at zero of 22')
 check(coverage(both).seen === 2, 'and counts the rooms actually stood in')
 
-check(signFor('l20')?.promised_by === 'l19', 'the L20 shutter carries L19s promise')
+// Shuttered rooms no longer carry a promise sign: the promises were forward
+// references from earlier lectures, and the course no longer makes any.
+check(signFor('l20') === undefined, 'a shuttered room carries no promise sign')
 check(signFor('l01') === undefined, 'a written room has no shutter sign')
 
 // --- visits are inert to everything that grades ----------------------------

@@ -40,9 +40,9 @@ category list for one-hot encoding, is a summary statistic computed over some se
 the single question that determines whether your pipeline leaks is which rows. Get that
 question wrong and your validation score stops measuring what your model will do in
 deployment, and starts measuring how well it memorized information it was never supposed to
-have. The module's own teaching note calls this the single most valuable lesson of the two
-sessions on features and data quality, and this session is built to let you produce that bug
-yourself and watch what it does, rather than take the warning on faith.
+have. The module's own teaching note calls this the single most valuable lesson of the data arc,
+and this session is built to let you produce that bug yourself and watch what it does, rather
+than take the warning on faith.
 
 ## Learning objectives
 
@@ -57,7 +57,7 @@ By the end of this session you should be able to:
 ```{index} remaining useful life, lag feature, rolling window feature, expanding window feature
 ```
 
-The dataset for this session and next is NASA's C-MAPSS Turbofan Engine Degradation
+The dataset for this session is NASA's C-MAPSS Turbofan Engine Degradation
 Simulation, published by Saxena and colleagues at the 2008 Prognostics and Health Management
 conference: run-to-failure sensor trajectories for fleets of simulated turbofan engines, one
 row per engine per operating cycle, 21 sensor channels and three operational settings per row,
@@ -505,8 +505,8 @@ does nothing to stop a much larger one: a random, row-level train/test split tha
 150 of an engine in training and cycle 151 of the same engine in test. The model then has
 effectively seen the answer to a nearly identical question, and no `Pipeline` will catch it,
 because the split happened before the pipeline ever saw the data. That is deliberately not this
-session's demo. It is next session's central lesson, along with the full taxonomy of leakage
-this feature layer only introduces.
+session's demo, because it is a leak in how the data is divided rather than in how a transform
+is fit.
 
 :::{admonition} What a practitioner should take from this
 :class: tip
@@ -558,9 +558,8 @@ regimes, and vibration signals. Wrapping every one of those transforms in a scik
 `Pipeline` fit on the training fold alone turns fit-on-train-only into a structural property
 of your code instead of a rule you have to remember, and this session's demo shows both that
 the resulting gap can be modest for one comparison and why that is not permission to skip the
-discipline. Next session picks up exactly where this one draws a line: the full taxonomy of
-leakage, correct grouped and temporal splits, and dataset versioning, so that the pipeline this
-session builds stays correct today and reproducible from raw data a year from now.
+discipline. Fitting on the training fold keeps that pipeline honest today, and persisting it
+whole keeps it reproducible from raw data a year from now.
 
 ## Resources
 
@@ -590,7 +589,7 @@ session builds stays correct today and reproducible from raw data a year from no
   page, which is the Lecture 1 lesson about link rot arriving on schedule.
 - A. Ng, "A Chat with Andrew on MLOps: From Model-centric to Data-centric AI," DeepLearning.AI,
   2021. The talk that popularized "data-centric AI" as a name for iterating on data and labels
-  rather than only on model architecture, which this arc's second session builds on directly.
+  rather than only on model architecture.
 - [scikit-learn: Common pitfalls and recommended practices](https://scikit-learn.org/stable/common_pitfalls.html).
   The library's own writeup of data leakage, including the "how to avoid it" section on fitting
   inside a pipeline. Short, and it names the exact mistake this session's demo commits on purpose.
@@ -610,7 +609,7 @@ Assignment 4, "Feature pipeline + dataset versioning," is released this session 
 2026) and is due roughly one week later. It asks you to engineer per-unit time-series features
 for C-MAPSS (or a documented run-to-failure fallback), wrap scaling in a leakage-safe `Pipeline`
 fit on training units only, and quantify the RMSE cost of a leaky variant against the correct
-one, before Lecture 8 adds dataset versioning with DVC.
+one.
 
 One warning drawn directly from this session's demo, since the assignment asks you to quantify a
 leak: **do not treat a small measured gap as a failed experiment.** Report what you measure,

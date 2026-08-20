@@ -343,10 +343,7 @@ as-judge are three different tools for three different situations, in roughly th
 cost and reliability, and observability, capturing every request's inputs, outputs, tool calls,
 latency, and cost, turns "the system seemed to get worse" into a traceable, debuggable claim.
 The payoff shows up as timing: finding a problem in a notebook instead of finding it in a
-quarterly earnings call. Next session takes a system that has
-passed this evaluation and asks the remaining question: how do you actually ship it, behind a
-service, in a container, on real infrastructure, without losing any of what this session just
-taught you to check.
+quarterly earnings call.
 
 ## Resources
 
@@ -375,6 +372,6 @@ taught you to check.
 
 Assignment 11, "Eval harness + deployed API," is released this session. It asks you to build a versioned
 evaluation harness, ML metrics or a validated LLM-as-judge, for one of your existing systems
-(the week 7 surrogate, the week 10 RAG system, or the week 11 agent), then, in the lighter second half
-shared with Lecture 22, deploy that system behind a FastAPI and Docker service and run the same
+(the week 7 surrogate, the week 10 RAG system, or the week 11 agent), then, in the lighter second half,
+deploy that system behind a FastAPI and Docker service and run the same
 harness against the live endpoint rather than only the local function. This is a pointer, not the rubric.

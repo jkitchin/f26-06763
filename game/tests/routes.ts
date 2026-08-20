@@ -31,22 +31,30 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const url = `http://localhost:8739${BASE}`
 console.log('routes:')
 
+// Deep-link targets must be RELEASED lectures (the game only serves those); the
+// course releases weekly, so derive them from _toc.yml rather than hard-coding.
+const toc = readFileSync(new URL('../../_toc.yml', import.meta.url), 'utf8')
+const released = [...toc.matchAll(/^\s*-\s*file:\s*lectures\/(l\d\d)\/notes/gm)].map((m) => m[1])
+const LEC_A = released[0]
+const LEC_B = released[1] ?? released[0]
+if (!LEC_A) throw new Error('routes test: no released lectures in _toc.yml')
+
 // A deep link from a student who has never used it before.
 const ctx1 = await b.createBrowserContext()
 const p1 = await ctx1.newPage()
-await p1.goto(`${url}#/l13`, { waitUntil: 'networkidle0' }); await wait(400)
+await p1.goto(`${url}#/${LEC_A}`, { waitUntil: 'networkidle0' }); await wait(400)
 check(!!(await p1.$('#andrew')), 'a deep link asks who you are first')
 await p1.type('#andrew', 'jkitchin'); await p1.type('#name', 'John Kitchin')
 await p1.click('button.btn-primary'); await wait(500)
 const heading = await p1.$eval('p.font-mono', (e) => e.textContent ?? '').catch(() => '')
 const hash1 = await p1.evaluate(() => window.location.hash)
-check(hash1 === '#/l13', 'and then goes to the module that was linked', hash1)
+check(hash1 === `#/${LEC_A}`, 'and then goes to the module that was linked', hash1)
 check(heading.length > 0, 'the session is running', heading.trim())
 
 // A deep link from someone already signed in.
-await p1.goto(`${url}#/l21`, { waitUntil: 'networkidle0' }); await wait(500)
+await p1.goto(`${url}#/${LEC_B}`, { waitUntil: 'networkidle0' }); await wait(500)
 check(!(await p1.$('#andrew')), 'a signed-in student goes straight in')
-check((await p1.evaluate(() => window.location.hash)) === '#/l21', 'on the linked module')
+check((await p1.evaluate(() => window.location.hash)) === `#/${LEC_B}`, 'on the linked module')
 
 // The address bar tracks navigation, so a copied URL is meaningful.
 await p1.click('header button[aria-label="Leave this session"]'); await wait(400)

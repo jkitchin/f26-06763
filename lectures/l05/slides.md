@@ -337,7 +337,7 @@ The decimal shows up on row **1,458** of 1,567.
 
 Declaring beats inferring: 3× faster **and** unsurprisable.
 
-<!-- Then say it out loud, it's the setup for Monday: a declared schema is a
+<!-- Then say it out loud: a declared schema is a
      belief written down, and a belief written down is one you can check.
      That's pandera. -->
 
@@ -798,7 +798,7 @@ One 4-stage pipeline: pandas, Polars lazy, and Dask.
 3. `nunique` port → 800× slower than pandas
 
 All three caught by **a number that didn't match
-an expectation.** That's Monday's whole lecture.
+an expectation.**
 
 ---
 
@@ -827,10 +827,7 @@ Scanning to be "safe" cost more than declaring.
 
 ## Next
 
-**Assignment 3**, out today, due at Lecture 7, Wed 16 Sep
+**Assignment 3**, out today, due Wed 16 Sep
 **Reading** [Polars lazy API](https://docs.pola.rs/user-guide/lazy/using/), [Dask best practices](https://docs.dask.org/en/stable/dataframe-best-practices.html), Kleppmann Ch. 10
-**Lecture 6** Same SECOM matrix, a different question: not how fast
-you can clean it, but how you *prove* it's clean, automatically,
-before a bad value reaches a model
 
 Full notes, with all sources: `lectures/l05/notes.md`

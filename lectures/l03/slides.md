@@ -655,7 +655,7 @@ transactions, joins, constraints, one row at a time.
 
 Scanning three columns across ten years is a **different** job.
 
-That's **OLAP**, and it's Lecture 4: Parquet & DuckDB.
+That's **OLAP**, and it wants a different store.
 
 ---
 
@@ -695,7 +695,5 @@ Watch the top node flip: `Seq Scan` → `Index Only Scan`.
 
 **Assignment 2** released today, due ~1 week
 **Reading** PostgreSQL window functions; Kleppmann Ch. 3
-**Lecture 4** Same data, new home: Parquet & DuckDB, and when a
-column store beats today's row store
 
 Full notes, with all sources: `lectures/l03/notes.md`

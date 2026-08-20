@@ -5,7 +5,7 @@ schema: 1
 lecture: l09
 title: "Train, validate, select: baselines, cross-validation, metrics"
 source_notes: lectures/l09/notes.md
-status: published
+status: unwritten
 serve: 6
 pool_version: 2
 provenance:

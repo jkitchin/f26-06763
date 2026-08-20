@@ -353,7 +353,7 @@ Statistical checks ask whether the **distribution** moved:
 - a null rate creeping up
 - a sensor's mean sliding month to month
 
-The seam into **monitoring** (Lecture 20): the same checks, run forever. A written schema is also documentation, the shape the next person or service can rely on.
+The seam into **monitoring**: the same checks, run forever. A written schema is also documentation, the shape the next person or service can rely on.
 
 ---
 
@@ -452,7 +452,5 @@ The gate turns silent corruption into a loud failure.
 
 **Assignment 3** (from Lecture 5): its validation half is now unblocked
 **Reading** Akidau, "The Dataflow Model"; pandera docs
-**Lecture 7** From guarding data to shaping it: features for time-series
-and physical data, and the trap of **leakage**
 
 Full notes, with all sources: `lectures/l06/notes.md`

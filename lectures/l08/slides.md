@@ -267,7 +267,7 @@ An honest split makes the test set a fair sample of the **same** process.
 
 C-MAPSS FD001 is one simulated condition, so even the honest 16.7 is optimistic for a new site with a different sensor vendor and duty cycle.
 
-Distribution shift is a monitoring problem, later in the course.
+Distribution shift is a separate problem from an honest split.
 
 ---
 
@@ -323,7 +323,5 @@ The per-unit split reports the number the model will actually earn on a new engi
 
 **Assignment 4** (from Lecture 7): its dataset-versioning half is now unblocked
 **Reading** sklearn cross-validation; Kaufman "Leakage in Data Mining"; DVC docs
-**Lecture 9** From trustworthy data to trustworthy models: model selection
-and evaluation, standing on an honest split
 
 Full notes, with all sources: `lectures/l08/notes.md`

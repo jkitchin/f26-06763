@@ -7,7 +7,7 @@
 - **Arc** Foundations
 - **Slides** <a href="../../slides/l02/">Deck for this session</a>
 - **Demo** [`l02-scaffold.ipynb`](l02-scaffold.ipynb), building a tracked project from an empty folder
-- **Assignment 1**, released this week and due about a week later, at Lecture 3 (08-31-2026)
+- **Assignment 1**, released this week and due about a week later (08-31-2026)
 :::
 
 ## Why this matters
@@ -167,14 +167,14 @@ Git is excellent at versioning code. It is close to useless at versioning a 200 
 **Provenance** is the record of where a result came from: which data, which code, and which settings produced it. Reproducibility is the ability to make the result *again*. Provenance is the ability to say *how it was made* in the first place. You want both. They are recorded by different means: git for the code, a hash for the data, an experiment tracker for the tie between them.
 :::
 
-**Data** does not belong in plain git. Understanding why is worth more than the rule. Git keeps every version of every file forever, by design, so that history is complete and nothing is lost. Commit a large binary file and you have committed it permanently. Even after you delete it, it lives on in the history, and every future clone of the repository pays to download it. A raw sensor export is large and binary. It often carries license or privacy constraints that a public copy of the repository would violate outright. So the discipline is to keep the raw data out of git with a `.gitignore` file, which is a list of paths git should refuse to track. In its place you commit a small sample or a description of the columns, so the shape is documented. You also commit a record of where the real data came from and a *content hash* of it. A content hash is a short fingerprint computed from the bytes of a file. Change a single byte and the fingerprint changes. Two runs can then be checked, cheaply and exactly, for having used the same data. Set up the `.gitignore` before your first commit rather than after. Once a large file is in the history, removing it means rewriting that history, which is far more work than never adding it. This repository's own `.gitignore` already excludes `data/`, `*.parquet`, and `*.duckdb` for exactly these reasons. The heavier tools for versioning large data by content, `git-lfs` and DVC, get their proper treatment in Week 4.
+**Data** does not belong in plain git. Understanding why is worth more than the rule. Git keeps every version of every file forever, by design, so that history is complete and nothing is lost. Commit a large binary file and you have committed it permanently. Even after you delete it, it lives on in the history, and every future clone of the repository pays to download it. A raw sensor export is large and binary. It often carries license or privacy constraints that a public copy of the repository would violate outright. So the discipline is to keep the raw data out of git with a `.gitignore` file, which is a list of paths git should refuse to track. In its place you commit a small sample or a description of the columns, so the shape is documented. You also commit a record of where the real data came from and a *content hash* of it. A content hash is a short fingerprint computed from the bytes of a file. Change a single byte and the fingerprint changes. Two runs can then be checked, cheaply and exactly, for having used the same data. Set up the `.gitignore` before your first commit rather than after. Once a large file is in the history, removing it means rewriting that history, which is far more work than never adding it. This repository's own `.gitignore` already excludes `data/`, `*.parquet`, and `*.duckdb` for exactly these reasons. The heavier tools for versioning large data by content are `git-lfs` and DVC.
 
 **Models** are large binary files too. They differ from data in one way that changes what you should record: a model is an *output*. The thing worth saving is the recipe that produced the model, more than the weights themselves. That recipe is the code SHA, the data hash, and the configuration together. Recreate those three and you can recreate the model. Save only the weights and you have an artifact nobody can regenerate or trust. Recording that recipe is what an experiment tracker is for, which is the next section.
 
 | Artifact | How it changes | Tool | What you actually version |
 |---|---|---|---|
 | Code | constantly, in small diffs | git | the source, as commits |
-| Data | rarely, large and binary | git-ignored, plus a content hash; git-lfs/DVC (week 4) | a pointer and a hash, never the raw bytes |
+| Data | rarely, large and binary | git-ignored, plus a content hash; git-lfs/DVC | a pointer and a hash, never the raw bytes |
 | Models | one per run, large binary | an MLflow run | the inputs that produced it |
 
 ## From notebook to module
@@ -226,7 +226,7 @@ with mlflow.start_run():
     # also log the code SHA and a data hash, so the run is reconstructible
 ```
 
-Run the trainer twice with two different seeds. The two runs appear as two rows you can compare directly. The small difference between them is the lesson. It is why the seed has to be logged: without it, neither number is reconstructible. The habit worth building is to log enough that the run could be *rebuilt* from its record. That means the git commit SHA of the code, a hash or version of the data, and the seed, all sitting next to the metric. That triple is the provenance the Duke work never had. With it, a run becomes one reproducible fact, which is the phrase this section is named for. The Week 7 miniproject later demands exactly this triple, a git SHA, a data hash, and a seed, as its price of admission. This session is where you build the habit that makes that requirement painless.
+Run the trainer twice with two different seeds. The two runs appear as two rows you can compare directly. The small difference between them is the lesson. It is why the seed has to be logged: without it, neither number is reconstructible. The habit worth building is to log enough that the run could be *rebuilt* from its record. That means the git commit SHA of the code, a hash or version of the data, and the seed, all sitting next to the metric. That triple is the provenance the Duke work never had. With it, a run becomes one reproducible fact, which is the phrase this section is named for. Get in the habit of recording all three, a git SHA, a data hash, and a seed, next to every metric you log.
 
 ## Where reproducibility pushes back
 
@@ -241,7 +241,7 @@ This is the limit that matters most. Making a result reproducible does not make 
 
 ### A lockfile pins versions, not the whole world
 
-A lockfile is a strong guarantee. It is not a total one. It pins the exact version of every Python package. A package version is not the same as the compiled code that actually runs. Many packages ship as platform-specific binary wheels. The bytes installed for your locked version of NumPy differ between macOS and Linux. The lockfile says nothing about the system C libraries, the CUDA toolkit, or the operating system underneath. A pinned version can even become unavailable if it is later removed from the package index. For most engineering work the lockfile is enough. When you need to freeze the entire stack down to the system libraries, the tool is a container, which packages the operating-system layer as well. That is a Week 12 topic. So `uv` gives you a reproducible *Python environment*. That is most of what you need, and not quite all of it.
+A lockfile is a strong guarantee. It is not a total one. It pins the exact version of every Python package. A package version is not the same as the compiled code that actually runs. Many packages ship as platform-specific binary wheels. The bytes installed for your locked version of NumPy differ between macOS and Linux. The lockfile says nothing about the system C libraries, the CUDA toolkit, or the operating system underneath. A pinned version can even become unavailable if it is later removed from the package index. For most engineering work the lockfile is enough. When you need to freeze the entire stack down to the system libraries, the tool is a container, which packages the operating-system layer as well. So `uv` gives you a reproducible *Python environment*. That is most of what you need, and not quite all of it.
 
 ### The discipline has a cost, and sometimes it is overkill
 
@@ -249,7 +249,7 @@ Setting up a locked, tracked, packaged project is not free. There is a real judg
 
 ### A hash tells you that data changed, not what or why
 
-The content hash that lets you detect whether two runs used the same data is a blunt instrument on purpose. It will tell you, with certainty, that the file is different. It will not tell you which rows changed, whether the change was a fix or a corruption, or whether it matters for your result. Detecting change is only the floor of data provenance. The tools that go further version data by content and keep a readable history of what changed and why. Those tools are `git-lfs` and DVC, in Week 4. A hash tells you something changed. It does not tell you what or why.
+The content hash that lets you detect whether two runs used the same data is a blunt instrument on purpose. It will tell you, with certainty, that the file is different. It will not tell you which rows changed, whether the change was a fix or a corruption, or whether it matters for your result. Detecting change is only the floor of data provenance. The tools that go further version data by content and keep a readable history of what changed and why. Those tools are `git-lfs` and DVC. A hash tells you something changed. It does not tell you what or why.
 
 ### Tracking records; it does not enforce
 
@@ -258,7 +258,7 @@ MLflow will record whatever you log. That includes a run whose environment was n
 :::{admonition} What a practitioner should take from this
 :class: tip
 
-Treat reproducibility as the foundation you build on, not the building itself. It is necessary. Without it, no result can be checked, corrected, or defended, and the Duke case is what its absence costs. It is not sufficient. A reproducible result can still be wrong. It buys you the ability to validate. Validation itself is still your job. It is also not free. Invest in proportion to how much the result will be reused or believed, and default to more discipline rather than less, because retrofitting is the costly direction. The stronger guarantees come later in the course: whole-stack reproducibility with containers, and richer data versioning. What you build this week is the layer everything else assumes.
+Treat reproducibility as the foundation you build on, not the building itself. It is necessary. Without it, no result can be checked, corrected, or defended, and the Duke case is what its absence costs. It is not sufficient. A reproducible result can still be wrong. It buys you the ability to validate. Validation itself is still your job. It is also not free. Invest in proportion to how much the result will be reused or believed, and default to more discipline rather than less, because retrofitting is the costly direction. What you build this week is the layer everything else assumes.
 :::
 
 ## In-class demo
@@ -269,7 +269,7 @@ Two moments carry the lesson. The first is when we delete `.venv` and rebuild it
 
 ## Summary
 
-Reproducibility is the ability to say which data, which code, and which settings produced a number, and then to produce that number again. The Duke chemotherapy predictors are the case for taking it as seriously as this session does. Two ordinary errors, a shifted index and a swapped label, reached a clinical trial and stood for years, because the work was never reproducible enough for anyone to check. Each tool in the session closes one part of the gap. `uv` pins the interpreter and locks the dependency graph, so a rebuild comes out the same rather than merely similar. A conventional `src` layout and a disciplined `.gitignore` keep code, data, and models in the tools that suit each. They also keep the boundary between exploration and production visible in the tree. Refactoring the notebook into a module makes the analysis run again for someone who is not you. MLflow turns each run into a fact you can point to, carrying the SHA, the data hash, and the seed that make it rebuildable. The closing section is the other half of the story. Reproducibility is necessary and not sufficient. A lockfile pins Python and not the whole machine. The discipline is worth paying for in proportion to how much a result will be trusted. Next session we stop keeping the data in a CSV file and give it a real home, starting with relational databases and SQL for engineering time-series.
+Reproducibility is the ability to say which data, which code, and which settings produced a number, and then to produce that number again. The Duke chemotherapy predictors are the case for taking it as seriously as this session does. Two ordinary errors, a shifted index and a swapped label, reached a clinical trial and stood for years, because the work was never reproducible enough for anyone to check. Each tool in the session closes one part of the gap. `uv` pins the interpreter and locks the dependency graph, so a rebuild comes out the same rather than merely similar. A conventional `src` layout and a disciplined `.gitignore` keep code, data, and models in the tools that suit each. They also keep the boundary between exploration and production visible in the tree. Refactoring the notebook into a module makes the analysis run again for someone who is not you. MLflow turns each run into a fact you can point to, carrying the SHA, the data hash, and the seed that make it rebuildable. The closing section is the other half of the story. Reproducibility is necessary and not sufficient. A lockfile pins Python and not the whole machine. The discipline is worth paying for in proportion to how much a result will be trusted.
 
 ## Resources
 
@@ -286,4 +286,4 @@ Reproducibility is the ability to say which data, which code, and which settings
 
 ## Assignment
 
-Assignment 1, the reproducible project scaffold, was released in Week 1 and is due about a week later, at Lecture 3 (08-31-2026). It asks you to build a `uv`-managed, git-tracked project that pulls the UCI air-quality dataset. You then turn an exploratory notebook into a runnable, importable module with a tested entry point and an MLflow-logged run. It is the scaffold you reuse all semester, so it is worth doing carefully the first time. It is also a direct extension of the demo we build in class. This is a pointer, not the rubric.
+Assignment 1, the reproducible project scaffold, was released in Week 1 and is due about a week later (08-31-2026). It asks you to build a `uv`-managed, git-tracked project that pulls the UCI air-quality dataset. You then turn an exploratory notebook into a runnable, importable module with a tested entry point and an MLflow-logged run. It is the scaffold you reuse all semester, so it is worth doing carefully the first time. It is also a direct extension of the demo we build in class. This is a pointer, not the rubric.
