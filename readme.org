@@ -1,8 +1,8 @@
 #+TITLE: Systems and Toolchains for AI Engineers
 
-Course materials for 06-763 / 14-763 / 18-763, Fall 2026.
+Course materials for Systems and Toolchains for AI Engineers, Fall 2026.
 
-*This repository is private. The rendered site is public:*
+*The rendered site is public:*
 https://kitchingroup.cheme.cmu.edu/f26-06763/
 
 Anything listed in the ~toc:~ of ~_toc.yml~ is published to that site. Anything
@@ -23,7 +23,7 @@ teaching notes) is deliberately excluded.
 One directory per session, ~l01~ through ~l26~, plus ~mp1~ and ~mp2~ for the
 Week 8 mini-project. ~lectures/l01/~ is the worked reference for both formats.
 
-* Building
+* Building using jupyter-books and MARP.
 
 #+begin_src sh
 pip install "jupyter-book<2"  # 1.x is required, see CLAUDE.md section 8
@@ -37,6 +37,6 @@ GitHub Pages via ~.github/workflows/book.yml~.
 
 * Conventions
 
-Lecture notes are narrative documents meant to be read outside class. Slides are for presentation of the content during lectures. They are separate artifacts with
+Lecture notes are "textbook" documents/chapters meant to be read outside class. Slides are for presentation of the content during lectures. They are separate artifacts with
 separate jobs, both derived from the corresponding lecture block in
-~course/modules/wkNN.md~. The full contract is in [[file:CLAUDE.md][CLAUDE.md]].
+~course/modules/wkNN.md~. The full orchestraton is in [[file:CLAUDE.md][CLAUDE.md]].
