@@ -174,6 +174,93 @@
         }
       },
       "serve": 5
+    },
+    "3": {
+      "items": {
+        "l01-q01": {
+          "answer": "The figure does not appear in the paper; it says only that the ML code box is tiny in proportion to the rest of the system",
+          "options": [
+            "Under 5%, so the slide has rounded in the wrong direction",
+            "The figure does not appear in the paper; it says only that the ML code box is tiny in proportion to the rest of the system",
+            "10% of engineering effort rather than of code, so the units are wrong",
+            "It appears in the appendix, so the claim is right but under-cited"
+          ]
+        },
+        "l01-q02": {
+          "answer": "The remaining rows were not rejected with an error; they were simply absent",
+          "options": [
+            "The import failed with an error, and the backlog was reprocessed once the format was changed",
+            "The remaining rows were not rejected with an error; they were simply absent",
+            "The file was split automatically, and the second part was processed a day late",
+            "The rows were truncated to fit, so partial records entered the system"
+          ]
+        },
+        "l01-q03": {
+          "answer": "No. The protocol was more disciplined than a great deal of deployed machine learning gets, and it still failed in production",
+          "options": [
+            "Yes; screening 50 million candidates guarantees spurious correlations survive to the held-out set",
+            "No. The protocol was more disciplined than a great deal of deployed machine learning gets, and it still failed in production",
+            "Yes; nine regions is too few to support a correlation estimate",
+            "No, and the failure was purely an infrastructure outage rather than a modeling issue"
+          ]
+        },
+        "l01-q04": {
+          "answer": "It carries provenance and traceability requirements, because the outputs feed decisions with physical and safety consequences",
+          "options": [
+            "It is larger, so the tooling has to scale further than a tutorial's does",
+            "It carries provenance and traceability requirements, because the outputs feed decisions with physical and safety consequences",
+            "It is noisier, so more of the effort goes into cleaning than into modeling",
+            "It is proprietary, so it cannot be shared and every project starts from scratch"
+          ]
+        },
+        "l01-q05": {
+          "answer": "That the system acted on a single angle-of-attack sensor, so one faulty input had no contradiction available",
+          "options": [
+            "That redundant sensors were fitted and the voting logic failed to use them",
+            "That the system acted on a single angle-of-attack sensor, so one faulty input had no contradiction available",
+            "That the sensors were correct and the fault lay entirely in pilot training",
+            "That sensor data was corrupted in transit between the vane and the flight computer"
+          ]
+        },
+        "l01-q06": {
+          "answer": "A result that cannot be rebuilt, because a lockfile pins what was actually installed rather than what was requested",
+          "options": [
+            "Slow installs, since uv resolves and downloads faster than the alternatives",
+            "A result that cannot be rebuilt, because a lockfile pins what was actually installed rather than what was requested",
+            "Dependency conflicts, which uv resolves where pip would fail",
+            "Disk usage, since uv shares a global cache between projects"
+          ]
+        },
+        "l01-q07": {
+          "answer": "Into the data infrastructure, the evaluation, and the operational practice around the model",
+          "options": [
+            "Into model selection and hyperparameter tuning, which is where accuracy is won",
+            "Into the data infrastructure, the evaluation, and the operational practice around the model",
+            "Into inference optimisation, since serving cost dominates the lifetime budget",
+            "Into user interface work, since adoption determines whether a model delivers value"
+          ]
+        },
+        "l01-q08": {},
+        "l01-q09": {
+          "answer": "It integrates a curve twice, once with `np.trapz` and once with `np.trapezoid`, and exactly one exists in your NumPy version",
+          "options": [
+            "Random seeds differ between machines, so the split is different",
+            "It integrates a curve twice, once with `np.trapz` and once with `np.trapezoid`, and exactly one exists in your NumPy version",
+            "The absolute path only exists on the author's machine, so everyone fails identically there",
+            "Cell execution order differs, so the failure depends on how you ran it"
+          ]
+        },
+        "l01-q10": {
+          "answer": "The world moved and the frozen test set did not, so the response is monitoring the input distribution rather than re-scoring the same data",
+          "options": [
+            "The users are wrong; a stable test score means stable behavior",
+            "The world moved and the frozen test set did not, so the response is monitoring the input distribution rather than re-scoring the same data",
+            "The model has degraded numerically, so retraining on the same data will restore it",
+            "The test set has leaked into training, which inflates the score while real performance falls"
+          ]
+        }
+      },
+      "serve": 5
     }
   }
 }

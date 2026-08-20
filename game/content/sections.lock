@@ -2,13 +2,13 @@
 # Regenerate with: python game/validate.py --accept-sections
 # A change here means a cited section was edited; the diff is the list
 # of items somebody should have re-read.
-l01-q01: a87df292e3bf
-l01-q02: 75d8e258f18c
-l01-q03: 89ea8cf707ab
-l01-q04: 68917f17de26
-l01-q05: 051ceaa53cce
+l01-q01: 8f6eea4b13d1
+l01-q02: 6469d11a0887
+l01-q03: e40785171e58
+l01-q04: e0c78cc0a1b0
+l01-q05: b6d4cd81dc5a
 l01-q06: bfa52f24fbd1
-l01-q07: a87df292e3bf
+l01-q07: 8f6eea4b13d1
 l01-q08: a26e36b9c10c
 l01-q09: 0941cc572144
 l01-q10: b0ce2804f289
