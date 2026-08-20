@@ -496,9 +496,9 @@ def fig_selection_bias(ccpp: pd.DataFrame, noise: float) -> dict:
             f"By n = {crossing:,} it has vanished into the noise, and on all\n"
             f"{len(X):,} rows it is {bias[-1]:+.3f} MW: unmeasurable.",
             transform=ax.transAxes, fontsize=11.5, color=INK, va="top")
-    ax.text(0.30, 0.50, "Nested CV is small-data insurance.\nKnow which regime you are in.",
+    ax.text(0.60, 0.92, "Nested CV is small-data insurance.\nKnow which regime you are in.",
             transform=ax.transAxes, fontsize=12.5, color=CMU_RED, fontweight="bold",
-            va="top")
+            ha="left", va="top")
 
     fig.savefig(HERE / "selection-bias.png")
     plt.close(fig)

@@ -30,6 +30,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import numpy as np
 import pandas as pd
 
@@ -224,9 +225,9 @@ def fig_voltage(df: pd.DataFrame):
              color=CMU_RED, fontsize=10.5)
     axv.set_ylabel("Battery voltage, V (daily mean)")
     axv.set_title("Batteries drain over the month", pad=10)
-    for lab in axv.get_xticklabels():
-        lab.set_rotation(45)
-        lab.set_ha("right")
+    axv.xaxis.set_major_locator(mdates.AutoDateLocator(maxticks=6))
+    axv.xaxis.set_major_formatter(
+        mdates.ConciseDateFormatter(axv.xaxis.get_major_locator()))
 
     # Right: temperature vs voltage, showing the explosion at low voltage.
     samp = d.sample(n=min(60000, len(d)), random_state=0)
