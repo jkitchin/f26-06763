@@ -20,11 +20,13 @@ console.log('map:')
 
 // --- the generated world holds together ------------------------------------
 
-check(world.rooms.length === 25, 'every session on the schedule is a room',
+check(world.rooms.length === 22, 'every session on the schedule is a room',
   `${world.rooms.length} rooms`)
 // The written (open) rooms are exactly the lectures released in _toc.yml. The
 // course ships one week at a time, so this set grows week by week; the test
 // derives it from _toc.yml rather than hard-coding a count a release would break.
+// (L18 keeps its notes and bank stub but has no schedule row now that it is
+// folded into L17, so it is never a room and never released.)
 const toc = readFileSync(new URL('../../_toc.yml', import.meta.url), 'utf8')
 const releasedIds = new Set(
   [...toc.matchAll(/^\s*-\s*file:\s*lectures\/(l\d\d)\/notes/gm)].map((m) => m[1]))
@@ -35,10 +37,12 @@ check(JSON.stringify(writtenIds) === JSON.stringify(expectedWritten),
   'written rooms are exactly the lectures released in _toc.yml',
   `written: ${writtenIds.join(',') || '(none)'}`)
 
-// L18 and L19 carry a conference annotation in the schedule that an earlier
-// parser silently dropped. L19 anchors five authored corridors, so losing it
-// would have left five edges pointing out of a room that was not drawn.
-for (const id of ['l18', 'l19']) {
+// Two rows carry a conference annotation in the schedule that an earlier parser
+// silently dropped. The annotation belongs to the dates rather than the lectures,
+// so dropping the mini-project days moved it from L18/L19 onto L21/L22. L21
+// anchors authored corridors, so losing it would have left edges pointing out of
+// a room that was not drawn.
+for (const id of ['l21', 'l22']) {
   check(roomById(id) !== undefined, `${id} survived the schedule parse`)
 }
 
@@ -113,7 +117,7 @@ check(!doorVisible(oneDoor, none), 'a corridor is hidden until both ends are vis
 check(!doorVisible(oneDoor, new Set(['l21'])), 'one end is not enough')
 check(doorVisible(oneDoor, both), 'and drawn once both have been')
 
-check(coverage(none).seen === 0 && coverage(none).total === 25, 'coverage starts at zero of 25')
+check(coverage(none).seen === 0 && coverage(none).total === 22, 'coverage starts at zero of 22')
 check(coverage(both).seen === 2, 'and counts the rooms actually stood in')
 
 // Shuttered rooms no longer carry a promise sign: the promises were forward

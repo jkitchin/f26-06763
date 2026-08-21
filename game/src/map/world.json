@@ -3,12 +3,12 @@
   "note": "Rooms are the sessions in course/schedule.md, regions are the arcs the notes declare, corridors are the edges tools/graph.py verified. Nothing is placed by hand.",
   "grid": {
     "width": 16,
-    "height": 6,
+    "height": 5,
     "cols_per_region": 2
   },
   "spawn": {
     "x": 1,
-    "y": 5
+    "y": 4
   },
   "regions": [
     {
@@ -36,16 +36,14 @@
     {
       "name": "Machine learning and deep learning",
       "x0": 7,
-      "rows": 4,
+      "rows": 3,
       "rooms": [
         "l09",
         "l10",
         "l11",
         "l12",
         "l13",
-        "l14",
-        "mp1",
-        "mp2"
+        "l14"
       ]
     },
     {
@@ -56,7 +54,6 @@
         "l15",
         "l16",
         "l17",
-        "l18",
         "l19",
         "l20"
       ]
@@ -256,35 +253,9 @@
       "notes": null
     },
     {
-      "session": "MP-1",
-      "id": "mp1",
-      "date": "2026-10-21",
-      "title": "Mini-projects",
-      "written": false,
-      "arc_source": "inherited",
-      "arc": "Machine learning and deep learning",
-      "region": 2,
-      "x": 7,
-      "y": 4,
-      "notes": null
-    },
-    {
-      "session": "MP-2",
-      "id": "mp2",
-      "date": "2026-10-26",
-      "title": "Mini-projects",
-      "written": false,
-      "arc_source": "inherited",
-      "arc": "Machine learning and deep learning",
-      "region": 2,
-      "x": 8,
-      "y": 4,
-      "notes": null
-    },
-    {
       "session": "L15",
       "id": "l15",
-      "date": "2026-10-28",
+      "date": "2026-10-21",
       "title": "Large Language Models (LLMs) - Intro",
       "written": false,
       "arc_source": "declared",
@@ -297,7 +268,7 @@
     {
       "session": "L16",
       "id": "l16",
-      "date": "2026-11-02",
+      "date": "2026-10-26",
       "title": "Large Language Models (LLMs) II",
       "written": false,
       "arc_source": "declared",
@@ -310,36 +281,36 @@
     {
       "session": "L17",
       "id": "l17",
-      "date": "2026-11-04",
-      "title": "Retrieval-augmented generation (RAG)",
+      "date": "2026-10-28",
+      "title": "Retrieval-augmented generation (RAG), and choosing between prompting, RAG, and fine-tuning",
       "written": false,
       "arc_source": "declared",
       "arc": "LLM and agentic engineering",
       "region": 3,
       "x": 10,
-      "y": 2,
-      "notes": null
-    },
-    {
-      "session": "L18",
-      "id": "l18",
-      "date": "2026-11-09",
-      "title": "LLMs - Lecture III",
-      "written": false,
-      "arc_source": "declared",
-      "arc": "LLM and agentic engineering",
-      "region": 3,
-      "x": 11,
       "y": 2,
       "notes": null
     },
     {
       "session": "L19",
       "id": "l19",
-      "date": "2026-11-11",
+      "date": "2026-11-02",
       "title": "LLM Agents",
       "written": false,
       "arc_source": "declared",
+      "arc": "LLM and agentic engineering",
+      "region": 3,
+      "x": 11,
+      "y": 2,
+      "notes": null
+    },
+    {
+      "session": "L20",
+      "id": "l20",
+      "date": "2026-11-04",
+      "title": "Multi-agent systems",
+      "written": false,
+      "arc_source": "inherited",
       "arc": "LLM and agentic engineering",
       "region": 3,
       "x": 10,
@@ -347,22 +318,9 @@
       "notes": null
     },
     {
-      "session": "L20",
-      "id": "l20",
-      "date": "2026-11-16",
-      "title": "Multi-agent systems",
-      "written": false,
-      "arc_source": "inherited",
-      "arc": "LLM and agentic engineering",
-      "region": 3,
-      "x": 11,
-      "y": 3,
-      "notes": null
-    },
-    {
       "session": "L21",
       "id": "l21",
-      "date": "2026-11-18",
+      "date": "2026-11-09",
       "title": "Evaluating and observing ML and LLM systems",
       "written": false,
       "arc_source": "declared",
@@ -375,7 +333,7 @@
     {
       "session": "L22",
       "id": "l22",
-      "date": "2026-11-23",
+      "date": "2026-11-11",
       "title": "Deployment: serving, containers, latency, and cost",
       "written": false,
       "arc_source": "inherited",
@@ -388,7 +346,7 @@
     {
       "session": "L23",
       "id": "l23",
-      "date": "2026-11-30",
+      "date": "2026-11-16",
       "title": "MLOps and responsible AI",
       "written": false,
       "arc_source": "declared",

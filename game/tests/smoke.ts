@@ -265,32 +265,23 @@ async function main() {
     await page.goto(`http://localhost:${PORT}${BASE}#/map`, { waitUntil: 'networkidle0' })
     await page.waitForSelector('[role="application"]')
 
+    const world = JSON.parse(
+      readFileSync(fileURLToPath(new URL('../src/map/world.json', import.meta.url)), 'utf8'),
+    ) as { spawn: { x: number; y: number };
+           rooms: { id: string; x: number; y: number; written: boolean }[] }
     const roomCount = await page.$$eval('[role="application"] button', (b) => b.length)
-    check(roomCount === 25, 'every session on the schedule is drawn', `${roomCount} rooms`)
+    check(roomCount === world.rooms.length,
+      'every session on the schedule is drawn', `${roomCount} of ${world.rooms.length}`)
 
     const coverageOf = () =>
       page.$$eval('p', (ps) =>
         ps.map((p) => p.textContent ?? '').find((t) => /rooms visited/.test(t)) ?? '')
     const before = await coverageOf()
 
-    // Walk from spawn to L3, on a route computed from the world rather than
-    // typed out as key presses.
-    //
-    // L3 specifically, and this is not arbitrary. The first version stopped at
-    // L2 and asserted a corridor was lit, which failed: L2 has no corridors at
-    // all, citing nothing and cited by nothing. That is a true fact about the
-    // course rather than a bug, and the assertion was the thing that was wrong.
-    //
-    // The route is derived because the hardcoded one broke the moment a lecture
-    // was added: L10 shifted the grid from five regions to seven, the fixed
-    // four-up-three-right path landed on empty floor, and the failure surfaced
-    // as "no element matching section h2" rather than as anything about the map.
-    const world = JSON.parse(
-      readFileSync(fileURLToPath(new URL('../src/map/world.json', import.meta.url)), 'utf8'),
-    ) as { spawn: { x: number; y: number };
-           rooms: { id: string; x: number; y: number; written: boolean }[] }
-    // Walk to a released (open) room and confirm its panel shows what it covers.
-    // Target the last released room so this holds as the course releases weekly.
+    // Walk to a released (open) room and confirm its panel shows what it covers,
+    // on a route computed from the world rather than typed out as key presses (a
+    // hardcoded path broke the moment the grid changed). Target the last released
+    // room so this holds as the course releases week by week.
     const released = world.rooms.filter((r) => r.written)
     const target = released[released.length - 1]
     if (!target) throw new Error('no released rooms on the map')
