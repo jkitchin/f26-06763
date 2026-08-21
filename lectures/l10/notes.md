@@ -16,7 +16,7 @@ By the end of a real model-selection study you will have run the training script
 
 [Lecture 9](../l09/notes.md) built the workflow that produces those runs: baselines, cross-validation, metrics, and the discipline of touching the test set once. This session is about keeping the record of that work, and about searching the hyperparameter space without fooling yourself. The two are the same problem seen twice. A hyperparameter search is a machine for generating hundreds of runs and picking the best one, and picking the best one is exactly where an unrecorded, unexamined study quietly lies to you. So we log every run with enough detail to rebuild it, we search with a strategy rather than by hand, and we read the results knowing that the best validation score is an optimistic number by construction.
 
-The dataset stays the same as Lecture 9: the UCI Combined Cycle Power Plant set, 9,568 hourly records of four ambient measurements (temperature, exhaust vacuum, pressure, humidity) predicting net electrical output in megawatts. It is a steady-state surrogate problem, the kind that recurs for pump curves and engine maps, and it is small and clean enough that a full search runs in class.
+The dataset stays the same as Lecture 9: the UCI Combined Cycle Power Plant (CCPP) set, 9,568 hourly records of four ambient measurements (temperature, exhaust vacuum, pressure, humidity) predicting net electrical output in megawatts. It is a steady-state surrogate problem, the kind that recurs for pump curves and engine maps, and it is small and clean enough that a full search runs in class.
 
 ## Learning objectives
 
@@ -33,7 +33,7 @@ By the end of this session you should be able to:
 
 The purpose of tracking is to answer one question after the fact: which run produced this number, and can I produce it again? A run that logs only its score cannot answer it. A run answers it when it records everything needed to rebuild itself.
 
-That list is specific, and it ties this session back to the rest of the course. Log the **hyperparameters** and the **metrics** (per fold, not just the average, so you can see the variance). Log the **git commit SHA** of the code, so the exact program is recoverable. Log the **dataset version or content hash** from [Lecture 8](../l08/notes.md), so the exact inputs are pinned. Log the **random seed** and the **environment**, which is the `uv.lock` from [Lecture 2](../l02/notes.md). And log the **artifacts**: the fitted pipeline, the plots, the feature importances. The rule from Lecture 2 returns with more force here, because a search multiplies the number of runs by a hundred: one run equals one fact you can reproduce, and a run you cannot rebuild is a number you cannot defend.
+That list is specific, and it ties this session back to the rest of the course. Log the **hyperparameters** and the **metrics** (per fold, not just the average, so you can see the variance). Log the **git commit SHA** (secure hash algorithm) of the code, so the exact program is recoverable. Log the **dataset version or content hash** from [Lecture 8](../l08/notes.md), so the exact inputs are pinned. Log the **random seed** and the **environment**, which is the `uv.lock` from [Lecture 2](../l02/notes.md). And log the **artifacts**: the fitted pipeline, the plots, the feature importances. The rule from Lecture 2 returns with more force here, because a search multiplies the number of runs by a hundred: one run equals one fact you can reproduce, and a run you cannot rebuild is a number you cannot defend.
 
 ## MLflow: experiments, runs, and the registry
 
@@ -116,7 +116,7 @@ On the power-plant data this converges fast, and it shows both the promise and t
 :width: 80%
 :align: center
 
-Best validation RMSE so far, over 30 trials of a gradient-boosting model on CCPP. TPE reaches a good configuration in fewer trials than random sampling, but both finish close: 3.326 MW for TPE against 3.335 MW for random. On an easy problem the sampler matters less than the fact that you searched at all.
+Best validation root mean squared error (RMSE) so far, over 30 trials of a gradient-boosting model on CCPP. TPE reaches a good configuration in fewer trials than random sampling, but both finish close: 3.326 MW for TPE against 3.335 MW for random. On an easy problem the sampler matters less than the fact that you searched at all.
 ```
 
 Two more ideas make a large search affordable. **Pruning** stops a trial early once its intermediate scores look hopeless; Optuna's median and successive-halving pruners do this. And **Hyperband** (Li et al., 2018) formalizes the idea, speeding up random search "through adaptive resource allocation and early-stopping" so that promising configurations get more budget and bad ones are cut off quickly. Every trial, pruned or not, gets logged to MLflow as a nested run, so the search itself is auditable rather than a black box that emits one winner.

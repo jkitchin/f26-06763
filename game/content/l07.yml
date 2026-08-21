@@ -4,7 +4,7 @@ title: "Features for time-series and physical data: transforms, scaling, leakage
 source_notes: lectures/l07/notes.md
 status: unwritten
 serve: 5
-pool_version: 2
+pool_version: 3
 provenance:
   drafted_by: hand
   reviewed_by: jkitchin
@@ -170,7 +170,7 @@ items:
     prompt: |
       What does saving a fitted pipeline with `joblib` and reloading it establish?
     options:
-      - "That the model will generalise, since a reproducible pipeline is a validated one"
+      - "That the model will generalize, since a reproducible pipeline is a validated one"
       - "That it reproduces its own predictions exactly, which is the minimum bar before anything is deployed"
       - "That the feature engineering is correct, since a broken transform would fail to serialize"
       - "That the pipeline is portable across environments, since joblib pins its dependencies"
@@ -179,7 +179,7 @@ items:
       A fitted pipeline carries the transformer state, the scaler's means and
       variances among it, so serializing and reloading checks that the thing you
       will call in production is the thing you validated. It says nothing about
-      generalisation and nothing about portability: joblib does not pin
+      generalization and nothing about portability: joblib does not pin
       dependencies, and a pipeline pickled under one scikit-learn version is not
       guaranteed to load under another, which is why L2's environment discipline
       is a prerequisite rather than an aside.
@@ -244,7 +244,7 @@ items:
     options:
       - "In the sensor: a constant reading means the instrument has failed and should be replaced"
       - "In the selection step, which ranked a zero-variance column without checking whether it varies at all"
-      - "In the model, which should regularise a constant feature to zero weight automatically"
+      - "In the model, which should regularize a constant feature to zero weight automatically"
       - "In the scaling, which divides by a near-zero standard deviation and amplifies noise"
     answer: "In the selection step, which ranked a zero-variance column without checking whether it varies at all"
     evidence: |
@@ -299,7 +299,7 @@ items:
       What is the strongest argument for assembling feature engineering into a
       fitted pipeline object rather than a sequence of notebook cells?
     options:
-      - "It runs faster, because the transforms are applied in a single vectorised pass over the data"
+      - "It runs faster, because the transforms are applied in a single vectorized pass over the data"
       - "The transform applied at prediction time is the object fitted at training time"
       - "It documents the feature engineering, which makes the notebook easier for a reviewer to follow"
       - "It allows hyperparameter search over the feature steps, which is not possible with loose cells"

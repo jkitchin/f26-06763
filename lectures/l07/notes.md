@@ -206,7 +206,7 @@ because the cost of getting it wrong is not hypothetical.
 ```{index} pair: case study; Mars Climate Orbiter
 ```
 
-NASA's Mars Climate Orbiter launched on 11 December 1998 to study the Martian atmosphere and
+NASA's Mars Climate Orbiter (MCO) launched on 11 December 1998 to study the Martian atmosphere and
 relay data from a companion lander. On 23 September 1999 it fired its main engine to enter
 orbit around Mars, and its signal was lost at 09:04:52 UTC, forty-nine seconds earlier than
 the predicted start of occultation. It was never heard from again.
@@ -275,7 +275,7 @@ was obliged to act on. An anomaly that is "noted informally" is not monitoring.
 You will see this failure attributed to a cost of "\$327 million," and it is worth being
 careful with the figure, because the Board's report does not contain it. The report never
 mentions cost at all. The \$327.6 million figure is the total for the **Mars Surveyor '98
-program**, which funded two spacecraft: this orbiter and the Mars Polar Lander, which was lost
+program**, which funded two spacecraft: this orbiter and the Mars Polar Lander (MPL), which was lost
 separately in December 1999 for unrelated reasons. Published breakdowns put the orbiter
 spacecraft itself nearer \$125 million.
 
@@ -355,7 +355,7 @@ a fault or a dropout, since the median barely moves for a handful of extreme rea
 mean would not. **Log** and **Box-Cox** transforms address a different problem, skew: many
 physical quantities (particle counts, chemical concentrations, time-to-event data) are
 naturally log-distributed rather than normally distributed, and a model, or a metric like
-RMSE, that implicitly assumes symmetric errors will be dominated by the long tail unless you
+root mean squared error (RMSE), that implicitly assumes symmetric errors will be dominated by the long tail unless you
 transform it away first. **Categorical encoding**, one-hot or target encoding for an
 equipment ID or an operating regime, is the same idea applied to non-numeric columns: the
 model needs a numeric representation, and the encoding you choose determines whether it can
@@ -377,7 +377,7 @@ roughly 19.** Two thousandths of a cycle. If you were looking for a scare number
 does not have one.
 
 Now hold that next to a second measurement from the same notebook. The two scalers, the honest
-one and the leaky one, disagree about where a feature is centred by **up to 23%**, and about its
+one and the leaky one, disagree about where a feature is centered by **up to 23%**, and about its
 spread by up to 9%. So the leak unambiguously happened, it changed the transform substantially,
 and the metric reported almost nothing.
 
@@ -387,7 +387,7 @@ on the model you happen to be using, and the notebook demonstrates this by runni
 leak past four:
 
 ```{figure} figures/leakage-by-model.png
-:alt: Bar chart of the RMSE penalty caused by an identical scaler leak under four models. LinearRegression shows zero, Ridge with a mild penalty shows almost zero, Ridge with a strong penalty shows a negative bar meaning the leak helped, and a nearest-neighbours model shows a clearly positive bar.
+:alt: Bar chart of the RMSE penalty caused by an identical scaler leak under four models. LinearRegression shows zero, Ridge with a mild penalty shows almost zero, Ridge with a strong penalty shows a negative bar meaning the leak helped, and a nearest-neighbors model shows a clearly positive bar.
 :width: 100%
 
 The identical leak, scored four ways. Nothing changes between bars except the model. The
@@ -403,7 +403,7 @@ transform was equally contaminated in all four cases.
 
 Read the third row again. Under a strong penalty the leaky pipeline scores *better* than the
 honest one. A leak makes your number meaningless rather than reliably inflating it, and it can
-just as easily flatter you as punish you. The nearest-neighbours row is the counterweight: change
+just as easily flatter you as punish you. The nearest-neighbors row is the counterweight: change
 nothing but the model, and the same leak becomes impossible to miss.
 
 Two structural features of C-MAPSS keep the effect small in the linear cases. The test engines
@@ -615,7 +615,7 @@ One warning drawn directly from this session's demo, since the assignment asks y
 leak: **do not treat a small measured gap as a failed experiment.** Report what you measure,
 including a gap of zero, and say which model you measured it with and why that model would or
 would not be sensitive to it. A report that says "the leak cost 0.002 cycles under Ridge, and
-0.35 under k-nearest-neighbours, because the latter is a pure distance computation" is a better
+0.35 under k-nearest-neighbors, because the latter is a pure distance computation" is a better
 answer than one that hunts for a configuration where the number looks alarming.
 
 This is a pointer, not the rubric.

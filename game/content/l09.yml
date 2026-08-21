@@ -7,7 +7,7 @@ title: "Train, validate, select: baselines, cross-validation, metrics"
 source_notes: lectures/l09/notes.md
 status: unwritten
 serve: 6
-pool_version: 2
+pool_version: 3
 provenance:
   drafted_by: hand
   reviewed_by: jkitchin
@@ -107,8 +107,8 @@ items:
     evidence: |
       Inflation factors are 1.52x for the random forest, 1.28x for k-NN, and
       exactly 1.00x for both the linear model and predict-the-mean. The pattern
-      is the point: the more a model can memorise a neighbourhood, the more a
-      random split rewards it for recognising rows it has already seen. A linear
+      is the point: the more a model can memorize a neighborhood, the more a
+      random split rewards it for recognizing rows it has already seen. A linear
       model has nowhere to put that memory, so it is honest by construction and
       tells you nothing about whether your split is right.
     source:
@@ -164,7 +164,7 @@ items:
       This reports a 0.9% error rate. What is wrong, and what does the honest
       number turn out to be?
     options:
-      - "Nothing structural; k=1 is simply too small for 50 observations, and raising k would regularise the classifier and bring the error back to something believable"
+      - "Nothing structural; k=1 is simply too small for 50 observations, and raising k would regularize the classifier and bring the error back to something believable"
       - "The screen sees the labels of every fold before the split, so the folds are not held out at all. Refit the screen inside each fold and the error is 47.5%, a coin flip"
       - "The 10-fold split is too coarse for 50 observations; leave-one-out would fix it"
       - "The correlation screen should be replaced by a model-based selector"
@@ -173,7 +173,7 @@ items:
       With 5,000 candidates and 50 observations, some columns correlate with the
       labels by chance. Choosing them using all the labels bakes that accident
       into every fold, and the cross-validation then measures how well the model
-      recognises noise it was already shown. 0.9% against 47.5% is not a subtle
+      recognizes noise it was already shown. 0.9% against 47.5% is not a subtle
       bias, it is the difference between a publishable result and nothing at all.
       Anything fitted to data, including a feature screen, belongs inside the
       loop.
@@ -208,7 +208,7 @@ items:
       rule is about the mechanism and not about the measured harm.
     source:
       file: lectures/l09/notes.md
-      heading: "The leakage catalogue, from the modelling side"
+      heading: "The leakage catalog, from the modeling side"
       quote: "The largest effect across four models is **0.0015 MW**"
     verify: {mode: quote, needle: "0.0015 MW", volatility: measured}
     tags: [leakage, pipelines]
@@ -290,10 +290,10 @@ items:
       What did the investigation actually establish about the alarm load?
     options:
       - "The alarm system had failed and produced no annunciations at all"
-      - "In eleven minutes the two operators had to recognise, acknowledge and act on 275 alarms"
+      - "In eleven minutes the two operators had to recognize, acknowledge and act on 275 alarms"
       - "The operators had disabled the alarms to reduce nuisance trips, which is why none of them was acted on in time"
       - "Alarms were annunciated correctly and at a manageable rate"
-    answer: "In eleven minutes the two operators had to recognise, acknowledge and act on 275 alarms"
+    answer: "In eleven minutes the two operators had to recognize, acknowledge and act on 275 alarms"
     evidence: |
       The number is the point, and it changes what the failure was. A system that
       issues 275 alarms in eleven minutes has not given two people information,
@@ -322,10 +322,10 @@ items:
       What has happened, and what is the right response?
     options:
       - "The model has found the true relationship, so deploy it and monitor for drift rather than deliberately making it worse"
-      - "Every leaf holds a single sample, so the tree has memorised the training set. The response is less capacity, more regularisation, or more data"
+      - "Every leaf holds a single sample, so the tree has memorized the training set. The response is less capacity, more regularization, or more data"
       - "The validation set is corrupted, since zero training error cannot occur otherwise"
       - "The target has been leaked into a feature; find and remove it"
-    answer: "Every leaf holds a single sample, so the tree has memorised the training set. The response is less capacity, more regularisation, or more data"
+    answer: "Every leaf holds a single sample, so the tree has memorized the training set. The response is less capacity, more regularization, or more data"
     evidence: |
       Zero training error is not a triumph, it is a confession. The useful part
       is that high variance and high bias call for opposite actions: an

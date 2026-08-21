@@ -174,6 +174,93 @@
         }
       },
       "serve": 5
+    },
+    "3": {
+      "items": {
+        "l03-q01": {
+          "answer": "Every row whose value is not 30, silently excluding all null rows",
+          "options": [
+            "Every row whose value is not 30, including the null ones, since null is not 30",
+            "Every row whose value is not 30, silently excluding all null rows",
+            "An error, since a comparison against null is not permitted in a WHERE clause",
+            "Every row, since null comparisons default to true in PostgreSQL"
+          ]
+        },
+        "l03-q02": {
+          "answer": "An average over the readings that are present, with the missing ones simply absent from it",
+          "options": [
+            "An average over the readings that are present, with the missing ones simply absent from it",
+            "An average that treats missing readings as zero, biasing it downward",
+            "Null, because any aggregate over a column containing nulls is null",
+            "An error, unless the nulls are filtered out first"
+          ]
+        },
+        "l03-q03": {
+          "answer": "That this is exactly the territory where the rigid schema stops helping and document stores earn their place",
+          "options": [
+            "That the schema needs a JSON column, which restores flexibility inside the relational model",
+            "That this is exactly the territory where the rigid schema stops helping and document stores earn their place",
+            "That the runs should be normalized further, into a table per field type",
+            "That migrations should be automated, since the schema churn is a tooling problem"
+          ]
+        },
+        "l03-q04": {
+          "answer": "Adding a sensor is a new row rather than a schema change, and the schema stops depending on which instruments exist",
+          "options": [
+            "Long tables compress better, so the storage cost is lower at scale",
+            "Adding a sensor is a new row rather than a schema change, and the schema stops depending on which instruments exist",
+            "Long tables are faster to query, since the index fits in memory",
+            "Wide tables cannot represent timestamps consistently across sensors"
+          ]
+        },
+        "l03-q05": {
+          "answer": "That a leap second is a real event a timestamp type has to survive, and systems assuming fixed-length days failed",
+          "options": [
+            "That timezone conversion is the main hazard, and UTC storage solves it",
+            "That a leap second is a real event a timestamp type has to survive, and systems assuming fixed-length days failed",
+            "That NTP drift accumulates faster than most systems account for",
+            "That millisecond precision is insufficient for high-rate sensor data"
+          ]
+        },
+        "l03-q06": {
+          "answer": "When exactness at the stored precision matters more than arithmetic speed, for instance for money or a regulated tolerance",
+          "options": [
+            "Always, since numeric is exact and double precision is approximate",
+            "When exactness at the stored precision matters more than arithmetic speed, for instance for money or a regulated tolerance",
+            "When the values span many orders of magnitude, which double precision handles poorly",
+            "Never for sensor data, since numeric cannot represent scientific notation"
+          ]
+        },
+        "l03-q07": {
+          "answer": "It is stored, because a typed column is still not a validated column",
+          "options": [
+            "The insert is rejected, since -9999 is outside any plausible physical range",
+            "It is stored, because a typed column is still not a validated column",
+            "It is coerced to null, since the sentinel is recognized by the driver",
+            "It is stored and flagged, since PostgreSQL tracks out-of-range values"
+          ]
+        },
+        "l03-q08": {
+          "answer": "The query plan, from `EXPLAIN ANALYZE`, which shows whether the index was used and what it cost",
+          "options": [
+            "The query plan, from `EXPLAIN ANALYZE`, which shows whether the index was used and what it cost",
+            "The table statistics, which show whether the index is selective enough to help",
+            "The query duration across repeated runs, which distinguishes cold cache from a bad plan",
+            "The index size on disk, which indicates whether it fits in memory"
+          ]
+        },
+        "l03-q09": {},
+        "l03-q10": {
+          "answer": "The scan type changes, and the plan shows whether the index was actually chosen rather than merely present",
+          "options": [
+            "Only the timing; the plan is identical because the planner is deterministic",
+            "The scan type changes, and the plan shows whether the index was actually chosen rather than merely present",
+            "The row estimates change, since an index updates the table statistics",
+            "Nothing visible; index use is reported only in the server log"
+          ]
+        }
+      },
+      "serve": 5
     }
   }
 }

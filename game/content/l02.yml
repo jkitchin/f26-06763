@@ -98,7 +98,7 @@ items:
       heading: "The discipline has a cost, and sometimes it is overkill"
       quote: "The skill is proportion."
     verify: {mode: quote, needle: "The skill is proportion", volatility: stable}
-    tags: [reproducibility, judgement]
+    tags: [reproducibility, judgment]
 
   - id: l02-q04
     kind: mcq

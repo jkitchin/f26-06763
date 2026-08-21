@@ -20,7 +20,7 @@ get it silently wrong.
 That phrase should be familiar by now. A leaky scaler does not raise; a grouped split does not
 raise; and a training loop with a missing `zero_grad()` does not raise either. It runs, it
 prints a decreasing-looking loss for a while, and it hands you a model that has learned almost
-nothing. This session's demo produces exactly that: **validation RMSE of 17.8 MPa against 6.0
+nothing. This session's demo produces exactly that: **validation root mean squared error (RMSE) of 17.8 MPa against 6.0
 for the same code with one line restored**, on a fold where predicting the training mean scores
 19.2. The broken run recovered about **11% of the distance** between doing nothing at all and
 training correctly, and nothing in the output said so.
@@ -31,7 +31,7 @@ at full speed and full precision. A database rejects a malformed query. A schema
 loudly. But `loss.backward()` will differentiate whatever graph you built, including the one
 you built by accident, and `optimizer.step()` will apply it. The framework has no opinion about
 whether your graph means anything. That is the price of the generality that makes it useful,
-and the only defence is understanding what the three lines actually do.
+and the only defense is understanding what the three lines actually do.
 
 The session's second argument is about expectations. There is a widespread assumption that a
 neural network is a strictly more powerful tool than a gradient-boosted tree, and that the
@@ -67,7 +67,7 @@ means an in-place operation on a tensor that is needed for the backward pass rai
 helpful error, one of the few places PyTorch does complain.
 
 **The batch dimension comes first.** Every built-in module in PyTorch expects input shaped
-`(N, ...)`, where `N` indexes examples: `(N, features)` for an MLP, `(N, channels, height,
+`(N, ...)`, where `N` indexes examples: `(N, features)` for a multilayer perceptron (MLP), `(N, channels, height,
 width)` for a 2D convolution, `(N, channels, time)` for a 1D convolution over a sensor window.
 This is a convention rather than a law, and it exists because it makes the batch the outermost,
 contiguous axis, so a batch is a contiguous slab of memory that can be shipped to an accelerator
@@ -139,7 +139,7 @@ $$
 $$
 
 That reuse is the whole trick. **Reverse-mode automatic differentiation** is exactly this
-computation, organised: run the forward pass and remember each intermediate, then walk the
+computation, organized: run the forward pass and remember each intermediate, then walk the
 recorded operations backwards, multiplying by each local derivative. Because the loss is a
 scalar, one backward walk produces the derivative with respect to every input at once.
 
@@ -168,7 +168,7 @@ to compare against, which in a real problem it is not.
 ### Two designs for the same mathematics
 
 The mathematics above is framework-independent, but the two major libraries express it very
-differently, and the contrast explains a rule you would otherwise have to memorise.
+differently, and the contrast explains a rule you would otherwise have to memorize.
 
 **PyTorch records a tape.** Tensors with `requires_grad=True` cause every operation on them to
 be appended to a graph. Calling `.backward()` walks that graph and **accumulates** the result
@@ -198,7 +198,7 @@ grads = jax.grad(loss)(params, x, y)     # same shape as params, no state touche
 Both compute the same numbers, as measured above. But the accumulation in PyTorch is the reason
 `zero_grad()` exists, and knowing that turns it from a rule into a consequence. It is not an
 oversight: accumulation is what lets you split a batch too large for memory into several
-micro-batches, call `backward()` on each, and step once on the sum. The API optimises for that
+micro-batches, call `backward()` on each, and step once on the sum. The API optimizes for that
 case, and the cost is that the common case needs an extra line.
 
 :::{admonition} Common pitfall
@@ -217,7 +217,7 @@ so it reads as a hyperparameter problem rather than a bug.
 The other two pieces of the autograd API are small and worth naming. `torch.no_grad()` is a
 context manager that stops the tape being recorded, which you want around every evaluation pass
 because building a graph you will never differentiate wastes memory. And `model.eval()` is
-*not* the same thing: it switches layers whose behaviour differs between training and
+*not* the same thing: it switches layers whose behavior differs between training and
 inference, dropout and batch normalization in particular, and forgetting it is a classic source
 of a validation score that mysteriously differs from the test score computed by another script.
 
@@ -258,7 +258,7 @@ for epoch in range(n_epochs):
 
 ### JAX writes the same loop inside out
 
-The batch dimension is a convention PyTorch asks you to honour in every module you write. JAX
+The batch dimension is a convention PyTorch asks you to honor in every module you write. JAX
 takes the other route: write the function for **one** example and let `vmap` add the batch axis.
 
 ```python
@@ -284,7 +284,7 @@ measures three cases rather than quoting one:
 | a 10-step iterative update via `lax.fori_loop` | 83.3 ms | 30.3 ms | **2.8×** |
 
 Compiling a single large matrix multiply makes it *slower*: there is nothing to fuse, the eager
-path was already one call into an optimised BLAS kernel, and the compiled version adds
+path was already one call into an optimized BLAS kernel, and the compiled version adds
 dispatch. Compiling a loop of many small operations is worth 2.8×, because that is exactly what
 fusion removes. An earlier draft of these notes reported a flat "3× speedup" from a badly timed
 version of the first benchmark; it was measurement noise. The rule worth keeping is that
@@ -299,11 +299,11 @@ that decides whether a GPU pays, and that is the next section.
 Moving to a GPU is two lines: `model.to(device)` and `x.to(device)`. The rules are few. Model
 and data must be on the same device or you get a clear error, which is the good case. Anything
 you print, plot, or hand to NumPy must come back with `.cpu()`, and doing that inside the
-training loop silently serialises the whole thing, because it forces the accelerator to finish
-before the copy can start. Timing GPU code without an explicit synchronise measures how fast
+training loop silently serializes the whole thing, because it forces the accelerator to finish
+before the copy can start. Timing GPU code without an explicit synchronize measures how fast
 you queued the work, not how fast it ran.
 
-The part worth internalising is that **a GPU is a throughput device with a large fixed cost per
+The part worth internalizing is that **a GPU is a throughput device with a large fixed cost per
 kernel launch.** It does not make operations faster; it makes wide operations cheaper per
 element. If your operation is narrow, the launch overhead dominates and the accelerator loses.
 
@@ -333,7 +333,7 @@ of percent on your hardware; expect the crossing to be there.
 :class: warning
 
 These are Apple MPS measurements on a laptop, because that is the accelerator available where
-these figures were generated. A datacentre CUDA card, which is what Assignment 6 gives you, has a much
+these figures were generated. A datacenter CUDA card, which is what Assignment 6 gives you, has a much
 higher ceiling: speedups of 10× to 50× on a large model are ordinary, not the 1.9× measured
 here.
 
@@ -436,7 +436,7 @@ attribute a model-family gap to inductive bias, check that it is not a split art
 
 A single seed is not a result. The first version of this comparison ran one seed and showed the
 MLP *beating* gradient boosting under the grouped split. Five seeds show a tie. Neural network
-training is stochastic in initialisation, in batch order, and in dropout, and the spread across
+training is stochastic in initialization, in batch order, and in dropout, and the spread across
 seeds on this problem is comparable to the difference between model families. Report the mean
 and spread over at least five seeds, or do not report a comparison.
 
@@ -478,7 +478,7 @@ The boundary is worth a sentence of its own, because it is fuzzier than the tidy
 lesson admits. At **lr = 1.0** the outcome depends on the seed: across six seed-and-loop
 combinations tested it produced `nan` in three and diverged to somewhere between 90 and 170 MPa
 in the others. A learning rate is not "stable" or "unstable"; it is stable *for this
-initialisation*, and a single run that survived is not evidence that the next one will.
+initialization*, and a single run that survived is not evidence that the next one will.
 
 **Unscaled inputs** are the interesting one, because the outcome depends entirely on the
 optimizer, which the usual advice does not mention. The concrete features span cement in the
@@ -506,7 +506,7 @@ neural network.
 ```
 
 A deep learning run has more sources of randomness than a scikit-learn fit: parameter
-initialisation, batch shuffling, dropout masks, and on GPU the non-deterministic reduction order
+initialization, batch shuffling, dropout masks, and on GPU the non-deterministic reduction order
 of some kernels. Seeding `torch`, NumPy and Python's `random` covers the first three;
 `torch.use_deterministic_algorithms(True)` covers most of the fourth, at a speed cost.
 
@@ -529,7 +529,7 @@ is that it is the only option once the input has structure a tree cannot exploit
 
 **The framework will compute a wrong answer at full speed.** This is worth repeating as a
 limitation rather than a feature. Nothing in the stack checks that your graph means what you
-intended, and the three measured pathologies above are all silent. The defences are external:
+intended, and the three measured pathologies above are all silent. The defenses are external:
 a baseline you have to beat, a held-out number you compute once, and a loss curve you actually
 look at.
 
@@ -650,7 +650,7 @@ queue time is real. Get the loop correct on a subset of a few hundred rows and a
 epochs, then launch the full run.
 
 **If your net loses to the baseline, say so and explain why.** The rubric rewards an honest
-comparison, not a winning one. "The 1D-CNN scored 18.2 RMSE against the gradient-boosting
+comparison, not a winning one. "The 1D convolutional neural network (CNN) scored 18.2 RMSE against the gradient-boosting
 baseline's 17.4, and here is why the extra capacity did not help" is a better answer than a
 tuned-until-it-wins number you cannot defend.
 

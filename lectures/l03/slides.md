@@ -409,13 +409,13 @@ ORDER  BY n;
 
 <div class="definition">
 
-**Window function**: a computation across neighbouring rows that does not collapse them, so each row keeps its identity and sees its neighbours.
+**Window function**: a computation across neighboring rows that does not collapse them, so each row keeps its identity and sees its neighbors.
 
 </div>
 
 
 
-Each reading keeps its identity **and** sees its neighbours.
+Each reading keeps its identity **and** sees its neighbors.
 
 `lag`, `avg(...) OVER (...)`, `rank`, …
 

@@ -22,7 +22,7 @@ footer: "Systems and Toolchains for AI Engineers"
 2. Baselines that have to be beaten
 3. Metrics, and the engineering cost of being wrong
 4. Choosing a cross-validation scheme
-5. The leakage catalogue, from the modelling side
+5. The leakage catalog, from the modeling side
 6. Bias, variance, and learning curves
 7. Live demo: a ladder, three leaks, one test set
 
@@ -65,7 +65,7 @@ A surrogate promised ±3 MW. It delivers ±8.
 It invalidates whatever downstream decision
 was **sized against the ±3**.
 
-<!-- If it feeds a dispatch optimisation, the optimiser was solved against a
+<!-- If it feeds a dispatch optimization, the optimizer was solved against a
      model of the error that was wrong by 3x. Same category of defect as an
      unverified tolerance. -->
 
@@ -352,7 +352,7 @@ It diverges exactly where the prediction must be right.
 
 ## Metrics and the cost of being wrong, residuals say what no scalar can
 
-vs **fitted value** → unmodelled nonlinearity
+vs **fitted value** → unmodeled nonlinearity
 vs **each input** → the variable it handles badly
 vs **time** → drift, regime change, the sensor
 recalibrated in March
@@ -414,10 +414,10 @@ about five hours later. 26 injured, ~£48 million.
 
 HSE's first listed factor:
 > There were **too many alarms** and they were
-> poorly prioritised
+> poorly prioritized
 
 > In the last **11 minutes** before the explosion
-> the two operators had to recognise, acknowledge
+> the two operators had to recognize, acknowledge
 > and act on **275 alarms**
 
 [HSE, *Better alarm handling*, Chemicals Sheet No 6](https://www.hse.gov.uk/pubns/chis6.pdf)
@@ -544,9 +544,9 @@ One configuration is a smooth SPL-vs-frequency curve,
 ~19 points. A random fold holds out 3 or 4 of them,
 each **between two points it kept**. Interpolation.
 
-Mean and linear: no capacity to memorise a run, **0%**.
-k-NN, which is nothing but memorisation: **+28%**.
-Forest, many memorising trees: **+52%**.
+Mean and linear: no capacity to memorize a run, **0%**.
+k-NN, which is nothing but memorization: **+28%**.
+Forest, many memorizing trees: **+52%**.
 
 **A gap of zero is never evidence the split was sound.**
 
@@ -600,11 +600,11 @@ a question they cannot answer.
 
 <!-- _class: section -->
 
-# The leakage catalogue
+# The leakage catalog
 
 ---
 
-## The leakage catalogue
+## The leakage catalog
 
 1. Fitting a transform on all the data
 2. Target leakage from the future
@@ -633,7 +633,7 @@ Largest effect **0.0015 MW**, against fold noise of **±0.05**.
 
 ---
 
-## The leakage catalogue, so the leak is real and worth nothing
+## The leakage catalog, so the leak is real and worth nothing
 
 # You cannot audit leakage
 # by looking at your metrics.
@@ -643,7 +643,7 @@ and check what was in scope when it ran.
 
 ---
 
-## The leakage catalogue, 2. Target leakage from the future
+## The leakage catalog, 2. Target leakage from the future
 
 A feature that will not exist at prediction time.
 
@@ -670,7 +670,7 @@ ever sees the data.
 
 ---
 
-## The leakage catalogue, 4. Selecting on the test set
+## The leakage catalog, 4. Selecting on the test set
 
 Consult a score, change something, and that
 score's data has been spent.
@@ -684,7 +684,7 @@ the whole procedure on data the inner loop never saw.
 
 ---
 
-## The leakage catalogue, how much is that worth?
+## The leakage catalog, how much is that worth?
 
 ![w:900](figures/selection-bias.png)
 
@@ -694,7 +694,7 @@ the whole procedure on data the inner loop never saw.
 
 ---
 
-## The leakage catalogue, read the shape
+## The leakage catalog, read the shape
 
 | rows | selection bias |
 |---|---|
@@ -708,7 +708,7 @@ It is the **ratio of candidates to rows** that matters:
 
 ---
 
-## The leakage catalogue, the extreme case (ESL §7.10.2)
+## The leakage catalog, the extreme case (ESL §7.10.2)
 
 50 samples. 5,000 predictors. **All pure noise.**
 Labels by coin flip. True error: 50%.
@@ -752,7 +752,7 @@ Move the identical screen **inside** each fold:
 | shape | verdict | action |
 |---|---|---|
 | curves met, both high | **underfit** | more capacity |
-| train ≈ 0, big static gap | **overfit** | regularise |
+| train ≈ 0, big static gap | **overfit** | regularize |
 | gap real, val still falling | healthy | **more data pays** |
 
 Linear gap **0.002**. Tree gap **4.64**. Forest gap **2.10**.

@@ -4,7 +4,7 @@ title: "Beyond relational: columnar, Parquet, DuckDB, and the wider landscape"
 source_notes: lectures/l04/notes.md
 status: unwritten
 serve: 5
-pool_version: 2
+pool_version: 3
 provenance:
   drafted_by: hand
   reviewed_by: jkitchin
@@ -77,7 +77,7 @@ items:
     prompt: |
       What is DuckDB not?
     options:
-      - "An analytical engine, since it is optimised for point lookups rather than scans"
+      - "An analytical engine, since it is optimized for point lookups rather than scans"
       - "A shared transactional backend that many clients write to concurrently with isolation guarantees"
       - "A SQL engine, since it uses its own dialect rather than standard SQL"
       - "Usable without a server, since it requires a background process to hold state"
@@ -230,7 +230,7 @@ items:
         needle: "key-value"
       - text: "Time-series store: append-heavy measurements indexed by time"
         needle: "time-series"
-      - text: "Vector store: nearest-neighbour search over embeddings"
+      - text: "Vector store: nearest-neighbor search over embeddings"
         needle: "vector"
     answer: null
     evidence: |
