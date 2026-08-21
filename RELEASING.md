@@ -21,6 +21,7 @@ every public surface:
 | Course map room | `tools/world.py` reads `_toc.yml` (unreleased = shuttered) |
 | Quiz (practice module) | the lecture's bank `status:` (`published` shows it, `unwritten` hides it) |
 | Weekly assignment | `_toc.yml` (uncommented the week its lecture releases it) |
+| Mini-project and final project | `_toc.yml` (the Projects part, released at L13 and L17) |
 
 So releasing a lecture is a few edits: **uncomment it in `_toc.yml`**, **flip its
 quiz bank to `published`**, and **uncomment any assignment released that week**.
@@ -69,8 +70,12 @@ practice module goes live. Everything not yet released stays hidden.
 - **Assignments release with their lecture.** `release_week.py` uncomments the
   assignment listed for that lecture in its `LECTURE_ASSIGNMENTS` map, taken from
   the schedule's "Assignment N released" markers (A1 with L1, A2 with L3, and so
-  on). A lecture that releases no assignment simply skips this. The mini-project
-  (A7) lives in the Projects part and is released by hand, not through the map.
+  on). A lecture that releases no assignment simply skips this.
+- **Projects release the same way.** The mini-project (A7) is uncommented at L13
+  and the final project at L17, from `LECTURE_PROJECTS`. Their whole Projects
+  part stays commented out until the first one releases, because a part with no
+  chapters will not build, so releasing the mini-project also restores the part
+  header.
 - **Optional material is held separately.** The Optional part of `_toc.yml` is
   commented out pending review; release it by hand when ready rather than through
   the weekly helper.
