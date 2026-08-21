@@ -20,9 +20,11 @@ every public surface:
 | Slide deck (`/slides/lNN/`) | the slide-render CI step reads `_toc.yml` |
 | Course map room | `tools/world.py` reads `_toc.yml` (unreleased = shuttered) |
 | Quiz (practice module) | the lecture's bank `status:` (`published` shows it, `unwritten` hides it) |
+| Weekly assignment | `_toc.yml` (uncommented the week its lecture releases it) |
 
-So releasing a lecture is two edits: **uncomment it in `_toc.yml`** and **flip its
-quiz bank to `published`**. The helper does both.
+So releasing a lecture is a few edits: **uncomment it in `_toc.yml`**, **flip its
+quiz bank to `published`**, and **uncomment any assignment released that week**.
+The helper does all of them.
 
 There is no PDF build. The course ships as online notes and slides only.
 
@@ -31,7 +33,8 @@ There is no PDF build. The course ships as online notes and slides only.
 ```bash
 git fetch origin && git checkout -b release-week-3 origin/main
 
-# Un-hide Lecture 3: uncomment it in _toc.yml, turn its quiz on, regenerate the map.
+# Un-hide Lecture 3: uncomment it (and any assignment it releases) in _toc.yml,
+# turn its quiz on, regenerate the map.
 python tools/release_week.py 3
 #   --check first if you want to see what it will touch without changing anything
 
@@ -63,5 +66,14 @@ practice module goes live. Everything not yet released stays hidden.
   room stays shuttered until the quiz is written. Re-run it once the quiz exists.
 - **Held banks read as `status: unwritten` even though they are written.** That is
   the flag the game uses to hide a module; the items are still in the file, waiting.
-- **To pull a lecture back**, reverse it by hand: re-comment its `_toc.yml` lines,
-  set its bank back to `status: unwritten`, and run `python tools/world.py --write`.
+- **Assignments release with their lecture.** `release_week.py` uncomments the
+  assignment listed for that lecture in its `LECTURE_ASSIGNMENTS` map, taken from
+  the schedule's "Assignment N released" markers (A1 with L1, A2 with L3, and so
+  on). A lecture that releases no assignment simply skips this. The mini-project
+  (A7) lives in the Projects part and is released by hand, not through the map.
+- **Optional material is held separately.** The Optional part of `_toc.yml` is
+  commented out pending review; release it by hand when ready rather than through
+  the weekly helper.
+- **To pull a lecture back**, reverse it by hand: re-comment its `_toc.yml` lines
+  (and any assignment line the release uncommented), set its bank back to
+  `status: unwritten`, and run `python tools/world.py --write`.
