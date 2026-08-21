@@ -10,9 +10,13 @@ from the start, but stays hidden until its week:
   * commented out of _toc.yml, so its notes are not built and (because the slide
     job reads _toc.yml) its deck is not rendered either;
   * its quiz bank marked `status: unwritten`, so the game hides it and its room
-    on the map is shuttered.
+    on the map is shuttered;
+  * the assignment released that week (if any) commented out of _toc.yml too,
+    from the schedule's "Assignment N released" markers;
+  * the mini-project (L13) and final project (L17), whose whole Projects part
+    is held until the first of them is released.
 
-Releasing flips both back on and regenerates the map. Nothing here commits or
+Releasing flips them all back on and regenerates the map. Nothing here commits or
 pushes: run it on a fresh branch, look at the diff, open a PR, merge. That PR is
 the weekly review gate.
 
@@ -32,6 +36,24 @@ import yaml
 
 REPO = Path(__file__).resolve().parent.parent
 TOC = REPO / "_toc.yml"
+
+#: Which assignment is released with which lecture, from course/schedule.md's
+#: "Assignment N released" markers. The mini-project (A7) launches at L13 and
+#: lives in the Projects part, so it is not listed here. A lecture with no entry
+#: releases no assignment that week.
+LECTURE_ASSIGNMENTS = {
+    1: ["a01"], 3: ["a02"], 5: ["a03"], 7: ["a04"], 9: ["a05"],
+    11: ["a06"], 15: ["a08"], 17: ["a09"], 20: ["a10"], 22: ["a11"],
+}
+
+#: Which project page (course/<slug>.md) is released with which lecture. The
+#: mini-project launches at L13 (schedule: "Mini-project launched"). The final
+#: project is released at L17, right after the mini-project ends and a week
+#: ahead of the proposal deadline at L20; there is no schedule marker for it, so
+#: this date is a deliberate choice and the one line to change if it should move.
+LECTURE_PROJECTS = {
+    13: ["miniproject"], 17: ["final-project"],
+}
 
 
 def toc_release(nn: str, apply: bool) -> str:
@@ -74,6 +96,70 @@ def bank_release(lec: str, apply: bool) -> str:
     return "published"
 
 
+def assignment_release(lecture: int, apply: bool) -> str:
+    """Uncomment the assignment(s) released with this lecture in _toc.yml."""
+    aids = LECTURE_ASSIGNMENTS.get(lecture, [])
+    if not aids:
+        return "none this lecture"
+    lines = TOC.read_text(encoding="utf-8").split("\n")
+    out = []
+    for aid in aids:
+        done = None
+        for i, line in enumerate(lines):
+            if re.match(rf"^#\s*-\s*file:\s*course/assignments/{aid}\b", line):
+                if apply:
+                    lines[i] = lines[i].replace("# ", "", 1)
+                done = f"{aid} released"
+                break
+            if re.match(rf"^\s*-\s*file:\s*course/assignments/{aid}\b", line):
+                done = f"{aid} already released"
+                break
+        out.append(done or f"{aid} not found in _toc.yml")
+    if apply:
+        TOC.write_text("\n".join(lines), encoding="utf-8")
+    return ", ".join(out)
+
+
+def project_release(lecture: int, apply: bool) -> str:
+    """Uncomment the project(s) released with this lecture in _toc.yml.
+
+    The whole Projects part is commented out while both projects are hidden,
+    because a part with no chapters does not build. So releasing the first
+    project also has to restore the part header (its `- caption:` and
+    `chapters:` lines); doing it whenever any project is released is safe and
+    idempotent.
+    """
+    slugs = LECTURE_PROJECTS.get(lecture, [])
+    if not slugs:
+        return "none this lecture"
+    lines = TOC.read_text(encoding="utf-8").split("\n")
+    out, released_any = [], False
+    for slug in slugs:
+        done = None
+        for i, line in enumerate(lines):
+            if re.match(rf"^#\s*-\s*file:\s*course/{slug}\b", line):
+                if apply:
+                    lines[i] = lines[i].replace("# ", "", 1)
+                released_any = True
+                done = f"{slug} released"
+                break
+            if re.match(rf"^\s*-\s*file:\s*course/{slug}\b", line):
+                done = f"{slug} already released"
+                break
+        out.append(done or f"{slug} not found in _toc.yml")
+    if apply and released_any:
+        for i, line in enumerate(lines):
+            if re.match(r"^#\s*-\s*caption:\s*Projects\b", line):
+                lines[i] = lines[i].replace("# ", "", 1)
+                if i + 1 < len(lines) and "chapters:" in lines[i + 1] \
+                        and lines[i + 1].lstrip().startswith("#"):
+                    lines[i + 1] = lines[i + 1].replace("# ", "", 1)
+                break
+    if apply:
+        TOC.write_text("\n".join(lines), encoding="utf-8")
+    return ", ".join(out)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -92,6 +178,10 @@ def main() -> int:
     print(f"  _toc.yml:  {toc}")
     bank = bank_release(lec, apply)
     print(f"  quiz bank: {bank}")
+    asg = assignment_release(args.lecture, apply)
+    print(f"  assignment: {asg}")
+    proj = project_release(args.lecture, apply)
+    print(f"  project: {proj}")
 
     if apply and toc == "released":
         print("  regenerating the course map ...")

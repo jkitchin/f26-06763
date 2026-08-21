@@ -81,26 +81,34 @@ parts:
 #           - file: lectures/l23/l23-mlops
 
   - caption: Assignments
+    # Released one per week by tools/release_week.py, from the schedule's
+    # "Assignment N released" markers. Only assignments whose week is out are
+    # uncommented; the rest stay hidden exactly like an unreleased lecture.
     chapters:
       - file: course/assignments/a01
-      - file: course/assignments/a02
-      - file: course/assignments/a03
-      - file: course/assignments/a04
-      - file: course/assignments/a05
-      - file: course/assignments/a06
-      - file: course/assignments/a08
-      - file: course/assignments/a09
-      - file: course/assignments/a10
-      - file: course/assignments/a11
+#       - file: course/assignments/a02
+#       - file: course/assignments/a03
+#       - file: course/assignments/a04
+#       - file: course/assignments/a05
+#       - file: course/assignments/a06
+#       - file: course/assignments/a08
+#       - file: course/assignments/a09
+#       - file: course/assignments/a10
+#       - file: course/assignments/a11
 
-  - caption: Projects
-    chapters:
-      - file: course/miniproject
-      - file: course/final-project
+# Projects: hidden for weekly release. tools/release_week.py uncomments the
+# part header and the mini-project (A7) at Lecture 13, and the final project
+# ahead of the proposal deadline; see LECTURE_PROJECTS there.
+#   - caption: Projects
+#     chapters:
+#       - file: course/miniproject
+#       - file: course/final-project
 
-  - caption: Optional material
-    chapters:
-      - file: course/optional/overview
-        sections:
-          - file: course/optional/how-this-course-was-built
-          - file: course/optional/generating-is-not-learning
+# Optional material: hidden for now, to be reviewed and released later. The
+# overview cross-links both section pages, so the whole part is held together.
+#   - caption: Optional material
+#     chapters:
+#       - file: course/optional/overview
+#         sections:
+#           - file: course/optional/how-this-course-was-built
+#           - file: course/optional/generating-is-not-learning
