@@ -140,7 +140,7 @@ Real sensor data breaks two assumptions a batch pipeline quietly makes: that the
 - [Streaming 101](https://www.oreilly.com/radar/the-world-beyond-batch-streaming-101/) and [Streaming 102](https://www.oreilly.com/radar/the-world-beyond-batch-streaming-102/). The readable long form; 102 is where watermarks and triggers are developed.
 - [Apache Flink: Windows](https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/datastream/operators/windows/). Crisp operational definitions of tumbling, sliding, and session windows, and of late data.
 - [Apache Kafka: Introduction](https://kafka.apache.org/intro) and [delivery semantics](https://kafka.apache.org/documentation/#semantics). The log abstraction, per-partition ordering, offsets, and at-least-once vs exactly-once.
-- [MQTT](https://mqtt.org/). The lightweight publish/subscribe protocol for IoT and sensor telemetry.
+- [MQTT](https://mqtt.org/). The lightweight publish/subscribe protocol for internet of things (IoT) and sensor telemetry.
 - [Reactive Streams](https://www.reactive-streams.org/). Backpressure as a standard: not overwhelming a slow consumer.
 - [Intel Lab Data](https://db.csail.mit.edu/labdata/labdata.html). The streaming/validation feed, carried from Lecture 3, replayed by timestamp. Served over plain HTTP.
 - [UCI SECOM](https://archive.ics.uci.edu/dataset/179/secom). The wide, dirty semiconductor feature matrix from Lecture 5: about 1,500 runs, roughly 590 process measurements, heavy missingness, a natural target for a validation suite.

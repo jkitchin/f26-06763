@@ -284,7 +284,7 @@ That the corruption lines up so precisely with low battery voltage is the useful
 lesson, and it is genuinely a small surprise: you might have expected bad readings to be
 scattered noise, and instead they are almost perfectly predicted by a second channel you were
 recording anyway. The cleaning rule is therefore a fact the data hands you rather than a
-judgement you have to defend: a reading taken while its mote was below 2.4 V is suspect, and voltage,
+judgment you have to defend: a reading taken while its mote was below 2.4 V is suspect, and voltage,
 the channel you nearly ignored, is the context that tells you which numbers to trust. This is
 exactly why the schema should carry its metadata explicitly, units and plausible ranges in
 `variables`, per-mote calibration and location in `sensors`, and why storing that context
@@ -341,7 +341,7 @@ ORDER  BY n_readings;
 
 The genuinely powerful additions for time-series are **window functions**, and they are worth
 the small effort they take to learn because nothing else expresses "compare each reading to
-its neighbours" so directly. A window function computes across a set of rows related to the
+its neighbors" so directly. A window function computes across a set of rows related to the
 current one without collapsing them into a group, so every reading keeps its own identity and
 also gets to see the rows around it. `lag` reaches back to the previous reading, which turns
 the reporting gaps that afflict every sensor network into an ordinary column you can filter
@@ -591,7 +591,7 @@ column across the entire history, because to read one column out of many the dat
 still pull every column of every row off the disk to get at it. Our index win was for a
 *selective* query that touched a hundred rows; a full analytical aggregate over one channel of
 the whole table reads everything, and no index rescues a query that genuinely needs all the
-rows. This single fact is why a relational OLTP database is not the end of the storage story,
+rows. This single fact is why a relational online transaction processing (OLTP) database is not the end of the storage story,
 and it is exactly the problem that columnar formats and embedded analytical engines are built
 to solve.
 
@@ -601,7 +601,7 @@ A single PostgreSQL primary serves one stream of writes. You can scale reads by 
 replicas, but scaling *writes* beyond one machine means *sharding*, partitioning the data
 across servers, and sharding a relational database while preserving cross-shard joins and
 transactions is one of the genuinely hard problems in the field, hard enough that the entire
-NoSQL movement grew up around avoiding it. High-ingest sensor and IoT systems, taking millions
+NoSQL movement grew up around avoiding it. High-ingest sensor and internet of things (IoT) systems, taking millions
 of writes a second, are where specialized time-series and distributed stores live; partitioning
 and TimescaleDB raise the ceiling considerably but do not remove it. And underneath all of this
 is plain operational weight: a relational database is a server you must run, secure, back up,
@@ -643,7 +643,7 @@ own machine.
 ## Summary
 
 A relational database earns its place in an engineering data platform by being a contract you
-can query. Modelling sensor readings in the long form, keyed by sensor and time with the static
+can query. Modeling sensor readings in the long form, keyed by sensor and time with the static
 metadata normalized into `sensors` and `variables`, makes a new sensor an `INSERT` rather than
 a migration and turns every comparative question into a `WHERE` clause. Choosing types with
 physical meaning, `timestamptz` understood as UTC and `double precision` for measured values,
@@ -671,7 +671,7 @@ than a universal answer.
 - [PostgreSQL: Numeric Types](https://www.postgresql.org/docs/current/datatype-numeric.html).
   The exact-versus-float trade-off, from the authority on it.
 - [PostgreSQL: Date/Time Functions](https://www.postgresql.org/docs/current/functions-datetime.html).
-  `date_trunc` and its neighbours, the time-bucketing toolkit.
+  `date_trunc` and its neighbors, the time-bucketing toolkit.
 - [PostgreSQL: COPY](https://www.postgresql.org/docs/current/sql-copy.html). The bulk loader,
   and the reason your import should not be a loop of `INSERT`s.
 - [PostgreSQL: Using EXPLAIN](https://www.postgresql.org/docs/current/using-explain.html). How

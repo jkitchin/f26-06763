@@ -4,7 +4,7 @@ title: "Relational data and PostgreSQL for engineering time series"
 source_notes: lectures/l03/notes.md
 status: unwritten
 serve: 5
-pool_version: 2
+pool_version: 3
 provenance:
   drafted_by: hand
   reviewed_by: jkitchin
@@ -59,10 +59,10 @@ items:
     evidence: |
       `count(*)` counts rows while `count(value)` counts only non-null ones, and
       `avg(value)` averages only the readings that are present. So the mote is
-      not penalised in the average unless you have separately counted how many it
+      not penalized in the average unless you have separately counted how many it
       reported. The habit worth forming is to carry a completeness count next to
       any aggregate over sensor data, because the aggregate alone cannot tell you
-      whether it summarises everything or half of it.
+      whether it summarizes everything or half of it.
     source:
       file: lectures/l03/notes.md
       heading: "NULL is not a value, and three-valued logic will surprise you"
@@ -84,14 +84,14 @@ items:
     options:
       - "That the schema needs a JSON column, which restores flexibility inside the relational model"
       - "That this is exactly the territory where the rigid schema stops helping and document stores earn their place"
-      - "That the runs should be normalised further, into a table per field type"
+      - "That the runs should be normalized further, into a table per field type"
       - "That migrations should be automated, since the schema churn is a tooling problem"
     answer: "That this is exactly the territory where the rigid schema stops helping and document stores earn their place"
     evidence: |
       The same schema that protected your readings table is expensive to change
       once it is large, and a migration against a nine-million-row table in a live
       deployment is a real operation with real risk. Heterogeneous metadata is the
-      case where rigidity stops paying, and recognising it is the point: the
+      case where rigidity stops paying, and recognizing it is the point: the
       relational model is a default, not a universal answer. A JSON column is a
       genuine option and it is the relational model conceding the argument rather
       than winning it.
@@ -200,7 +200,7 @@ items:
     options:
       - "The insert is rejected, since -9999 is outside any plausible physical range"
       - "It is stored, because a typed column is still not a validated column"
-      - "It is coerced to null, since the sentinel is recognised by the driver"
+      - "It is coerced to null, since the sentinel is recognized by the driver"
       - "It is stored and flagged, since PostgreSQL tracks out-of-range values"
     answer: "It is stored, because a typed column is still not a validated column"
     evidence: |

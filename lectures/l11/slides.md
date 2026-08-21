@@ -287,7 +287,7 @@ Accumulation is what lets you split a batch too
 big for memory into micro-batches, call
 `backward()` on each, and step once on the sum.
 
-The API optimises for that. The common case
+The API optimizes for that. The common case
 pays one extra line.
 
 **`zero_grad()` is the line everyone omits once.**
@@ -306,7 +306,7 @@ like a hyperparameter problem.
 Wrap every evaluation pass in it.
 
 `model.eval()`: **a different thing.** It switches
-dropout and batch-norm to inference behaviour.
+dropout and batch-norm to inference behavior.
 
 Confusing them is a classic source of a
 validation score another script cannot reproduce.
@@ -423,14 +423,14 @@ Fusion pays when there are many small ops.
 
 `model.to(device)`, `x.to(device)`: same device, or an error
 Anything you print or plot needs `.cpu()`
-Doing that **inside** the loop serialises everything
+Doing that **inside** the loop serializes everything
 
 Timing without `synchronize()` measures how fast
 you **queued** the work.
 
 ---
 
-## Devices and accelerators, the thing to internalise
+## Devices and accelerators, the thing to internalize
 
 # A GPU is a throughput device
 # with a fixed cost per launch.
@@ -462,7 +462,7 @@ The crossover sits between 64 and 256 hidden units.
 **An honest caveat about these numbers.**
 
 Apple MPS on a laptop, because that is what
-generated these figures. A datacentre CUDA card
+generated these figures. A datacenter CUDA card
 (what Assignment 6 gives you) reaches 10 to 50× on a big model.
 
 What transfers is the **shape**, not the magnitude:
@@ -612,7 +612,7 @@ and showed the **MLP winning** under the honest split.
 
 Five seeds show a tie.
 
-Initialisation, batch order, dropout: the seed
+Initialization, batch order, dropout: the seed
 spread here is as large as the model-family gap.
 
 ---
@@ -668,7 +668,7 @@ combinations: `nan` in three, and divergence
 to 90 or 170 MPa in the others.
 
 A learning rate is not "stable". It is stable
-**for this initialisation**.
+**for this initialization**.
 
 <!-- Which is the reproducibility argument again, arriving from a new direction.
      A single surviving run is not evidence. -->

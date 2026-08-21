@@ -651,7 +651,7 @@ UCI Air Quality → plot → naive split → fresh checkout
 2. **Unpinned split**, a different R2 every run, no error
 3. **NumPy version**, and *which* cell failed told you which version you have
 
-Compare failures with your neighbour on 3.
+Compare failures with your neighbor on 3.
 **None of the three announces itself while you are making it.**
 
 ---

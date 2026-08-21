@@ -265,8 +265,8 @@ The 737 MAX accidents are the sharpest available illustration that in engineerin
 where a number comes from is part of the safety argument. The discussion here is limited to
 what the accident investigations concluded.
 
-MCAS was a control function that commanded nose-down stabilizer trim under certain flight
-conditions. Each aircraft carried two angle-of-attack sensors. MCAS was designed to use one
+The Maneuvering Characteristics Augmentation System (MCAS) was a control function that
+commanded nose-down stabilizer trim under certain flight conditions. Each aircraft carried two angle-of-attack sensors. MCAS was designed to use one
 of them at a time, alternating between flights, with no cross-comparison and no voting
 between the two. A single faulty sensor was therefore sufficient to drive the function.
 
@@ -342,7 +342,7 @@ problem. Scanning three columns across ten years is a columnar problem.
 A pipeline is the code that gets data from where it lands to where it is used, and it is
 usually the largest and least loved part of the system. Two shapes matter. **Batch**
 processing runs on a schedule over a bounded chunk of data and is what most engineering
-work needs. **Streaming** processes records as they arrive, which sensor and IoT contexts
+work needs. **Streaming** processes records as they arrive, which sensor and internet of things (IoT) contexts
 increasingly demand, and which buys you latency at the cost of substantially harder
 correctness.
 
@@ -421,7 +421,7 @@ Models degrade because the world moves, exactly as the calibration figure above 
 distribution shift, and watching the gap against ground truth once labels eventually
 arrive.
 
-**MLOps** is the practice of automating that loop: continuous integration that tests data
+**Machine learning operations (MLOps)** is the practice of automating that loop: continuous integration that tests data
 and models rather than only code, reproducible retraining, staged rollout so a bad model
 does not reach everyone at once, and the ability to roll back. Flu Trends is what this
 looks like when it is absent.
@@ -431,7 +431,7 @@ looks like when it is absent.
 ```{index} token, context window, prompting, retrieval-augmented generation, fine-tuning, agent
 ```
 
-A large language model is a next-token predictor trained on a very large corpus, and almost
+A large language model (LLM) is a next-token predictor trained on a very large corpus, and almost
 everything surprising about it follows from scale plus that simple objective. For systems
 purposes the details that matter are practical: text is split into **tokens**, the model
 sees a bounded **context window**, you pay per token in both money and latency, and outputs

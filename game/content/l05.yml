@@ -4,7 +4,7 @@ title: "Dataframes, batch pipelines, and distributed concepts"
 source_notes: lectures/l05/notes.md
 status: unwritten
 serve: 5
-pool_version: 2
+pool_version: 3
 provenance:
   drafted_by: hand
   reviewed_by: jkitchin
@@ -72,7 +72,7 @@ items:
       heading: "Where this pushes back"
       quote: "which side of that crossover point your job is on"
     verify: {mode: quote, needle: "which side of that crossover point", volatility: stable}
-    tags: [distributed, judgement]
+    tags: [distributed, judgment]
 
   - id: l05-q03
     kind: mcq
@@ -84,7 +84,7 @@ items:
     options:
       - "Memory, since the whole plan must be held before anything executes"
       - "Errors move away from the line that causes them, frequently not raising until `.collect()` or `.compute()`"
-      - "Determinism, since the optimiser may reorder operations between runs"
+      - "Determinism, since the optimizer may reorder operations between runs"
       - "Type safety, since column types are only known once the data is materialised"
     answer: "Errors move away from the line that causes them, frequently not raising until `.collect()` or `.compute()`"
     evidence: |
@@ -92,7 +92,7 @@ items:
       from the mistake. Pandas' eager default fails immediately at the offending
       line, which is genuinely easier to debug, and it is a real reason to keep
       eager pandas in an exploratory notebook and reach for the lazy API once the
-      pipeline shape has stabilised. Laziness is what enables the optimisation;
+      pipeline shape has stabilized. Laziness is what enables the optimization;
       the debugging cost is the price.
     source:
       file: lectures/l05/notes.md
@@ -111,7 +111,7 @@ items:
     options:
       - "When the data fits in memory, since Polars' advantage only appears above that"
       - "When your collaborators, your codebase, or the library you need next only speaks pandas"
-      - "When the transformations are simple, since Polars' optimiser needs complex queries to pay off"
+      - "When the transformations are simple, since Polars' optimizer needs complex queries to pay off"
       - "When you need plotting, since Polars cannot be converted to a plottable form"
     answer: "When your collaborators, your codebase, or the library you need next only speaks pandas"
     evidence: |
@@ -299,7 +299,7 @@ items:
     answer: "That the ratio is a property of this workload and this machine, and the transferable habit is measuring rather than assuming"
     evidence: |
       A speed ratio measured on one laptop, one dataset and one set of operations
-      does not generalise to your pipeline, and the session is explicit that the
+      does not generalize to your pipeline, and the session is explicit that the
       ecosystem and your collaborators are frequently the deciding factor rather
       than throughput. The number worth carrying from this session is the
       hundredfold vectorization gap, because that one is about the shape of the

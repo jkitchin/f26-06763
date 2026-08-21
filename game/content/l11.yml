@@ -4,7 +4,7 @@ title: "Deep learning with PyTorch: tensors, autodiff, training loops, GPUs"
 source_notes: lectures/l11/notes.md
 status: unwritten
 serve: 6
-pool_version: 2
+pool_version: 3
 provenance:
   drafted_by: hand
   reviewed_by: jkitchin
@@ -108,7 +108,7 @@ items:
       single large matmul is already one library call, so compilation adds
       dispatch overhead and nothing else, and it comes out slower. The iterative
       update is where it earns 2.8x, because the loop itself becomes part of the
-      compiled program. "Compile it" is not a free optimisation, it is a bet
+      compiled program. "Compile it" is not a free optimization, it is a bet
       about the shape of the work.
     source:
       file: lectures/l11/notes.md
@@ -131,7 +131,7 @@ items:
     options:
       - "Nothing much; with over a thousand rows a random split is representative enough for a model comparison"
       - "It flatters whichever model can better exploit the leak, and the tree's advantage over the net largely disappears once whole mixes are held out"
-      - "It penalises the tree, because trees are more sensitive to the duplicate rows a random split creates"
+      - "It penalizes the tree, because trees are more sensitive to the duplicate rows a random split creates"
       - "It inflates both equally, so the comparison between them is still fair even though the absolute numbers are wrong"
     answer: "It flatters whichever model can better exploit the leak, and the tree's advantage over the net largely disappears once whole mixes are held out"
     evidence: |
@@ -230,10 +230,10 @@ items:
       step?
     options:
       - "Because the step size is chosen by trial and error, and forty candidates is too coarse a sweep to find the optimum"
-      - "Because truncation error falls with the step while rounding error rises, so the total is minimised at a floor rather than driven to zero"
+      - "Because truncation error falls with the step while rounding error rises, so the total is minimized at a floor rather than driven to zero"
       - "Because central differences are only second-order accurate, and a higher-order stencil would reach machine precision"
       - "Because floating point subtraction is not associative, so the result depends on evaluation order"
-    answer: "Because truncation error falls with the step while rounding error rises, so the total is minimised at a floor rather than driven to zero"
+    answer: "Because truncation error falls with the step while rounding error rises, so the total is minimized at a floor rather than driven to zero"
     evidence: |
       The two error terms move in opposite directions with h, so there is a best
       step and a corresponding error floor, and the floor is many orders of
@@ -303,7 +303,7 @@ items:
       - "The learning rate, since a slow, smooth decrease is the classic signature of a step size that is too small"
       - "Whether `opt.zero_grad()` is being called, because gradients accumulate by default and its absence never raises"
       - "The batch size, since small batches produce noisy gradients that slow convergence"
-      - "The initialisation, since poor scaling of the first layer will stall learning without any error"
+      - "The initialization, since poor scaling of the first layer will stall learning without any error"
     answer: "Whether `opt.zero_grad()` is being called, because gradients accumulate by default and its absence never raises"
     evidence: |
       Every other candidate is a tuning question; this one is a defect, and it
@@ -354,21 +354,21 @@ items:
     difficulty: 3
     objectives: [l11-o1]
     prompt: |
-      Replacing an explicit Python loop over 256 examples with a vectorised
+      Replacing an explicit Python loop over 256 examples with a vectorized
       formulation agrees to 2.2e-15 and is also faster.
 
       What is the 2.2e-15 telling you?
     options:
-      - "That the vectorised version is slightly wrong, and the difference is the approximation error it introduces"
+      - "That the vectorized version is slightly wrong, and the difference is the approximation error it introduces"
       - "That the two are the same computation to float64 rounding, so the speedup costs no accuracy"
-      - "That the loop version accumulates error over 256 iterations, and vectorising removes it"
+      - "That the loop version accumulates error over 256 iterations, and vectorizing removes it"
       - "That the comparison is inconclusive at this precision and should be repeated in float32"
     answer: "That the two are the same computation to float64 rounding, so the speedup costs no accuracy"
     evidence: |
       2.2e-15 is float64 epsilon territory: the two orderings of the same
       arithmetic differ only by rounding. That is the check worth running
-      whenever you vectorise, because vectorising is a rewrite, and a rewrite
-      that changes the answer is a bug rather than an optimisation. Confirm the
+      whenever you vectorize, because vectorizing is a rewrite, and a rewrite
+      that changes the answer is a bug rather than an optimization. Confirm the
       agreement first, then keep the speed.
     source:
       file: lectures/l11/notes.md
@@ -391,7 +391,7 @@ items:
     options:
       - "The GPU, by a wide margin, which is why accelerators are the default for training"
       - "Whichever you have; the point is the crossover, not which device won"
-      - "The CPU always, because PyTorch's GPU path is not optimised for tabular data"
+      - "The CPU always, because PyTorch's GPU path is not optimized for tabular data"
       - "Neither reliably; device timings are too noisy on a laptop to support any conclusion"
     answer: "Whichever you have; the point is the crossover, not which device won"
     evidence: |

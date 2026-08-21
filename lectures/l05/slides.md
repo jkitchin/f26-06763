@@ -386,7 +386,7 @@ Debug stage 3 without rerunning stages 1 and 2.
 ![w:880](figures/secom-column-triage.png)
 
 <!-- Ask: how many of the 590 columns do you think survive? Nobody guesses low
-     enough. 440. A quarter of the matrix is gone before any modelling. -->
+     enough. 440. A quarter of the matrix is gone before any modeling. -->
 
 ---
 

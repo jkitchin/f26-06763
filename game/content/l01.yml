@@ -4,7 +4,7 @@ title: "AI engineering landscape and the system view"
 source_notes: lectures/l01/notes.md
 status: published
 serve: 5
-pool_version: 3
+pool_version: 4
 provenance:
   drafted_by: hand
   reviewed_by: jkitchin
@@ -141,7 +141,7 @@ items:
     difficulty: 3
     objectives: [l01-o3]
     prompt: |
-      The 737 MAX case is often summarised as "the software was buggy."
+      The 737 MAX case is often summarized as "the software was buggy."
 
       What do the investigations say about the sensor architecture?
     options:
@@ -169,7 +169,7 @@ items:
     difficulty: 2
     objectives: [l01-o4]
     prompt: |
-      The course standardises on `uv` for environments. What failure is that
+      The course standardizes on `uv` for environments. What failure is that
       choice preventing?
     options:
       - "Slow installs, since uv resolves and downloads faster than the alternatives"
@@ -187,8 +187,8 @@ items:
     source:
       file: lectures/l01/notes.md
       heading: "The standardized toolchain"
-      quote: "uv"
-    verify: {mode: quote, needle: "uv", volatility: stable}
+      quote: "rebuilds that are merely probable"
+    verify: {mode: quote, needle: "rebuilds that are merely probable", volatility: stable}
     tags: [toolchain, reproducibility]
 
   - id: l01-q07
@@ -202,11 +202,11 @@ items:
     options:
       - "Into model selection and hyperparameter tuning, which is where accuracy is won"
       - "Into the data infrastructure, the evaluation, and the operational practice around the model"
-      - "Into inference optimisation, since serving cost dominates the lifetime budget"
+      - "Into inference optimization, since serving cost dominates the lifetime budget"
       - "Into user interface work, since adoption determines whether a model delivers value"
     answer: "Into the data infrastructure, the evaluation, and the operational practice around the model"
     evidence: |
-      This is the claim the whole course is organised around, and the reason the
+      This is the claim the whole course is organized around, and the reason the
       first four weeks are about storage and pipelines rather than about models.
       The two case studies in this session make the same point from opposite
       directions: one system failed with no model in it at all, and the other had
@@ -268,7 +268,7 @@ items:
       Open [`l01-reproducibility.ipynb`](../lectures/l01/l01-reproducibility.ipynb)
       and run it top to bottom. It is deliberately defective.
 
-      One cell fails for you and a different one fails for your neighbour. Why?
+      One cell fails for you and a different one fails for your neighbor. Why?
     options:
       - "Random seeds differ between machines, so the split is different"
       - "It integrates a curve twice, once with `np.trapz` and once with `np.trapezoid`, and exactly one exists in your NumPy version"
@@ -278,7 +278,7 @@ items:
     evidence: |
       `np.trapz` was removed in NumPy 2.0 and `np.trapezoid` was added there, so
       exactly one cell fails whichever version you installed, and comparing
-      failures with a neighbour is the discussion. The absolute path is one of
+      failures with a neighbor is the discussion. The absolute path is one of
       the other two deliberate defects and it fails for everybody, which is why it
       is the less interesting one: a defect that only fires on some machines is
       the kind that reaches production.
