@@ -6,6 +6,7 @@
 - **Session** Lecture 1, Week 1
 - **Arc** Foundations
 - **Slides** <a href="../../slides/l01/">Deck for this session</a>
+- **Practice** <a href="../../game/#/l01">Practice module for this session</a>
 - **Demo** [`l01-reproducibility.ipynb`](l01-reproducibility.ipynb), the notebook that does not reproduce
 - **Assignment 1**, released this week
 :::
@@ -557,6 +558,13 @@ unfamiliar, and each is the source I would send a colleague to first.
 ## Assignment
 
 Assignment 1, the reproducible project scaffold, is released this week and due
-08-31-2026. It asks you to stand up a `uv`-managed,
-git-tracked project that pulls an engineering dataset and converts an exploratory notebook
-into a runnable module. This is a pointer, not the rubric.
+08-31-2026. It asks you to take the demo notebook from this session, fix the three
+defects you just found in it, and land it in a `uv`-managed, git-tracked project that
+someone else can rebuild and rerun. This is a pointer, not the rubric.
+
+## Practice module
+
+<a href="../../game/#/l01"><strong>Practice module for this session</strong></a>, about ten
+minutes of questions drawn from the numbers and the pitfalls above. It runs entirely in your
+browser, the questions are selected from your Andrew ID, and it ends by producing a PDF you
+upload for participation credit.
