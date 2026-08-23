@@ -23,6 +23,7 @@ Design notes:
     gitignored.
 """
 import json
+import sys
 from pathlib import Path
 
 OUT = Path(__file__).parent / "l12-cnn-rul.ipynb"
@@ -237,6 +238,14 @@ cells = [
        "with it, which is the point. Assignment **A6** has you build, train, and honestly evaluate\n",
        "a deep model against a real baseline on a GPU, so it starts here."),
 ]
+
+# The Colab bootstrap cell, injected from the notebook's own imports so this
+# generator does not carry a second copy of the requirement list. See
+# tools/colab_setup.py.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
+from colab_setup import with_colab_cell  # noqa: E402
+
+cells = with_colab_cell(cells, OUT)
 
 nb = {
     "cells": cells,

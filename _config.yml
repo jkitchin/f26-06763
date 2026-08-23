@@ -37,6 +37,18 @@ repository:
   url: https://github.com/jkitchin/f26-06763
   branch: main
 
+# "Open in Colab" on every notebook page. Jupyter Book builds the link from the
+# repository: block above, as
+#   {colab_url}/github/{owner}/{repo}/blob/{branch}/{path to the .ipynb}
+# so it resolves only while the repo is public and the notebook is on `main` at
+# that path. A notebook renamed on a branch gets a button that 404s at Colab,
+# which the book build cannot see.
+# The button is added to notebook pages only, which is what we want: the notes
+# are .md and there is nothing to launch.
+launch_buttons:
+  colab_url: https://colab.research.google.com
+  notebook_interface: jupyterlab
+
 html:
   use_repository_button: true
   use_issues_button: true

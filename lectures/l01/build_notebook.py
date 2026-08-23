@@ -19,6 +19,7 @@ The three, in the order a student meets them:
    version, which is the discussion.
 """
 import json
+import sys
 from pathlib import Path
 
 OUT = Path(__file__).parent / "l01-reproducibility.ipynb"
@@ -231,6 +232,14 @@ cells = [
        "a pinned interpreter, relative paths, seeded splits, and the analysis moved out of the\n",
        "notebook into a module you can test and rerun. That is also assignment **A1**."),
 ]
+
+# The Colab bootstrap cell, injected from the notebook's own imports so this
+# generator does not carry a second copy of the requirement list. See
+# tools/colab_setup.py.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
+from colab_setup import with_colab_cell  # noqa: E402
+
+cells = with_colab_cell(cells, OUT)
 
 nb = {
     "cells": cells,

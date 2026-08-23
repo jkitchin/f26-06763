@@ -21,6 +21,7 @@ version of the formatting lever.
 Design notes: sklearn + numpy only; deterministic; runs top to bottom offline.
 """
 import json
+import sys
 from pathlib import Path
 
 OUT = Path(__file__).parent / "l18-prompt-vs-rag.ipynb"
@@ -227,6 +228,14 @@ cells = [
        "bake-off is the measured version of why that is the wrong tool. Assignment A9 builds the\n",
        "RAG half of this for real."),
 ]
+
+# The Colab bootstrap cell, injected from the notebook's own imports so this
+# generator does not carry a second copy of the requirement list. See
+# tools/colab_setup.py.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
+from colab_setup import with_colab_cell  # noqa: E402
+
+cells = with_colab_cell(cells, OUT)
 
 nb = {
     "cells": cells,

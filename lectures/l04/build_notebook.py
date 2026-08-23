@@ -19,6 +19,7 @@ committed .ipynb carries no outputs and must run top to bottom. The PostgreSQL
 section is guarded so Restart-and-Run-All finishes even without the L3 database.
 """
 import json
+import sys
 from pathlib import Path
 
 OUT = Path(__file__).parent / "l04-storage.ipynb"
@@ -220,6 +221,14 @@ cells = [
        "same dataset into PostgreSQL and into Parquet/DuckDB and compare, so the second half\n",
        "starts here."),
 ]
+
+# The Colab bootstrap cell, injected from the notebook's own imports so this
+# generator does not carry a second copy of the requirement list. See
+# tools/colab_setup.py.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
+from colab_setup import with_colab_cell  # noqa: E402
+
+cells = with_colab_cell(cells, OUT)
 
 nb = {
     "cells": cells,
