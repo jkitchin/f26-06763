@@ -183,6 +183,33 @@ jobs:
           # under. Matches the quiz job so the two cannot drift.
           node-version: "24"
 
+      - name: Check the A1 evidence checksum matches the script
+        # Students are told to compare the sha256 the report prints against
+        # a01-evidence.py.sha256 on the site, and a TA is told to do the same. If
+        # the script is edited and the checksum is not regenerated, every honest
+        # submission mismatches at once and the error lands on students who did
+        # nothing wrong. That is the same false-positive shape as bumping SCHEMA
+        # in one place only, so it is checked here rather than remembered.
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import pathlib
+          import sys
+
+          script = pathlib.Path("course/assignments/a01-evidence.py")
+          published = pathlib.Path("course/assignments/a01-evidence.py.sha256")
+          digest = hashlib.sha256(script.read_bytes()).hexdigest()
+          recorded = published.read_text().split()[0]
+          if digest != recorded:
+              sys.exit(
+                  f"{published} records {recorded}\nbut {script} hashes to {digest}\n"
+                  f"Regenerate it:\n"
+                  f"  shasum -a 256 {script} | "
+                  f"awk '{{print $1\"  a01-evidence.py\"}}' > {published}"
+              )
+          print(f"A1 evidence checksum matches: {digest}")
+          PY
+
       - name: Check every lecture carries index entries
         # The general index is only as good as the entries somebody remembered to
         # write, and a lecture that ships without them fails nothing on its own:
