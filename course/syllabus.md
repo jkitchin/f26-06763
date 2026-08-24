@@ -105,6 +105,7 @@ Grades are absolute, and no curve is applied:
 
 | Grade | Minimum score |
 |-------|---------------|
+| A+   | 100 |
 | A     | 95 |
 | A-    | 90 |
 | B+    | 85 |
@@ -115,7 +116,7 @@ Grades are absolute, and no curve is applied:
 
 ## Policies
 
-- **Late work:** **All students** get two grace days from the assignment deadline, **automatically, no questions asked*. Please note this only applies to the participation and assignments. **It will not be applied to the projects (group assignments).**
+- **Late work:** **All students** get two grace days from the assignment deadline, **automatically, no questions asked**. A zero will be assigned after this. Please note this only applies to the participation and assignments. **It will not be applied to the projects (group assignments).** Exceptions must be approved in advance by the instructors.
 - **Regrade requests:** bring a regrade request to the instructors within one week of the
   grade being returned. We will review it with the grader who graded the work.
 - **Collaboration:** working together is allowed and encouraged on all coursework, the
