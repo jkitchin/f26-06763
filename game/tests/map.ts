@@ -70,8 +70,13 @@ check(world.signs.every((s) => roomById(s.lecture)?.written === false),
 // nothing. See game/content/map-edges.yml.
 check(!world.doors.some((d) => d.from === 'l17'), 'L17 is still the dead end')
 
+// Ten, not the fifteen this asserted before: L23's five authored edges left with
+// the lecture when MLOps moved to course/optional/. The count is hardcoded on
+// purpose. Authored edges are hand-written content, each with the sentence that
+// justifies it, and a regeneration that silently dropped some would otherwise
+// look like a clean run.
 const authored = world.doors.filter((d) => d.origin === 'authored')
-check(authored.length === 15, 'the fifteen authored corridors made it through',
+check(authored.length === 10, 'the ten authored corridors made it through',
   `${authored.length}`)
 check(authored.every((d) => d.why !== null && d.relation !== null),
   'and each carries the relation and the reason it exists')
