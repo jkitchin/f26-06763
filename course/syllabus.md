@@ -2,17 +2,17 @@
 
 **Program:** MS, AI in Engineering
 **Units / Format:** 12 units, 2 sessions/week, in-person, hands-on
-**Prerequisites:** Basic programming skills (Python preferred). No prior ML required.
+**Prerequisites:** Basic programming skills (Python preferred). No prior ML expertise required.
 
 ## Class 
 
-The course will be Mondays and Wednesdays from 3:30pm to 4:50pm in [CIC 1201](https://maps.app.goo.gl/93pZEYznGGC6EynS9). Attendance in person is expected. 
+The course will be Mondays and Wednesdays from 3:30pm to 4:50pm in [CIC 1201](https://maps.app.goo.gl/eiN6HQujptAP8yoB9). Attendance in person is expected. 
 
 The course is run on [Canvas](https://canvas.cmu.edu/courses/54976).
 
 ## Instructors
 - John Kitchin (jkitchin@andrew.cmu.edu)
-- Victor Alves (vcunhaal@andrew.cmu.edu )
+- Victor Alves (victoralves@cmu.edu )
 
 ## Teaching assistants
 - Tirtha Vinchurkar (tvinchur@andrew.cmu.edu)
@@ -27,19 +27,24 @@ The course is run on [Canvas](https://canvas.cmu.edu/courses/54976).
 ## Course Description
 
 Building AI in an engineering setting is far more than choosing a model. It is an
-engineering discipline in its own right: acquiring and storing messy sensor, simulation,
-and experimental data; building reproducible pipelines; training and rigorously evaluating
-models; adapting foundation models and wiring up agents; and deploying and monitoring all
-of it in production. This course gives students hands-on experience with the **systems
-and toolchains** an AI engineer uses, grounded throughout in **engineering problems**:
+engineering discipline in its own right: 
+
+1. Acquiring and storing messy sensor, simulation, and experimental data.
+2. Building reproducible pipelines; training and rigorously evaluating
+models.
+3. Adapting ML/AI models and wiring up LLM agents, and 
+4. Deploying and monitoring all of it in real production. 
+
+This course gives students **hands-on experience** with the **systems
+and toolchains** an AI engineer uses, considering **engineering problems**:
 time-series and sensor data, simulation surrogates (ML models) and so on.
 
-The course is balanced across three pillars:
+The course is balanced across three main topics/arcs:
 
 1. **Data infrastructure & engineering:** storage, pipelines, features, validation.
-2. **Machine learning:** the ML workflow, PyTorch, and applied
+2. **Machine learning:** the ML workflow, PyTorch/JAX, and applied
    engineering ML (surrogates, physics-informed models, uncertainty, Bayesian
-   optimization).
+   optimization (BO)).
 3. **LLM & agentic engineering:** usage, retrieval, adaptation, and building/using agentic workflows.
 
 
@@ -47,10 +52,10 @@ The course is balanced across three pillars:
 
 By the end of the course, students will be able to:
 
-- Stand up a **reproducible AI project** (environments, versioning of code/data/models,
-  experiment tracking) and defend engineering design choices.
+- Create a **reproducible AI project** (environments, versioning of code/data/models,
+  experiment tracking) and defend engineering design choices made.
 - Acquire, store, and process engineering data across different types of databases; build **validated data pipelines**.
-- Execute the full **ML workflow** (baselines, training, cross-validation, model
+- Execute the full **ML workflow** (training, cross-validation, model
   selection, and evaluation) on engineering data.
 - Build **applied-engineering ML**: surrogate and physics-informed models with
   **uncertainty quantification**, and use **Bayesian optimization / active learning** for
@@ -64,9 +69,9 @@ To keep the course coherent, the following tools are standardized across materia
 are named where relevant so the skills you learned can transfer.
 
 - **Language & environments:** Python, managed with **uv** (reproducible, lockfile-based).
-- **Machine learning:** **PyTorch, JAX**.
-- **Experiment tracking:** **MLflow**.
-- **Data:** PostgreSQL, DuckDB/Parquet, pandas/Polars.
+- **Machine learning:** **PyTorch and/or JAX**.
+- **Experiment tracking:** **MLflow and/or MLOps**.
+- **Data:** SQL and similar.
 - **LLM / agentic:** framework- and provider-**agnostic**. Students may choose their agent framework. Main concepts and ideas are taught so they transfer across model providers.
 
 ## Assessment
@@ -81,23 +86,22 @@ are named where relevant so the skills you learned can transfer.
 
 There is **no proctored final exam**, and assessment is based on projects, quizzes, and homework.
 
-- **Assignments:** one focused assignment/homework per module, each reinforcing that
+- **Assignments:** one assignment/homework per module, each reinforcing that
   week's tools. Submitted via Canvas. Typically due one week after
-  release. Assignments use **per-module datasets** chosen to fit the topic.
+  release.
 - **Mini-project:** takes an engineering dataset through the full workflow of acquiring
   data, training a model, and evaluating it, ending in a **surrogate or predictive model**
   with a short report and a code walkthrough.
 - **Final project:** **student-chosen**. Must
-  integrate back-half topics: an **LLM/agentic system** with real **evaluation and
-  deployment**. Deliverables: proposal, build (repo), recorded demo, and in-class
-  presentation.
+  integrate remaining topics: an **LLM/agentic system** with real **evaluation and
+  deployment**. Deliverables: proposal, build (repo), and presentation.
 - **Participation & quizzes:** one short practice module per week, tied to that week's lectures and notes. Completing a module produces a PDF that you upload to Canvas.
 
   
 
 ### Grading scale
 
-Grades are absolute; no curve is applied. Each letter is the minimum overall score that earns it.
+Grades are absolute, and no curve is applied:
 
 | Grade | Minimum score |
 |-------|---------------|
@@ -111,18 +115,15 @@ Grades are absolute; no curve is applied. Each letter is the minimum overall sco
 
 ## Policies
 
-- **Late work:** assignments lose 15 percentage points for each day late, down to a floor
-  of 60%, and are accepted up to three days late. After that, they are not accepted.
-  Final-project work is not accepted after the presentation date.
+- **Late work:** **All students** get two grace days from the assignment deadline, **automatically, no questions asked*. Please note this only applies to the participation and assignments. **It will not be applied to the projects (group assignments).**
 - **Regrade requests:** bring a regrade request to the instructors within one week of the
-  grade being returned. We will review it with the grader who marked the work. A regrade
-  re-examines the whole submission.
+  grade being returned. We will review it with the grader who graded the work.
 - **Collaboration:** working together is allowed and encouraged on all coursework, the
   assignments, the miniproject, and the final project alike. Disclose your collaborators
   and any outside sources in your repository, and make sure you personally understand and
   can defend everything you submit.
 - **Generative-AI use:** *permitted and encouraged as an engineering tool*: this is a
-  course about building with AI. You must (a) **disclose** where and how you used AI
+  course about building with AI. We ask to to (a) **disclose** where and how you used AI
   assistants, (b) **cite** generated code/text in comments or a `CREDITS` file, and (c) be
   able to **explain and defend** everything you submit. Using AI to bypass learning an
   assignment's core skill (e.g., having it write an entire graded pipeline you can't
@@ -178,5 +179,5 @@ experiences using the following resources:
 
 ## Schedule
 
-See [the schedule](./schedule.md) for the full calendar.
+See [the schedule](./schedule.md) for the full tentative calendar for our course! :)
 

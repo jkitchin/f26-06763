@@ -181,7 +181,7 @@ def test_the_two_attempts_together_cover_the_pool(aid):
 
 
 def test_attempt_three_wraps_rather_than_running_out():
-    """A student may practise more than twice. They must still get a full set."""
+    """A student may practice more than twice. They must still get a full set."""
     served = derive("jkitchin", "l15", pool(10), 1, 5, 3)
     assert len(served) == 5
     assert len({s["id"] for s in served}) == 5

@@ -131,7 +131,7 @@ jobs:
 
           # The retake must verify. If the attempt is not carried in the payload
           # and used to re-derive, this row fails `drv` and an honest student
-          # who practised twice is sent to their instructor.
+          # who practiced twice is sent to their instructor.
           a2 = [r for r in rows if re.search(r'\s2\s+\d+s', r) and r.rstrip().endswith('PASS')]
           if not a2:
               fails.append('no PASSing attempt-2 row: a legitimate retake does not verify')

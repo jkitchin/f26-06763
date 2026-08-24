@@ -109,7 +109,7 @@ export function Home({ banks, log, andrewId, storageOk, onStart, onEvidence, onM
               </p>
               <div className="mt-3 flex gap-2">
                 <button type="button" onClick={() => onStart(bank.lecture)} className="btn-primary">
-                  {done ? 'Practise again' : 'Start'}
+                  {done ? 'Practice again' : 'Start'}
                 </button>
                 {done && (
                   <button

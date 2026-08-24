@@ -323,7 +323,7 @@ there is no answer.
 
 <!-- _class: section -->
 
-# Case 3: MCAS
+# Case 3: Maneuvering Characteristics Augmentation System (MCAS)
 
 ---
 
@@ -400,7 +400,7 @@ that needs **evidence**, not assumption.
 
 A CSV has no schema, no types, no constraints,
 and no way to read one column without reading all of them.
-PHE is the far end of that road.
+A spreadsheet datastore is the far end of that road.
 
 | Model | Example | Good at |
 |---|---|---|
@@ -456,7 +456,7 @@ It is an optimization loop.
 
 </div>
 
-You never hand-derive anything. That is the whole trick behind PyTorch.
+You never hand-derive anything. That is the whole trick behind PyTorch and JAX.
 
 [torch.autograd, gently](https://docs.pytorch.org/tutorials/beginner/blitz/autograd_tutorial.html)
 
@@ -542,7 +542,7 @@ Flu Trends is what absence looks like.
 
 ---
 
-## A tour of the stack, language models
+## A tour of the stack, language models (LLMs)
 
 A next-token predictor trained on a very large corpus.
 
@@ -557,10 +557,7 @@ Three integration patterns:
 
 - **Prompting**: instructions and data in the context
 - **RAG**: search your own corpus, put hits in the context
-- **Fine-tuning**: adjust the weights
 
-Fine-tuning is the right answer far less often
-than people expect.
 
 ---
 
@@ -571,14 +568,12 @@ than people expect.
 3. **Your code** executes it, returns the result
 4. Repeat until done
 
-That is the whole idea. Frameworks are conveniences.
-
 For engineering: agents over your database,
 your simulation, your instrument.
+<!-- 
+--- -->
 
----
-
-## A tour of the stack, security
+<!-- ## A tour of the stack, security
 
 <div class="definition">
 
@@ -591,7 +586,7 @@ An agent that both **reads untrusted input** and
 
 Capability scoping > clever prompting.
 
-[OWASP Top 10 for LLM Apps](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
+[OWASP Top 10 for LLM Apps](https://owasp.org/www-project-top-10-for-large-language-model-applications/) -->
 
 ---
 
@@ -603,7 +598,6 @@ Capability scoping > clever prompting.
 - Are the failure modes documented well enough
   to sign a safety case?
 
-MCAS is a reminder these have consequences.
 
 [NIST AI RMF](https://www.nist.gov/itl/ai-risk-management-framework)
 
@@ -620,16 +614,16 @@ MCAS is a reminder these have consequences.
 | Layer | Tool | Prevents |
 |---|---|---|
 | Environments | `uv` | merely-probable rebuilds |
-| Storage | Postgres/DuckDB/Parquet | CSV sprawl, truncation |
-| Dataframes | pandas/Polars | OOM, unreadable transforms |
-| Validation | pandera | bad data passing silently |
+| Storage | Postgres/DuckDB/Parquet | CSV "mess", truncation |
+| Dataframes | pandas/Polars | OOM (out-of-memory), unreadable transforms |
+| Validation | pandera | "bad data" passing "quietly" |
 | Tracking | MLflow | unattributable results |
-| Deep learning | PyTorch | hand-derived gradients |
+| ML | PyTorch/JAX | hand-derived gradients |
 | Serving | FastAPI/Docker | "works on my machine" |
 
 **LLM and agent frameworks** are deliberately not standardized:
-that ecosystem turns over faster than a semester, so we teach interfaces
-and evaluation discipline rather than a vendor's abstractions.
+that ecosystem changes much faster than a semester, so we teach interfaces
+and evaluation techniques rather than vendor's (OpenAI, Anthropic) specifics.
 
 ---
 

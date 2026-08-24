@@ -77,7 +77,7 @@ check(afterThree.startsWith('4/'), 'three items answered', afterThree)
 
 // --- resume ---------------------------------------------------------------
 await page.reload({ waitUntil: 'networkidle0' }); await wait(500)
-await page.click('button.btn-primary'); await wait(500)        // Practise again / Start
+await page.click('button.btn-primary'); await wait(500)        // Practice again / Start
 const resumed = await counter()
 check(resumed === afterThree, 'reload resumes where it left off', `${afterThree} -> ${resumed}`)
 
