@@ -10,8 +10,8 @@ read it before you send it.
 
 WHAT IT DOES. It runs the commands in the assignment's Definition of done and
 records what they actually printed, then embeds the files a grader needs to
-read: your `.gitignore`, your `pyproject.toml`, your package, the code cells of
-your notebook, and your README. Nothing is invented. If a command fails, the
+read: your `pyproject.toml`, your package, the code cells of your notebook, and
+your README. Nothing is invented. If a command fails, the
 failure goes in the report, which is better for you than a report that quietly
 omits it: a report showing one broken command and five working ones is worth
 more marks than no report at all.
@@ -34,7 +34,7 @@ every submission arrives in the same shape and there is no print dialog to get
 wrong.
 
 Standard library only, so it runs on the system Python without being installed
-into your project. It shells out to `uv` and `git` for everything else.
+into your project. It shells out to `uv`, and to nothing else.
 """
 
 from __future__ import annotations
@@ -211,8 +211,8 @@ def self_hash():
     one line spots that in a second.
 
     The expensive-to-forge part of this report is not the hash. It is the
-    cross-checks, which tie the transcript to the MLflow table, the notebook and
-    git, and which all have to agree with each other.
+    cross-checks, which tie the transcript to the MLflow table and to the
+    notebook, and which all have to agree with each other.
     """
     return hashlib.sha256(Path(__file__).resolve().read_bytes()).hexdigest()
 
@@ -296,7 +296,6 @@ def collect(root, found):
     """Run every command the report is built from."""
     steps = []
     run("tool versions", ["uv", "--version"], root, steps)
-    run("git version", ["git", "--version"], root, steps)
 
     venv = root / ".venv"
     if venv.exists():
@@ -336,9 +335,6 @@ def collect(root, found):
     else:
         steps.append(blank)
 
-    tracked = run("tracked files", ["git", "ls-files"], root, steps)
-    run("commits", ["git", "log", "--oneline", "-n", "15"], root, steps)
-    status = run("working tree after the runs", ["git", "status", "--porcelain"], root, steps)
 
     # Detected here rather than before the runs: a file store does not exist
     # until something has been logged to it, so detecting up front sent a
@@ -364,24 +360,23 @@ def collect(root, found):
 
     nb_source, nb_in_order = notebook_code(found["notebook_path"])
 
-    # This script and its own output are not part of the project, so they must
-    # not count against the clean-tree check. Otherwise running the tool is what
-    # fails the check the tool is reporting on.
-    def is_noise(line):
-        name = line.strip().split("/")[-1].split()[-1]
-        return name in OS_JUNK or any(line.strip().endswith(ours) for ours in OURS)
-
-    dirty = [line for line in status.stdout.splitlines() if not is_noise(line)]
-    junk = [line for line in status.stdout.splitlines()
-            if line.strip().split("/")[-1].split()[-1] in OS_JUNK]
-
-    tracked_files = tracked.stdout.split()
-    data_tracked = [f for f in tracked_files if f.lower().endswith(DATA_SUFFIXES)]
-    # A renamed data file has no telling suffix, so size is the other tell.
-    for name in tracked_files:
-        path = root / name
-        if name not in data_tracked and path.is_file() and path.stat().st_size > BIG_FILE:
-            data_tracked.append(f"{name} ({path.stat().st_size // 1000} kB)")
+    # Hygiene from the filesystem rather than from git, because Assignment 1 no
+    # longer asks anyone to run git. The lesson is the same one L2 teaches, that
+    # data has one home and code has another, and it is checkable without a
+    # repository: the raw file belongs under data/, which the download creates,
+    # and nowhere else in the project.
+    stray = []
+    for path in sorted(root.rglob("*")):
+        if not path.is_file() or not _usable(path) or path.name in OS_JUNK:
+            continue
+        relative = path.relative_to(root)
+        if relative.parts[0] in ("data", *OURS) or relative.name in OURS:
+            continue
+        if path.suffix.lower() in DATA_SUFFIXES:
+            stray.append(str(relative))
+        elif path.stat().st_size > BIG_FILE:
+            # A renamed data file has no telling suffix, so size is the tell.
+            stray.append(f"{relative} ({path.stat().st_size // 1000} kB)")
 
     # Do the numbers the seed 0 run printed turn up again in the MLflow table?
     # Two independent records of one run, so a forged number has to be forged in
@@ -391,28 +386,111 @@ def collect(root, found):
     logged = numbers(mlflow_step.stdout)
 
     checks = [
-        ("The environment rebuilds from the committed lockfile",
-         rebuild.ok and "uv.lock" in tracked_files and ".python-version" in tracked_files),
+        ("The environment rebuilds from the lockfile",
+         rebuild.ok and (root / "uv.lock").is_file() and (root / ".python-version").is_file()),
         ("The same seed prints the same number twice",
          first.ok and again.ok and bool(printed) and printed == numbers(again.stdout)),
         ("A different seed prints a different number",
          other.ok and bool(printed) and numbers(other.stdout) != printed),
-        ("No data file is tracked by git", tracked.ok and not data_tracked),
-        ("The working tree is clean after the runs", status.ok and not dirty),
+        ("The raw data sits under data/ and nowhere else in the project", not stray),
         ("The notebook's cells ran in order from a fresh kernel", bool(nb_in_order)),
         ("The metric printed by the seed 0 run also appears in the MLflow table",
          bool(printed & logged)),
     ]
 
     notes = []
-    if data_tracked:
-        notes.append("tracked data files: " + ", ".join(data_tracked[:5]))
-    if dirty:
-        notes.append("uncommitted: " + ", ".join(line.strip() for line in dirty[:5]))
-    if junk:
-        notes.append("ignored as OS clutter, not counted against you: "
-                     + ", ".join(line.strip() for line in junk[:3]))
+    if stray:
+        notes.append("data outside data/: " + ", ".join(stray[:5]))
     return steps, checks, nb_source, notes
+
+
+# ------------------------------------------------------- colour and highlight
+
+BLACK = (0, 0, 0)
+GREEN = (0.00, 0.45, 0.15)
+RED = (0.70, 0.06, 0.06)
+BLUE = (0.10, 0.25, 0.60)
+GREY = (0.40, 0.40, 0.40)
+KEYWORD = (0.45, 0.15, 0.55)
+STRING = (0.62, 0.20, 0.12)
+NUMBER = (0.05, 0.40, 0.50)
+COMMENT = (0.35, 0.48, 0.38)
+
+KEYWORDS = {
+    "False", "None", "True", "and", "as", "assert", "async", "await", "break",
+    "class", "continue", "def", "del", "elif", "else", "except", "finally",
+    "for", "from", "global", "if", "import", "in", "is", "lambda", "nonlocal",
+    "not", "or", "pass", "raise", "return", "try", "while", "with", "yield",
+}
+TOKENS = re.compile(
+    r"(?P<comment>#[^\n]*)"
+    r"|(?P<string>'''|\"\"\"|'(?:\\.|[^'\\])*'|\"(?:\\.|[^\"\\])*\")"
+    r"|(?P<number>\b\d+\.?\d*\b)"
+    r"|(?P<word>[A-Za-z_]\w*)"
+)
+
+
+def plain(text, bold=False, colour=BLACK):
+    """One line, one colour. Lines are lists of (text, bold, colour) runs."""
+    return [(text, bold, colour)]
+
+
+def highlight(source, indent="  "):
+    """Python source as coloured runs, one list of runs per line.
+
+    A hand-rolled highlighter rather than a dependency, and deliberately a small
+    one: keywords, strings, numbers and comments. It tracks triple-quoted
+    strings across lines, because docstrings are the one multi-line construct
+    that every student's module will contain.
+    """
+    out, in_triple = [], None
+    for raw in source.splitlines():
+        runs, position = [(indent, False, BLACK)], 0
+        if in_triple:
+            end = raw.find(in_triple)
+            if end == -1:
+                out.append([(indent, False, BLACK), (raw, False, STRING)])
+                continue
+            runs.append((raw[:end + 3], False, STRING))
+            position = end + 3
+            in_triple = None
+        for match in TOKENS.finditer(raw, position):
+            # finditer was started before a triple-quoted run was consumed by
+            # hand, so it still yields matches from inside it. Skipping those is
+            # what stops a one-line docstring being printed twice.
+            if match.start() < position:
+                continue
+            if match.start() > position:
+                runs.append((raw[position:match.start()], False, BLACK))
+            text = match.group()
+            kind = match.lastgroup
+            if kind == "comment":
+                runs.append((text, False, COMMENT))
+            elif kind == "string":
+                if text in ("'''", '"""'):
+                    rest = raw[match.start():]
+                    closing = rest.find(text, 3)
+                    if closing == -1:
+                        runs.append((rest, False, STRING))
+                        in_triple = text
+                        position = len(raw)
+                        break
+                    text = rest[:closing + 3]
+                    runs.append((text, False, STRING))
+                    position = match.start() + len(text)
+                    continue
+                runs.append((text, False, STRING))
+            elif kind == "number":
+                runs.append((text, False, NUMBER))
+            elif text in KEYWORDS:
+                runs.append((text, True, KEYWORD))
+            else:
+                runs.append((text, False, BLACK))
+            position = match.end()
+        if position < len(raw):
+            runs.append((raw[position:], False, BLACK))
+        out.append(runs)
+    return out
 
 
 # ----------------------------------------------------------------- PDF output
@@ -423,47 +501,71 @@ def escape_pdf(text):
     return out.encode("latin-1", "replace").decode("latin-1")
 
 
-def write_pdf(path, lines, title):
-    """Write a paginated monospace PDF. No dependency, no browser, no LaTeX.
+def wrap(lines, max_chars, indent="      "):
+    """Wrap coloured lines to the page width, keeping each run's colour.
 
-    Doing it here rather than telling students to print an HTML page means every
-    submission arrives in the same shape: same font, same margins, nothing
-    scaled to 60 percent and nothing cut off at the right edge because a print
-    dialog defaulted to A4. `lines` is a list of (text, bold) pairs.
+    Courier is monospace, so a character count is a width, and a line can be cut
+    anywhere without measuring anything.
+    """
+    out = []
+    for runs in lines:
+        current, used = [], 0
+        for text, bold, colour in runs:
+            text = text.replace("\t", "    ")
+            while True:
+                room = max_chars - used
+                if len(text) <= room:
+                    if text:
+                        current.append((text, bold, colour))
+                        used += len(text)
+                    break
+                cut = text.rfind(" ", 0, room)
+                cut = cut if cut > room // 2 else room
+                current.append((text[:cut], bold, colour))
+                out.append(current)
+                current, used = [(indent, False, BLACK)], len(indent)
+                text = text[cut:].lstrip()
+        out.append(current)
+    return out
+
+
+def write_pdf(path, lines, title):
+    """Write a paginated, coloured, monospace PDF.
+
+    No dependency, no browser, no LaTeX, so every submission arrives in the same
+    shape and there is no print dialog to get wrong. `lines` is a list of lines,
+    each a list of (text, bold, colour) runs. Successive Tj operators continue
+    where the last one stopped, so a run can change colour or weight mid-line
+    without any positioning arithmetic.
     """
     width, height = 612, 792
     left, top, bottom, size, leading = 42, 748, 60, 8, 10.2
     max_chars = int((width - 2 * left) / (size * 0.6))
     rows = int((top - bottom) / leading)
 
-    wrapped = []
-    for text, bold in lines:
-        text = text.replace("\t", "    ").rstrip()
-        if not text:
-            wrapped.append(("", bold))
-            continue
-        while len(text) > max_chars:
-            cut = text.rfind(" ", 0, max_chars)
-            cut = cut if cut > max_chars // 2 else max_chars
-            wrapped.append((text[:cut], bold))
-            text = "    " + text[cut:].lstrip()
-        wrapped.append((text, bold))
-
+    wrapped = wrap(lines, max_chars)
     pages = [wrapped[i:i + rows] for i in range(0, len(wrapped), rows)] or [[]]
 
     streams = []
     for number, page in enumerate(pages, start=1):
         parts = [f"BT /F1 {size} Tf {left} {top} Td {leading} TL"]
-        current = "F1"
-        for text, bold in page:
-            want = "F2" if bold else "F1"
-            if want != current:
-                parts.append(f"/{want} {size} Tf")
-                current = want
-            parts.append(f"({escape_pdf(text)}) Tj T*")
+        font, colour = "F1", BLACK
+        for runs in page:
+            for text, bold, run_colour in runs:
+                want = "F2" if bold else "F1"
+                if want != font:
+                    parts.append(f"/{want} {size} Tf")
+                    font = want
+                if run_colour != colour:
+                    parts.append(f"{run_colour[0]:.2f} {run_colour[1]:.2f} {run_colour[2]:.2f} rg")
+                    colour = run_colour
+                if text:
+                    parts.append(f"({escape_pdf(text)}) Tj")
+            parts.append("T*")
         parts.append("ET")
         footer = f"{title}   page {number} of {len(pages)}"
-        parts.append(f"BT /F1 7 Tf {left} {bottom - 20} Td ({escape_pdf(footer)}) Tj ET")
+        parts.append(f"BT /F1 7 Tf 0.40 0.40 0.40 rg {left} {bottom - 20} Td "
+                     f"({escape_pdf(footer)}) Tj ET")
         streams.append("\n".join(parts).encode("latin-1", "replace"))
 
     objects = {}
@@ -498,39 +600,45 @@ def write_pdf(path, lines, title):
 
 def write_html(path, lines):
     """The same report as a page, for reading on screen while you fix things."""
-    body = []
-    for text, bold in lines:
-        if not text.strip():
-            body.append("<br>")
-        elif bold:
-            body.append(f"<h2>{html.escape(text)}</h2>")
-        else:
-            body.append(f"<pre>{html.escape(text)}</pre>")
+    def span(run):
+        text, bold, colour = run
+        style = f"color:rgb({int(colour[0]*255)},{int(colour[1]*255)},{int(colour[2]*255)})"
+        if bold:
+            style += ";font-weight:700"
+        return f"<span style='{style}'>{html.escape(text)}</span>"
+
+    body = "\n".join(
+        "<div>" + ("".join(span(r) for r in runs) or "&nbsp;") + "</div>"
+        for runs in lines
+    )
     Path(path).write_text(
         "<!doctype html><meta charset='utf-8'><title>A1 evidence</title>"
-        "<style>body{font:11pt/1.4 ui-monospace,Menlo,monospace;max-width:60rem;"
-        "margin:2rem auto;padding:0 1rem}pre{margin:0;white-space:pre-wrap}"
-        "h2{font-size:1rem;margin:1.2rem 0 .4rem;border-bottom:2px solid #900}"
-        "br{line-height:.6}</style>\n" + "\n".join(body))
+        "<style>body{font:10pt/1.35 ui-monospace,Menlo,monospace;max-width:62rem;"
+        "margin:2rem auto;padding:0 1rem}div{white-space:pre-wrap}</style>\n" + body)
 
 
 def report_lines(root, args, found, steps, checks, nb_source, notes):
-    """The whole report as (text, bold) pairs, which the PDF and HTML share."""
+    """The whole report as coloured lines, which the PDF and the HTML share."""
     passed = sum(1 for _, ok in checks if ok)
+    fraction = passed / len(checks) if checks else 0.0
     stamp = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M %Z")
-    head = next((s.stdout.splitlines()[0] for s in steps
-                 if s.label == "commits" and s.stdout), "")
 
-    lines = [("Assignment 1 evidence", True), ("", False)]
-    lines += [(text, False) for text in [
+    lines = [plain("Assignment 1 evidence", bold=True), plain("")]
+    lines += [plain(text) for text in [
         f"{args.name or args.andrew_id} ({args.andrew_id})",
         f"generated {stamp} on {platform.platform()}",
         f"project {root.name}, uv.lock sha256 {sha256(root / 'uv.lock')}",
-        f"HEAD {head or 'no commits'}",
         f"evidence script sha256 {found['script_sha']}",
     ]]
 
-    lines += [("", False), ("What this script found", True), ("", False)]
+    # The number a TA types into the gradebook, on page one, in one place.
+    lines += [plain(""), [
+        ("Score  ", True, BLACK),
+        (f"{fraction:.2f}", True, GREEN if fraction == 1 else BLACK),
+        (f"   ({passed} of {len(checks)} checks passed)", False, BLACK),
+    ]]
+
+    lines += [plain(""), plain("What this script found", bold=True), plain("")]
     for label, value in [
         ("entry point", found["module"] or "none found, so the runs were skipped"),
         ("package", found["package"] or "none found"),
@@ -538,49 +646,60 @@ def report_lines(root, args, found, steps, checks, nb_source, notes):
         ("README", found["readme"] or "none found"),
         ("MLflow store", found["tracking_uri"]),
     ]:
-        lines.append((f"  {label:<13} {value}", False))
+        lines.append(plain(f"  {label:<13} {value}"))
 
-    lines += [("", False), (f"Definition of done, {passed} of {len(checks)}", True), ("", False)]
-    lines += [(f"  [{'PASS' if ok else 'FAIL'}]  {label}", False) for label, ok in checks]
+    lines += [plain(""), plain(f"Definition of done, {passed} of {len(checks)}", bold=True), plain("")]
+    for label, ok in checks:
+        lines.append([
+            ("  ", False, BLACK),
+            ("[PASS]" if ok else "[FAIL]", True, GREEN if ok else RED),
+            (f"  {label}", False, BLACK),
+        ])
     if notes:
-        lines.append(("", False))
-        lines += [(f"  note: {note}", False) for note in notes]
-    lines += [("", False),
-              ("  Each line is decided from the output below, not asserted.", False)]
+        lines.append(plain(""))
+        lines += [plain(f"  note: {note}", colour=GREY) for note in notes]
+    lines += [plain(""), plain("  Each line is decided from the output below, not asserted.", colour=GREY)]
 
-    lines += [("", False), ("Transcript", True)]
+    lines += [plain(""), plain("Transcript", bold=True)]
     for step in steps:
-        lines += [("", False), (f"  {step.label}", True),
-                  (f"  $ {step.command}   [exit {step.code}, {step.seconds:.1f}s]", False),
-                  ("", False)]
-        lines += [(f"    {line}", False)
+        lines += [plain(""), plain(f"  {step.label}", bold=True)]
+        lines.append([
+            (f"  $ {step.command}", False, BLUE),
+            (f"   [exit {step.code}, {step.seconds:.1f}s]", False,
+             BLACK if step.ok else RED),
+        ])
+        lines.append(plain(""))
+        lines += [plain(f"    {line}", colour=GREY)
                   for line in (trim(step.stdout) or "[no output]").splitlines()]
 
-    for title, body in [
-        (".gitignore", read(root / ".gitignore")),
-        ("pyproject.toml", read(root / "pyproject.toml")),
-        ("The package", package_source(root, found["package"])),
-        (f"Notebook code cells: {found['notebook'] or 'none'}", nb_source),
-        (f"README: {found['readme'] or 'none'}", read(found["readme_path"])),
+    sections = []
+    if (root / ".gitignore").is_file():
+        sections.append((".gitignore", read(root / ".gitignore"), False))
+    for title, body, code in sections + [
+        ("pyproject.toml", read(root / "pyproject.toml"), False),
+        ("The package", package_source(root, found["package"]), True),
+        (f"Notebook code cells: {found['notebook'] or 'none'}", nb_source, True),
+        (f"README: {found['readme'] or 'none'}", read(found["readme_path"]), False),
     ]:
-        lines += [("", False), (title, True), ("", False)]
-        lines += [(f"  {line}", False) for line in body.splitlines()]
+        lines += [plain(""), plain(title, bold=True), plain("")]
+        lines += highlight(body) if code else [plain(f"  {line}") for line in body.splitlines()]
 
     summary = {
         "andrew_id": args.andrew_id,
         "generated": stamp,
-        "script_sha256": found["script_sha"],
-        "uv_lock_sha256": sha256(root / "uv.lock"),
-        "head": head.split()[0] if head else None,
-        "module": found["module"],
+        "score": round(fraction, 2),
         "passed": passed,
         "of": len(checks),
         "failed": [label for label, ok in checks if not ok],
+        "script_sha256": found["script_sha"],
+        "uv_lock_sha256": sha256(root / "uv.lock"),
+        "module": found["module"],
     }
-    lines += [("", False), ("Summary line", True), ("", False),
-              ("  The script hash should match the checksum published beside the script.", False),
-              ("", False), (f"  {json.dumps(summary)}", False)]
-    return lines, passed
+    lines += [plain(""), plain("Summary line", bold=True), plain(""),
+              plain("  The script hash should match the checksum published beside the script.",
+                    colour=GREY),
+              plain(""), plain(f"  {json.dumps(summary)}")]
+    return lines, passed, fraction
 
 
 def main():
@@ -622,15 +741,16 @@ def main():
     print(f"  MLflow:      {found['tracking_uri']}")
 
     steps, checks, nb_source, notes = collect(root, found)
-    lines, passed = report_lines(root, args, found, steps, checks, nb_source, notes)
+    lines, passed, fraction = report_lines(root, args, found, steps, checks, nb_source, notes)
 
     pages = write_pdf(root / args.out, lines, f"A1 evidence, {args.andrew_id}")
     if args.html:
         write_html(root / "evidence.html", lines)
 
-    print(f"\nWrote {args.out}, {pages} pages: {passed} of {len(checks)} checks passed.")
+    print(f"\nWrote {args.out}, {pages} pages.")
     for label, ok in checks:
         print(f"  {'PASS' if ok else 'FAIL'}  {label}")
+    print(f"\nScore {fraction:.2f}  ({passed} of {len(checks)} checks passed)")
     if passed < len(checks):
         print("\nA failing check is a reason to fix it and run this again, "
               "not a reason to skip the submission.")
