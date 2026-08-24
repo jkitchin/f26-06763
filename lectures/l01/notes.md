@@ -182,7 +182,7 @@ the absence of any continuous evaluation harness comparing it against a boring b
 
 Hold-out validation tells you about the distribution you sampled from, and nothing about
 the distribution you will meet next year. Two habits follow. Always maintain a
-stupid-but-honest baseline in production and keep comparing against it, because a model
+simple-but-honest baseline in production and keep comparing against it, because a model
 that cannot beat a lagged average is a result you want to discover early. And check whether
 anything upstream of your features is under active development by a team that does not know
 you exist.
