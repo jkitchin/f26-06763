@@ -17,7 +17,7 @@ would have known that.
 
 ## What is here
 
-The two documents here are halves of one argument, and the second is the one that matters.
+Two of the documents here are halves of one argument, and the second is the one that matters. The third stands on its own.
 
 **[How this course was built, and what to take from that](how-this-course-was-built.md)**
 is a case study in tool triage and in navigating an unfamiliar problem, using this
@@ -39,6 +39,16 @@ already are in this repository. It ends in exercises, which is the point.
 
 Read them in that order if you are reading both. Read only the second if you are reading
 one.
+
+
+**[MLOps: CI/CD for ML, drift and regression monitoring, cost, and responsible AI](mlops.md)**
+is a full chapter that no session teaches. It was written as a lecture, and when the back
+half of the schedule lost a slot it became optional rather than being cut down to fit
+somewhere it did not belong. It covers eval gates that fail a build, measuring drift before
+a label arrives to confirm it, cost as a tracked quantity rather than a surprise, a
+failure-mode-to-guardrail table, and what responsible AI means for a model that steers an
+engineering decision. Its demo, [`mlops-demo.ipynb`](mlops-demo.ipynb), builds an eval gate
+that fails CI on purpose. The final project is where it earns its keep.
 
 ## What may be added
 

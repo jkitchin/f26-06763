@@ -174,7 +174,11 @@ def main() -> int:
     if args.write == args.check:
         ap.error("pass exactly one of --write and --check")
 
-    paths = args.notebooks or sorted(ROOT.glob("lectures/*/*.ipynb"))
+    # Every published notebook, which is not only the lectures: the MLOps demo
+    # moved to course/optional/ with its page, and a notebook that leaves
+    # lectures/ must not quietly leave the check with it.
+    paths = args.notebooks or sorted(ROOT.glob("lectures/*/*.ipynb")) + sorted(
+        ROOT.glob("course/optional/*.ipynb"))
     stale = [p for p in paths if not process(p, args.write)]
 
     for p in stale:

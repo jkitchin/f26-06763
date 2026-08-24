@@ -76,9 +76,6 @@ parts:
 #       - file: lectures/l21/notes
 #         sections:
 #           - file: lectures/l21/l21-eval
-#       - file: lectures/l23/notes
-#         sections:
-#           - file: lectures/l23/l23-mlops
 
   - caption: Assignments
     # Released one per week by tools/release_week.py, from the schedule's
@@ -112,3 +109,6 @@ parts:
 #         sections:
 #           - file: course/optional/how-this-course-was-built
 #           - file: course/optional/generating-is-not-learning
+#           - file: course/optional/mlops
+#             sections:
+#               - file: course/optional/mlops-demo
