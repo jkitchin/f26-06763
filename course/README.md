@@ -41,3 +41,5 @@ and quizzes 15%. No proctored final exam.
   specific, publicly available engineering datasets with fallbacks.
 - Assignments follow a shared structure (goal, outcomes, dataset, tasks, deliverables, a
   100-point rubric, and an AI-use note), so they read consistently across the semester.
+  Assignment 1 is the exception: it is graded from the checks its evidence script decides,
+  so it carries a "How this is graded" section instead of a point table.
