@@ -287,7 +287,7 @@ Reproducibility is the ability to say which data, which code, and which settings
 
 ## Assignment
 
-Assignment 1, the reproducible project scaffold, was released in Week 1 and is due about a week later (08-31-2026). It asks you to take the Lecture 1 demo notebook, fix the three defects that stop it reproducing, and land it in a `uv`-managed, git-tracked project: a package of importable functions, a seeded command-line entry point, and two runs logged to MLflow. The loader and the snippets you have not been shown yet are given to you, so the work is the scaffold rather than the syntax. It is the scaffold you reuse all semester, so it is worth doing carefully the first time. It is also a direct extension of the demo we build in class. This is a pointer, not the rubric.
+Assignment 1, the reproducible project scaffold, was released in Week 1 and is due about a week later (08-31-2026). It asks you to take the Lecture 1 demo notebook, fix the three defects that stop it reproducing, and land it in a `uv`-managed, git-tracked project: a package of importable functions, a seeded command-line entry point, and two runs logged to MLflow. The loader and the snippets you have not been shown yet are given to you, so the work is the scaffold rather than the syntax. It is the scaffold you reuse all semester, so it is worth doing carefully the first time. It is also a direct extension of the demo we build in class. This is a pointer; the assignment page carries the details.
 
 ## Practice module
 
