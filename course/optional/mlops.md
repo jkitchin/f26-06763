@@ -1,13 +1,16 @@
-# Lecture 23: MLOps: CI/CD for ML, drift and regression monitoring, cost; safety and responsible AI
+# MLOps: CI/CD for ML, drift and regression monitoring, cost, and responsible AI
 
-:::{admonition} Overview
-:class: tip
+:::{admonition} Optional material
+:class: note
 
-- **Session** Lecture 23, Week 13
-- **Arc** Production and responsibility
-- **Slides** <a href="../../slides/l23/">Deck for this session</a>
-- **Demo** [`l23-mlops.ipynb`](l23-mlops.ipynb), an eval gate that fails CI, and drift measured before it costs you
-- **Assignment** none new; effort goes to the final project
+No session teaches this, and no assignment depends on it. It was written as a lecture
+and became optional when the back half of the schedule lost a slot, so it reads like a
+chapter rather than a summary. The demo is
+[`mlops-demo.ipynb`](mlops-demo.ipynb), an eval gate that fails CI and drift measured
+before it costs you.
+
+The final project is where this material earns its keep: an eval gate on your own
+system, and a drift or safety element if your system warrants one.
 :::
 
 ## Why this matters
@@ -31,9 +34,9 @@ regulators about what MCAS did and how it could fail had been insufficient. The 
 fleet was grounded worldwide for roughly twenty months while the system was redesigned to
 compare both sensors and limit the size and repetition of its automatic input.
 
-Every element of that finding maps onto a topic this session covers under a different name.
+Every element of that finding maps onto a topic this page covers under a different name.
 A single, unredundant input feeding an automated decision with no cross-check is exactly the
-**guardrail failure** this session asks you to name and design against explicitly: input
+**guardrail failure** this page asks you to name and design against explicitly: input
 validation and a domain check would have asked whether one sensor's reading was even
 plausible given the other's. A system whose failure modes were not adequately analyzed before
 it reached production is a **responsible-AI and documentation** failure: the people who needed
@@ -41,7 +44,7 @@ to know what the system could do wrong, pilots and regulators, were not told, wh
 what a model card or system card exists to prevent. And a system given authority to act
 repeatedly on a physical control surface with no requirement that a human confirm each
 intervention is the **human-in-the-loop for high-consequence decisions** guardrail, stated in
-its most literal form. MCAS is not a machine-learned model, and this session's subject is
+its most literal form. MCAS is not a machine-learned model, and this page's subject is
 broader than aviation: what happens, in any engineering system that automates a consequential
 decision, when nobody was required to ask "what if this one input is wrong" before the system
 shipped. Every tool below, a CI gate, a drift alarm, a guardrail table, a documentation
@@ -49,7 +52,7 @@ requirement, is a concrete answer to that question.
 
 ## Learning objectives
 
-By the end of this session you should be able to:
+After reading this you should be able to:
 
 - Build a CI pipeline that runs tests and an eval gate (fail the build if a key metric drops
   below threshold) and produces a deployable container.
@@ -58,9 +61,6 @@ By the end of this session you should be able to:
   checklist to an engineering decision.
 
 ## CI/CD for ML and LLM systems
-
-```{index} continuous integration, metric gate
-```
 
 Ordinary software CI answers one question: does the code still do what its tests say it should.
 An ML or LLM system needs that question answered too, but it is not sufficient, because the
@@ -95,17 +95,6 @@ handful of repeated runs against a confidence interval, in the same spirit as Le
 CI, rather than a single number compared with `==`.
 
 ## Detecting drift without waiting for labels
-
-```{index} drift, Kolmogorov-Smirnov test, rolling baseline
-```
-```{index} single: drift; data drift
-```
-```{index} single: drift; concept drift
-```
-```{index} single: drift; prediction drift
-```
-```{index} pair: metric; population stability index
-```
 
 A model's accuracy can degrade in production long before you have any labels to measure it
 against, because ground truth for an engineering prediction, whether a part actually failed,
@@ -173,13 +162,6 @@ which of the three drift types it is consistent with.
 
 ## Cost in production, tracked over time
 
-```{index} rate limit
-```
-```{index} pair: failure mode; retry storm
-```
-```{index} pair: failure mode; runaway agent loop
-```
-
 Cost per request moves after launch, usually upward, for reasons that are individually small
 and cumulatively expensive. **Prompt and
 context bloat**, a RAG system's retrieved context growing as the corpus grows, or a system
@@ -195,12 +177,9 @@ monitoring catches the trend too late to matter.
 
 ## Failure modes and concrete guardrails
 
-```{index} guardrail
-```
-
 A guardrail tied to no specific, named failure mode is a sentence that sounds like one.
 The module's own teaching note is blunt about this: "we'll add
-safety checks" is not an answer, and the discipline this session asks for is a table, one row
+safety checks" is not an answer, and the discipline this page asks for is a table, one row
 per failure mode, naming the mechanism that catches it.
 
 | System | Failure mode | Concrete guardrail |
@@ -224,11 +203,6 @@ exercise, filling this table for your own system and marking which rows require 
 sign-off before the guarded action proceeds, is worth doing on paper before your final project.
 
 ## Responsible AI for engineering decisions
-
-```{index} model card, system card, datasheet, NIST AI Risk Management Framework
-```
-```{index} pair: failure mode; automation bias
-```
 
 Engineering AI's recommendations frequently feed decisions with physical, safety, environmental,
 or economic consequences that a wrong chat response does not carry. A maintenance
@@ -283,20 +257,6 @@ catches each one. And treat "should a human have to approve this" as a question 
 sometimes uncomfortable answer.
 :::
 
-## In-class demo
-
-We build a CI eval gate as a small, unit-tested Python function, verify it passes on Lecture 21's real
-measured metrics and fails, for a named reason, on two constructed regressions, then validate a
-real GitHub Actions workflow file whose container-build job cannot start until the gate's job
-succeeds. In parallel, we measure drift on real Intel Lab sensor data three ways: a random
-split showing no drift at all, a mote's own first week against its last week showing real,
-unforced drift from battery discharge and seasonal temperature change, and a synthetic sudden
-shift standing in for a retrofitted compressor, all scored with PSI and the Kolmogorov-Smirnov
-test against the same alert thresholds a production monitor would use.
-
-The runnable notebook is [`l23-mlops.ipynb`](l23-mlops.ipynb). It downloads the same Intel Lab
-data Lecture 3, Lecture 4, Lecture 19, and Lecture 21 use and needs no API key or live CI run to verify.
-
 ## Summary
 
 MCAS acted on a single unverified input, its failure modes were not fully analyzed before it
@@ -305,7 +265,7 @@ tools are concrete, checkable answers to each part of that failure. A CI pipelin
 merge on a frozen eval metric turns "we tested it once" into "it is tested on every change,"
 and refuses to build the very artifact that would have shipped a regression. Drift monitoring,
 PSI and the KS test on input distributions, catches a model quietly leaving the world it was
-trained on before a labeled failure ever surfaces; this session's own measurements show that
+trained on before a labeled failure ever surfaces; the measurements below show that
 real, unforced sensor drift and an injected sudden shift can look identical to the alert, so a
 human still has to interpret what an alert means. A named failure mode with a concrete guardrail
 beats a paragraph of good intentions, and documentation, a model card, a system card, a
@@ -317,10 +277,10 @@ honestly, on evidence, before an incident forces the question.
 ## Resources
 
 - [NIST AI Risk Management Framework (AI RMF 1.0)](https://www.nist.gov/itl/ai-risk-management-framework),
-  2023. The govern/map/measure/manage structure this session's responsible-AI section is built
+  2023. The govern/map/measure/manage structure the responsible-AI section above is built
   around.
 - [Mitchell et al., "Model Cards for Model Reporting"](https://arxiv.org/abs/1810.03993),
-  FAT* 2019. The paper defining the model-card format named in this session.
+  FAT* 2019. The paper defining the model-card format named above.
 - [Gebru et al., "Datasheets for Datasets"](https://arxiv.org/abs/1803.09010), 2021. The dataset-
   side counterpart to a model card; already cited in Lecture 2's conventions, worth rereading here.
 - Chip Huyen, *Designing Machine Learning Systems* (O'Reilly, 2022), the chapters on data
@@ -330,19 +290,12 @@ honestly, on evidence, before an incident forces the question.
   Prompt injection and LLM-application risk, referenced again here specifically for the
   guardrail table's agent row.
 - [GitHub Actions documentation: Workflow syntax](https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions).
-  The concrete syntax behind this session's example eval-gate workflow.
+  The concrete syntax behind the example eval-gate workflow above.
 - [Sculley et al., "Hidden Technical Debt in Machine Learning Systems"](https://papers.nips.cc/paper/2015/hash/86df7dcfd896fcaf2674f757a2463eba-Abstract.html),
   NeurIPS 2015. First cited in Lecture 1 for the "the model is a small fraction of the system" argument;
   worth rereading here for the monitoring and configuration-debt sections specifically.
 - [Federal Aviation Administration, "Joint Authorities Technical Review: Boeing 737 MAX Flight
   Control System"](https://www.faa.gov/foia/electronic_reading_room/boeing_737_max_faa_review),
-  October 2019. One of the primary investigative sources behind this session's opening case
+  October 2019. One of the primary investigative sources behind the opening case
   study; read alongside the National Transportation Safety Board's public docket for the fuller
   account.
-
-## Assignment
-
-No new assignment this week. Effort goes to the **final project**: wire a CI eval gate, a
-drift or observability hook, and a system-specific failure-mode-to-guardrail table onto your
-own system. Assignment 11 from Week 12 may be folded directly into the project rather than treated as
-separate work. Full spec: `course/final-project.md`.

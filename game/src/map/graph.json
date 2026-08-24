@@ -22,8 +22,7 @@
     "l17",
     "l18",
     "l19",
-    "l21",
-    "l23"
+    "l21"
   ],
   "edges": [
     {
@@ -304,51 +303,6 @@
       "origin": "authored",
       "relation": "builds-on",
       "why": "The evaluation session consumes exactly what the agent session already emits, which is why the two are adjacent rather than merely related."
-    },
-    {
-      "from": "l23",
-      "to": "l07",
-      "weight": 1,
-      "where": "a units assertion at every system boundary (Lecture 7's Mars Climate Orbiter case)",
-      "origin": "authored",
-      "relation": "prevents",
-      "why": "The course's oldest case study, reached again from the far end. Naming the same failure twice, four sessions apart, is the point."
-    },
-    {
-      "from": "l23",
-      "to": "l13",
-      "weight": 1,
-      "where": "refuse or flag rather than silently extrapolate (Lecture 7, Lecture 13)",
-      "origin": "authored",
-      "relation": "prevents",
-      "why": "Extrapolation is the surrogate failure mode Lecture 13 defines; the input-range check is what stops it reaching production."
-    },
-    {
-      "from": "l23",
-      "to": "l17",
-      "weight": 1,
-      "where": "instruction (Lecture 17); a faithfulness check verifying the cited chunk is in the retrieved set (Lecture 21)",
-      "origin": "authored",
-      "relation": "builds-on",
-      "why": "Grounding and the faithfulness check are Lecture 17's mechanisms, audited here."
-    },
-    {
-      "from": "l23",
-      "to": "l19",
-      "weight": 1,
-      "where": "the failure Lecture 19's bounded loop exists to prevent",
-      "origin": "authored",
-      "relation": "prevents",
-      "why": "A failure named in one session and defended in another. This is the bestiary pattern the map is for."
-    },
-    {
-      "from": "l23",
-      "to": "l21",
-      "weight": 1,
-      "where": "unit-tested against Lecture 21's actual measured numbers as a passing case",
-      "origin": "authored",
-      "relation": "builds-on",
-      "why": "The pipeline's regression test asserts against numbers Lecture 21 measured, so the two sessions are joined by a specific value rather than a theme."
     }
   ],
   "in_degree": {
@@ -358,21 +312,20 @@
     "l04": 2,
     "l05": 4,
     "l06": 1,
-    "l07": 7,
+    "l07": 6,
     "l08": 2,
     "l09": 4,
     "l10": 0,
     "l11": 3,
     "l12": 0,
-    "l13": 4,
+    "l13": 3,
     "l14": 0,
     "l15": 0,
     "l16": 0,
-    "l17": 3,
+    "l17": 2,
     "l18": 0,
-    "l19": 2,
-    "l21": 1,
-    "l23": 0
+    "l19": 1,
+    "l21": 0
   },
   "in_weight": {
     "l01": 2,
@@ -381,21 +334,20 @@
     "l04": 2,
     "l05": 5,
     "l06": 1,
-    "l07": 11,
+    "l07": 10,
     "l08": 4,
     "l09": 9,
     "l10": 0,
     "l11": 4,
     "l12": 0,
-    "l13": 4,
+    "l13": 3,
     "l14": 0,
     "l15": 0,
     "l16": 0,
-    "l17": 3,
+    "l17": 2,
     "l18": 0,
-    "l19": 2,
-    "l21": 1,
-    "l23": 0
+    "l19": 1,
+    "l21": 0
   },
   "out_degree": {
     "l01": 0,
@@ -417,8 +369,7 @@
     "l17": 0,
     "l18": 0,
     "l19": 5,
-    "l21": 5,
-    "l23": 5
+    "l21": 5
   },
   "unreferenced": [
     "l10",
@@ -427,7 +378,7 @@
     "l15",
     "l16",
     "l18",
-    "l23"
+    "l21"
   ],
   "terminal": [
     "l01",

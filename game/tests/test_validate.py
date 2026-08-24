@@ -400,11 +400,18 @@ def test_declaring_the_enclosing_h2_is_accepted():
 
 
 def test_a_short_quote_that_matches_the_intro_is_caught(item):
-    """The actual failure mode: 'eval gate' first occurs in the objectives."""
-    item["source"]["file"] = "lectures/l23/notes.md"
-    item["source"]["heading"] = "CI/CD for ML and LLM systems"
-    item["source"]["quote"] = "eval gate"
-    item["verify"]["needle"] = "eval gate"
+    """The actual failure mode: 'confidence interval' first occurs in the objectives.
+
+    This used to point at lectures/l23/notes.md, which moved to
+    course/optional/mlops.md when the back half was renumbered. The check under
+    test reads lecture notes, so the fixture has to name a lecture that exists;
+    L21 reproduces the same shape, a term promised in the objectives and
+    explained further down.
+    """
+    item["source"]["file"] = "lectures/l21/notes.md"
+    item["source"]["heading"] = "The eval mindset: a frozen, versioned test set"
+    item["source"]["quote"] = "confidence interval"
+    item["verify"]["needle"] = "confidence interval"
     msgs = errors_for(V.check_grounding, item)
     assert any("is not where the quote lives" in m for m in msgs)
     assert any("often the intro" in m for m in msgs)

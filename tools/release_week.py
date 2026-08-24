@@ -43,14 +43,14 @@ TOC = REPO / "_toc.yml"
 #: releases no assignment that week.
 LECTURE_ASSIGNMENTS = {
     1: ["a01"], 3: ["a02"], 5: ["a03"], 7: ["a04"], 9: ["a05"],
-    11: ["a06"], 15: ["a08"], 17: ["a09"], 20: ["a10"], 22: ["a11"],
+    11: ["a06"], 15: ["a08"], 17: ["a09"], 19: ["a10"], 21: ["a11"],
 }
 
 #: Which project page (course/<slug>.md) is released with which lecture. The
-#: mini-project launches at L13 (schedule: "Mini-project launched"). The final
-#: project is released at L17, right after the mini-project ends and a week
-#: ahead of the proposal deadline at L20; there is no schedule marker for it, so
-#: this date is a deliberate choice and the one line to change if it should move.
+#: mini-project launches at L13. The final project is released at L17, right
+#: after the mini-project ends and a week ahead of the proposal deadline at L19;
+#: there is no schedule marker for it, so this date is a deliberate choice and
+#: the one line to change if it should move.
 LECTURE_PROJECTS = {
     13: ["miniproject"], 17: ["final-project"],
 }

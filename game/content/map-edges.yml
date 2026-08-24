@@ -142,58 +142,6 @@ edges:
       quote: data Lecture 3, Lecture 4, and Lecture 19 use and needs no API key or external service
 
   # --- Lecture 23, MLOps and responsibility ---------------------------------------
-  - from: l23
-    to: l21
-    relation: builds-on
-    why: >-
-      The pipeline's regression test asserts against numbers Lecture 21 measured, so
-      the two sessions are joined by a specific value rather than a theme.
-    source:
-      file: lectures/l23/notes.md
-      quote: unit-tested against Lecture 21's actual measured numbers as a passing case
-
-  - from: l23
-    to: l19
-    relation: prevents
-    why: >-
-      A failure named in one session and defended in another. This is the
-      bestiary pattern the map is for.
-    source:
-      file: lectures/l23/notes.md
-      quote: the failure Lecture 19's bounded loop exists to prevent
-
-  - from: l23
-    to: l17
-    relation: builds-on
-    why: Grounding and the faithfulness check are Lecture 17's mechanisms, audited here.
-    source:
-      file: lectures/l23/notes.md
-      quote: >-
-        instruction (Lecture 17); a faithfulness check verifying the cited chunk is in
-        the retrieved set (Lecture 21)
-
-  - from: l23
-    to: l07
-    relation: prevents
-    why: >-
-      The course's oldest case study, reached again from the far end. Naming the
-      same failure twice, four sessions apart, is the point.
-    source:
-      file: lectures/l23/notes.md
-      quote: >-
-        a units assertion at every system boundary (Lecture 7's Mars Climate Orbiter
-        case)
-
-  - from: l23
-    to: l13
-    relation: prevents
-    why: >-
-      Extrapolation is the surrogate failure mode Lecture 13 defines; the input-range
-      check is what stops it reaching production.
-    source:
-      file: lectures/l23/notes.md
-      quote: refuse or flag rather than silently extrapolate (Lecture 7, Lecture 13)
-
 # Signs on the rooms that are not written yet.
 #
 # Lectures with no notes show as shuttered rooms rather than as absences, so the
