@@ -74,11 +74,16 @@ Rules that follow:
 └── .github/workflows/book.yml
 ```
 
-**Naming.** Lectures are `l01` through `l26`, zero-padded, matching the L-numbers in
-`course/schedule.md`. The Week 8 mini-project sessions are `mp1` and `mp2`. Assignments
-are `a01` through `a11` (there is deliberately no `a07`; the mini-project is A7).
+**Naming.** Lectures are `l01` through `l22`, zero-padded, matching the L-numbers in
+`course/schedule.md`, which is the source of truth for how many there are. Assignments
+are `a01` through `a11` (there is deliberately no `a07`; the mini-project is A7). The
+mini-project no longer has dedicated class days, so there are no `mp1` and `mp2`
+directories, and the final presentations are unnumbered sessions with no directory.
 
 One directory per **session**, not per week. Week 1 is two directories, `l01` and `l02`.
+A session that leaves the schedule takes its directory with it: the MLOps material that
+was L23 lives at `course/optional/mlops.md`, because a lecture with no schedule row has
+no room on the map and no way for a student to reach its questions.
 
 Published URLs mirror this structure: `lectures/l01/notes.md` becomes
 `/f26-06763/lectures/l01/notes.html`.
@@ -839,7 +844,7 @@ note that lecture numbers are prefixes of each other (L1 inside L13 and L17, L2 
 L20), which is why the test for it exists.
 
 Nothing on the map is locked behind a prerequisite, and that is a design decision rather
-than an unfinished feature: a student arriving in week 12 must not be walled out of L23
+than an unfinished feature: a student arriving in week 12 must not be walled out of L22
 because they skipped L9. There are also no streaks, no XP and no leaderboard, for the
 reason `course/optional/generating-is-not-learning.md` gives.
 

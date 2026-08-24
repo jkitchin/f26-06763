@@ -20,8 +20,8 @@ Two kinds of reference exist in the notes. Markdown links of the form
 mentions like "as in L5", which are neither. This reads only the first kind.
 
 Extraction alone is a deliberate under-count, and it costs real coverage: L17,
-L19, L21 and L23 cite earlier sessions only in prose, so the extracted graph
-stops at L15. Extracting prose mentions instead is worse. "from L3" and "unlike
+L19 and L21 cite earlier sessions only in prose, so the extracted graph stops at
+L15. Extracting prose mentions instead is worse. "from L3" and "unlike
 L3" both match a mention regex, and a corridor built on the second would be a
 prerequisite the notes explicitly deny. Checked at the time of writing: the
 reversing forms do not currently occur, so a regex would work today. It is still

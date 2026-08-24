@@ -67,21 +67,22 @@ def released_ids() -> set[str]:
     text = TOC.read_text(encoding="utf-8") if TOC.is_file() else ""
     return set(re.findall(r"^\s*-\s*file:\s*lectures/(l\d\d)/notes\b", text, re.M))
 
-#: L1 through L23, less L18. Update deliberately.
+#: L1 through L22, with no gap. Update deliberately.
 #:
 #: Was 26, for L1 through L24. L24 was a capstone studio row that never had a
 #: lecture directory and was dropped from the schedule; the two final-project
 #: presentation rows carry no session label and so have never been counted here.
-#: L23 is counted because it is written: it has notes, a notebook, an item bank
-#: and a room on the map, and a schedule edit briefly dropped its row while all
-#: four remained, which is the state this constant exists to refuse.
+#: A lecture is counted when it has a schedule row, and the guard exists because
+#: an edit once dropped a row while the notes, notebook, item bank and map room
+#: all remained, which is a course with material no student can reach.
 #:
 #: Then 25 to 22: the two mini-project days lost their dedicated sessions, and
 #: L18 was folded into L17 so that the back half of the course fits between fall
-#: break and the presentations. L18 is the case this constant is least able to
-#: help with, because lectures/l18/ still exists: until the merge lands, L18 has
-#: notes, a deck and an item bank but no schedule row, so no room on the map and
-#: no way for a student to reach its questions. See the merge issue.
+#: break and the presentations. It stayed 22 through the renumbering that gave
+#: L18 its schedule row back and moved MLOps to course/optional/: one room
+#: appears, one leaves, and a constant that did not move is exactly the case a
+#: guard like this cannot catch. The rooms it counts are now L1 through L22 with
+#: no gap, so a future edit that reopens one will trip it.
 EXPECTED_SESSIONS = 22
 
 #: Rooms per row within a region. Two reads as a course sequence going down the

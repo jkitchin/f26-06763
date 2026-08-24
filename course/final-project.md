@@ -45,7 +45,7 @@ You are not limited to these — a different engineering problem is welcome if i
 ## Timeline
 - **Week 11 — Proposal due.** Submit the filled proposal template; get scoped and approved (feasibility, that it meets the three constraints, data availability).
 - **Week 12 — Build + evaluate + deploy.** Lectures cover exactly what you need (eval harness, observability, FastAPI/Docker/cloud, latency/cost). A11 can be done *as* your project's eval + deployment slice.
-- **Week 13 — Finalize & harden.** Build substantially complete by the studio session (L24); add CI/eval-gate and a drift/monitoring or safety element from L23 if applicable; use the L24 capstone studio/clinic to close remaining gaps.
+- **Week 13 — Finalize & harden.** Have the build substantially complete by the last week of lectures; add an eval gate, and a drift-monitoring or safety element if your system warrants one, drawing on the optional [MLOps and responsible AI](optional/mlops.md) page.
 - **Week 14 — Present & submit.** Submit repo + recorded demo + report before your slot; present across L25–L26.
 
 ## Rubric (100 pts) — 30% of course grade
