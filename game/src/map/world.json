@@ -54,6 +54,7 @@
         "l15",
         "l16",
         "l17",
+        "l18",
         "l19",
         "l20"
       ]
@@ -61,11 +62,10 @@
     {
       "name": "Production and responsibility",
       "x0": 13,
-      "rows": 2,
+      "rows": 1,
       "rooms": [
         "l21",
-        "l22",
-        "l23"
+        "l22"
       ]
     }
   ],
@@ -113,7 +113,7 @@
       "session": "L4",
       "id": "l04",
       "date": "2026-09-02",
-      "title": "Columnar storage and the wider data landscape",
+      "title": "Database landscape",
       "written": false,
       "arc_source": "declared",
       "arc": "Data Systems",
@@ -165,7 +165,7 @@
       "session": "L8",
       "id": "l08",
       "date": "2026-09-21",
-      "title": "Data quality, versioning, and leakage-free splits",
+      "title": "Data quality and version control",
       "written": false,
       "arc_source": "declared",
       "arc": "Data Systems",
@@ -282,7 +282,7 @@
       "session": "L17",
       "id": "l17",
       "date": "2026-10-28",
-      "title": "Retrieval-augmented generation (RAG), and choosing between prompting, RAG, and fine-tuning",
+      "title": "Retrieval-augmented generation (RAG) and vector databases",
       "written": false,
       "arc_source": "declared",
       "arc": "LLM and agentic engineering",
@@ -292,10 +292,10 @@
       "notes": null
     },
     {
-      "session": "L19",
-      "id": "l19",
+      "session": "L18",
+      "id": "l18",
       "date": "2026-11-02",
-      "title": "LLM Agents",
+      "title": "Prompting, RAG, or fine-tuning: choosing the right lever",
       "written": false,
       "arc_source": "declared",
       "arc": "LLM and agentic engineering",
@@ -305,12 +305,12 @@
       "notes": null
     },
     {
-      "session": "L20",
-      "id": "l20",
+      "session": "L19",
+      "id": "l19",
       "date": "2026-11-04",
-      "title": "Multi-agent systems",
+      "title": "LLM Agents",
       "written": false,
-      "arc_source": "inherited",
+      "arc_source": "declared",
       "arc": "LLM and agentic engineering",
       "region": 3,
       "x": 10,
@@ -318,9 +318,22 @@
       "notes": null
     },
     {
+      "session": "L20",
+      "id": "l20",
+      "date": "2026-11-09",
+      "title": "Multi-agent systems",
+      "written": false,
+      "arc_source": "inherited",
+      "arc": "LLM and agentic engineering",
+      "region": 3,
+      "x": 11,
+      "y": 3,
+      "notes": null
+    },
+    {
       "session": "L21",
       "id": "l21",
-      "date": "2026-11-09",
+      "date": "2026-11-11",
       "title": "Evaluating and observing ML and LLM systems",
       "written": false,
       "arc_source": "declared",
@@ -333,7 +346,7 @@
     {
       "session": "L22",
       "id": "l22",
-      "date": "2026-11-11",
+      "date": "2026-11-16",
       "title": "Deployment: serving, containers, latency, and cost",
       "written": false,
       "arc_source": "inherited",
@@ -341,19 +354,6 @@
       "region": 4,
       "x": 14,
       "y": 1,
-      "notes": null
-    },
-    {
-      "session": "L23",
-      "id": "l23",
-      "date": "2026-11-16",
-      "title": "MLOps and responsible AI",
-      "written": false,
-      "arc_source": "declared",
-      "arc": "Production and responsibility",
-      "region": 4,
-      "x": 13,
-      "y": 2,
       "notes": null
     }
   ],
@@ -653,46 +653,6 @@
       "relation": "builds-on",
       "why": "The evaluation session consumes exactly what the agent session already emits, which is why the two are adjacent rather than merely related.",
       "where": "Lecture 19's harness already logs everything a failure taxonomy needs, every tool call, every result, every stop condition"
-    },
-    {
-      "from": "l23",
-      "to": "l07",
-      "origin": "authored",
-      "relation": "prevents",
-      "why": "The course's oldest case study, reached again from the far end. Naming the same failure twice, four sessions apart, is the point.",
-      "where": "a units assertion at every system boundary (Lecture 7's Mars Climate Orbiter case)"
-    },
-    {
-      "from": "l23",
-      "to": "l13",
-      "origin": "authored",
-      "relation": "prevents",
-      "why": "Extrapolation is the surrogate failure mode Lecture 13 defines; the input-range check is what stops it reaching production.",
-      "where": "refuse or flag rather than silently extrapolate (Lecture 7, Lecture 13)"
-    },
-    {
-      "from": "l23",
-      "to": "l17",
-      "origin": "authored",
-      "relation": "builds-on",
-      "why": "Grounding and the faithfulness check are Lecture 17's mechanisms, audited here.",
-      "where": "instruction (Lecture 17); a faithfulness check verifying the cited chunk is in the retrieved set (Lecture 21)"
-    },
-    {
-      "from": "l23",
-      "to": "l19",
-      "origin": "authored",
-      "relation": "prevents",
-      "why": "A failure named in one session and defended in another. This is the bestiary pattern the map is for.",
-      "where": "the failure Lecture 19's bounded loop exists to prevent"
-    },
-    {
-      "from": "l23",
-      "to": "l21",
-      "origin": "authored",
-      "relation": "builds-on",
-      "why": "The pipeline's regression test asserts against numbers Lecture 21 measured, so the two sessions are joined by a specific value rather than a theme.",
-      "where": "unit-tested against Lecture 21's actual measured numbers as a passing case"
     }
   ],
   "signs": []
