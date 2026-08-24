@@ -1,13 +1,330 @@
+# Built from the decision framework, the LoRA mechanism, and the two measured
+# results the notes carry (Ovadia's retrieval-beats-fine-tuning comparison and
+# the bake-off figure). The pitfall this bank aims hardest at is the one the
+# notes call the single most important thing to take from the session: reaching
+# for fine-tuning when the gap is knowledge.
+#
+# Ten items and a serve of 5, per CLAUDE.md section 9c: serve must be at most
+# half the pool or attempt 2 cannot be disjoint from attempt 1.
+# GROWTH TARGET: 15+ items.
+
 schema: 1
 lecture: l18
 title: "Prompting vs RAG vs fine-tuning: choosing the right lever"
 source_notes: lectures/l18/notes.md
-# See game/content/l06.yml and l08.yml. The notes are published and the bank is
-# not written yet; the graded items are authored and reviewed by hand separately.
 status: unwritten
-serve: 0
-pool_version: 1
+serve: 5
+pool_version: 2
 provenance:
-  drafted_by: none
-  reviewed_by: none
-items: []
+  drafted_by: hand
+  reviewed_by: pending
+  reviewed_at: 2026-08-24
+
+items:
+
+  - id: l18-q01
+    kind: mcq
+    rung: 3
+    difficulty: 2
+    objectives: [l18-o1]
+    prompt: |
+      Your team wants an assistant that answers questions about your company's
+      equipment specifications. The specs are proprietary, they are revised
+      several times a year, and every answer has to say which document it came
+      from.
+
+      Which lever is the primary one?
+    options:
+      - "Fine-tuning, so the specs live in the weights and no retrieval step is needed at query time"
+      - "Retrieval, because the gap is knowledge that changes and has to be cited"
+      - "Prompting with the specs pasted into a long system prompt, refreshed whenever they change"
+      - "Fine-tuning first for the domain, then prompting to control the answer format"
+    answer: "Retrieval, because the gap is knowledge that changes and has to be cited"
+    evidence: |
+      Three properties in the question each point the same way: proprietary,
+      revised, cited. Weights cannot cite a source and go stale the moment the
+      specs are revised, so the first and fourth options fail on two counts
+      each. Pasting the specs into the prompt fails on size and on cost, since
+      you pay for those tokens on every call. The rule is short enough to carry
+      around: knowledge is retrieval's job, behavior and format are
+      fine-tuning's.
+    source:
+      file: lectures/l18/notes.md
+      heading: "What fine-tuning is actually good at"
+      quote: "Knowledge is retrieval's job; behavior and format are fine-tuning's."
+    verify: {mode: quote, needle: "Knowledge is retrieval's job", volatility: stable}
+    tags: [adaptation, rag, fine-tuning, decision]
+
+  - id: l18-q02
+    kind: claim_vs_source
+    rung: 4
+    difficulty: 3
+    objectives: [l18-o2]
+    prompt: |
+      "We fine-tuned the model on three years of maintenance logs, so now it
+      knows our equipment history."
+
+      Ovadia and colleagues tested exactly this. What did they find?
+    options:
+      - "Fine-tuning matched retrieval on facts the model had seen in training, and beat it on new facts"
+      - "Fine-tuning worked, but only with more than a few thousand examples per topic"
+      - "Retrieval consistently won, and the models struggled to learn new facts from unsupervised fine-tuning"
+      - "The two were within noise of each other, so the choice comes down to cost"
+    answer: "Retrieval consistently won, and the models struggled to learn new facts from unsupervised fine-tuning"
+    evidence: |
+      The comparison covered both knowledge the models had already seen and
+      questions about events after their training cutoff, and retrieval won in
+      both. On the genuinely new material it was not close: retrieval answered
+      most questions correctly while fine-tuning barely moved the base model's
+      score. This is a measured result rather than a preference, which is why it
+      is worth citing when somebody proposes the maintenance-log fine-tune.
+    source:
+      file: lectures/l18/notes.md
+      heading: "Why fine-tuning is the wrong lever for knowledge"
+      quote: "struggle to learn new factual information through unsupervised fine-tuning"
+    verify: {mode: quote, needle: "struggle to learn new factual information", volatility: stable}
+    tags: [fine-tuning, knowledge, evidence]
+
+  - id: l18-q03
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l18-o2]
+    prompt: |
+      A LoRA-adapted layer computes $Wx + BAx$ instead of $Wx$.
+
+      During training, which parameters change?
+    options:
+      - "$W$, $B$ and $A$ together, which is what makes the adapter fit the base model"
+      - "$B$ and $A$ only; $W$ stays frozen"
+      - "$W$ only, with $B$ and $A$ acting as a fixed projection that keeps the update low-rank"
+      - "$B$ and $A$ during training, then $W$ during a short merge phase at the end"
+    answer: "$B$ and $A$ only; $W$ stays frozen"
+    evidence: |
+      Freezing $W$ is the whole trick. It is what makes the optimizer state
+      small, the checkpoint small, and a single GPU enough, and it is why one
+      base model can serve many adapters. The fourth option describes something
+      real but different: merging folds $BA$ into $W$ for inference, which is a
+      change of representation and not a training phase.
+    source:
+      file: lectures/l18/notes.md
+      heading: "What fine-tuning and LoRA actually do"
+      quote: "Only $B$ and $A$ are trained; $W$ never moves."
+    verify: {mode: quote, needle: "never moves", volatility: stable}
+    tags: [lora, peft, mechanism]
+
+  - id: l18-q04
+    kind: predict_measure
+    rung: 4
+    difficulty: 3
+    objectives: [l18-o2]
+    predict:
+      common_prior: "Parameter-efficient means something like a tenth of the model, so a few hundred million weights for a 7B model."
+    prompt: |
+      LoRA of rank 8 on the query and value projections of a 7-billion-parameter
+      model. Before reading on, write down what fraction of the weights you
+      think it trains.
+
+      What is it?
+    options:
+      - "About 0.06% of the weights"
+      - "About 6% of the weights"
+      - "About 1.5% of the weights"
+      - "About 12% of the weights"
+    answer: "About 0.06% of the weights"
+    evidence: |
+      4.2 million trainable parameters against 7 billion, which is roughly 1,669
+      times fewer. Most people guess one to two orders of magnitude too high,
+      and the gap matters for a practical reason: at this scale the adapter is
+      small enough to store, version and swap per task, which is what makes
+      "one base model, many adapters" a deployment pattern rather than a slogan.
+    source:
+      file: lectures/l18/notes.md
+      heading: "What fine-tuning and LoRA actually do"
+      quote: "LoRA trains about 0.06% of the weights"
+    verify: {mode: quote, needle: "0.06% of the weights", volatility: measured}
+    tags: [lora, peft, numbers]
+
+  - id: l18-q05
+    kind: spot_the_defect
+    rung: 4
+    difficulty: 2
+    objectives: [l18-o3]
+    prompt: |
+      A colleague reports: "The fine-tuned model scores 90% on our validation
+      set. The prompting baseline only gets 71% on the twenty questions I wrote
+      for it. Fine-tuning wins."
+
+      What is wrong with this comparison?
+    options:
+      - "Twenty questions is too small a sample to separate 90% from 71%"
+      - "The two candidates were scored on different sets, so the numbers cannot be compared at all"
+      - "The prompting baseline should have been given few-shot examples before being scored"
+      - "Validation accuracy is the wrong metric for a generation task; it needs a judge"
+    answer: "The two candidates were scored on different sets, so the numbers cannot be compared at all"
+    evidence: |
+      Sample size and metric choice are real concerns and neither is the defect
+      here. The comparison is void before you get to them: one number came from
+      the fine-tune's own validation data and the other from a different set of
+      questions, so the difference measures the two question sets as much as it
+      measures the two levers. Fix a single held-out set and a single metric,
+      and run every candidate through the same gate.
+    source:
+      file: lectures/l18/notes.md
+      heading: "Evaluating adaptation apples-to-apples"
+      quote: "A fine-tune that scores 90% on its own validation data tells you nothing against a prompt scored on a different set of questions."
+    verify: {mode: quote, needle: "tells you nothing against a prompt scored on a different set", volatility: stable}
+    tags: [evaluation, comparison, failure-mode]
+
+  - id: l18-q06
+    kind: mcq
+    rung: 3
+    difficulty: 3
+    objectives: [l18-o2]
+    prompt: |
+      Fine-tuning a model on your standards documents fails as a way to make it
+      "know" them. Which reason is structural, meaning more data or a higher
+      rank will not fix it?
+    options:
+      - "Small datasets overfit, so the model memorizes the examples and generalizes worse"
+      - "Facts in weights cannot be cited, so the answer arrives with no source"
+      - "Training runs cost GPU time, which is hard to justify for a document set"
+      - "The base model's tokenizer handles technical vocabulary poorly"
+    answer: "Facts in weights cannot be cited, so the answer arrives with no source"
+    evidence: |
+      Overfitting is a real risk and it is a tuning problem, addressable with
+      more data, regularization or fewer epochs. Cost and tokenization are
+      practical objections. Being uncitable is none of these: a weight is not a
+      document, so there is nothing to point at, and for a code-compliance or
+      safety question an answer with no source is unusable however accurate it
+      happens to be. Staleness and catastrophic forgetting are the other two
+      structural reasons.
+    source:
+      file: lectures/l18/notes.md
+      heading: "Why fine-tuning is the wrong lever for knowledge"
+      quote: "Facts baked into weights cannot be cited, so a fine-tuned model gives you an answer with no source"
+    verify: {mode: quote, needle: "cannot be cited", volatility: stable}
+    tags: [fine-tuning, knowledge, failure-mode]
+
+  - id: l18-q07
+    kind: notebook_run
+    rung: 4
+    difficulty: 2
+    objectives: [l18-o3]
+    prompt: |
+      In the bake-off, prompting and retrieval tie on the formatting task, both
+      scoring 100%, while retrieval wins the knowledge lookups outright.
+
+      What does the tie tell you?
+    options:
+      - "The formatting gold set is too easy, so it should be replaced with harder cases"
+      - "Retrieval added nothing there because the gap was never knowledge"
+      - "Retrieval is only worth its latency on corpora larger than this one"
+      - "The retriever returned no chunks for those queries, so the model answered unaided"
+    answer: "Retrieval added nothing there because the gap was never knowledge"
+    evidence: |
+      A tie is a result, not a null result. The framework predicts it: a
+      normalization task asks the model to restructure text it was already
+      given, so there is nothing to retrieve and retrieval buys you latency and
+      an index for no gain. Reading it as "the test is too easy" throws away the
+      one place the experiment confirms the decision rule.
+    source:
+      file: lectures/l18/notes.md
+      heading: "Evaluating adaptation apples-to-apples"
+      quote: "retrieval added nothing because the gap there was never knowledge"
+    verify: {mode: quote, needle: "the gap there was never knowledge", volatility: measured}
+    tags: [demo, evaluation, decision]
+
+  - id: l18-q08
+    kind: locus_of_control
+    rung: 4
+    difficulty: 3
+    objectives: [l18-o3]
+    prompt: |
+      In the bake-off, retrieval gets four of the five knowledge lookups. The
+      one it misses is a bolt-torque question: the retriever returned a sentence
+      about torque in general rather than the one carrying the value, and the
+      model answered from it, on topic and wrong.
+
+      Where does the fix belong?
+    options:
+      - "In the generation prompt: instruct the model more firmly to answer only from the retrieved text"
+      - "In the retrieval step, since the chunk with the answer never reached the model"
+      - "In the gold set: the question is ambiguous and should be rewritten"
+      - "In the base model: a stronger model would recognize the retrieved sentence as irrelevant"
+    answer: "In the retrieval step, since the chunk with the answer never reached the model"
+    evidence: |
+      The model did what grounding asks: it answered from the retrieved text. It
+      was handed the wrong text. No instruction about staying grounded can
+      recover a chunk that was never retrieved, which is the point that carries
+      over from Lecture 17: retrieval quality is not free, and a grounded answer
+      is only as good as what the retriever found.
+    source:
+      file: lectures/l18/notes.md
+      heading: "Evaluating adaptation apples-to-apples"
+      quote: "the bolt-torque query pulled in a distractor sentence about torque in general instead of the one with the actual value"
+    verify: {mode: quote, needle: "distractor sentence about torque in general", volatility: measured}
+    tags: [rag, retrieval-quality, demo]
+
+  - id: l18-q09
+    kind: mcq
+    rung: 4
+    difficulty: 3
+    objectives: [l18-o1]
+    prompt: |
+      When does fine-tuning and self-hosting a small model beat calling a large
+      hosted one?
+    options:
+      - "Whenever the task is domain-specific, since a tuned model always beats a general one on its own domain"
+      - "When call volume is high enough that per-call pricing dominates, or a rule forbids the hosted call"
+      - "Whenever the training data is proprietary and cannot leave your network"
+      - "When you have GPUs already, so the marginal cost of serving is close to zero"
+    answer: "When call volume is high enough that per-call pricing dominates, or a rule forbids the hosted call"
+    evidence: |
+      The narrow conditions are volume, a latency or data-residency rule, and a
+      task narrow enough that a small tuned model matches a large general one.
+      Outside them the hosted call is usually cheaper once you count the
+      engineer-hours of keeping a GPU service healthy. Owning GPUs does not make
+      serving free either, because the cost that bites is operational rather
+      than hardware: a service that stays up, a model to monitor, checkpoints to
+      version.
+    source:
+      file: lectures/l18/notes.md
+      heading: "Cost, latency, and ops"
+      quote: "when call volume is high enough that per-call API pricing dominates"
+    verify: {mode: quote, needle: "per-call API pricing dominates", volatility: stable}
+    tags: [cost, ops, decision]
+
+  - id: l18-q10
+    kind: mechanism_recall
+    rung: 5
+    difficulty: 3
+    objectives: [l18-o1]
+    prompt: |
+      Close the notes. Name the three kinds of gap an adaptation decision is
+      about, say which lever fits each, and give the pattern for combining two
+      of them. Stop when you stall, and note where.
+    checklist:
+      - text: "Knowledge: the model lacks a fact, and retrieval is the lever"
+        needle: "knowledge"
+      - text: "Behavior and format: the model responds the wrong way, and fine-tuning is the lever"
+        needle: "behavior and format"
+      - text: "Freshness: the answer depends on data that changes, so it has to stay current without a rebuild"
+        needle: "freshness"
+      - text: "Prompting is the cheap first move, limited by the context window and what the base model already knows"
+        needle: "cheapest and fastest to iterate"
+      - text: "The common combination is RAG for the knowledge plus a light fine-tune for the format"
+        needle: "RAG for the knowledge plus a light fine-tune for the format"
+    answer: null
+    evidence: |
+      Most people recall knowledge and format and stop, and freshness is the one
+      that goes missing, which matters because it is the property that decides
+      between a lever you rebuild and a lever you refresh. The combination is
+      the other common gap in recall: the decision is rarely one of three, it is
+      which primary lever, and what to add.
+    source:
+      file: lectures/l18/notes.md
+      heading: "Three levers, and when each wins"
+      quote: "A common pattern is RAG for the knowledge plus a light fine-tune for the format"
+    verify: {mode: quote, needle: "RAG for the knowledge plus a light fine-tune", volatility: stable}
+    tags: [decision, framework, recall]

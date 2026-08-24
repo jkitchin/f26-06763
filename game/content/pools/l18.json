@@ -4,6 +4,93 @@
     "1": {
       "items": {},
       "serve": 0
+    },
+    "2": {
+      "items": {
+        "l18-q01": {
+          "answer": "Retrieval, because the gap is knowledge that changes and has to be cited",
+          "options": [
+            "Fine-tuning, so the specs live in the weights and no retrieval step is needed at query time",
+            "Retrieval, because the gap is knowledge that changes and has to be cited",
+            "Prompting with the specs pasted into a long system prompt, refreshed whenever they change",
+            "Fine-tuning first for the domain, then prompting to control the answer format"
+          ]
+        },
+        "l18-q02": {
+          "answer": "Retrieval consistently won, and the models struggled to learn new facts from unsupervised fine-tuning",
+          "options": [
+            "Fine-tuning matched retrieval on facts the model had seen in training, and beat it on new facts",
+            "Fine-tuning worked, but only with more than a few thousand examples per topic",
+            "Retrieval consistently won, and the models struggled to learn new facts from unsupervised fine-tuning",
+            "The two were within noise of each other, so the choice comes down to cost"
+          ]
+        },
+        "l18-q03": {
+          "answer": "$B$ and $A$ only; $W$ stays frozen",
+          "options": [
+            "$W$, $B$ and $A$ together, which is what makes the adapter fit the base model",
+            "$B$ and $A$ only; $W$ stays frozen",
+            "$W$ only, with $B$ and $A$ acting as a fixed projection that keeps the update low-rank",
+            "$B$ and $A$ during training, then $W$ during a short merge phase at the end"
+          ]
+        },
+        "l18-q04": {
+          "answer": "About 0.06% of the weights",
+          "options": [
+            "About 0.06% of the weights",
+            "About 6% of the weights",
+            "About 1.5% of the weights",
+            "About 12% of the weights"
+          ]
+        },
+        "l18-q05": {
+          "answer": "The two candidates were scored on different sets, so the numbers cannot be compared at all",
+          "options": [
+            "Twenty questions is too small a sample to separate 90% from 71%",
+            "The two candidates were scored on different sets, so the numbers cannot be compared at all",
+            "The prompting baseline should have been given few-shot examples before being scored",
+            "Validation accuracy is the wrong metric for a generation task; it needs a judge"
+          ]
+        },
+        "l18-q06": {
+          "answer": "Facts in weights cannot be cited, so the answer arrives with no source",
+          "options": [
+            "Small datasets overfit, so the model memorizes the examples and generalizes worse",
+            "Facts in weights cannot be cited, so the answer arrives with no source",
+            "Training runs cost GPU time, which is hard to justify for a document set",
+            "The base model's tokenizer handles technical vocabulary poorly"
+          ]
+        },
+        "l18-q07": {
+          "answer": "Retrieval added nothing there because the gap was never knowledge",
+          "options": [
+            "The formatting gold set is too easy, so it should be replaced with harder cases",
+            "Retrieval added nothing there because the gap was never knowledge",
+            "Retrieval is only worth its latency on corpora larger than this one",
+            "The retriever returned no chunks for those queries, so the model answered unaided"
+          ]
+        },
+        "l18-q08": {
+          "answer": "In the retrieval step, since the chunk with the answer never reached the model",
+          "options": [
+            "In the generation prompt: instruct the model more firmly to answer only from the retrieved text",
+            "In the retrieval step, since the chunk with the answer never reached the model",
+            "In the gold set: the question is ambiguous and should be rewritten",
+            "In the base model: a stronger model would recognize the retrieved sentence as irrelevant"
+          ]
+        },
+        "l18-q09": {
+          "answer": "When call volume is high enough that per-call pricing dominates, or a rule forbids the hosted call",
+          "options": [
+            "Whenever the task is domain-specific, since a tuned model always beats a general one on its own domain",
+            "When call volume is high enough that per-call pricing dominates, or a rule forbids the hosted call",
+            "Whenever the training data is proprietary and cannot leave your network",
+            "When you have GPUs already, so the marginal cost of serving is close to zero"
+          ]
+        },
+        "l18-q10": {}
+      },
+      "serve": 5
     }
   }
 }
