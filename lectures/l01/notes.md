@@ -531,7 +531,7 @@ answers a specific way that undisciplined work falls apart.
 ## Resources
 
 - [Hidden Technical Debt in Machine Learning Systems](https://papers.nips.cc/paper_files/paper/2015/file/86df7dcfd896fcaf2674f757a2463eba-Paper.pdf). Sculley et al., NeurIPS 2015. The source of the framing above, and of glue code, pipeline jungles, and undeclared consumers. Nine pages, and worth reading in full.
-- [The Parable of Google Flu: Traps in Big Data Analysis](https://gking.harvard.edu/files/gking/files/0314policyforumff.pdf). Lazer, Kennedy, King and Vespignani, *Science* 2014. Three pages, and the source of every GFT figure quoted above. This is a co-author's copy; the publisher's version sits behind a paywall.
+- [The Parable of Google Flu: Traps in Big Data Analysis](https://gking.harvard.edu/files/gking/files/0314policyforumff.pdf). Lazer, Kennedy, King and Vespignani, *Science* 2014. Three pages, and the source of every GFT figure quoted above.
 - [Detecting influenza epidemics using search engine query data](https://static.googleusercontent.com/media/research.google.com/en//archive/papers/detecting-influenza-epidemics.pdf). Ginsberg et al., *Nature* 2009. Read this one *before* the Lazer critique, so you see how reasonable it looked at the time.
 - [PHE statement on delayed reporting of COVID-19 cases](https://www.gov.uk/government/news/phe-statement-on-delayed-reporting-of-covid-19-cases). the official statement, for the 15,841 figure and the dates.
 - [Excel: Why using Microsoft's tool caused Covid-19 results to be lost](https://www.bbc.co.uk/news/technology-54423988). BBC, for the technical mechanism. The clearest published account of how the truncation actually happened.
@@ -554,13 +554,6 @@ unfamiliar, and each is the source I would send a colleague to first.
 - [FastAPI](https://fastapi.tiangolo.com/). Typed HTTP endpoints, which double as a data contract with your callers.
 - [OWASP Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/). The standard catalog of LLM-specific security risks, prompt injection first among them.
 - [NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework). The vocabulary regulators and safety reviewers are increasingly using.
-
-## Assignment
-
-Assignment 1, the reproducible project scaffold, is released this week and due
-08-31-2026. It asks you to take the demo notebook from this session, fix the three
-defects you just found in it, and land it in a `uv`-managed project that
-someone else can rebuild and rerun. This is a pointer; the assignment page carries the details.
 
 ## Practice module
 
