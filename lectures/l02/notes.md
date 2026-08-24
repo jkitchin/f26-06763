@@ -6,6 +6,7 @@
 - **Session** Lecture 2, Week 1
 - **Arc** Foundations
 - **Slides** <a href="../../slides/l02/">Deck for this session</a>
+- **Practice** <a href="../../game/#/l02">Practice module for this session</a>
 - **Demo** [`l02-scaffold.ipynb`](l02-scaffold.ipynb), building a tracked project from an empty folder
 - **Assignment 1**, released this week and due about a week later (08-31-2026)
 :::
@@ -286,4 +287,11 @@ Reproducibility is the ability to say which data, which code, and which settings
 
 ## Assignment
 
-Assignment 1, the reproducible project scaffold, was released in Week 1 and is due about a week later (08-31-2026). It asks you to build a `uv`-managed, git-tracked project that pulls the UCI air-quality dataset. You then turn an exploratory notebook into a runnable, importable module with a tested entry point and an MLflow-logged run. It is the scaffold you reuse all semester, so it is worth doing carefully the first time. It is also a direct extension of the demo we build in class. This is a pointer, not the rubric.
+Assignment 1, the reproducible project scaffold, was released in Week 1 and is due about a week later (08-31-2026). It asks you to take the Lecture 1 demo notebook, fix the three defects that stop it reproducing, and land it in a `uv`-managed, git-tracked project: a package of importable functions, a seeded command-line entry point, and two runs logged to MLflow. The loader and the snippets you have not been shown yet are given to you, so the work is the scaffold rather than the syntax. It is the scaffold you reuse all semester, so it is worth doing carefully the first time. It is also a direct extension of the demo we build in class. This is a pointer, not the rubric.
+
+## Practice module
+
+<a href="../../game/#/l02"><strong>Practice module for this session</strong></a>, about ten
+minutes of questions drawn from the numbers and the pitfalls above. It runs entirely in your
+browser, the questions are selected from your Andrew ID, and it ends by producing a PDF you
+upload for participation credit.

@@ -10,6 +10,7 @@ docker-compose.yml.
 Regenerate with:  python build_notebook.py
 """
 import json
+import sys
 from pathlib import Path
 
 OUT = Path(__file__).parent / "l03-sql-timeseries.ipynb"
@@ -361,6 +362,14 @@ cells = [
        "where it lives, into columnar Parquet and the embedded engine DuckDB, and\n",
        "asks when an analytical column store beats the database we just built.\n"),
 ]
+
+# The Colab bootstrap cell, injected from the notebook's own imports so this
+# generator does not carry a second copy of the requirement list. See
+# tools/colab_setup.py.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
+from colab_setup import with_colab_cell  # noqa: E402
+
+cells = with_colab_cell(cells, OUT)
 
 nb = {
     "cells": cells,

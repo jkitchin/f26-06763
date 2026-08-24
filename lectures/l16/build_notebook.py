@@ -25,6 +25,7 @@ Design notes:
     they become real model outputs. The prices are dated and drift-prone.
 """
 import json
+import sys
 from pathlib import Path
 
 OUT = Path(__file__).parent / "l16-structured-extraction.ipynb"
@@ -288,6 +289,14 @@ cells = [
        "set are what guarantee the record is worth writing down. This is exactly assignment A8, at\n",
        "the scale of four datasheets instead of a few hundred."),
 ]
+
+# The Colab bootstrap cell, injected from the notebook's own imports so this
+# generator does not carry a second copy of the requirement list. See
+# tools/colab_setup.py.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
+from colab_setup import with_colab_cell  # noqa: E402
+
+cells = with_colab_cell(cells, OUT)
 
 nb = {
     "cells": cells,

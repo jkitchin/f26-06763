@@ -17,6 +17,7 @@ regenerating produces no spurious diff. The committed .ipynb carries no outputs;
 verify execution separately (see the module notes).
 """
 import json
+import sys
 from pathlib import Path
 
 OUT = Path(__file__).parent / "l02-scaffold.ipynb"
@@ -241,6 +242,14 @@ cells = [
        "\n",
        "That, plus the lockfile and the tracked runs, is assignment **A1**."),
 ]
+
+# The Colab bootstrap cell, injected from the notebook's own imports so this
+# generator does not carry a second copy of the requirement list. See
+# tools/colab_setup.py.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
+from colab_setup import with_colab_cell  # noqa: E402
+
+cells = with_colab_cell(cells, OUT)
 
 nb = {
     "cells": cells,

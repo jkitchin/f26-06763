@@ -624,4 +624,6 @@ Empty folder → tracked run in ~15 minutes:
 **Assignment 1** released this week, due ~1 week: scaffold `sensorlab`
 **Reading** uv docs; Pro Git ch. 1-2; MLflow quickstart; The Turing Way
 
+**Practice module** ~10 min, ends in a PDF you upload: [https://kitchingroup.cheme.cmu.edu/f26-06763/game/#/l02](https://kitchingroup.cheme.cmu.edu/f26-06763/game/#/l02)
+
 Full notes, with all sources: `lectures/l02/notes.md`

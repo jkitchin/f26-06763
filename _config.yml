@@ -37,6 +37,18 @@ repository:
   url: https://github.com/jkitchin/f26-06763
   branch: main
 
+# "Open in Colab" on every notebook page. Jupyter Book builds the link from the
+# repository: block above, as
+#   {colab_url}/github/{owner}/{repo}/blob/{branch}/{path to the .ipynb}
+# so it resolves only while the repo is public and the notebook is on `main` at
+# that path. A notebook renamed on a branch gets a button that 404s at Colab,
+# which the book build cannot see.
+# The button is added to notebook pages only, which is what we want: the notes
+# are .md and there is nothing to launch.
+launch_buttons:
+  colab_url: https://colab.research.google.com
+  notebook_interface: jupyterlab
+
 html:
   use_repository_button: true
   use_issues_button: true
@@ -65,6 +77,14 @@ sphinx:
     # also why it cannot be listed in _toc.yml.
     html_use_index: true
     html_split_index: false
+    # Files copied to the site root verbatim, so they have a stable public URL
+    # that does not depend on the repository's visibility. Today that is the
+    # Assignment 1 evidence script, which students fetch with curl and run in
+    # their own project. Anything listed here is PUBLISHED; check it the way you
+    # would check a page added to _toc.yml.
+    html_extra_path:
+      - course/assignments/a01-evidence.py
+      - course/assignments/a01-evidence.py.sha256
     # Do NOT add html_theme_options here. Jupyter Book merges sphinx.config into
     # its own defaults without recursing, so setting it would replace the theme
     # options built from the html: block above and drop use_repository_button

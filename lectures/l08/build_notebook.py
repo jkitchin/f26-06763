@@ -26,6 +26,7 @@ Design notes:
 Kept in a generator for deterministic cell ids and no hand-edited JSON.
 """
 import json
+import sys
 from pathlib import Path
 
 OUT = Path(__file__).parent / "l08-splits-versioning.ipynb"
@@ -308,6 +309,14 @@ cells = [
        "gain is attributable and reproducible. Assignment **A4** has you put the C-MAPSS features\n",
        "under DVC, implement a correct split, and quantify the leak, so its second half starts here."),
 ]
+
+# The Colab bootstrap cell, injected from the notebook's own imports so this
+# generator does not carry a second copy of the requirement list. See
+# tools/colab_setup.py.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
+from colab_setup import with_colab_cell  # noqa: E402
+
+cells = with_colab_cell(cells, OUT)
 
 nb = {
     "cells": cells,

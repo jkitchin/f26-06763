@@ -671,4 +671,6 @@ Compare failures with your neighbor on 3.
 **Install before next class** `git`, Python 3.11+, [`uv`](https://docs.astral.sh/uv/getting-started/)
 **Assignment 1** released next session
 
+**Practice module** ~10 min, ends in a PDF you upload: [https://kitchingroup.cheme.cmu.edu/f26-06763/game/#/l01](https://kitchingroup.cheme.cmu.edu/f26-06763/game/#/l01)
+
 Full notes, with all sources: `lectures/l01/notes.md`

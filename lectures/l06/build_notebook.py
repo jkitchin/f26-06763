@@ -30,6 +30,7 @@ Design notes so the demo runs cleanly:
 Kept in a generator for deterministic cell ids and no hand-edited JSON.
 """
 import json
+import sys
 from pathlib import Path
 
 OUT = Path(__file__).parent / "l06-validation.ipynb"
@@ -314,6 +315,14 @@ cells = [
        "has you write a validation suite for a sensor feed and reason about a windowed\n",
        "aggregate, so both halves start here."),
 ]
+
+# The Colab bootstrap cell, injected from the notebook's own imports so this
+# generator does not carry a second copy of the requirement list. See
+# tools/colab_setup.py.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
+from colab_setup import with_colab_cell  # noqa: E402
+
+cells = with_colab_cell(cells, OUT)
 
 nb = {
     "cells": cells,

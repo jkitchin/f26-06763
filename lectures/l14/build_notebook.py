@@ -24,6 +24,7 @@ Design notes:
     gpytorch, scikit-learn, scipy, matplotlib).
 """
 import json
+import sys
 from pathlib import Path
 
 OUT = Path(__file__).parent / "l14-bayesopt-design.ipynb"
@@ -296,6 +297,14 @@ cells = [
        "of the optimum, spending each query where the surrogate is most uncertain. This is the\n",
        "design-loop payoff the miniproject (A7) asks you to demonstrate."),
 ]
+
+# The Colab bootstrap cell, injected from the notebook's own imports so this
+# generator does not carry a second copy of the requirement list. See
+# tools/colab_setup.py.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
+from colab_setup import with_colab_cell  # noqa: E402
+
+cells = with_colab_cell(cells, OUT)
 
 nb = {
     "cells": cells,
