@@ -1,8 +1,8 @@
 #+TITLE: Systems and Toolchains for AI Engineers
 
 [[https://github.com/jkitchin/f26-06763/actions/workflows/book.yml][file:https://github.com/jkitchin/f26-06763/actions/workflows/book.yml/badge.svg?branch=main]]
-[[https://kitchingroup.cheme.cmu.edu/f26-06763/][file:https://img.shields.io/website?url=https%3A%2F%2Fkitchingroup.cheme.cmu.edu%2Ff26-06763%2F&label=site&up_message=live&up_color=success&down_message=down]]
-[[https://kitchingroup.cheme.cmu.edu/f26-06763/build-info.json][file:https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fkitchingroup.cheme.cmu.edu%2Ff26-06763%2Fbuild-info.json&query=%24.built_at&label=site%20built&color=0a7bbb]]
+[[https://kitchingroup.cheme.cmu.edu/f26-06763/][file:https://img.shields.io/website.svg?url=https%3A%2F%2Fkitchingroup.cheme.cmu.edu%2Ff26-06763%2F&label=site&up_message=live&up_color=success&down_message=down]]
+[[https://kitchingroup.cheme.cmu.edu/f26-06763/build-info.json][file:https://img.shields.io/badge/dynamic/json.svg?url=https%3A%2F%2Fkitchingroup.cheme.cmu.edu%2Ff26-06763%2Fbuild-info.json&query=%24.built_at&label=site%20built&color=0a7bbb]]
 
 The three badges answer three different questions, and the second and third exist
 because the first one has lied before. The workflow badge says the last run on
