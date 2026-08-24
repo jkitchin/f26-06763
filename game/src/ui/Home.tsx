@@ -69,7 +69,7 @@ export function Home({ banks, log, andrewId, storageOk, onStart, onEvidence, onM
         On another computer, or in a private window, you will start a module
         again from the beginning. Your questions are chosen from your Andrew ID
         and from which attempt you are on, so a first attempt is the same
-        wherever you sign in, and practising again gives you different questions
+        wherever you sign in, and practicing again gives you different questions
         from the same bank. The PDF is the thing that counts, so finish a module
         and download it in one sitting.
       </p>

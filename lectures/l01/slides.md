@@ -553,7 +553,7 @@ What matters operationally:
 - You pay per token, in money *and* latency
 - Outputs are **sampled**, not deterministic
 
-Three integration patterns:
+Two integration patterns:
 
 - **Prompting**: instructions and data in the context
 - **RAG**: search your own corpus, put hits in the context
@@ -570,23 +570,6 @@ Three integration patterns:
 
 For engineering: agents over your database,
 your simulation, your instrument.
-<!-- 
---- -->
-
-<!-- ## A tour of the stack, security
-
-<div class="definition">
-
-**Prompt injection**: untrusted text reaching the context window carries instructions, and the model has no reliable way to tell data from commands.
-
-</div>
-
-An agent that both **reads untrusted input** and
-**holds a capability to act** is exposed by construction.
-
-Capability scoping > clever prompting.
-
-[OWASP Top 10 for LLM Apps](https://owasp.org/www-project-top-10-for-large-language-model-applications/) -->
 
 ---
 

@@ -14,7 +14,7 @@ engineering data and case studies in mind.
 
 Read the [syllabus](course/syllabus.md) for objectives, the toolchain we will be considering in our course, and
 grading. The [schedule](course/schedule.md) maps every session to its topic and to the
-assignment released or due the specific week we will be.
+assignment released or due that week.
 
 The lecture notes are the "textbook" of each session. They are written to be read before
 or after class, containing extended information and the
@@ -31,8 +31,7 @@ introduces it. When you remember the idea but not which session covered it, we s
 questions for each lecture, tied to the numbers and the pitfalls in that
 session's notes.
 
-Each module takes about ten minutes, ends by producing a PDF you upload to Canvas, and these will count toward participation. The questions are
-randomly selected from your Andrew ID, so the questions you get are not the same of other students.
+Each module takes about ten minutes, ends by producing a PDF you upload to Canvas, and these will count toward participation. The questions are selected based on your Andrew ID, so the questions you get are not the same as other students.
 
 The same app we created has <a href="game/#/map"><strong>a "map" of the course</strong></a>,
 which answers a different question: not "what should I practice" but instead: "which
@@ -48,4 +47,4 @@ locked.
 - **Deep learning:** PyTorch and/or JAX.
 - **Experiment tracking:** MLflow.
 - **Data:** PostgreSQL, DuckDB, and Parquet.
-- **LLMs and agents:** framework- and provider-agnostic, since this field changes faster than a semester, in your experience.
+- **LLMs and agents:** framework- and provider-agnostic, since this field changes faster than a semester, in our experience.

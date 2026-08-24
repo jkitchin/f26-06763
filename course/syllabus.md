@@ -70,7 +70,7 @@ are named where relevant so the skills you learned can transfer.
 
 - **Language & environments:** Python, managed with **uv** (reproducible, lockfile-based).
 - **Machine learning:** **PyTorch and/or JAX**.
-- **Experiment tracking:** **MLflow and/or MLOps**.
+- **Experiment tracking:** **MLflow, MLOps**.
 - **Data:** SQL and similar.
 - **LLM / agentic:** framework- and provider-**agnostic**. Students may choose their agent framework. Main concepts and ideas are taught so they transfer across model providers.
 
@@ -124,7 +124,7 @@ Grades are absolute, and no curve is applied:
   and any outside sources in your repository, and make sure you personally understand and
   can defend everything you submit.
 - **Generative-AI use:** *permitted and encouraged as an engineering tool*: this is a
-  course about building with AI. We ask to to (a) **disclose** where and how you used AI
+  course about building with AI. We ask you to (a) **disclose** where and how you used AI
   assistants, (b) **cite** generated code/text in comments or a `CREDITS` file, and (c) be
   able to **explain and defend** everything you submit. Using AI to bypass learning an
   assignment's core skill (e.g., having it write an entire graded pipeline you can't
