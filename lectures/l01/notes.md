@@ -559,8 +559,8 @@ unfamiliar, and each is the source I would send a colleague to first.
 
 Assignment 1, the reproducible project scaffold, is released this week and due
 08-31-2026. It asks you to take the demo notebook from this session, fix the three
-defects you just found in it, and land it in a `uv`-managed, git-tracked project that
-someone else can rebuild and rerun. This is a pointer, not the rubric.
+defects you just found in it, and land it in a `uv`-managed project that
+someone else can rebuild and rerun. This is a pointer; the assignment page carries the details.
 
 ## Practice module
 
