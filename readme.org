@@ -1,5 +1,16 @@
 #+TITLE: Systems and Toolchains for AI Engineers
 
+[[https://github.com/jkitchin/f26-06763/actions/workflows/book.yml][file:https://github.com/jkitchin/f26-06763/actions/workflows/book.yml/badge.svg?branch=main]]
+[[https://kitchingroup.cheme.cmu.edu/f26-06763/][file:https://img.shields.io/website?url=https%3A%2F%2Fkitchingroup.cheme.cmu.edu%2Ff26-06763%2F&label=site&up_message=live&up_color=success&down_message=down]]
+[[https://kitchingroup.cheme.cmu.edu/f26-06763/build-info.json][file:https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fkitchingroup.cheme.cmu.edu%2Ff26-06763%2Fbuild-info.json&query=%24.built_at&label=site%20built&color=0a7bbb]]
+
+The three badges answer three different questions, and the second and third exist
+because the first one has lied before. The workflow badge says the last run on
+~main~ went green. The site badge says the URL answers. The "site built" badge
+reads ~build-info.json~ off the live site, so it says which build is actually
+being served: on 2026-08-06 the build job was green while ~deploy-pages~ timed
+out, and the site served the previous commit for hours with nothing showing it.
+
 Course materials for Systems and Toolchains for AI Engineers, Fall 2026.
 
 *The rendered site is public:*
@@ -20,8 +31,8 @@ teaching notes) is deliberately excluded.
 | ~themes/course.css~      | Shared MARP slide theme                           |
 | ~_toc.yml~               | Jupyter Book config and table of contents         |
 
-One directory per session, ~l01~ through ~l26~, plus ~mp1~ and ~mp2~ for the
-Week 8 mini-project. ~lectures/l01/~ is the worked reference for both formats.
+One directory per session, ~l01~ through ~l22~, matching the L-numbers in
+~course/schedule.md~. ~lectures/l01/~ is the worked reference for both formats.
 
 * Building using jupyter-books and MARP.
 
