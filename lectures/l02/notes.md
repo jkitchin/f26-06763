@@ -13,11 +13,11 @@
 
 ## Why this matters
 
-In 2006 a team at Duke University published a result in [*Nature Medicine*](https://www.nature.com/articles/nm1491). Their models read a tumor's gene-expression profile and predicted which chemotherapy drug the patient would respond to. The promise was huge: a genomic test that could spare a patient the use of the wrong drug. The work was persuasive enough that, beginning in 2007, **three** clinical trials used this research to help assign real patients to treatments, and 117 patients participated. The stakes were about as high as they get for a machine-learning result, because the models were steering real chemotherapy decisions.
+In 2006 a team at Duke University published a result in [*Nature Medicine*](https://www.nature.com/articles/nm1491). Their models read a tumor's gene-expression profile and predicted which chemotherapy drug the patient would respond to. The promise was huge: a genomic test that could spare a patient the use of the wrong drug. The work was persuasive enough that, beginning in 2007, **three** clinical trials used this research to help assign real patients to treatments, and 117 patients participated. The stakes were about as high as they get for a machine learning result, because the models were guiding real therapy decisions.
 
-Two statisticians at a different research center set out to build on this work. They could not reproduce it. When they rebuilt the analysis from the data the papers provided, the reported numbers would not come back. Investigation took them months. What they eventually found was a pair of ordinary mistakes. One was an [off-by-one error](https://projecteuclid.org/journals/annals-of-applied-statistics/volume-3/issue-4/Deriving-chemosensitivity-from-cell-lines--Forensic-bioinformatics-and-reproducible/10.1214/09-AOAS291.full) that shifted an entire list of genes down by one row, so the reported genes were the wrong ones. The second mistake was a set of sample labels in which **"responds to the drug" and "resists the drug" had been swapped.** Careful people make errors of exactly this kind every day, in every lab. What made these matter is that nobody caught them. Nobody caught them because the work could not be checked in the first place.
+Two statisticians at a different research center set out to build on this work. They could not reproduce it. When they rebuilt the analysis from the data the papers provided, the reported numbers would not come back. Investigation took them months. What they eventually found was a pair of ordinary mistakes. One was an [off-by-one error](https://projecteuclid.org/journals/annals-of-applied-statistics/volume-3/issue-4/Deriving-chemosensitivity-from-cell-lines--Forensic-bioinformatics-and-reproducible/10.1214/09-AOAS291.full) that shifted an entire list of genes down by one row, so the reported genes were the wrong ones. The second mistake was a set of sample labels in which **"responds to the drug" and "resists the drug" had been swapped.** Careful people make errors of exactly this kind every day, in every lab. What made these matter is that nobody caught them at first. Nobody caught them because the work could not be checked in the first place.
 
-The consequences extended for years. A [later National Academies review](https://www.ncbi.nlm.nih.gov/books/NBK475955/) reconstructed how the original work that could not be reproduced had reached patients at all. The main paper was [retracted](https://www.nature.com/articles/nm0111-135) in 2011, and the authors' own stated reason was that they could not reproduce their results either. A [federal investigation](https://retractionwatch.com/2015/11/07/its-official-anil-potti-faked-data-say-feds/) eventually found that the lead author had committed research misconduct. The investigation's finding was about intent, but intent is not the subject of this lecture. The engineering lesson sits underneath that question and holds regardless of the answer: for years, a flawed analysis could not be told apart from a sound one, and there was no way to take its data and its code and get its numbers back.
+The consequences extended for years. A [later National Academies review](https://www.ncbi.nlm.nih.gov/books/NBK475955/) reconstructed how the original work that could not be reproduced had reached patients at all. The main paper was [retracted](https://www.nature.com/articles/nm0111-135) in 2011, and the authors' own stated reason was that they could not reproduce their results either. A [federal investigation](https://retractionwatch.com/2015/11/07/its-official-anil-potti-faked-data-say-feds/) eventually found that the lead author had committed research misconduct. The investigation's finding was about intent, but intent is not the subject of this lecture. The engineering lesson sits underneath that question and holds regardless of the answer: for years, a flawed analysis could not be told apart from a correct one, and there was no way to take its data and its code and get its numbers back.
 
 This session is about building that ability in from the start: taking the data and the code and getting the numbers back. This is **reproducibility**.
 
@@ -47,11 +47,10 @@ This session is about making the answer to all three a systematic and automatic 
 By the end of this session you should be able to:
 
 - Build and lock a project environment with `uv`, and rebuild it exactly on a fresh machine.
-- Choose the right versioning tool for code, data, and models, and explain why large binary
-  files do not belong in plain git.
+- Choose the right versioning tool for code, data, and models, and explain why large binary files do not belong in plain git.
 - Turn an exploratory notebook into a script or package with a tested command-line entry
   point.
-- Log a run to MLflow so that one run equals one fact you can reproduce.
+- Log a run to MLflow so that one run equals the same exact fact you can always reproduce.
 
 ## Environments you can rebuild
 
@@ -60,9 +59,9 @@ By the end of this session you should be able to:
 
 A project's **environment** is the exact Python interpreter and set of packages you install to run it. Reproducing a result begins with reproducing that environment exactly, perhaps on a different machine from the one that first produced the results. 
 
-This environment is more than the packages you named. It includes the exact version of the Python interpreter. It also includes every package you installed directly. In addition, it should also include every package those packages pulled in underneath them, each one at a specific version. A dependency you never selected directly can totally change a number you report. That is why "I installed pandas and scikit-learn" is not a description anyone can rebuild from.
+This environment is more than the packages you named. It includes the exact version of the Python interpreter. It also includes every package you installed directly. In addition, it should also include every package those packages pulled in "underneath" them, each one at a specific version. A dependency you never selected directly can totally change a number you report. That is why "I installed pandas and scikit-learn" is **not** a description anyone can rebuild from.
 
-Small version differences produce real, silent changes in behavior. The Lecture 1 demo showed one live. A function's behavior can shift between two minor releases. A default argument in a function signature can move. A dependency of a dependency can resolve to a newer version on a Tuesday than it did on the Monday you last ran the code. "Newest version that satisfies the constraints" is a moving target and we should not trust in this type of information alone. Worse, sometimes, none of these announce themselves. They surface later (literally, when someone is trying to reproduce your results), as a result that will not reproduce, and by then "the trail is cold."
+Small version differences produce real, silent changes in any code "behavior"/results. The Lecture 1 demo showed one live. A function's behavior can shift between two minor releases, get deprecated or dropped entirely. A default argument in a function signature can move. A dependency of a dependency can resolve to a newer version on a Tuesday than it did on the Monday you last ran the code. "Newest version that satisfies the constraints" is a "moving target" and we should not trust in this type of information alone. Worse, sometimes, none of these announce themselves. They surface later (literally, when someone is trying to reproduce your results), as a result that will not reproduce, and by then "the trail is cold."
 
 :::{admonition} Definition: dependency
 :class: tip
@@ -72,17 +71,17 @@ A **dependency** is a package your project needs in order to run. Each dependenc
 
 The tool this course standardizes on for managing all of this is `uv`. It works through three files. Understand them as a unit before touching the commands. The first, `pyproject.toml`, records what you *asked for*: your direct dependencies, usually at loose version constraints like "pandas, at least this version." 
 
-The second, `uv.lock`, records what you actually *got*: the entire resolved dependency graph, transitive packages included, every one pinned to an exact version, resolved once and then reused. The third, `.python-version`, pins the interpreter itself. Python 3.11 and Python 3.13 are genuinely different environments, and a result that depends on which one ran is a result you cannot yet reproduce. Together these three files make a rebuild provably the same rather than probably the same.
+The second, `uv.lock`, records what you actually *got*: the entire resolved dependency graph, transitive packages included, every one pinned to an exact version, resolved once and then reused. The third, `.python-version`, pins the interpreter itself. For example, Python 3.11 and Python 3.13 can be genuinely different environments, and a result that depends on which one ran is a result you cannot yet reproduce. Together these three files make a rebuild provably the same rather than as probably the same.
 
 In day-to-day use you drive `uv` with a handful of commands. For example:
 
 1.  `uv init` creates a project and writes the first `pyproject.toml` and `.python-version`. 
 2. `uv add pandas scikit-learn mlflow` adds dependencies, resolves the whole graph, and updates both `pyproject.toml` and the lockfile in one step. 
-3. `uv run python -m sensorlab.train` runs a command inside the project's environment. Before it does, it checks that the lockfile is consistent with `pyproject.toml`, so the environment can never quietly drift out from under you. 
+3. `uv run python -m sensorlab.train` runs a command inside the project's environment. (`sensorlab` is the running example for this lecture: the Lecture 1 analysis turned into an importable package.) Before it does, it checks that the lockfile is consistent with `pyproject.toml`, so the environment can never quietly drift out from under you. 
 
 On a fresh checkout of the project, on your laptop or a colleague's or a continuous-integration server:
 
-4. `uv sync` reconstructs the environment from the lockfile: the same interpreter, the same packages, the same versions, with no interpretation required. That last command is where the payoff lives. It is the end of "works on my machine" as an acceptable answer.
+4. `uv sync` reconstructs the environment from the lockfile: the same interpreter, the same packages, the same versions, with no interpretation required. This last command is very important, since it helps end the whole "works on my machine".
 
 ### Lockfiles and requirements files
 
@@ -133,7 +132,7 @@ It costs almost nothing then, and it is genuinely tedious to do this manually af
 To **scaffold** a project is to set up its skeleton before you write a lot of code: the folders, the configuration files, and an empty, importable package. Like the scaffolding around a building, it is the temporary-feeling frame that everything real gets built against. Assignment 1 has you scaffold one project and then reuse it all semester.
 :::
 
-The convention this course uses is the **src layout**. It repays a moment of understanding rather than blind copying. Your code lives in a *package*, which is a folder of Python files that other code can import by name. That package sits under a top-level `src/` directory. Putting it there means your code is imported the way an installed library is, by its name. It is not imported as whatever files happen to sit next to the script you launched. That single indirection removes a bug that bites beginners hard. It is the analysis that runs perfectly from one directory and mysteriously fails from another, because it was quietly depending on the current folder to resolve its imports. Around the package sits `pyproject.toml`, the project's manifest. It declares the dependencies, the command-line entry points, and the metadata that make the package installable. The remaining folders give each kind of file one obvious home:
+The convention this course uses is the **src layout**. Your code lives in a *package*, which is a folder of Python files that other code can import by name. That package sits under a top-level `src/` directory. Putting it there means your code is imported the way an installed library is, by its name. It is not imported as whatever files happen to sit next to the script you launched. That single indirection removes a bug that bites beginners hard. It is the analysis that runs perfectly from one directory and mysteriously fails from another, because it was quietly depending on the current folder to resolve its imports. Around the package sits `pyproject.toml`, the project's manifest. It declares the dependencies, the command-line entry points, and the metadata that make the package installable. The remaining folders give each kind of file one obvious home:
 
 ```text
 sensorlab/
@@ -145,7 +144,7 @@ sensorlab/
 └── tests/           # tests
 ```
 
-The specific folder names matter far less than the principle underneath them. The boundary between throwaway exploration and the code that actually runs is drawn in the directory tree, where anyone can see it. It does not live in one person's memory of which notebook is the "real" one. The Assignment 1 scaffold is exactly this shape. You reuse it all semester, so an hour spent understanding it now is repaid many times over.
+The specific folder names matter far less than the principle underneath them. The boundary between throwaway exploration and the code that actually runs is drawn in the directory tree, where anyone can see it. It does not live in one person's memory of which notebook is the "real" one. The Assignment 1 scaffold is exactly this shape. You reuse this idea all semester, so an hour spent understanding it now is worth it.
 
 ## Versioning code, data, and models are three different problems
 
@@ -157,10 +156,10 @@ Git is excellent at versioning code. It is close to useless at versioning a 200 
 :::{admonition} Definition: version control
 :class: tip
 
-**Version control** records the changes to a set of files over time, so you can see what changed, return to any earlier state, and say exactly which version produced a given result. **Git** is the version-control tool this course uses: it saves the project's history as a sequence of **commits**, each a labeled snapshot identified by a Secure Hash Algorithm (SHA). If you have not used git before, the Pro Git chapters in the resources are the place to start.
+**Version control** records the changes to a set of files over time, so you can see what changed, return to any earlier state, and say exactly which version produced a given result. **Git** is the version-control tool this course uses: it saves the project's history as a sequence of **commits**. If you have not used git before, the Pro Git chapters in the resources are the place to start.
 :::
 
-**Code** belongs in git, which was built for it. Code is small and it is text. Git can show you exactly what changed, line by line, between any two points in the project's history. Each commit is a labeled, permanent save point. Its identifier is a short string called a SHA, and the SHA is itself a piece of provenance. The question "which version of the code produced this number" is answered completely by a commit SHA. This is the cheapest and most reliable versioning you will do all semester. It costs nothing but the discipline of committing in meaningful units.
+**Code** belongs in git, which was built for it. Code is small and it is text. Git can show you exactly what changed, line by line, between any two points in the project's history. Each commit is a labeled, permanent save point. Its identifier is a short string called a SHA, and the SHA is itself a piece of provenance. The question "which version of the code produced this number" is answered completely by a commit identifier. This is the cheapest and most reliable versioning you will do all semester.
 
 :::{admonition} Definition: provenance
 :class: tip
@@ -168,14 +167,16 @@ Git is excellent at versioning code. It is close to useless at versioning a 200 
 **Provenance** is the record of where a result came from: which data, which code, and which settings produced it. Reproducibility is the ability to make the result *again*. Provenance is the ability to say *how it was made* in the first place. You want both. They are recorded by different means: git for the code, a hash for the data, an experiment tracker for the tie between them.
 :::
 
-**Data** does not belong in plain git. Understanding why is worth more than the rule. Git keeps every version of every file forever, by design, so that history is complete and nothing is lost. Commit a large binary file and you have committed it permanently. Even after you delete it, it lives on in the history, and every future clone of the repository pays to download it. A raw sensor export is large and binary. It often carries license or privacy constraints that a public copy of the repository would violate outright. So the discipline is to keep the raw data out of git with a `.gitignore` file, which is a list of paths git should refuse to track. In its place you commit a small sample or a description of the columns, so the shape is documented. You also commit a record of where the real data came from and a *content hash* of it. A content hash is a short fingerprint computed from the bytes of a file. Change a single byte and the fingerprint changes. Two runs can then be checked, cheaply and exactly, for having used the same data. Set up the `.gitignore` before your first commit rather than after. Once a large file is in the history, removing it means rewriting that history, which is far more work than never adding it. This repository's own `.gitignore` already excludes `data/`, `*.parquet`, and `*.duckdb` for exactly these reasons. The heavier tools for versioning large data by content are `git-lfs` and data version control (DVC).
+**Data** does not belong in plain git. Understanding why is worth more than the rule. Git keeps every version of every file forever, by design, so that history is complete and nothing is lost. Commit a large binary file and you have committed it permanently. Even after you delete it, it lives on in the history, and every future clone of the repository has it. A raw sensor export is large and binary. It often carries license or privacy constraints that a public copy of the repository would violate outright. So the discipline is to keep the raw data out of git with a `.gitignore` file, which is a list of paths git should refuse to track. In its place you commit a small sample or a description of the columns, so the shape is documented. 
+
+Set up the `.gitignore` before your first commit rather than after. Once a large file is in the history, removing it means rewriting that git history, which is far more work than never adding it. This repository's own `.gitignore` already excludes `data/` for exactly these reasons. The heavier tools for versioning large data by content are `git-lfs` and data version control (DVC).
 
 **Models** are large binary files too. They differ from data in one way that changes what you should record: a model is an *output*. The thing worth saving is the recipe that produced the model, more than the weights themselves. That recipe is the code SHA, the data hash, and the configuration together. Recreate those three and you can recreate the model. Save only the weights and you have an artifact nobody can regenerate or trust. Recording that recipe is what an experiment tracker is for, which is the next section.
 
 | Artifact | How it changes | Tool | What you actually version |
 |---|---|---|---|
 | Code | constantly, in small diffs | git | the source, as commits |
-| Data | rarely, large and binary | git-ignored, plus a content hash; git-lfs/DVC | a pointer and a hash, never the raw bytes |
+| Data | less frequently, large and binary | git-ignored, plus a content hash; git-lfs/DVC | a pointer and a hash, never the raw bytes |
 | Models | one per run, large binary | an MLflow run | the inputs that produced it |
 
 ## From notebook to module
@@ -183,7 +184,7 @@ Git is excellent at versioning code. It is close to useless at versioning a 200 
 ```{index} random seed, notebook to module
 ```
 
-A notebook is the right tool for looking at data. It is the wrong tool for anything that has to run again reliably. The reason is structural. In a notebook, cells run in whatever order you clicked them, not top to bottom. State accumulates invisibly between runs. A variable defined in a cell you have since deleted can keep a later cell working long after the code that created it is gone. "It worked a minute ago" is a true statement about a notebook. It tells you almost nothing about whether it will work on a fresh start. Turning the notebook into a module is how an exploration becomes something you can test, schedule, and trust. It is the step where most of the Lecture 1 failures are designed out rather than merely warned against.
+A notebook is the right tool for looking at data. It is the wrong tool for anything that has to run again reliably. The reason is structural: In a notebook, cells run in whatever order you clicked them, not top to bottom. State accumulates invisibly between runs. A variable defined in a cell you have since deleted can keep a later cell working long after the code that created it is gone. "It worked a minute ago" is a frequent, unfortunate statement about working with a Jupyter notebook. It tells you almost nothing about whether it will work on a fresh start. Turning the notebook into a module is how an exploration becomes something you can test, schedule, and trust. 
 
 This is the normal state of shared analysis code, and it happens to careful people all the time. Researchers collected about 1.45 million Jupyter notebooks from GitHub. After removing duplicates they kept about 1.16 million to study. Of the [863,878 valid Python notebooks](https://leomurta.github.io/papers/pimentel2019a.pdf) they could actually attempt to run, only about a quarter ran to completion without an error. Only about four percent reproduced the results the notebook itself had saved. A separate audit of [601 computer-science papers](http://reproducibility.cs.arizona.edu/v2/RepeatabilityTR.pdf) looked at the 402 whose results were produced by code. For under a third of those, the code could be obtained and built within half an hour. Simply getting hold of the code at all was often the hard part. The next person who cannot run your notebook is, more often than not, you, half a year from now.
 
@@ -197,7 +198,7 @@ GitHub, and 1.16 million after removing duplicates), about 24% ran to completion
 About 4% reproduced the result the notebook had saved. Data from Pimentel et al. (2019).
 ```
 
-The refactor that fixes this is mechanical, which is the good news. You pull the logic out of the cells and into functions, such as `load`, `clean`, `featurize`, and `train`. Each function takes its inputs as arguments and returns a value. It can then be imported and tested in isolation rather than depending on the ambient state of a notebook. You add an entry point behind the `if __name__ == "__main__"` guard, the block Python runs only when a file is launched directly. You give it an argument parser, so the analysis runs from the command line as `uv run python -m sensorlab.train --seed 0` rather than by clicking cells in an order you have to remember. And you fix the seed for anything that draws on randomness.
+The refactor that fixes this is mechanical, which is the good news. You pull the logic out of the Lecture 1 cells and into functions, such as `load`, `clean`, `featurize`, and `train`. Each function takes its inputs as arguments and returns a value. It can then be imported and tested in isolation rather than depending on the ambient state of a notebook. You add an entry point behind the `if __name__ == "__main__"` guard, the block Python runs only when a file is launched directly. You give it an argument parser, so the analysis runs from the command line as `uv run python -m sensorlab.train --seed 0` rather than by clicking cells in an order you have to remember. And you fix the seed for anything that draws on randomness.
 
 :::{admonition} Definition: seed
 :class: tip
@@ -229,24 +230,24 @@ with mlflow.start_run():
 
 Run the trainer twice with two different seeds. The two runs appear as two rows you can compare directly. The small difference between them is the lesson. It is why the seed has to be logged: without it, neither number is reconstructible. The habit worth building is to log enough that the run could be *rebuilt* from its record. That means the git commit SHA of the code, a hash or version of the data, and the seed, all sitting next to the metric. That triple is the provenance the Duke work never had. With it, a run becomes one reproducible fact, which is the phrase this section is named for. Get in the habit of recording all three, a git SHA, a data hash, and a seed, next to every metric you log.
 
-## Where reproducibility pushes back
+## Where reproducibility can bring challenges
 
 ```{index} pair: failure mode; reproducible but wrong
 ```
 
-Everything so far has been an argument for a discipline. The argument is sound. A course that only sold its tools would be teaching advocacy rather than engineering. Reproducibility is necessary infrastructure. It is not a cure-all. Knowing this well means knowing what it does not give you and where the effort stops being worth it. Several of its limits are worth meeting here, on paper, rather than later, under deadline.
+Everything so far has been an argument for a discipline. The argument is sound. A course that only sold its tools would be teaching advocacy rather than engineering. Reproducibility is necessary infrastructure. It is not a "silver bullet" that will solve all problems. Knowing this well means knowing what it does not give you and where the effort stops being worth it. Several of its limits are worth mentioning.
 
 ### Reproducible is not the same as correct
 
-This is the limit that matters most. Making a result reproducible does not make it right. Suppose your pipeline contains the same off-by-one error the Duke code did. Locking the environment, pinning the seed, and tracking the run will then reproduce the *wrong* answer, every time, with perfect fidelity. Reproducibility makes a result *checkable*. It is a precondition for catching errors. The catching itself is a separate step. Notice how the Duke errors were actually caught. Re-running the original code would simply have reproduced its mistakes. Outside statisticians re-implemented the analysis from scratch and found that the two versions disagreed. Reproduction confirms you can regenerate a number. Confirming the number is right is a separate act, and it is called validation.
+Making a result reproducible does not make it right. Suppose your pipeline contains the same off-by-one error the Duke code did. Locking the environment, pinning the seed, and tracking the run will then reproduce the *wrong* answer, every time, with perfect fidelity. Reproducibility makes a result *checkable*. It is a precondition for catching errors. The catching itself is a separate step. Notice how the Duke errors were actually caught. Re-running the original code would simply have reproduced its mistakes. Outside statisticians re-implemented the analysis from scratch and found that the two versions disagreed. Reproduction confirms you can regenerate a number. Confirming the number is right is a separate step, and it is called *validation.*
 
 ### A lockfile pins versions, not the whole world
 
-A lockfile is a strong guarantee. It is not a total one. It pins the exact version of every Python package. A package version is not the same as the compiled code that actually runs. Many packages ship as platform-specific binary wheels. The bytes installed for your locked version of NumPy differ between macOS and Linux. The lockfile says nothing about the system C libraries, the CUDA toolkit, or the operating system underneath. A pinned version can even become unavailable if it is later removed from the package index. For most engineering work the lockfile is enough. When you need to freeze the entire stack down to the system libraries, the tool is a container, which packages the operating-system layer as well. So `uv` gives you a reproducible *Python environment*. That is most of what you need, and not quite all of it.
+A lockfile is a strong guarantee, but not a total one. It pins the exact version of every Python package. A package version is not the same as the compiled code that actually runs. Many packages ship as platform-specific binary wheels. The bytes installed for your locked version of NumPy differ between macOS and Linux. The lockfile says nothing about the system C libraries, the CUDA toolkit, or the operating system underneath. A pinned version can even become unavailable if it is later removed from the packaging index. For most engineering work the lockfile is enough though. When you need to freeze the entire stack down to the system libraries, the tool is a *container*, which packages the operating-system (OS) layer as well. So `uv` gives you a reproducible *Python environment*. That is most of what you need, but there may be cases that it won't be sufficient.
 
 ### The discipline has a cost, and sometimes it is overkill
 
-Setting up a locked, tracked, packaged project is not free. There is a real judgment call about when to pay for it. Consider a genuinely throwaway exploration, twenty minutes of poking at a file to decide whether an idea is worth pursuing. Full scaffolding there is friction that buys you nothing, and insisting on it would be its own kind of over-engineering. The skill is proportion. The moment an analysis is going to be rerun, shared, built upon, or believed by anyone, including your future self, it has crossed the line into needing this discipline. The trap is that results almost always cross that line quietly, without anyone deciding that they have. When in doubt, scaffold. Retrofitting is the expensive direction.
+Setting up a locked, tracked, packaged project is not free. There is a real judgment call about when to pay for it. Consider a genuinely throwaway exploration, twenty minutes of "poking" at a file to decide whether an idea is worth pursuing. Full scaffolding there can be cumbersome, and insisting on it would be its own kind of "over-engineering". However, the moment that a simple analysis needs to be rerun, shared, built upon, or believed by anyone, including your future self, it has crossed the line into needing this type of approach we presented here. The trap is that results almost always cross that line quietly, without anyone deciding that they have. When in doubt, scaffold. Retrofitting (e.g., having to do all these steps after you have already generated results) can be very tedious and error-prone.
 
 ### A hash tells you that data changed, not what or why
 
@@ -264,9 +265,9 @@ Treat reproducibility as the foundation you build on, not the building itself. I
 
 ## In-class demo
 
-We build the Assignment 1 scaffold live, starting from an empty folder and ending with a tracked run in about fifteen minutes. The path runs `uv init` to create the project. It adds pandas, scikit-learn, and mlflow. It moves the Lecture 1 exploratory cells into `src/sensorlab/` as importable functions, adds a command-line entry point, runs the trainer twice with two different seeds, and opens the MLflow UI to see the two runs side by side. The demo is deliberately the same shape as Assignment 1, so it is a preview of the assignment rather than a separate exercise.
+We build the Assignment 1 scaffold live, starting from an empty folder and ending with a tracked run in about fifteen minutes. The path runs `uv init` to create the project. It adds pandas, scikit-learn, and mlflow. It moves the Lecture 1 exploratory cells into `src/sensorlab/` as importable functions, adds a command-line entry point, runs the trainer twice with two different seeds, and opens the MLflow UI to see the two runs side by side. The demo is deliberately the same shape as Assignment 1.
 
-Two moments carry the lesson. The first is when we delete `.venv` and rebuild it from the lockfile. That is what "a reproducible environment" means once you do it rather than merely claim it. The second is when the two seeded runs become two logged, comparable facts, instead of two numbers you would otherwise have to hold in your head and would misremember by the afternoon. The runnable version is [`l02-scaffold.ipynb`](l02-scaffold.ipynb).
+There are two important observations: The first is when we delete `.venv` and rebuild it from the lockfile. That is what "a reproducible environment" means once you do it rather than merely claim it. The second is when the two seeded runs become two logged, comparable facts, instead of two numbers you would otherwise have to hold in your head and would misremember by the afternoon. The runnable version is [`l02-scaffold.ipynb`](l02-scaffold.ipynb).
 
 ## Summary
 
@@ -287,7 +288,7 @@ Reproducibility is the ability to say which data, which code, and which settings
 
 ## Assignment
 
-Assignment 1, the reproducible project scaffold, was released in Week 1 and is due about a week later (08-31-2026). It asks you to take the Lecture 1 demo notebook, fix the three defects that stop it reproducing, and land it in a `uv`-managed project: a package of importable functions, a seeded command-line entry point, and two runs logged to MLflow. The loader and the snippets you have not been shown yet are given to you, so the work is the scaffold rather than the syntax. It is the scaffold you reuse all semester, so it is worth doing carefully the first time. It is also a direct extension of the demo we build in class. This is a pointer; the assignment page carries the details.
+Assignment 1 is due in one week.
 
 ## Practice module
 
