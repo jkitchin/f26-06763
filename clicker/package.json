@@ -1,0 +1,17 @@
+{
+  "name": "f26-06763-clicker",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "schema:remote": "wrangler d1 execute clicker --remote --file schema.sql",
+    "schema:local": "wrangler d1 execute clicker --local --file schema.sql",
+    "tail": "wrangler tail",
+    "slides": "marp shakedown.md --html -o shakedown.html"
+  },
+  "devDependencies": {
+    "wrangler": "^4.126.0",
+    "@marp-team/marp-cli": "^4.2.3"
+  }
+}

@@ -1,0 +1,353 @@
+# The in-class clicker
+
+An anonymous multiple-choice clicker for lecture. The question is on the projected
+slide; the student's phone is a bare A/B/C/D pad. No account, no sign-in, no
+credential of any kind, and nothing that identifies a student.
+
+**Vote page:** <https://clicker.f26-06763.workers.dev>
+
+---
+
+## Contents
+
+1. [Design, and why it is shaped this way](#design-and-why-it-is-shaped-this-way)
+2. [Why not GitHub](#why-not-github)
+3. [Setting it up from nothing](#setting-it-up-from-nothing)
+4. [The routes](#the-routes)
+5. [Writing a clicker slide](#writing-a-clicker-slide)
+6. [What happens when voting closes](#what-happens-when-voting-closes)
+7. [Reading the results](#reading-the-results)
+8. [Working on it](#working-on-it)
+9. [Things that will bite you](#things-that-will-bite-you)
+10. [What this does not defend against](#what-this-does-not-defend-against)
+
+---
+
+## Design, and why it is shaped this way
+
+**The server knows nothing about questions, lectures, or the semester.** It appends
+`(timestamp, letter, device)` rows and answers time-range queries. Every question
+lives in the slides, so **changing a question never means redeploying the server.**
+It has been deployed once and is meant to stay that way for the semester.
+
+**The phone never sees the question.** It is four buttons. That keeps every upcoming
+question off every student's device, means nothing leaks by reading a bundle, and is
+why a single QR code works all year.
+
+**A question is a closed window** `[start, start + seconds]`. Both ends come from the
+server's clock, returned as `server_ts`, because a projector whose clock drifts would
+otherwise mis-slice every window silently. Votes landing outside every window are
+counted by nothing, which is what stops a late vote from polluting the next question.
+
+**Re-voting replaces, it does not add.** Each browser mints a random `device`
+pseudonym, and a tally counts only that device's *most recent* vote inside the window.
+A student who taps the wrong letter just taps the right one. "Lock the buttons for N
+seconds" was considered and rejected: it counts the mis-tap *and* the correction.
+
+The `device` id is a pseudonym, not an identity: a random string the browser invents
+and keeps in `localStorage`. Nothing links it to a person, and it is deliberately not
+carried into the committed archive.
+
+`game/` is untouched. CLAUDE.md section 9c says "a feature that needs a server is a
+feature this design cannot have"; the clicker shares none of the game's code, so that
+statement stays true as written.
+
+## Why not GitHub
+
+Capturing votes in GitHub was the first design, and it would have avoided a new
+service. It was measured rather than assumed, and it fails: release asset
+`download_count` is the only anonymous counter GitHub exposes, and it is **batched on
+roughly a ten minute cadence**. A busy asset sat frozen for fourteen minutes while
+visibly being downloaded; a fresh asset first updated at t+611s. Everything else on
+GitHub (issues, comments, discussions, gists, `repository_dispatch`) needs a
+credential.
+
+GoatCounter was rejected too: `/count` is rate-limited to 4 requests/second keyed on
+IP plus User-Agent, so a lecture hall behind one NAT drops votes **silently**, which
+is the worst failure a vote counter can have.
+
+## Setting it up from nothing
+
+This has been done once already. These are the steps to reproduce it, for a new
+semester or a new owner.
+
+### 1. A Cloudflare account
+
+Sign up at <https://dash.cloudflare.com/sign-up> with an email and password. The
+Workers free plan needs no payment method.
+
+**Skip the "Add a site" onboarding.** You do not need a domain and you do not need to
+move DNS anywhere; Workers run on a free `workers.dev` subdomain with TLS Cloudflare
+manages. There is no certificate to obtain or renew.
+
+### 2. Choose the account subdomain carefully
+
+Your first deploy asks you to claim an account-wide subdomain. The Worker is named
+`clicker`, so the two are joined:
+
+```
+clicker  .  f26-06763  . workers.dev
+(worker)    (the account subdomain)
+```
+
+It is **account-wide, permanent in practice, and baked into the QR code**. Changing it
+later breaks every printed deck, and the API refuses to change it at all (error 10036,
+"Account already has an associated subdomain"); only the dashboard can, at
+Workers & Pages -> Change next to *Your subdomain*.
+
+### 3. Log in and create the database
+
+```bash
+cd clicker
+npx wrangler login                       # opens a browser
+npx wrangler d1 create clicker           # prints a [[d1_databases]] block
+```
+
+Paste the printed block into `wrangler.toml`, but keep `binding = "DB"`: the binding
+name is what the code reads as `env.DB` and does not have to match the database name.
+
+### 4. Create the tables, on the remote database
+
+```bash
+npm run schema:remote     # wrangler d1 execute clicker --remote --file schema.sql
+npm run schema:local      # the separate database `wrangler dev` uses
+```
+
+**Forgetting `--remote` is the classic D1 mistake.** The table gets created only in a
+local dev file, `wrangler deploy` succeeds, and the live Worker then fails every vote
+with "no such table: vote". The Worker detects that case and returns the fix in its
+error body.
+
+### 5. Deploy
+
+```bash
+npm run deploy            # wrangler deploy
+```
+
+A brand-new hostname has **no certificate for the first minute or several**, which
+shows up as `ERR_SSL_VERSION_OR_CIPHER_MISMATCH` in the browser and a TLS alert 40 in
+curl. That is provisioning lag, not a misconfiguration. Renaming the subdomain took
+about four minutes; the first deploy took about one. Wait rather than debug.
+
+### 6. Generate the QR code
+
+```bash
+uv run --with segno clicker/make_qr.py
+```
+
+It encodes the vote URL and writes `clicker/figures/clicker-qr.png`. Because the
+server is question-agnostic, **the URL is identical for every question and every
+lecture, so one QR serves the whole course** and students can bookmark it.
+
+Regenerate only if the hostname changes, which also invalidates every printed deck.
+
+Before trusting it, check it scans **at projector size from the back of the room**.
+That is the only test that matters and the only one you cannot do at a desk.
+
+## The routes
+
+| Route | Does |
+|---|---|
+| `GET /` | serves `vote.html` |
+| `GET /v/{A-D}?d={device}` | append one vote |
+| `GET /r?from=&to=` | tally a window, plus `server_ts` (CORS `*`) |
+| `GET /export?from=&to=` | raw rows as CSV |
+| `GET /stats?days=` | overall usage and a per-day breakdown |
+| `GET /questions?from=&to=&gap=` | question windows **inferred** from gaps |
+| `GET /mark?tag=&from=&to=&round=&answer=&prompt=` | a slide records its own window |
+| `GET /windows?from=&to=` | the marked windows, each with its tally |
+
+`vote.html` is bundled into the Worker by `import`, so the page is same-origin with
+the vote endpoint: no CORS on the write path, and the page shows a real confirmation
+rather than firing blind. Only the read routes are cross-origin, called by the deck.
+
+`/mark` and `/windows` are how the archive knows which votes belonged to which
+question. The server still never *interprets* any of it: `tag`, `prompt` and `answer`
+are opaque strings it stores and hands back, written after the fact and never
+consulted while voting is open. That is what keeps the deploy-once property intact
+even though the server now records what a question was called.
+
+`/questions` is the fallback for a deck whose slides carry no tag: it infers a
+question as a burst of votes separated from the next by more than `gap` milliseconds
+(two minutes by default).
+
+## Writing a clicker slide
+
+MARP is configured with `html: true` in `.marprc.yml`, so a slide can carry raw HTML.
+Styles live in `themes/course.css` with the other slide classes; the behaviour lives
+in `clicker-slide.js`, which a deck pulls in **once, at the end**:
+
+```html
+<script src="clicker-slide.js"></script>
+```
+
+It is a separate file rather than inlined so a second deck is not a second copy of
+300 lines. A *lecture* deck would also need CI to copy it next to the rendered
+slides, which is **not wired up yet**; `shakedown.md` works because it sits in this
+directory beside the script and the QR.
+
+One question looks like this:
+
+```html
+## Now one that will not go well
+
+<div class="clicker"
+     data-tag="l03-q1"
+     data-seconds="45"
+     data-answer="C"
+     data-hint="A pointer at what to reconsider, never the answer."
+     data-why="Why the answer is the answer, shown only when they get there."
+     data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker-main">
+
+**Everyone tap B.** You tap A, change your mind, and tap C. What does the tally count?
+
+<ol class="clicker-opts">
+<li>Both of them, one vote each</li>
+<li>Only my first answer, A</li>
+<li>Only my last answer, C</li>
+<li>Neither, it throws both away</li>
+</ol>
+
+</div>
+<aside class="clicker-panel">
+<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
+<div class="clicker-url">clicker.f26-06763.workers.dev</div>
+<button class="clicker-start">Start voting</button>
+<div class="clicker-timer">45</div>
+<div class="clicker-count">no votes yet</div>
+</aside>
+</div>
+```
+
+| Attribute | Required | Does |
+|---|---|---|
+| `data-read` | yes | the Worker's base URL |
+| `data-seconds` | no (60) | how long the window stays open |
+| `data-tag` | no | records the window for the archive; lowercase, `[a-z0-9._-]`, 64 chars |
+| `data-answer` | no | `A`-`D`. Omit for an opinion poll: bars appear, no verdict, no effects |
+| `data-hint` | no | shown only when the room did **not** sail through |
+| `data-why` | no | shown only when they **did** |
+
+The options are an `<ol class="clicker-opts">`; the A/B/C/D badges are CSS counters,
+so never number them by hand. Leave blank lines around markdown inside the divs or it
+will not render.
+
+**The correct answer lives on the slide and is never sent to the server while voting
+is open.** That is what lets the server stay question-agnostic. It travels to `/mark`
+only after the window closes, as an archival annotation.
+
+The prompt recorded with a mark is read from the slide's heading, so nobody maintains
+the question text twice.
+
+Render it next to its assets, because MARP emits relative image paths:
+
+```bash
+cd clicker && npm run slides       # -> shakedown.html
+```
+
+## What happens when voting closes
+
+While a question is open the panel shows **only how many votes have arrived**, never
+the distribution. Showing live bars biases whoever has not voted yet, which is the one
+thing peer instruction is strict about.
+
+The presenter's click on **Start voting** does three things: it takes the baseline from
+the server's clock, starts the countdown, and unlocks audio (browsers block autoplay
+until a user gesture, so the reveal would otherwise be silent). The button then reads
+**Reveal now**, so you can close early instead of waiting out the clock.
+
+At zero, or on **Reveal now**, the bars appear, the correct bar is highlighted, and the
+room's score is placed in one of three bands. The bands are Mazur's, and they are
+chosen because they map onto what to *do* next rather than merely scoring the room:
+
+| Correct | What appears | What it means you do |
+|---|---|---|
+| **above 70%** | fireworks on a canvas, a short synthesized crackle, the green `data-why` box | They have it. Say why, and move on. |
+| **30% to 70%** | no effect, an amber verdict reading "turn to your neighbour and convince them", and the `data-hint` box | The productive case. Give them 30 seconds to argue, then press **Vote again**. |
+| **below 30%** | dark clouds and rain on a canvas, a filtered-noise downpour, and the `data-hint` box | Not their fault. Re-teach it, then vote again. |
+
+With no `data-answer` there is no verdict and no effect: the bars simply appear, which
+is what an opinion poll wants.
+
+**After any reveal the button becomes "Vote again"** and opens a fresh window on the
+same question, clearing the previous bars and labelling the rounds. Peer instruction is
+vote, argue, vote again, and the second round is the one that moves people, so it must
+not need a page reload. Each round marks itself separately, so the archive shows round
+one and round two under the same tag; the change between them is the interesting part.
+
+A mute toggle sits under the timer, and the setting persists.
+
+The effects are **synthesized, not downloaded**: canvas particles and WebAudio
+oscillators. The decks are published, so a downloaded sound effect or animated GIF is a
+licensing question that original work is not, which is the argument CLAUDE.md section
+5b already makes about figures. It also keeps the deck diffable, per section 5.
+
+## Reading the results
+
+```bash
+python3 tools/clicker.py stats                     # usage overall and per day
+python3 tools/clicker.py windows --date today      # what the slides marked
+python3 tools/clicker.py questions --date today    # bursts, inferred from gaps
+python3 tools/clicker.py show                      # live bars, a backstop for the slide
+python3 tools/clicker.py archive l03 --date today  # writes course/clicker/l03.yml
+```
+
+`archive` prefers the marks, because they are exact and carry the prompt and the
+answer, and falls back to gap-detected bursts, telling you which it used. Pass
+`--force-bursts` to ignore marks.
+
+Time zones live in the CLI, not the Worker: the Worker takes `from`/`to` in epoch
+milliseconds and stays ignorant of dates, which is what lets it be deployed once.
+
+## Working on it
+
+```bash
+cd clicker
+npm install               # wrangler and marp, pinned
+npm run dev               # local; add --remote to hit the real database
+npm run deploy
+npm run tail              # live request log, genuinely useful during class
+npm run slides            # render shakedown.md
+```
+
+Schema changes go in `schema.sql` and must be applied to **both** databases with
+`npm run schema:remote` and `npm run schema:local`.
+
+## Things that will bite you
+
+- **`clicker/vote.html` is exempted in the root `.gitignore`.** The repo has a blanket
+  `*.html` rule for rendered output, which silently excluded a *source* file that
+  `worker.js` imports, breaking deploys from a fresh clone. `game/index.html` already
+  carries a comment about the same trap.
+- **A new or renamed hostname has no certificate for a few minutes.** See step 5.
+- **The account subdomain cannot be changed through the API**, only the dashboard.
+- **Cloudflare's browser-integrity check 403s `Python-urllib`** with error code 1010,
+  so `tools/clicker.py` sends a real User-Agent. Anything else scripting these
+  endpoints must too.
+- **MARP scales slides with a CSS transform**, which defeats coordinate-based clicking
+  in Puppeteer. Browser tests must dispatch `element.click()` in-page.
+- **A published lecture deck exposes `data-answer` in its page source**, and anyone
+  reading the deck could start a window and vote. `shakedown.md` is not published (it
+  lives here, and `clicker/` is in `exclude_patterns`), but a lecture deck would be.
+  Before putting one of these in a released deck, decide whether to strip `data-answer`
+  during the CI render.
+- Free plan ceilings are 100k requests/day and 100k D1 row writes/day, against roughly
+  240 votes per session. There is no realistic path to hitting them.
+
+## What this does not defend against
+
+Nothing here is tamper-proof, and it is not trying to be.
+
+Every route is unauthenticated, because requiring a credential was the one thing ruled
+out from the start. So anyone with the URL can vote repeatedly from different browsers,
+and anyone can write a `/mark` with any tag. A mark is a claim, not a fact.
+
+That is an acceptable trade because **the clicker is formative and feeds no grade.**
+Participation credit still comes from the weekly evidence PDF, which is a different
+system with a different threat model. The cost of an abused clicker is a wrong bar on
+a slide and a line in an archive that a human can delete.
+
+Votes are anonymous in a real sense: a row is a timestamp, a letter, and a random
+string the browser invented. There is nothing to trace, which is also the reason the
+answers are honest.

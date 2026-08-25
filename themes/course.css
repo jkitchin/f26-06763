@@ -221,3 +221,221 @@ section.definition h2 {
 section.definition strong {
   color: var(--green);
 }
+
+/* --- Clicker ----------------------------------------------------------- */
+/* A live multiple-choice question. The phone is a bare A/B/C/D pad, so the
+ * options only ever appear here, on the projector.
+ *
+ *   <div class="clicker" data-seconds="60" data-read="https://...">
+ *     <div class="clicker-main"> <ol class="clicker-opts"> ... </ol> </div>
+ *     <aside class="clicker-panel"> ... </aside>
+ *   </div>
+ *
+ * The bar chart stays hidden until the countdown reaches zero: showing a live
+ * distribution biases whoever has not voted yet. Only the vote *count* moves
+ * while voting is open. */
+
+div.clicker {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 28px;
+  align-items: start;
+  margin-top: 0.3em;
+}
+
+ol.clicker-opts {
+  list-style: none;
+  counter-reset: opt;
+  padding: 0;
+  margin: 0;
+}
+
+ol.clicker-opts li {
+  counter-increment: opt;
+  position: relative;
+  padding: 0.28em 0 0.28em 1.9em;
+  margin: 0 0 0.3em 0;
+  line-height: 1.3;
+}
+
+ol.clicker-opts li::before {
+  content: counter(opt, upper-alpha);
+  position: absolute;
+  left: 0;
+  top: 0.22em;
+  width: 1.35em;
+  height: 1.35em;
+  border: 2px solid var(--cmu-red);
+  border-radius: 50%;
+  color: var(--cmu-red);
+  font-weight: 700;
+  font-size: 0.8em;
+  text-align: center;
+  line-height: 1.3em;
+}
+
+aside.clicker-panel {
+  text-align: center;
+  background: var(--accent-bg);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+aside.clicker-panel img {
+  width: 190px;
+  display: block;
+  margin: 0 auto 6px;
+}
+
+.clicker-url {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.5em;
+  color: var(--muted);
+  word-break: break-all;
+  margin-bottom: 8px;
+}
+
+button.clicker-start {
+  font: inherit;
+  font-size: 0.62em;
+  font-weight: 600;
+  padding: 0.35em 1em;
+  color: #fff;
+  background: var(--cmu-red);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button.clicker-start[disabled] {
+  background: var(--muted);
+  cursor: default;
+}
+
+.clicker-timer {
+  font-size: 1.9em;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  margin-top: 6px;
+}
+
+.clicker-timer.is-over {
+  color: var(--cmu-red);
+}
+
+.clicker-count {
+  font-size: 0.56em;
+  color: var(--muted);
+}
+
+/* Revealed only when voting closes. */
+.clicker-bars[hidden] {
+  display: none;
+}
+
+.clicker-bars {
+  display: grid;
+  grid-template-columns: 1.4em 1fr 2.6em;
+  gap: 6px 10px;
+  align-items: center;
+  margin-top: 0.6em;
+  font-size: 0.68em;
+}
+
+.clicker-bars .lab {
+  font-weight: 700;
+  color: var(--cmu-red);
+}
+
+.clicker-bars .track {
+  background: var(--accent-bg);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  height: 1.5em;
+  overflow: hidden;
+}
+
+.clicker-bars .fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--cmu-red);
+  transition: width 0.5s ease;
+}
+
+.clicker-bars .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+/* Revealed answer, verdict, and the celebration/consolation overlay. The
+ * correct answer lives on the slide only; the server never learns it. */
+
+.clicker-bars .lab.is-answer {
+  background: var(--cmu-red);
+  color: #fff;
+  border-radius: 4px;
+  text-align: center;
+}
+
+p.clicker-verdict {
+  margin-top: 0.5em;
+  font-size: 0.66em;
+  font-weight: 600;
+}
+
+p.clicker-verdict[hidden] { display: none; }
+p.clicker-verdict.is-good { color: #1a7f37; }
+p.clicker-verdict.is-mixed { color: #8a5a00; }
+p.clicker-verdict.is-poor { color: var(--cmu-red); }
+
+button.clicker-mute {
+  display: block;
+  margin: 8px auto 0;
+  font: inherit;
+  font-size: 0.42em;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 0.2em 0.7em;
+  cursor: pointer;
+}
+
+canvas.clicker-fx {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Shown after a reveal that did not go well, to give the re-vote something to
+ * argue about. A pointer, never the answer. */
+p.clicker-hint {
+  margin-top: 0.35em;
+  padding: 0.4em 0.7em;
+  font-size: 0.6em;
+  background: var(--accent-bg);
+  border-left: 4px solid var(--cmu-red);
+  border-radius: 0 4px 4px 0;
+}
+
+p.clicker-hint[hidden] { display: none; }
+
+/* Shown only when the room got there: why the answer is the answer. The
+ * counterpart to .clicker-hint, which appears only when they did not. */
+p.clicker-why {
+  margin-top: 0.35em;
+  padding: 0.4em 0.7em;
+  font-size: 0.6em;
+  background: var(--green-bg);
+  border-left: 4px solid var(--green);
+  border-radius: 0 4px 4px 0;
+}
+
+p.clicker-why[hidden] { display: none; }

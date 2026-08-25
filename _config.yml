@@ -22,6 +22,7 @@ exclude_patterns:
   - node_modules
   - .pytest_cache       # running the quiz tests must not break the book build
   - game                # Vite app, built separately by CI into _build/html/game
+  - clicker             # Cloudflare Worker + its MARP dry-run deck, not book content
   - tools
   - README.md
   - readme.org
