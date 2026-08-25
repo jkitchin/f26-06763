@@ -7,9 +7,11 @@
     "deploy": "wrangler deploy",
     "schema:remote": "wrangler d1 execute clicker --remote --file schema.sql",
     "schema:local": "wrangler d1 execute clicker --local --file schema.sql",
-    "tail": "wrangler tail"
+    "tail": "wrangler tail",
+    "slides": "marp shakedown.md --html -o shakedown.html"
   },
   "devDependencies": {
-    "wrangler": "^4.126.0"
+    "wrangler": "^4.126.0",
+    "@marp-team/marp-cli": "^4.2.3"
   }
 }

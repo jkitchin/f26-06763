@@ -17,9 +17,20 @@
  * on the discuss band and the re-teach band. It is the nudge that makes a second
  * vote worth taking, so keep it a pointer rather than the answer.
  *
+ * data-why is its complement, shown only when the room got there. Celebrating
+ * without saying why the answer is the answer teaches nobody, including the people
+ * who guessed. It plays the same role as the `evidence` field in the quiz banks.
+ *
  * After a reveal the button becomes "Vote again" and opens a fresh window on the
  * same question. Peer instruction is vote, argue, vote again, so the second round
  * has to be one click away.
+ *
+ * data-tag, if present, makes the slide record its own window when voting closes:
+ * the tag, the exact boundaries, the round, and the prompt and answer. The archive
+ * then knows which votes belonged to which question instead of inferring it from
+ * gaps. The server stores those as opaque strings and never interprets them, so it
+ * stays question-agnostic; the mark is written after the fact and is never consulted
+ * while voting is open.
  *
  * Two rules the classroom depends on:
  *   - the distribution stays hidden while voting is open, because showing it
@@ -239,6 +250,7 @@
     verdict.hidden = true;
     main.appendChild(verdict);
 
+    var tag = root.dataset.tag || '';
     var hintText = root.dataset.hint || '';
     var hint = document.createElement('p');
     hint.className = 'clicker-hint';
@@ -246,7 +258,22 @@
     hint.textContent = hintText;
     main.appendChild(hint);
 
+    var whyText = root.dataset.why || '';
+    var why = document.createElement('p');
+    why.className = 'clicker-why';
+    why.hidden = true;
+    why.textContent = whyText;
+    main.appendChild(why);
+
     var round = 0;
+
+    // The heading is already the question, so read it rather than making the
+    // author write it out a second time and let the two drift.
+    function promptText() {
+      var sec = root.closest('section');
+      var h = sec && sec.querySelector('h1, h2, h3');
+      return (h ? h.textContent : '').trim().slice(0, 300);
+    }
 
     // Mute lives next to the button so it is reachable without leaving the slide.
     var mute = document.createElement('button');
@@ -285,6 +312,17 @@
       btn.textContent = 'Vote again';
       btn.disabled = false;
 
+      // Tell the archive which question this window was. Best-effort on purpose:
+      // a failed mark must never disturb what is on the screen in front of a room.
+      if (tag) {
+        var q = '?tag=' + encodeURIComponent(tag) +
+                '&from=' + start + '&to=' + data.to +
+                '&round=' + round +
+                (answer ? '&answer=' + encodeURIComponent(answer) : '') +
+                '&prompt=' + encodeURIComponent(promptText());
+        fetch(api + '/mark' + q, { cache: 'no-store' }).catch(function () {});
+      }
+
       if (!answer || !data.total) return;   // opinion poll: bars, no verdict
       var pct = Math.round(100 * (data[answer] || 0) / data.total);
       var b = band(pct);
@@ -292,8 +330,11 @@
       verdict.className = 'clicker-verdict is-' + b.key;
       verdict.hidden = false;
 
-      // The hint is for the rooms that need a second go, not the ones that nailed it.
+      // The hint is for the rooms that need a second go; the explanation is for the
+      // ones that got there. A celebration on its own teaches nobody, including
+      // whoever guessed.
       if (hintText && b.key !== 'good') hint.hidden = false;
+      if (whyText && b.key === 'good') why.hidden = false;
 
       if (b.key === 'good') fireworks(section, muted());
       else if (b.key === 'poor') rain(section, muted());
@@ -331,6 +372,7 @@
           // and keep the hint up: it is what people are arguing about.
           bars.hidden = true;
           verdict.hidden = true;
+          why.hidden = true;
           document.querySelectorAll('canvas.clicker-fx').forEach(function (c) { c.remove(); });
 
           tick = setInterval(function () {

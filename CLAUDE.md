@@ -494,6 +494,57 @@ Do not commit datasets.
 
 ---
 
+## 5c. Clicker slides
+
+A slide can carry a live multiple-choice question that students answer on their phones.
+The full reference is `clicker/README.md`; this section is the part that binds when
+writing a deck.
+
+**The phone never sees the question.** It is four buttons. The question, the options,
+the correct answer and the explanation all live on the slide, which is why one QR code
+works for the whole course and why nothing about an upcoming question ships to a
+student's device. Do not invent a per-question link.
+
+**Questions are authored inline in the deck**, not in a bank. `game/content/lNN.yml` is
+the practice quiz and is a different artifact with different rules: it is published,
+validated against the notes, and graded. A clicker question is neither published in
+advance nor graded, so it needs no bank entry, no `validate.py` kind, and no index term.
+
+The markup, the attribute table, and the styling conventions are in
+`clicker/README.md`. The three that carry meaning:
+
+- `data-answer` is optional. With it the reveal scores the room; without it the bars
+  simply appear, which is what an opinion poll wants.
+- `data-hint` shows **only when the room did not sail through**, so write a pointer at
+  what to reconsider, never the answer.
+- `data-why` shows **only when they did**, and says why the answer is the answer. It
+  plays the same role as the `evidence` field in the quiz banks: a celebration that
+  explains nothing teaches nobody, including whoever guessed.
+
+**Reveal bands.** Above 70% correct gives fireworks, 30 to 70 gives "turn to your
+neighbour and convince them", below 30 gives rain. They are Mazur's bands, chosen
+because they say what to do next rather than merely scoring the room. The middle band
+is the productive one, so a question worth asking is one a good fraction of the room
+will get wrong. After any reveal the button becomes "Vote again" and reopens the same
+question, which is the second half of peer instruction and the reason the middle band
+is worth landing in.
+
+**Two publishing consequences to decide before putting one in a released deck.** A
+rendered deck is public, so `data-answer` is readable in its page source and a student
+could read ahead; and anyone with the deck can open a window and vote, which lands in
+the same stream as the room. Neither matters for a formative question, and both matter
+if you ever attach anything to it. `clicker/shakedown.md` sidesteps both by not being
+published: it lives in `clicker/`, which is in `exclude_patterns`.
+
+**`clicker-slide.js` must sit next to the rendered deck.** CI copies each lecture's
+`figures/` beside its slides but nothing else, so a clicker slide in a
+`lectures/lNN/slides.md` needs that copy step added first. Until it is, clicker decks
+live in `clicker/`.
+
+Results are archived with `python3 tools/clicker.py archive lNN`, which recovers the
+question windows from the vote stream rather than from anything you have to write down.
+Give each question a `data-tag` so the archive knows which was which.
+
 ## 6. Demo notebooks
 
 **Name them `lNN-<topic>.ipynb`**, for example `l01-reproducibility.ipynb`. Never

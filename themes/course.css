@@ -426,3 +426,16 @@ p.clicker-hint {
 }
 
 p.clicker-hint[hidden] { display: none; }
+
+/* Shown only when the room got there: why the answer is the answer. The
+ * counterpart to .clicker-hint, which appears only when they did not. */
+p.clicker-why {
+  margin-top: 0.35em;
+  padding: 0.4em 0.7em;
+  font-size: 0.6em;
+  background: var(--green-bg);
+  border-left: 4px solid var(--green);
+  border-radius: 0 4px 4px 0;
+}
+
+p.clicker-why[hidden] { display: none; }
