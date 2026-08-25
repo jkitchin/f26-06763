@@ -21,6 +21,11 @@
  * without saying why the answer is the answer teaches nobody, including the people
  * who guessed. It plays the same role as the `evidence` field in the quiz banks.
  *
+ * Voting opens by itself when the slide comes up, so the presenter does not have to
+ * remember to press anything. data-autostart="false" opts a question out. Coming
+ * back to a slide does NOT reopen it: that would start a second window and throw
+ * away the first one's result.
+ *
  * After a reveal the button becomes "Vote again" and opens a fresh window on the
  * same question. Peer instruction is vote, argue, vote again, so the second round
  * has to be one click away.
@@ -142,33 +147,53 @@
     var hues = [350, 45, 200, 120, 285];
 
     function burst(x, y, hue) {
-      for (var i = 0; i < 70; i++) {
-        var a = Math.random() * Math.PI * 2, s = 1.5 + Math.random() * 4.5;
-        parts.push({ x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, hue: hue });
+      for (var i = 0; i < 120; i++) {
+        var a = Math.random() * Math.PI * 2, s = 2 + Math.random() * 6;
+        parts.push({
+          x: x, y: y, px: x, py: y,
+          vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, hue: hue,
+        });
       }
       if (ctx) boom(ctx, ctx.currentTime);
     }
 
-    var launcher = setInterval(function () {
-      if (shells >= 5) { clearInterval(launcher); return; }
-      var x = c.width * (0.15 + Math.random() * 0.7);
-      var y = c.height * (0.15 + Math.random() * 0.35);
+    function launch() {
+      var x = c.width * (0.12 + Math.random() * 0.76);
+      var y = c.height * (0.12 + Math.random() * 0.4);
+      var hue = hues[shells % hues.length];
       if (ctx) whistle(ctx, ctx.currentTime);
-      setTimeout(function () { burst(x, y, hues[shells % hues.length]); }, 450);
+      setTimeout(function () { burst(x, y, hue); }, 320);
       shells++;
-    }, 420);
+    }
+
+    // Fire the first one immediately. setInterval waits a full period before its
+    // first tick, which put nearly a second of dead air between the click and any
+    // sign that something was happening.
+    launch();
+    var launcher = setInterval(function () {
+      if (shells >= 6) { clearInterval(launcher); return; }
+      launch();
+    }, 380);
 
     var t0 = performance.now();
     (function frame(now) {
       g.clearRect(0, 0, c.width, c.height);
+      g.lineCap = 'round';
       for (var i = parts.length - 1; i >= 0; i--) {
         var p = parts[i];
+        p.px = p.x; p.py = p.y;
         p.x += p.vx; p.y += p.vy; p.vy += 0.055; p.vx *= 0.985; p.vy *= 0.985;
-        p.life -= 0.012;
+        p.life -= 0.011;
         if (p.life <= 0) { parts.splice(i, 1); continue; }
+        var col = 'hsl(' + p.hue + ', 95%, ' + (52 + 26 * p.life) + '%)';
         g.globalAlpha = Math.max(0, p.life);
-        g.fillStyle = 'hsl(' + p.hue + ', 90%, ' + (55 + 25 * p.life) + '%)';
-        g.beginPath(); g.arc(p.x, p.y, 2.6, 0, 6.284); g.fill();
+        // A short trail behind each spark covers far more of the screen than the
+        // head alone, which is what makes this readable from the back of a room.
+        g.strokeStyle = col;
+        g.lineWidth = 3.2;
+        g.beginPath(); g.moveTo(p.px, p.py); g.lineTo(p.x, p.y); g.stroke();
+        g.fillStyle = col;
+        g.beginPath(); g.arc(p.x, p.y, 3.4, 0, 6.284); g.fill();
       }
       g.globalAlpha = 1;
       if (now - t0 < 5200 || parts.length) requestAnimationFrame(frame);
@@ -234,13 +259,26 @@
     var main = root.querySelector('.clicker-main') || panel;
     var section = root.closest('section') || root.parentElement;
 
+    // The bars carry the option text, and the option list is hidden while they are
+    // up. Showing both overflows the slide: four options plus four bars plus a
+    // verdict plus a hint does not fit in 720px, and the hint is what gets cut.
+    var opts = root.querySelector('.clicker-opts');
+    var optText = opts
+      ? Array.prototype.map.call(opts.querySelectorAll('li'), function (li) {
+          return li.textContent.trim();
+        })
+      : [];
+
     var bars = document.createElement('div');
     bars.className = 'clicker-bars';
     bars.hidden = true;
-    LETTERS.forEach(function (L) {
+    LETTERS.forEach(function (L, i) {
       bars.insertAdjacentHTML('beforeend',
         '<span class="lab" data-lab="' + L + '">' + L + '</span>' +
-        '<span class="track"><i class="fill" data-fill="' + L + '"></i></span>' +
+        '<span class="barwrap">' +
+          '<span class="txt">' + (optText[i] || '') + '</span>' +
+          '<span class="track"><i class="fill" data-fill="' + L + '"></i></span>' +
+        '</span>' +
         '<span class="num" data-num="' + L + '">0</span>');
     });
     main.appendChild(bars);
@@ -303,6 +341,7 @@
         bars.querySelector('[data-lab="' + L + '"]').classList.toggle('is-answer', !!answer && L === answer);
       });
       bars.hidden = false;
+      if (opts) opts.hidden = true;
       timerEl.textContent = 'done';
       timerEl.classList.add('is-over');
       countEl.textContent = data.total + (data.total === 1 ? ' vote' : ' votes');
@@ -323,7 +362,15 @@
         fetch(api + '/mark' + q, { cache: 'no-store' }).catch(function () {});
       }
 
-      if (!answer || !data.total) return;   // opinion poll: bars, no verdict
+      // Revealing nothing at all, with no explanation, is the worst thing this can
+      // do in front of a room: it looks broken rather than empty. Say which it is.
+      if (!data.total) {
+        verdict.textContent = 'No votes in that window.';
+        verdict.className = 'clicker-verdict is-mixed';
+        verdict.hidden = false;
+        return;
+      }
+      if (!answer) return;   // opinion poll: bars, no verdict, no effects
       var pct = Math.round(100 * (data[answer] || 0) / data.total);
       var b = band(pct);
       verdict.textContent = 'Round ' + round + ': ' + pct + '% correct. ' + b.text;
@@ -348,11 +395,12 @@
       });
     }
 
-    btn.addEventListener('click', function () {
-      if (open) { close(); return; }
+    function openWindow() {
+      if (open) return;
 
-      // This click is also the user gesture that unlocks audio. Browsers block
-      // autoplay until one happens, so the reveal would otherwise be silent.
+      // Unlock audio on any interaction we can get. Browsers block autoplay until
+      // a user gesture; navigating to this slide is one, so by the time a question
+      // opens the page has almost always had one. resume() is a no-op otherwise.
       var a = muted() ? null : audio();
       if (a && a.state === 'suspended') a.resume();
 
@@ -371,6 +419,7 @@
           // A fresh window means the previous round's result is stale. Clear it,
           // and keep the hint up: it is what people are arguing about.
           bars.hidden = true;
+          if (opts) opts.hidden = false;
           verdict.hidden = true;
           why.hidden = true;
           document.querySelectorAll('canvas.clicker-fx').forEach(function (c) { c.remove(); });
@@ -391,7 +440,26 @@
           }, 1000);
         })
         .catch(function () { countEl.textContent = 'could not reach the server'; });
+    }
+
+    btn.addEventListener('click', function () {
+      if (open) close();
+      else openWindow();
     });
+
+    // Open when the slide actually comes up. Watching visibility rather than the
+    // deck's own events keeps this working in slide mode and scroll mode alike,
+    // and does not depend on MARP's internals, which are not exposed.
+    if (root.dataset.autostart !== 'false' && 'IntersectionObserver' in window) {
+      var armed = true;
+      new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (!armed || !e.isIntersecting || e.intersectionRatio < 0.6) return;
+          armed = false;          // once per slide, never on the way back
+          openWindow();
+        });
+      }, { threshold: [0.6] }).observe(section);
+    }
   }
 
   document.querySelectorAll('.clicker[data-read]').forEach(setup);

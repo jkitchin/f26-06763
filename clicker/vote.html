@@ -75,6 +75,7 @@
 <footer>
   Anonymous. Nothing identifies you, and this is not counted for a grade.
   Changed your mind? Tap another letter; only your last answer counts.
+  The pad clears itself between questions.
 </footer>
 
 <script>
@@ -85,6 +86,13 @@
   // counts only the most recent vote per device inside each question's window.
   // So there is no lock, just a short debounce against a double-fire.
   var DEBOUNCE_MS = 700;
+
+  // The phone has no idea when a question ends: it never learns what question is
+  // running, which is the whole point of keeping it dumb. So the highlight simply
+  // expires. A window is 45 to 60 seconds, so this clears after the current
+  // question is over and before a normal next one begins, and the student starts
+  // each question looking at a blank pad rather than their last answer.
+  var CLEAR_MS = 75000;
   var LAST_KEY = 'f26-06763-clicker/last';
   var DEV_KEY  = 'f26-06763-clicker/device';
 
@@ -118,12 +126,23 @@
     statusEl.className = isError ? 'err' : '';
   }
 
-  function paint(current) {
+  var expiry = null;
+
+  function clearChoice() {
+    try { localStorage.removeItem(LAST_KEY); } catch (e) { /* private mode */ }
+    paint(null, 'Ready for the next question.');
+  }
+
+  function paint(current, message) {
     buttons.forEach(function (b) {
       b.setAttribute('aria-pressed', b.dataset.opt === current ? 'true' : 'false');
     });
-    if (current) setStatus('Your answer: ' + current + '. Tap another to change it.');
+    if (message) setStatus(message);
+    else if (current) setStatus('Your answer: ' + current + '. Tap another to change it.');
     else setStatus('Ready.');
+
+    if (expiry) { clearTimeout(expiry); expiry = null; }
+    if (current) expiry = setTimeout(clearChoice, CLEAR_MS);
   }
 
   function vote(opt) {
@@ -141,6 +160,7 @@
       .then(function (data) {
         if (!data || data.ok !== true) throw new Error((data && data.error) || 'rejected');
         store(LAST_KEY, opt);
+        store(LAST_KEY + '/at', String(Date.now()));
         paint(opt);
       })
       .catch(function (err) {
@@ -156,7 +176,17 @@
     b.addEventListener('click', function () { vote(b.dataset.opt); });
   });
 
-  paint(load(LAST_KEY));
+  // On load, only restore a choice recent enough to still belong to the question
+  // on screen. A stale one is worse than none: it shows an answer to a question
+  // that has already been revealed.
+  var lastAt = parseInt(load(LAST_KEY + '/at'), 10);
+  if (load(LAST_KEY) && lastAt && Date.now() - lastAt < CLEAR_MS) {
+    paint(load(LAST_KEY));
+    expiry = setTimeout(clearChoice, CLEAR_MS - (Date.now() - lastAt));
+  } else {
+    clearChoice();
+    setStatus('Ready.');
+  }
 })();
 </script>
 
