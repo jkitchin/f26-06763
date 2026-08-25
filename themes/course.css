@@ -250,6 +250,17 @@ ol.clicker-opts {
   margin: 0;
 }
 
+/* The imported default theme sets list-style on the li itself, which beats
+ * inheritance from the ol and leaves the native "1." sitting next to our badge.
+ * Kill both the marker box and its content. */
+ol.clicker-opts > li {
+  list-style: none;
+}
+
+ol.clicker-opts > li::marker {
+  content: "";
+}
+
 ol.clicker-opts li {
   counter-increment: opt;
   position: relative;

@@ -536,10 +536,15 @@ the same stream as the room. Neither matters for a formative question, and both 
 if you ever attach anything to it. `clicker/shakedown.md` sidesteps both by not being
 published: it lives in `clicker/`, which is in `exclude_patterns`.
 
-**`clicker-slide.js` must sit next to the rendered deck.** CI copies each lecture's
-`figures/` beside its slides but nothing else, so a clicker slide in a
-`lectures/lNN/slides.md` needs that copy step added first. Until it is, clicker decks
-live in `clicker/`.
+**`clicker-slide.js` is copied next to every rendered deck by CI**, so
+`<script src="clicker-slide.js"></script>` resolves in production from any lecture
+deck. Authoring one locally needs a copy or symlink beside the deck, the same wrinkle
+`figures/` has.
+
+**Render from the repo root.** `.marprc.yml` sets `themeSet: ./themes`, resolved
+against the working directory, so running marp from inside a deck's own directory
+silently drops the course theme and the deck comes out looking like plain markdown
+with an oversized QR pushing the timer off the slide.
 
 Results are archived with `python3 tools/clicker.py archive lNN`, which recovers the
 question windows from the vote stream rather than from anything you have to write down.

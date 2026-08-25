@@ -390,16 +390,41 @@ jobs:
               mkdir -p "$out/figures"
               cp lectures/"$id"/figures/*.png "$out/figures/"
             fi
+            # Any deck may carry a clicker slide, and MARP emits
+            # <script src="clicker-slide.js"> as a relative path for the same
+            # reason it does for figures. Copy the driver in beside every deck so
+            # the path resolves in production; a deck without a clicker slide just
+            # never loads it.
+            cp clicker/clicker-slide.js "$out/"
           done
 
-      - name: Check every slide image actually resolves
-        # A missing figure renders as a silent broken image in the deck. Catch it
-        # in CI instead of in front of a lecture hall.
+      - name: Render the clicker deck
+        # Not a lecture, so it is not gated on _toc.yml: it is a standalone page
+        # served at /slides/clicker/. It ships the same three things a lecture
+        # deck does, its figures, the driver, and the rendered HTML.
+        #
+        # Publishing it does expose data-answer in the page source, and lets
+        # anyone open a voting window from outside the room. Both are acceptable
+        # because the clicker is formative and feeds no grade; see
+        # clicker/README.md, "What this does not defend against".
+        run: |
+          out="_build/html/slides/clicker"
+          mkdir -p "$out/figures"
+          npx -y @marp-team/marp-cli@latest clicker/shakedown.md \
+            --html \
+            -o "$out/index.html"
+          cp clicker/figures/*.png "$out/figures/"
+          cp clicker/clicker-slide.js "$out/"
+
+      - name: Check every slide asset actually resolves
+        # A missing figure renders as a silent broken image in the deck, and a
+        # missing clicker-slide.js renders as a question whose button does nothing.
+        # Catch both in CI instead of in front of a lecture hall.
         run: |
           fail=0
           for html in _build/html/slides/*/index.html; do
             dir=$(dirname "$html")
-            for src in $(grep -o 'src="[^"]*\.png"' "$html" | sed 's/src="//; s/"//'); do
+            for src in $(grep -oE 'src="[^"]*\.(png|js)"' "$html" | sed 's/src="//; s/"//'); do
               if [ ! -f "$dir/$src" ]; then
                 echo "::error::$html references missing image $src"
                 fail=1
