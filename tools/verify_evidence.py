@@ -183,7 +183,138 @@ class Extract:
     payload: dict | None = None
     channel: str = "none"
     page_text: str = ""
+    #: Filled rectangles on page 1, as (x, y, size). The seal is drawn out of
+    #: these and is read back out of them; see check_seal.
+    rects: list = field(default_factory=list)
     error: str = ""
+
+
+#: Modules of the security seal, in points. Must match DIGIT_PT and MODULE_PT
+#: in game/src/evidence/seal.ts, which game/tests/test_seal.py checks by reading
+#: both files, the same way test_derive.py checks WRONG_PENALTY. The two sizes
+#: differ so this side can tell a digit module from a data module without
+#: knowing where either block was placed.
+SEAL_DIGIT_PT = 4.0
+SEAL_MODULE_PT = 2.6
+SEAL_GRID = 8
+SEAL_DATA_BITS = (SEAL_GRID - 1) * (SEAL_GRID - 1)
+
+#: The 5x7 bitmap font the seal draws the score with, one 5-bit row per byte,
+#: most significant bit leftmost. Mirrored from game/src/evidence/seal.ts and
+#: checked against it by the same test. This side needs it because the check is
+#: not "does the seal look like a seal" but "does it draw the number this
+#: payload says", which means rendering the expected bitmap and comparing.
+SEAL_FONT = {
+    "0": (0x0E, 0x11, 0x13, 0x15, 0x19, 0x11, 0x0E),
+    "1": (0x04, 0x0C, 0x04, 0x04, 0x04, 0x04, 0x0E),
+    "2": (0x0E, 0x11, 0x01, 0x02, 0x04, 0x08, 0x1F),
+    "3": (0x1F, 0x02, 0x04, 0x02, 0x01, 0x11, 0x0E),
+    "4": (0x02, 0x06, 0x0A, 0x12, 0x1F, 0x02, 0x02),
+    "5": (0x1F, 0x10, 0x1E, 0x01, 0x01, 0x11, 0x0E),
+    "6": (0x06, 0x08, 0x10, 0x1E, 0x11, 0x11, 0x0E),
+    "7": (0x1F, 0x01, 0x02, 0x04, 0x08, 0x08, 0x08),
+    "8": (0x0E, 0x11, 0x11, 0x0E, 0x11, 0x11, 0x0E),
+    "9": (0x0E, 0x11, 0x11, 0x0F, 0x01, 0x02, 0x0C),
+    "%": (0x18, 0x19, 0x02, 0x04, 0x08, 0x13, 0x03),
+}
+
+
+def page_content(page) -> bytes:
+    """Raw bytes of a page's content stream.
+
+    Must be read *before* anything calls extract_text() on that page. pypdf
+    leaves a parsed ContentStream behind the first time text is pulled out of a
+    page, and that object's get_data() returns b"" rather than the stream it was
+    built from. Asking in the wrong order does not raise: it hands back no
+    rectangles, so every seal reports absent and the check quietly stops
+    checking, which is the failure mode this file exists to avoid.
+    """
+    try:
+        obj = page.get("/Contents")
+        if obj is None:
+            return b""
+        obj = obj.get_object()
+        parts = obj if isinstance(obj, list) else [obj]
+        return b"\n".join(part.get_object().get_data() for part in parts)
+    except Exception:  # noqa: BLE001  an unreadable seal is not a failed PDF
+        return b""
+
+
+def parse_rects(content: bytes) -> list:
+    """Filled squares in a page content stream, as (x, y, size).
+
+    Only `re` immediately followed by the fill operator, so the seal's stroked
+    frame and the rules elsewhere on the page are not picked up. jsPDF emits a
+    top-left origin as a negative height, hence the abs().
+    """
+    out = []
+    for m in re.finditer(
+        rb"(-?[\d.]+) (-?[\d.]+) (-?[\d.]+) (-?[\d.]+) re\s+f\b", content
+    ):
+        try:
+            x, y, w, h = (float(g) for g in m.groups())
+        except ValueError:
+            continue
+        if abs(abs(w) - abs(h)) < 0.01:
+            out.append((x, y, abs(w)))
+    return out
+
+
+def modules_at(rects: list, size: float) -> set:
+    """The squares of one module size, as (col, row) on their own grid.
+
+    Row 0 is the top one. PDF space counts upward and the seal was drawn
+    downward, so the vertical axis is flipped back here.
+    """
+    same = [(x, y) for x, y, s in rects if abs(s - size) < 0.05]
+    if not same:
+        return set()
+    x0 = min(x for x, _ in same)
+    y1 = max(y for _, y in same)
+    return {(round((x - x0) / size), round((y1 - y) / size)) for x, y in same}
+
+
+def at_origin(modules: set) -> set:
+    """Shift a module set so its top-left occupied cell is (0, 0).
+
+    Both sides go through this, and they have to. A drawn block is only
+    locatable by the squares that are actually inked, so a glyph whose leftmost
+    column is blank (a `1` is the one that bites) reports one column to the left
+    of where it was drawn. Comparing a normalized set against an unnormalized
+    one failed every seal that began with a 1, which is every seal reading 100%.
+    """
+    if not modules:
+        return set()
+    c0 = min(c for c, _ in modules)
+    r0 = min(r for _, r in modules)
+    return {(c - c0, r - r0) for c, r in modules}
+
+
+def glyph_modules(text: str) -> set:
+    """Mirror of glyphModules in seal.ts: 5x7 cells, one blank column between."""
+    on = set()
+    col = 0
+    for ch in text:
+        rows = SEAL_FONT.get(ch)
+        if rows is None:
+            col += 3
+            continue
+        for r in range(7):
+            for c in range(5):
+                if (rows[r] >> (4 - c)) & 1:
+                    on.add((col + c, r))
+        col += 6
+    return on
+
+
+def data_modules(tag: bytes) -> set:
+    """Mirror of dataModules in seal.ts: an L finder plus the low tag bits."""
+    on = {(0, r) for r in range(SEAL_GRID)}
+    on |= {(c, SEAL_GRID - 1) for c in range(1, SEAL_GRID)}
+    for i in range(SEAL_DATA_BITS):
+        if (tag[(i >> 3) % len(tag)] >> (i & 7)) & 1:
+            on.add((1 + i % (SEAL_GRID - 1), i // (SEAL_GRID - 1)))
+    return on
 
 
 def extract(path: Path) -> Extract:
@@ -196,6 +327,8 @@ def extract(path: Path) -> Extract:
     out = Extract()
     try:
         reader = PdfReader(str(path))
+        # Before extract_text, deliberately. See page_content.
+        out.rects = parse_rects(page_content(reader.pages[0])) if reader.pages else []
         out.page_text = "\n".join((p.extract_text() or "") for p in reader.pages)
         meta = reader.metadata or {}
         candidates = [("info", str(meta.get("/Keywords") or ""))]
@@ -308,6 +441,21 @@ def check_printed_text_agrees(res: Result, ex: Extract) -> None:
     if attempt is not None and f"Attempt {attempt}" not in text:
         missing.append("attempt")
 
+    # The summary line under the item table states the score a second time, as
+    # a sum and a divisor, so it is checked a second time. A page that prints
+    # arithmetic contradicting its own payload is the same forgery as one that
+    # prints the wrong percent, and pinning the sum and the count is what stops
+    # the line from becoming a place to lie for free. Absent is skipped: PDFs
+    # issued before the line existed are honest work and must not land here.
+    graded_items = [i for i in p.get("items", []) if i.get("ans")]
+    if graded_items and "graded item" in text:
+        earned = sum(
+            score_from_tries(i.get("tries", 1), bool(i.get("revealed")))
+            for i in graded_items
+        )
+        if f"{earned:.2f} over {len(graded_items)} graded item" not in text:
+            missing.append("average line")
+
     res.checks["txt"] = "ok" if not missing else "MISM"
     if missing:
         res.problems.append(f"printed page disagrees with payload: {', '.join(missing)}")
@@ -330,6 +478,47 @@ def check_mac(res: Result, ex: Extract, mac_key: str) -> None:
             f"the code printed on the page is not the one this payload implies "
             f"(expected {expected})"
         )
+
+
+def check_seal(res: Result, ex: Extract, mac_key: str) -> None:
+    """Read the security seal back and compare it to the payload.
+
+    The score on page 1 is drawn as filled squares rather than typeset, so the
+    thirty-second forgery (open the PDF, find `(95%)`, type `(99%)`) has nothing
+    to find. That on its own would only be obscurity, and obscurity is not
+    something this course should be teaching. What makes it a control is this
+    function: the squares are on a fixed grid, so the number is machine-readable
+    from the content stream, and it is compared against the number the payload
+    computes. Editing the picture is therefore caught, not merely made tedious.
+
+    The data block is checked the same way against the MAC tag. That covers the
+    attack the drawn score invites, which is lifting a good-looking seal out of
+    a classmate's PDF: their tag is not this payload's tag.
+
+    Absent is `-`, never a problem. PDFs issued before the seal existed are
+    honest work and must not land in REVIEW for it.
+    """
+    p = ex.payload or {}
+    drawn_digits = modules_at(ex.rects, SEAL_DIGIT_PT)
+    drawn_data = modules_at(ex.rects, SEAL_MODULE_PT)
+    if not drawn_digits and not drawn_data:
+        res.checks["seal"] = "-"
+        return
+
+    problems = []
+    percent = res.percent
+    if percent is not None and at_origin(glyph_modules(f"{percent}%")) != at_origin(drawn_digits):
+        problems.append(f"the seal does not draw {percent}%")
+
+    expected_tag = hmac.new(
+        mac_key.encode(), DOMAIN + (ex.payload_bytes or b""), hashlib.sha256
+    ).digest()[:10]
+    if at_origin(data_modules(expected_tag)) != at_origin(drawn_data):
+        problems.append("the seal's data block is not this payload's")
+
+    res.checks["seal"] = "ok" if not problems else "BAD"
+    for problem in problems:
+        res.problems.append(problem)
 
 
 def archived_bank(lecture: str, pool_version: int) -> dict | None:
@@ -560,7 +749,18 @@ def verify_one(path: Path, bank: dict, mac_key: str) -> Result:
 
     # The code is printed on page 1; read it from there, since that is the thing
     # a tamperer would have had to keep consistent.
-    m = re.search(r"\b([0-9A-HJKMNP-TV-Z]{4}(?:-[0-9A-HJKMNP-TV-Z]{4}){3})\b", ex.page_text)
+    #
+    # Deliberately unanchored. This regex used to carry \b at both ends and
+    # therefore matched nothing at all: extraction returns the code run up
+    # against its own label, as `...QPQ3Verification`, and a word boundary
+    # between `3` and `V` does not exist. `res.code` was the empty string on
+    # every file ever checked, which cost three checks without failing anything
+    # loudly: the code leg of check_printed_text_agrees skips a falsy value, and
+    # both halves of find_duplicates key on the code, so a shared code and a
+    # repeated attempt were equally invisible. check_mac had already met this
+    # and worked around it by searching the whole page rather than a capture,
+    # which is why it kept passing and nothing pointed at the cause.
+    m = re.search(r"([0-9A-HJKMNP-TV-Z]{4}(?:-[0-9A-HJKMNP-TV-Z]{4}){3})", ex.page_text)
     res.code = m.group(1) if m else ""
 
     against, res.pool_source = resolve_bank(bank, p)
@@ -568,6 +768,9 @@ def verify_one(path: Path, bank: dict, mac_key: str) -> Result:
     check_printed_text_agrees(res, ex)
     check_mac(res, ex, mac_key)
     check_score(res, ex)
+    # After check_score, which is what sets res.percent: the seal is compared
+    # against the recomputed number, not against the payload's claim about it.
+    check_seal(res, ex, mac_key)
 
     if against is None:
         # Never a REVIEW: the student did nothing. The pool they were served was
@@ -678,7 +881,7 @@ def main() -> int:
         f"{'andrew_id':<12} {'name':<16} {'lec':<5} {'done':>5} {'1st':>5} "
         f"{'score':>6} {'att':>4} "
         f"{'active':>8} {'chan':<5} {'mac':<5} {'drv':<5} {'ans':<5} {'txt':<5} "
-        f"{'pct':<5} verdict"
+        f"{'pct':<5} {'seal':<5} verdict"
     )
     print(head)
     print("-" * len(head))
@@ -690,7 +893,7 @@ def main() -> int:
             f"{r.active_ms / 1000:>7.0f}s "
             f"{r.channel:<5} {r.checks.get('mac', '-'):<5} {r.checks.get('drv', '-'):<5} "
             f"{r.checks.get('ans', '-'):<5} {r.checks.get('txt', '-'):<5} "
-            f"{r.checks.get('pct', '-'):<5} {r.verdict}"
+            f"{r.checks.get('pct', '-'):<5} {r.checks.get('seal', '-'):<5} {r.verdict}"
         )
         if r.pool_source != "current":
             print(f"{'':<12} pool: {r.pool_source}, the one this student was served")

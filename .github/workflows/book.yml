@@ -117,17 +117,33 @@ jobs:
             --pool game/content/l15.yml | tee /tmp/verify.txt
 
           # The expected shape of that run, asserted rather than eyeballed. Two
-          # honest first attempts, one honest *second* attempt, and the three
+          # honest first attempts, one honest *second* attempt, and the four
           # forgeries the samples exist to demonstrate.
+          #
+          # The two honest first attempts come back PASS* rather than PASS, and
+          # that is the fixture rather than a defect: three of the forgeries are
+          # built from those two sittings, so the folder holds several PDFs for
+          # one student, one lecture and one attempt, which is exactly what
+          # find_duplicates is there to notice. A real submissions folder does
+          # not contain a forgery derived from its own clean file.
           python - <<'PY'
           import re, sys
           text = open('/tmp/verify.txt').read()
-          rows = [l for l in text.splitlines() if re.search(r'\b(PASS|REVIEW|UNREADABLE)\s*$', l)]
+          rows = [l for l in text.splitlines() if re.search(r'\b(PASS\*?|REVIEW|UNREADABLE)\s*$', l)]
           fails = []
 
           tally = text.strip().splitlines()
-          if '3 PASS, 2 REVIEW, 1 UNREADABLE' not in text:
-              fails.append('verdict tally is not 3 PASS, 2 REVIEW, 1 UNREADABLE')
+          if '1 PASS, 2 PASS*, 3 REVIEW, 1 UNREADABLE' not in text:
+              fails.append('verdict tally is not 1 PASS, 2 PASS*, 3 REVIEW, 1 UNREADABLE')
+
+          # The seal is the only thing standing behind the printed score now
+          # that the score is drawn rather than typeset, so the forgery aimed at
+          # it has to trip it, and nothing else may.
+          if text.count('the seal does not draw') != 1:
+              fails.append('the redrawn-score forgery did not trip the seal check exactly once')
+          for r in rows:
+              if r.rstrip().endswith(('PASS', 'PASS*')) and not re.search(r'\bok\s+PASS\*?$', r.rstrip()):
+                  fails.append(f'passing row has no readable seal: {r.strip()}')
 
           # The retake must verify. If the attempt is not carried in the payload
           # and used to re-derive, this row fails `drv` and an honest student

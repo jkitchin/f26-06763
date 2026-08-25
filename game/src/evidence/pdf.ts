@@ -18,8 +18,9 @@
  */
 
 import type { jsPDF } from 'jspdf'
-import { WRONG_PENALTY } from '../store/log.ts'
+import { scoreFromTries, WRONG_PENALTY } from '../store/log.ts'
 import { attestationLines, percentOf, type Attestation, type ItemRecord } from './payload.ts'
+import { drawSeal, SEAL_H } from './seal.ts'
 
 export interface PdfInput {
   attestation: Attestation
@@ -58,7 +59,13 @@ function hms(ms: number): string {
  */
 export async function buildPdf(input: PdfInput): Promise<jsPDF> {
   const { jsPDF } = await import('jspdf')
-  const doc = new jsPDF({ unit: 'pt', format: 'letter' })
+  // `compress` Flates the content streams. It halves the file a student
+  // uploads, which the seal's line work would otherwise have tripled, and it
+  // has a second effect worth naming: the page is no longer a plaintext
+  // content stream, so the squares the score is drawn from cannot be found in
+  // a hex editor at all. That is obscurity rather than a control, and the
+  // control is still seal.ts being machine-readable, but it costs nothing.
+  const doc = new jsPDF({ unit: 'pt', format: 'letter', compress: true })
   const L = 56
   const W = doc.internal.pageSize.getWidth()
   let y = 64
@@ -101,24 +108,30 @@ export async function buildPdf(input: PdfInput): Promise<jsPDF> {
     y += 16
   }
 
-  // The participation score, drawn larger than the rows above it because it is
-  // the one number that leaves this page and goes into a gradebook. The rule is
-  // spelled out beside it so a student querying their score can check the
-  // arithmetic against the per-item table below without asking anybody.
+  // The participation score, in a drawn seal rather than a text run, because it
+  // is the one number on this page a reader is tempted to trust before anybody
+  // runs the verifier. See seal.ts for what the picture is made of and why it
+  // is made of squares. The rule is spelled out underneath so a student
+  // querying their score can check the arithmetic against the SCORE column in
+  // the per-item table without asking anybody.
   if (percent !== null) {
-    doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor(MUTED)
-    doc.text('Participation score', L, y)
-    doc.setFont('helvetica', 'bold').setFontSize(15).setTextColor(CMU_RED)
-    doc.text(`${percent}%`, L + 108, y + 1)
-    y += 14
+    y += 4
+    drawSeal(doc, L, y, {
+      code: input.attestation.code,
+      percent,
+      microtext:
+        `${input.andrewId} \u00b7 ${input.lecture} \u00b7 ${percent}% \u00b7 ` +
+        `attempt ${input.attempt} \u00b7 ${input.attestation.code}`,
+    })
+    y += SEAL_H + 13
     doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(MUTED)
     doc.text(
       `one point per question, less ${WRONG_PENALTY.toFixed(2)} per wrong answer, averaged` +
-        ' over the questions with a chosen answer',
-      L + 108,
+        ' over the questions with a chosen answer. The score column below is that arithmetic.',
+      L,
       y,
     )
-    y += 16
+    y += 14
   }
 
   y += 6
@@ -134,8 +147,9 @@ export async function buildPdf(input: PdfInput): Promise<jsPDF> {
   doc.setFont('helvetica', 'bold').setFontSize(8).setTextColor(MUTED)
   doc.text('ITEM', L, y)
   doc.text('ANSWER CHOSEN', L + 96, y)
-  doc.text('1ST', W - 132, y)
-  doc.text('TRIES', W - 104, y)
+  doc.text('1ST', W - 186, y)
+  doc.text('TRIES', W - 154, y)
+  doc.text('SCORE', W - 114, y)
   doc.text('TIME', W - 62, y)
   y += 6
   doc.line(L, y, W - L, y)
@@ -149,14 +163,22 @@ export async function buildPdf(input: PdfInput): Promise<jsPDF> {
     }
     const label = input.labels[item.id] ?? { prompt: item.id, chosen: item.ans.join(', ') }
     const tag = item.v && item.v !== '-' ? `${item.id}#${item.v}` : item.id
+    // Free-recall items carry no chosen option, are scored by the student
+    // against a checklist, and are excluded from the average. They print a dash
+    // rather than a 1.00, so the column averages to the number in the seal
+    // instead of to something a student can reasonably dispute.
+    const graded = item.ans.length > 0
 
     doc.setFont('courier', 'normal').setTextColor(INK).text(tag, L, y)
     doc.setFont('helvetica', 'normal').setTextColor(INK)
-    doc.text(doc.splitTextToSize(label.chosen, W - L - 96 - 148)[0] ?? '', L + 96, y)
+    doc.text(doc.splitTextToSize(label.chosen, W - L - 96 - 200)[0] ?? '', L + 96, y)
     doc.setTextColor(item.first_ok ? '#2b7a4b' : MUTED)
-    doc.text(item.first_ok ? 'yes' : 'no', W - 132, y)
+    doc.text(item.first_ok ? 'yes' : 'no', W - 184, y)
     doc.setTextColor(MUTED)
-    doc.text(String(item.tries), W - 100, y)
+    doc.text(String(item.tries), W - 148, y)
+    doc.setTextColor(graded ? INK : MUTED)
+    doc.text(graded ? scoreFromTries(item.tries, item.revealed).toFixed(2) : '-', W - 112, y)
+    doc.setTextColor(MUTED)
     doc.text(`${Math.round(item.total_ms / 1000)} s`, W - 62, y)
     if (item.revealed) {
       y += 10
@@ -164,6 +186,43 @@ export async function buildPdf(input: PdfInput): Promise<jsPDF> {
       doc.setFontSize(8.5)
     }
     y += 15
+  }
+
+  // --- where the seal's number came from -----------------------------------
+  // The seal is a rounded whole percent, and this is the arithmetic behind it:
+  // the SCORE column's sum, the count it was divided by, and the mean. A
+  // student querying their score should be able to follow it from the rows
+  // above without asking anybody, and a TA should be able to see at a glance
+  // which items were left out of the divisor.
+  if (percent !== null) {
+    const graded = input.items.filter((i) => i.ans.length > 0)
+    const earned = graded.reduce((n, i) => n + scoreFromTries(i.tries, i.revealed), 0)
+    const ungraded = input.items.length - graded.length
+    const plural = (n: number) => (n === 1 ? '' : 's')
+    if (y > doc.internal.pageSize.getHeight() - 96) {
+      doc.addPage()
+      y = 64
+    }
+    y += 2
+    doc.setDrawColor(RULE).setLineWidth(0.5).line(W - 190, y, W - L, y)
+    y += 13
+    doc.setFont('helvetica', 'normal').setFontSize(8.5).setTextColor(MUTED)
+    doc.text('Average', L, y)
+    doc.setFont('helvetica', 'bold').setTextColor(INK)
+    doc.text((earned / graded.length).toFixed(2), W - 112, y)
+    y += 11
+    doc.setFont('helvetica', 'normal').setFontSize(7).setTextColor(MUTED)
+    doc.text(
+      `${earned.toFixed(2)} over ${graded.length} graded item${plural(graded.length)}, ` +
+        `which is the ${percent}% in the seal above.` +
+        (ungraded
+          ? ` ${ungraded} item${plural(ungraded)} with no chosen answer ${
+              ungraded === 1 ? 'is' : 'are'
+            } scored by you and left out.`
+          : ''),
+      L,
+      y,
+    )
   }
 
   // --- the machine-readable block -----------------------------------------

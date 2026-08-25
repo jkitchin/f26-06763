@@ -122,7 +122,7 @@ async function session(
   const name = `${opts.label}-${filenameFor(LECTURE, opts.overrideId ?? p.andrewId)}`
   writeFileSync(`${OUT}${name}`, Buffer.from(doc.output('arraybuffer')))
   console.log(`  ${name}`)
-  return { doc, attestation, items, served }
+  return { doc, attestation, items, served, labels }
 }
 
 const JK: Person = { andrewId: 'jkitchin', name: 'John Kitchin', wrongEvery: 4, msPerItem: 22000 }
@@ -211,6 +211,42 @@ await session(JK, { label: 'copied', overrideId: 'valves' })
     Buffer.from(doc.output('arraybuffer')),
   )
   console.log(`  text-edited-${filenameFor(LECTURE, 'mreed')}`)
+}
+
+// 3b. The forgery the seal exists to catch. Once the score stops being a text
+//     run there is no `(95%)` to retype, so editing it means redrawing the page,
+//     and this is that PDF: jkitchin's real attestation carried on a page built
+//     from a doctored item list that draws 100%. Everything a reader sees agrees
+//     with itself, which is what makes it the interesting case. It disagrees
+//     with the payload, and the seal check reads the drawn number back out of
+//     the content stream and says so.
+{
+  const better: ItemRecord[] = a.items.map((i) => ({
+    ...i,
+    tries: 1,
+    first_ok: i.ans.length > 0,
+    revealed: false,
+  }))
+  const activeMs = a.items.reduce((n, it) => n + it.total_ms, 0)
+  const doc = await buildPdf({
+    attestation: a.attestation,      // <- the real one, untouched
+    name: JK.name,
+    andrewId: JK.andrewId,
+    lecture: LECTURE,
+    lectureTitle: bank.title,
+    attempt: 1,
+    finishedAtLocal: '2026-09-14 14:11 EDT',
+    elapsedMs: activeMs + 64000,
+    activeMs,
+    resumes: 1,
+    items: better,                   // <- the lie
+    labels: a.labels,
+  })
+  writeFileSync(
+    `${OUT}seal-edited-${filenameFor(LECTURE, JK.andrewId)}`,
+    Buffer.from(doc.output('arraybuffer')),
+  )
+  console.log(`  seal-edited-${filenameFor(LECTURE, JK.andrewId)}`)
 }
 
 // 4. A fabricated PDF with no attestation at all.
