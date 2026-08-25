@@ -5,6 +5,7 @@ slide; the student's phone is a bare A/B/C/D pad. No account, no sign-in, no
 credential of any kind, and nothing that identifies a student.
 
 **Vote page:** <https://clicker.f26-06763.workers.dev>
+**Rendered deck:** <https://kitchingroup.cheme.cmu.edu/f26-06763/slides/clicker/>
 
 ---
 
@@ -182,9 +183,9 @@ in `clicker-slide.js`, which a deck pulls in **once, at the end**:
 ```
 
 It is a separate file rather than inlined so a second deck is not a second copy of
-300 lines. A *lecture* deck would also need CI to copy it next to the rendered
-slides, which is **not wired up yet**; `shakedown.md` works because it sits in this
-directory beside the script and the QR.
+300 lines. CI copies it next to **every** rendered deck, so `src="clicker-slide.js"`
+resolves for a lecture deck as well; while authoring a lecture deck locally you need a
+copy or a symlink beside it, the same wrinkle `figures/` has.
 
 One question looks like this:
 
@@ -240,11 +241,19 @@ only after the window closes, as an archival annotation.
 The prompt recorded with a mark is read from the slide's heading, so nobody maintains
 the question text twice.
 
-Render it next to its assets, because MARP emits relative image paths:
+Render it with:
 
 ```bash
 cd clicker && npm run slides       # -> shakedown.html
 ```
+
+**That script deliberately renders from the repo root.** `.marprc.yml` says
+`themeSet: ./themes`, which resolves against the working directory, so running marp
+from inside `clicker/` silently drops the course theme: no red rules, no two-column
+layout, the QR at its natural 420px pushing the timer and the Start button off the
+bottom of the slide, and the options showing native `1. 2. 3.` markers. It looks like
+a broken deck rather than a missing theme, so if a deck ever renders as plain
+markdown, check the working directory first.
 
 ## What happens when voting closes
 
@@ -327,11 +336,12 @@ Schema changes go in `schema.sql` and must be applied to **both** databases with
   endpoints must too.
 - **MARP scales slides with a CSS transform**, which defeats coordinate-based clicking
   in Puppeteer. Browser tests must dispatch `element.click()` in-page.
-- **A published lecture deck exposes `data-answer` in its page source**, and anyone
-  reading the deck could start a window and vote. `shakedown.md` is not published (it
-  lives here, and `clicker/` is in `exclude_patterns`), but a lecture deck would be.
-  Before putting one of these in a released deck, decide whether to strip `data-answer`
-  during the CI render.
+- **A published deck exposes `data-answer` in its page source**, and anyone reading it
+  can start a window and vote into the same stream as the room. This deck *is*
+  published, at `/f26-06763/slides/clicker/`, which was a deliberate call. If a
+  question ever carries weight, strip `data-answer` during the CI render and gate the
+  window behind a code shown only on the projector.
+- **Running marp from `clicker/` silently drops the theme.** See above.
 - Free plan ceilings are 100k requests/day and 100k D1 row writes/day, against roughly
   240 votes per session. There is no realistic path to hitting them.
 
