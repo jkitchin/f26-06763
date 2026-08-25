@@ -1,0 +1,16 @@
+name = "clicker"
+main = "worker.js"
+compatibility_date = "2026-08-25"
+
+# worker.js does `import VOTE_PAGE from './vote.html'`, so the whole clicker ships
+# as one Worker with no static-asset bucket. No [[rules]] block is needed for that:
+# wrangler already treats .html as a Text module by default, and adding an explicit
+# rule only shadows the default one and emits a warning.
+
+# Created with: npx wrangler d1 create clicker
+# The binding name is what the code sees as env.DB; it does not have to match
+# database_name, and the code uses DB.
+[[d1_databases]]
+binding = "DB"
+database_name = "clicker"
+database_id = "f55649de-bf8b-4c69-8d34-0ddb0c9ae736"
