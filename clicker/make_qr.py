@@ -6,6 +6,9 @@ and its PNG is reused by every clicker slide for the rest of the course. Rerun i
 only if the Worker's hostname changes, which also invalidates every printed deck.
 
     uv run --with segno clicker/make_qr.py
+
+A deck that wants the QR copies it into its own figures/ directory, because MARP
+emits relative <img> paths and CI copies each lecture's figures/ alongside its deck.
 """
 import argparse
 import pathlib
@@ -13,7 +16,7 @@ import pathlib
 import segno
 
 VOTE_URL = "https://clicker.f26-06763.workers.dev"
-OUT = pathlib.Path(__file__).resolve().parents[1] / "lectures" / "l03" / "figures" / "clicker-qr.png"
+OUT = pathlib.Path(__file__).resolve().parent / "figures" / "clicker-qr.png"
 
 
 def main() -> None:

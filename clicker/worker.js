@@ -82,8 +82,13 @@ export default {
 
     if (path === '/r') return readWindow(env, url)
     if (path === '/export') return exportCsv(env, url)
+    if (path === '/stats') return stats(env, url)
+    if (path === '/questions') return questions(env, url)
 
-    return json({ error: 'not found', routes: ['/', '/v/{A-D}', '/r', '/export'] }, 404)
+    return json(
+      { error: 'not found', routes: ['/', '/v/{A-D}', '/r', '/export', '/stats', '/questions'] },
+      404,
+    )
   },
 }
 
@@ -180,5 +185,120 @@ async function exportCsv(env, url) {
       'cache-control': 'no-store',
       ...CORS,
     },
+  })
+}
+
+/* ---- reporting -------------------------------------------------------- */
+
+// One vote per device, keeping their last, over an arbitrary list of rows.
+// Rows with no device id count individually: a browser with storage blocked
+// cannot be recognised between taps, and guessing would be worse than counting.
+function tally(rows) {
+  const latest = new Map()
+  for (const r of rows) {
+    const key = r.device || 'row:' + r.rowid
+    const prev = latest.get(key)
+    if (!prev || r.ts >= prev.ts) latest.set(key, r)
+  }
+  const counts = Object.fromEntries(OPTS.map((o) => [o, 0]))
+  let total = 0
+  for (const r of latest.values()) {
+    if (Object.prototype.hasOwnProperty.call(counts, r.opt)) {
+      counts[r.opt] += 1
+      total += 1
+    }
+  }
+  return { ...counts, total }
+}
+
+// GET /stats -> overall usage plus a per-day breakdown.
+// Days are UTC. Anything that needs Pittsburgh dates should ask /questions for
+// an explicit range instead, so the server stays ignorant of time zones.
+async function stats(env, url) {
+  const days = Math.min(Math.max(intParam(url, 'days', 30), 1), 365)
+  try {
+    const overall = await env.DB.prepare(
+      `SELECT COUNT(*) AS votes,
+              COUNT(DISTINCT device) AS devices,
+              MIN(ts) AS first_ts,
+              MAX(ts) AS last_ts
+       FROM vote`,
+    ).first()
+
+    const { results } = await env.DB.prepare(
+      `SELECT date(ts / 1000, 'unixepoch') AS day,
+              COUNT(*) AS votes,
+              COUNT(DISTINCT device) AS devices
+       FROM vote
+       GROUP BY day
+       ORDER BY day DESC
+       LIMIT ?1`,
+    )
+      .bind(days)
+      .all()
+
+    return json({
+      votes: overall?.votes ?? 0,
+      devices: overall?.devices ?? 0,
+      first_ts: overall?.first_ts ?? null,
+      last_ts: overall?.last_ts ?? null,
+      first_iso: overall?.first_ts ? new Date(overall.first_ts).toISOString() : null,
+      last_iso: overall?.last_ts ? new Date(overall.last_ts).toISOString() : null,
+      days: results ?? [],
+      server_ts: Date.now(),
+    })
+  } catch (err) {
+    return dbError(err)
+  }
+}
+
+// GET /questions?from=&to=&gap= -> the question windows, detected rather than declared.
+//
+// The server never learns what a question is, so it infers one: a burst of votes
+// separated from the next by more than `gap` ms. That is what makes archiving
+// possible without anyone writing down when each question ran.
+async function questions(env, url) {
+  const from = intParam(url, 'from', 0)
+  const to = intParam(url, 'to', Date.now())
+  const gap = Math.min(Math.max(intParam(url, 'gap', 120000), 5000), 3600000)
+  const LIMIT = 20000
+
+  let rows
+  try {
+    ;({ results: rows } = await env.DB.prepare(
+      `SELECT rowid, ts, opt, device FROM vote
+       WHERE ts >= ?1 AND ts <= ?2 ORDER BY ts LIMIT ?3`,
+    )
+      .bind(from, to, LIMIT)
+      .all())
+  } catch (err) {
+    return dbError(err)
+  }
+  rows = rows ?? []
+
+  const out = []
+  let cur = []
+  for (const r of rows) {
+    if (cur.length && r.ts - cur[cur.length - 1].ts > gap) {
+      out.push(cur)
+      cur = []
+    }
+    cur.push(r)
+  }
+  if (cur.length) out.push(cur)
+
+  return json({
+    gap,
+    truncated: rows.length === LIMIT,
+    questions: out.map((b, i) => ({
+      n: i + 1,
+      from: b[0].ts,
+      to: b[b.length - 1].ts,
+      from_iso: new Date(b[0].ts).toISOString(),
+      seconds: Math.round((b[b.length - 1].ts - b[0].ts) / 1000),
+      raw_votes: b.length,
+      ...tally(b),
+    })),
+    server_ts: Date.now(),
   })
 }
