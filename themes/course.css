@@ -243,6 +243,8 @@ div.clicker {
   margin-top: 0.3em;
 }
 
+ol.clicker-opts[hidden] { display: none; }
+
 ol.clicker-opts {
   list-style: none;
   counter-reset: opt;
@@ -348,11 +350,23 @@ button.clicker-start[disabled] {
 
 .clicker-bars {
   display: grid;
-  grid-template-columns: 1.4em 1fr 2.6em;
-  gap: 6px 10px;
+  grid-template-columns: 1.5em 1fr 2.4em;
+  gap: 5px 10px;
   align-items: center;
-  margin-top: 0.6em;
-  font-size: 0.68em;
+  margin-top: 0.3em;
+  font-size: 0.6em;
+}
+
+/* The option text rides with its bar, so the option list can be hidden while
+ * results are up. Both at once does not fit on a slide. */
+.clicker-bars .barwrap {
+  display: block;
+}
+
+.clicker-bars .txt {
+  display: block;
+  line-height: 1.15;
+  margin-bottom: 2px;
 }
 
 .clicker-bars .lab {
@@ -361,10 +375,11 @@ button.clicker-start[disabled] {
 }
 
 .clicker-bars .track {
+  display: block;
   background: var(--accent-bg);
   border: 1px solid var(--rule);
   border-radius: 4px;
-  height: 1.5em;
+  height: 1.05em;
   overflow: hidden;
 }
 
@@ -393,7 +408,7 @@ button.clicker-start[disabled] {
 }
 
 p.clicker-verdict {
-  margin-top: 0.5em;
+  margin-top: 0.35em;
   font-size: 0.66em;
   font-weight: 600;
 }
@@ -428,8 +443,8 @@ canvas.clicker-fx {
 /* Shown after a reveal that did not go well, to give the re-vote something to
  * argue about. A pointer, never the answer. */
 p.clicker-hint {
-  margin-top: 0.35em;
-  padding: 0.4em 0.7em;
+  margin-top: 0.25em;
+  padding: 0.3em 0.7em;
   font-size: 0.6em;
   background: var(--accent-bg);
   border-left: 4px solid var(--cmu-red);
@@ -441,8 +456,8 @@ p.clicker-hint[hidden] { display: none; }
 /* Shown only when the room got there: why the answer is the answer. The
  * counterpart to .clicker-hint, which appears only when they did not. */
 p.clicker-why {
-  margin-top: 0.35em;
-  padding: 0.4em 0.7em;
+  margin-top: 0.25em;
+  padding: 0.3em 0.7em;
   font-size: 0.6em;
   background: var(--green-bg);
   border-left: 4px solid var(--green);

@@ -49,6 +49,12 @@ The `device` id is a pseudonym, not an identity: a random string the browser inv
 and keeps in `localStorage`. Nothing links it to a person, and it is deliberately not
 carried into the committed archive.
 
+**The pad clears itself between questions.** The phone never learns what question is
+running, so it cannot be told when one ends; instead the highlight expires after 75
+seconds, which is longer than a window and shorter than the gap to a normal next
+question. A reload only restores a choice that is still recent, because showing an
+answer to a question that has already been revealed is worse than showing none.
+
 `game/` is untouched. CLAUDE.md section 9c says "a feature that needs a server is a
 feature this design cannot have"; the clicker shares none of the game's code, so that
 statement stays true as written.
@@ -227,6 +233,7 @@ One question looks like this:
 | `data-seconds` | no (60) | how long the window stays open |
 | `data-tag` | no | records the window for the archive; lowercase, `[a-z0-9._-]`, 64 chars |
 | `data-answer` | no | `A`-`D`. Omit for an opinion poll: bars appear, no verdict, no effects |
+| `data-autostart` | no | `false` to require pressing the button instead of opening on slide entry |
 | `data-hint` | no | shown only when the room did **not** sail through |
 | `data-why` | no | shown only when they **did** |
 
@@ -261,9 +268,14 @@ While a question is open the panel shows **only how many votes have arrived**, n
 the distribution. Showing live bars biases whoever has not voted yet, which is the one
 thing peer instruction is strict about.
 
-The presenter's click on **Start voting** does three things: it takes the baseline from
-the server's clock, starts the countdown, and unlocks audio (browsers block autoplay
-until a user gesture, so the reveal would otherwise be silent). The button then reads
+**Voting opens by itself when the slide comes up**, so there is nothing to remember.
+That is driven by an `IntersectionObserver` on the slide rather than MARP's own events,
+which are not exposed, so it works in slide mode and scroll mode alike. Returning to a
+slide does not reopen it: that would start a second window and discard the first
+result. `data-autostart="false"` opts a question out, and the button still works.
+
+Opening a window takes the baseline from the server's clock and unlocks audio (browsers
+block autoplay until a user gesture; navigating to the slide is one). The button reads
 **Reveal now**, so you can close early instead of waiting out the clock.
 
 At zero, or on **Reveal now**, the bars appear, the correct bar is highlighted, and the
@@ -277,7 +289,12 @@ chosen because they map onto what to *do* next rather than merely scoring the ro
 | **below 30%** | dark clouds and rain on a canvas, a filtered-noise downpour, and the `data-hint` box | Not their fault. Re-teach it, then vote again. |
 
 With no `data-answer` there is no verdict and no effect: the bars simply appear, which
-is what an opinion poll wants.
+is what an opinion poll wants. **With no votes at all it says so**, rather than
+revealing an empty chart in silence, which reads as broken rather than empty.
+
+The option list is hidden while results are up and the option text moves into the bars.
+Showing both overflows the slide: four options plus four bars plus a verdict plus a
+hint does not fit in 720px, and the hint is what gets cut off.
 
 **After any reveal the button becomes "Vote again"** and opens a fresh window on the
 same question, clearing the previous bars and labelling the rounds. Peer instruction is
