@@ -15,12 +15,12 @@ footer: "Systems and Toolchains for AI Engineers"
 **Systems and Toolchains for AI Engineers**
 
 <!--
-End of class. The point is to find out whether this works with 30-odd real phones
-on real campus wifi before anything depends on it, and to let you set a few
-parameters by asking rather than guessing.
+End of class. The point is to find out whether this survives 30-odd real phones on
+real campus wifi before anything depends on it, and to let the room set a few
+defaults instead of me guessing them.
 
-Budget ~10 minutes for all seven. If you are short, drop "Same letter" and
-"How often" first; they are the least load-bearing.
+Eight questions, roughly 10 minutes with discussion. If you are short, drop
+"Same letter" and "How often" first; they are the least load-bearing.
 Everything is anonymous and nothing is graded.
 -->
 
@@ -38,7 +38,8 @@ Your phone shows four buttons and nothing else. The question stays up here.
 
 Tapped the wrong one? **Tap another.** Only your last answer counts.
 
-Nothing identifies you. None of this is graded.
+A vote is a timestamp, a letter, and a random nickname your browser invents.
+Nothing identifies you, and none of it is graded.
 
 </div>
 <aside class="clicker-panel">
@@ -77,10 +78,10 @@ cameras will not focus from the back of the room.
 </div>
 
 <!--
-The real measurement is the vote COUNT, not the breakdown: compare it to
-the number of heads in the room. Anyone who could not load the page cannot
-answer this question, so the count is the only thing that detects them.
-Ask for a show of hands from anyone who got nowhere and count those separately.
+The real measurement is the vote COUNT, not the breakdown: compare it to the
+number of heads in the room. Anyone who could not load the page cannot answer
+this question, so the count is the only thing that detects them. Ask for a show
+of hands from anyone who got nowhere and count those separately.
 -->
 
 ---
@@ -113,22 +114,25 @@ If this works, the bars should show everyone on D and nobody on A.
 
 <!--
 A real test, not a gimmick: re-voting REPLACES rather than adds. If any A
-survives at the end, some device is not being recognised between taps,
-which usually means storage is blocked in that browser.
+survives at the end, some device is not being recognised between taps, which
+usually means storage is blocked in that browser.
+The next two questions lean on people remembering this one.
 -->
 
 ---
 
-## What this thing knows about you
+## A rigged one, so you can see a win
 
-<div class="clicker" data-seconds="45" data-answer="C" data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker" data-seconds="45" data-answer="A" data-read="https://clicker.f26-06763.workers.dev">
 <div class="clicker-main">
 
+Rigged on purpose. **Everyone tap A.** Where does the question itself appear?
+
 <ol class="clicker-opts">
-<li>My Andrew ID</li>
-<li>My IP address and which browser I use</li>
-<li>A timestamp, a letter, and a random nickname for this browser</li>
-<li>Nothing at all, it is not written down</li>
+<li>On the screen at the front</li>
+<li>On my phone</li>
+<li>In an email before class</li>
+<li>Somewhere in the syllabus</li>
 </ol>
 
 </div>
@@ -142,10 +146,48 @@ which usually means storage is blocked in that browser.
 </div>
 
 <!--
-The one question here with a right answer, so it is also the test of the
-celebration. C is correct, and it is worth saying out loud: the reason the
-answers are honest is that there is nothing to trace them to.
-Above 70% correct you get fireworks; below 30% you get rain.
+Guaranteed win, so the room sees what above-70% looks like. Say it is rigged;
+they will work it out anyway and the honesty costs nothing.
+Sound is on by default. The mute toggle is under the timer if the room is small.
+-->
+
+---
+
+## Now one that will not go well
+
+<div class="clicker" data-seconds="45" data-answer="C" data-hint="You ran this experiment two questions ago. What happened to the A you tapped before you switched to D?" data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker-main">
+
+**Everyone tap B.** You tap A, change your mind, and tap C. What does the tally count?
+
+<ol class="clicker-opts">
+<li>Both of them, one vote each</li>
+<li>Only my first answer, A</li>
+<li>Only my last answer, C</li>
+<li>Neither, it throws both away</li>
+</ol>
+
+</div>
+<aside class="clicker-panel">
+<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
+<div class="clicker-url">clicker.f26-06763.workers.dev</div>
+<button class="clicker-start">Start voting</button>
+<div class="clicker-timer">45</div>
+<div class="clicker-count">no votes yet</div>
+</aside>
+</div>
+
+<!--
+The point of the whole exercise. B is wrong, so this lands under 30%, the rain
+comes down, and the hint appears.
+
+THEN: give them 30 seconds to argue about it, and press 'Vote again'. The same
+question opens a fresh window and should come back as fireworks. That loop,
+vote badly, argue, vote again, is the entire reason for doing this rather than
+asking for a show of hands.
+
+B is the plausible wrong answer because plenty of systems do count the first
+response. Worth saying so, rather than treating it as a silly mistake.
 -->
 
 ---
@@ -177,10 +219,9 @@ No right answer. Either we converge or we do not.
 </div>
 
 <!--
-Pure fun, and a free illustration of distributed consensus with no
-coordination channel. Most rooms pile onto A. If the bars come out flat,
-that is the more interesting result and worth 30 seconds of comment.
-Drop this one first if you are short on time.
+Pure fun, and a free illustration of consensus with no coordination channel.
+Most rooms pile onto A. Flat bars are the more interesting result and worth
+30 seconds of comment. Drop this one first if you are short on time.
 -->
 
 ---
@@ -240,7 +281,7 @@ A minute is the default. It is easy to change.
 <div class="clicker" data-seconds="45" data-read="https://clicker.f26-06763.workers.dev">
 <div class="clicker-main">
 
-You would invent a nickname and reuse it. Nobody, including me, would know whose is whose.
+You would invent a nickname, and your browser would remember it. Nobody, including me, would know whose is whose.
 
 <ol class="clicker-opts">
 <li>Yes, that sounds fun</li>
@@ -260,10 +301,11 @@ You would invent a nickname and reuse it. Nobody, including me, would know whose
 </div>
 
 <!--
-Worth saying out loud: today there is nothing attached to a vote at all.
-A leaderboard needs something durable to attach a score to, which is why the
-nickname is part of the question rather than a footnote. It stays a name you
-invent, never your Andrew ID, and I would not be able to map it to you.
+Worth saying out loud: right now nothing at all is attached to a vote. A
+leaderboard needs something durable to attach a score to, which is why the
+nickname is in the question rather than a footnote. You would type it once and
+the browser would keep it. It stays a name you invent, never your Andrew ID,
+and I would not be able to map it back to you.
 -->
 
 ---

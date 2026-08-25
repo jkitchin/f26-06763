@@ -87,6 +87,16 @@ Per question:
 three bands: fireworks above 70%, "turn to your neighbour" between 30 and 70, rain
 below 30. Without it the bars just appear, which is what an opinion poll wants.
 
+`data-hint` is optional and appears **only when the room did not sail through**, so keep
+it a pointer rather than the answer. It is what makes a second vote worth taking.
+
+After a reveal the button becomes **Vote again** and opens a fresh window on the same
+question. Peer instruction is vote, argue, vote again, and the second round is the one
+that moves people, so it must not need a page reload. Note the consequence for the
+archive: each round is a separate burst, so `tools/clicker.py` reports round one and
+round two as two windows with the same prompt. That is usually what you want, since the
+change between them is the interesting part.
+
 The correct answer lives on the slide and is **never sent to the server**. That is what
 keeps the server question-agnostic.
 

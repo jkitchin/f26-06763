@@ -13,6 +13,14 @@
  * data-answer is optional; omit it for an opinion poll, which then reveals bars
  * with no verdict and no effects.
  *
+ * data-hint is optional too, and appears only when the room did NOT sail through:
+ * on the discuss band and the re-teach band. It is the nudge that makes a second
+ * vote worth taking, so keep it a pointer rather than the answer.
+ *
+ * After a reveal the button becomes "Vote again" and opens a fresh window on the
+ * same question. Peer instruction is vote, argue, vote again, so the second round
+ * has to be one click away.
+ *
  * Two rules the classroom depends on:
  *   - the distribution stays hidden while voting is open, because showing it
  *     biases whoever has not voted yet. Only the count moves.
@@ -231,6 +239,15 @@
     verdict.hidden = true;
     main.appendChild(verdict);
 
+    var hintText = root.dataset.hint || '';
+    var hint = document.createElement('p');
+    hint.className = 'clicker-hint';
+    hint.hidden = true;
+    hint.textContent = hintText;
+    main.appendChild(hint);
+
+    var round = 0;
+
     // Mute lives next to the button so it is reachable without leaving the slide.
     var mute = document.createElement('button');
     mute.className = 'clicker-mute';
@@ -262,15 +279,22 @@
       timerEl.textContent = 'done';
       timerEl.classList.add('is-over');
       countEl.textContent = data.total + (data.total === 1 ? ' vote' : ' votes');
-      btn.textContent = 'Closed';
-      btn.disabled = true;
+
+      // Vote, argue, vote again. The second round is the one that moves people,
+      // so it must not need a page reload.
+      btn.textContent = 'Vote again';
+      btn.disabled = false;
 
       if (!answer || !data.total) return;   // opinion poll: bars, no verdict
       var pct = Math.round(100 * (data[answer] || 0) / data.total);
       var b = band(pct);
-      verdict.textContent = pct + '% correct. ' + b.text;
+      verdict.textContent = 'Round ' + round + ': ' + pct + '% correct. ' + b.text;
       verdict.className = 'clicker-verdict is-' + b.key;
       verdict.hidden = false;
+
+      // The hint is for the rooms that need a second go, not the ones that nailed it.
+      if (hintText && b.key !== 'good') hint.hidden = false;
+
       if (b.key === 'good') fireworks(section, muted());
       else if (b.key === 'poor') rain(section, muted());
     }
@@ -299,8 +323,15 @@
           start = d.server_ts;
           end = start + seconds * 1000;
           open = true;
+          round += 1;
           btn.textContent = 'Reveal now';
           timerEl.classList.remove('is-over');
+
+          // A fresh window means the previous round's result is stale. Clear it,
+          // and keep the hint up: it is what people are arguing about.
+          bars.hidden = true;
+          verdict.hidden = true;
+          document.querySelectorAll('canvas.clicker-fx').forEach(function (c) { c.remove(); });
 
           tick = setInterval(function () {
             var left = Math.max(0, Math.round((end - (Date.now() - offset)) / 1000));

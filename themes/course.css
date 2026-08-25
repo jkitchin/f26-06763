@@ -413,3 +413,16 @@ canvas.clicker-fx {
   pointer-events: none;
   z-index: 10;
 }
+
+/* Shown after a reveal that did not go well, to give the re-vote something to
+ * argue about. A pointer, never the answer. */
+p.clicker-hint {
+  margin-top: 0.35em;
+  padding: 0.4em 0.7em;
+  font-size: 0.6em;
+  background: var(--accent-bg);
+  border-left: 4px solid var(--cmu-red);
+  border-radius: 0 4px 4px 0;
+}
+
+p.clicker-hint[hidden] { display: none; }
