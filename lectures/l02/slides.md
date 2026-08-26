@@ -39,11 +39,9 @@ footer: "Systems and Toolchains for AI Engineers"
 ## Why reproducibility, a model in the clinic
 
 2006, Duke, in *Nature Medicine*:
-read a tumor's gene expression,
-predict which chemotherapy will work.
+read a tumor's gene expression, predict which chemotherapy will work.
 
-By 2007 the predictors were **assigning patients**
-in clinical trials.
+By 2007 the predictors were **assigning patients** in clinical trials.
 
 [Nature Medicine, 2006](https://www.nature.com/articles/nm1491)
 
@@ -51,8 +49,7 @@ in clinical trials.
 
 ## Why reproducibility, the check that failed
 
-Baggerly & Coombes rebuilt the analysis
-from the **published data**. The numbers **did not match**.
+Two researchers tried to rebuild the analysis from the **published data**. The numbers **did not match**.
 
 Two ordinary errors, both invisible in the papers:
 
@@ -71,8 +68,8 @@ Three trials at Duke. **117 patients** enrolled.
 - [retracted](https://www.nature.com/articles/nm0111-135) in 2011: the authors could not reproduce it either
 - a [federal inquiry](https://retractionwatch.com/2015/11/07/its-official-anil-potti-faked-data-say-feds/) later found research misconduct
 
-Intent is not this course's subject.
-The engineering lesson holds either way.
+1. Intent is not this course's subject.
+2. However, the engineering "lesson" is still important: reproducibility!
 
 ---
 
@@ -82,11 +79,11 @@ The engineering lesson holds either way.
 
 A result is **reproducible** when someone else can take your data and your code, run them, and get the same numbers you reported.
 
-If they cannot, nobody can check it, including you six months later.
+If they cannot, nobody can check it, including **you**, six months later.
 
 ---
 
-## Why reproducibility, said plainly
+## Why reproducibility?
 
 > "There is computer code that evaluates the algorithm.
 > There is data. And when you plug the data into that code,
@@ -98,7 +95,7 @@ An NCI statistician, reviewing the case.
 
 ---
 
-## Why reproducibility, the test you will face
+## Why reproducibility, simple questions...
 
 Someone points at a number your system produced:
 
@@ -144,7 +141,7 @@ The Lecture 1 demo broke because a version was never recorded.
 
 <div class="definition">
 
-**Dependency**: a package your project needs to run. Each one usually pulls in more of its own, so three packages can become fifty.
+**Dependency**: a package your project needs to run. Each one usually pulls in more of its own, so three dependencies/packages can become 50 very quickly!
 
 </div>
 
@@ -226,9 +223,9 @@ This ends "works on my machine" as an answer.
 
 ---
 
-## Environments you can rebuild, the pitfall
+## Environments you can rebuild, common misconceptions or simplifications
 
-Treating `uv` as a faster `pip` and stopping at `uv add` misses the pin.
+Treating `uv` as a faster `pip` (which is true!) and stopping at `uv add` misses the pin.
 
 The pin that buys reproducibility is
 the **lockfile + the interpreter**, together.
@@ -258,7 +255,7 @@ A notebook and loose files cannot be
 **imported**, **tested**, or **run** by someone else.
 A small standard layout gives all three.
 
-It costs almost nothing on day one and is tedious to add later.
+It costs almost nothing on day 1 and is tedious to do it later. Do it early!
 
 ---
 
@@ -297,16 +294,9 @@ sensorlab/
 └── tests/
 ```
 
----
+The line between **exploration** and **the code that runs** is drawn in the folder layout, so it does not live in your memory.
 
-## A project layout that scales, the boundary in the tree
-
-The line between **exploration**
-and **the code that runs**
-is drawn in the folder layout,
-so it does not live in your memory.
-
-Assignment 1 reuses this exact structure all semester.
+We will use this exact structure all semester.
 
 ---
 
@@ -320,9 +310,11 @@ Assignment 1 reuses this exact structure all semester.
 
 ## Versioning, three different problems
 
-Code, data, and models differ in **size**,
-in how often they **change**,
-and in what is worth **recording** about them.
+Code, data, and models differ in 
+- **size**,
+- how often they **change**,
+- and in what is worth **recording** about them.
+
 So they belong in **different tools**.
 
 | Artifact | Tool | What you version |
@@ -335,9 +327,9 @@ So they belong in **different tools**.
 
 ## Versioning, code to git
 
-Small, text, diffable.
-Each commit is a labeled save point.
-Its **SHA** answers: which version of the code produced this number?
+Code changes are small, in text and hence **diffable.**
+Each **commit** is a labeled save point.
+It answers the question: which version of the code produced this number?
 
 <div class="definition">
 
@@ -349,13 +341,13 @@ Its **SHA** answers: which version of the code produced this number?
 
 ## Versioning, data is not plain git
 
-git keeps **every version forever**.
-A 200 MB file bloats the repo permanently.
-Raw data may also carry **license or privacy** limits.
+- git keeps **every version forever**.
+- A 200 MB file bloats the repo permanently.
+- Raw data may also carry **license or privacy** limits.
 
 <div class="definition">
 
-**Content hash**: a short fingerprint of a file's bytes. Change one byte and it changes, so two runs can be checked for using the same data.
+**Content hash**: a "fingerprint" of a file's bytes. Change one byte and it changes, so two runs can be checked for using the same data.
 
 </div>
 
@@ -369,7 +361,7 @@ keep the raw bytes out. Removing a committed big file rewrites history.
 git is the wrong home for large binaries.
 
 Tools that version data **by content**:
-`git-lfs` and **DVC**.
+`git-lfs` and data version control **DVC**.
 
 For now: a hash and a source, not the bytes.
 
@@ -380,9 +372,7 @@ For now: a hash and a source, not the bytes.
 A model is an **output**.
 
 Worth saving is what produced it:
-the **code SHA**, the **data hash**, the **settings**.
-
-MLflow stores that link. (Next.)
+the **code hash (SHA)**, the **data hash**, the **settings**.
 
 ---
 
@@ -542,15 +532,13 @@ Log enough to **rebuild** the run:
 > the git **SHA**, a data **hash**, the **seed**,
 > next to the metric.
 
-That triple is the provenance the Duke work lacked.
+That triple is the provenance the Duke work lacked in their methodology.
 
 ---
 
 <!-- _class: section -->
 
-# Where reproducibility
-
-## pushes back
+# Where reproducibility "pushes back"
 
 ---
 
@@ -566,7 +554,7 @@ The Duke errors surfaced only when outsiders
 
 ---
 
-## Where it pushes back, a lockfile pins Python, not the machine
+## Where it pushes back, a lockfile pins Python, not the machine/operating system
 
 `uv.lock` pins every package version.
 It does **not** pin the system libraries, the OS,
@@ -578,12 +566,12 @@ Whole-stack reproducibility is a **container**.
 
 ## Where it pushes back, pay in proportion
 
-The discipline has a cost. For a throwaway script, it can be overkill though
+This "discipline" has a cost. For a throwaway script, it can be overkill though
 
 The moment a result is **rerun, shared, or believed**,
 it needs this. Results cross that line quietly.
 
-When in doubt, **scaffold:** retrofitting (that is, structuring your project afterwards) sis the expensive direction.
+When in doubt, **scaffold:** retrofitting (that is, structuring your project afterwards) is the expensive direction.
 
 ---
 

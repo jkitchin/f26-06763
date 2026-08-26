@@ -8,7 +8,7 @@
 - **Slides** <a href="../../slides/l02/">Deck for this session</a>
 - **Practice** <a href="../../game/#/l02">Practice module for this session</a>
 - **Demo** [`l02-scaffold.ipynb`](l02-scaffold.ipynb), building a tracked project from an empty folder
-- **Assignment 1**, released this week and due about a week later (08-31-2026)
+- **Assignment 1**, released this week and due about in a week.
 :::
 
 ## Why this matters
@@ -280,11 +280,11 @@ Reproducibility is the ability to say which data, which code, and which settings
 - [MLflow Tracking Quickstart](https://mlflow.org/docs/latest/ml/tracking/quickstart/). Logging parameters and metrics, and viewing runs. Local storage options and the `mlflow ui` command are on the [Tracking overview](https://mlflow.org/docs/latest/ml/tracking/).
 - [Pro Git, chapter 1](https://git-scm.com/book/en/v2/Getting-Started-About-Version-Control) and [chapter 2](https://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository). Free online. The "Ignoring Files" section in chapter 2 is the `.gitignore` reference for this session.
 - [The Turing Way, Reproducible Research](https://book.the-turing-way.org/reproducible-research/reproducible-research/). The broader case, and a clean definition: the same data plus the same code should give the same result.
-- [Deriving chemosensitivity from cell lines](https://projecteuclid.org/journals/annals-of-applied-statistics/volume-3/issue-4/Deriving-chemosensitivity-from-cell-lines--Forensic-bioinformatics-and-reproducible/10.1214/09-AOAS291.full). Baggerly and Coombes, *Annals of Applied Statistics* 2009, open access. The forensic reconstruction that found the shifted-index and swapped-label errors.
+- [Deriving chemosensitivity from cell lines](https://projecteuclid.org/journals/annals-of-applied-statistics/volume-3/issue-4/Deriving-chemosensitivity-from-cell-lines--Forensic-bioinformatics-and-reproducible/10.1214/09-AOAS291.full). Baggerly and Coombes, *Annals of Applied Statistics* 2009, open access. The "forensic" reconstruction that found the shifted-index and swapped-label errors.
 - [Retraction note, *Nature Medicine*](https://www.nature.com/articles/nm0111-135). The 2011 retraction of the 2006 paper, in the authors' own words: they could not reproduce it either.
-- [Evolution of Translational Omics](https://www.ncbi.nlm.nih.gov/books/NBK202165/). The 2012 Institute of Medicine report prompted by the case. Its recommendation that data and code be made available for independent review is this session in one sentence.
-- [A large-scale study of the quality and reproducibility of Jupyter notebooks](https://leomurta.github.io/papers/pimentel2019a.pdf). Pimentel et al., MSR 2019. Source of the notebook figures above; the 24% and 4% are of the 863,878 valid notebooks that could be run.
-- [Repeatability in computer systems research](http://reproducibility.cs.arizona.edu/v2/RepeatabilityTR.pdf). Collberg and Proebsting. Source of the 601-paper build figure; the 32.3% is of the 402 papers whose results were produced by code, which is more papers than actually shared their code.
+- [Evolution of Translational Omics](https://www.ncbi.nlm.nih.gov/books/NBK202165/).
+- [A large-scale study of the quality and reproducibility of Jupyter notebooks](https://leomurta.github.io/papers/pimentel2019a.pdf).
+- [Repeatability in computer systems research](http://reproducibility.cs.arizona.edu/v2/RepeatabilityTR.pdf).
 
 ## Assignment
 
@@ -292,7 +292,5 @@ Assignment 1 is due in one week.
 
 ## Practice module
 
-<a href="../../game/#/l02"><strong>Practice module for this session</strong></a>, about ten
-minutes of questions drawn from the numbers and the pitfalls above. It runs entirely in your
-browser, the questions are selected from your Andrew ID, and it ends by producing a PDF you
-upload for participation credit.
+<a href="../../game/#/l02"><strong>Practice module for this session</strong></a>, about 10min of questions drawn from the lecture notes, slides and our discussion in class. It runs entirely in your
+browser, and it ends by producing a PDF you upload for participation credit.
