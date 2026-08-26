@@ -9,8 +9,8 @@ from the start, but stays hidden until its week:
 
   * commented out of _toc.yml, so its notes are not built and (because the slide
     job reads _toc.yml) its deck is not rendered either;
-  * its quiz bank marked `status: unwritten`, so the game hides it and its room
-    on the map is shuttered;
+  * its quiz bank marked `status: unwritten`, so the game hides the practice
+    module (the map room follows _toc.yml, not the bank);
   * the assignment released that week (if any) commented out of _toc.yml too,
     from the schedule's "Assignment N released" markers;
   * the mini-project (L13) and final project (L17), whose whole Projects part

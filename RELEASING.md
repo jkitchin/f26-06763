@@ -63,8 +63,12 @@ practice module goes live. Everything not yet released stays hidden.
   earlier lectures, so releasing in order (L1, L2, L3, ...) is always safe. See
   section 4 of `CLAUDE.md`: no forward references.
 - **A lecture can ship without its quiz.** If a lecture's bank has no items yet,
-  `release_week.py` releases the notes and deck and leaves the quiz held, so the
-  room stays shuttered until the quiz is written. Re-run it once the quiz exists.
+  `release_week.py` releases the notes and deck and leaves the quiz held. Re-run it
+  once the quiz exists. Note what this does *not* do: the map room opens anyway.
+  `released_ids()` in `tools/world.py` reads `_toc.yml` and nothing else, so the
+  room follows the notes, not the bank. Only the practice module stays hidden.
+  Six banks are empty today (L6, L8, L10, L12, L14, L16), so this is the normal
+  case rather than an edge one.
 - **Held banks read as `status: unwritten` even though they are written.** That is
   the flag the game uses to hide a module; the items are still in the file, waiting.
 - **Assignments release with their lecture.** `release_week.py` uncomments the
