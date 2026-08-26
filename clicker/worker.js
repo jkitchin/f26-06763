@@ -10,6 +10,7 @@
 // what stops a late vote from polluting the next question.
 
 import VOTE_PAGE from './vote.html'
+import ADMIN_PAGE from './admin.html'
 
 const OPTS = ['A', 'B', 'C', 'D']
 
@@ -89,12 +90,22 @@ export default {
     if (path === '/open') return openWindow(env, url)
     if (path === '/state') return state(env, url)
 
+    // A human view of the same read-only endpoints. Deliberately carries nothing
+    // that can mutate anything: every route here is unauthenticated, so a page
+    // that could reset the tally would be a very different risk from one that
+    // can only show it.
+    if (path === '/admin') {
+      return new Response(ADMIN_PAGE, {
+        headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
+      })
+    }
+
     return json(
       {
         error: 'not found',
         routes: [
           '/', '/v/{A-D}', '/r', '/export', '/stats',
-          '/questions', '/mark', '/windows', '/open', '/state',
+          '/questions', '/mark', '/windows', '/open', '/state', '/admin',
         ],
       },
       404,

@@ -177,6 +177,7 @@ That is the only test that matters and the only one you cannot do at a desk.
 | `GET /windows?from=&to=` | the marked windows, each with its tally |
 | `GET /open?tag=&seconds=` | a slide announces that a question just opened |
 | `GET /state` | is a question running, and when does it stop |
+| `GET /admin` | a human dashboard over all of the above |
 
 `vote.html` is bundled into the Worker by `import`, so the page is same-origin with
 the vote endpoint: no CORS on the write path, and the page shows a real confirmation
@@ -322,6 +323,26 @@ The effects are **synthesized, not downloaded**: canvas particles and WebAudio
 oscillators. The decks are published, so a downloaded sound effect or animated GIF is a
 licensing question that original work is not, which is the argument CLAUDE.md section
 5b already makes about figures. It also keeps the deck diffable, per section 5.
+
+## The dashboard
+
+<https://clicker.f26-06763.workers.dev/admin>
+
+What is open right now with a countdown, totals, every question of a chosen day with
+its bars and its correct answer marked, the peer-instruction verdict for each, usage
+per day, and links to the raw endpoints and the CSV. It refreshes every ten seconds
+and pauses when the tab is hidden.
+
+It prefers the windows the slides marked and falls back to gap-detected bursts, so a
+deck whose questions carry no `data-tag` still shows something.
+
+**It is strictly read-only, and that is a design decision rather than an omission.**
+Every route here is unauthenticated, so anyone with the link can open it. A page that
+could reset the tally would be a very different risk from one that can only show it.
+Deleting anything is a `wrangler d1 execute` from a machine that is logged in.
+
+Each question slide prints its own tag in small type under the QR, so a question on
+the projector can be matched to its row here and in the archive.
 
 ## Reading the results
 

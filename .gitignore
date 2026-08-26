@@ -14,9 +14,11 @@ _build/
 # rule above silently excluded it, and the app built fine locally while CI got
 # "Could not resolve entry module index.html".
 !game/index.html
-# Same trap for the clicker: worker.js does `import VOTE_PAGE from './vote.html'`,
-# so this file is source. Without it, `wrangler deploy` fails on a fresh clone.
+# Same trap for the clicker: worker.js imports these as source, so the blanket
+# rule above would silently drop them and `wrangler deploy` would fail on a fresh
+# clone. Both pages ship inside the Worker.
 !clicker/vote.html
+!clicker/admin.html
 
 # Node (marp via npx)
 node_modules/

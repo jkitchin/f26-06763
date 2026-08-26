@@ -465,3 +465,14 @@ p.clicker-why {
 }
 
 p.clicker-why[hidden] { display: none; }
+
+/* The question's tag, shown so a slide on screen can be matched to its row in the
+ * dashboard and the archive. Small on purpose: useful to the presenter, ignorable
+ * by everyone else. */
+.clicker-tag {
+  margin-top: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.4em;
+  color: var(--muted);
+  word-break: break-all;
+}

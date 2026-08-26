@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>06-763 clicker · dashboard</title>
+<style>
+  :root {
+    --bg:#f7f8fa; --card:#fff; --ink:#14171a; --muted:#5b6570; --border:#dde2e8;
+    --accent:#c41230; --ok:#1a7f37; --warn:#8a5a00; --track:#eef1f4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0f1216; --card:#171b20; --ink:#eef2f5; --muted:#98a3ae;
+            --border:#2a3138; --accent:#e8536e; --ok:#3fb950; --warn:#d9a441; --track:#232931; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); padding:20px 16px 60px;
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  .wrap { max-width:980px; margin:0 auto; }
+  h1 { font-size:1.25rem; margin:0 0 2px; }
+  h2 { font-size:.95rem; margin:26px 0 10px; text-transform:uppercase;
+       letter-spacing:.06em; color:var(--muted); }
+  .sub { color:var(--muted); font-size:.85rem; margin-bottom:18px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:10px;
+    padding:14px 16px; margin-bottom:12px; }
+  .row { display:flex; flex-wrap:wrap; gap:12px; }
+  .row > .card { flex:1 1 150px; margin:0; }
+  .big { font-size:1.8rem; font-weight:700; font-variant-numeric:tabular-nums; line-height:1.1; }
+  .lbl { color:var(--muted); font-size:.76rem; text-transform:uppercase; letter-spacing:.05em; }
+  .live { border-left:4px solid var(--muted); }
+  .live.on { border-left-color:var(--ok); }
+  .pill { display:inline-block; padding:.1em .5em; border-radius:999px; font-size:.74rem;
+    background:var(--track); color:var(--muted); }
+  .pill.on { background:var(--ok); color:#fff; }
+
+  .q { margin-bottom:14px; }
+  .q .head { display:flex; justify-content:space-between; align-items:baseline; gap:10px;
+    flex-wrap:wrap; margin-bottom:2px; }
+  .q .prompt { font-weight:600; }
+  .q .meta { color:var(--muted); font-size:.78rem; font-variant-numeric:tabular-nums; }
+  .bars { display:grid; grid-template-columns:1.3em 1fr 3.4em; gap:5px 9px;
+    align-items:center; margin-top:8px; font-size:.86rem; }
+  .bars .lab { font-weight:700; color:var(--muted); text-align:center; border-radius:4px; }
+  .bars .lab.right { background:var(--ok); color:#fff; }
+  .bars .track { background:var(--track); border-radius:4px; height:1.35em; overflow:hidden; }
+  .bars .fill { display:block; height:100%; background:var(--accent); border-radius:4px; }
+  .bars .fill.right { background:var(--ok); }
+  .bars .n { text-align:right; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .verdict { margin-top:6px; font-size:.83rem; font-weight:600; }
+  .verdict.good { color:var(--ok); } .verdict.mixed { color:var(--warn); } .verdict.poor { color:var(--accent); }
+
+  .days { display:grid; grid-template-columns:6.5em 1fr 4.5em 4.5em; gap:4px 9px;
+    align-items:center; font-size:.84rem; font-variant-numeric:tabular-nums; }
+  .days .h { color:var(--muted); font-size:.74rem; text-transform:uppercase; letter-spacing:.05em; }
+  .days .track { background:var(--track); border-radius:3px; height:1.05em; overflow:hidden; }
+  .days .fill { display:block; height:100%; background:var(--accent); }
+
+  a { color:var(--accent); }
+  .links a { display:inline-block; margin:0 14px 6px 0; font-size:.88rem; }
+  code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.85em;
+    background:var(--track); padding:.1em .35em; border-radius:4px; }
+  .empty { color:var(--muted); font-style:italic; }
+  input[type=date] { font:inherit; background:var(--card); color:var(--ink);
+    border:1px solid var(--border); border-radius:6px; padding:.25em .5em; }
+  .note { color:var(--muted); font-size:.78rem; margin-top:8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>06-763 clicker</h1>
+  <div class="sub">Read-only. Refreshes every 10 seconds.</div>
+
+  <div class="card live" id="live"><span class="lbl">Right now</span>
+    <div class="big" id="liveTxt">checking…</div></div>
+
+  <div class="row">
+    <div class="card"><div class="lbl">Votes, all time</div><div class="big" id="tVotes">–</div></div>
+    <div class="card"><div class="lbl">Devices</div><div class="big" id="tDev">–</div></div>
+    <div class="card"><div class="lbl">First seen</div><div class="big" id="tFirst" style="font-size:1rem">–</div></div>
+    <div class="card"><div class="lbl">Last seen</div><div class="big" id="tLast" style="font-size:1rem">–</div></div>
+  </div>
+
+  <h2>Questions <input type="date" id="day"></h2>
+  <div id="questions"><div class="card empty">loading…</div></div>
+
+  <h2>Usage by day</h2>
+  <div class="card"><div class="days" id="days"><span class="empty">loading…</span></div></div>
+
+  <h2>Links</h2>
+  <div class="card links">
+    <a href="/" target="_blank">Vote page</a>
+    <a href="https://kitchingroup.cheme.cmu.edu/f26-06763/slides/clicker/" target="_blank">Dry-run deck</a>
+    <a id="csv" href="/export" target="_blank">Export CSV, this day</a>
+    <a href="/stats" target="_blank">/stats</a>
+    <a href="/windows" target="_blank">/windows</a>
+    <a href="/questions" target="_blank">/questions</a>
+    <a href="/state" target="_blank">/state</a>
+    <div class="note">
+      Every route here is unauthenticated, so this page is readable by anyone with the
+      link and carries nothing that can mutate the data. Archive a day with
+      <code>python3 tools/clicker.py archive lNN --date YYYY-MM-DD</code>.
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var L = ['A','B','C','D'];
+
+  function el(id) { return document.getElementById(id); }
+  function fmt(ts) {
+    if (!ts) return '–';
+    return new Date(ts).toLocaleString(undefined, {month:'short', day:'numeric',
+      hour:'numeric', minute:'2-digit'});
+  }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+    });
+  }
+  // The date input is a local calendar day; the API wants epoch ms. Doing the
+  // conversion here keeps the Worker ignorant of time zones, same as the CLI.
+  function bounds(v) {
+    var p = v.split('-');
+    var lo = new Date(+p[0], +p[1] - 1, +p[2], 0, 0, 0, 0).getTime();
+    return { from: lo, to: lo + 86400000 };
+  }
+  function get(path) {
+    return fetch(path, {cache:'no-store'}).then(function (r) { return r.json(); });
+  }
+
+  function band(pct) {
+    if (pct > 70) return ['good', 'moving on'];
+    if (pct >= 30) return ['mixed', 'discuss and re-vote'];
+    return ['poor', 're-teach'];
+  }
+
+  function drawQuestions(list) {
+    var box = el('questions');
+    if (!list.length) { box.innerHTML = '<div class="card empty">No questions on this day.</div>'; return; }
+    box.innerHTML = list.map(function (w) {
+      var max = Math.max.apply(null, L.map(function (x) { return w[x] || 0; }).concat([1]));
+      var bars = L.map(function (x) {
+        var n = w[x] || 0, right = w.answer === x;
+        return '<span class="lab' + (right ? ' right' : '') + '">' + x + '</span>' +
+          '<span class="track"><i class="fill' + (right ? ' right' : '') +
+            '" style="width:' + (100 * n / max) + '%"></i></span>' +
+          '<span class="n">' + n + (w.total ? ' · ' + Math.round(100*n/w.total) + '%' : '') + '</span>';
+      }).join('');
+      var verdict = '';
+      if (w.answer && w.total) {
+        var pct = Math.round(100 * (w[w.answer] || 0) / w.total), b = band(pct);
+        verdict = '<div class="verdict ' + b[0] + '">' + pct + '% correct · ' + b[1] + '</div>';
+      }
+      return '<div class="card q"><div class="head">' +
+        '<span class="prompt">' + (esc(w.prompt) || '<span class="empty">untitled</span>') + '</span>' +
+        '<span class="meta">' + esc(w.tag || '') + (w.round > 1 ? ' · round ' + w.round : '') +
+          ' · ' + fmt(w.from) + ' · ' + w.seconds + 's · ' + w.total + ' voters</span>' +
+        '</div><div class="bars">' + bars + '</div>' + verdict + '</div>';
+    }).join('');
+  }
+
+  function drawDays(days) {
+    var box = el('days');
+    if (!days.length) { box.innerHTML = '<span class="empty">Nothing recorded yet.</span>'; return; }
+    var max = Math.max.apply(null, days.map(function (d) { return d.votes; }).concat([1]));
+    box.innerHTML = '<span class="h">Day (UTC)</span><span class="h"></span>' +
+      '<span class="h">Votes</span><span class="h">Devices</span>' +
+      days.map(function (d) {
+        return '<span>' + esc(d.day) + '</span>' +
+          '<span class="track"><i class="fill" style="width:' + (100*d.votes/max) + '%"></i></span>' +
+          '<span>' + d.votes + '</span><span>' + d.devices + '</span>';
+      }).join('');
+  }
+
+  function refresh() {
+    var b = bounds(el('day').value);
+    el('csv').href = '/export?from=' + b.from + '&to=' + b.to;
+
+    get('/state').then(function (st) {
+      var card = el('live'), txt = el('liveTxt');
+      if (st.open) {
+        var left = Math.max(0, Math.round((st.end - st.server_ts) / 1000));
+        card.className = 'card live on';
+        txt.innerHTML = '<span class="pill on">open</span> ' + left + 's left' +
+          (st.tag ? ' <span class="meta">· ' + esc(st.tag) + '</span>' : '');
+      } else {
+        card.className = 'card live';
+        txt.innerHTML = '<span class="pill">closed</span> ' +
+          (st.start ? 'last question ' + fmt(st.start) : 'nothing yet');
+      }
+    }).catch(function () { el('liveTxt').textContent = 'server unreachable'; });
+
+    get('/stats?days=30').then(function (s) {
+      el('tVotes').textContent = s.votes;
+      el('tDev').textContent = s.devices;
+      el('tFirst').textContent = fmt(s.first_ts);
+      el('tLast').textContent = fmt(s.last_ts);
+      drawDays(s.days || []);
+    }).catch(function () {});
+
+    // Prefer what the slides marked; fall back to bursts inferred from gaps, so a
+    // deck whose questions carry no tag still shows something.
+    get('/windows?from=' + b.from + '&to=' + b.to).then(function (r) {
+      if (r.windows && r.windows.length) return drawQuestions(r.windows);
+      return get('/questions?from=' + b.from + '&to=' + b.to).then(function (q) {
+        drawQuestions((q.questions || []).map(function (x) {
+          x.prompt = x.prompt || ('untagged burst ' + x.n); return x;
+        }));
+      });
+    }).catch(function () {
+      el('questions').innerHTML = '<div class="card empty">could not load</div>';
+    });
+  }
+
+  var d = new Date();
+  el('day').value = d.getFullYear() + '-' +
+    String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  el('day').addEventListener('change', refresh);
+  refresh();
+  setInterval(function () { if (!document.hidden) refresh(); }, 10000);
+})();
+</script>
+</body>
+</html>

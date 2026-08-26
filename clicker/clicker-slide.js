@@ -313,6 +313,16 @@
       return (h ? h.textContent : '').trim().slice(0, 300);
     }
 
+    // Show the tag on the slide. It is how a question on screen is matched to its
+    // row in the dashboard and the archive, and an identifier nobody can read is
+    // not much of an identifier.
+    if (tag) {
+      var tagEl = document.createElement('div');
+      tagEl.className = 'clicker-tag';
+      tagEl.textContent = tag;
+      panel.appendChild(tagEl);
+    }
+
     // Mute lives next to the button so it is reachable without leaving the slide.
     var mute = document.createElement('button');
     mute.className = 'clicker-mute';
