@@ -87,17 +87,17 @@ items:
       - "Yes, because an unlocked environment cannot produce a result worth acting on at all"
     answer: "No for a genuinely throwaway exploration, but the trap is that results cross the line into needing it quietly"
     evidence: |
-      The skill is proportion. Full scaffolding on a twenty-minute exploration is
-      friction that buys nothing and is its own kind of over-engineering. The
-      moment an analysis will be rerun, shared, built upon, or believed by
-      anyone, including your future self, it has crossed the line, and almost
-      nobody notices the crossing at the time. So the default leans toward
-      scaffolding, because retrofitting is the expensive direction.
+      There is a real judgment call about when to pay for the discipline. Full
+      scaffolding on a twenty-minute exploration is cumbersome and is its own kind
+      of over-engineering. The moment an analysis will be rerun, shared, built
+      upon, or believed by anyone, including your future self, it has crossed the
+      line, and almost nobody notices the crossing at the time. So the default
+      leans toward scaffolding, because retrofitting is the expensive direction.
     source:
       file: lectures/l02/notes.md
       heading: "The discipline has a cost, and sometimes it is overkill"
-      quote: "The skill is proportion."
-    verify: {mode: quote, needle: "The skill is proportion", volatility: stable}
+      quote: "The trap is that results almost always cross that line quietly, without anyone deciding that they have."
+    verify: {mode: quote, needle: "cross that line quietly", volatility: stable}
     tags: [reproducibility, judgment]
 
   - id: l02-q04
