@@ -56,7 +56,15 @@ TIMEOUT = 900  # seconds, per command; a cold uv cache can take a few minutes
 SKIP_DIRS = {".venv", ".git", "node_modules", "__pycache__", ".ipynb_checkpoints",
              "build", "dist", ".pytest_cache", "mlruns", "site-packages"}
 DATA_SUFFIXES = (".csv", ".tsv", ".xlsx", ".xls", ".zip", ".parquet", ".data",
-                 ".gz", ".h5", ".nc", ".sqlite")
+                 ".gz", ".h5", ".nc")
+# The project's own machinery, which this assignment tells students to create and
+# which the data check must never mistake for a raw file. An MLflow store is a
+# SQLite database, so ".sqlite" cannot live in DATA_SUFFIXES above: a student who
+# named their store mlflow.sqlite instead of mlflow.db was told their MLflow store
+# was stray raw data, and lost the data check and the cross-check together.
+# uv.lock is here for the size rule rather than the suffix rule: with pandas,
+# scikit-learn, matplotlib and mlflow resolved it runs to hundreds of kilobytes.
+OURS_BY_SUFFIX = (".db", ".sqlite", ".sqlite3", ".lock")
 BIG_FILE = 1_000_000  # a tracked file this large is data by any other name
 OURS = ("a01-evidence.py", "evidence.html", "evidence.pdf")
 # Finder and Explorer leave these behind in any directory a student opens.
@@ -182,8 +190,12 @@ def find_tracking_uri(root, given=None):
     # they just wrote to is the one with the newest mtime, so a leftover
     # mlflow.db from an earlier attempt cannot send the search to an empty
     # database while the real runs sit in the file beside it.
+    # Any SQLite suffix, not just .db. Naming the store mlflow.sqlite is an
+    # ordinary convention, and looking only for .db meant the runs were never
+    # found and the cross-check failed over the spelling of a filename.
     candidates = [(p.stat().st_mtime, f"sqlite:///{p.name}")
-                  for p in root.glob("*.db") if _usable(p) and p.is_file()]
+                  for pattern in ("*.db", "*.sqlite", "*.sqlite3")
+                  for p in root.glob(pattern) if _usable(p) and p.is_file()]
     mlruns = root / "mlruns"
     if mlruns.is_dir():
         candidates.append((mlruns.stat().st_mtime, "file:./mlruns"))
@@ -246,8 +258,15 @@ def numbers(text):
     check survive a student who prints a run id or a timestamp beside the
     metric. Comparing whole strings called those submissions non-deterministic,
     which they were not.
+
+    One decimal place counts, and scientific notation counts. Requiring two
+    digits meant "R2 = 0.8" and "R2 = 1.0" produced no numbers at all, which
+    failed both determinism checks and the cross-check together: half the score,
+    for printing a metric with one decimal place in a project that was correct.
+    Rounding to four places is what keeps 0.8 and 0.80 the same number.
     """
-    return {f"{float(t):.4f}" for t in re.findall(r"-?\d+\.\d{2,}", text)}
+    pattern = r"-?\d+\.\d+(?:[eE][-+]?\d+)?|-?\d+[eE][-+]?\d+"
+    return {f"{float(t):.4f}" for t in re.findall(pattern, text)}
 
 
 def notebook_code(path):
@@ -371,6 +390,13 @@ def collect(root, found):
             continue
         relative = path.relative_to(root)
         if relative.parts[0] in ("data", *OURS) or relative.name in OURS:
+            continue
+        if path.suffix.lower() in OURS_BY_SUFFIX:
+            # A lockfile or an MLflow store. Both are supposed to be here, and
+            # both are large enough to trip the size rule below on an ordinary
+            # project: this reference one has an 872 kB store after three runs,
+            # growing about 5 kB a run, and a 786 kB lockfile. Deducting for
+            # either is a mark taken for following the instructions.
             continue
         if path.suffix.lower() in DATA_SUFFIXES:
             stray.append(str(relative))
