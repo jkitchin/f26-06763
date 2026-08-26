@@ -178,7 +178,8 @@
 - id: l02-o4
   lecture: l02
   text: >-
-    Log a run to MLflow so that one run equals one fact you can reproduce.
+    Log a run to MLflow so that one run equals the same exact fact you can always
+    reproduce.
 
 - id: l05-o1
   lecture: l05

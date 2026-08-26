@@ -86,11 +86,16 @@ export default {
     if (path === '/questions') return questions(env, url)
     if (path === '/mark') return mark(env, url)
     if (path === '/windows') return windows(env, url)
+    if (path === '/open') return openWindow(env, url)
+    if (path === '/state') return state(env, url)
 
     return json(
       {
         error: 'not found',
-        routes: ['/', '/v/{A-D}', '/r', '/export', '/stats', '/questions', '/mark', '/windows'],
+        routes: [
+          '/', '/v/{A-D}', '/r', '/export', '/stats',
+          '/questions', '/mark', '/windows', '/open', '/state',
+        ],
       },
       404,
     )
@@ -402,5 +407,55 @@ async function windows(env, url) {
       ...tally(rows.filter((r) => r.ts >= m.from_ts && r.ts <= m.to_ts)),
     })),
     server_ts: Date.now(),
+  })
+}
+
+/* ---- the currently open question -------------------------------------- */
+
+// GET /open?tag=&seconds= -> record that a question just opened.
+//
+// The server still does not know what the question IS. It knows only that one is
+// running and when it stops, which is the least it can know and still let a phone
+// clear itself at the right moment instead of guessing with a timer.
+async function openWindow(env, url) {
+  const tag = url.searchParams.get('tag') || ''
+  if (tag && !/^[a-z0-9][a-z0-9._-]{0,63}$/.test(tag)) {
+    return json({ error: 'bad tag' }, 400)
+  }
+  const seconds = Math.min(Math.max(intParam(url, 'seconds', 60), 5), 3600)
+  const now = Date.now()
+  const end = now + seconds * 1000
+  try {
+    await env.DB.prepare(
+      'INSERT OR REPLACE INTO live (id, tag, start_ts, end_ts) VALUES (1, ?, ?, ?)',
+    )
+      .bind(tag || null, now, end)
+      .run()
+  } catch (err) {
+    return dbError(err)
+  }
+  return json({ ok: true, tag: tag || null, start: now, end, server_ts: now })
+}
+
+// GET /state -> is a question open, and when does it stop?
+//
+// Every phone polls this, so it stays one indexed row and no scan. `start` is the
+// identity of a question as far as a phone is concerned: when it changes, a new
+// question began and the pad should clear.
+async function state(env) {
+  const now = Date.now()
+  let row
+  try {
+    row = await env.DB.prepare('SELECT tag, start_ts, end_ts FROM live WHERE id = 1').first()
+  } catch (err) {
+    return dbError(err)
+  }
+  if (!row) return json({ open: false, start: null, end: null, tag: null, server_ts: now })
+  return json({
+    open: now < row.end_ts,
+    start: row.start_ts,
+    end: row.end_ts,
+    tag: row.tag,
+    server_ts: now,
   })
 }

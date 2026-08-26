@@ -414,6 +414,13 @@
           open = true;
           round += 1;
           btn.textContent = 'Reveal now';
+
+          // Tell the phones a question is running and when it stops, so they can
+          // clear themselves at the right moment instead of guessing with a timer.
+          // Best-effort: a failure here must never disturb what is on screen.
+          fetch(api + '/open?seconds=' + seconds +
+                (tag ? '&tag=' + encodeURIComponent(tag) : ''),
+                { cache: 'no-store' }).catch(function () {});
           timerEl.classList.remove('is-over');
 
           // A fresh window means the previous round's result is stale. Clear it,

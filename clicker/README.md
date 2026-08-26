@@ -49,11 +49,23 @@ The `device` id is a pseudonym, not an identity: a random string the browser inv
 and keeps in `localStorage`. Nothing links it to a person, and it is deliberately not
 carried into the committed archive.
 
-**The pad clears itself between questions.** The phone never learns what question is
-running, so it cannot be told when one ends; instead the highlight expires after 75
-seconds, which is longer than a window and shorter than the gap to a normal next
-question. A reload only restores a choice that is still recent, because showing an
-answer to a question that has already been revealed is worse than showing none.
+**The pad clears itself the moment voting closes.** A slide calls `/open` when a
+question starts, and the phone polls `/state` every 5 seconds to learn whether one is
+running and when it stops. A changed `start` means a new question, so the pad clears;
+past `end`, it clears and says "Voting closed". Students also get a live countdown.
+
+The server learns only that *a* question is running and when it stops, never what it
+is, so this costs none of the deploy-once property. `live` is the only table that is
+not append-only, and it is deliberately disposable: losing it costs one polling cycle
+of staleness.
+
+This replaced a fixed 75-second timer started at the moment of voting, which could not
+work: it had no idea when voting actually ended, so a student who voted at second 5 of
+a 45-second question stared at their own answer for 40 seconds past the reveal. The
+timer survives only as a fallback for a phone that cannot reach `/state`.
+
+Polling pauses while the phone is pocketed and resumes on wake, which keeps a 40-person
+class near 24k requests a session against a 100k/day budget.
 
 `game/` is untouched. CLAUDE.md section 9c says "a feature that needs a server is a
 feature this design cannot have"; the clicker shares none of the game's code, so that
@@ -163,6 +175,8 @@ That is the only test that matters and the only one you cannot do at a desk.
 | `GET /questions?from=&to=&gap=` | question windows **inferred** from gaps |
 | `GET /mark?tag=&from=&to=&round=&answer=&prompt=` | a slide records its own window |
 | `GET /windows?from=&to=` | the marked windows, each with its tally |
+| `GET /open?tag=&seconds=` | a slide announces that a question just opened |
+| `GET /state` | is a question running, and when does it stop |
 
 `vote.html` is bundled into the Worker by `import`, so the page is same-origin with
 the vote endpoint: no CORS on the write path, and the page shows a real confirmation
