@@ -87,11 +87,14 @@
   // So there is no lock, just a short debounce against a double-fire.
   var DEBOUNCE_MS = 700;
 
-  // The phone has no idea when a question ends: it never learns what question is
-  // running, which is the whole point of keeping it dumb. So the highlight simply
-  // expires. A window is 45 to 60 seconds, so this clears after the current
-  // question is over and before a normal next one begins, and the student starts
-  // each question looking at a blank pad rather than their last answer.
+  // The phone follows the question rather than guessing at it: /state says whether
+  // one is running and when it stops, so the pad clears the moment voting closes
+  // and again when a new question opens. The phone still never learns what the
+  // question IS.
+  var POLL_MS = 5000;
+
+  // Fallback for when /state cannot be reached. A window is 45 to 60 seconds, so
+  // this clears late rather than early, which is the safer way to be wrong.
   var CLEAR_MS = 75000;
   var LAST_KEY = 'f26-06763-clicker/last';
   var DEV_KEY  = 'f26-06763-clicker/device';
@@ -175,6 +178,47 @@
   buttons.forEach(function (b) {
     b.addEventListener('click', function () { vote(b.dataset.opt); });
   });
+
+  /* ---- follow the question ------------------------------------------- */
+
+  var seenStart = null;   // which question the pad is currently showing an answer to
+  var closed = false;
+
+  function follow() {
+    if (document.hidden) return;          // no point polling a pocketed phone
+    fetch('state', { cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (st) {
+        if (!st) return;
+
+        // A different start means a different question. Clear whatever the student
+        // answered last time so they begin this one on a blank pad.
+        if (st.start && st.start !== seenStart) {
+          seenStart = st.start;
+          closed = false;
+          clearChoice();
+        }
+
+        if (st.open) {
+          var left = Math.max(0, Math.round((st.end - st.server_ts) / 1000));
+          var mine = load(LAST_KEY);
+          setStatus(mine
+            ? 'Your answer: ' + mine + '. ' + left + 's left, tap another to change it.'
+            : 'Voting is open, ' + left + 's left.');
+        } else if (!closed) {
+          // Voting just stopped. Clear the pad rather than leaving a stale answer
+          // sitting under a question that has already been revealed.
+          closed = true;
+          clearChoice();
+          setStatus('Voting closed.');
+        }
+      })
+      .catch(function () { /* offline or blocked: the timed fallback still applies */ });
+  }
+
+  setInterval(follow, POLL_MS);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) follow(); });
+  follow();
 
   // On load, only restore a choice recent enough to still belong to the question
   // on screen. A stale one is worse than none: it shows an answer to a question

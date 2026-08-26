@@ -33,3 +33,16 @@ CREATE TABLE IF NOT EXISTS window (
 );
 
 CREATE INDEX IF NOT EXISTS window_from ON window (from_ts);
+
+-- The single currently-open question, so a phone can tell whether voting is open
+-- without knowing anything about what the question is. One row, replaced each time
+-- a slide opens a window.
+--
+-- This is the only server state that is not append-only, and it is deliberately
+-- disposable: losing it costs a phone one polling cycle of staleness, nothing more.
+CREATE TABLE IF NOT EXISTS live (
+  id      INTEGER PRIMARY KEY CHECK (id = 1),
+  tag     TEXT,
+  start_ts INTEGER NOT NULL,
+  end_ts   INTEGER NOT NULL
+);
