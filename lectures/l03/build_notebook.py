@@ -34,6 +34,39 @@ def code(*lines):
             "metadata": {}, "outputs": [], "source": list(lines)}
 
 
+# The Colab bootstrap, kept as one readable block. subprocess is called with an
+# argv list rather than a shell string, so the SQL below needs no shell quoting:
+# `$$` inside double quotes would otherwise expand to the shell's process id.
+COLAB_PG = """# Only if you have no PostgreSQL of your own. Does nothing outside Colab.
+import os
+import subprocess
+import sys
+
+if 'google.colab' in sys.modules:
+    def run(*cmd, **kw):
+        print('$', ' '.join(cmd))
+        return subprocess.run(cmd, **kw)
+
+    run('apt-get', '-y', '-qq', 'update', check=True)
+    run('apt-get', '-y', '-qq', 'install', 'postgresql', check=True)
+    run('service', 'postgresql', 'start', check=True)
+
+    # CREATE ROLE has no IF NOT EXISTS, hence the DO block, so re-running this
+    # cell is harmless. createdb has no equivalent at all, so a second run is
+    # simply allowed to fail.
+    run('sudo', '-u', 'postgres', 'psql', '-c',
+        "DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='demo') "
+        "THEN CREATE ROLE demo LOGIN PASSWORD 'demo' SUPERUSER; END IF; END $$;",
+        check=True)
+    run('sudo', '-u', 'postgres', 'createdb', '-O', 'demo', 'sensors')
+
+    # The next cell reads this, so nothing downstream changes.
+    os.environ['L3_DSN'] = 'postgresql+psycopg://demo:demo@localhost:5432/sensors'
+    print('\\nPostgreSQL is up, and L3_DSN points at it.')
+else:
+    print('Not on Colab, so nothing to do here. Use docker compose up -d.')"""
+
+
 cells = [
     md("# L3 demo: a month of sensor data in PostgreSQL\n",
        "\n",
@@ -50,12 +83,32 @@ cells = [
        "docker compose up -d          # starts postgres on localhost:5432\n",
        "```\n",
        "\n",
-       "The database, user, and password below match that compose file. Install the\n",
-       "Python dependencies with `uv`:\n",
+       "The database, user, and password below match that compose file. If you cannot\n",
+       "install Docker, the next section starts PostgreSQL inside Colab instead.\n",
+       "Install the Python dependencies with `uv`:\n",
        "\n",
        "```bash\n",
        "uv run --with pandas,psycopg[binary],sqlalchemy jupyter lab\n",
        "```\n"),
+
+    md("## No Docker? Start PostgreSQL here instead\n",
+       "\n",
+       "Colab cannot run Docker. It is itself a sandboxed container with no daemon\n",
+       "and no privileged access, so `docker compose up` has nothing to talk to.\n",
+       "Docker is not the requirement though: PostgreSQL is, and Colab runs as root\n",
+       "with `apt`, so the server can simply be installed here.\n",
+       "\n",
+       "Run the cell below **only if you have no PostgreSQL of your own**. On a\n",
+       "machine where `docker compose up -d` already worked, skip it; it does nothing\n",
+       "outside Colab anyway.\n",
+       "\n",
+       "Two things to know before relying on this. A Colab runtime is temporary, so\n",
+       "the download and the load happen again every session and disappear when it\n",
+       "disconnects. And the index comparison later in this notebook is timed on\n",
+       "shared, throttled hardware, so expect the numbers to be mushier than the ones\n",
+       "in the notes. Nothing here needs PostgreSQL 16 specifically: the newest\n",
+       "feature used is a generated column, which arrived in 12."),
+    code(* COLAB_PG.splitlines(keepends=True)),
 
     md("## Connect\n",
        "\n",
