@@ -62,12 +62,14 @@ cells = [
     md("## 1. Scaffold the project (in a terminal)\n",
        "\n",
        "```bash\n",
-       "uv init sensorlab && cd sensorlab\n",
+       "uv init --package sensorlab && cd sensorlab\n",
        "uv add pandas scikit-learn mlflow\n",
        "```\n",
        "\n",
-       "`uv init` writes `pyproject.toml` and `.python-version`; `uv add` resolves the whole\n",
-       "dependency graph into `uv.lock`. On any other machine, `uv sync` rebuilds this exact\n",
+       "`uv init --package` writes `pyproject.toml`, `.python-version`, and an importable\n",
+       "`src/sensorlab/` (the `--package` flag is what makes `python -m sensorlab.train` work);\n",
+       "`uv add` resolves the whole dependency graph into `uv.lock`. On any other machine,\n",
+       "`uv sync` rebuilds this exact\n",
        "environment. That lockfile, not a `requirements.txt`, is what makes the rebuild\n",
        "deterministic rather than merely probable.\n",
        "\n",
@@ -220,25 +222,83 @@ cells = [
          "        mlflow.log_metric('r2', r2)\n",
          "        print(f'seed {seed}: R2 = {r2:.4f}')"),
 
-    md("### Compare the two runs\n",
+    # We do NOT re-list the functions here (those are the code cells above). Only
+    # the entry point is shown, because it is the one piece the notebook cannot
+    # run: argparse would try to parse Jupyter's own launch args. It lives in a
+    # fenced block in a markdown cell, so "Restart & Run All" never executes it.
+    md('''## 4. Move it into the project
+
+You do not keep this in the notebook. You move the functions above, unchanged, into
+`src/sensorlab/train.py`. One thing has to be **added** that the notebook never needed: a
+**command-line entry point**, so the analysis runs as a command you type rather than cells
+you click in the right order.
+
+Two things get added at the bottom of `train.py`. First, wrap the run-and-log logic (the
+`for`-loop from the MLflow cell above) into a `main(seed)` that does **one** seed. Second,
+add the command-line entry point that reads `--seed` and calls it. Both use the functions
+and `DATA` you already moved in (`load`, `clean`, `featurize`, `train`, `data_hash`,
+`git_sha`):
+
+```python
+def main(seed: int) -> None:
+    mlflow.set_tracking_uri("sqlite:///mlflow.db")
+    mlflow.set_experiment("l02-scaffold")
+    X, y = featurize(clean(load()))
+    with mlflow.start_run(run_name=f"seed-{seed}"):
+        r2 = train(X, y, seed=seed)
+        mlflow.log_params({"seed": seed, "model": "rf200",
+                           "data_sha": data_hash(DATA), "git_sha": git_sha()})
+        mlflow.log_metric("r2", r2)
+        print(f"seed {seed}: R2 = {r2:.4f}")
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--seed", type=int, default=0)
+    args = parser.parse_args()
+    main(args.seed)
+```
+
+**Why it is needed, and what each part does:**
+
+- `if __name__ == "__main__":` runs the block **only when the file is executed directly**
+  (`python -m sensorlab.train`), and **not when it is imported** (`from sensorlab.train
+  import train`). That is what lets one file be both an importable library and a runnable
+  program. Without the guard, this code would fire every time anything imported the
+  module, including your notebook and your tests.
+- `argparse` is Python's standard command-line reader. `add_argument("--seed", ...)`
+  declares a `--seed` option; `parse_args()` reads what you actually typed.
+- `main(args.seed)` runs one seeded, logged run. The seed becomes a knob you set on the
+  command line instead of a number buried in a cell, which is the whole point: the run is
+  explicit and repeatable.
+
+It is shown here, not run: `parse_args()` inside a notebook would try to parse Jupyter's
+own launch arguments and fail. In the project you run it from a terminal, once per seed:
+
+```bash
+uv run python -m sensorlab.train --seed 0
+uv run python -m sensorlab.train --seed 1
+```
+'''),
+
+    md("## 5. Compare the two runs\n",
        "\n",
-       "Open the UI in a terminal:\n",
+       "The two runs are now in `mlflow.db`, whether you logged them here (the MLflow cell\n",
+       "above) or from the terminal (the two commands above). Open the UI to compare them.\n",
+       "\n",
+       "This is a **local** command: it serves to `http://127.0.0.1:5000` on your own machine,\n",
+       "so run it from the project directory. On Colab there is nothing for it to open.\n",
        "\n",
        "```bash\n",
-       "mlflow ui --backend-store-uri sqlite:///mlflow.db   # then open http://127.0.0.1:5000\n",
+       "uv run mlflow ui --backend-store-uri sqlite:///mlflow.db   # then open http://127.0.0.1:5000\n",
        "```\n",
        "\n",
        "You will see two runs that differ only by their seed, with slightly different R2. That\n",
        "small difference is the whole reason to log the seed: without it, neither number is\n",
        "reconstructible. The data hash and git SHA make the rest of the run reconstructible\n",
        "too, which is the provenance the L2 notes argue for.\n",
-       "\n",
-       "In the real project these functions live in `src/sensorlab/` behind a command-line\n",
-       "entry point, so the whole run is one command:\n",
-       "\n",
-       "```bash\n",
-       "uv run python -m sensorlab.train --seed 0\n",
-       "```\n",
        "\n",
        "That, plus the lockfile and the tracked runs, is assignment **A1**."),
 ]

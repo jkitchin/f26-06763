@@ -171,11 +171,11 @@ syntax, defaults, and C extensions differ.
 ## Environments you can rebuild, start a project
 
 ```bash
-uv init sensorlab && cd sensorlab
+uv init --package sensorlab && cd sensorlab
 uv add pandas scikit-learn mlflow
 ```
 
-`uv init` writes `pyproject.toml` and `.python-version`.
+`uv init --package` writes `pyproject.toml`, `.python-version`, and importable `src/sensorlab/`.
 `uv add` resolves the whole graph into `uv.lock`.
 
 ---
@@ -520,7 +520,6 @@ Same data, same code, two seeds:
 | 0 | 0.786 |
 | 1 | 0.785 |
 
-The gap is tiny (0.786 vs 0.785).
 Without the logged seed, neither number is reconstructible.
 
 ---
@@ -582,8 +581,7 @@ When in doubt, **scaffold:** retrofitting (that is, structuring your project aft
 ## `l02-scaffold.ipynb`
 
 Empty folder → tracked run in ~15 minutes:
-`uv init sensorlab` → add deps → cells into `src/sensorlab/`
-→ CLI → two seeds → MLflow UI
+`uv init --package sensorlab` → add dependencies → cells into `src/sensorlab/` → two seeds → MLflow UI
 
 ---
 
@@ -602,8 +600,8 @@ Empty folder → tracked run in ~15 minutes:
 - Reproducible means **checkable**; correctness is separate
 - `uv`: the **lockfile + interpreter** make the rebuild come out the same
 - Code in git; data and models elsewhere; `.gitignore` first
-- Notebook → module: functions, a CLI, a **fixed seed**
-- MLflow: one run = one fact, with SHA + hash + seed
+- Notebook → module: functions, a **fixed seed**
+- MLflow: keeping track of instances of training
 
 ---
 

@@ -57,6 +57,12 @@ DOTTED = {"dask.dataframe", "pandera.pandas"}
 # One extra sentence in the markdown cell, where Colab cannot supply something
 # that no amount of pip will fix.
 NOTES = {
+    "l02-scaffold": (
+        "This project is built locally with `uv`, which is the whole point of the "
+        "lecture. If you are working locally, skip this cell: it exists only for "
+        "reading the notebook through the Open-in-Colab button, and does nothing "
+        "otherwise."
+    ),
     "l03-sql-timeseries": (
         "This demo also needs a PostgreSQL server, which Colab does not provide. "
         "Point `L3_DSN` at a database you can reach, or run this one locally."
