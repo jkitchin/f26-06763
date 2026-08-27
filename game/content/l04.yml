@@ -2,7 +2,7 @@ schema: 1
 lecture: l04
 title: "Beyond relational: columnar, Parquet, DuckDB, and the wider landscape"
 source_notes: lectures/l04/notes.md
-status: unwritten
+status: published
 serve: 5
 pool_version: 3
 provenance:

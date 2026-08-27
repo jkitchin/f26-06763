@@ -22,12 +22,12 @@ parts:
       - file: lectures/l02/notes
         sections:
           - file: lectures/l02/l02-scaffold
-#       - file: lectures/l03/notes
-#         sections:
-#           - file: lectures/l03/l03-sql-timeseries
-#       - file: lectures/l04/notes
-#         sections:
-#           - file: lectures/l04/l04-storage
+      - file: lectures/l03/notes
+        sections:
+          - file: lectures/l03/l03-sql-timeseries
+      - file: lectures/l04/notes
+        sections:
+          - file: lectures/l04/l04-storage
 #       - file: lectures/l05/notes
 #         sections:
 #           - file: lectures/l05/l05-pipelines
@@ -83,7 +83,7 @@ parts:
     # uncommented; the rest stay hidden exactly like an unreleased lecture.
     chapters:
       - file: course/assignments/a01
-#       - file: course/assignments/a02
+      - file: course/assignments/a02
 #       - file: course/assignments/a03
 #       - file: course/assignments/a04
 #       - file: course/assignments/a05
