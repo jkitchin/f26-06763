@@ -6,6 +6,7 @@
 - **Session** Lecture 13, Week 7
 - **Arc** Machine learning and deep learning
 - **Slides** <a href="../../slides/l13/">Deck for this session</a>
+- **Practice** <a href="../../game/#/l13">Practice module for this session</a>
 - **Demo** [`l13-surrogates-uq.ipynb`](l13-surrogates-uq.ipynb), two surrogates, and whether their uncertainty means anything
 - **Assignment 6** due, the miniproject (Assignment 7) launches this session
 :::
@@ -927,3 +928,10 @@ its own case.
 
 The full spec and rubric are in [the miniproject](../../course/miniproject.md); this
 paragraph is a pointer, not the rubric.
+
+## Practice module
+
+<a href="../../game/#/l13"><strong>Practice module for this session</strong></a>, about ten
+minutes of questions drawn from this session's notes, slides and demo. It runs entirely in
+your browser, the questions are selected from your Andrew ID, and it ends by producing a PDF
+you upload for participation credit.

@@ -153,6 +153,13 @@ frontmatter `title:` and expect it to render.
    later lectures. Backward references to earlier lectures are fine and encouraged.
 7. `## Resources`, annotated links, one line each on why it is worth reading.
 8. `## Assignment`, a pointer and a deadline, never a copy of the rubric.
+9. `## Practice module`, the link to this lecture's practice module, plus a matching
+   `- **Practice**` line in the opening `At a glance` block. Both are one line each and
+   both are needed: the module is where the participation credit comes from, and the
+   game gates it behind an Andrew ID, so a student who cannot reach it from the notes
+   cannot reach it at all. `release_lecture.py` publishes the bank, and nothing in the
+   release checks that anything links to it, which is exactly how L3 shipped with a live
+   quiz and no way in.
 
 **Writing.** Follow `scientific_writing.md` (repo root) for the prose standard. Write it as a
 chapter of a book, not a set of slides rendered as prose. That

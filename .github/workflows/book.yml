@@ -235,6 +235,58 @@ jobs:
           print(f"A1 evidence checksum matches: {digest}")
           PY
 
+      - name: Check every lecture links its practice module
+        # A published quiz bank and a set of notes that never links to it is a
+        # module no student can reach: the game gates its module list behind an
+        # Andrew ID, so the notes are the only way in, and the participation
+        # credit comes from that module. Nothing else notices. The bank
+        # validates, the page renders, the build is green, and the link simply
+        # is not there. That is how L3 shipped with a live quiz and no way in.
+        # Both pointers are required, and each must name its own lecture,
+        # because a copied line pointing at the previous lecture is the failure
+        # this would otherwise miss. See CLAUDE.md section 4.
+        run: |
+          python3 - <<'PY'
+          import pathlib
+          import re
+          import sys
+
+          problems = []
+          checked = 0
+          for notes in sorted(pathlib.Path("lectures").glob("l*/notes.md")):
+              lec = notes.parent.name
+              text = notes.read_text(encoding="utf-8")
+              checked += 1
+
+              # The closing section, which is where a reader who scrolled ends up.
+              if not re.search(r"^## Practice module\s*$", text, re.M):
+                  problems.append(f"{notes}: no '## Practice module' section")
+
+              # The At a glance line, which is where a reader who did not scroll ends up.
+              if not re.search(r"^- \*\*Practice\*\* ", text, re.M):
+                  problems.append(f"{notes}: no '- **Practice**' line in the At a glance block")
+
+              # Every practice href must name this lecture. A copied line
+              # pointing at a neighbour resolves, renders, and serves the
+              # wrong quiz.
+              hrefs = re.findall(r'href="[^"]*game/#/(l\d\d)"', text)
+              if not hrefs:
+                  problems.append(f"{notes}: no link to game/#/{lec}")
+              for got in sorted(set(hrefs)):
+                  if got != lec:
+                      problems.append(
+                          f"{notes}: links game/#/{got}, expected game/#/{lec}")
+              if hrefs and len(hrefs) < 2:
+                  problems.append(
+                      f"{notes}: only one practice link; expected one in the At a "
+                      f"glance block and one in the closing section")
+
+          if problems:
+              print("\n".join(f"::error::{p}" for p in problems))
+              sys.exit(f"{len(problems)} practice-module problem(s)")
+          print(f"OK: {checked} lectures link their practice module")
+          PY
+
       - name: Check every lecture carries index entries
         # The general index is only as good as the entries somebody remembered to
         # write, and a lecture that ships without them fails nothing on its own:

@@ -6,6 +6,7 @@
 - **Session** Lecture 15, Week 9
 - **Arc** LLM and agentic engineering
 - **Slides** <a href="../../slides/l15/">Deck for this session</a>
+- **Practice** <a href="../../game/#/l15">Practice module for this session</a>
 - **Demo** [`l15-tokens-embeddings.ipynb`](l15-tokens-embeddings.ipynb), what a datasheet costs and what a log book clusters into
 - **Assignment 8** released this session
 :::
@@ -709,3 +710,10 @@ token and cost baseline over your corpus, which you can do with nothing but the 
 and the counting endpoint before you have written any extraction code. And the corpus
 itself needs two or three deliberately incomplete documents, because the "not found"
 behaviour measured in this session is exactly what those documents exist to test.
+
+## Practice module
+
+<a href="../../game/#/l15"><strong>Practice module for this session</strong></a>, about ten
+minutes of questions drawn from this session's notes, slides and demo. It runs entirely in
+your browser, the questions are selected from your Andrew ID, and it ends by producing a PDF
+you upload for participation credit.

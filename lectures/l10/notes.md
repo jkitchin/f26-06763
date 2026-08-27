@@ -6,6 +6,7 @@
 - **Session** Lecture 10, Week 5
 - **Arc** Machine learning and deep learning
 - **Slides** <a href="../../slides/l10/">Deck for this session</a>
+- **Practice** <a href="../../game/#/l10">Practice module for this session</a>
 - **Demo** [`l10-tracking-search.ipynb`](l10-tracking-search.ipynb), an Optuna study wrapped in MLflow, from search to a registered model
 - **Assignment 5**, released at Lecture 9; this session is its tracking and search half
 :::
@@ -191,3 +192,10 @@ Experiment tracking exists to answer which run produced a number and whether it 
 ## Assignment
 
 Assignment 5, "Model-selection study with tracked experiments," was released at [Lecture 9](../l09/notes.md) and is due about a week later. This session is its second half: take one engineering regression dataset from data to a defended model choice, with every run tracked in MLflow, a systematic hyperparameter search, and a single honest test estimate reported at the end. This paragraph is a pointer, not the rubric.
+
+## Practice module
+
+<a href="../../game/#/l10"><strong>Practice module for this session</strong></a>, about ten
+minutes of questions drawn from this session's notes, slides and demo. It runs entirely in
+your browser, the questions are selected from your Andrew ID, and it ends by producing a PDF
+you upload for participation credit.

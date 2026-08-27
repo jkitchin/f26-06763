@@ -6,6 +6,7 @@
 - **Session** Lecture 18, Week 10
 - **Arc** LLM and agentic engineering
 - **Slides** <a href="../../slides/l18/">Deck for this session</a>
+- **Practice** <a href="../../game/#/l18">Practice module for this session</a>
 - **Demo** [`l18-prompt-vs-rag.ipynb`](l18-prompt-vs-rag.ipynb), one corpus, one gold set, two systems scored the same way
 - **Assignment 9** is under way, released last session and due about a week out
 :::
@@ -135,3 +136,10 @@ The lever follows the need. Knowledge the model lacks is retrieval's job, becaus
 ## Assignment
 
 Assignment 9, a RAG system over an engineering corpus, was released last session and is due about a week later. It asks you to build a retrieval-augmented QA system and measure both retrieval quality and answer quality against a gold set, which is the retrieval half of this session's bake-off built for real and at scale. This page does not restate the rubric.
+
+## Practice module
+
+<a href="../../game/#/l18"><strong>Practice module for this session</strong></a>, about ten
+minutes of questions drawn from this session's notes, slides and demo. It runs entirely in
+your browser, the questions are selected from your Andrew ID, and it ends by producing a PDF
+you upload for participation credit.

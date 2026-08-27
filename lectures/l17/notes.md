@@ -6,6 +6,7 @@
 - **Session** Lecture 17, Week 10
 - **Arc** LLM and agentic engineering
 - **Slides** <a href="../../slides/l17/">Deck for this session</a>
+- **Practice** <a href="../../game/#/l17">Practice module for this session</a>
 - **Demo** [`l17-rag.ipynb`](l17-rag.ipynb), a RAG pipeline measured end to end
 - **Assignment 9** released this session
 :::
@@ -416,3 +417,10 @@ later. It asks you to build a retrieval-augmented QA system over an engineering 
 measure, not assume, both retrieval quality and answer quality against a gold set, connecting
 the assembled grounded prompt this session's demo stops at to an actual hosted-LLM call. This
 paragraph is a pointer, not the rubric.
+
+## Practice module
+
+<a href="../../game/#/l17"><strong>Practice module for this session</strong></a>, about ten
+minutes of questions drawn from this session's notes, slides and demo. It runs entirely in
+your browser, the questions are selected from your Andrew ID, and it ends by producing a PDF
+you upload for participation credit.

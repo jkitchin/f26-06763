@@ -6,6 +6,7 @@
 - **Session** Lecture 12, Week 6
 - **Arc** Machine learning and deep learning
 - **Slides** <a href="../../slides/l12/">Deck for this session</a>
+- **Practice** <a href="../../game/#/l12">Practice module for this session</a>
 - **Demo** [`l12-cnn-rul.ipynb`](l12-cnn-rul.ipynb), a 1D-CNN for turbofan remaining-useful-life, against a tabular baseline
 - **Assignment 6**, released at Lecture 11; this session's architectures are what it asks you to build
 :::
@@ -148,3 +149,10 @@ The one idea of this session is to match the architecture to the structure of th
 ## Assignment
 
 Assignment 6, "Train a PyTorch model on an engineering dataset," was released at [Lecture 11](../l11/notes.md) and is due about a week later. It asks you to build, train, and honestly evaluate a deep model (an MLP, a CNN, or a sequence model) on a real engineering dataset, using a GPU, with MLflow tracking and a comparison against a strong classical baseline. This session's architectures and training recipe are what it is built on. This is a pointer, not the rubric.
+
+## Practice module
+
+<a href="../../game/#/l12"><strong>Practice module for this session</strong></a>, about ten
+minutes of questions drawn from this session's notes, slides and demo. It runs entirely in
+your browser, the questions are selected from your Andrew ID, and it ends by producing a PDF
+you upload for participation credit.

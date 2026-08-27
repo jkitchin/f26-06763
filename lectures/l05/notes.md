@@ -6,6 +6,7 @@
 - **Session** Lecture 5, Week 3
 - **Arc** Data Systems
 - **Slides** <a href="../../slides/l05/">Deck for this session</a>
+- **Practice** <a href="../../game/#/l05">Practice module for this session</a>
 - **Demo** [`l05-pipelines.ipynb`](l05-pipelines.ipynb), one pipeline in pandas, Polars, and Dask
 - **Assignment 3** released this session
 :::
@@ -719,3 +720,10 @@ four-stage pipeline this session covers on SECOM (or a documented fallback), in 
 Polars, with pandera or Great Expectations checks that fail the pipeline on injected bad data,
 logged to MLflow. Start on the pipeline stages now and add the validation checks as you go. This
 is a pointer, not the rubric.
+
+## Practice module
+
+<a href="../../game/#/l05"><strong>Practice module for this session</strong></a>, about ten
+minutes of questions drawn from this session's notes, slides and demo. It runs entirely in
+your browser, the questions are selected from your Andrew ID, and it ends by producing a PDF
+you upload for participation credit.

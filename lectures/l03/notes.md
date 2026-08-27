@@ -6,6 +6,7 @@
 - **Session** Lecture 3, Week 2
 - **Arc** Data Systems
 - **Slides** <a href="../../slides/l03/">Deck for this session</a>
+- **Practice** <a href="../../game/#/l03">Practice module for this session</a>
 - **Demo** [`l03-sql-timeseries.ipynb`](l03-sql-timeseries.ipynb), PostgreSQL over a month of real sensor data
 - **Assignment 2** released this session
 :::
@@ -702,3 +703,10 @@ it into PostgreSQL, and answer a set of engineering queries including a window f
 time-bucketed aggregate, then add an index and interpret `EXPLAIN ANALYZE` before and after.
 The second half moves the same data into Parquet and DuckDB, so you can start the PostgreSQL
 half now. This is a pointer, not the rubric.
+
+## Practice module
+
+<a href="../../game/#/l03"><strong>Practice module for this session</strong></a>, about ten
+minutes of questions drawn from the schema decisions, the queries and the indexing results
+above. It runs entirely in your browser, the questions are selected from your Andrew ID, and
+it ends by producing a PDF you upload for participation credit.
