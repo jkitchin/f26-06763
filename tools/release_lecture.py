@@ -1,28 +1,31 @@
 #!/usr/bin/env python3
-"""Release one lecture for its week.
+"""Release one lecture.
 
-    python tools/release_week.py 3            # release Lecture 3
-    python tools/release_week.py 3 --check    # show what it would do, change nothing
+    python tools/release_lecture.py 3            # release Lecture 3
+    python tools/release_lecture.py 3 --check    # show what it would do, change nothing
 
-The course ships one week at a time. Every lecture is written and lives on main
-from the start, but stays hidden until its week:
+The course ships one lecture at a time. Every lecture is written and lives on main
+from the start, but stays hidden until its session is a couple of days out:
 
   * commented out of _toc.yml, so its notes are not built and (because the slide
     job reads _toc.yml) its deck is not rendered either;
   * its quiz bank marked `status: unwritten`, so the game hides the practice
     module (the map room follows _toc.yml, not the bank);
-  * the assignment released that week (if any) commented out of _toc.yml too,
+  * the assignment released with it (if any) commented out of _toc.yml too,
     from the schedule's "Assignment N released" markers;
   * the mini-project (L13) and final project (L17), whose whole Projects part
     is held until the first of them is released.
 
 Releasing flips them all back on and regenerates the map. Nothing here commits or
 pushes: run it on a fresh branch, look at the diff, open a PR, merge. That PR is
-the weekly review gate.
+the review gate, one lecture per PR.
 
-    git checkout -b release-week-3 main
-    python tools/release_week.py 3
+    git checkout -b release-l03 main
+    python tools/release_lecture.py 3
     # review, then open a PR and merge into main
+
+Releasing in lecture order is what keeps the build green: a released lecture may
+cross-reference an earlier one, so L4 cannot go public before L3.
 """
 from __future__ import annotations
 
@@ -40,7 +43,7 @@ TOC = REPO / "_toc.yml"
 #: Which assignment is released with which lecture, from course/schedule.md's
 #: "Assignment N released" markers. The mini-project (A7) launches at L13 and
 #: lives in the Projects part, so it is not listed here. A lecture with no entry
-#: releases no assignment that week.
+#: releases no assignment.
 LECTURE_ASSIGNMENTS = {
     1: ["a01"], 3: ["a02"], 5: ["a03"], 7: ["a04"], 9: ["a05"],
     11: ["a06"], 15: ["a08"], 17: ["a09"], 19: ["a10"], 21: ["a11"],

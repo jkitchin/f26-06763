@@ -147,8 +147,8 @@ frontmatter `title:` and expect it to render.
    the relational model pushes back" is the worked model.
 5. `## In-class demo`, short orientation, pointing at `demo.ipynb`.
 6. `## Summary`, a paragraph, not bullets, closing the session on its own terms.
-   **Do not point forward to later sessions.** The course is released one week at a
-   time, so a released lecture must not reference material that is not out yet: no
+   **Do not point forward to later sessions.** The course is released one lecture
+   at a time, so a released lecture must not reference material that is not out yet: no
    "next session we...", no "we return to this in week N", no links or names of
    later lectures. Backward references to earlier lectures are fine and encouraged.
 7. `## Resources`, annotated links, one line each on why it is worth reading.
@@ -367,8 +367,9 @@ and the slide should carry the pointer instead.
 **Required structure:** title → roadmap → content sections → demo marker → recap → handoff.
 The final "handoff" slide carries only operational logistics that reveal no future content,
 the readings and the assignment for this week and any prep to do before the next class. It
-**must not preview the next lecture's number or topic**, because the course releases weekly
-and that lecture is not out yet. Same rule as the notes Summary in section 4.
+**must not preview the next lecture's number or topic**, because the course releases one
+lecture at a time and that lecture is not out yet. Same rule as the notes Summary in
+section 4.
 
 **Sessions are 110 minutes.** Budget accordingly, and note that this is long enough that a
 deck which merely names topics will run dry well before the room does.
