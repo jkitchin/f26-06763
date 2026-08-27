@@ -1,0 +1,168 @@
+name: Release cycle (shared)
+
+# The body of both release cycles. release-monday.yml and release-wednesday.yml
+# are the two tasks; each is a schedule, an owner and a lane, and both call this.
+# Splitting it this way keeps them separate entries in the Actions sidebar, so
+# either can be watched, dispatched or disabled on its own, without a second copy
+# of the logic drifting from the first.
+#
+# It opens an issue carrying the cycle's three steps, and where the release is
+# safe to do mechanically it also pushes a branch and opens a DRAFT pull request
+# that has already done it. Nothing reaches students from here: a human merges.
+
+on:
+  workflow_call:
+    inputs:
+      lane:
+        description: "monday or wednesday"
+        required: true
+        type: string
+      assignee:
+        description: "GitHub login who owns this lane"
+        required: true
+        type: string
+      lecture:
+        description: "Release this lecture instead of whatever the calendar says"
+        required: false
+        type: string
+
+jobs:
+  cycle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: pip install --quiet pyyaml
+
+      - name: Work out this cycle
+        id: cycle
+        # An empty title is the normal quiet case, not a failure: outside the
+        # semester, and a lane with nothing left to release and nothing newly
+        # delivered, both land here. A `lecture` input, by contrast, is somebody
+        # asking for a specific one, so next_release.py exits non-zero (and fails
+        # the run) if that lecture is already live or has no notes.
+        env:
+          LANE: ${{ inputs.lane }}
+          LECTURE: ${{ inputs.lecture }}
+        run: |
+          # An if rather than `[ -n "$LECTURE" ] && pick=...`: the steps run
+          # under `bash -e`, where a trailing failed test aborts the step, so
+          # the one-liner would fail every scheduled run.
+          args="--weekday $LANE"
+          if [ -n "$LECTURE" ]; then
+            args="$args --lecture $LECTURE"
+          fi
+          title=$(python3 tools/next_release.py $args --format title)
+          if [ -z "$title" ]; then
+            echo "Nothing to do in the $LANE lane."
+            python3 tools/next_release.py $args
+            echo "title=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          number=$(python3 tools/next_release.py $args --format number)
+          held=$(python3 tools/next_release.py $args --format blockers)
+          {
+            echo "title=$title"
+            echo "number=$number"
+            echo "held=$held"
+            echo "args=$args"
+          } >> "$GITHUB_OUTPUT"
+          if [ -n "$number" ]; then
+            echo "branch=release-l$(printf '%02d' "$number")" >> "$GITHUB_OUTPUT"
+          fi
+          python3 tools/next_release.py $args
+
+      - name: Skip if this cycle already has an issue
+        id: dup
+        if: steps.cycle.outputs.title != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: ${{ steps.cycle.outputs.title }}
+        run: |
+          # The title names both lectures of the cycle, so it is unique to this
+          # week and stable across a re-run. An open one means the cycle is
+          # already under way; a second issue would bury the first rather than
+          # helping.
+          if gh issue list --state open --limit 100 --json title \
+               --jq '.[].title' | grep -Fxq "$TITLE"; then
+            echo "An open issue titled \"$TITLE\" already exists."
+            echo "skip=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=no" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Do the release on a branch
+        id: release
+        # Three things have to hold before touching a branch: there is a lecture
+        # to release, nothing earlier is still held (releasing out of order fails
+        # the build, and with two lanes running independently that is a real
+        # case), and the branch does not already exist. Otherwise the issue still
+        # opens and says why step 2 is by hand.
+        if: >
+          steps.cycle.outputs.title != '' &&
+          steps.dup.outputs.skip == 'no' &&
+          steps.cycle.outputs.number != '' &&
+          steps.cycle.outputs.held == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DUE: ${{ steps.cycle.outputs.number }}
+          BRANCH: ${{ steps.cycle.outputs.branch }}
+        run: |
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+            echo "Branch $BRANCH already exists on the remote; leaving it alone."
+            echo "pr=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          python3 tools/release_lecture.py "$DUE"
+          # -A on purpose: release_lecture.py regenerates game/src/map/world.json,
+          # and CI's `tools/world.py --check` fails the build if that is left out.
+          git add -A
+          git commit -m "Release Lecture $DUE" -m "Opened by the ${{ inputs.lane }} release cycle. Review the diff before merging: it should touch only _toc.yml, the quiz bank's status: line, and the regenerated course map."
+          git push -u origin "$BRANCH"
+          pr=$(gh pr create --draft --base main --head "$BRANCH" \
+                 --title "Release Lecture $DUE" \
+                 --body "Step 2 of the ${{ inputs.lane }} release cycle, done mechanically. Check the diff, take it out of draft, and merge; CI deploys on merge to main.")
+          echo "Opened $pr"
+          echo "pr=$pr" >> "$GITHUB_OUTPUT"
+
+      - name: Open the cycle issue
+        if: steps.cycle.outputs.title != '' && steps.dup.outputs.skip == 'no'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: ${{ steps.cycle.outputs.title }}
+          ARGS: ${{ steps.cycle.outputs.args }}
+          PR: ${{ steps.release.outputs.pr }}
+          ASSIGNEE: ${{ inputs.assignee }}
+        run: |
+          python3 tools/next_release.py $ARGS --format body > /tmp/body.md
+
+          {
+            if [ -n "$PR" ]; then
+              echo "Step 2 is already done mechanically on $PR. Check the diff,"
+              echo "take it out of draft and merge; CI deploys on merge to main."
+              echo
+            fi
+            cat /tmp/body.md
+          } > /tmp/issue.md
+
+          # A dedicated label makes these easy to find later and is what the
+          # duplicate check above would use if titles ever change.
+          gh label create release --color BFD4F2 \
+            --description "A lecture going live" 2>/dev/null || true
+
+          gh issue create --title "$TITLE" --body-file /tmp/issue.md \
+            --assignee "$ASSIGNEE" \
+            --label course-admin --label release
+
+      - name: Say why nothing happened
+        if: steps.cycle.outputs.title == '' || steps.dup.outputs.skip == 'yes'
+        run: echo "No issue opened for the ${{ inputs.lane }} lane. See the steps above."

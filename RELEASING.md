@@ -57,30 +57,61 @@ git push -u origin release-l03
 On merge, CI publishes Lecture 3's notes and deck, its map room opens, and its
 practice module goes live. Everything not yet released stays hidden.
 
+## The two release cycles
+
+Sessions meet Monday and Wednesday, and each weekday is somebody's lane:
+
+| Cycle | Runs | Owner | Releases | Asks to be embedded |
+|---|---|---|---|---|
+| `release-monday.yml` | Mon 00:00 ET | John Kitchin | the *following* Monday's lecture | the previous Wednesday's session |
+| `release-wednesday.yml` | Wed 00:00 ET | Victor Alves | the *following* Wednesday's lecture | that Monday's session |
+
+Both call `release-cycle.yml`, which holds the shared body, so the two stay
+separate entries in the Actions sidebar (watch, dispatch or disable either on its
+own) without a second copy of the logic drifting from the first.
+
+Each run opens one issue, assigned to that lane's owner, carrying the cycle's
+three steps:
+
+1. embed the lecture just delivered on Canvas, with links to its notes and deck;
+2. release next week's lecture, its slides and its quiz;
+3. update that lecture's Canvas module with those links and publish it.
+
+Where the release is safe to do mechanically the run also pushes `release-lNN`
+and opens a **draft** PR that has already done step 2. Nothing is public until a
+human takes it out of draft and merges.
+
+Two consequences of splitting the lanes are worth knowing. Every lecture belongs
+to exactly one lane, so the owners never contend for the same release; and
+because the runs are at midnight and the sessions are during the day, the lecture
+each cycle asks to be embedded is always the *other* lane's session. So each
+lecture gets exactly one "embed it" reminder, from the other person.
+
+Step 2 still has to happen in lecture order. A released lecture may
+cross-reference an earlier one, so L4 cannot go public before L3, and with two
+lanes running independently that is a real case rather than a theoretical one.
+When the lecture a cycle is due to release still has an earlier one held ahead of
+it, the run opens the issue with the conflict stated and skips the automated
+branch, rather than pushing a release that would fail the build.
+
 ## What is due next
 
-`tools/next_release.py` answers that from the schedule and from `_toc.yml`, and
-names exactly one lecture:
+`tools/next_release.py` answers that from the schedule and from `_toc.yml`:
 
 ```bash
-python tools/next_release.py                 # the next one due, and the queue behind it
-python tools/next_release.py --lecture 3     # what releasing L3 would cover
-python tools/next_release.py --today 2026-10-19   # pretend, for testing
+python tools/next_release.py --weekday monday      # John's cycle
+python tools/next_release.py --weekday wednesday   # Victor's cycle
+python tools/next_release.py --lecture 3           # what releasing L3 would cover
+python tools/next_release.py --today 2026-10-19    # pretend, for testing
 ```
 
-It picks the **earliest** unreleased lecture inside a one-week horizon rather than
-the nearest, so a lecture that gets skipped stays at the front of the queue instead
-of being left behind, and releases stay in lecture order.
+Within a lane it picks the **earliest** unreleased lecture inside a one-week
+horizon rather than the nearest, so a cycle that gets skipped picks its lecture
+back up the following week instead of leaving it behind. An overdue lecture
+therefore stays at the front of its lane until it actually ships.
 
-`.github/workflows/release-lecture.yml` runs that at 5pm on Mondays and Wednesdays,
-Pittsburgh time, and for the lecture it names it pushes a branch, runs the helper on
-it, and opens a **draft** PR plus a reminder issue. Nothing is public until a human
-takes the PR out of draft and merges it. Run the workflow by hand with a `lecture`
-number to release one ahead of the calendar, or to catch up out of band.
-
-Because the reminder always names the earliest unreleased lecture, and skips when
-that lecture's branch or issue already exists, it will not open L4's release while
-L3's is still sitting in draft.
+Run either workflow by hand with a `lecture` number to release one ahead of the
+calendar, or to catch up out of band.
 
 ## Notes
 

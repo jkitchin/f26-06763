@@ -1,30 +1,36 @@
 #!/usr/bin/env python3
-"""Which lecture should be released next, and what releasing it will do.
+"""What each release cycle has to do this week, and which lecture it is about.
 
 The course ships one lecture at a time, and `tools/release_lecture.py` already
 knows how to release one. This works out *which* one, from the calendar and from
-what is already live, so a reminder can name it rather than leaving someone to
-count sessions by hand.
+what is already live, and assembles the checklist that goes with it, so a reminder
+can name the work rather than leaving someone to count sessions by hand.
 
-    python3 tools/next_release.py                  # what is due, and what is behind it
+    python3 tools/next_release.py --weekday monday    # John's cycle
+    python3 tools/next_release.py --weekday wednesday # Victor's cycle
     python3 tools/next_release.py --today 2026-10-19
-    python3 tools/next_release.py --format number  # "3", for a workflow
-    python3 tools/next_release.py --format body    # markdown for an issue
-    python3 tools/next_release.py --lecture 3      # this one, calendar or not
+    python3 tools/next_release.py --format number     # "3", for a workflow
+    python3 tools/next_release.py --format body       # markdown for an issue
+    python3 tools/next_release.py --lecture 3         # this one, calendar or not
 
-Exactly one lecture comes back, the earliest unreleased one whose session falls
-inside the horizon. Two properties follow from picking the earliest rather than
-the nearest, and both are deliberate:
+Sessions meet Monday and Wednesday, and each weekday is somebody's lane. A lane
+looks a week ahead: the Monday cycle releases the following Monday's lecture, the
+Wednesday cycle the following Wednesday's. Every lecture therefore belongs to
+exactly one lane, and the two owners never contend for the same release.
 
-  * a lecture that gets missed is picked up by the next run instead of being left
-    behind forever, because it stays the earliest unreleased one until it ships;
-  * releases stay in lecture order, which is what keeps the build green. A
-    released lecture may cross-reference an earlier one, so L4 cannot go public
-    before L3, and a run that finds L3 still unreleased will not skip ahead to it.
+Within a lane it is the *earliest* unreleased lecture inside the horizon, not the
+nearest, so a cycle that gets skipped picks its lecture back up next week instead
+of leaving it behind forever.
+
+Each cycle also names the lecture most recently delivered, which is the one whose
+recording has to reach Canvas. Because the runs are at midnight and the sessions
+are during the day, the Wednesday cycle always looks back at Monday's session and
+the Monday cycle at the previous Wednesday's. So every lecture gets exactly one
+"embed it" reminder, and it comes from the other person's lane.
 
 `--lecture` names one directly, for releasing ahead of the calendar or catching up
-out of band. It skips the horizon, so it is the one path that can release early; it
-still refuses a lecture that is already live or has no notes.
+out of band. It skips the horizon and the lane, so it is the one path that can
+release early; it still refuses a lecture that is already live or has no notes.
 
 No dependencies beyond the standard library and `release_lecture`, which is
 imported rather than copied so the assignment and project maps cannot drift into
@@ -49,6 +55,10 @@ from release_lecture import (  # noqa: E402  (path set above)
 
 SCHEDULE = REPO / "course" / "schedule.md"
 
+#: Where the released notes and decks answer, for the Canvas links in the
+#: checklist. Section 8 of CLAUDE.md: https, because http answers a 301.
+SITE = "https://kitchingroup.cheme.cmu.edu/f26-06763"
+
 # "| Lecture 3: 08-31-2026 (Monday) | Databases for engineering data |"
 SESSION = re.compile(r"Lecture\s+(\d+):\s*(\d{2}-\d{2}-\d{4})[^|]*\|\s*(.*?)\s*\|")
 
@@ -57,9 +67,16 @@ SESSION = re.compile(r"Lecture\s+(\d+):\s*(\d{2}-\d{2}-\d{4})[^|]*\|\s*(.*?)\s*\
 # whole mechanism, and a second copy of it is a second thing to get wrong.
 RELEASED = re.compile(r"^\s*-\s*file:\s*lectures/(l\d\d)/notes\b", re.M)
 
-#: How far ahead to look. The reminder fires twice a week, two lecture days
-#: ahead of each session, so a week covers both the Wednesday run reaching the
-#: following Monday's lecture and the Monday run reaching Wednesday's.
+#: The two lanes, as Python weekday numbers, and who owns each.
+LANES = {
+    "monday": (0, "jkitchin", "John Kitchin"),
+    "wednesday": (2, "victoraalves", "Victor Alves"),
+}
+
+#: How far ahead a lane looks. A cycle runs at midnight on its own weekday and
+#: targets the same weekday next week, so seven days is the whole window. It is
+#: also the slack that lets a skipped cycle catch up: the lecture stays inside
+#: the horizon of the following week's run.
 HORIZON_DAYS = 7
 
 
@@ -101,25 +118,45 @@ def bank_note(n):
     return "will publish"
 
 
-def pending():
-    """Every unreleased lecture that has content, earliest session first."""
+def pending(weekday=None):
+    """Unreleased lectures that have content, earliest session first.
+
+    `weekday` restricts to one lane, as a Python weekday number.
+    """
     live = released()
     return [s for s in sessions()
-            if f"l{s[0]:02d}" not in live and has_content(s[0])]
+            if f"l{s[0]:02d}" not in live and has_content(s[0])
+            and (weekday is None or s[1].weekday() == weekday)]
 
 
-def due(today, horizon_days=HORIZON_DAYS):
-    """The one lecture to release now, the queue behind it, and the horizon.
-
-    The earliest unreleased lecture, and only if its session is inside the
-    horizon. Taking the earliest rather than the nearest is what keeps releases
-    in lecture order when one has been missed.
-    """
+def due(today, horizon_days=HORIZON_DAYS, weekday=None):
+    """The lecture this cycle releases, and the horizon it was judged against."""
     horizon = today + dt.timedelta(days=horizon_days)
-    queue = pending()
+    queue = pending(weekday)
     if not queue or queue[0][1] > horizon:
-        return None, queue, horizon
-    return queue[0], queue[1:], horizon
+        return None, horizon
+    return queue[0], horizon
+
+
+def previous(today):
+    """The lecture most recently delivered, which is the one to put on Canvas.
+
+    Strictly before today, because a cycle runs at midnight and that day's own
+    session has not happened yet.
+    """
+    done = [s for s in sessions() if s[1] < today and has_content(s[0])]
+    return done[-1] if done else None
+
+
+def blockers(item):
+    """Unreleased lectures that come before this one, in either lane.
+
+    Releasing out of order breaks the build: a released lecture may
+    cross-reference an earlier one, so L4 cannot go public before L3. The two
+    lanes release independently, so this is the check that catches one owner
+    getting ahead of the other.
+    """
+    return [s for s in pending() if s[1] < item[1]]
 
 
 def extras(n):
@@ -133,21 +170,96 @@ def semester(today):
     return min(all_dates), max(all_dates)
 
 
-def body(item, queue, today, horizon):
-    """The issue text: what to run, and the things RELEASING.md does not say."""
-    n, date, topic = item
-    nn = f"{n:02d}"
-    also = ", ".join(extras(n)) or "nothing"
+def title(item, prev):
+    """A deterministic issue title, because the duplicate check matches it exactly."""
+    if item and prev:
+        return f"Release L{item[0]} and embed L{prev[0]} on Canvas"
+    if item:
+        return f"Release L{item[0]}"
+    if prev:
+        return f"Embed L{prev[0]} on Canvas"
+    return ""
+
+
+def body(item, prev, lane, today, horizon):
+    """The issue text: the three-step cycle, with this week's lectures named."""
+    who = LANES[lane][2] if lane in LANES else "whoever runs this"
     lines = [
-        f"**L{n}: {topic}** meets {date:%A %b %-d}, inside the horizon through "
-        f"{horizon:%b %-d}. Releasing it publishes its notes, its deck, its map "
-        f"room and (below) its quiz.",
+        f"The {lane} cycle, {who}'s. Three steps: last session onto Canvas, next "
+        "lecture released, next module published.",
         "",
-        "| Lecture | Session | Also releases | Quiz bank |",
-        "|---|---|---|---|",
-        f"| L{n} | {date:%a %b %-d} | {also} | {bank_note(n)} |",
-        "",
-        "## Do it",
+    ]
+
+    # 1. The session just delivered.
+    if prev:
+        pn, pd, ptopic = prev
+        pnn = f"{pn:02d}"
+        lines += [
+            f"- [ ] **Embed L{pn} on Canvas**, delivered {pd:%A %b %-d}, "
+            f"\"{ptopic}\". Notes: {SITE}/lectures/l{pnn}/notes.html . "
+            f"Deck: {SITE}/slides/l{pnn}/ .",
+        ]
+    else:
+        lines += ["- *Embed the previous lecture: nothing delivered yet.*"]
+
+    # 2. The release itself.
+    if item:
+        n, date, topic = item
+        nn = f"{n:02d}"
+        also = ", ".join(extras(n)) or "nothing else"
+        lines += [
+            f"- [ ] **Release L{n}**, \"{topic}\", which meets {date:%A %b %-d}. "
+            f"Notes, deck and quiz go public together, and it also releases "
+            f"{also}. Quiz bank: {bank_note(n)}.",
+        ]
+    else:
+        lines += [
+            "- *Release next week's lecture: nothing scheduled in this lane "
+            f"through {horizon:%b %-d}.*",
+        ]
+
+    # 3. The module for what was just released.
+    if item:
+        n = item[0]
+        nn = f"{n:02d}"
+        lines += [
+            f"- [ ] **Update the Canvas module for L{n}** with links to its notes "
+            f"({SITE}/lectures/l{nn}/notes.html) and deck ({SITE}/slides/l{nn}/), "
+            "then publish the module. Do this after the release PR has merged and "
+            "CI has deployed, or the links will 404.",
+        ]
+    else:
+        lines += ["- *Publish the next Canvas module: nothing released this cycle.*"]
+
+    lines.append("")
+
+    if not item:
+        lines += [
+            "Nothing to release in this lane this week, so only the Canvas step "
+            "above applies. The next lecture in this lane is "
+            + (f"L{pending(LANES[lane][0])[0][0]}."
+               if lane in LANES and pending(LANES[lane][0]) else "past the end of the schedule."),
+            "",
+            "Full procedure: "
+            "[`RELEASING.md`](https://github.com/jkitchin/f26-06763/blob/main/RELEASING.md).",
+        ]
+        return "\n".join(lines)
+
+    n = item[0]
+    nn = f"{n:02d}"
+    held = blockers(item)
+    if held:
+        lines += [
+            f"> **L{n} cannot be released yet.** Still held ahead of it: "
+            + ", ".join(f"L{m}" for m, _, _ in held)
+            + ". A released lecture may cross-reference an earlier one, so "
+            f"publishing L{n} first would fail the build. That is the other "
+            "lane's release, so this cycle waits on it.",
+            "",
+        ]
+
+    lines += [
+        "## Step 2, in commands",
         "",
         "```bash",
         f"git fetch origin && git checkout -b release-l{nn} origin/main",
@@ -165,17 +277,6 @@ def body(item, queue, today, horizon):
         f"git push -u origin release-l{nn}",
         "```",
         "",
-    ]
-    if queue:
-        nxt = ", ".join(f"L{m} ({d:%b %-d})" for m, d, _ in queue[:3])
-        lines += [
-            f"Behind it: {nxt}. Each gets its own pull request, and the next "
-            "reminder will not name one until this one is merged, because a "
-            "lecture that cross-references L"
-            f"{n} cannot build before L{n} is public.",
-            "",
-        ]
-    lines += [
         "## Worth knowing",
         "",
         "- **`git add -A` has to pick up `game/src/map/world.json`.** "
@@ -187,6 +288,10 @@ def body(item, queue, today, horizon):
         "`status:`. Expect `stays held, no quiz written yet` for L6, L8, L10, L12, "
         "L14 and L16; re-run `release_lecture.py` for that lecture once its bank "
         "is written.",
+        "- **Step 3 waits on the deploy.** CI publishes on merge to `main` and the "
+        f"`verify` job reads `{SITE}/build-info.json` back off the live site. A "
+        "green build is not the same as a live page, so check that before pasting "
+        "links into Canvas.",
         "- **Never** set `only_build_toc_files: false` or add `course/modules` to "
         "`_toc.yml`. That setting is the only thing keeping unreleased lectures off "
         "guessable URLs (CLAUDE.md sections 1 and 10).",
@@ -200,24 +305,37 @@ def body(item, queue, today, horizon):
     return "\n".join(lines)
 
 
-def report(fmt, item, queue, today, horizon):
-    """Print one lecture in the format the caller asked for."""
-    n, date, topic = item
+def report(fmt, item, prev, lane, today, horizon):
+    """Print this cycle in the format the caller asked for."""
     if fmt == "number":
-        print(n)
+        print(item[0] if item else "")
+    elif fmt == "previous":
+        print(prev[0] if prev else "")
+    elif fmt == "blockers":
+        print(" ".join(str(m) for m, _, _ in blockers(item)) if item else "")
     elif fmt == "title":
-        print(f"Release L{n}: {topic}")
+        print(title(item, prev))
     elif fmt == "body":
-        print(body(item, queue, today, horizon))
+        print(body(item, prev, lane, today, horizon))
     else:
-        print(f"Today {today}, horizon {horizon}.")
-        print(f"  L{n:<3} {date:%a %Y-%m-%d}  quiz: {bank_note(n):<26}"
-              f" also: {', '.join(extras(n)) or '-'}")
-        print(f"       {topic}")
-        if queue:
-            print("\n  Behind it: " + ", ".join(
-                f"L{m} {d:%b %-d}" for m, d, _ in queue[:4]))
-        print(f"\n  python tools/release_lecture.py {n}")
+        print(f"Today {today}, horizon {horizon}, lane {lane or 'both'}.")
+        if prev:
+            print(f"  embed    L{prev[0]:<3} {prev[1]:%a %Y-%m-%d}  {prev[2]}")
+        else:
+            print("  embed    nothing delivered yet")
+        if item:
+            n, date, topic = item
+            print(f"  release  L{n:<3} {date:%a %Y-%m-%d}  quiz: {bank_note(n)}"
+                  f"  also: {', '.join(extras(n)) or '-'}")
+            print(f"           {topic}")
+            held = blockers(item)
+            if held:
+                print("  BLOCKED by " + ", ".join(f"L{m}" for m, _, _ in held)
+                      + " (released lectures cross-reference earlier ones)")
+            else:
+                print(f"  python tools/release_lecture.py {n}")
+        else:
+            print("  release  nothing in this lane inside the horizon")
     return 0
 
 
@@ -225,22 +343,27 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--today", help="pretend it is this date, YYYY-MM-DD (for testing)")
+    ap.add_argument("--weekday", choices=sorted(LANES),
+                    help="which lane to report; omit to consider both")
     ap.add_argument("--lecture", type=int,
                     help="release this lecture instead of whatever the calendar says")
     ap.add_argument("--horizon-days", type=int, default=HORIZON_DAYS,
                     help=f"how far ahead to look, in days (default {HORIZON_DAYS})")
-    ap.add_argument("--format", choices=("human", "number", "body", "title"),
+    ap.add_argument("--format",
+                    choices=("human", "number", "previous", "blockers", "body", "title"),
                     default="human")
     args = ap.parse_args()
 
     today = (dt.date.fromisoformat(args.today) if args.today
              else dt.datetime.now().date())
     starts, ends = semester(today)
+    weekday = LANES[args.weekday][0] if args.weekday else None
+    prev = previous(today)
 
     if args.lecture:
-        # Named explicitly, so neither the semester window nor the horizon
-        # applies. The two checks that still do are the ones that would make the
-        # release a no-op or a broken build.
+        # Named explicitly, so neither the semester window, the horizon nor the
+        # lane applies. The two checks that still do are the ones that would make
+        # the release a no-op or a broken build.
         named = [s for s in sessions() if s[0] == args.lecture]
         if not named:
             sys.exit(f"L{args.lecture} is not a dated session in {SCHEDULE}.")
@@ -249,29 +372,25 @@ def main():
         if not has_content(args.lecture):
             sys.exit(f"L{args.lecture} has no lectures/l{args.lecture:02d}/notes.md.")
         item = named[0]
-        queue = [s for s in pending() if s[1] > item[1]]
-        horizon = item[1]
-        held = [s for s in pending() if s[1] < item[1]]
-        if held and args.format == "human":
-            print("Note: releasing out of order. Still held: "
-                  + ", ".join(f"L{m}" for m, _, _ in held))
-        return report(args.format, item, queue, today, horizon)
+        return report(args.format, item, prev, args.weekday, today, item[1])
 
     # Outside the semester there is nothing to release and nobody to remind.
     if today < starts - dt.timedelta(days=7) or today > ends:
         if args.format == "human":
-            print(f"Outside the semester ({starts} to {ends}); nothing to release.")
+            print(f"Outside the semester ({starts} to {ends}); nothing to do.")
+        elif args.format in ("number", "previous", "blockers", "title"):
+            print("")
         return 0
 
-    item, queue, horizon = due(today, args.horizon_days)
-    if item is None:
+    item, horizon = due(today, args.horizon_days, weekday)
+    if item is None and prev is None:
         if args.format == "human":
-            nxt = (f" The next one is L{queue[0][0]} on {queue[0][1]}."
-                   if queue else " Everything with content is released.")
-            print(f"Nothing due through {horizon}.{nxt}")
+            print(f"Nothing due through {horizon}, and nothing delivered yet.")
+        elif args.format in ("number", "previous", "blockers", "title"):
+            print("")
         return 0
 
-    return report(args.format, item, queue, today, horizon)
+    return report(args.format, item, prev, args.weekday, today, horizon)
 
 
 if __name__ == "__main__":

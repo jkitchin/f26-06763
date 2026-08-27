@@ -1,0 +1,42 @@
+name: Wednesday release cycle
+
+# Victor Alves's lane: the Wednesday lectures. Runs at midnight Pittsburgh time
+# on Wednesday and looks a week ahead, so the lecture it releases is the
+# *following* Wednesday's, giving seven days to release it and build the Canvas
+# module. The lecture it asks to be embedded is the one delivered most recently,
+# which at midnight on a Wednesday is that Monday's session.
+#
+# The `timezone` key is load-bearing rather than tidiness, and more so at
+# midnight than it was at 5pm: the semester crosses the end of daylight saving
+# on 2026-11-01, and a plain UTC cron at 00:00 lands on the previous evening in
+# Pittsburgh, which is a different day and so the wrong lane.
+on:
+  schedule:
+    - cron: '0 0 * * 3'
+      timezone: "America/New_York"
+  workflow_dispatch:
+    inputs:
+      lecture:
+        description: "Lecture number to release (blank: whatever the calendar says)"
+        required: false
+        type: string
+
+permissions:
+  contents: write        # push the release branch
+  issues: write          # open the cycle issue
+  pull-requests: write   # open the draft PR
+
+# Deliberately not the `pages` group used by book.yml. Sharing it would make a
+# release cycle queue behind a deploy, or worse, look like one. The two lanes
+# share a group so they cannot both be mid-release at the same moment.
+concurrency:
+  group: release-cycle
+  cancel-in-progress: false
+
+jobs:
+  wednesday:
+    uses: ./.github/workflows/release-cycle.yml
+    with:
+      lane: wednesday
+      assignee: victoraalves
+      lecture: ${{ inputs.lecture }}
