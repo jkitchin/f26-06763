@@ -1,19 +1,35 @@
-name: Weekly release reminder
+name: Lecture release reminder
 
 # Opens an issue, and a draft PR that has already done the mechanical part, for
-# the lectures due to go live in the coming week. Nothing reaches students from
-# this workflow: it pushes a branch and opens a DRAFT pull request, and a human
-# still merges.
+# the next lecture due to go live. Nothing reaches students from this workflow:
+# it pushes a branch and opens a DRAFT pull request, and a human still merges.
 #
-# 5pm Wednesday, Pittsburgh time, which is two working days before the Monday
-# lecture. The `timezone` key matters rather than being tidiness: the semester
-# crosses the end of daylight saving on 2026-11-01, and a plain UTC cron would
-# quietly start firing an hour early for the last month of the course.
+# One lecture per run, one branch per lecture, one PR per lecture. Sessions meet
+# Monday and Wednesday, so this fires 5pm Monday and 5pm Wednesday, Pittsburgh
+# time: the Wednesday run reaches the following Monday's lecture, and the Monday
+# run (after that day's class) reaches Wednesday's. The `timezone` key matters
+# rather than being tidiness: the semester crosses the end of daylight saving on
+# 2026-11-01, and a plain UTC cron would quietly start firing an hour early for
+# the last month of the course.
+#
+# Releases stay in lecture order because next_release.py always names the
+# earliest unreleased lecture, and the duplicate check below stops a second one
+# opening while the first is still in flight. That ordering is load-bearing: a
+# released lecture may cross-reference an earlier one, so L4 cannot build before
+# L3 is public.
+#
+# Run it by hand with a `lecture` number to release one ahead of the calendar or
+# to catch up out of band.
 on:
   schedule:
-    - cron: '0 17 * * 3'
+    - cron: '0 17 * * 1,3'
       timezone: "America/New_York"
   workflow_dispatch:
+    inputs:
+      lecture:
+        description: "Lecture number to release (blank: whatever the calendar says is next)"
+        required: false
+        type: string
 
 permissions:
   contents: write        # push the release branch
@@ -23,7 +39,7 @@ permissions:
 # Deliberately not the `pages` group used by book.yml. Sharing it would make a
 # release reminder queue behind a deploy, or worse, look like one.
 concurrency:
-  group: release-week
+  group: release-lecture
   cancel-in-progress: false
 
 jobs:
@@ -43,24 +59,35 @@ jobs:
       - name: Work out what is due
         id: due
         # Empty output is the normal quiet case, not a failure: fall break, the
-        # end of the semester, and any week already released all land here.
+        # end of the semester, and a lecture whose release PR is still open all
+        # land here. A `lecture` input, by contrast, is somebody asking for a
+        # specific one, so next_release.py exits non-zero (and fails the run) if
+        # that lecture is already live or has no notes.
+        env:
+          LECTURE: ${{ inputs.lecture }}
         run: |
-          numbers=$(python3 tools/next_release.py --format numbers)
-          if [ -z "$numbers" ]; then
+          # An if rather than `[ -n "$LECTURE" ] && pick=...`: the steps run
+          # under `bash -e`, where a trailing failed test aborts the step, so
+          # the one-liner would fail every scheduled run.
+          pick=""
+          if [ -n "$LECTURE" ]; then
+            pick="--lecture $LECTURE"
+          fi
+          number=$(python3 tools/next_release.py $pick --format number)
+          if [ -z "$number" ]; then
             echo "Nothing due. $(python3 tools/next_release.py)"
             echo "due=" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          first=$(echo "$numbers" | awk '{print $1}')
           {
-            echo "due=$numbers"
-            echo "first=$first"
-            echo "branch=release-week-$first"
-            echo "title=$(python3 tools/next_release.py --format title)"
+            echo "due=$number"
+            echo "branch=release-l$(printf '%02d' "$number")"
+            echo "title=$(python3 tools/next_release.py $pick --format title)"
+            echo "pick=$pick"
           } >> "$GITHUB_OUTPUT"
-          python3 tools/next_release.py
+          python3 tools/next_release.py $pick
 
-      - name: Skip if this reminder already exists
+      - name: Skip if this release is already in flight
         id: dup
         if: steps.due.outputs.due != ''
         env:
@@ -69,8 +96,8 @@ jobs:
           BRANCH: ${{ steps.due.outputs.branch }}
         run: |
           # Either an open issue with this exact title, or a branch already
-          # pushed, means a release is in flight. Opening a second one buries the
-          # first rather than helping.
+          # pushed, means this lecture's release is under way. Opening a second
+          # one buries the first rather than helping.
           if gh issue list --state open --limit 100 --json title \
                --jq '.[].title' | grep -Fxq "$TITLE"; then
             echo "An open issue titled \"$TITLE\" already exists."
@@ -91,20 +118,11 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$BRANCH"
-          for n in $DUE; do
-            echo "::group::release_week.py $n"
-            python3 tools/release_week.py "$n"
-            echo "::endgroup::"
-          done
-          # -A on purpose: release_week.py regenerates game/src/map/world.json,
+          python3 tools/release_lecture.py "$DUE"
+          # -A on purpose: release_lecture.py regenerates game/src/map/world.json,
           # and CI's `tools/world.py --check` fails the build if that is left out.
           git add -A
-          # Built in python rather than sed: \+ is a GNU extension, so the same
-          # one-liner produces "Release 3, 4" on a BSD sed and silently loses the
-          # word "Lecture". Not worth a portability puzzle in a commit message.
-          subject=$(python3 -c "import os,sys; \
-            print('Release ' + ', '.join('Lecture ' + n for n in os.environ['DUE'].split()))")
-          git commit -m "$subject" -m "Opened by the weekly release reminder. Review the diff before merging: it should touch only _toc.yml, the quiz banks' status: lines, and the regenerated course map."
+          git commit -m "Release Lecture $DUE" -m "Opened by the lecture release reminder. Review the diff before merging: it should touch only _toc.yml, the quiz bank's status: line, and the regenerated course map."
           git push -u origin "$BRANCH"
 
       - name: Open the draft PR and the issue
@@ -113,8 +131,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           BRANCH: ${{ steps.due.outputs.branch }}
           TITLE: ${{ steps.due.outputs.title }}
+          PICK: ${{ steps.due.outputs.pick }}
         run: |
-          python3 tools/next_release.py --format body > /tmp/body.md
+          python3 tools/next_release.py $PICK --format body > /tmp/body.md
 
           {
             echo "The mechanical part is done on \`$BRANCH\`. Check the diff, take"
@@ -129,23 +148,22 @@ jobs:
 
           # A dedicated label makes these easy to find later and is what the
           # duplicate check above would use if titles ever change.
-          gh label create release-week --color BFD4F2 \
-            --description "Weekly content release" 2>/dev/null || true
+          gh label create release --color BFD4F2 \
+            --description "A lecture going live" 2>/dev/null || true
 
           {
             echo "Draft PR: $pr"
             echo
-            echo "It has already run \`tools/release_week.py\` for each lecture, so CI"
-            echo "has told you whether the release builds. Nothing is live until it is"
-            echo "merged."
+            echo "It has already run \`tools/release_lecture.py\`, so CI has told you"
+            echo "whether the release builds. Nothing is live until it is merged."
             echo
             cat /tmp/body.md
           } > /tmp/issue.md
 
           gh issue create --title "$TITLE" --body-file /tmp/issue.md \
             --assignee jkitchin --assignee victoraalves \
-            --label course-admin --label release-week
+            --label course-admin --label release
 
       - name: Say why nothing happened
         if: steps.due.outputs.due == '' || steps.dup.outputs.skip == 'yes'
-        run: echo "No reminder opened this week. See the steps above for the reason."
+        run: echo "No reminder opened this run. See the steps above for the reason."

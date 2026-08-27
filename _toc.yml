@@ -78,9 +78,9 @@ parts:
 #           - file: lectures/l21/l21-eval
 
   - caption: Assignments
-    # Released one per week by tools/release_week.py, from the schedule's
-    # "Assignment N released" markers. Only assignments whose week is out are
-    # uncommented; the rest stay hidden exactly like an unreleased lecture.
+    # Released with their lecture by tools/release_lecture.py, from the
+    # schedule's "Assignment N released" markers. Only assignments whose lecture
+    # is out are uncommented; the rest stay hidden like an unreleased lecture.
     chapters:
       - file: course/assignments/a01
 #       - file: course/assignments/a02
@@ -93,7 +93,7 @@ parts:
 #       - file: course/assignments/a10
 #       - file: course/assignments/a11
 
-# Projects: hidden for weekly release. tools/release_week.py uncomments the
+# Projects: hidden until their lecture. tools/release_lecture.py uncomments the
 # part header and the mini-project (A7) at Lecture 13, and the final project
 # ahead of the proposal deadline; see LECTURE_PROJECTS there.
 #   - caption: Projects
