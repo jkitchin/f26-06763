@@ -6,6 +6,7 @@
 - **Session** Lecture 6, Week 3
 - **Arc** Data Systems
 - **Slides** <a href="../../slides/l06/">Deck for this session</a>
+- **Practice** <a href="../../game/#/l06">Practice module for this session</a>
 - **Demo** [`l06-validation.ipynb`](l06-validation.ipynb), a pandera gate that fails loudly, and a windowed replay of the sensor stream
 - **Assignment 3**, released at Lecture 5; its validation half is this session's material
 :::
@@ -149,3 +150,10 @@ Real sensor data breaks two assumptions a batch pipeline quietly makes: that the
 ## Assignment
 
 Assignment 3, "Reproducible, validated data pipeline," was released at Lecture 5 and is due roughly one week later. Its first half is Lecture 5's batch-pipeline material; its second half is this session's, adding pandera or Great Expectations checks that fail the pipeline on bad data, including a physical-plausibility check and a proof that the gate actually halts on injected corruption. You can start the validation half now that this session is done. This is a pointer, not the rubric.
+
+## Practice module
+
+<a href="../../game/#/l06"><strong>Practice module for this session</strong></a>, about ten
+minutes of questions drawn from this session's notes, slides and demo. It runs entirely in
+your browser, the questions are selected from your Andrew ID, and it ends by producing a PDF
+you upload for participation credit.

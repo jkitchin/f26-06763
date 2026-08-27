@@ -6,6 +6,7 @@
 - **Session** Lecture 8, Week 4
 - **Arc** Data Systems
 - **Slides** <a href="../../slides/l08/">Deck for this session</a>
+- **Practice** <a href="../../game/#/l08">Practice module for this session</a>
 - **Demo** [`l08-splits-versioning.ipynb`](l08-splits-versioning.ipynb), the split that inflates a score, then versioning and tracking
 - **Assignment 4**, released at Lecture 7; its dataset-versioning half is this session's material
 :::
@@ -199,3 +200,10 @@ A train/test split has to make the test set a fair stand-in for deployment, and 
 ## Assignment
 
 Assignment 4, "Feature pipeline and dataset versioning," was released at [Lecture 7](../l07/notes.md) and is due about a week later. Its second half is this session's material: put the C-MAPSS feature set under DVC with a local remote, implement a correct grouped or temporal split, quantify the cost of a leaky split against the honest one, and log both runs to MLflow tagged with the DVC data version. This is a pointer, not the rubric.
+
+## Practice module
+
+<a href="../../game/#/l08"><strong>Practice module for this session</strong></a>, about ten
+minutes of questions drawn from this session's notes, slides and demo. It runs entirely in
+your browser, the questions are selected from your Andrew ID, and it ends by producing a PDF
+you upload for participation credit.

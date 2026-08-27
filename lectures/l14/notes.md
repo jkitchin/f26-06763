@@ -6,6 +6,7 @@
 - **Session** Lecture 14, Week 7
 - **Arc** Machine learning and deep learning
 - **Slides** <a href="../../slides/l14/">Deck for this session</a>
+- **Practice** <a href="../../game/#/l14">Practice module for this session</a>
 - **Demo** [`l14-bayesopt-design.ipynb`](l14-bayesopt-design.ipynb), a Bayesian optimizer built by hand, then the same loop in BoTorch, both raced against random search
 - **Assignment** the miniproject (Assignment 7) is under way, launched Lecture 13 and due in Week 8
 :::
@@ -187,3 +188,10 @@ The arc that began with expensive simulations and surrogates closes here with th
 ## Assignment
 
 The miniproject (Assignment 7) is under way. It launched in Lecture 13 and runs through the dedicated Week 8 sessions, asking you to take an engineering dataset from raw data through a tracked, reproducible workflow to a surrogate model with honest uncertainty quantification, and the Bayesian-optimization and active-learning loops from this session are the natural way to demonstrate that the uncertainty is good for something. The full specification, including the deliverables and the grading breakdown, is in [`course/miniproject.md`](../../course/miniproject.md); this page does not restate it.
+
+## Practice module
+
+<a href="../../game/#/l14"><strong>Practice module for this session</strong></a>, about ten
+minutes of questions drawn from this session's notes, slides and demo. It runs entirely in
+your browser, the questions are selected from your Andrew ID, and it ends by producing a PDF
+you upload for participation credit.

@@ -6,6 +6,7 @@
 - **Session** Lecture 9, Week 5
 - **Arc** Machine learning and deep learning
 - **Slides** <a href="../../slides/l09/">Deck for this session</a>
+- **Practice** <a href="../../game/#/l09">Practice module for this session</a>
 - **Demo** [`l09-model-selection.ipynb`](l09-model-selection.ipynb), a baseline ladder, three leaks, and one test set
 - **Assignment 4** due, Assignment 5 released this session
 :::
@@ -867,3 +868,10 @@ fold noise of 0.05, and the group-level check did not apply because rows are not
 better answer than one that hunts for a configuration where the number looks alarming.
 
 This paragraph is a pointer, not the rubric.
+
+## Practice module
+
+<a href="../../game/#/l09"><strong>Practice module for this session</strong></a>, about ten
+minutes of questions drawn from this session's notes, slides and demo. It runs entirely in
+your browser, the questions are selected from your Andrew ID, and it ends by producing a PDF
+you upload for participation credit.

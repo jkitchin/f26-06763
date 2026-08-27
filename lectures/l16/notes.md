@@ -6,6 +6,7 @@
 - **Session** Lecture 16, Week 9
 - **Arc** LLM and agentic engineering
 - **Slides** <a href="../../slides/l16/">Deck for this session</a>
+- **Practice** <a href="../../game/#/l16">Practice module for this session</a>
 - **Demo** [`l16-structured-extraction.ipynb`](l16-structured-extraction.ipynb), a datasheet turned into a validated parts record, and what happens when it cannot be
 - **Assignment 8** released last session, due about a week out
 :::
@@ -159,3 +160,10 @@ The lesson of this session is that a hosted LLM is a system component like any o
 ## Assignment
 
 Assignment 8, structured extraction from engineering documents, was released last session and is due about a week later. It asks you to build and evaluate a schema-constrained LLM extractor that turns messy engineering text into a validated, normalized table, with per-call cost logging and a small gold set to measure prompt quality, which is exactly the pipeline this session builds in miniature. This page does not restate the rubric.
+
+## Practice module
+
+<a href="../../game/#/l16"><strong>Practice module for this session</strong></a>, about ten
+minutes of questions drawn from this session's notes, slides and demo. It runs entirely in
+your browser, the questions are selected from your Andrew ID, and it ends by producing a PDF
+you upload for participation credit.

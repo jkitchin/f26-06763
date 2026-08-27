@@ -6,6 +6,7 @@
 - **Session** Lecture 19, Week 11
 - **Arc** LLM and agentic engineering
 - **Slides** <a href="../../slides/l19/">Deck for this session</a>
+- **Practice** <a href="../../game/#/l19">Practice module for this session</a>
 - **Demo** [`l19-agent.ipynb`](l19-agent.ipynb), a hand-rolled tool-using agent, no framework
 - **Assignment 10** released this session, **Final-project proposal due this week**
 :::
@@ -320,3 +321,10 @@ for) an agent that queries real engineering data and calls a surrogate model as 
 loop with a step and cost budget, and evaluate it on a fixed task suite. **Your final-project
 proposal is also due this week**; a well-scoped Assignment 10 is a strong seed for it. This is a
 pointer, not the rubric.
+
+## Practice module
+
+<a href="../../game/#/l19"><strong>Practice module for this session</strong></a>, about ten
+minutes of questions drawn from this session's notes, slides and demo. It runs entirely in
+your browser, the questions are selected from your Andrew ID, and it ends by producing a PDF
+you upload for participation credit.

@@ -6,6 +6,7 @@
 - **Session** Lecture 7, Week 4
 - **Arc** Data Systems
 - **Slides** <a href="../../slides/l07/">Deck for this session</a>
+- **Practice** <a href="../../game/#/l07">Practice module for this session</a>
 - **Demo** [`l07-features.ipynb`](l07-features.ipynb), a feature pipeline and the leak a scaler can hide
 - **Assignment 4** released this session
 :::
@@ -619,3 +620,10 @@ would not be sensitive to it. A report that says "the leak cost 0.002 cycles und
 answer than one that hunts for a configuration where the number looks alarming.
 
 This is a pointer, not the rubric.
+
+## Practice module
+
+<a href="../../game/#/l07"><strong>Practice module for this session</strong></a>, about ten
+minutes of questions drawn from this session's notes, slides and demo. It runs entirely in
+your browser, the questions are selected from your Andrew ID, and it ends by producing a PDF
+you upload for participation credit.

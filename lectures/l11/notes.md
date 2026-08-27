@@ -6,6 +6,7 @@
 - **Session** Lecture 11, Week 6
 - **Arc** Machine learning and deep learning
 - **Slides** <a href="../../slides/l11/">Deck for this session</a>
+- **Practice** <a href="../../game/#/l11">Practice module for this session</a>
 - **Demo** [`l11-tensors-autograd.ipynb`](l11-tensors-autograd.ipynb), a gradient by hand, a loop by hand, and three ways to break it
 - **Assignment 5** due, Assignment 6 released this session
 :::
@@ -655,3 +656,10 @@ baseline's 17.4, and here is why the extra capacity did not help" is a better an
 tuned-until-it-wins number you cannot defend.
 
 This is a pointer, not the rubric.
+
+## Practice module
+
+<a href="../../game/#/l11"><strong>Practice module for this session</strong></a>, about ten
+minutes of questions drawn from this session's notes, slides and demo. It runs entirely in
+your browser, the questions are selected from your Andrew ID, and it ends by producing a PDF
+you upload for participation credit.

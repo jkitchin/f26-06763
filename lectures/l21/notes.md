@@ -6,6 +6,7 @@
 - **Session** Lecture 21, Week 12
 - **Arc** Production and responsibility
 - **Slides** <a href="../../slides/l21/">Deck for this session</a>
+- **Practice** <a href="../../game/#/l21">Practice module for this session</a>
 - **Demo** [`l21-eval.ipynb`](l21-eval.ipynb), an eval harness, a judge you validate, a surrogate you audit by slice
 - **Assignment 11** released this session
 :::
@@ -375,3 +376,10 @@ evaluation harness, ML metrics or a validated LLM-as-judge, for one of your exis
 (the week 7 surrogate, the week 10 RAG system, or the week 11 agent), then, in the lighter second half,
 deploy that system behind a FastAPI and Docker service and run the same
 harness against the live endpoint rather than only the local function. This is a pointer, not the rubric.
+
+## Practice module
+
+<a href="../../game/#/l21"><strong>Practice module for this session</strong></a>, about ten
+minutes of questions drawn from this session's notes, slides and demo. It runs entirely in
+your browser, the questions are selected from your Andrew ID, and it ends by producing a PDF
+you upload for participation credit.

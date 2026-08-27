@@ -6,6 +6,7 @@
 - **Session** Lecture 4, Week 2
 - **Arc** Data Systems
 - **Slides** <a href="../../slides/l04/">Deck for this session</a>
+- **Practice** <a href="../../game/#/l04">Practice module for this session</a>
 - **Demo** [`l04-storage.ipynb`](l04-storage.ipynb), the same Intel Lab data stored columnar and queried three ways
 - **Assignment 2**, released at Lecture 3; its second half is this session's material
 :::
@@ -184,3 +185,10 @@ The lesson of this session is that storage layout should match access pattern. T
 ## Assignment
 
 Assignment 2, "Sensor data into PostgreSQL + DuckDB," was released at Lecture 3 and is due roughly one week later. Its first half is Lecture 3's material; its second half is this session's, moving the same dataset into Parquet and DuckDB, answering a set of engineering queries there, and comparing the columnar results against the relational ones you already produced. You can therefore start the DuckDB and Parquet half now that this session is done. This is a pointer, not the rubric.
+
+## Practice module
+
+<a href="../../game/#/l04"><strong>Practice module for this session</strong></a>, about ten
+minutes of questions drawn from this session's notes, slides and demo. It runs entirely in
+your browser, the questions are selected from your Andrew ID, and it ends by producing a PDF
+you upload for participation credit.
