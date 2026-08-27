@@ -101,13 +101,13 @@
       "id": "l03",
       "date": "2026-08-31",
       "title": "Databases for engineering data",
-      "written": false,
+      "written": true,
       "arc_source": "declared",
       "arc": "Data Systems",
       "region": 1,
       "x": 4,
       "y": 1,
-      "notes": null
+      "notes": "../lectures/l03/notes.html"
     },
     {
       "session": "L4",

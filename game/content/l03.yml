@@ -2,7 +2,7 @@ schema: 1
 lecture: l03
 title: "Relational data and PostgreSQL for engineering time series"
 source_notes: lectures/l03/notes.md
-status: unwritten
+status: published
 serve: 5
 pool_version: 3
 provenance:
