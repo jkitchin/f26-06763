@@ -10,6 +10,7 @@ slides.
     python3 tools/clicker.py show                 # live bars for the current burst
     python3 tools/clicker.py windows --date today # what the slides marked
     python3 tools/clicker.py questions --date today   # bursts, inferred from gaps
+    python3 tools/clicker.py leaderboard --date today # standings for the day
     python3 tools/clicker.py archive l03 --date 2026-08-26
 
 `archive` does not need you to have written down when each question ran. A slide
@@ -17,6 +18,11 @@ carrying data-tag records its own window when voting closes, which gives exact
 boundaries plus the prompt and the answer. Failing that, the server infers a
 question as a burst of votes separated from the next by a gap. `archive` prefers
 the marks and falls back to the bursts, saying which it used.
+
+`leaderboard` scores the day the same way the projector does, because it asks the
+same endpoint: the standings a room saw at the end of a lecture are the standings
+this prints afterwards. Only students who chose a nickname appear; the rest voted
+anonymously and are counted in the bars but never in the board.
 
 No dependencies beyond the standard library, matching the other tools here.
 """
@@ -169,6 +175,29 @@ def cmd_show(args) -> None:
         print()
 
 
+def render_board(d: dict, title: str = "") -> None:
+    if title:
+        print(title)
+    rows = d.get("standings") or []
+    if not rows:
+        # Two different empties, and telling them apart is the difference between
+        # "nobody played" and "the questions were opinion polls".
+        print("  no standings: " + ("nobody chose a nickname" if d.get("questions")
+                                    else "no scored questions in that range"))
+        return
+    print(f"  {'#':>3}  {'nickname':<26}{'right':>6}{'of':>4}{'time':>9}")
+    for s in rows:
+        print(f"  {s['rank']:>3}  {s['name']:<26}{s['correct']:>6}{s['answered']:>4}"
+              f"{s['seconds']:>8.1f}s")
+    print(f"\n  {d['players']} player(s) over {d['questions']} scored question(s)")
+
+
+def cmd_leaderboard(args) -> None:
+    lo, hi, d = day_bounds(args.date)
+    board = get("/leaderboard", **{"from": lo, "to": hi, "top": args.top})
+    render_board(board, title=f"{d}\n")
+
+
 def cmd_archive(args) -> None:
     lo, hi, d = day_bounds(args.date)
 
@@ -186,6 +215,10 @@ def cmd_archive(args) -> None:
             sys.exit("Row limit hit; refusing to write a partial archive.")
     if not qs:
         sys.exit(f"No votes on {d}; nothing to archive.")
+
+    # Scored from the same endpoint the projector used, so the file agrees with
+    # what the room saw. A day with no nicknames simply has an empty block.
+    board = get("/leaderboard", **{"from": lo, "to": hi, "top": args.top})
 
     out = args.out or REPO / "course" / "clicker" / f"{args.lecture}.yml"
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -229,8 +262,33 @@ def cmd_archive(args) -> None:
         # Only the burst view knows how many taps produced those voters.
         if "raw_votes" in q:
             lines.append(f"    raw_taps: {q['raw_votes']}")
+
+    # Nicknames are student-invented and identify nobody, which is the whole
+    # premise of the board, so unlike the device pseudonyms they are worth
+    # keeping. They are still self-reported strings: quote them, and do not
+    # treat one that looks like an Andrew ID as being one.
+    lines += [
+        "",
+        "# Standings, scored the same way the projector scored them: a point per",
+        "# correct answer, time summed over correct answers only as the tiebreak.",
+        "# Students who voted without a nickname are in the counts above and not here.",
+        f"players: {board['players']}",
+        "standings:",
+    ]
+    if not board["standings"]:
+        lines.append("  []")
+    for s in board["standings"]:
+        name = (s["name"] or "").replace('"', "'")
+        lines += [
+            f"  - rank: {s['rank']}",
+            f'    name: "{name}"',
+            f"    correct: {s['correct']}",
+            f"    answered: {s['answered']}",
+            f"    seconds: {s['seconds']}",
+        ]
     out.write_text("\n".join(lines) + "\n")
-    print(f"{len(qs)} question(s), {source} -> {out.relative_to(REPO)}")
+    print(f"{len(qs)} question(s), {board['players']} player(s), {source} "
+          f"-> {out.relative_to(REPO)}")
     if source.startswith("inferred"):
         print("No slide marks found, so prompts and answers are blank; fill them in.")
 
@@ -254,6 +312,11 @@ def main() -> None:
     p.add_argument("--gap", type=int, default=DEFAULT_GAP_MS, help="ms between questions")
     p.set_defaults(fn=cmd_questions)
 
+    p = sub.add_parser("leaderboard", help="standings for a day")
+    p.add_argument("--date", default="today")
+    p.add_argument("--top", type=int, default=20)
+    p.set_defaults(fn=cmd_leaderboard)
+
     p = sub.add_parser("show", help="live bars, as a backstop for the slide")
     p.add_argument("--window", type=int, default=90, help="seconds to look back")
     p.add_argument("--every", type=float, default=2.0, help="seconds between polls")
@@ -263,6 +326,7 @@ def main() -> None:
     p.add_argument("lecture")
     p.add_argument("--date", default="today")
     p.add_argument("--gap", type=int, default=DEFAULT_GAP_MS)
+    p.add_argument("--top", type=int, default=50, help="standings rows to keep")
     p.add_argument("--out", type=pathlib.Path)
     p.add_argument("--force-bursts", action="store_true",
                    help="ignore slide marks and infer windows from gaps")

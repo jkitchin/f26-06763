@@ -529,6 +529,23 @@ will get wrong. After any reveal the button becomes "Vote again" and reopens the
 question, which is the second half of peer instruction and the reason the middle band
 is worth landing in.
 
+**The leaderboard is opt-in for the student and optional for the deck.** A student who
+picks a nickname appears in the standings; one who skips the prompt votes normally, is
+counted in every bar and every band, and never appears. Keep it that way. Nothing on
+the board is graded, the anonymous path stays as easy as the named one, and the reason
+is the same one that makes the answers honest: a student who thinks a wrong answer
+follows them around stops giving you their real one.
+
+Two authoring rules follow. A question reveals the running top five in place of its QR
+code, which happens by itself, so use `data-top` to change how many names appear and
+`data-leaderboard="false"` to suppress it on a question where the board would be a
+distraction. And a deck that runs questions should end with a summary slide, which is
+one empty `<div class="clicker-leaderboard" data-read="...">`; the standings are
+cumulative for the page load, so the summary slide is the natural place for the whole
+session to land. Scoring is one point per correct answer with total time over the
+correct answers only as the tiebreak; `clicker/README.md` spells out what that rule
+does with an unrevealed question, a re-vote, and a second round.
+
 **Two publishing consequences to decide before putting one in a released deck.** A
 rendered deck is public, so `data-answer` is readable in its page source and a student
 could read ahead; and anyone with the deck can open a window and vote, which lands in
@@ -536,10 +553,12 @@ the same stream as the room. Neither matters for a formative question, and both 
 if you ever attach anything to it. `clicker/shakedown.md` sidesteps both by not being
 published: it lives in `clicker/`, which is in `exclude_patterns`.
 
-**`clicker-slide.js` is copied next to every rendered deck by CI**, so
-`<script src="clicker-slide.js"></script>` resolves in production from any lecture
-deck. Authoring one locally needs a copy or symlink beside the deck, the same wrinkle
-`figures/` has.
+**`clicker-slide.js` and `figures/clicker-qr.png` are copied next to every rendered
+deck by CI**, so both resolve in production from any lecture deck. The QR is copied
+rather than committed into each lecture's `figures/` because one code serves the whole
+course, and a copy per lecture would go stale the day the vote URL changes. Authoring
+a deck locally needs both beside it, the same wrinkle `figures/` has; `.gitignore`
+covers the two symlinks so they stay out of the repository.
 
 **Render from the repo root.** `.marprc.yml` sets `themeSet: ./themes`, resolved
 against the working directory, so running marp from inside a deck's own directory
@@ -547,8 +566,10 @@ silently drops the course theme and the deck comes out looking like plain markdo
 with an oversized QR pushing the timer off the slide.
 
 Results are archived with `python3 tools/clicker.py archive lNN`, which recovers the
-question windows from the vote stream rather than from anything you have to write down.
-Give each question a `data-tag` so the archive knows which was which.
+question windows from the vote stream rather than from anything you have to write down,
+and folds in the standings. Give each question a `data-tag` so the archive knows which
+was which. `python3 tools/clicker.py leaderboard --date today` prints the board on its
+own, scored by the same endpoint the projector used.
 
 ## 6. Demo notebooks
 
@@ -903,6 +924,14 @@ Nothing on the map is locked behind a prerequisite, and that is a design decisio
 than an unfinished feature: a student arriving in week 12 must not be walled out of L22
 because they skipped L9. There are also no streaks, no XP and no leaderboard, for the
 reason `course/optional/generating-is-not-learning.md` gives.
+
+The clicker does have a leaderboard (section 5c), and the two positions are consistent
+rather than in tension. The game is graded, worked alone, and its score goes on a PDF a
+TA records, so ranking students against each other there would attach a competition to
+something that already carries weight. The clicker is ungraded, lasts one lecture, uses
+a nickname the student invents, and can be skipped entirely. A board that exists for
+eighty minutes and touches nobody's record is a different object from a persistent
+ranking of the class, and if that ever stops being true, the board is what should go.
 
 ---
 

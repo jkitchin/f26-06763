@@ -88,6 +88,8 @@ export default {
     if (path === '/windows') return windows(env, url)
     if (path === '/open') return openWindow(env, url)
     if (path === '/state') return state(env, url)
+    if (path === '/name') return setName(env, url)
+    if (path === '/leaderboard') return leaderboard(env, url)
 
     return json(
       {
@@ -95,6 +97,7 @@ export default {
         routes: [
           '/', '/v/{A-D}', '/r', '/export', '/stats',
           '/questions', '/mark', '/windows', '/open', '/state',
+          '/name', '/leaderboard',
         ],
       },
       404,
@@ -456,6 +459,215 @@ async function state(env) {
     start: row.start_ts,
     end: row.end_ts,
     tag: row.tag,
+    server_ts: now,
+  })
+}
+
+/* ---- nicknames and the leaderboard ------------------------------------ */
+
+// A nickname is 2 to 24 characters, ASCII only, and must contain a letter or a
+// digit. The charset is narrow on purpose: this ends up projected at the front
+// of a room, where a right-to-left override or a confusable is a prank rather
+// than a name, and where anything non-ASCII is a rendering gamble on whichever
+// machine happens to be driving the projector.
+//
+// Returns null for anything that cannot be made into a name, rather than
+// silently mangling it into something the student did not type.
+const NAME_MAX = 24
+
+function normalizeName(raw) {
+  let s = String(raw || '')
+    .replace(/[\u0000-\u001f\u007f]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (s.length > NAME_MAX) s = s.slice(0, NAME_MAX).trim()
+  if (s.length < 2) return null
+  if (!/^[A-Za-z0-9 ._-]+$/.test(s)) return null
+  if (!/[A-Za-z0-9]/.test(s)) return null
+  return s
+}
+
+// GET /name?d=<device>&n=<nickname> -> claim or change a nickname.
+//
+// Called when a student first picks a name, when they change it, and once per
+// page load as a re-assertion. That last one is what makes the `voter` table
+// disposable in the same sense `live` is: drop it and every phone puts its own
+// row back the next time the pad is opened.
+//
+// Names are unique, case-insensitively, so the board is never ambiguous about
+// who is who. A name already held by a DIFFERENT device is a 409 the pad turns
+// into "that one is taken"; the same device re-claiming its own name is a no-op
+// success, which is what makes the re-assertion on load free.
+async function setName(env, url) {
+  const device = deviceOf(url)
+  if (!device) return json({ error: 'a device id is required' }, 400)
+
+  const name = normalizeName(url.searchParams.get('n'))
+  if (!name) {
+    return json(
+      { error: 'a nickname is 2 to 24 characters, using letters, digits, space, dot, dash or underscore' },
+      400,
+    )
+  }
+  const key = name.toLowerCase()
+
+  try {
+    const holder = await env.DB.prepare('SELECT device FROM voter WHERE name_key = ?')
+      .bind(key)
+      .first()
+    if (holder && holder.device !== device) return json({ error: 'taken', name }, 409)
+
+    await env.DB.prepare(
+      `INSERT INTO voter (device, name, name_key, updated_ts) VALUES (?1, ?2, ?3, ?4)
+       ON CONFLICT(device) DO UPDATE SET name = ?2, name_key = ?3, updated_ts = ?4`,
+    )
+      .bind(device, name, key, Date.now())
+      .run()
+  } catch (err) {
+    // Two phones can pass the check above in the same instant; the unique index
+    // is what actually decides it, so report the loser as taken rather than 500.
+    if (/UNIQUE/i.test(String(err && err.message))) return json({ error: 'taken', name }, 409)
+    return dbError(err)
+  }
+
+  return json({ ok: true, name })
+}
+
+// GET /leaderboard?from=&to=&top=&hours= -> the standings.
+//
+// Everything this needs is already on disk, which is why a leaderboard costs the
+// server no new knowledge and no redeploy when a question changes. A marked
+// window carries the answer and the exact boundaries; a vote carries the
+// server's own timestamp. So:
+//
+//   correct  = the student's last answer on a question matched the mark
+//   response = vote.ts - window.from_ts, both ends off the server's clock
+//
+// Neither number is supplied by the phone, so neither can be forged by editing a
+// request, which is a stronger position than the rest of these routes are in.
+//
+// Only questions that were TAGGED and REVEALED can score, because a mark is
+// written at reveal and is the only place a start time survives. An unrevealed
+// question scores nothing, the same way it archives as nothing.
+async function leaderboard(env, url) {
+  const now = Date.now()
+  const hours = Math.min(Math.max(intParam(url, 'hours', 6), 1), 24 * 30)
+  const to = intParam(url, 'to', now)
+  const from = intParam(url, 'from', to - hours * 3600000)
+  const top = Math.min(Math.max(intParam(url, 'top', 5), 1), 200)
+
+  let marks
+  try {
+    ;({ results: marks } = await env.DB.prepare(
+      `SELECT tag, from_ts, to_ts, round, answer FROM window
+       WHERE from_ts >= ?1 AND from_ts <= ?2 AND answer IS NOT NULL
+       ORDER BY from_ts LIMIT 2000`,
+    )
+      .bind(from, to)
+      .all())
+  } catch (err) {
+    return dbError(err)
+  }
+  marks = marks ?? []
+  // An opinion poll carries no answer and cannot score, so a session made only
+  // of those comes back empty rather than as an error.
+  if (!marks.length) {
+    return json({ standings: [], players: 0, questions: 0, from, to, server_ts: now })
+  }
+
+  const lo = Math.min(...marks.map((m) => m.from_ts))
+  const hi = Math.max(...marks.map((m) => m.to_ts))
+
+  let rows, voters
+  try {
+    ;({ results: rows } = await env.DB.prepare(
+      `SELECT rowid, ts, opt, device FROM vote
+       WHERE ts >= ?1 AND ts <= ?2 AND device IS NOT NULL
+       ORDER BY ts LIMIT 20000`,
+    )
+      .bind(lo, hi)
+      .all())
+    // One row per student for the whole semester, so this stays small enough to
+    // read whole rather than joining it per device.
+    ;({ results: voters } = await env.DB.prepare('SELECT device, name FROM voter').all())
+  } catch (err) {
+    return dbError(err)
+  }
+  rows = rows ?? []
+
+  // device -> tag -> { correct, elapsed }
+  const per = new Map()
+  const tags = new Set()
+
+  for (const m of marks) {
+    tags.add(m.tag)
+
+    // Their last vote inside this window, which is the same rule the tally uses:
+    // tapping again changes your answer rather than adding to it.
+    const last = new Map()
+    for (const r of rows) {
+      if (r.ts < m.from_ts || r.ts > m.to_ts) continue
+      const prev = last.get(r.device)
+      if (!prev || r.ts > prev.ts || (r.ts === prev.ts && r.rowid > prev.rowid)) {
+        last.set(r.device, r)
+      }
+    }
+
+    for (const [device, r] of last) {
+      if (!per.has(device)) per.set(device, new Map())
+      // Marks arrive in from_ts order, so round two overwrites round one: your
+      // last answer on a question counts. Overwriting rather than merging is
+      // what stops a student who nailed round one and then sat out round two
+      // from losing a point they had already earned.
+      per.get(device).set(m.tag, {
+        correct: r.opt === m.answer,
+        elapsed: Math.max(0, r.ts - m.from_ts),
+      })
+    }
+  }
+
+  const nameOf = new Map((voters ?? []).map((v) => [v.device, v.name]))
+  const standings = []
+
+  for (const [device, byTag] of per) {
+    const name = nameOf.get(device)
+    // No nickname means voting anonymously, which stays a supported way to use
+    // the clicker: those votes counted in every bar and every band, and simply
+    // do not appear here.
+    if (!name) continue
+
+    let correct = 0
+    let ms = 0
+    let answered = 0
+    for (const rec of byTag.values()) {
+      answered += 1
+      // Time accumulates only on answers that were RIGHT. A wrong answer costs
+      // the point and nothing else, so attempting a question you are unsure of
+      // is never worse than staying quiet.
+      if (rec.correct) {
+        correct += 1
+        ms += rec.elapsed
+      }
+    }
+    standings.push({ name, correct, answered, ms, seconds: Math.round(ms / 100) / 10 })
+  }
+
+  // More right always beats faster; time is the tiebreak, and the name is a
+  // final tiebreak so that two identical scores do not swap places between two
+  // reads of the same data in front of a room.
+  standings.sort((a, b) => b.correct - a.correct || a.ms - b.ms || a.name.localeCompare(b.name))
+  standings.forEach((s, i) => {
+    s.rank = i + 1
+  })
+
+  // `device` is deliberately absent from the response. The board carries the
+  // name a student invented and nothing that links it back to a browser.
+  return json({
+    standings: standings.slice(0, top),
+    players: standings.length,
+    questions: tags.size,
+    from,
+    to,
     server_ts: now,
   })
 }

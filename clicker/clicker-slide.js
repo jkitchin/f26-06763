@@ -244,6 +244,146 @@
     })(t0);
   }
 
+  /* ---- the leaderboard ------------------------------------------------- */
+
+  /* Standings are cumulative for the session, so the board on question four is
+   * the story so far rather than a fresh scoreboard every slide. "The session"
+   * is this page load: the first window a deck opens sets the boundary, which
+   * keeps the server free of any notion of dates or time zones.
+   *
+   * A deck opened straight to its summary slide has no such boundary, so that
+   * slide falls back to a lookback window (data-hours, six by default). */
+
+  var sessionStart = null;
+
+  function fmtMs(ms) {
+    var s = ms / 1000;
+    if (s < 60) return (s < 10 ? s.toFixed(1) : Math.round(s)) + 's';
+    var m = Math.floor(s / 60);
+    return m + 'm' + ('0' + Math.round(s - m * 60)).slice(-2) + 's';
+  }
+
+  /* Names are typed by students, so every one of them goes in through
+   * textContent. The server already restricts the charset, and this is the
+   * second lock on the same door: nothing a student types is ever parsed as
+   * markup on the projector. */
+  function renderBoard(el, data, title) {
+    el.textContent = '';
+
+    var h = document.createElement('div');
+    h.className = 'clicker-board-title';
+    h.textContent = title;
+    el.appendChild(h);
+
+    var rows = (data && data.standings) || [];
+    if (!rows.length) {
+      var empty = document.createElement('div');
+      empty.className = 'clicker-board-empty';
+      // Distinguish the two ways this comes back blank. Neither is an error, and
+      // an unexplained blank box reads as broken in front of a room.
+      empty.textContent = data && data.questions
+        ? 'Nobody has picked a nickname yet.'
+        : 'No scored questions yet.';
+      el.appendChild(empty);
+      el.hidden = false;
+      return;
+    }
+
+    var ol = document.createElement('ol');
+    ol.className = 'clicker-board-list';
+    rows.forEach(function (s) {
+      var li = document.createElement('li');
+
+      var rank = document.createElement('span');
+      rank.className = 'rank';
+      rank.textContent = s.rank;
+
+      var who = document.createElement('span');
+      who.className = 'who';
+      who.textContent = s.name;
+
+      var pts = document.createElement('span');
+      pts.className = 'pts';
+      pts.textContent = s.correct;
+
+      var secs = document.createElement('span');
+      secs.className = 'secs';
+      secs.textContent = fmtMs(s.ms);
+
+      li.appendChild(rank);
+      li.appendChild(who);
+      li.appendChild(pts);
+      li.appendChild(secs);
+      ol.appendChild(li);
+    });
+    el.appendChild(ol);
+
+    var foot = document.createElement('div');
+    foot.className = 'clicker-board-foot';
+    foot.textContent = data.questions +
+      (data.questions === 1 ? ' question, ' : ' questions, ') +
+      data.players + (data.players === 1 ? ' player' : ' players');
+    el.appendChild(foot);
+
+    el.hidden = false;
+  }
+
+  function fetchBoard(api, from, to, top) {
+    return fetch(api + '/leaderboard?from=' + from + '&to=' + to + '&top=' + top,
+                 { cache: 'no-store' })
+      .then(function (r) { return r.json(); });
+  }
+
+  /* A summary slide: <div class="clicker-leaderboard" data-read="..." data-top="10">
+   *
+   * It refreshes on every entry rather than once, because it is the slide you
+   * come back to, and a board frozen at its first render would be wrong by the
+   * time anybody looked at it twice. */
+  function setupBoardSlide(el) {
+    var api = (el.dataset.read || '').replace(/\/+$/, '');
+    if (!api) return;
+    var top = parseInt(el.dataset.top, 10) || 10;
+    var hours = parseInt(el.dataset.hours, 10) || 6;
+    var title = el.dataset.title || 'Final standings';
+    var section = el.closest('section') || el.parentElement;
+
+    var body = document.createElement('div');
+    body.className = 'clicker-board';
+    el.appendChild(body);
+
+    var refresh = document.createElement('button');
+    refresh.className = 'clicker-board-refresh';
+    refresh.type = 'button';
+    refresh.textContent = 'Refresh';
+    el.appendChild(refresh);
+
+    function draw() {
+      var now = Date.now();
+      var from = sessionStart || (now - hours * 3600000);
+      fetchBoard(api, from, now, top)
+        .then(function (d) { renderBoard(body, d, title); })
+        .catch(function () {
+          body.textContent = '';
+          var e = document.createElement('div');
+          e.className = 'clicker-board-empty';
+          e.textContent = 'Could not reach the server.';
+          body.appendChild(e);
+        });
+    }
+
+    refresh.addEventListener('click', draw);
+
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting && e.intersectionRatio >= 0.6) draw();
+        });
+      }, { threshold: [0.6] }).observe(section);
+    } else {
+      draw();
+    }
+  }
+
   /* ---- one question ---------------------------------------------------- */
 
   function setup(root) {
@@ -322,6 +462,34 @@
     mute.addEventListener('click', function () { setMuted(!muted()); paintMute(); });
     panel.appendChild(mute);
 
+    // The board takes the QR code's place at reveal. The QR is dead weight once
+    // voting has closed, and the panel has no room for both.
+    var qr = panel.querySelector('img');
+    var boardEl = document.createElement('div');
+    boardEl.className = 'clicker-board';
+    boardEl.hidden = true;
+    panel.insertBefore(boardEl, panel.firstChild);
+
+    var boardTop = parseInt(root.dataset.top, 10) || 5;
+    var boardOff = root.dataset.leaderboard === 'false';
+
+    function showBoard() {
+      if (boardOff) return;
+      var now = Date.now() - offset;
+      fetchBoard(api, sessionStart || start, now, boardTop)
+        .then(function (d) {
+          var n = (d.standings || []).length;
+          renderBoard(boardEl, d, n ? 'Top ' + Math.min(boardTop, n) : 'Standings');
+          if (qr) qr.hidden = true;
+        })
+        .catch(function () { /* the bars matter more than the board */ });
+    }
+
+    function hideBoard() {
+      boardEl.hidden = true;
+      if (qr) qr.hidden = false;
+    }
+
     var start = null, end = null, poll = null, tick = null, open = false, offset = 0;
 
     function read(to) {
@@ -359,7 +527,17 @@
                 '&round=' + round +
                 (answer ? '&answer=' + encodeURIComponent(answer) : '') +
                 '&prompt=' + encodeURIComponent(promptText());
-        fetch(api + '/mark' + q, { cache: 'no-store' }).catch(function () {});
+        // The board is fetched only AFTER the mark lands, because the question
+        // that just closed cannot score until its window is on record. Chaining
+        // is the difference between the room seeing this question counted and
+        // seeing the standings as of the previous one.
+        fetch(api + '/mark' + q, { cache: 'no-store' })
+          .catch(function () {})
+          .then(function () { showBoard(); });
+      } else {
+        // No tag means this question never scores, but the running standings
+        // are still worth showing.
+        showBoard();
       }
 
       // Revealing nothing at all, with no explanation, is the worst thing this can
@@ -411,6 +589,10 @@
           offset = Date.now() - d.server_ts;
           start = d.server_ts;
           end = start + seconds * 1000;
+          // The first window of this page load is where "the session" begins,
+          // which is what makes the standings cumulative for one lecture without
+          // the server needing to know what a lecture or a date is.
+          if (sessionStart === null) sessionStart = start;
           open = true;
           round += 1;
           btn.textContent = 'Reveal now';
@@ -429,6 +611,7 @@
           if (opts) opts.hidden = false;
           verdict.hidden = true;
           why.hidden = true;
+          hideBoard();
           document.querySelectorAll('canvas.clicker-fx').forEach(function (c) { c.remove(); });
 
           tick = setInterval(function () {
@@ -470,4 +653,5 @@
   }
 
   document.querySelectorAll('.clicker[data-read]').forEach(setup);
+  document.querySelectorAll('.clicker-leaderboard[data-read]').forEach(setupBoardSlide);
 })();

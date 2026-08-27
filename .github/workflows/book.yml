@@ -184,6 +184,15 @@ jobs:
       - name: Typecheck the game
         run: cd game && npx tsc --noEmit
 
+      - name: Run the clicker's scoring tests
+        # The leaderboard decides what goes on a wall in front of a room, and it
+        # is the one part of the clicker with a rule complicated enough to get
+        # wrong quietly: time counted over correct answers only, rounds
+        # overwriting, anonymous voters excluded. The suite drives the real
+        # handler out of worker.js against a fake D1, so it needs no wrangler,
+        # no network, and no database.
+        run: cd clicker && node --test "test/*.test.mjs"
+
   build:
     runs-on: ubuntu-latest
     steps:
@@ -396,6 +405,12 @@ jobs:
             # the path resolves in production; a deck without a clicker slide just
             # never loads it.
             cp clicker/clicker-slide.js "$out/"
+            # The QR travels with it. One code serves the whole course, so it
+            # lives once in clicker/figures/ and is copied in rather than
+            # duplicated into every lecture's figures/ where 22 copies would
+            # drift the day the URL changes.
+            mkdir -p "$out/figures"
+            cp clicker/figures/clicker-qr.png "$out/figures/"
           done
 
       - name: Render the clicker deck
