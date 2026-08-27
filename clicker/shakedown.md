@@ -34,15 +34,15 @@ the closing slide. Everything is anonymous and nothing is graded.
 <div class="clicker" data-seconds="45" data-read="https://clicker.f26-06763.workers.dev">
 <div class="clicker-main">
 
-Scan the code, or type the address. It is the **same link all semester**, so
-bookmark it.
+Scan the code, or type the address. **Same link all semester.**
 
-Your phone shows four buttons and nothing else. The question stays up here.
+Four buttons and nothing else. The question stays up here.
 
 Tapped the wrong one? **Tap another.** Only your last answer counts.
 
-A vote is a timestamp, a letter, and a random nickname your browser invents.
-Nothing identifies you, and none of it is graded.
+It asks once for a **nickname** for the leaderboard. Invent one, never your Andrew ID, and skip it if you would rather not play.
+
+A vote is a timestamp, a letter, and a random id. None of it is graded.
 
 </div>
 <aside class="clicker-panel">
@@ -100,7 +100,7 @@ well above 70%.
 
 ## Now one to get wrong
 
-<div class="clicker" data-tag="shakedown-rigged-miss" data-seconds="45" data-answer="C" data-hint="Your phone sends the same random nickname with every tap. Knowing that, what could the server do when it sees two taps from the same nickname?" data-why="Your browser sends a random nickname with every tap, and the tally keeps only the most recent vote from each device inside the question's window. Changing your mind replaces your answer instead of adding a second one." data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker" data-tag="shakedown-rigged-miss" data-seconds="45" data-answer="C" data-hint="Your phone sends the same random id with every tap. Knowing that, what could the server do when it sees two taps from the same id?" data-why="Your browser sends a random id with every tap, and the tally keeps only the most recent vote from that id inside the question's window. Changing your mind replaces your answer instead of adding a second one." data-read="https://clicker.f26-06763.workers.dev">
 <div class="clicker-main">
 
 **Left side of the room: tap A. Right side: tap B.**
@@ -140,12 +140,12 @@ first response. Worth saying so when it comes up.
 
 ---
 
-## A leaderboard, maybe
+## The leaderboard
 
 <div class="clicker" data-tag="shakedown-leaderboard" data-seconds="45" data-read="https://clicker.f26-06763.workers.dev">
 <div class="clicker-main">
 
-You would invent a nickname, and your browser would remember it. Nobody, including me, would know whose is whose.
+A point per correct answer, and the fastest total breaks ties. Nobody, including me, knows whose nickname is whose. Keep it?
 
 <ol class="clicker-opts">
 <li>Yes, that sounds fun</li>
@@ -167,11 +167,32 @@ You would invent a nickname, and your browser would remember it. Nobody, includi
 <!--
 The only question here whose answer I do not already know.
 
-Right now nothing at all is attached to a vote. A leaderboard needs something
-durable to attach a score to, which is why the nickname is in the question rather
-than a footnote. You would type it once and the browser would keep it, per
-browser, so a new phone means typing it again. It stays a name you invent, never
-your Andrew ID, and I would not be able to map it back to you.
+The nickname is the whole design, so say it out loud: you type it once, the
+browser keeps it (per browser, so a new phone means typing it again), and it is a
+name you invent rather than your Andrew ID. Skipping it still votes, still counts
+in the bars, and simply never appears on the board.
+
+This one is an opinion poll, so there is no right answer and no fireworks. The
+top five appears at the reveal anyway, off the two scored questions so far, which
+is the demo. If the room says no, the board comes out and nothing else changes.
+-->
+
+---
+
+## Final standings
+
+Everyone who skipped a nickname voted in every bar you saw, and is not here.
+
+<div class="clicker-leaderboard"
+     data-read="https://clicker.f26-06763.workers.dev"
+     data-top="8"
+     data-hours="6"
+     data-title="Standings"></div>
+
+<!--
+Comes up empty if nobody picked a nickname, and says so in those words rather
+than showing a blank box. Refresh redraws it, for the case where somebody is
+still typing a name while you talk.
 -->
 
 ---
@@ -182,7 +203,8 @@ Thanks. The results set the defaults, rather than me guessing them.
 
 The link is the same every class: **clicker.f26-06763.workers.dev**
 
-Nothing here was graded, and nothing was recorded about who you are.
+Nothing here was graded, and nothing was recorded about who you are. The nickname
+is yours to change or drop: **change nickname** at the bottom of the vote page.
 
 <!--
 If the warm-up count came in well under the room count, chase that before using this

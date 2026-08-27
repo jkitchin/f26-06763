@@ -8,6 +8,7 @@
     "schema:remote": "wrangler d1 execute clicker --remote --file schema.sql",
     "schema:local": "wrangler d1 execute clicker --local --file schema.sql",
     "tail": "wrangler tail",
+    "test": "node --test \"test/*.test.mjs\"",
     "slides": "cd .. && marp clicker/shakedown.md --html -o clicker/shakedown.html"
   },
   "devDependencies": {

@@ -27,7 +27,16 @@ footer: "Systems and Toolchains for AI Engineers"
 
 <!-- 110 min. Budget: 15 / 20 / 20 / 20 / 15 / 20 demo, ~ leave slack.
      Dataset is the Intel Berkeley Lab motes, ~2.3M readings. The demo is
-     the payoff; if running long, cut the numeric-vs-double slide, not the demo. -->
+     the payoff; if running long, cut the numeric-vs-double slide, not the demo.
+
+     Six clicker questions, one at the end of each section. Each is a minute of
+     voting plus whatever the discussion costs, so budget 12 to 15 minutes for
+     the set. They come out of the section they close, not out of the demo.
+
+     The two to protect are PARTITION BY and the index column order: both are
+     mistakes students make in Assignment 2, and both fail quietly. If time is
+     short, drop the first question (the wide table) and the last (OLTP), which
+     are the two the room is most likely to walk in already knowing. -->
 
 ---
 
@@ -97,6 +106,42 @@ A contract you can query turns a pile of numbers
 into something you can **answer questions from and defend**.
 
 ---
+## Why a database, a question
+
+<div class="clicker" data-tag="l03-wide-columns" data-seconds="45" data-answer="B" data-hint="Three of these name a single mote. Look hard at the one that does not." data-why="B. A, C and D each name one column, so each is a filter or an aggregate on that column. B has to range over 54 column names, and SQL filters rows, never names. In long format it is one WHERE value > 30." data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker-main">
+
+**You kept the wide table, one column per mote, m1 through m54. Which question can you *not* answer with a `WHERE` clause?**
+
+<ol class="clicker-opts">
+<li>What was mote 12's average temperature on 3 March?</li>
+<li>Which motes ever exceeded 30&deg;C?</li>
+<li>How many rows have no value for mote 12?</li>
+<li>What was the highest reading mote 7 ever produced?</li>
+</ol>
+
+</div>
+<aside class="clicker-panel">
+<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
+<div class="clicker-url">clicker.f26-06763.workers.dev</div>
+<button class="clicker-start">Start voting</button>
+<div class="clicker-timer">45</div>
+<div class="clicker-count">no votes yet</div>
+</aside>
+</div>
+
+<!--
+Closes the wide-versus-long argument by making them use it rather than nod at it.
+
+Expect B to win but not by much. The common wrong answer is C, from students who
+read NULL as unanswerable rather than as an ordinary IS NULL test.
+
+If the room lands in the middle band, ask a defender of C to say the query out loud.
+It takes about ten seconds to write, which settles it.
+-->
+
+---
+
 
 <!-- _class: section -->
 
@@ -207,6 +252,43 @@ Entities go in **rows**.
 <!-- This is THE recurring mistake. Worth 90 seconds and a show of hands. -->
 
 ---
+## The relational model, a question
+
+<div class="clicker" data-tag="l03-primary-key" data-seconds="45" data-answer="B" data-hint="Write out the two rows one mote produces on a single tick, and compare them column by column." data-why="B. The key is the pair, so a second row with the same mote and the same instant is a duplicate whatever sits in variable. That is why the schema keys on (sensor_id, ts, variable). C is the mirror-image misreading: the key constrains the pair, so two different motes at the same instant are fine." data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker-main">
+
+**A classmate declares `PRIMARY KEY (sensor_id, ts)` on `readings`. Every mote reports temperature *and* humidity on the same 31-second tick. What happens?**
+
+<ol class="clicker-opts">
+<li>Nothing, the key is fine</li>
+<li>Humidity is rejected, because temperature already claimed that (mote, instant)</li>
+<li>Two motes can no longer report at the same instant</li>
+<li>Inserts slow down as the table grows</li>
+</ol>
+
+</div>
+<aside class="clicker-panel">
+<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
+<div class="clicker-url">clicker.f26-06763.workers.dev</div>
+<button class="clicker-start">Start voting</button>
+<div class="clicker-timer">45</div>
+<div class="clicker-count">no votes yet</div>
+</aside>
+</div>
+
+<!--
+Tests whether a composite key is understood as a constraint on the TUPLE rather
+than on each column.
+
+C is the productive wrong answer, and it is worth drawing out: a student who picks it
+believes a key constrains its columns one at a time. Ask them which existing row
+collides, and the tuple falls out of the answer.
+
+Point back at the CREATE TABLE on the schema slide once the vote is in.
+-->
+
+---
+
 
 <!-- _class: section -->
 
@@ -341,6 +423,45 @@ Units and calibration live in the `sensors` table,
 > cannot be validated, only believed.
 
 ---
+## Types that carry meaning, a question
+
+<div class="clicker" data-tag="l03-type-vs-check" data-seconds="45" data-answer="B" data-hint="Three of these are ill-formed. One is well-formed and wrong." data-why="B. 386 is a perfectly good float, so nothing in the type system objects. The other three are all refused: the foreign key rejects mote 999, 2004-02-30 fails as a date, and n/a fails to parse as a float. A type says what shape a value has; only a CHECK knows the instrument." data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker-main">
+
+**Every column is typed properly: `ts timestamptz`, `value double precision`, `sensor_id int REFERENCES sensors`. Which bad row does the database still accept?**
+
+<ol class="clicker-opts">
+<li>A reading from mote 999</li>
+<li>A temperature of 386&deg;C</li>
+<li>A <code>ts</code> of 2004-02-30</li>
+<li>A <code>value</code> of 'n/a'</li>
+</ol>
+
+</div>
+<aside class="clicker-panel">
+<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
+<div class="clicker-url">clicker.f26-06763.workers.dev</div>
+<button class="clicker-start">Start voting</button>
+<div class="clicker-timer">45</div>
+<div class="clicker-count">no votes yet</div>
+</aside>
+</div>
+
+<!--
+The single most transferable idea in this section, so give it the full window even
+if the room is quick.
+
+C is the interesting distractor. Students who have only ever parsed dates in Python
+are often unsure whether 30 February is caught, and it is: the date type rejects it
+outright.
+
+If they sail through, say the one line that generalizes it: a type constrains the
+shape of a value, a constraint constrains its meaning, and only you know the
+instrument.
+-->
+
+---
+
 
 <!-- _class: section -->
 
@@ -455,6 +576,43 @@ Sampling is irregular → a **time** frame is the honest one.
 PostgreSQL writes it almost as you'd say it.
 
 ---
+## SQL for engineering questions, a question
+
+<div class="clicker" data-tag="l03-partition-by" data-seconds="60" data-answer="B" data-hint="Sort all 54 motes together by timestamp, then ask which mote the row above yours came from." data-why="B. With no partition the window is the whole table in timestamp order, so 54 motes interleave and the previous row almost never belongs to your mote. The query runs, returns plausible small intervals, and every dropout disappears." data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker-main">
+
+**You compute `ts - lag(ts) OVER (ORDER BY ts)` and forget `PARTITION BY sensor_id`. What comes back?**
+
+<ol class="clicker-opts">
+<li>An error, <code>lag</code> requires a partition</li>
+<li>Gaps near zero, because each row's predecessor is usually a different mote</li>
+<li>The same answer, <code>ORDER BY ts</code> already groups each mote together</li>
+<li>NULL in every row</li>
+</ol>
+
+</div>
+<aside class="clicker-panel">
+<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
+<div class="clicker-url">clicker.f26-06763.workers.dev</div>
+<button class="clicker-start">Start voting</button>
+<div class="clicker-timer">60</div>
+<div class="clicker-count">no votes yet</div>
+</aside>
+</div>
+
+<!--
+The most expensive bug in the section, because it fails quietly: no error, no
+warning, and a column of small plausible intervals with every dropout erased.
+
+Expect a real split between B and C. A student who picks C is thinking of ORDER BY as
+a grouping, which is exactly the confusion PARTITION BY exists to resolve.
+
+This one is worth a re-vote after they argue. Then show it live in the demo: run the
+lag query with and without the partition and put the two gap columns side by side.
+-->
+
+---
+
 
 ## SQL for engineering questions, `WHERE` + `CASE`: flag, don't just drop
 
@@ -581,6 +739,44 @@ Composite, **in that order**: cluster by sensor, sort by time.
 <span class="source">One sensor, one-hour window, as the table grows to 2.3M rows. ~67× at full size. Measured in SQLite (B-trees, like Postgres).</span>
 
 ---
+## Loading, indexes, query cost, a question
+
+<div class="clicker" data-tag="l03-index-order" data-seconds="60" data-answer="C" data-hint="The index is a phone book. Which of these looks somebody up without knowing the surname?" data-why="C. A composite B-tree is sorted by its first column first, so a query that does not constrain sensor_id has nowhere to start its descent and the planner falls back to a scan. Reverse the column order in the index and C becomes the fast one while B becomes the slow one." data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker-main">
+
+**You created `CREATE INDEX ON readings (sensor_id, ts)`. Which `WHERE` clause does it fail to help?**
+
+<ol class="clicker-opts">
+<li><code>sensor_id = 5 AND ts BETWEEN $1 AND $2</code></li>
+<li><code>sensor_id = 5</code></li>
+<li><code>ts BETWEEN $1 AND $2</code>, every mote</li>
+<li><code>sensor_id IN (5, 12) AND ts &gt; $1</code></li>
+</ol>
+
+</div>
+<aside class="clicker-panel">
+<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
+<div class="clicker-url">clicker.f26-06763.workers.dev</div>
+<button class="clicker-start">Start voting</button>
+<div class="clicker-timer">60</div>
+<div class="clicker-count">no votes yet</div>
+</aside>
+</div>
+
+<!--
+Column order in a composite index, which is the one thing about indexes that a
+practitioner gets wrong repeatedly.
+
+The phone-book analogy in the hint is the whole explanation, so hold it back unless
+they need it.
+
+Good bridge into EXPLAIN ANALYZE: the answer to 'which query does this index help' is
+something you confirm rather than reason about, and the demo runs exactly this
+comparison.
+-->
+
+---
+
 
 ## Loading, indexes, query cost, `EXPLAIN ANALYZE`: read two things
 
@@ -658,6 +854,41 @@ Scanning three columns across ten years is a **different** job.
 That's **OLAP**, and it wants a different store.
 
 ---
+## Loading, indexes, query cost, a question
+
+<div class="clicker" data-tag="l03-oltp-olap" data-seconds="45" data-answer="C" data-hint="Which one reads a lot of rows and very few columns?" data-why="C. A is the range scan the index was built for, and B and D are what an OLTP store is tuned for, transactions and constraints on the write path. C touches every row but only three of its columns, so a row store reads the full width of the table to answer it." data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker-main">
+
+**PostgreSQL, with the B-tree on `(sensor_id, ts)`. Which job is it worst at?**
+
+<ol class="clicker-opts">
+<li>Mote 5's readings for last Tuesday</li>
+<li>Accepting 200 readings a second with the foreign key checked on each</li>
+<li>Averaging three columns over all 2.3M rows, redrawn ten times a day for a dashboard</li>
+<li>Refusing a reading from a mote that does not exist</li>
+</ol>
+
+</div>
+<aside class="clicker-panel">
+<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
+<div class="clicker-url">clicker.f26-06763.workers.dev</div>
+<button class="clicker-start">Start voting</button>
+<div class="clicker-timer">45</div>
+<div class="clicker-count">no votes yet</div>
+</aside>
+</div>
+
+<!--
+The closer, and the one that earns the OLTP slide they just saw.
+
+Everything on the list is something PostgreSQL will do. The question is which one it
+does badly, which is the shape of the answer they need for the rest of the course.
+
+Keep this one short, five minutes at most, because the demo is what matters next.
+-->
+
+---
+
 
 <!-- _class: demo -->
 
@@ -691,9 +922,23 @@ Watch the top node flip: `Seq Scan` → `Index Only Scan`.
 
 ---
 
+## Standings
+
+Nicknames only. Everyone who skipped one still counted in every bar you saw.
+
+<div class="clicker-leaderboard"
+     data-read="https://clicker.f26-06763.workers.dev"
+     data-top="8"
+     data-hours="6"
+     data-title="Standings"></div>
+
+---
+
 ## Next
 
 **Assignment 2** released today, due ~1 week
 **Reading** PostgreSQL window functions; Kleppmann Ch. 3
 
 Full notes, with all sources: `lectures/l03/notes.md`
+
+<script src="clicker-slide.js"></script>

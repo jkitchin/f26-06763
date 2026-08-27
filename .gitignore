@@ -53,3 +53,12 @@ mlartifacts/
 # PyTorch checkpoints written by demo notebooks
 *.pt
 *.pth
+
+# A lecture deck with a clicker slide references figures/clicker-qr.png and
+# clicker-slide.js as relative paths, which CI copies in beside each rendered
+# deck (book.yml, "Render MARP slide decks"). Rendering one locally needs the
+# same two files beside the deck, so symlink them and let git ignore the
+# symlinks: the QR lives once in clicker/figures/, and 22 committed copies of it
+# would drift the day the vote URL changes.
+lectures/*/figures/clicker-qr.png
+lectures/*/clicker-slide.js

@@ -54,6 +54,47 @@
   #status { text-align: center; min-height: 2.6em; font-size: 0.95rem; }
   #status.err { color: var(--warn); }
   footer { text-align: center; color: var(--muted); font-size: 0.72rem; line-height: 1.35; }
+
+  /* Who you are on the leaderboard, and the way to change it. Small, because
+     the pad is the page and this is a footnote to it. */
+  #who { text-align: center; font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+  #who button {
+    font: inherit; color: var(--muted); background: none; border: none;
+    padding: 0 0 0 0.15em; text-decoration: underline; cursor: pointer;
+  }
+  #who .nym { color: var(--ink); font-weight: 600; }
+
+  /* The name screen covers the pad rather than sitting above it: a student who
+     has not chosen yet should be deciding that, not looking at four buttons. */
+  #name-screen[hidden] { display: none; }
+  #name-screen {
+    position: fixed; inset: 0; z-index: 10;
+    background: var(--bg);
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 24px max(18px, env(safe-area-inset-left));
+    gap: 12px;
+  }
+  #name-screen h2 { font-size: 1.15rem; margin: 0; font-weight: 600; }
+  #name-screen p { margin: 0; color: var(--muted); font-size: 0.85rem; line-height: 1.4; }
+  #nym {
+    font: inherit; font-size: 1.15rem;
+    width: 100%; padding: 0.6em 0.7em;
+    color: var(--ink); background: var(--btn);
+    border: 2px solid var(--border); border-radius: 12px;
+  }
+  #nym:focus { outline: none; border-color: var(--accent); }
+  #name-save {
+    font: inherit; font-size: 1rem; font-weight: 600;
+    padding: 0.75em 1em; border: none; border-radius: 12px;
+    color: var(--accent-ink); background: var(--accent); cursor: pointer;
+  }
+  #name-save:disabled { opacity: 0.5; cursor: default; }
+  #name-skip {
+    font: inherit; font-size: 0.85rem;
+    color: var(--muted); background: none; border: none;
+    text-decoration: underline; cursor: pointer; padding: 0.4em;
+  }
+  #name-err { color: var(--warn); font-size: 0.85rem; min-height: 1.3em; }
 </style>
 </head>
 <body>
@@ -61,6 +102,7 @@
 <header>
   <h1>06-763 &middot; vote</h1>
   <div class="sub">Tap the answer shown on the screen.<br>You can change it until voting closes.</div>
+  <div id="who"></div>
 </header>
 
 <div class="grid" id="grid">
@@ -73,10 +115,26 @@
 <div id="status" role="status" aria-live="polite"></div>
 
 <footer>
-  Anonymous. Nothing identifies you, and this is not counted for a grade.
+  Nothing here is counted for a grade, and a nickname is yours to invent:
+  do not use your name or your Andrew ID.
   Changed your mind? Tap another letter; only your last answer counts.
   The pad clears itself between questions.
 </footer>
+
+<div id="name-screen" hidden>
+  <h2>Pick a nickname</h2>
+  <p>
+    It goes on the leaderboard on the screen, so make one up. Nobody, including
+    the instructor, can tell whose is whose. Your phone remembers it, so this is
+    the only time you type it.
+  </p>
+  <input id="nym" type="text" maxlength="24" autocomplete="off" autocapitalize="off"
+         autocorrect="off" spellcheck="false" inputmode="text"
+         placeholder="e.g. quicksilver" aria-describedby="name-err">
+  <div id="name-err" role="alert"></div>
+  <button id="name-save" type="button">Save</button>
+  <button id="name-skip" type="button">or vote without a nickname</button>
+</div>
 
 <script>
 (function () {
@@ -98,6 +156,8 @@
   var CLEAR_MS = 75000;
   var LAST_KEY = 'f26-06763-clicker/last';
   var DEV_KEY  = 'f26-06763-clicker/device';
+  var NAME_KEY = 'f26-06763-clicker/name';
+  var ANON_KEY = 'f26-06763-clicker/anon';
 
   var buttons = Array.prototype.slice.call(document.querySelectorAll('button.opt'));
   var statusEl = document.getElementById('status');
@@ -178,6 +238,133 @@
   buttons.forEach(function (b) {
     b.addEventListener('click', function () { vote(b.dataset.opt); });
   });
+
+  /* ---- who you are on the leaderboard --------------------------------- */
+
+  // A nickname is a display name and nothing else. It is stored against the same
+  // random `device` pseudonym the votes already carry, so the server never gains
+  // a way to connect either one to a person; picking one only means the student
+  // agreed to appear on the board.
+  //
+  // Skipping is a first-class choice, not a dead end. An anonymous phone votes
+  // normally and counts in every tally and every band, and simply never shows up
+  // in the standings.
+
+  var whoEl = document.getElementById('who');
+  var screenEl = document.getElementById('name-screen');
+  var inputEl = document.getElementById('nym');
+  var saveEl = document.getElementById('name-save');
+  var skipEl = document.getElementById('name-skip');
+  var nameErrEl = document.getElementById('name-err');
+
+  function myName() { return load(NAME_KEY) || ''; }
+  function isAnon() { return load(ANON_KEY) === '1'; }
+
+  function paintWho() {
+    whoEl.textContent = '';
+    var label = document.createElement('span');
+    if (myName()) {
+      label.appendChild(document.createTextNode('you are '));
+      var nym = document.createElement('span');
+      nym.className = 'nym';
+      // textContent, never innerHTML: this string came from a text field.
+      nym.textContent = myName();
+      label.appendChild(nym);
+    } else {
+      label.appendChild(document.createTextNode('voting without a nickname'));
+    }
+    whoEl.appendChild(label);
+
+    var change = document.createElement('button');
+    change.type = 'button';
+    change.textContent = myName() ? 'change' : 'pick one';
+    change.addEventListener('click', function () { openNameScreen(); });
+    whoEl.appendChild(document.createTextNode(' \u00b7 '));
+    whoEl.appendChild(change);
+  }
+
+  function openNameScreen() {
+    nameErrEl.textContent = '';
+    inputEl.value = myName();
+    screenEl.hidden = false;
+    // Autofocus is deliberately not on the element: on a phone it opens the
+    // keyboard over the explanation the student has not read yet.
+    inputEl.focus({ preventScroll: true });
+  }
+
+  function closeNameScreen() {
+    screenEl.hidden = true;
+    paintWho();
+  }
+
+  // Mirrors normalizeName() in worker.js. The server is the authority and
+  // re-checks everything; this exists so a typo is a message under the field
+  // rather than a round trip.
+  function localName(raw) {
+    var s = String(raw || '').replace(/\s+/g, ' ').trim();
+    if (s.length < 2) return null;
+    if (s.length > 24) return null;
+    if (!/^[A-Za-z0-9 ._-]+$/.test(s)) return null;
+    if (!/[A-Za-z0-9]/.test(s)) return null;
+    return s;
+  }
+
+  function claim(name, onDone) {
+    fetch('name?d=' + encodeURIComponent(device) + '&n=' + encodeURIComponent(name),
+          { cache: 'no-store' })
+      .then(function (r) { return r.json().then(function (b) { return { s: r.status, b: b }; }); })
+      .then(function (res) {
+        if (res.s === 409) { onDone('That one is taken. Try another.'); return; }
+        if (res.s !== 200 || !res.b || res.b.ok !== true) {
+          onDone((res.b && res.b.error) || 'Could not save that.');
+          return;
+        }
+        // Keep the server's normalization rather than what was typed, so the pad
+        // shows the same string the board will.
+        store(NAME_KEY, res.b.name);
+        store(ANON_KEY, '0');
+        onDone(null);
+      })
+      .catch(function () { onDone('No connection. Try again.'); });
+  }
+
+  saveEl.addEventListener('click', function () {
+    var name = localName(inputEl.value);
+    if (!name) {
+      nameErrEl.textContent =
+        '2 to 24 characters: letters, digits, spaces, and . _ - only.';
+      return;
+    }
+    saveEl.disabled = true;
+    nameErrEl.textContent = '';
+    claim(name, function (err) {
+      saveEl.disabled = false;
+      if (err) { nameErrEl.textContent = err; return; }
+      closeNameScreen();
+    });
+  });
+
+  inputEl.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); saveEl.click(); }
+  });
+
+  skipEl.addEventListener('click', function () {
+    // Remember the refusal, so the prompt does not reappear on every load and
+    // turn an opt-out into something they have to keep declining.
+    store(ANON_KEY, '1');
+    closeNameScreen();
+  });
+
+  paintWho();
+
+  if (myName()) {
+    // Re-assert on load. This is what lets the `voter` table be dropped and
+    // rebuilt without anybody losing their name: it is best-effort, and a
+    // failure leaves the locally stored name alone.
+    claim(myName(), function () {});
+  } else if (!isAnon()) {
+    openNameScreen();
+  }
 
   /* ---- follow the question ------------------------------------------- */
 

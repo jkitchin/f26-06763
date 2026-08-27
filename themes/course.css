@@ -465,3 +465,123 @@ p.clicker-why {
 }
 
 p.clicker-why[hidden] { display: none; }
+
+/* --- Clicker leaderboard ------------------------------------------------ */
+/* Two placements, one renderer. Inside a question's panel it replaces the QR
+ * code at reveal (the QR is dead weight once voting has closed, and the panel
+ * is only 300px wide, so this variant is small). On its own summary slide it
+ * gets the whole width and can breathe.
+ *
+ * Rows are four columns on purpose: rank, nickname, points, time. The time is
+ * the tiebreak rather than the score, so it is the quietest thing in the row. */
+
+.clicker-board[hidden] { display: none; }
+
+.clicker-board {
+  text-align: left;
+  margin-bottom: 10px;
+}
+
+.clicker-board-title {
+  font-size: 0.55em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cmu-red);
+  margin-bottom: 4px;
+}
+
+.clicker-board-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.55em;
+}
+
+.clicker-board-list li {
+  display: grid;
+  grid-template-columns: 1.4em 1fr auto auto;
+  gap: 0.5em;
+  align-items: baseline;
+  padding: 0.16em 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.clicker-board-list li:last-child { border-bottom: none; }
+
+.clicker-board-list .rank {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A student-chosen nickname can be 24 characters of anything the charset
+ * allows, and the panel variant has no room to argue with it. Clip rather
+ * than reflow, so one long name cannot push the times out of alignment. */
+.clicker-board-list .who {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.clicker-board-list .pts {
+  font-weight: 700;
+  color: var(--green);
+  font-variant-numeric: tabular-nums;
+}
+
+.clicker-board-list .secs {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  min-width: 3.2em;
+  text-align: right;
+}
+
+/* An empty board is the common case for the first question of a session, so it
+ * says which kind of empty it is rather than looking broken. */
+.clicker-board-empty {
+  font-size: 0.55em;
+  color: var(--muted);
+  padding: 0.4em 0;
+}
+
+.clicker-board-foot {
+  font-size: 0.45em;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* The summary slide: <div class="clicker-leaderboard" data-read="..."> */
+div.clicker-leaderboard {
+  margin-top: 0.4em;
+}
+
+div.clicker-leaderboard .clicker-board {
+  background: var(--accent-bg);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 12px 20px;
+  margin-bottom: 0;
+}
+
+/* Sized so that ten rows, the Refresh button and a line of framing text all fit
+ * on one 720px slide. A data-top much above ten needs the slide to carry nothing
+ * else, and there is no scrollbar on a projector to rescue it. */
+div.clicker-leaderboard .clicker-board-title { font-size: 0.6em; }
+div.clicker-leaderboard .clicker-board-list { font-size: 0.62em; }
+div.clicker-leaderboard .clicker-board-list li { padding: 0.12em 0; }
+div.clicker-leaderboard .clicker-board-empty { font-size: 0.62em; }
+div.clicker-leaderboard .clicker-board-foot { font-size: 0.45em; }
+
+button.clicker-board-refresh {
+  font: inherit;
+  font-size: 0.5em;
+  font-weight: 600;
+  margin-top: 8px;
+  padding: 0.3em 0.9em;
+  color: var(--cmu-red);
+  background: transparent;
+  border: 1px solid var(--cmu-red);
+  border-radius: 6px;
+  cursor: pointer;
+}

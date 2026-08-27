@@ -46,3 +46,28 @@ CREATE TABLE IF NOT EXISTS live (
   start_ts INTEGER NOT NULL,
   end_ts   INTEGER NOT NULL
 );
+
+-- A student's chosen nickname, which is what the leaderboard puts on the wall.
+-- One row per browser, keyed by the same random `device` pseudonym the votes
+-- carry. Picking one is optional: a phone with no row here still votes, still
+-- counts in every tally and every band, and simply never appears in the
+-- standings.
+--
+-- Keyed by device rather than by name so that renaming is RETROACTIVE. A student
+-- who changes their nickname mid-semester keeps one history instead of splitting
+-- into two half-scored people on the board.
+--
+-- Like `live`, this is mutable rather than append-only, and like `live` it is
+-- self-healing: every phone re-asserts its name once per page load, so losing
+-- this table costs one page load per student, not a semester of standings.
+--
+-- name_key is the lowercased name and is UNIQUE, so two students cannot claim
+-- the same nickname and a projected board is never ambiguous about who is who.
+CREATE TABLE IF NOT EXISTS voter (
+  device     TEXT PRIMARY KEY,
+  name       TEXT    NOT NULL,
+  name_key   TEXT    NOT NULL,
+  updated_ts INTEGER NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS voter_name_key ON voter (name_key);
