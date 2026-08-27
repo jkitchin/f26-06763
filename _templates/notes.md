@@ -8,6 +8,7 @@
 
 - **Session** L00, Week 00 · **Arc** Arc name
 - **Slides** <a href="../../slides/l00/">Deck for this session</a>
+- **Practice** <a href="../../game/#/l00">Practice module for this session</a>
 - **Demo** `demo.ipynb` (walked live in class)
 - **Assignment** A00 released / due this session
 :::
@@ -103,7 +104,9 @@ This section is short. It orients the reader; the notebook carries the detail.
 ## Summary
 
 A paragraph, not a bullet list. What was the argument, and what should stick after the
-details fade. Connect forward to the next session so the arc is visible.
+details fade. Close the session on its own terms: no pointer to the next one, because the
+course releases one lecture at a time and that lecture is not out yet. Backward references
+to earlier sessions are fine.
 
 ## Resources
 
@@ -118,3 +121,15 @@ unannotated link list is a list nobody opens.
 One paragraph pointing at the spec, with the deadline. Full details live in
 `course/assignments/aNN.md`; do not restate the rubric here, since two copies of a rubric
 will disagree eventually.
+
+## Practice module
+
+The link to this lecture's practice module, which is where the participation credit comes
+from. Copy the two lines from an existing lecture, changing only the number: one in the At a
+glance block above, one here. A published bank with nothing linking to it is a module no
+student can reach.
+
+<a href="../../game/#/l00"><strong>Practice module for this session</strong></a>, about ten
+minutes of questions drawn from this session. It runs entirely in your browser, the questions
+are selected from your Andrew ID, and it ends by producing a PDF you upload for participation
+credit.
