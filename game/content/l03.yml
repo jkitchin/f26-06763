@@ -275,7 +275,7 @@ items:
     source:
       file: lectures/l03/notes.md
       heading: "SQL that answers engineering questions"
-      quote: "The genuinely powerful additions for time-series are **window functions**"
+      quote: "The most powerful additions for time-series are **window functions**"
     verify:
       mode: manual
       needle: "window functions"
