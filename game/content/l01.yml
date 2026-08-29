@@ -190,6 +190,10 @@ items:
       quote: "rebuilds that are merely probable"
     verify: {mode: quote, needle: "rebuilds that are merely probable", volatility: stable}
     tags: [toolchain, reproducibility]
+    terms:
+      prompt: "Tools in this course's toolchain"
+      correct: [uv, PostgreSQL, DuckDB, Parquet, pandas, Polars, pandera, MLflow, PyTorch, FastAPI, Docker]
+      wrong: [Gradle, Maven, Jenkins, CircleCI, Ansible]
 
   - id: l01-q07
     kind: mcq
@@ -217,6 +221,27 @@ items:
       quote: "tiny in proportion to the rest of the system"
     verify: {mode: quote, needle: "the rest of the system", volatility: stable}
     tags: [system-view]
+    sequence:
+      prompt: "Name the stages of an engineering ML system, in the order the lecture names them."
+      steps:
+        - data acquisition
+        - storage
+        - pipelines
+        - features
+        - training
+        - evaluation
+        - deployment
+        - monitoring
+      why: >-
+        That is the order the lecture names them in. What is not worth
+        believing is that the work runs left to right: reading it as a linear
+        process is the first thing the notes tell you to unlearn. Real systems
+        iterate hard between features and evaluation, and monitoring feeds back
+        into acquisition the moment drift shows up in production.
+    terms:
+      prompt: "Stages of an engineering ML system"
+      correct: [acquisition, storage, pipelines, features, training, evaluation, deployment, monitoring]
+      wrong: [minification, transpilation, defragmentation, sharding, garbage collection]
 
   - id: l01-q08
     kind: mechanism_recall

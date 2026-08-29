@@ -13,15 +13,38 @@ claim about this course is written down, `game/validate.py` stays the one thing
 that checks a claim against the notes, and a new minigame costs no new authoring
 and cannot quietly introduce an unsourced assertion.
 
-What a round file is, and what it deliberately is not:
+Three shapes come out of a bank, and a game uses whichever it understands:
 
-    it is      the already-published option text, rearranged into
-               (context, one true claim, three false ones) per item
-    it is not  a new bank, a new schema, or anywhere an author edits
+    claims    the already-published option text, rearranged into
+              (context, one true claim, three false ones)
+    sequence  an ordered process, for a game that tests ORDER, which the
+              multiple-choice format structurally cannot ask about
+    terms     short words, for a game that needs something that fits on a
+              pellet -- no bank option is under 49 characters, and that is
+              structural rather than accidental, because validate.py's
+              check_choices errors when one option contains another and so
+              pushes every author toward long differentiated prose
 
-So nothing here invents, rewords, shortens or reorders anything. It copies. An
-author who wants a better claim edits the YAML and reruns this, which is the
-same loop `game/content/pools/` already uses.
+`sequence` and `terms` are OPTIONAL KEYS ON EXISTING ITEMS, never new items.
+That distinction is load-bearing. tools/pool_archive.py snapshots a surface of
+`serve` plus each item's options, answer and variants; a new item changes that
+surface, which changes which items every student is served and can make an
+honestly-earned evidence PDF verify as `drv: MISM` months later. An extra key
+on an item that already exists touches none of it. validate.py has no key
+whitelist -- every field is read with .get(), and `difficulty` is already
+carried by every item and never read -- so both keys pass validation untouched.
+
+THE GROUNDING RULE, which is what stops these keys from becoming a second,
+unchecked bank:
+
+    every `sequence` step and every `terms.correct` MUST appear in the item's
+    source.file, and no `terms.wrong` may appear in it
+
+The negative half is the one that earns its keep: a distractor that is actually
+in the notes is a broken distractor, and a game built on one teaches the
+opposite of what it meant to. Both halves reuse game/normalize.py, the same
+normalization validate.py uses for source.quote, so a step may span the notes'
+95-column hard wrap and still match.
 
 `answer` is the true claim and every other option is a false one, which is what
 the MCQ format already asserts -- a distractor that were merely "less good"
@@ -37,6 +60,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -46,67 +70,159 @@ ROOT = Path(__file__).resolve().parent.parent
 BANKS = ROOT / "game" / "content"
 OUT = ROOT / "arcade" / "rounds"
 
+sys.path.insert(0, str(ROOT / "game"))
+from normalize import contains_text, norm_text  # noqa: E402
+
 # A claim longer than this cannot be read while it moves, and a game that shows
 # it is asking the player to guess rather than to judge. Better to leave the
 # item out of the arcade and say which, so the author can shorten it on purpose,
 # than to truncate it here and put half a sentence on a screen.
 MAX_CLAIM = 180
 
+# A pellet has to carry its word at a legible size on a projector.
+MAX_TERM = 24
 
-def load_bank(path: Path) -> dict:
-    with path.open() as fh:
-        return yaml.safe_load(fh) or {}
+_notes_cache: dict[str, str] = {}
 
 
-def build(bank: dict, lecture: str) -> tuple[dict, list[str]]:
-    """Return (round file, warnings)."""
+def notes_text(rel: str) -> str:
+    """The normalized text of a source file, read once."""
+    if rel not in _notes_cache:
+        path = ROOT / rel
+        _notes_cache[rel] = norm_text(path.read_text(encoding="utf-8")) if path.is_file() else ""
+    return _notes_cache[rel]
+
+
+def mentions(haystack_norm: str, term: str) -> bool:
+    """Does the source use this term, as a word rather than as a fragment?
+
+    Word boundaries matter here in a way they do not for a quoted sentence. A
+    distractor like "ray" is not present in the notes just because "array" is,
+    and rejecting it on that would push an author toward worse distractors for
+    no reason.
+    """
+    t = norm_text(term)
+    if not t:
+        return False
+    return re.search(r"(?<!\w)" + re.escape(t) + r"(?!\w)", haystack_norm) is not None
+
+
+def build_claims(item: dict, warnings: list[str]) -> dict | None:
+    iid = item.get("id", "?")
+    answer = item.get("answer")
+    options = item.get("options") or []
+
+    if answer is None or len(options) < 2:
+        return None
+    if answer not in options:
+        # validate.py already enforces this; a bank that fails it should fail
+        # loudly here too rather than produce a round with no truth in it,
+        # which would be unplayable in a way that looks like a bug.
+        warnings.append(f"{iid}: answer is not one of the options, claims skipped")
+        return None
+
+    longest = max(len(o) for o in options)
+    if longest > MAX_CLAIM:
+        warnings.append(f"{iid}: an option is {longest} characters, over {MAX_CLAIM}, claims skipped")
+        return None
+
+    return {"true": answer, "false": [o for o in options if o != answer]}
+
+
+def build_sequence(item: dict, source: str, errors: list[str]) -> dict | None:
+    seq = item.get("sequence")
+    if not seq:
+        return None
+    iid = item.get("id", "?")
+    steps = seq.get("steps") or []
+    if len(steps) < 3:
+        errors.append(f"{iid}: a sequence needs at least three steps")
+        return None
+
+    body = notes_text(source)
+    for step in steps:
+        if not contains_text(body, step):
+            errors.append(f"{iid}: sequence step {step!r} does not appear in {source}")
+
+    return {
+        "prompt": (seq.get("prompt") or "").strip(),
+        "steps": [str(s) for s in steps],
+        "why": (seq.get("why") or "").strip(),
+    }
+
+
+def build_terms(item: dict, source: str, errors: list[str]) -> dict | None:
+    terms = item.get("terms")
+    if not terms:
+        return None
+    iid = item.get("id", "?")
+    correct = terms.get("correct") or []
+    wrong = terms.get("wrong") or []
+    if len(correct) < 3 or len(wrong) < 3:
+        errors.append(f"{iid}: terms needs at least three correct and three wrong")
+        return None
+
+    body = notes_text(source)
+    for t in correct:
+        if len(t) > MAX_TERM:
+            errors.append(f"{iid}: term {t!r} is over {MAX_TERM} characters")
+        if not mentions(body, t):
+            errors.append(f"{iid}: correct term {t!r} does not appear in {source}")
+    for t in wrong:
+        if len(t) > MAX_TERM:
+            errors.append(f"{iid}: term {t!r} is over {MAX_TERM} characters")
+        if mentions(body, t):
+            # The whole point of the negative check. A distractor the notes
+            # actually use is not a distractor, and a maze built on one
+            # punishes the student who read them.
+            errors.append(f"{iid}: wrong term {t!r} DOES appear in {source}, so it is not wrong")
+
+    return {
+        "prompt": (terms.get("prompt") or "").strip(),
+        "correct": [str(t) for t in correct],
+        "wrong": [str(t) for t in wrong],
+    }
+
+
+def build(bank: dict, lecture: str) -> tuple[dict, list[str], list[str]]:
+    """Return (round file, warnings, errors)."""
     warnings: list[str] = []
+    errors: list[str] = []
     items = []
 
     for item in bank.get("items") or []:
-        iid = item.get("id", "?")
-        answer = item.get("answer")
-        options = item.get("options") or []
+        source = (item.get("source") or {}).get("file", "")
+        claims = build_claims(item, warnings)
+        sequence = build_sequence(item, source, errors)
+        terms = build_terms(item, source, errors)
 
-        # Not every item kind is claim-shaped. mechanism_recall asks a student
-        # to write down what they remember and grades itself against a
-        # checklist, so there is no true statement here to judge and nothing
-        # for this game to render. Skipping it is correct rather than a gap.
-        if answer is None and item.get("checklist"):
-            continue
-        if not answer or len(options) < 2:
-            warnings.append(f"{iid}: kind {item.get('kind', '?')} has no answer and no checklist, skipped")
-            continue
-        if answer not in options:
-            # validate.py already enforces this; a bank that fails it should
-            # fail loudly here too rather than produce a round with no truth in
-            # it, which would be unplayable in a way that looks like a bug.
-            warnings.append(f"{iid}: answer is not one of the options, skipped")
+        # An item earns a place if any game can render it. A mechanism_recall
+        # item has no options and used to be dropped here; carrying a sequence
+        # is now reason enough to keep it.
+        if not (claims or sequence or terms):
             continue
 
-        false = [o for o in options if o != answer]
-        longest = max(len(o) for o in options)
-        if longest > MAX_CLAIM:
-            warnings.append(f"{iid}: an option is {longest} characters, over {MAX_CLAIM}, skipped")
-            continue
-
-        items.append(
-            {
-                "id": iid,
-                "kind": item.get("kind", "mcq"),
-                # The prompt is the context a claim is judged against, code
-                # fence and all. The arcade renders it as markdown.
-                "context": (item.get("prompt") or "").strip(),
-                "true": answer,
-                "false": false,
-                # Shown after a run, not during it. A game that only says
-                # "wrong" teaches nobody, which is the same reason the clicker
-                # slide carries data-why.
-                "why": (item.get("evidence") or "").strip(),
-                "objectives": item.get("objectives") or [],
-                "tags": item.get("tags") or [],
-            }
-        )
+        rec = {
+            "id": item.get("id", "?"),
+            "kind": item.get("kind", "mcq"),
+            "lecture": lecture,
+            # The prompt is the context a claim is judged against, code fence
+            # and all. The arcade renders it as markdown.
+            "context": (item.get("prompt") or "").strip(),
+            # Shown after a run, not during it. A game that only says "wrong"
+            # teaches nobody, which is the same reason the clicker slide
+            # carries data-why.
+            "why": (item.get("evidence") or "").strip(),
+            "objectives": item.get("objectives") or [],
+            "tags": [t for t in (item.get("tags") or []) if t],
+        }
+        if claims:
+            rec.update(claims)
+        if sequence:
+            rec["sequence"] = sequence
+        if terms:
+            rec["terms"] = terms
+        items.append(rec)
 
     return (
         {
@@ -118,7 +234,12 @@ def build(bank: dict, lecture: str) -> tuple[dict, list[str]]:
             "items": items,
         },
         warnings,
+        errors,
     )
+
+
+def render(rounds: dict) -> str:
+    return json.dumps(rounds, indent=2, ensure_ascii=False) + "\n"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -135,39 +256,68 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     stale: list[str] = []
+    problems: list[str] = []
     written = 0
+    merged: list[dict] = []
 
     for path in paths:
         lecture = path.stem
         if wanted and lecture not in wanted:
             continue
 
-        bank = load_bank(path)
-        status = bank.get("status", "unwritten")
-        if status != "published" and not args.all:
+        with path.open() as fh:
+            bank = yaml.safe_load(fh) or {}
+        if bank.get("status", "unwritten") != "published" and not args.all:
             continue
 
-        rounds, warnings = build(bank, lecture)
+        rounds, warnings, errors = build(bank, lecture)
         for w in warnings:
             print(f"{lecture}: {w}", file=sys.stderr)
+        for e in errors:
+            print(f"{lecture}: ERROR {e}", file=sys.stderr)
+        problems.extend(errors)
 
         if not rounds["items"]:
             print(f"{lecture}: no playable items, nothing written", file=sys.stderr)
             continue
 
-        text = json.dumps(rounds, indent=2, ensure_ascii=False) + "\n"
-        dest = OUT / f"{lecture}.json"
+        merged.extend(rounds["items"])
+        outputs = [(OUT / f"{lecture}.json", render(rounds))]
 
+        for dest, text in outputs:
+            if args.check:
+                if (dest.read_text() if dest.exists() else "") != text:
+                    stale.append(dest.name)
+                continue
+            OUT.mkdir(parents=True, exist_ok=True)
+            dest.write_text(text)
+            written += 1
+            print(f"{lecture}: {len(rounds['items'])} items -> {dest.relative_to(ROOT)}")
+
+    # One lecture carries at most a couple of sequences, which is fifteen
+    # seconds of play. A game that needs a full minute of ordering asks for
+    # data-lecture="all" and gets every published lecture at once.
+    if not wanted:
+        every = render(
+            {
+                "lecture": "all",
+                "title": "Every published lecture",
+                "generated_by": "tools/arcade_rounds.py",
+                "items": merged,
+            }
+        )
+        dest = OUT / "all.json"
         if args.check:
-            current = dest.read_text() if dest.exists() else ""
-            if current != text:
-                stale.append(lecture)
-            continue
+            if (dest.read_text() if dest.exists() else "") != every:
+                stale.append(dest.name)
+        elif merged:
+            dest.write_text(every)
+            print(f"all: {len(merged)} items -> {dest.relative_to(ROOT)}")
 
-        OUT.mkdir(parents=True, exist_ok=True)
-        dest.write_text(text)
-        written += 1
-        print(f"{lecture}: {len(rounds['items'])} items -> {dest.relative_to(ROOT)}")
+    if problems:
+        print(f"\n{len(problems)} grounding problem(s); nothing is trustworthy until they are fixed",
+              file=sys.stderr)
+        return 1
 
     if args.check:
         if stale:

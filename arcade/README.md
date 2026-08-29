@@ -3,6 +3,13 @@
 One-minute minigames over the quiz banks. A round is sixty seconds, produces a
 score, and lands on a leaderboard.
 
+| game | asks | fed by |
+|---|---|---|
+| **Whack-a-Bug** | is this claim true? | an item's `options` |
+| **Pipeline Panic** | what order do these go in? | an item's `sequence` |
+| **Concept Chase** | which of these words belong? | an item's `terms` |
+| **Boss Rush** | who is best across all of them? | the per-game boards |
+
 It fills the gap between the two things the course already had. The clicker is
 live and social and scored, but the only verb is *tap one of four letters*. The
 practice modules in `game/` are deep and per-student and produce the evidence
@@ -30,7 +37,7 @@ In a MARP slide or an MyST notes page, identically:
 |---|---|
 | `data-read` | the Worker's base URL. Required. |
 | `data-game` | which game, by its `Arcade.register` id. Required. |
-| `data-lecture` | `lNN`, which picks `rounds/lNN.json`. Required. |
+| `data-lecture` | `lNN`, or `all` for every published lecture. Picks `rounds/<x>.json`. Required. |
 | `data-seconds` | round length, default the game's own, usually 60 |
 | `data-board` | `live` (a six-hour rolling window) or `all` (the semester) |
 | `data-top` | how many names to show, default 8 |
@@ -38,6 +45,23 @@ In a MARP slide or an MyST notes page, identically:
 
 `live` in the hall and `all` in the notes is the right split: in class you are
 racing the room, alone you are racing the semester.
+
+`data-lecture="all"` is what an ordering game wants: one lecture carries at most
+a couple of sequences, which is fifteen seconds of play rather than sixty.
+
+**Boss Rush** is a board rather than a game, so it takes a different element and
+needs no run:
+
+```html
+<div class="arcade-rush" data-read="..."
+     data-games="l03-whackabug,all-pipeline,l01-chase" data-top="10"></div>
+```
+
+It ranks by **placing** — 10, 8, 6, then 5 4 3 2 1, and 1 for anything after
+that — summed across games and tie-broken on games played. Ranking on raw score
+would not work: Concept Chase pays out two hundred a run and Pipeline Panic pays
+thirty, so a score-ranked rush is a Concept Chase ladder with decoration. It
+aggregates in the browser, which is why it needed no server change.
 
 Both `arcade.css` and `rounds/` are found relative to `arcade.js` itself, so a
 page never has to say where they are and can never say it wrong.
@@ -70,6 +94,10 @@ protocol, the submit and the board; a game owns its sixty seconds of pixels.
 ```js
 Arcade.register('whackabug', {
   seconds: 60,
+  // Which items this game can render. A round file carries all three shapes and
+  // no item has all of them, so a game handed nothing fails out loud in the
+  // shell rather than mounting a blank stage that reads as broken.
+  pick: function (items) { return items.filter(function (i) { return i['true'] }) },
   mount: function (root, ctx) {
     // ctx = { items, rng, seconds, markdown, score(n), record(entry), end() }
     return { stop: function () { /* put your timers down */ } }
@@ -121,6 +149,7 @@ as `file://` will not work, because the round file is fetched.
 
 The server routes are `/start`, `/submit`, `/board` and `/me`, documented in
 `clicker/worker.js` and tested in `clicker/test/arcade.test.mjs` (`npm test` in
-`clicker/`). Deploying is the clicker's deploy: `npm run deploy`, and
+`clicker/`). The Boss Rush placing rule is tested separately, without a browser,
+by `node --test "arcade/test/*.test.mjs"`. Deploying is the clicker's deploy: `npm run deploy`, and
 `npm run schema:remote` for the two new tables. Forgetting `--remote` is the
 classic D1 mistake and the Worker will tell you so.

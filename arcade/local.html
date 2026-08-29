@@ -25,9 +25,31 @@
   instead. See <code>arcade/demo.md</code> for that one.
 </p>
 
+<h2>Whack-a-Bug &middot; L03</h2>
 <div class="arcade" data-game="whackabug" data-lecture="l03"
      data-seconds="60" data-board="all"
      data-read="http://localhost:8787"></div>
 
+<h2>Pipeline Panic &middot; every published lecture</h2>
+<p>
+  <code>data-lecture="all"</code>, because one lecture carries at most a couple of
+  sequences and that is fifteen seconds of play rather than sixty.
+</p>
+<div class="arcade" data-game="pipeline" data-lecture="all"
+     data-seconds="60" data-board="all"
+     data-read="http://localhost:8787"></div>
+
+<h2>Concept Chase &middot; L01</h2>
+<div class="arcade" data-game="chase" data-lecture="l01"
+     data-seconds="60" data-board="all"
+     data-read="http://localhost:8787"></div>
+
+<h2>Boss Rush</h2>
+<div class="arcade-rush" data-read="http://localhost:8787"
+     data-games="l03-whackabug,all-pipeline,l01-chase" data-top="10"></div>
+
 <script src="arcade.js"></script>
 <script src="games/whackabug.js"></script>
+<script src="games/pipeline.js"></script>
+<script src="games/chase.js"></script>
+<script src="games/bossrush.js"></script>

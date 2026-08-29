@@ -65,5 +65,57 @@ rather than by how often they played, so grinding it does not climb it.
 
 ---
 
+## Pipeline Panic · every published lecture
+
+<div class="arcade" data-game="pipeline" data-lecture="all"
+     data-seconds="60" data-board="live" data-top="6"
+     data-read="https://clicker.f26-06763.workers.dev"></div>
+
+<!--
+data-lecture="all" rather than one lecture: a single lecture carries at most a
+couple of sequences, which is fifteen seconds of play.
+
+This is the only game here that tests ORDER. An MCQ can ask which step comes
+third, but only by listing the other steps in the question, which is most of the
+answer. That is why a sequence is worth its own key in the bank.
+-->
+
+---
+
+## Concept Chase · L01
+
+<div class="arcade" data-game="chase" data-lecture="l01"
+     data-seconds="60" data-board="live" data-top="6"
+     data-read="https://clicker.f26-06763.workers.dev"></div>
+
+<!--
+Eat the terms that belong to the category. The ghosts are eating the right ones
+too, so the board empties whether or not you are quick: left alone they clear it
+in about forty seconds. Wrong pellets cost points here, unlike the other two
+games, because avoiding one is the skill being tested.
+
+Every correct term appears in this lecture's notes and no wrong one does. The
+round generator refuses to build a file where that is not true.
+-->
+
+---
+
+## Boss Rush
+
+<div class="arcade-rush" data-read="https://clicker.f26-06763.workers.dev"
+     data-games="l03-whackabug,all-pipeline,l01-chase" data-top="10"></div>
+
+<!--
+Points by placing rather than by score: 10, 8, 6, then 5 4 3 2 1, and 1 for
+anything after that. Concept Chase pays out two hundred a run and Pipeline Panic
+pays thirty, so a board ranked on raw score would be a Concept Chase ladder with
+decoration. Where you came carries across games; what the formula paid does not.
+-->
+
+---
+
 <script src="arcade.js"></script>
 <script src="games/whackabug.js"></script>
+<script src="games/pipeline.js"></script>
+<script src="games/chase.js"></script>
+<script src="games/bossrush.js"></script>

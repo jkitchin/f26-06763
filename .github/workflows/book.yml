@@ -201,6 +201,13 @@ jobs:
         # no network, and no database.
         run: cd clicker && node --test "test/*.test.mjs"
 
+      - name: Run the arcade's board tests
+        # Boss Rush ranks by PLACING across games, which is the one arcade rule
+        # complicated enough to get wrong quietly, and it decides what goes on a
+        # wall. The suite reads games/bossrush.js and drives the real function
+        # rather than a copy of it, so it needs no browser and no network.
+        run: node --test "arcade/test/*.test.mjs"
+
   build:
     runs-on: ubuntu-latest
     steps:

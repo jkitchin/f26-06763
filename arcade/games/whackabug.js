@@ -66,6 +66,14 @@
   Arcade.register('whackabug', {
     seconds: 60,
 
+    // Round files also carry sequence-only and terms-only items now, and an
+    // item with no claims has nothing for this game to float up the lane.
+    pick: function (items) {
+      return items.filter(function (i) {
+        return i['true'] && i['false'] && i['false'].length;
+      });
+    },
+
     mount: function (root, ctx) {
       var queue = deal(ctx.items, ctx.rng);
       var i = -1, score = 0, streak = 0, lives = LIVES;

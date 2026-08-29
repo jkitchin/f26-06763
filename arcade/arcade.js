@@ -14,6 +14,10 @@
  *          data-seconds="60" data-board="live"
  *          data-read="https://clicker.f26-06763.workers.dev"></div>
  *
+ * data-lecture="all" is every published lecture at once, which is what an
+ * ordering game needs: one lecture carries at most a couple of sequences, and
+ * that is fifteen seconds of play rather than sixty.
+ *
  * This file owns identity, the round protocol, the clock, the submit and the
  * board. A game owns its sixty seconds of pixels and nothing else, which is
  * what keeps a new one to an afternoon:
@@ -396,6 +400,16 @@
           // Seeded by the run id, so the order is reproducible from the
           // transcript and is nevertheless different every time.
           var rng = rngFrom(run.run);
+
+          // A round file now carries three shapes -- claims, sequences and
+          // terms -- and no item has all of them. A game says which items it
+          // can render, and a game handed none of them fails out loud here
+          // rather than mounting a blank stage that reads as broken.
+          var usable = game.pick ? game.pick(data.items || []) : (data.items || []);
+          if (!usable.length) {
+            throw new Error('no ' + gameId + ' content in ' + lecture);
+          }
+
           setScore(0);
           transcript = [];
           startBtn.textContent = 'Playing';
@@ -410,7 +424,7 @@
           }, 1000);
 
           live = game.mount(stage, {
-            items: shuffle(data.items || [], rng),
+            items: shuffle(usable, rng),
             rng: rng,
             seconds: seconds,
             markdown: markdown,
@@ -451,9 +465,14 @@
 
   /* ---- boot -------------------------------------------------------------- */
 
-  window.Arcade = {
+  var Arcade = {
     register: function (id, game) { GAMES[id] = game; },
+    // Shared with the board files so a duration is formatted the same way
+    // everywhere and a player is highlighted by the same name on every board.
+    fmtMs: fmtMs,
+    myName: function () { return load(NAME_KEY) || ''; },
   };
+  window.Arcade = Arcade;
 
   // The stylesheet comes from beside this script, for the same reason rounds/
   // does: a page that has to remember a second path is a page that will one day
@@ -471,6 +490,9 @@
   function boot() {
     styles();
     document.querySelectorAll('.arcade[data-read]').forEach(setup);
+    // Boss Rush is a board rather than a game -- no run, no clock, nothing to
+    // submit -- so it is set up by its own file if that file was included.
+    if (Arcade.rush) document.querySelectorAll('.arcade-rush[data-read]').forEach(Arcade.rush);
   }
 
   // Games register themselves in scripts that come after this one, so the scan
