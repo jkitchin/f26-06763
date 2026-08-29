@@ -91,6 +91,14 @@ export default {
     if (path === '/name') return setName(env, url)
     if (path === '/leaderboard') return leaderboard(env, url)
 
+    // The arcade. Same bargain as the clicker: `game` is an opaque key the
+    // server never parses, so a new minigame is a slide and a content file
+    // rather than a redeploy.
+    if (path === '/start') return startRun(env, url)
+    if (path === '/submit') return submitRun(env, url)
+    if (path === '/board') return board(env, url)
+    if (path === '/me') return personalBest(env, url)
+
     return json(
       {
         error: 'not found',
@@ -98,6 +106,7 @@ export default {
           '/', '/v/{A-D}', '/r', '/export', '/stats',
           '/questions', '/mark', '/windows', '/open', '/state',
           '/name', '/leaderboard',
+          '/start', '/submit', '/board', '/me',
         ],
       },
       404,
@@ -668,6 +677,269 @@ async function leaderboard(env, url) {
     questions: tags.size,
     from,
     to,
+    server_ts: now,
+  })
+}
+
+/* ---- the arcade ---------------------------------------------------------
+ *
+ * A minigame is a slide plus a content file. This server learns none of that:
+ * it mints a run id, stamps the clock at both ends, and ranks integers under an
+ * opaque `game` key. The same reason the clicker has been deployed once and
+ * left alone applies here, which is the only reason the arcade is allowed to
+ * live in this Worker at all.
+ *
+ * What is and is not trustworthy here, said plainly, because the difference
+ * matters more than the code does:
+ *
+ *   ms     the server's own subtraction, submit_ts - run.start_ts. A phone
+ *          cannot shorten it, and a run cannot be submitted twice because
+ *          /submit deletes the row it consumed.
+ *   score  a CLAIM. The game runs in the student's tab, so the number arrives
+ *          the way a /mark arrives: asserted, not proven. The arcade is
+ *          formative and feeds no grade, exactly like the clicker, so the cost
+ *          of a bogus run is a row in a table a human can delete.
+ *
+ * If a scored-for-real variant is ever wanted, the shape already exists in this
+ * file: post a transcript, supply the key afterwards the way /mark does, and
+ * grade retroactively. `detail` is where that transcript already lands.
+ */
+
+// Same shape as a clicker tag, and validated for the same reason: it is
+// concatenated into no SQL, but a board keyed by junk is a board nobody can
+// find again.
+function gameOf(url) {
+  const g = url.searchParams.get('g')
+  return g && /^[a-z0-9][a-z0-9_-]{0,63}$/.test(g) ? g : null
+}
+
+// A run older than this was abandoned rather than played, so it can neither be
+// submitted nor kept. Thirty minutes is long enough for a student to be
+// interrupted mid-round and short enough that the table stays small.
+const RUN_MAX_MS = 30 * 60 * 1000
+
+// Not a content-aware cap -- the server does not know what any game scores out
+// of, and must not. It is a sanity bound, so a garbled or malicious submission
+// lands as an outlier a human can spot rather than as Number.MAX_SAFE_INTEGER
+// permanently on top of every board.
+const SCORE_LIMIT = 1000000
+
+// GET /start?d=<device>&g=<game> -> { run, start, server_ts }
+//
+// The handshake exists for one reason: so the duration of a run is measured by
+// this clock rather than reported by the browser that has every reason to
+// report a short one.
+async function startRun(env, url) {
+  const device = deviceOf(url)
+  const game = gameOf(url)
+  if (!device) return json({ error: 'a device id is required' }, 400)
+  if (!game) return json({ error: 'a game key is required' }, 400)
+
+  const now = Date.now()
+  const id = crypto.randomUUID()
+
+  try {
+    // Sweep first. An abandoned run is a row no /submit will ever consume, and
+    // nothing else ever deletes one.
+    await env.DB.prepare('DELETE FROM run WHERE start_ts < ?').bind(now - RUN_MAX_MS).run()
+    await env.DB.prepare('INSERT INTO run (id, device, game, start_ts) VALUES (?, ?, ?, ?)')
+      .bind(id, device, game, now)
+      .run()
+  } catch (err) {
+    return dbError(err)
+  }
+
+  return json({ run: id, start: now, server_ts: now })
+}
+
+// GET /submit?d=&g=&run=&s=&detail= -> { ok, score, ms, rank, players, best }
+//
+// Consuming the run row is what makes a run single-use. A replayed submit finds
+// nothing to consume and is rejected, which closes the one forgery that costs
+// an attacker nothing at all.
+async function submitRun(env, url) {
+  const device = deviceOf(url)
+  const game = gameOf(url)
+  const runId = url.searchParams.get('run')
+  if (!device) return json({ error: 'a device id is required' }, 400)
+  if (!game) return json({ error: 'a game key is required' }, 400)
+  if (!runId) return json({ error: 'a run id is required' }, 400)
+
+  const raw = Number(url.searchParams.get('s'))
+  if (!Number.isFinite(raw)) return json({ error: 'a numeric score is required' }, 400)
+  const score = Math.max(-SCORE_LIMIT, Math.min(SCORE_LIMIT, Math.trunc(raw)))
+
+  // Kept whole and never parsed here. Truncated rather than rejected: a run
+  // that scored is worth recording even when its transcript ran long.
+  const detail = (url.searchParams.get('detail') || '').slice(0, 4000) || null
+
+  const now = Date.now()
+
+  let open
+  try {
+    open = await env.DB.prepare('SELECT id, device, game, start_ts FROM run WHERE id = ?')
+      .bind(runId)
+      .first()
+  } catch (err) {
+    return dbError(err)
+  }
+
+  // One message for all four ways this fails -- unknown, already submitted,
+  // someone else's, or a different game. Telling a caller which one it was only
+  // helps the caller who is guessing.
+  if (!open || open.device !== device || open.game !== game || now - open.start_ts > RUN_MAX_MS) {
+    return json({ error: 'no open run' }, 409)
+  }
+
+  const ms = Math.max(0, now - open.start_ts)
+
+  try {
+    await env.DB.prepare(
+      'INSERT INTO play (ts, game, round, device, score, ms, detail) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    )
+      .bind(now, game, runId, device, score, ms, detail)
+      .run()
+    await env.DB.prepare('DELETE FROM run WHERE id = ?').bind(runId).run()
+  } catch (err) {
+    return dbError(err)
+  }
+
+  // Where that run left them, all-time, which is the number a solo player came
+  // for. The live board is the slide's business, not the submitting phone's.
+  const field = await bests(env, game, 0, now)
+  if (field.error) return field.error
+  const placed = rankOf(field.rows, device)
+
+  return json({
+    ok: true,
+    score,
+    ms,
+    rank: placed.rank,
+    players: field.rows.length,
+    best: placed.best,
+    server_ts: now,
+  })
+}
+
+// Every device's BEST run of one game inside a time range, best first.
+//
+// Best rather than latest, and best rather than total: a board of totals ranks
+// whoever played most, which rewards grinding a game they have already learned
+// nothing more from. One good run is the claim being made, so one good run is
+// what the board should carry.
+async function bests(env, game, from, to) {
+  let rows
+  try {
+    ;({ results: rows } = await env.DB.prepare(
+      `SELECT device, score, ms, ts FROM (
+         SELECT device, score, ms, ts,
+                ROW_NUMBER() OVER (
+                  PARTITION BY device ORDER BY score DESC, ms ASC, ts ASC
+                ) AS rn
+         FROM play
+         WHERE game = ?1 AND ts >= ?2 AND ts <= ?3
+       ) WHERE rn = 1
+       LIMIT 5000`,
+    )
+      .bind(game, from, to)
+      .all())
+  } catch (err) {
+    return { error: dbError(err) }
+  }
+  rows = rows ?? []
+  // More points always beats faster, time is the tiebreak, and the device is a
+  // final tiebreak so two identical runs do not swap places between two reads
+  // of the same data in front of a room.
+  rows.sort((a, b) => b.score - a.score || a.ms - b.ms || String(a.device).localeCompare(String(b.device)))
+  return { rows }
+}
+
+// A device's place in the field.
+//
+// The field is EVERYONE who played, not everyone the board shows. A student who
+// never picked a nickname still occupied a place, and quietly renumbering
+// around them would tell the named players they beat more people than they did.
+function rankOf(rows, device) {
+  const i = rows.findIndex((r) => r.device === device)
+  if (i < 0) return { rank: null, best: null }
+  return { rank: i + 1, best: { score: rows[i].score, ms: rows[i].ms } }
+}
+
+// GET /board?g=&hours=&top=&all= -> { standings, players, from, to }
+//
+// Two boards, one route, because they differ only in where the window starts:
+//
+//   ?hours=6  the rolling live board, projected in the lecture hall, showing
+//             what happened in this session and nothing older.
+//   ?all=1    the semester board, every run since the table was created, still
+//             ranked by each player's best rather than by how often they played.
+async function board(env, url) {
+  const now = Date.now()
+  const game = gameOf(url)
+  if (!game) return json({ error: 'a game key is required' }, 400)
+
+  const hours = Math.min(Math.max(intParam(url, 'hours', 6), 1), 24 * 400)
+  const to = intParam(url, 'to', now)
+  const all = url.searchParams.get('all') === '1'
+  const from = all ? 0 : intParam(url, 'from', to - hours * 3600000)
+  const top = Math.min(Math.max(intParam(url, 'top', 10), 1), 200)
+
+  const field = await bests(env, game, from, to)
+  if (field.error) return field.error
+
+  let voters
+  try {
+    ;({ results: voters } = await env.DB.prepare('SELECT device, name FROM voter').all())
+  } catch (err) {
+    return dbError(err)
+  }
+  const nameOf = new Map((voters ?? []).map((v) => [v.device, v.name]))
+
+  // Playing without a nickname stays a supported way to use the arcade, and it
+  // is the same rule the clicker's standings already follow: the run counted,
+  // it occupies its place in the field, and it simply is not named here.
+  const standings = []
+  field.rows.forEach((r, i) => {
+    const name = nameOf.get(r.device)
+    if (!name) return
+    standings.push({ name, score: r.score, ms: r.ms, seconds: Math.round(r.ms / 100) / 10, rank: i + 1 })
+  })
+
+  // `device` is deliberately absent, exactly as it is from /leaderboard. The
+  // board carries a nickname a student invented and nothing that links it back
+  // to a browser.
+  return json({
+    game,
+    standings: standings.slice(0, top),
+    named: standings.length,
+    players: field.rows.length,
+    all,
+    from,
+    to,
+    server_ts: now,
+  })
+}
+
+// GET /me?d=&g= -> { best, rank, players }
+//
+// A solo player needs a target without needing the board, and their own best is
+// the only one that is theirs to beat.
+async function personalBest(env, url) {
+  const now = Date.now()
+  const device = deviceOf(url)
+  const game = gameOf(url)
+  if (!device) return json({ error: 'a device id is required' }, 400)
+  if (!game) return json({ error: 'a game key is required' }, 400)
+
+  const field = await bests(env, game, 0, now)
+  if (field.error) return field.error
+  const placed = rankOf(field.rows, device)
+
+  return json({
+    game,
+    best: placed.best,
+    rank: placed.rank,
+    players: field.rows.length,
     server_ts: now,
   })
 }
