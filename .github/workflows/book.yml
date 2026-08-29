@@ -45,6 +45,14 @@ jobs:
         # would ship a wrong answer.
         run: python game/validate.py
 
+      - name: Check the arcade round files match the quiz bank
+        # The arcade has no content of its own: a minigame renders
+        # game/content/lNN.yml, and arcade/rounds/*.json is generated from it.
+        # An edited bank with a stale round file would put a claim on a slide
+        # that validate.py has already stopped checking against the notes, which
+        # is the exact failure the bank exists to prevent.
+        run: python tools/arcade_rounds.py --check
+
       - name: Check the lecture graph matches the notes
         # The course map draws a corridor for every cross-link one lecture makes
         # of another, so the graph has to be regenerated rather than trusted.
@@ -463,6 +471,14 @@ jobs:
             # drift the day the URL changes.
             mkdir -p "$out/figures"
             cp clicker/figures/clicker-qr.png "$out/figures/"
+            # Same story for the arcade. arcade.js finds its stylesheet and its
+            # round files relative to its own src, so the whole directory has to
+            # travel together and land beside the deck. A deck with no arcade
+            # slide just never loads any of it.
+            cp arcade/arcade.js arcade/arcade.css "$out/"
+            mkdir -p "$out/games" "$out/rounds"
+            cp arcade/games/*.js "$out/games/"
+            cp arcade/rounds/*.json "$out/rounds/"
           done
 
       - name: Render the clicker deck
@@ -482,6 +498,24 @@ jobs:
             -o "$out/index.html"
           cp clicker/figures/*.png "$out/figures/"
           cp clicker/clicker-slide.js "$out/"
+
+      - name: Render the arcade deck
+        # Standalone like the clicker's, served at /slides/arcade/, and not gated
+        # on _toc.yml for the same reason.
+        #
+        # Publishing it exposes the round files, which carry the answer to every
+        # claim. That is acceptable for the same reason the clicker publishes
+        # data-answer: the arcade is formative and feeds no grade, and a score is
+        # already a claim the browser makes. See arcade/README.md.
+        run: |
+          out="_build/html/slides/arcade"
+          mkdir -p "$out/games" "$out/rounds"
+          npx -y @marp-team/marp-cli@latest arcade/demo.md \
+            --html \
+            -o "$out/index.html"
+          cp arcade/arcade.js arcade/arcade.css "$out/"
+          cp arcade/games/*.js "$out/games/"
+          cp arcade/rounds/*.json "$out/rounds/"
 
       - name: Check every slide asset actually resolves
         # A missing figure renders as a silent broken image in the deck, and a

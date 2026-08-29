@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>arcade · local</title>
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 54rem; padding: 0 1rem; }
+  h1 { font-size: 1.4rem; }
+  .warn { background: #fdeef0; border-left: 4px solid #c41230; padding: 0.6rem 0.9rem; font-size: 0.9rem; }
+</style>
+
+<h1>Arcade, against a local Worker</h1>
+
+<p class="warn">
+  A development harness, not a published page. It talks to <code>localhost:8787</code>,
+  so it needs both halves running:
+  <code>cd clicker &amp;&amp; npx wrangler dev --local</code> and, from the repository root,
+  <code>python3 -m http.server 8080</code> — then open
+  <code>http://127.0.0.1:8080/arcade/local.html</code>.
+  Opening this file directly as <code>file://</code> will not work: the round file is
+  fetched, and a file:// page is not allowed to.
+</p>
+
+<p>
+  This is the notes-page embed: <code>data-board="all"</code>, so it ranks each
+  player's best run of the whole semester. A slide uses <code>data-board="live"</code>
+  instead. See <code>arcade/demo.md</code> for that one.
+</p>
+
+<div class="arcade" data-game="whackabug" data-lecture="l03"
+     data-seconds="60" data-board="all"
+     data-read="http://localhost:8787"></div>
+
+<script src="arcade.js"></script>
+<script src="games/whackabug.js"></script>

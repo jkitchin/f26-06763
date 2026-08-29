@@ -17,6 +17,9 @@ _build/
 # Same trap for the clicker: worker.js does `import VOTE_PAGE from './vote.html'`,
 # so this file is source. Without it, `wrangler deploy` fails on a fresh clone.
 !clicker/vote.html
+# And once more for the arcade's development harness, which is the page you open
+# to play a game against a local Worker. Source, not build output.
+!arcade/local.html
 
 # Node (marp via npx)
 node_modules/

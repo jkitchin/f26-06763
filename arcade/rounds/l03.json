@@ -1,0 +1,183 @@
+{
+  "lecture": "l03",
+  "title": "Relational data and PostgreSQL for engineering time series",
+  "pool_version": 3,
+  "source_notes": "lectures/l03/notes.md",
+  "generated_by": "tools/arcade_rounds.py",
+  "items": [
+    {
+      "id": "l03-q01",
+      "kind": "spot_the_defect",
+      "context": "```sql\nSELECT * FROM readings WHERE value <> 30;\n```\nYour sensor table has nulls in `value`. What does this return?",
+      "true": "Every row whose value is not 30, silently excluding all null rows",
+      "false": [
+        "Every row whose value is not 30, including the null ones, since null is not 30",
+        "An error, since a comparison against null is not permitted in a WHERE clause",
+        "Every row, since null comparisons default to true in PostgreSQL"
+      ],
+      "why": "SQL has three truth values, not two: true, false, and unknown. \"Unknown is\nnot equal to 30\" evaluates to unknown rather than to true, so the row is\nnot returned. This is defined semantics rather than a defect, and it\nquietly produces wrong analyses for anyone who forgets it. The same family\ncontains a worse one: `NOT IN` against a subquery containing a single null\nreturns no rows at all.",
+      "objectives": [
+        "l03-o2"
+      ],
+      "tags": [
+        "sql",
+        null,
+        "silent-failure"
+      ]
+    },
+    {
+      "id": "l03-q02",
+      "kind": "mcq",
+      "context": "A mote dropped half its readings. You compute `avg(value)` over its rows.\nWhat do you get?",
+      "true": "An average over the readings that are present, with the missing ones simply absent from it",
+      "false": [
+        "An average that treats missing readings as zero, biasing it downward",
+        "Null, because any aggregate over a column containing nulls is null",
+        "An error, unless the nulls are filtered out first"
+      ],
+      "why": "`count(*)` counts rows while `count(value)` counts only non-null ones, and\n`avg(value)` averages only the readings that are present. So the mote is\nnot penalized in the average unless you have separately counted how many it\nreported. The habit worth forming is to carry a completeness count next to\nany aggregate over sensor data, because the aggregate alone cannot tell you\nwhether it summarizes everything or half of it.",
+      "objectives": [
+        "l03-o2"
+      ],
+      "tags": [
+        "sql",
+        "aggregates",
+        null
+      ]
+    },
+    {
+      "id": "l03-q03",
+      "kind": "locus_of_control",
+      "context": "Your experiment metadata records a different, unpredictable set of fields\nfor every run. You are putting it in PostgreSQL and the schema keeps\nchanging.\n\nWhat does that tell you?",
+      "true": "That this is exactly the territory where the rigid schema stops helping and document stores earn their place",
+      "false": [
+        "That the schema needs a JSON column, which restores flexibility inside the relational model",
+        "That the runs should be normalized further, into a table per field type",
+        "That migrations should be automated, since the schema churn is a tooling problem"
+      ],
+      "why": "The same schema that protected your readings table is expensive to change\nonce it is large, and a migration against a nine-million-row table in a live\ndeployment is a real operation with real risk. Heterogeneous metadata is the\ncase where rigidity stops paying, and recognizing it is the point: the\nrelational model is a default, not a universal answer. A JSON column is a\ngenuine option and it is the relational model conceding the argument rather\nthan winning it.",
+      "objectives": [
+        "l03-o1"
+      ],
+      "tags": [
+        "schema",
+        "tradeoffs"
+      ]
+    },
+    {
+      "id": "l03-q04",
+      "kind": "mcq",
+      "context": "Why store sensor data long (one row per reading) rather than wide (one\ncolumn per sensor)?",
+      "true": "Adding a sensor is a new row rather than a schema change, and the schema stops depending on which instruments exist",
+      "false": [
+        "Long tables compress better, so the storage cost is lower at scale",
+        "Long tables are faster to query, since the index fits in memory",
+        "Wide tables cannot represent timestamps consistently across sensors"
+      ],
+      "why": "A wide table encodes your current instrument list into the schema, so\ncommissioning a sensor becomes a migration and decommissioning one leaves a\ncolumn of nulls forever. Long tables decouple the two. The cost is real and\nworth knowing: queries that want several channels side by side now need a\npivot or a join, which is why the session spends time on window functions\nand time bucketing.",
+      "objectives": [
+        "l03-o1"
+      ],
+      "tags": [
+        "schema",
+        "time-series"
+      ]
+    },
+    {
+      "id": "l03-q05",
+      "kind": "claim_vs_source",
+      "context": "\"We used a timestamp column, so the times are correct.\"\n\nWhat did 30 June 2012 demonstrate?",
+      "true": "That a leap second is a real event a timestamp type has to survive, and systems assuming fixed-length days failed",
+      "false": [
+        "That timezone conversion is the main hazard, and UTC storage solves it",
+        "That NTP drift accumulates faster than most systems account for",
+        "That millisecond precision is insufficient for high-rate sensor data"
+      ],
+      "why": "The case is in the notes because a type that carries physical meaning has\nto cope with how the physical quantity actually behaves, and time is the one\neverybody assumes is simple. Timezones are a real hazard and a different\none. The general shape is the session's argument about types: a column\ndeclared with the right type is carrying a claim about the world, and the\nworld occasionally declines to cooperate.",
+      "objectives": [
+        "l03-o1"
+      ],
+      "tags": [
+        "types",
+        "time",
+        "case-study"
+      ]
+    },
+    {
+      "id": "l03-q06",
+      "kind": "mcq",
+      "context": "When should a measured quantity be stored as `numeric` rather than\n`double precision`?",
+      "true": "When exactness at the stored precision matters more than arithmetic speed, for instance for money or a regulated tolerance",
+      "false": [
+        "Always, since numeric is exact and double precision is approximate",
+        "When the values span many orders of magnitude, which double precision handles poorly",
+        "Never for sensor data, since numeric cannot represent scientific notation"
+      ],
+      "why": "\"Always\" is the tempting answer and it is wrong: `numeric` is materially\nslower and most sensor readings are approximate measurements of a\ncontinuous quantity, where double precision is the honest representation.\nThe session is also blunt that this does not save you from floating point\nelsewhere: a value read into Python as a float is a float again, whatever\nthe column said.",
+      "objectives": [
+        "l03-o1"
+      ],
+      "tags": [
+        "types",
+        "precision"
+      ]
+    },
+    {
+      "id": "l03-q07",
+      "kind": "spot_the_defect",
+      "context": "A column is declared `double precision NOT NULL`. A reading arrives as\n-9999, the instrument's error sentinel.\n\nWhat happens?",
+      "true": "It is stored, because a typed column is still not a validated column",
+      "false": [
+        "The insert is rejected, since -9999 is outside any plausible physical range",
+        "It is coerced to null, since the sentinel is recognized by the driver",
+        "It is stored and flagged, since PostgreSQL tracks out-of-range values"
+      ],
+      "why": "The type says \"this is a number that is present\". It says nothing about\nwhether the number is physically possible. Sentinels like -9999 are\nextremely common in instrument data and they pass every type check, which\nis why the session insists on `CHECK` constraints for range and on\nvalidation as a separate layer. This is the same lesson as the units\nassertion in L7: the declaration is not the check.",
+      "objectives": [
+        "l03-o1"
+      ],
+      "tags": [
+        "types",
+        "validation"
+      ]
+    },
+    {
+      "id": "l03-q08",
+      "kind": "mcq",
+      "context": "A time-range query over a large readings table is slow. You add an index\nand it is still slow.\n\nWhat tells you why?",
+      "true": "The query plan, from `EXPLAIN ANALYZE`, which shows whether the index was used and what it cost",
+      "false": [
+        "The table statistics, which show whether the index is selective enough to help",
+        "The query duration across repeated runs, which distinguishes cold cache from a bad plan",
+        "The index size on disk, which indicates whether it fits in memory"
+      ],
+      "why": "Every other option is a real diagnostic and each answers a narrower\nquestion. The plan is the one that tells you what the database actually\ndecided to do, which is frequently not what you assumed when you added the\nindex: a predicate that wraps the column in a function, or a range broad\nenough that a sequential scan is genuinely cheaper, both produce a\ncorrectly-ignored index.",
+      "objectives": [
+        "l03-o3"
+      ],
+      "tags": [
+        "indexing",
+        "performance"
+      ]
+    },
+    {
+      "id": "l03-q10",
+      "kind": "notebook_run",
+      "context": "Open [`l03-sql-timeseries.ipynb`](../lectures/l03/l03-sql-timeseries.ipynb)\nand run the same range query with and without the index, reading the plan\neach time.\n\nWhat changes in the plan?",
+      "true": "The scan type changes, and the plan shows whether the index was actually chosen rather than merely present",
+      "false": [
+        "Only the timing; the plan is identical because the planner is deterministic",
+        "The row estimates change, since an index updates the table statistics",
+        "Nothing visible; index use is reported only in the server log"
+      ],
+      "why": "An index that exists and an index that is used are different things, and\nthe plan is the only place the difference is visible. This is the same\ndiscipline as the rest of the course: the artifact exists is not the same\nclaim as the artifact works, and you check by looking at what actually\nhappened rather than at what you configured.",
+      "objectives": [
+        "l03-o3"
+      ],
+      "tags": [
+        "indexing",
+        "notebook"
+      ]
+    }
+  ]
+}

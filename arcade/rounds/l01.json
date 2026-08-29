@@ -1,0 +1,182 @@
+{
+  "lecture": "l01",
+  "title": "AI engineering landscape and the system view",
+  "pool_version": 4,
+  "source_notes": "lectures/l01/notes.md",
+  "generated_by": "tools/arcade_rounds.py",
+  "items": [
+    {
+      "id": "l01-q01",
+      "kind": "claim_vs_source",
+      "context": "A slide says: \"Sculley and colleagues showed that less than 10% of the code\nin a production ML system is the model.\" The link they cite returns HTTP\n200.\n\nWhat does the paper actually say?",
+      "true": "The figure does not appear in the paper; it says only that the ML code box is tiny in proportion to the rest of the system",
+      "false": [
+        "Under 5%, so the slide has rounded in the wrong direction",
+        "10% of engineering effort rather than of code, so the units are wrong",
+        "It appears in the appendix, so the claim is right but under-cited"
+      ],
+      "why": "Invented precision that accreted through repetition. This is why the course\ninsists on two separate checks, and the second is the one people skip: the\nURL resolves, *and* the page contains the claim you are citing it for. A\n200 is evidence of the first only. The underlying point survives without\nthe number, which is exactly why the number was never needed.",
+      "objectives": [
+        "l01-o1"
+      ],
+      "tags": [
+        "verification",
+        "citation"
+      ]
+    },
+    {
+      "id": "l01-q02",
+      "kind": "spot_the_defect",
+      "context": "Public Health England, September 2020. Test results were consolidated into\nExcel templates in the legacy `.xls` format, which caps a worksheet at\n65,536 rows.\n\nWhat happened when a file hit the ceiling?",
+      "true": "The remaining rows were not rejected with an error; they were simply absent",
+      "false": [
+        "The import failed with an error, and the backlog was reprocessed once the format was changed",
+        "The file was split automatically, and the second part was processed a day late",
+        "The rows were truncated to fit, so partial records entered the system"
+      ],
+      "why": "15,841 positive cases went unreported for a week, and the contacts of those\npeople were not traced. No exception, no alert, no partial record to\nnotice: the failure mode was silence. This is the course's opening argument\nin one incident. The model was not the problem, there was no model; the\nproblem was a data pipeline with a capacity limit and no check that what\nwent in came out.",
+      "objectives": [
+        "l01-o2"
+      ],
+      "tags": [
+        "pipelines",
+        "silent-failure",
+        "case-study"
+      ]
+    },
+    {
+      "id": "l01-q03",
+      "kind": "predict_measure",
+      "context": "Google Flu Trends screened 50 million candidate queries down to 45 and\nreported a mean correlation of 0.97 across nine regions, on held-out data\nexcluded from every prior modeling step.\n\nBefore you look: was the validation protocol the problem?",
+      "true": "No. The protocol was more disciplined than a great deal of deployed machine learning gets, and it still failed in production",
+      "false": [
+        "Yes; screening 50 million candidates guarantees spurious correlations survive to the held-out set",
+        "Yes; nine regions is too few to support a correlation estimate",
+        "No, and the failure was purely an infrastructure outage rather than a modeling issue"
+      ],
+      "why": "This is the uncomfortable one, and it is why the case is in the notes.\nHeld-out validation was done properly and the system still degraded, because\nthe world changed underneath it: search behavior was not a stable proxy for\ninfluenza, and the relationship the model learned did not survive. Validating\nwell is not evidence that a system works. It is evidence that it worked on\ndata you already had.",
+      "objectives": [
+        "l01-o2"
+      ],
+      "tags": [
+        "validation",
+        "drift",
+        "case-study"
+      ]
+    },
+    {
+      "id": "l01-q04",
+      "kind": "locus_of_control",
+      "context": "Engineering data differs from the datasets in a general ML tutorial in a way\nthat changes what you have to build. What is the difference?",
+      "true": "It carries provenance and traceability requirements, because the outputs feed decisions with physical and safety consequences",
+      "false": [
+        "It is larger, so the tooling has to scale further than a tutorial's does",
+        "It is noisier, so more of the effort goes into cleaning than into modeling",
+        "It is proprietary, so it cannot be shared and every project starts from scratch"
+      ],
+      "why": "Size and noise are real and neither is the distinguishing property. What\nmakes engineering data different is that somebody may later have to\nestablish which instrument produced a number, when it was calibrated, and\nwhat the model recommended on the basis of it. That is a requirement about\nrecords rather than about accuracy, and no amount of model quality\nsubstitutes for it.",
+      "objectives": [
+        "l01-o3"
+      ],
+      "tags": [
+        "provenance",
+        "engineering-data"
+      ]
+    },
+    {
+      "id": "l01-q05",
+      "kind": "claim_vs_source",
+      "context": "The 737 MAX case is often summarized as \"the software was buggy.\"\n\nWhat do the investigations say about the sensor architecture?",
+      "true": "That the system acted on a single angle-of-attack sensor, so one faulty input had no contradiction available",
+      "false": [
+        "That redundant sensors were fitted and the voting logic failed to use them",
+        "That the sensors were correct and the fault lay entirely in pilot training",
+        "That sensor data was corrupted in transit between the vane and the flight computer"
+      ],
+      "why": "The generalisable shape is not about aircraft. A system that acts on one\ninput has no way to notice that the input is wrong, so the failure is in the\narchitecture rather than in the code that ran correctly on bad data. Ask of\nyour own systems what a single wrong sensor reading would do, and whether\nanything downstream could tell.",
+      "objectives": [
+        "l01-o3"
+      ],
+      "tags": [
+        "architecture",
+        "redundancy",
+        "case-study"
+      ]
+    },
+    {
+      "id": "l01-q06",
+      "kind": "mcq",
+      "context": "The course standardizes on `uv` for environments. What failure is that\nchoice preventing?",
+      "true": "A result that cannot be rebuilt, because a lockfile pins what was actually installed rather than what was requested",
+      "false": [
+        "Slow installs, since uv resolves and downloads faster than the alternatives",
+        "Dependency conflicts, which uv resolves where pip would fail",
+        "Disk usage, since uv shares a global cache between projects"
+      ],
+      "why": "Speed and caching are real and neither is why it is in the toolchain. Every\ntool in this course is chosen against a named failure, and this one is\n\"your figure disagrees with your notebook and neither file records why\".\nL13 has that failure on the page: scikit-learn 1.8 and 1.9 assign folds\ndifferently under an identical call, and only a lockfile makes that\nvisible.",
+      "objectives": [
+        "l01-o4"
+      ],
+      "tags": [
+        "toolchain",
+        "reproducibility"
+      ]
+    },
+    {
+      "id": "l01-q07",
+      "kind": "mcq",
+      "context": "Where does most of the engineering effort in a deployed ML system actually\ngo?",
+      "true": "Into the data infrastructure, the evaluation, and the operational practice around the model",
+      "false": [
+        "Into model selection and hyperparameter tuning, which is where accuracy is won",
+        "Into inference optimization, since serving cost dominates the lifetime budget",
+        "Into user interface work, since adoption determines whether a model delivers value"
+      ],
+      "why": "This is the claim the whole course is organized around, and the reason the\nfirst four weeks are about storage and pipelines rather than about models.\nThe two case studies in this session make the same point from opposite\ndirections: one system failed with no model in it at all, and the other had\na well-validated model and failed anyway.",
+      "objectives": [
+        "l01-o1"
+      ],
+      "tags": [
+        "system-view"
+      ]
+    },
+    {
+      "id": "l01-q09",
+      "kind": "notebook_run",
+      "context": "Open [`l01-reproducibility.ipynb`](../lectures/l01/l01-reproducibility.ipynb)\nand run it top to bottom. It is deliberately defective.\n\nOne cell fails for you and a different one fails for your neighbor. Why?",
+      "true": "It integrates a curve twice, once with `np.trapz` and once with `np.trapezoid`, and exactly one exists in your NumPy version",
+      "false": [
+        "Random seeds differ between machines, so the split is different",
+        "The absolute path only exists on the author's machine, so everyone fails identically there",
+        "Cell execution order differs, so the failure depends on how you ran it"
+      ],
+      "why": "`np.trapz` was removed in NumPy 2.0 and `np.trapezoid` was added there, so\nexactly one cell fails whichever version you installed, and comparing\nfailures with a neighbor is the discussion. The absolute path is one of\nthe other two deliberate defects and it fails for everybody, which is why it\nis the less interesting one: a defect that only fires on some machines is\nthe kind that reaches production.",
+      "objectives": [
+        "l01-o4"
+      ],
+      "tags": [
+        "reproducibility",
+        "notebook"
+      ]
+    },
+    {
+      "id": "l01-q10",
+      "kind": "locus_of_control",
+      "context": "Your model's accuracy is unchanged on the test set, but users report it has\ngot worse over the last quarter.\n\nWhat is the most likely explanation, and where does the response belong?",
+      "true": "The world moved and the frozen test set did not, so the response is monitoring the input distribution rather than re-scoring the same data",
+      "false": [
+        "The users are wrong; a stable test score means stable behavior",
+        "The model has degraded numerically, so retraining on the same data will restore it",
+        "The test set has leaked into training, which inflates the score while real performance falls"
+      ],
+      "why": "This is Google Flu Trends in miniature, and it is why \"validating well is\nnot evidence that a system works\" is a section heading rather than an\naside. A frozen test set is exactly right for comparing versions and tells\nyou nothing about whether the world it was drawn from still exists. L23\nturns this into instrumentation.",
+      "objectives": [
+        "l01-o2"
+      ],
+      "tags": [
+        "drift",
+        "validation"
+      ]
+    }
+  ]
+}
