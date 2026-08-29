@@ -8,26 +8,28 @@
 - **Slides** <a href="../../slides/l03/">Deck for this session</a>
 - **Practice** <a href="../../game/#/l03">Practice module for this session</a>
 - **Demo** [`l03-sql-timeseries.ipynb`](l03-sql-timeseries.ipynb), PostgreSQL over a month of real sensor data
-- **Assignment 2** released this session
 :::
 
 ## Why this matters
 
-A sensor network is a small factory for producing time-stamped numbers, and the first thing
-anyone wants from it is a comparison. Which sensor ran hottest last Tuesday. How many
-readings did node 12 drop overnight. What was the hourly average across the floor, and did it
-track the building's heating schedule. These are one-line questions, and the surprising thing
-about them is that the arithmetic is never what makes them hard. Averaging a column is
+A sensor network is a "small factory" that produces time-stamped numbers, and the first thing
+anyone wants from it is a comparison. For instance, "which sensor ran hottest last Tuesday?", or "how many
+readings did node 12 drop overnight?", "what was the hourly average across the floor?", and "did it
+track the building's heating schedule?"
+
+These are one-line questions, and the arithmetic is never what makes them hard. Averaging a column is
 trivial. The difficulty is upstream of the arithmetic, in whether the data arrived in a shape
 that lets you ask the question at all.
 
-The shape most people reach for first is a spreadsheet with a timestamp down the side and one
+The shape most people first think about is a spreadsheet with a timestamp down the side and one
 column per sensor. On a screen with four sensors it looks like exactly the right picture: you
 can see the readings marching down the page, you can eyeball a trend, and a chart is two
-clicks away. It is worth being honest that this representation is genuinely fine for a small,
-finished dataset that nobody will add to. The trouble is that a live deployment is neither
-small nor finished, and the wide layout fails in ways that are quiet at first and then
-expensive. A new node comes online, and now the table needs another column, which means every
+clicks away. It is true that this representation is fine for a small dataset that nobody will further add data to. 
+The issue is that a live deployment is neither
+small nor "finalized", and a **wide layout** fails in ways that are silent at first and then
+expensive afterwards. 
+
+For example, if a new node comes online, and now the table needs another column, this means that every
 query, every script, and every chart that referenced the old set of columns has to be found
 and edited. A node goes quiet, and its column fills with blanks, and a blank that means "this
 sensor was offline" sits in the same cells as a blank that might mean "the reading was zero,"
@@ -41,8 +43,8 @@ or a CSV file has no opinion about what belongs in a cell. It will hold the numb
 the number 386 with equal willingness, and it will hold the text "offline" in a column you
 believed was numeric, and it will let a timestamp from a sensor in one time zone sit
 undistinguished next to one from another. The dataset for this week is a month of readings
-from 54 wireless motes deployed in the Intel Berkeley Research Lab in early 2004, and it earns
-its place in the course precisely because it is not clean. Somewhere in its 2.3 million rows
+from 54 wireless motes deployed in the Intel Berkeley Research Lab in early 2004, and it belongs
+in the course precisely because it is not clean. Somewhere in its 2.3 million rows
 are temperatures of 122 and even 386 degrees Celsius, recorded in good faith by motes whose
 batteries were dying, sitting in the same column as the honest 19-degree readings with
 nothing whatsoever to mark them as impossible. No amount of care in the analysis downstream
@@ -73,11 +75,11 @@ By the end of this session you should be able to:
 ```{index} relational model, normalization, primary key, foreign key, long format
 ```
 
-The relational model is one of the most durable ideas in computing, and it is worth knowing
-where it came from, because the reason it has outlived a half-century of hardware is the same
-reason it is the right default for your sensor data. In 1970 Edgar Codd, then at IBM,
-published "A Relational Model of Data for Large Shared Data Banks," and its argument was
-almost philosophical: the way data is *stored* should be divorced entirely from the way it is
+The relational model is one of the most durable ideas in computing, and where it came from
+explains why it is the right default for your sensor data: the reason it has outlived a
+half-century of hardware is the same reason it fits yours. In 1970 Edgar Codd, then at IBM,
+published *"A Relational Model of Data for Large Shared Data Banks,"* and its argument was
+almost philosophical: the way data is *stored* should be separated entirely from the way it is
 *asked about*. You should be able to describe what you want in terms of the data's logical
 structure, tables of rows and columns related by shared values, and leave the machine to
 work out how to retrieve it from disk. Everything that feels natural about SQL today, the fact
@@ -92,18 +94,36 @@ reading that names sensor 5 simply cannot be inserted unless sensor 5 exists in 
 sensors. The database checks this on every write. A whole category of error, the reading that
 refers to a sensor nobody has ever heard of, moves from "something we hope our code prevents"
 to "something the database will not physically allow." That shift, from convention to
-enforcement, is most of what you are buying.
+enforcement, is the core of what a database gives you.
 
-The second idea is **normalization**, which sounds forbidding and means something simple:
+:::{admonition} Definition: primary key
+:class: tip
+
+A **primary key** is a column, or a small set of columns, whose value uniquely identifies a row, so there is exactly one row for a given key and pointing at it is unambiguous.
+:::
+
+:::{admonition} Definition: foreign key
+:class: tip
+
+A **foreign key** is a column whose values must match a primary key in another table. The database enforces it on every write, so a reading that names sensor 5 cannot be inserted unless sensor 5 exists in the roster.
+:::
+
+The second idea is **normalization**, which sounds forbidding (in the sense we are used to, normalizing data values) and means something else, simpler:
 store each fact once, in the place it belongs, and refer to it by key everywhere else. A
 sensor's position on the lab floor and the physical unit of a measurement do not change from
-one reading to the next, so repeating them in all two million rows is not just wasteful, it is
-dangerous, because the day you correct one copy and miss the others you have created a
+one reading to the next, so repeating them in all two million rows is wasteful and
+dangerous: the day you correct one copy and miss the others you have created a
 database that disagrees with itself. Normalization puts the sensor's static facts in a small
 `sensors` table with one row per sensor, puts the description of each measured quantity in its
-own small table, and lets the enormous `readings` table carry only what genuinely varies:
+own small table, and lets the enormous `readings` table carry only what varies:
 which sensor, when, what value. The reward is that a correction happens in one row, and the
 large table stays narrow and quick.
+
+:::{admonition} Definition: normalization
+:class: tip
+
+**Normalization** means storing each fact once, in the table it belongs to, and referring to it by key everywhere else, so a correction happens in one place rather than across millions of rows.
+:::
 
 That reasoning settles the question the opening raised, the choice between a wide table and a
 long one. The wide layout puts one column per sensor. The **long**, or tidy, layout puts one
@@ -154,17 +174,17 @@ CREATE TABLE readings (
 );
 ```
 
-Notice where each fact has come to rest, because the placement is the whole art. A sensor's
+Notice where each fact has come to rest, because the placement is the design. A sensor's
 location is static, so it lives once in `sensors`. A quantity's unit and its plausible range
 belong to the quantity itself, not to any sensor or any moment, so they live in `variables`.
-Only the measurements, which genuinely vary by sensor and by time, fill the large `readings`
+Only the measurements, which vary by sensor and by time, fill the large `readings`
 table, and that table points back at the two small ones through foreign keys. This is the
 fully tidy form, one row per `(sensor, time, quantity)`, and its particular virtue is that
 adding a new kind of measurement next semester is another row in `variables` rather than a
 change to the shape of any table.
 
-There is a common and entirely defensible middle ground, worth naming because you will meet it
-and because it is not wrong: collapse the `variables` idea back into typed columns, so that
+There is a common and entirely defensible middle ground you will meet, and it is not wrong:
+collapse the `variables` idea back into typed columns, so that
 `readings` has one row per `(sensor, time)` with a `temperature double precision`, a
 `humidity double precision`, and so on. That form buys you a distinct, correct type for each
 channel, and it halves nothing but the row count is a quarter of the tidy form's. What it
@@ -176,7 +196,7 @@ a good answer names the trade you made rather than pretending there wasn't one.
 :class: warning
 
 The reflex to build a wide "one column per sensor" table is the single most common mistake
-engineers make with sensor data, and it is worth resisting on purpose because it feels so
+engineers make with sensor data, and you should resist it on purpose because it feels so
 natural. The tell is a table whose column names are *entities*: sensor ids, machine numbers,
 experiment run labels, well names. Whenever you catch yourself about to name a column after a
 particular thing you measured from, stop and put those things in rows instead. A column should
@@ -191,7 +211,7 @@ from.
 
 Because the schema is a contract, the column types are the clauses that carry the most weight,
 and two of them reward real thought on engineering data. The first is time, and it hides a
-genuine surprise.
+surprise.
 
 PostgreSQL offers two temporal types that look almost identical and behave very differently.
 `timestamp` is a wall-clock reading with no zone attached, the database equivalent of a photo
@@ -204,18 +224,24 @@ into whatever zone you ask to see it in. The name promises a stored zone and the
 implementation delivers something better, a canonical instant that every client can render
 locally. The practical rule that falls out of this is short: use `timestamptz`, and think of
 your stored data as UTC. A bare `timestamp` of `2004-03-14 02:30:00` collected on a
-clock-change night is genuinely ambiguous, naming a moment that either happened twice or never
+clock-change night is ambiguous, naming a moment that either happened twice or never
 happened, and no query can disambiguate it after the fact. The instant does not have that
 problem, so ordering, differencing, and bucketing are all well defined regardless of where the
 data was collected or where it is later analyzed.
+
+:::{admonition} Definition: timestamptz
+:class: tip
+
+**`timestamptz`** is PostgreSQL's zone-aware timestamp, and despite its name it stores no zone: it converts the value to UTC, keeps that instant, and renders it back in whatever zone you ask to see it in. Use it, and think of your stored data as UTC.
+:::
 
 ### Case study: the leap second of 30 June 2012
 
 ```{index} pair: case study; 2012 leap second
 ```
 
-It is tempting to treat time as a solved problem and move on, and the clearest argument
-against that complacency is what happened at midnight UTC on the first of July, 2012. The
+It is easy to treat time as a solved problem and move on, and the clearest argument
+against that is what happened at midnight UTC on the first of July, 2012. The
 Earth does not rotate at a perfectly constant rate, so the world's timekeepers occasionally
 insert a *leap second* to keep atomic clocks aligned with the planet, and on this occasion the
 final minute of 30 June was allowed to run to an unusual `23:59:60`. A bug in the way the
@@ -234,14 +260,14 @@ technique it named the "leap smear." The lesson for anyone who stores measuremen
 cleanly and downward in scale. Calendar and clock arithmetic is a swamp of special cases,
 leap seconds and leap years and time zones and the twice-a-year hour that daylight saving
 adds or removes, and you do not want to be standing in it holding your own implementation.
-Store instants in UTC, give them a type the database genuinely understands, and let code that
+Store instants in UTC, give them a type the database understands, and let code that
 has already survived contact with every edge case do the arithmetic. The moment you decide to
 keep time as naive local strings and subtract them by hand, you have quietly volunteered to
 rediscover every one of those special cases yourself, in production, at 23:59:60.
 
 ### numeric versus double precision
 
-The second choice is how to store the numbers, and here the surprise is that the database does
+The second choice is how to store the numbers, and the database does
 not make floating point any less strange than it is anywhere else. `double precision` is a
 64-bit binary float: fast, compact, and inexact. The classic demonstration, `0.1 + 0.2` coming
 out as `0.30000000000000004`, is as true inside PostgreSQL as it is in Python, because it is a
@@ -259,7 +285,7 @@ juggling and no chance of comparing seconds against milliseconds by accident.
 
 ### A typed column is still not a validated column
 
-Here is the trap that catches people who have just learned to trust types. A type constrains
+There is a trap for anyone who has just learned to trust types. A type constrains
 the *kind* of value a column will hold, but it says nothing about whether a value of that kind
 is *possible*. A `double precision` temperature column will accept 386 as cheerfully as 19,
 because 386 is a perfectly good floating-point number; it is only an impossible temperature,
@@ -273,7 +299,7 @@ catching, sitting in plain sight in a column you might have dismissed as houseke
 :alt: Left, battery voltage declining over the month; right, temperatures exploding once voltage drops below 2.4 V
 :width: 100%
 
-The `voltage` channel is not merely telemetry, it is a data-quality signal. As each mote's
+The `voltage` channel is a data-quality signal, not just telemetry. As each mote's
 battery drains past roughly 2.4 V over the month (left), its temperature channel stops being
 trustworthy and begins reporting physically impossible values (right). In this dataset about
 27 percent of readings come from motes already below 2.4 V, roughly 18 percent of temperature
@@ -281,8 +307,8 @@ readings fall outside a generous 0-to-50-degree band, and essentially every one 
 impossible readings comes from a low-voltage mote.
 ```
 
-That the corruption lines up so precisely with low battery voltage is the useful half of the
-lesson, and it is genuinely a small surprise: you might have expected bad readings to be
+That the corruption lines up so precisely with low battery voltage is a small surprise: you
+might have expected bad readings to be
 scattered noise, and instead they are almost perfectly predicted by a second channel you were
 recording anyway. The cleaning rule is therefore a fact the data hands you rather than a
 judgment you have to defend: a reading taken while its mote was below 2.4 V is suspect, and voltage,
@@ -290,8 +316,7 @@ the channel you nearly ignored, is the context that tells you which numbers to t
 exactly why the schema should carry its metadata explicitly, units and plausible ranges in
 `variables`, per-mote calibration and location in `sensors`, and why storing that context
 beside the values is an engineering requirement and not bookkeeping. A number without its
-provenance cannot be validated. It can only be believed, and belief is not a quality-control
-strategy.
+provenance can be believed but not checked.
 
 ## SQL that answers engineering questions
 
@@ -299,7 +324,7 @@ strategy.
 ```
 
 SQL is a language for describing the answer you want and leaving the database to work out how
-to compute it, and that declarative character is worth pausing on because it is easy to take
+to compute it, and that declarative character is easy to take
 for granted. When you write a query you name the columns to return with `SELECT`, the table to
 read them from with `FROM`, the rows to keep with `WHERE`, how to fold rows together with
 `GROUP BY`, and which of the resulting groups survive with `HAVING`; joining reaches into
@@ -327,7 +352,7 @@ ORDER  BY sensor_id, hour;
 ```
 
 `HAVING` filters the groups rather than the rows, and the distinction is the thing beginners
-most often trip on, so it is worth stating plainly: `WHERE` runs before the grouping and sees
+most often trip on: `WHERE` runs before the grouping and sees
 individual rows, `HAVING` runs after and sees aggregates. A dropout report is a natural use,
 because a mote that fell silent is simply a mote whose reading count is suspiciously low:
 
@@ -340,9 +365,7 @@ HAVING count(*) < 30000      -- a healthy mote reports far more over a month
 ORDER  BY n_readings;
 ```
 
-The genuinely powerful additions for time-series are **window functions**, and they are worth
-the small effort they take to learn because nothing else expresses "compare each reading to
-its neighbors" so directly. A window function computes across a set of rows related to the
+The most powerful additions for time-series are **window functions**, because nothing else expresses "compare each reading to its neighbors" so directly. A window function computes across a set of rows related to the
 current one without collapsing them into a group, so every reading keeps its own identity and
 also gets to see the rows around it. `lag` reaches back to the previous reading, which turns
 the reporting gaps that afflict every sensor network into an ordinary column you can filter
@@ -357,7 +380,15 @@ WHERE  variable = 'temperature';
 
 Each mote aims to report about every 31 seconds, so any `gap` much larger than that is a
 dropout, and now it is a dropout with a precise timestamp attached rather than an absence you
-have to go looking for. A rolling average is the same machinery with an aggregate and a frame.
+have to go looking for.
+
+:::{admonition} Definition: window function
+:class: tip
+
+A **window function** computes over a set of rows related to the current one without collapsing them into a group, so every row keeps its own identity while also getting to see its neighbors. `lag`, reaching back to the previous reading, is the workhorse for time-series.
+:::
+
+A rolling average is the same machinery with an aggregate and a frame.
 Because the sampling is irregular, a frame defined by *time* is the honest choice rather than
 one defined by a fixed number of rows, and PostgreSQL lets you write almost exactly that:
 
@@ -396,12 +427,18 @@ database, and fluency comes from writing them, not from reading them.
 ```
 
 A schema is an empty promise until you load it, and how you load matters far more than it
-first appears. The tempting way, especially from Python, is a loop that issues one `INSERT`
+first appears. The obvious way, especially from Python, is a loop that issues one `INSERT`
 per row, and on a dataset like this one that is a quiet catastrophe: two million separate
 statements, each a round trip to the server with its own transaction overhead, turning a job
 that should take seconds into one that takes an afternoon. The right way is `COPY`,
 PostgreSQL's bulk loader, which streams an entire file into a table in a single operation and
 routinely runs two or three orders of magnitude faster.
+
+:::{admonition} Definition: COPY
+:class: tip
+
+**`COPY`** is PostgreSQL's bulk loader: it streams an entire file into a table in one operation, routinely two or three orders of magnitude faster than a loop of one `INSERT` per row.
+:::
 
 ```sql
 COPY readings (sensor_id, ts, variable, value)
@@ -410,7 +447,7 @@ FROM '/data/readings.csv' WITH (FORMAT csv, HEADER true);
 
 `psql`, the command-line client, is where you run this interactively and then poke at what
 landed; its `\copy` variant performs the same load from the client side when the file lives on
-your machine rather than the server's. From Python the two paths worth knowing are
+your machine rather than the server's. From Python the two paths are
 [`psycopg`](https://www.psycopg.org/psycopg3/docs/), the direct PostgreSQL driver, whose copy
 interface exposes that same fast path, and [SQLAlchemy](https://www.sqlalchemy.org/), which
 adds a layer that lets the same code target different databases and interoperates with pandas
@@ -446,6 +483,12 @@ which keeps keys in sorted order, so a range lookup becomes a descent to the sta
 followed by a walk along it, and its cost tracks the size of the *result* rather than the size
 of the *table*.
 
+:::{admonition} Definition: database index
+:class: tip
+
+A **database index** is a secondary structure that lets the database find matching rows without reading the whole table. PostgreSQL's default is a **B-tree**, which keeps keys in sorted order, so a range lookup costs the size of the *result* rather than the size of the *table*.
+:::
+
 For per-sensor time-range queries the index you want is a composite B-tree on `(sensor_id,
 ts)`, in that order, because it groups each sensor's readings together and keeps them sorted by
 time, which is precisely the access pattern. The effect is not marginal.
@@ -480,13 +523,19 @@ Before the index the readings are read by a sequential scan and the time scales 
 table; on the full dataset in the demo this lands around 190 milliseconds. After
 `CREATE INDEX ON readings (sensor_id, ts)` the same query becomes an `Index Only Scan` and the
 time collapses to a few hundredths of a millisecond. There is a lesson hiding inside that
-composite index, and it is the kind of thing that clicks once and then stays with you: if you
+composite index: if you
 had made `(sensor_id, ts, variable)` the primary key, as the schema above recommends, this
 index would already exist, because a primary key *is* an index, and this one begins with
 exactly the columns the query filters on. Choosing your key well hands you your most important
 index for nothing. The demo deliberately starts from a table without that key so the change is
 visible, but in a real schema the integrity constraint and the performance structure are often
 the same object seen from two sides.
+
+:::{admonition} Definition: EXPLAIN ANALYZE
+:class: tip
+
+**`EXPLAIN ANALYZE`** runs your query and prints the plan the database actually chose, annotated with real timings. Read two places: the scan at the base of the plan (`Seq Scan` versus `Index Scan`) and the total execution time at the bottom.
+:::
 
 Indexes are emphatically not free, and it matters to say so, because the beginner's instinct
 after seeing that speedup is to index everything. Each index costs storage, and, more
@@ -496,14 +545,14 @@ new row. An index the planner never chooses is pure overhead with no benefit at 
 discipline is to index the access patterns you actually have, then confirm with
 `EXPLAIN ANALYZE` that the planner is in fact using them, because the planner is a
 cost-estimating optimizer and it will rationally ignore an index it judges unhelpful, for
-instance on a column with only a handful of distinct values where a scan is genuinely cheaper.
+instance on a column with only a handful of distinct values where a scan is cheaper.
 
-When per-time access dominates at real scale, a purpose-built extension earns its keep.
+When per-time access dominates at real scale, a purpose-built extension pays off.
 [TimescaleDB](https://docs.timescale.com/use-timescale/latest/hypertables/) turns an ordinary
 PostgreSQL table into a **hypertable** that is transparently partitioned into time-based
 chunks, so that a query for last week touches only last week's chunks and old data can be
 compressed or dropped a whole chunk at a time. It is the same SQL over the same relational
-model, tuned for the particular shape of time-series, and it is worth knowing it exists before
+model, tuned for the particular shape of time-series. Know it exists before
 the day you need it.
 
 ## Where the relational model pushes back
@@ -512,11 +561,11 @@ Everything to this point has been an argument for the relational database, and i
 argument, but a course that only ever praised its default tool would be teaching advocacy
 rather than engineering. The relational model is a default, not a universal answer, and the
 mature version of this knowledge is knowing where it strains and what you reach for when it
-does. Several of its limits are worth understanding before you meet them under deadline.
+does. Learn several of its limits before you meet them under deadline.
 
 ### The schema is rigid, and rigidity has a price
 
-The same schema that protected your data is genuinely expensive to change once the table is
+The same schema that protected your data is expensive to change once the table is
 large. Adding or altering a column with `ALTER TABLE` can, depending on the change and the
 database, lock the table or rewrite it row by row; historically, adding a column with a
 non-constant default rewrote the entire table, and while PostgreSQL has optimized the common
@@ -540,16 +589,22 @@ results that look like bugs until you internalize the rule. `value = NULL` is ne
 is why you must write `value IS NULL`; a filter like `WHERE value <> 30` silently drops every
 row where `value` is null, because "unknown is not equal to 30" evaluates to unknown, not to
 true; and `NOT IN` against a subquery that contains a single null returns no rows at all, a
-genuinely notorious footgun. The aggregate functions have their own version of this:
+notorious footgun. The aggregate functions have their own version of this:
 `count(*)` counts rows while `count(value)` counts only the non-null ones, and `avg(value)`
 averages only the readings that are present, so a mote that dropped half its readings is not
 penalized in an average unless you have separately counted how many it reported. None of this
 is a defect in PostgreSQL. It is the defined semantics of SQL, and it quietly produces wrong
 analyses for anyone who forgets it.
 
+:::{admonition} Definition: three-valued logic
+:class: tip
+
+SQL has three truth values, not two: true, false, and **unknown**. `NULL` means unknown, and any comparison with it yields unknown, which is why `value = NULL` is never true and you must write `value IS NULL`.
+:::
+
 ### Floating point in a column is still floating point
 
-Putting a number in a `double precision` column does not make it exact, and the surprise here
+Putting a number in a `double precision` column does not make it exact, and the problem here
 has a sharp edge for reproducibility. Because floating-point addition is not associative, the
 result of `avg` or `sum` over a large column can depend on the order in which the rows were
 summed, and when PostgreSQL parallelizes an aggregate across worker processes, as it did in the
@@ -567,7 +622,7 @@ Joins across large tables are exactly where query time tends to go, and the stan
 *denormalization*, which duplicates some columns to avoid the join, reintroduces precisely the
 update anomalies that normalization existed to prevent. So even the design principle at the
 heart of the relational model is a trade rather than a free lunch: you are choosing where to
-pay, in write-time consistency or in read-time joins, not choosing to avoid paying.
+pay, in write-time consistency or in read-time joins, not whether to pay at all.
 
 ### Even our recommended shape has costs
 
@@ -579,8 +634,7 @@ flag cannot have different types even though they obviously should. It makes a p
 `CHECK` constraint awkward to express, because one column now holds several physically
 different quantities. And it puts a `WHERE variable = '...'` on very nearly every query you
 will ever write. The typed-column alternative escapes all of these and pays for the escape
-with schema rigidity. There is no shape that is free; there is only the shape whose costs you
-have chosen on purpose.
+with schema rigidity. Every shape costs something. Choose the costs you pay on purpose.
 
 ### Row stores are the wrong tool for wide analytical scans
 
@@ -591,24 +645,30 @@ and it is close to the worst possible layout for the analytical pattern of scann
 column across the entire history, because to read one column out of many the database must
 still pull every column of every row off the disk to get at it. Our index win was for a
 *selective* query that touched a hundred rows; a full analytical aggregate over one channel of
-the whole table reads everything, and no index rescues a query that genuinely needs all the
+the whole table reads everything, and no index rescues a query that needs all the
 rows. This single fact is why a relational online transaction processing (OLTP) database is not the end of the storage story,
 and it is exactly the problem that columnar formats and embedded analytical engines are built
 to solve.
+
+:::{admonition} Definition: row store
+:class: tip
+
+A **row store** like PostgreSQL keeps all of a row's columns together on disk. That is ideal for reading and writing whole rows, and close to the worst layout for scanning one column across the whole history, because it must pull every column of every row off the disk to reach the one it needs.
+:::
 
 ### Writes scale up but not easily out, and the server has weight
 
 A single PostgreSQL primary serves one stream of writes. You can scale reads by adding
 replicas, but scaling *writes* beyond one machine means *sharding*, partitioning the data
 across servers, and sharding a relational database while preserving cross-shard joins and
-transactions is one of the genuinely hard problems in the field, hard enough that the entire
+transactions is one of the hard problems in the field, hard enough that the entire
 NoSQL movement grew up around avoiding it. High-ingest sensor and internet of things (IoT) systems, taking millions
 of writes a second, are where specialized time-series and distributed stores live; partitioning
 and TimescaleDB raise the ceiling considerably but do not remove it. And underneath all of this
 is plain operational weight: a relational database is a server you must run, secure, back up,
 monitor, and connect to within its connection limits, which is real overhead that a CSV file or
-an embedded engine like SQLite or DuckDB simply does not carry. It is worth remembering, too,
-that "SQL" is a family of dialects rather than a single language, so `date_trunc`, the exact
+an embedded engine like SQLite or DuckDB simply does not carry. And "SQL" is a family of
+dialects rather than a single language, so `date_trunc`, the exact
 window-frame syntax, and the type names all differ between PostgreSQL, MySQL, SQLite, and the
 rest, and moving a non-trivial query from one to another is work, not a copy and paste.
 
@@ -618,10 +678,10 @@ rest, and moving a non-trivial query from one to another is work, not a copy and
 Choose the relational database when correctness under concurrent writes, referential
 integrity, and flexible ad-hoc querying are what dominate, which for continuously arriving,
 interrelated engineering data is most of the time. Reach past it deliberately when your access
-pattern is wide analytical scans, where a column store wins; when your data is genuinely
+pattern is wide analytical scans, where a column store wins; when your data is
 schema-heterogeneous, where a document store fits; or when your write volume outgrows a single
-machine, where distributed and time-series systems come in. The skill is not loyalty to one
-tool. It is matching the store to the access pattern.
+machine, where distributed and time-series systems come in. The skill is matching the store to
+the access pattern rather than staying loyal to one tool.
 :::
 
 ## In-class demo
@@ -643,7 +703,7 @@ own machine.
 
 ## Summary
 
-A relational database earns its place in an engineering data platform by being a contract you
+A relational database belongs in an engineering data platform because it is a contract you
 can query. Modeling sensor readings in the long form, keyed by sensor and time with the static
 metadata normalized into `sensors` and `variables`, makes a new sensor an `INSERT` rather than
 a migration and turns every comparative question into a `WHERE` clause. Choosing types with
