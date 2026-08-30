@@ -57,7 +57,7 @@ The **shape of the data** is the hard part.
 
 ---
 
-## Why a database, the tempting shape: one column per sensor
+## Why a database, the obvious shape: one column per sensor
 
 | ts | m1 | m2 | m3 | … | m54 |
 |---|---|---|---|---|---|
@@ -154,6 +154,12 @@ It takes about ten seconds to write, which settles it.
 <div class="definition">
 
 **Long format**: one row per (entity, time, quantity) measurement, rather than one column per sensor.
+
+</div>
+
+<div class="definition">
+
+**Primary key**: a column, or a small set, whose value uniquely identifies a row, so there is exactly one row per key.
 
 </div>
 
@@ -316,7 +322,7 @@ happened twice, or never.
 
 ---
 
-## Types that carry meaning, time punishes the overconfident
+## Types that carry meaning, the leap second of 2012
 
 Case: the leap second of **30 June 2012**
 
@@ -667,6 +673,12 @@ GROUP  BY sensor_id;
 
 ## Loading, indexes, query cost
 
+<div class="definition">
+
+**`COPY`**: PostgreSQL's bulk loader, one file into a table in a single operation, orders of magnitude faster than a loop of `INSERT`s.
+
+</div>
+
 2M single-row `INSERT`s = 2M round trips = an afternoon.
 
 **`COPY`** streams a whole file in one operation:
@@ -780,6 +792,12 @@ comparison.
 
 ## Loading, indexes, query cost, `EXPLAIN ANALYZE`: read two things
 
+<div class="definition">
+
+**`EXPLAIN ANALYZE`**: runs the query and prints the plan the database actually chose, annotated with real timings.
+
+</div>
+
 Run the query; print the real plan and timings.
 
 1. The **scan at the base**, the strategy
@@ -848,6 +866,12 @@ Same SQL, same relational model, tuned for time-series.
 
 Optimized for **many correct writes** and **point/range reads**:
 transactions, joins, constraints, one row at a time.
+
+<div class="definition">
+
+**Row store**: PostgreSQL keeps all of a row's columns together on disk, ideal for whole rows, poor for scanning one column across the whole table.
+
+</div>
 
 Scanning three columns across ten years is a **different** job.
 
