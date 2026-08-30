@@ -147,6 +147,286 @@
           "CircleCI",
           "Ansible"
         ]
+      },
+      "stack": {
+        "brief": "A month of sensor readings, a model that flags anomalies, and a request to put it in front of people who are not you. Fill every layer, then deploy.",
+        "layers": [
+          {
+            "layer": "Environments",
+            "prevents": "rebuilds that are merely probable",
+            "case": "Three clinical trials used a flawed analysis nobody could re-run.",
+            "options": [
+              {
+                "text": "Python + uv",
+                "ok": true,
+                "because": "",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "requirements.txt",
+                "ok": false,
+                "because": "The resolver is free to pick whatever is newest within the loose constraints",
+                "cite": "lectures/l02/notes.md"
+              },
+              {
+                "text": "pandera",
+                "ok": false,
+                "because": "bad data passing silently",
+                "cite": "lectures/l01/notes.md"
+              }
+            ]
+          },
+          {
+            "layer": "Storage",
+            "prevents": "CSV sprawl, silent truncation",
+            "case": "15,841 positive cases fell off the end of a spreadsheet.",
+            "options": [
+              {
+                "text": "PostgreSQL",
+                "ok": true,
+                "because": "",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "DuckDB",
+                "ok": true,
+                "because": "",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "Parquet",
+                "ok": true,
+                "because": "",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "a spreadsheet",
+                "ok": false,
+                "because": "A spreadsheet or a CSV file has no opinion about what belongs in a cell",
+                "cite": "lectures/l03/notes.md"
+              },
+              {
+                "text": "MLflow",
+                "ok": false,
+                "because": "results nobody can attribute",
+                "cite": "lectures/l01/notes.md"
+              }
+            ]
+          },
+          {
+            "layer": "Dataframes",
+            "prevents": "out-of-memory, unreadable transforms",
+            "case": "",
+            "options": [
+              {
+                "text": "pandas",
+                "ok": true,
+                "because": "",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "Polars",
+                "ok": true,
+                "because": "",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "Docker",
+                "ok": false,
+                "because": "works on my machine",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "PyTorch",
+                "ok": false,
+                "because": "hand-derived gradients",
+                "cite": "lectures/l01/notes.md"
+              }
+            ]
+          },
+          {
+            "layer": "Validation",
+            "prevents": "bad data passing silently",
+            "case": "386 degrees Celsius, recorded in good faith by a mote with a dying battery.",
+            "options": [
+              {
+                "text": "pandera",
+                "ok": true,
+                "because": "",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "a one-off script",
+                "ok": false,
+                "because": "the cleaning rules are written down as queries anyone can read rather than buried in a one-off script",
+                "cite": "lectures/l03/notes.md"
+              },
+              {
+                "text": "Parquet",
+                "ok": false,
+                "because": "CSV sprawl, silent truncation",
+                "cite": "lectures/l01/notes.md"
+              }
+            ]
+          },
+          {
+            "layer": "Tracking",
+            "prevents": "results nobody can attribute",
+            "case": "",
+            "options": [
+              {
+                "text": "MLflow",
+                "ok": true,
+                "because": "",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "a notebook",
+                "ok": false,
+                "because": "which settings produced this particular number",
+                "cite": "lectures/l02/notes.md"
+              },
+              {
+                "text": "Polars",
+                "ok": false,
+                "because": "out-of-memory, unreadable transforms",
+                "cite": "lectures/l01/notes.md"
+              }
+            ]
+          },
+          {
+            "layer": "Deep learning",
+            "prevents": "hand-derived gradients",
+            "case": "",
+            "options": [
+              {
+                "text": "PyTorch",
+                "ok": true,
+                "because": "",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "FastAPI",
+                "ok": false,
+                "because": "works on my machine",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "DuckDB",
+                "ok": false,
+                "because": "CSV sprawl, silent truncation",
+                "cite": "lectures/l01/notes.md"
+              }
+            ]
+          },
+          {
+            "layer": "Retrieval",
+            "prevents": "answers ungrounded in your corpus",
+            "case": "",
+            "options": [
+              {
+                "text": "a vector store",
+                "ok": true,
+                "because": "",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "Fine-tuning",
+                "ok": false,
+                "because": "is the right answer far less often than people expect",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "pandas",
+                "ok": false,
+                "because": "out-of-memory, unreadable transforms",
+                "cite": "lectures/l01/notes.md"
+              }
+            ]
+          },
+          {
+            "layer": "Serving",
+            "prevents": "works on my machine",
+            "case": "A fresh checkout broke three times: a missing version, an unpinned seed, an absolute path.",
+            "options": [
+              {
+                "text": "FastAPI",
+                "ok": true,
+                "because": "",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "Docker",
+                "ok": true,
+                "because": "",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "requirements.txt",
+                "ok": false,
+                "because": "a much stronger guarantee than a requirements.txt",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "pandera",
+                "ok": false,
+                "because": "bad data passing silently",
+                "cite": "lectures/l01/notes.md"
+              }
+            ]
+          }
+        ],
+        "workloads": [
+          {
+            "id": "oltp",
+            "text": "Readings arrive continuously while several dashboards query them at once.",
+            "prefers": {
+              "Storage": [
+                "PostgreSQL"
+              ]
+            },
+            "penalises": {
+              "Storage": {
+                "because": "Writing one row at a time while several consumers read concurrently is a relational problem",
+                "from": "lectures/l01/notes.md"
+              }
+            }
+          },
+          {
+            "id": "olap",
+            "text": "One channel, scanned across ten years of history, on a laptop.",
+            "prefers": {
+              "Storage": [
+                "DuckDB",
+                "Parquet"
+              ]
+            },
+            "penalises": {
+              "Storage": {
+                "because": "close to the worst possible layout for the analytical pattern of scanning a single column across the entire history",
+                "from": "lectures/l03/notes.md"
+              }
+            }
+          }
+        ],
+        "requires": [
+          {
+            "layer": "Tracking",
+            "needs": "Environments",
+            "because": "MLflow will record whatever you log. That includes a run whose environment was never locked and whose seed was never pinned.",
+            "cite": "lectures/l02/notes.md"
+          },
+          {
+            "layer": "Serving",
+            "needs": "Environments",
+            "because": "The lockfile says nothing about the system C libraries",
+            "cite": "lectures/l02/notes.md"
+          }
+        ],
+        "epilogue": {
+          "text": "Locking the environment, pinning the seed, and tracking the run will then reproduce the *wrong* answer, every time, with perfect fidelity",
+          "cite": "lectures/l02/notes.md"
+        }
       }
     },
     {

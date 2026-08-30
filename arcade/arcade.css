@@ -389,3 +389,138 @@ button.arcade-board-refresh {
   color: var(--a-muted);
   cursor: pointer;
 }
+
+/* ---- ship it ------------------------------------------------------------- */
+
+.ship { display: flex; flex-direction: column; gap: 0.35em; height: 100%; min-height: 0; }
+
+.ship-brief { font-size: 0.58em; }
+.ship-brief[hidden], .ship-sheet[hidden], .ship-tray[hidden] { display: none; }
+.ship-brief-text { margin: 0; }
+/* The workload is the thing that decides half the answers, so it is not prose. */
+.ship-workload {
+  margin: 0.2em 0 0;
+  font-weight: 600;
+  border-left: 3px solid var(--a-red);
+  padding-left: 0.5em;
+}
+
+/* Two columns of slots: eight rows in one column does not fit a slide under a
+ * brief, a tray of options and a deploy button. */
+.ship-sheet {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.2em 0.5em;
+  flex: 0 0 auto;
+}
+
+button.ship-slot {
+  font: inherit;
+  font-size: 0.55em;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5em;
+  padding: 0.25em 0.5em;
+  border: 1px solid var(--a-rule);
+  border-left: 3px solid var(--a-rule);
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+}
+button.ship-slot.is-filled { border-left-color: var(--a-green); }
+button.ship-slot.is-focus { border-color: var(--a-red); border-left-color: var(--a-red); background: var(--a-bg); }
+
+.ship-layer { color: var(--a-muted); }
+.ship-pick { font-weight: 600; text-align: right; }
+
+.ship-tray { flex: 1 1 auto; min-height: 0; }
+.ship-prevents { font-size: 0.52em; color: var(--a-red); margin-bottom: 0.25em; }
+.ship-options { display: flex; flex-wrap: wrap; gap: 0.35em; }
+
+button.ship-option {
+  font: inherit;
+  font-size: 0.58em;
+  display: flex;
+  gap: 0.4em;
+  align-items: baseline;
+  padding: 0.3em 0.55em;
+  border: 2px solid var(--a-rule);
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+button.ship-option.is-picked { border-color: var(--a-green); background: #eefaf1; }
+.ship-num {
+  font-variant-numeric: tabular-nums;
+  color: var(--a-muted);
+  border: 1px solid var(--a-rule);
+  border-radius: 3px;
+  padding: 0 0.28em;
+  font-size: 0.85em;
+}
+
+button.ship-deploy {
+  font: inherit;
+  font-size: 0.62em;
+  font-weight: 600;
+  align-self: flex-start;
+  padding: 0.35em 0.9em;
+  border: 0;
+  border-radius: 6px;
+  background: var(--a-red);
+  color: #fff;
+  cursor: pointer;
+}
+button.ship-deploy[hidden] { display: none; }
+
+/* --- the report --- */
+
+.ship-report { font-size: 0.55em; overflow: auto; min-height: 0; }
+.ship-verdict { margin: 0 0 0.35em; font-size: 1.15em; color: var(--a-red); }
+.ship-verdict.is-clean { color: var(--a-green); }
+
+.ship-lines { list-style: none; margin: 0; padding: 0; }
+.ship-line {
+  display: grid;
+  /* The pick column has to hold "requirements.txt" and "a vector store" without
+   * spilling into the failure text beside it. */
+  grid-template-columns: 6.5em minmax(9em, auto) 1fr;
+  gap: 0.4em;
+  align-items: baseline;
+  padding: 0.15em 0 0.15em 0.5em;
+  border-left: 3px solid var(--a-green);
+}
+.ship-line.is-bad { border-left-color: var(--a-red); }
+.ship-line-layer { color: var(--a-muted); }
+.ship-line-pick { font-weight: 600; overflow-wrap: anywhere; }
+.ship-line-what { color: var(--a-muted); }
+.ship-line.is-bad .ship-line-what { color: var(--a-red); }
+/* The quote and the case study run the full width under their line. */
+.ship-line-why, .ship-line-case { grid-column: 2 / -1; margin: 0.1em 0 0; }
+.ship-line-case { color: var(--a-muted); font-style: italic; }
+
+/* Cross-layer failures come last because they are the surprise: every tool
+ * right and the failure still shipped. */
+.ship-depends {
+  margin-top: 0.4em;
+  padding-left: 0.5em;
+  border-left: 3px solid var(--a-red);
+}
+.ship-depends p { margin: 0.1em 0 0; color: var(--a-muted); }
+
+.ship-epilogue { margin-top: 0.5em; color: var(--a-muted); }
+.ship-epilogue p { margin: 0; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .ship-report.is-animating .ship-line { animation: ship-in 0.28s ease both; }
+  .ship-report.is-animating .ship-line:nth-child(2) { animation-delay: 0.06s; }
+  .ship-report.is-animating .ship-line:nth-child(3) { animation-delay: 0.12s; }
+  .ship-report.is-animating .ship-line:nth-child(4) { animation-delay: 0.18s; }
+  .ship-report.is-animating .ship-line:nth-child(5) { animation-delay: 0.24s; }
+  .ship-report.is-animating .ship-line:nth-child(6) { animation-delay: 0.30s; }
+  .ship-report.is-animating .ship-line:nth-child(7) { animation-delay: 0.36s; }
+  .ship-report.is-animating .ship-line:nth-child(8) { animation-delay: 0.42s; }
+  @keyframes ship-in { from { opacity: 0; transform: translateX(-6px); } }
+}

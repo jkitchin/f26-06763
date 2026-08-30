@@ -100,10 +100,35 @@ round generator refuses to build a file where that is not true.
 
 ---
 
+## Ship It · L01
+
+<div class="arcade" data-game="deploy" data-lecture="l01"
+     data-seconds="90" data-board="live" data-top="6"
+     data-read="https://clicker.f26-06763.workers.dev"></div>
+
+<!--
+Ninety seconds rather than sixty, because there are eight layers to fill and a
+report worth reading. The only game here that asks for a DECISION rather than a
+recall, and the only one the course wrote down before the game existed: the
+toolchain table in l01, and objective l01-o4, "justify each component of the
+course toolchain in terms of the failure it prevents".
+
+The workload on the slide decides half the answers. PostgreSQL is right under
+continuous writes and wrong under a wide analytical scan, because the notes
+refuse to name a best database: the question is not which is best, it is what
+access pattern you have.
+
+Watch for the cross-layer lines at the end of the report. A student can pick
+every tool correctly and still ship the failure, because MLflow logs a run whose
+environment was never locked just as happily as one that was.
+-->
+
+---
+
 ## Boss Rush
 
 <div class="arcade-rush" data-read="https://clicker.f26-06763.workers.dev"
-     data-games="l03-whackabug,all-pipeline,l01-chase" data-top="10"></div>
+     data-games="l03-whackabug,all-pipeline,l01-chase,l01-deploy" data-top="10"></div>
 
 <!--
 Points by placing rather than by score: 10, 8, 6, then 5 4 3 2 1, and 1 for
@@ -118,4 +143,5 @@ decoration. Where you came carries across games; what the formula paid does not.
 <script src="games/whackabug.js"></script>
 <script src="games/pipeline.js"></script>
 <script src="games/chase.js"></script>
+<script src="games/deploy.js"></script>
 <script src="games/bossrush.js"></script>

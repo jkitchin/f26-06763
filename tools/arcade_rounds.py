@@ -24,6 +24,8 @@ Three shapes come out of a bank, and a game uses whichever it understands:
               structural rather than accidental, because validate.py's
               check_choices errors when one option contains another and so
               pushes every author toward long differentiated prose
+    stack     a toolchain to assemble: layers, the options for each, and the
+              failure each layer's right answer prevents
 
 `sequence` and `terms` are OPTIONAL KEYS ON EXISTING ITEMS, never new items.
 That distinction is load-bearing. tools/pool_archive.py snapshots a surface of
@@ -45,6 +47,27 @@ in the notes is a broken distractor, and a game built on one teaches the
 opposite of what it meant to. Both halves reuse game/normalize.py, the same
 normalization validate.py uses for source.quote, so a step may span the notes'
 95-column hard wrap and still match.
+
+`stack` INVERTS that rule, deliberately, and the reason is worth stating because
+the two rules look contradictory side by side:
+
+    every option must appear in the notes -- the WRONG ones especially
+
+A wrong term in a maze is a word the course does not use. A wrong tool in a
+toolchain is the opposite: it is `requirements.txt`, a spreadsheet, "works on my
+machine" -- things the notes name precisely in order to argue against them.
+Requiring their absence would reject exactly the distractors worth having.
+
+`stack` also spans lectures, because the argument about any one layer is rarely
+in the lecture that tabulates it: the table is in l01 and the case against
+`requirements.txt` is in l02. So every quote may carry `from:` naming the notes
+file it came out of, defaulting to the item's own source.file, and that file must
+belong to a PUBLISHED lecture -- otherwise a slide could quote a lecture the
+students have not been given.
+
+Scenario prose -- the brief, and the workload descriptions -- is framing rather
+than a claim about the course, and is not grounded. Every engineering assertion
+is.
 
 `answer` is the true claim and every other option is a false one, which is what
 the MCQ format already asserts -- a distractor that were merely "less good"
@@ -82,7 +105,18 @@ MAX_CLAIM = 180
 # A pellet has to carry its word at a legible size on a projector.
 MAX_TERM = 24
 
+# A deploy report is read after the clock has stopped, so a quote there can be a
+# whole sentence. It still has to fit on a slide beside seven others.
+MAX_BECAUSE = 260
+
 _notes_cache: dict[str, str] = {}
+
+# Filled in main() from the banks, so a `from:` cannot cite a lecture that has
+# not been released. A slide quoting notes the students cannot read is worse
+# than no quote at all.
+PUBLISHED_NOTES: set[str] = set()
+
+NOTES_RE = re.compile(r"^lectures/l\d\d/notes\.md$")
 
 
 def notes_text(rel: str) -> str:
@@ -91,6 +125,12 @@ def notes_text(rel: str) -> str:
         path = ROOT / rel
         _notes_cache[rel] = norm_text(path.read_text(encoding="utf-8")) if path.is_file() else ""
     return _notes_cache[rel]
+
+
+def notes_raw(rel: str) -> str:
+    """The file as written. contains_text normalizes both sides itself."""
+    path = ROOT / rel
+    return path.read_text(encoding="utf-8") if path.is_file() else ""
 
 
 def mentions(haystack_norm: str, term: str) -> bool:
@@ -184,6 +224,117 @@ def build_terms(item: dict, source: str, errors: list[str]) -> dict | None:
     }
 
 
+def build_stack(item: dict, source: str, errors: list[str]) -> dict | None:
+    st = item.get("stack")
+    if not st:
+        return None
+    iid = item.get("id", "?")
+
+    def grounded(text: str, frm: str | None, what: str) -> str:
+        """Check a quote against the file it says it came from, and return that file."""
+        f = frm or source
+        if not NOTES_RE.match(f):
+            errors.append(f"{iid}: {what} cites {f!r}, which is not a lecture's notes")
+        elif f not in PUBLISHED_NOTES:
+            errors.append(f"{iid}: {what} cites {f}, whose lecture is not published")
+        elif not contains_text(notes_raw(f), text):
+            errors.append(f"{iid}: {what} {text!r} does not appear in {f}")
+        return f
+
+    layers = []
+    for spec in st.get("layers") or []:
+        name = spec.get("layer", "?")
+        grounded(name, spec.get("from"), f"layer {name}")
+        grounded(spec.get("prevents", ""), spec.get("from"), f"{name} prevents")
+
+        options = []
+        for opt in spec.get("options") or []:
+            text = opt.get("text", "")
+            grounded(text, opt.get("from"), f"{name} option")
+            because = (opt.get("because") or "").strip()
+            if because:
+                if len(because) > MAX_BECAUSE:
+                    errors.append(f"{iid}: {name} option {text!r} explains itself in "
+                                  f"{len(because)} characters, over {MAX_BECAUSE}")
+                grounded(because, opt.get("because_from") or opt.get("from"),
+                         f"{name} option {text!r} because")
+            elif not opt.get("ok"):
+                errors.append(f"{iid}: {name} option {text!r} is wrong but says nothing about why")
+            options.append({
+                "text": text,
+                "ok": bool(opt.get("ok")),
+                "because": because,
+                "cite": opt.get("because_from") or opt.get("from") or source,
+            })
+
+        if not any(o["ok"] for o in options):
+            errors.append(f"{iid}: layer {name} has no right answer")
+        layers.append({
+            "layer": name,
+            "prevents": spec.get("prevents", ""),
+            "case": (spec.get("case") or "").strip(),
+            "options": options,
+        })
+
+    if len(layers) < 3:
+        errors.append(f"{iid}: a stack needs at least three layers")
+
+    known = {l["layer"] for l in layers}
+
+    workloads = []
+    for w in st.get("workloads") or []:
+        # `prefers` narrows a layer's right answers for this workload. It is how
+        # the same storage pick scores differently under a streaming write load
+        # and a wide analytical scan, which is the notes' own position: the
+        # question is not which database is best but what access pattern you have.
+        prefers = w.get("prefers") or {}
+        for layer, picks in prefers.items():
+            if layer not in known:
+                errors.append(f"{iid}: workload {w.get('id')} prefers unknown layer {layer!r}")
+                continue
+            texts = {o["text"] for l in layers if l["layer"] == layer for o in l["options"]}
+            for pick in picks:
+                if pick not in texts:
+                    errors.append(f"{iid}: workload {w.get('id')} prefers {pick!r}, "
+                                  f"which is not an option under {layer}")
+        for layer, spec in (w.get("penalises") or {}).items():
+            grounded(spec.get("because", ""), spec.get("from"), f"workload {w.get('id')} {layer}")
+        workloads.append({
+            "id": w.get("id", ""),
+            "text": (w.get("text") or "").strip(),
+            "prefers": prefers,
+            "penalises": w.get("penalises") or {},
+        })
+
+    requires = []
+    for r in st.get("requires") or []:
+        for side in ("layer", "needs"):
+            if r.get(side) not in known:
+                errors.append(f"{iid}: requires names unknown layer {r.get(side)!r}")
+        grounded(r.get("because", ""), r.get("from"), f"requires {r.get('layer')}")
+        requires.append({
+            "layer": r.get("layer"),
+            "needs": r.get("needs"),
+            "because": (r.get("because") or "").strip(),
+            "cite": r.get("from") or source,
+        })
+
+    epilogue = st.get("epilogue") or {}
+    if epilogue:
+        grounded(epilogue.get("text", ""), epilogue.get("from"), "epilogue")
+
+    return {
+        "brief": (st.get("brief") or "").strip(),
+        "layers": layers,
+        "workloads": workloads,
+        "requires": requires,
+        "epilogue": {
+            "text": (epilogue.get("text") or "").strip(),
+            "cite": epilogue.get("from") or source,
+        },
+    }
+
+
 def build(bank: dict, lecture: str) -> tuple[dict, list[str], list[str]]:
     """Return (round file, warnings, errors)."""
     warnings: list[str] = []
@@ -195,11 +346,12 @@ def build(bank: dict, lecture: str) -> tuple[dict, list[str], list[str]]:
         claims = build_claims(item, warnings)
         sequence = build_sequence(item, source, errors)
         terms = build_terms(item, source, errors)
+        stack = build_stack(item, source, errors)
 
         # An item earns a place if any game can render it. A mechanism_recall
         # item has no options and used to be dropped here; carrying a sequence
         # is now reason enough to keep it.
-        if not (claims or sequence or terms):
+        if not (claims or sequence or terms or stack):
             continue
 
         rec = {
@@ -222,6 +374,8 @@ def build(bank: dict, lecture: str) -> tuple[dict, list[str], list[str]]:
             rec["sequence"] = sequence
         if terms:
             rec["terms"] = terms
+        if stack:
+            rec["stack"] = stack
         items.append(rec)
 
     return (
@@ -254,6 +408,13 @@ def main(argv: list[str] | None = None) -> int:
     if not paths:
         print(f"no banks under {BANKS}", file=sys.stderr)
         return 1
+
+    # Every published lecture's notes, so a `from:` cannot cite an unreleased one.
+    for path in paths:
+        with path.open() as fh:
+            head = yaml.safe_load(fh) or {}
+        if head.get("status") == "published" and head.get("source_notes"):
+            PUBLISHED_NOTES.add(head["source_notes"])
 
     stale: list[str] = []
     problems: list[str] = []

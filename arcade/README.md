@@ -8,7 +8,14 @@ score, and lands on a leaderboard.
 | **Whack-a-Bug** | is this claim true? | an item's `options` |
 | **Pipeline Panic** | what order do these go in? | an item's `sequence` |
 | **Concept Chase** | which of these words belong? | an item's `terms` |
+| **Ship It** | which tool for each layer, and what breaks? | an item's `stack` |
 | **Boss Rush** | who is best across all of them? | the per-game boards |
+
+The first three ask what you remember. **Ship It** asks you to make an
+engineering decision and then live with it, which the multiple-choice format
+cannot do at all. It runs 90 seconds rather than 60 — eight layers to fill and a
+report worth reading — and that costs nothing across games because Boss Rush
+ranks by placing rather than score.
 
 It fills the gap between the two things the course already had. The clicker is
 live and social and scored, but the only verb is *tap one of four letters*. The
@@ -149,7 +156,7 @@ as `file://` will not work, because the round file is fetched.
 
 The server routes are `/start`, `/submit`, `/board` and `/me`, documented in
 `clicker/worker.js` and tested in `clicker/test/arcade.test.mjs` (`npm test` in
-`clicker/`). The Boss Rush placing rule is tested separately, without a browser,
-by `node --test "arcade/test/*.test.mjs"`. Deploying is the clicker's deploy: `npm run deploy`, and
+`clicker/`). The Boss Rush placing rule and Ship It's deploy evaluation are tested
+separately, without a browser, by `node --test "arcade/test/*.test.mjs"`. Deploying is the clicker's deploy: `npm run deploy`, and
 `npm run schema:remote` for the two new tables. Forgetting `--remote` is the
 classic D1 mistake and the Worker will tell you so.
