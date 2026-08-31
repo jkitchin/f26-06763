@@ -71,6 +71,15 @@ items:
       quote: "A lockfile pins versions, not the whole world"
     verify: {mode: quote, needle: "pins versions, not the whole world", volatility: stable}
     tags: [reproducibility, environments]
+    sequence:
+      prompt: "The uv commands of a normal day, in the order you reach for them."
+      steps: ["uv init", "uv add", "uv run", "uv sync"]
+      why: >-
+        init creates the project, add resolves and locks a dependency, run
+        executes inside the environment after checking the lockfile still
+        matches pyproject.toml, and sync rebuilds the whole thing from the
+        lockfile on a machine that has never seen it. The last one is the one
+        that ends "works on my machine".
 
   - id: l02-q03
     kind: locus_of_control
@@ -209,6 +218,18 @@ items:
       quote: "From notebook to module"
     verify: {mode: quote, needle: "notebook to module", volatility: stable}
     tags: [packaging, testing]
+    sequence:
+      prompt: "The notebook refactor: the functions the data moves through, in order."
+      steps: [load, clean, featurize, train]
+      why: >-
+        The refactor is mechanical, which is the good news. Each function takes
+        its inputs as arguments and returns a value, so it can be imported and
+        tested on its own rather than depending on the ambient state of a
+        notebook that has to be run in an order you remember.
+    terms:
+      prompt: "Folders and files of the src layout"
+      correct: [src, data, notebooks, scripts, tests, pyproject.toml, uv.lock, .python-version]
+      wrong: [dist, vendor, node_modules, bin]
 
   - id: l02-q08
     kind: mechanism_recall

@@ -71,3 +71,51 @@ CREATE TABLE IF NOT EXISTS voter (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS voter_name_key ON voter (name_key);
+
+-- ---------------------------------------------------------------------------
+-- The arcade: one-minute minigames that produce a score instead of a letter.
+-- ---------------------------------------------------------------------------
+
+-- A finished run of one minigame.
+--
+-- `game` and `round` are opaque strings, exactly like a clicker `tag`: the
+-- server stores them and hands them back and never parses either one. That is
+-- what lets a new minigame ship as a slide and a content file with no redeploy
+-- here, which is the same bargain the clicker already made with questions.
+--
+-- `detail` is the run's transcript -- which items came up and what was picked.
+-- Nothing here reads it. It exists so an implausible run can be looked at by a
+-- human afterwards, and so a server-graded mode could be added later without a
+-- migration.
+--
+-- `ms` is the SERVER's measurement, submit_ts - run.start_ts, never a duration
+-- the browser reports. The score itself is a claim the browser makes and cannot
+-- be anything else while the game runs in the student's tab; the clock does not
+-- have to be, so it is not.
+CREATE TABLE IF NOT EXISTS play (
+  ts     INTEGER NOT NULL,   -- server clock, when the run was submitted
+  game   TEXT    NOT NULL,   -- e.g. 'l03-whackabug'
+  round  TEXT,               -- the run id minted by /start
+  device TEXT    NOT NULL,
+  score  INTEGER NOT NULL,
+  ms     INTEGER,
+  detail TEXT
+);
+
+-- Every board is "this game, this time range", so index the pair.
+CREATE INDEX IF NOT EXISTS play_game_ts ON play (game, ts);
+
+-- An open run: minted by /start, consumed by /submit, so the server owns both
+-- ends of the clock. Deleting the row on submit is what stops one run from
+-- being submitted twice, which is the cheapest forgery available otherwise.
+--
+-- Like `live`, this is mutable and deliberately disposable: an abandoned run is
+-- a row nobody will ever consume, and /start sweeps ones older than an hour.
+CREATE TABLE IF NOT EXISTS run (
+  id       TEXT PRIMARY KEY,
+  device   TEXT NOT NULL,
+  game     TEXT NOT NULL,
+  start_ts INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS run_start ON run (start_ts);

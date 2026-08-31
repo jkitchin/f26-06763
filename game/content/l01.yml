@@ -190,6 +190,111 @@ items:
       quote: "rebuilds that are merely probable"
     verify: {mode: quote, needle: "rebuilds that are merely probable", volatility: stable}
     tags: [toolchain, reproducibility]
+    stack:
+      brief: >-
+        A month of sensor readings, a model that flags anomalies, and a request
+        to put it in front of people who are not you. Fill every layer, then
+        deploy.
+      workloads:
+        - id: oltp
+          text: "Readings arrive continuously while several dashboards query them at once."
+          prefers: {Storage: [PostgreSQL]}
+          penalises:
+            Storage:
+              because: "Writing one row at a time while several consumers read concurrently is a relational problem"
+              from: lectures/l01/notes.md
+        - id: olap
+          text: "One channel, scanned across ten years of history, on a laptop."
+          prefers: {Storage: [DuckDB, Parquet]}
+          penalises:
+            Storage:
+              because: "close to the worst possible layout for the analytical pattern of scanning a single column across the entire history"
+              from: lectures/l03/notes.md
+      layers:
+        - layer: Environments
+          prevents: "rebuilds that are merely probable"
+          case: "Three clinical trials used a flawed analysis nobody could re-run."
+          options:
+            - {text: "Python + uv", ok: true}
+            - text: "requirements.txt"
+              ok: false
+              because: "The resolver is free to pick whatever is newest within the loose constraints"
+              because_from: lectures/l02/notes.md
+            - {text: "pandera", ok: false, because: "bad data passing silently"}
+        - layer: Storage
+          prevents: "CSV sprawl, silent truncation"
+          case: "15,841 positive cases fell off the end of a spreadsheet."
+          options:
+            - {text: "PostgreSQL", ok: true}
+            - {text: "DuckDB", ok: true}
+            - {text: "Parquet", ok: true}
+            - text: "a spreadsheet"
+              ok: false
+              from: lectures/l03/notes.md
+              because: "A spreadsheet or a CSV file has no opinion about what belongs in a cell"
+            - {text: "MLflow", ok: false, because: "results nobody can attribute"}
+        - layer: Dataframes
+          prevents: "out-of-memory, unreadable transforms"
+          options:
+            - {text: "pandas", ok: true}
+            - {text: "Polars", ok: true}
+            - {text: "Docker", ok: false, because: "works on my machine"}
+            - {text: "PyTorch", ok: false, because: "hand-derived gradients"}
+        - layer: Validation
+          prevents: "bad data passing silently"
+          case: "386 degrees Celsius, recorded in good faith by a mote with a dying battery."
+          options:
+            - {text: "pandera", ok: true}
+            - text: "a one-off script"
+              ok: false
+              from: lectures/l03/notes.md
+              because: "the cleaning rules are written down as queries anyone can read rather than buried in a one-off script"
+            - {text: "Parquet", ok: false, because: "CSV sprawl, silent truncation"}
+        - layer: Tracking
+          prevents: "results nobody can attribute"
+          options:
+            - {text: "MLflow", ok: true}
+            - text: "a notebook"
+              ok: false
+              from: lectures/l02/notes.md
+              because: "which settings produced this particular number"
+            - {text: "Polars", ok: false, because: "out-of-memory, unreadable transforms"}
+        - layer: Deep learning
+          prevents: "hand-derived gradients"
+          options:
+            - {text: "PyTorch", ok: true}
+            - {text: "FastAPI", ok: false, because: "works on my machine"}
+            - {text: "DuckDB", ok: false, because: "CSV sprawl, silent truncation"}
+        - layer: Retrieval
+          prevents: "answers ungrounded in your corpus"
+          options:
+            - {text: "a vector store", ok: true}
+            - {text: "Fine-tuning", ok: false, because: "is the right answer far less often than people expect"}
+            - {text: "pandas", ok: false, because: "out-of-memory, unreadable transforms"}
+        - layer: Serving
+          prevents: "works on my machine"
+          case: "A fresh checkout broke three times: a missing version, an unpinned seed, an absolute path."
+          options:
+            - {text: "FastAPI", ok: true}
+            - {text: "Docker", ok: true}
+            - {text: "requirements.txt", ok: false, because: "a much stronger guarantee than a requirements.txt"}
+            - {text: "pandera", ok: false, because: "bad data passing silently"}
+      requires:
+        - layer: Tracking
+          needs: Environments
+          from: lectures/l02/notes.md
+          because: "MLflow will record whatever you log. That includes a run whose environment was never locked and whose seed was never pinned."
+        - layer: Serving
+          needs: Environments
+          from: lectures/l02/notes.md
+          because: "The lockfile says nothing about the system C libraries"
+      epilogue:
+        from: lectures/l02/notes.md
+        text: "Locking the environment, pinning the seed, and tracking the run will then reproduce the *wrong* answer, every time, with perfect fidelity"
+    terms:
+      prompt: "Tools in this course's toolchain"
+      correct: [uv, PostgreSQL, DuckDB, Parquet, pandas, Polars, pandera, MLflow, PyTorch, FastAPI, Docker]
+      wrong: [Gradle, Maven, Jenkins, CircleCI, Ansible]
 
   - id: l01-q07
     kind: mcq
@@ -217,6 +322,27 @@ items:
       quote: "tiny in proportion to the rest of the system"
     verify: {mode: quote, needle: "the rest of the system", volatility: stable}
     tags: [system-view]
+    sequence:
+      prompt: "Name the stages of an engineering ML system, in the order the lecture names them."
+      steps:
+        - data acquisition
+        - storage
+        - pipelines
+        - features
+        - training
+        - evaluation
+        - deployment
+        - monitoring
+      why: >-
+        That is the order the lecture names them in. What is not worth
+        believing is that the work runs left to right: reading it as a linear
+        process is the first thing the notes tell you to unlearn. Real systems
+        iterate hard between features and evaluation, and monitoring feeds back
+        into acquisition the moment drift shows up in production.
+    terms:
+      prompt: "Stages of an engineering ML system"
+      correct: [acquisition, storage, pipelines, features, training, evaluation, deployment, monitoring]
+      wrong: [minification, transpilation, defragmentation, sharding, garbage collection]
 
   - id: l01-q08
     kind: mechanism_recall

@@ -40,7 +40,7 @@ items:
       heading: "NULL is not a value, and three-valued logic will surprise you"
       quote: "silently drops every\nrow where `value` is null"
     verify: {mode: quote, needle: "silently drops every", volatility: stable}
-    tags: [sql, null, silent-failure]
+    tags: [sql, "null", silent-failure]
 
   - id: l03-q02
     kind: mcq
@@ -68,7 +68,7 @@ items:
       heading: "NULL is not a value, and three-valued logic will surprise you"
       quote: "averages only the readings that are present"
     verify: {mode: quote, needle: "only the readings that are present", volatility: stable}
-    tags: [sql, aggregates, null]
+    tags: [sql, aggregates, "null"]
 
   - id: l03-q03
     kind: locus_of_control
@@ -186,6 +186,10 @@ items:
       quote: "numeric versus double precision"
     verify: {mode: quote, needle: "numeric versus double precision", volatility: stable}
     tags: [types, precision]
+    terms:
+      prompt: "Types this schema uses for engineering data"
+      correct: [timestamptz, numeric, double precision, text, real]
+      wrong: [varchar2, blob, nvarchar, clob, datetime2]
 
   - id: l03-q07
     kind: spot_the_defect
@@ -216,6 +220,18 @@ items:
       quote: "A typed column is still not a validated column"
     verify: {mode: quote, needle: "still not a validated column", volatility: stable}
     tags: [types, validation]
+    sequence:
+      prompt: "Loading a sensor export that resists the loader, through a staging table."
+      steps:
+        - COPY the raw text into a permissive table
+        - clean and validate with SQL
+        - insert into the real readings table
+      why: >-
+        The point of the staging table is that the cleaning rules end up
+        written down as queries anyone can read, rather than buried in a
+        one-off script. Some of them you do not have to write at all: the
+        foreign key to sensors rejects the corrupt mote ids for you the moment
+        you try to insert one.
 
   - id: l03-q08
     kind: mcq

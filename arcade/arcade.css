@@ -1,0 +1,526 @@
+/* The arcade's look, in one file so it works in both places it has to.
+ *
+ * A MARP slide already loads themes/course.css and an MyST notes page does not,
+ * so nothing here may depend on that theme. Every custom property is declared
+ * with a fallback and every size is an em, which lets the surrounding page
+ * decide how big a cabinet is: themes/course.css shrinks it for a slide, and a
+ * notes page gets it at reading size for free.
+ */
+
+.arcade {
+  --a-ink: var(--ink, #1a1a1a);
+  --a-muted: var(--muted, #5c5c5c);
+  --a-rule: var(--rule, #d8d8d8);
+  --a-bg: var(--accent-bg, #f6f6f7);
+  --a-red: var(--cmu-red, #c41230);
+  --a-green: #1a7f37;
+
+  display: grid;
+  grid-template-columns: 1fr minmax(8em, 11em);
+  grid-template-areas: "hud panel" "stage panel";
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.6em 1em;
+  align-items: start;
+  color: var(--a-ink);
+}
+
+/* Before arcade.js has run, the div holds its configuration error text and
+ * should not be laid out as a cabinet. */
+.arcade:not(.arcade-ready) { display: block; }
+
+/* stretch, not the grid's start: the stage is the row that grows, and
+ * align-items:start above would otherwise leave it at its min-height with the
+ * rest of the slide empty under it. */
+.arcade-stage {
+  grid-area: stage;
+  align-self: stretch;
+  min-height: 13em;
+  min-width: 0;
+}
+.arcade-hud { grid-area: hud; display: flex; align-items: baseline; gap: 0.7em; }
+.arcade-panel { grid-area: panel; display: flex; flex-direction: column; gap: 0.5em; }
+
+.arcade-score {
+  font-size: 1.6em;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.arcade-timer {
+  font-size: 1.1em;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--a-muted);
+}
+.arcade-timer.is-over { color: var(--a-red); }
+
+.arcade-who {
+  font-size: 0.62em;
+  color: var(--a-muted);
+  margin-left: auto;
+  display: flex;
+  gap: 0.4em;
+  align-items: baseline;
+}
+
+.arcade-rename {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--a-red);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+button.arcade-start {
+  font: inherit;
+  font-weight: 600;
+  padding: 0.4em 0.8em;
+  color: #fff;
+  background: var(--a-red);
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+button.arcade-start[disabled] { background: var(--a-muted); cursor: default; }
+
+.arcade-note { font-size: 0.55em; color: var(--a-muted); margin: 0; }
+
+/* ---- the board ---------------------------------------------------------- */
+
+.arcade-board { font-size: 0.58em; }
+.arcade-board-title { font-weight: 700; margin-bottom: 0.3em; }
+.arcade-board-empty { color: var(--a-muted); }
+
+.arcade-board-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.arcade-board-list li {
+  display: grid;
+  grid-template-columns: 1.4em 1fr auto auto;
+  gap: 0.4em;
+  align-items: baseline;
+  padding: 0.1em 0;
+}
+
+/* Finding yourself on a projected board should not take reading it. */
+.arcade-board-list li.is-me { font-weight: 700; color: var(--a-red); }
+
+.arcade-board-list .rank { color: var(--a-muted); font-variant-numeric: tabular-nums; }
+.arcade-board-list .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.arcade-board-list .pts { font-variant-numeric: tabular-nums; font-weight: 600; }
+.arcade-board-list .secs { font-variant-numeric: tabular-nums; color: var(--a-muted); }
+.arcade-board-foot { color: var(--a-muted); margin-top: 0.3em; }
+
+/* ---- whack-a-bug -------------------------------------------------------- */
+
+.wab { display: flex; flex-direction: column; gap: 0.4em; height: 100%; }
+
+/* The snippet under review. It changes only between items, never under a claim
+ * somebody is still reading. */
+.wab-context {
+  font-size: 0.6em;
+  background: var(--a-bg);
+  border: 1px solid var(--a-rule);
+  border-radius: 6px;
+  padding: 0.4em 0.6em;
+  max-height: 7em;
+  overflow: auto;
+}
+.wab-context p { margin: 0.2em 0; }
+.wab-context pre {
+  margin: 0.2em 0;
+  white-space: pre-wrap;
+  font-size: 0.95em;
+}
+.wab-context code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+.wab-lives[hidden], .wab-context[hidden] { display: none; }
+.wab-lives { font-size: 0.7em; letter-spacing: 0.15em; color: var(--a-red); }
+.wab-life.is-gone { color: var(--a-rule); }
+
+/* The lane the claim crosses. Its height is the deadline made visible. */
+.wab-lane {
+  position: relative;
+  flex: 1 1 auto;
+  /* Free to shrink on a slide, where the stage is whatever the heading left
+   * over, and to grow in a notes page, where the stage has room. */
+  min-height: 3.5em;
+  border-top: 2px solid var(--a-red);
+  overflow: hidden;
+}
+.wab-lane[hidden] { display: none; }
+
+.wab-chip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  font-size: 0.66em;
+  line-height: 1.25;
+  padding: 0.45em 0.6em;
+  background: #fff;
+  border: 1px solid var(--a-rule);
+  border-left: 4px solid var(--a-muted);
+  border-radius: 6px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.wab-chip.is-right { border-left-color: var(--a-green); background: #eefaf1; }
+.wab-chip.is-wrong { border-left-color: var(--a-red); background: #fdeef0; }
+.wab-chip.is-missed { border-left-color: var(--a-muted); background: var(--a-bg); }
+
+/* The same deadline as the chip's travel, for anyone who has asked not to be
+ * shown moving things. */
+.wab-bar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: var(--a-red);
+}
+
+.wab-controls { display: flex; gap: 0.5em; }
+.wab-controls[hidden] { display: none; }
+
+button.wab-btn {
+  flex: 1 1 0;
+  font: inherit;
+  font-size: 0.7em;
+  font-weight: 600;
+  padding: 0.45em 0.6em;
+  border: 2px solid var(--a-rule);
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  gap: 0.5em;
+  align-items: center;
+}
+button.wab-btn:disabled { opacity: 0.5; cursor: default; }
+button.wab-btn.is-bug { border-color: var(--a-red); color: var(--a-red); }
+button.wab-btn.is-ship { border-color: var(--a-green); color: var(--a-green); }
+
+.wab-btn kbd {
+  font: inherit;
+  font-size: 0.85em;
+  color: var(--a-muted);
+  border: 1px solid var(--a-rule);
+  border-radius: 3px;
+  padding: 0 0.3em;
+}
+
+/* What you got wrong, with the bank's own evidence. */
+.wab-summary { font-size: 0.58em; overflow: auto; max-height: 100%; }
+.wab-summary h4 { margin: 0 0 0.3em; font-size: 1.1em; }
+.wab-missed { margin-bottom: 0.5em; border-left: 3px solid var(--a-red); padding-left: 0.5em; }
+.wab-missed-claim { margin: 0 0 0.1em; font-weight: 600; }
+.wab-missed-why { color: var(--a-muted); }
+.wab-missed-why p { margin: 0.15em 0 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* The chip holds still and the bar carries the deadline instead. */
+  .wab-chip { top: auto; bottom: 0; transform: none !important; }
+}
+
+/* ---- pipeline panic ------------------------------------------------------ */
+
+.pipe { display: flex; flex-direction: column; gap: 0.4em; height: 100%; }
+
+.pipe-prompt { font-size: 0.66em; font-weight: 600; }
+.pipe-prompt p { margin: 0; }
+.pipe-prompt[hidden], .pipe-chain[hidden], .pipe-tray[hidden], .pipe-bar[hidden] { display: none; }
+
+.pipe-lives { font-size: 0.7em; letter-spacing: 0.15em; color: var(--a-red); }
+.pipe-life.is-gone { color: var(--a-rule); }
+
+/* The steps already placed, in the order they were placed. */
+.pipe-chain {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3em;
+  align-items: center;
+  min-height: 1.8em;
+  font-size: 0.6em;
+}
+
+.pipe-chain li {
+  background: var(--a-green);
+  color: #fff;
+  border-radius: 4px;
+  padding: 0.25em 0.5em;
+}
+
+/* Each step is separated by an arrow drawn in CSS, so the chain reads as a
+ * process rather than as a list of tiles. */
+.pipe-chain li + li::before {
+  content: "→";
+  margin: 0 0.45em 0 -0.2em;
+  color: var(--a-muted);
+}
+
+.pipe-bar {
+  height: 3px;
+  background: var(--a-bg);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.pipe-fill { display: block; height: 100%; width: 100%; background: var(--a-red); }
+
+.pipe-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em;
+  align-content: flex-start;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+button.pipe-step {
+  font: inherit;
+  font-size: 0.62em;
+  text-align: left;
+  padding: 0.4em 0.6em;
+  border: 2px solid var(--a-rule);
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  gap: 0.5em;
+  align-items: baseline;
+}
+
+/* The digit is the keyboard shortcut, printed where the finger is going. */
+.pipe-num {
+  font-variant-numeric: tabular-nums;
+  color: var(--a-muted);
+  border: 1px solid var(--a-rule);
+  border-radius: 3px;
+  padding: 0 0.3em;
+  font-size: 0.85em;
+}
+
+button.pipe-step.is-used { opacity: 0.35; cursor: default; }
+button.pipe-step.is-wrong { border-color: var(--a-red); background: #fdeef0; }
+
+.pipe-summary { font-size: 0.58em; overflow: auto; }
+.pipe-summary h4 { margin: 0 0 0.3em; font-size: 1.1em; }
+.pipe-missed { margin-bottom: 0.5em; border-left: 3px solid var(--a-red); padding-left: 0.5em; }
+.pipe-missed-order { margin: 0 0 0.1em; font-weight: 600; }
+.pipe-missed-why { color: var(--a-muted); }
+.pipe-missed-why p { margin: 0.15em 0 0; }
+
+/* ---- concept chase ------------------------------------------------------- */
+
+.chase { display: flex; flex-direction: column; gap: 0.35em; height: 100%; }
+
+.chase-banner {
+  font-size: 0.66em;
+  font-weight: 600;
+  border-left: 4px solid var(--a-red);
+  padding-left: 0.5em;
+}
+
+/* The grid's own colour shows through the gaps as the maze's grid lines, which
+ * is what makes the board read as a maze rather than as scattered tiles: an
+ * empty floor cell is white on a white slide and otherwise invisible. */
+.chase-grid {
+  display: grid;
+  gap: 2px;
+  padding: 2px;
+  background: var(--a-rule);
+  border-radius: 4px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.chase-grid[hidden] { display: none; }
+
+.chase-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 0.42em;
+  line-height: 1.1;
+  padding: 1px;
+  border-radius: 3px;
+  overflow: hidden;
+  word-break: break-word;
+  background: #fff;
+}
+
+.chase-cell.is-wall { background: #b9b9bb; }
+.chase-cell.has-word { background: var(--a-bg); font-weight: 600; }
+
+/* The player and the ghosts are rings around a cell rather than sprites in it,
+ * so the word underneath stays readable while they sit on it. */
+.chase-cell.is-me { box-shadow: inset 0 0 0 3px var(--a-green); background: #e3f6e9; }
+.chase-cell.is-ghost { box-shadow: inset 0 0 0 3px var(--a-red); background: #fce8eb; }
+
+.chase-status { font-size: 0.55em; color: var(--a-muted); flex: 0 0 auto; }
+.chase-status[hidden] { display: none; }
+
+.chase-summary { font-size: 0.58em; overflow: auto; }
+.chase-summary h4 { margin: 0 0 0.3em; font-size: 1.1em; }
+.chase-ate { margin: 0; font-weight: 600; color: var(--a-red); }
+.chase-ate-why { margin: 0.2em 0 0; color: var(--a-muted); }
+
+/* ---- boss rush ----------------------------------------------------------- */
+
+.arcade-rush { display: block; }
+
+button.arcade-board-refresh {
+  font: inherit;
+  font-size: 0.55em;
+  margin-top: 0.4em;
+  padding: 0.25em 0.6em;
+  border: 1px solid var(--a-rule);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--a-muted);
+  cursor: pointer;
+}
+
+/* ---- ship it ------------------------------------------------------------- */
+
+.ship { display: flex; flex-direction: column; gap: 0.35em; height: 100%; min-height: 0; }
+
+.ship-brief { font-size: 0.58em; }
+.ship-brief[hidden], .ship-sheet[hidden], .ship-tray[hidden] { display: none; }
+.ship-brief-text { margin: 0; }
+/* The workload is the thing that decides half the answers, so it is not prose. */
+.ship-workload {
+  margin: 0.2em 0 0;
+  font-weight: 600;
+  border-left: 3px solid var(--a-red);
+  padding-left: 0.5em;
+}
+
+/* Two columns of slots: eight rows in one column does not fit a slide under a
+ * brief, a tray of options and a deploy button. */
+.ship-sheet {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.2em 0.5em;
+  flex: 0 0 auto;
+}
+
+button.ship-slot {
+  font: inherit;
+  font-size: 0.55em;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5em;
+  padding: 0.25em 0.5em;
+  border: 1px solid var(--a-rule);
+  border-left: 3px solid var(--a-rule);
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+}
+button.ship-slot.is-filled { border-left-color: var(--a-green); }
+button.ship-slot.is-focus { border-color: var(--a-red); border-left-color: var(--a-red); background: var(--a-bg); }
+
+.ship-layer { color: var(--a-muted); }
+.ship-pick { font-weight: 600; text-align: right; }
+
+.ship-tray { flex: 1 1 auto; min-height: 0; }
+.ship-prevents { font-size: 0.52em; color: var(--a-red); margin-bottom: 0.25em; }
+.ship-options { display: flex; flex-wrap: wrap; gap: 0.35em; }
+
+button.ship-option {
+  font: inherit;
+  font-size: 0.58em;
+  display: flex;
+  gap: 0.4em;
+  align-items: baseline;
+  padding: 0.3em 0.55em;
+  border: 2px solid var(--a-rule);
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+button.ship-option.is-picked { border-color: var(--a-green); background: #eefaf1; }
+.ship-num {
+  font-variant-numeric: tabular-nums;
+  color: var(--a-muted);
+  border: 1px solid var(--a-rule);
+  border-radius: 3px;
+  padding: 0 0.28em;
+  font-size: 0.85em;
+}
+
+button.ship-deploy {
+  font: inherit;
+  font-size: 0.62em;
+  font-weight: 600;
+  align-self: flex-start;
+  padding: 0.35em 0.9em;
+  border: 0;
+  border-radius: 6px;
+  background: var(--a-red);
+  color: #fff;
+  cursor: pointer;
+}
+button.ship-deploy[hidden] { display: none; }
+
+/* --- the report --- */
+
+.ship-report { font-size: 0.55em; overflow: auto; min-height: 0; }
+.ship-verdict { margin: 0 0 0.35em; font-size: 1.15em; color: var(--a-red); }
+.ship-verdict.is-clean { color: var(--a-green); }
+
+.ship-lines { list-style: none; margin: 0; padding: 0; }
+.ship-line {
+  display: grid;
+  /* The pick column has to hold "requirements.txt" and "a vector store" without
+   * spilling into the failure text beside it. */
+  grid-template-columns: 6.5em minmax(9em, auto) 1fr;
+  gap: 0.4em;
+  align-items: baseline;
+  padding: 0.15em 0 0.15em 0.5em;
+  border-left: 3px solid var(--a-green);
+}
+.ship-line.is-bad { border-left-color: var(--a-red); }
+.ship-line-layer { color: var(--a-muted); }
+.ship-line-pick { font-weight: 600; overflow-wrap: anywhere; }
+.ship-line-what { color: var(--a-muted); }
+.ship-line.is-bad .ship-line-what { color: var(--a-red); }
+/* The quote and the case study run the full width under their line. */
+.ship-line-why, .ship-line-case { grid-column: 2 / -1; margin: 0.1em 0 0; }
+.ship-line-case { color: var(--a-muted); font-style: italic; }
+
+/* Cross-layer failures come last because they are the surprise: every tool
+ * right and the failure still shipped. */
+.ship-depends {
+  margin-top: 0.4em;
+  padding-left: 0.5em;
+  border-left: 3px solid var(--a-red);
+}
+.ship-depends p { margin: 0.1em 0 0; color: var(--a-muted); }
+
+.ship-epilogue { margin-top: 0.5em; color: var(--a-muted); }
+.ship-epilogue p { margin: 0; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .ship-report.is-animating .ship-line { animation: ship-in 0.28s ease both; }
+  .ship-report.is-animating .ship-line:nth-child(2) { animation-delay: 0.06s; }
+  .ship-report.is-animating .ship-line:nth-child(3) { animation-delay: 0.12s; }
+  .ship-report.is-animating .ship-line:nth-child(4) { animation-delay: 0.18s; }
+  .ship-report.is-animating .ship-line:nth-child(5) { animation-delay: 0.24s; }
+  .ship-report.is-animating .ship-line:nth-child(6) { animation-delay: 0.30s; }
+  .ship-report.is-animating .ship-line:nth-child(7) { animation-delay: 0.36s; }
+  .ship-report.is-animating .ship-line:nth-child(8) { animation-delay: 0.42s; }
+  @keyframes ship-in { from { opacity: 0; transform: translateX(-6px); } }
+}

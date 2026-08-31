@@ -1,0 +1,62 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>arcade · local</title>
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; margin: 2rem auto; max-width: 54rem; padding: 0 1rem; }
+  h1 { font-size: 1.4rem; }
+  .warn { background: #fdeef0; border-left: 4px solid #c41230; padding: 0.6rem 0.9rem; font-size: 0.9rem; }
+</style>
+
+<h1>Arcade, against a local Worker</h1>
+
+<p class="warn">
+  A development harness, not a published page. It talks to <code>localhost:8787</code>,
+  so it needs both halves running:
+  <code>cd clicker &amp;&amp; npx wrangler dev --local</code> and, from the repository root,
+  <code>python3 -m http.server 8080</code> — then open
+  <code>http://127.0.0.1:8080/arcade/local.html</code>.
+  Opening this file directly as <code>file://</code> will not work: the round file is
+  fetched, and a file:// page is not allowed to.
+</p>
+
+<p>
+  This is the notes-page embed: <code>data-board="all"</code>, so it ranks each
+  player's best run of the whole semester. A slide uses <code>data-board="live"</code>
+  instead. See <code>arcade/demo.md</code> for that one.
+</p>
+
+<h2>Whack-a-Bug &middot; L03</h2>
+<div class="arcade" data-game="whackabug" data-lecture="l03"
+     data-seconds="60" data-board="all"
+     data-read="http://localhost:8787"></div>
+
+<h2>Pipeline Panic &middot; every published lecture</h2>
+<p>
+  <code>data-lecture="all"</code>, because one lecture carries at most a couple of
+  sequences and that is fifteen seconds of play rather than sixty.
+</p>
+<div class="arcade" data-game="pipeline" data-lecture="all"
+     data-seconds="60" data-board="all"
+     data-read="http://localhost:8787"></div>
+
+<h2>Concept Chase &middot; L01</h2>
+<div class="arcade" data-game="chase" data-lecture="l01"
+     data-seconds="60" data-board="all"
+     data-read="http://localhost:8787"></div>
+
+<h2>Ship It &middot; L01</h2>
+<p>Ninety seconds, not sixty: eight layers to fill and a report to read.</p>
+<div class="arcade" data-game="deploy" data-lecture="l01"
+     data-seconds="90" data-board="all"
+     data-read="http://localhost:8787"></div>
+
+<h2>Boss Rush</h2>
+<div class="arcade-rush" data-read="http://localhost:8787"
+     data-games="l03-whackabug,all-pipeline,l01-chase,l01-deploy" data-top="10"></div>
+
+<script src="arcade.js"></script>
+<script src="games/whackabug.js"></script>
+<script src="games/pipeline.js"></script>
+<script src="games/chase.js"></script>
+<script src="games/deploy.js"></script>
+<script src="games/bossrush.js"></script>

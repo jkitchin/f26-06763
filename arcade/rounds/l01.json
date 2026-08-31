@@ -1,0 +1,528 @@
+{
+  "lecture": "l01",
+  "title": "AI engineering landscape and the system view",
+  "pool_version": 4,
+  "source_notes": "lectures/l01/notes.md",
+  "generated_by": "tools/arcade_rounds.py",
+  "items": [
+    {
+      "id": "l01-q01",
+      "kind": "claim_vs_source",
+      "lecture": "l01",
+      "context": "A slide says: \"Sculley and colleagues showed that less than 10% of the code\nin a production ML system is the model.\" The link they cite returns HTTP\n200.\n\nWhat does the paper actually say?",
+      "why": "Invented precision that accreted through repetition. This is why the course\ninsists on two separate checks, and the second is the one people skip: the\nURL resolves, *and* the page contains the claim you are citing it for. A\n200 is evidence of the first only. The underlying point survives without\nthe number, which is exactly why the number was never needed.",
+      "objectives": [
+        "l01-o1"
+      ],
+      "tags": [
+        "verification",
+        "citation"
+      ],
+      "true": "The figure does not appear in the paper; it says only that the ML code box is tiny in proportion to the rest of the system",
+      "false": [
+        "Under 5%, so the slide has rounded in the wrong direction",
+        "10% of engineering effort rather than of code, so the units are wrong",
+        "It appears in the appendix, so the claim is right but under-cited"
+      ]
+    },
+    {
+      "id": "l01-q02",
+      "kind": "spot_the_defect",
+      "lecture": "l01",
+      "context": "Public Health England, September 2020. Test results were consolidated into\nExcel templates in the legacy `.xls` format, which caps a worksheet at\n65,536 rows.\n\nWhat happened when a file hit the ceiling?",
+      "why": "15,841 positive cases went unreported for a week, and the contacts of those\npeople were not traced. No exception, no alert, no partial record to\nnotice: the failure mode was silence. This is the course's opening argument\nin one incident. The model was not the problem, there was no model; the\nproblem was a data pipeline with a capacity limit and no check that what\nwent in came out.",
+      "objectives": [
+        "l01-o2"
+      ],
+      "tags": [
+        "pipelines",
+        "silent-failure",
+        "case-study"
+      ],
+      "true": "The remaining rows were not rejected with an error; they were simply absent",
+      "false": [
+        "The import failed with an error, and the backlog was reprocessed once the format was changed",
+        "The file was split automatically, and the second part was processed a day late",
+        "The rows were truncated to fit, so partial records entered the system"
+      ]
+    },
+    {
+      "id": "l01-q03",
+      "kind": "predict_measure",
+      "lecture": "l01",
+      "context": "Google Flu Trends screened 50 million candidate queries down to 45 and\nreported a mean correlation of 0.97 across nine regions, on held-out data\nexcluded from every prior modeling step.\n\nBefore you look: was the validation protocol the problem?",
+      "why": "This is the uncomfortable one, and it is why the case is in the notes.\nHeld-out validation was done properly and the system still degraded, because\nthe world changed underneath it: search behavior was not a stable proxy for\ninfluenza, and the relationship the model learned did not survive. Validating\nwell is not evidence that a system works. It is evidence that it worked on\ndata you already had.",
+      "objectives": [
+        "l01-o2"
+      ],
+      "tags": [
+        "validation",
+        "drift",
+        "case-study"
+      ],
+      "true": "No. The protocol was more disciplined than a great deal of deployed machine learning gets, and it still failed in production",
+      "false": [
+        "Yes; screening 50 million candidates guarantees spurious correlations survive to the held-out set",
+        "Yes; nine regions is too few to support a correlation estimate",
+        "No, and the failure was purely an infrastructure outage rather than a modeling issue"
+      ]
+    },
+    {
+      "id": "l01-q04",
+      "kind": "locus_of_control",
+      "lecture": "l01",
+      "context": "Engineering data differs from the datasets in a general ML tutorial in a way\nthat changes what you have to build. What is the difference?",
+      "why": "Size and noise are real and neither is the distinguishing property. What\nmakes engineering data different is that somebody may later have to\nestablish which instrument produced a number, when it was calibrated, and\nwhat the model recommended on the basis of it. That is a requirement about\nrecords rather than about accuracy, and no amount of model quality\nsubstitutes for it.",
+      "objectives": [
+        "l01-o3"
+      ],
+      "tags": [
+        "provenance",
+        "engineering-data"
+      ],
+      "true": "It carries provenance and traceability requirements, because the outputs feed decisions with physical and safety consequences",
+      "false": [
+        "It is larger, so the tooling has to scale further than a tutorial's does",
+        "It is noisier, so more of the effort goes into cleaning than into modeling",
+        "It is proprietary, so it cannot be shared and every project starts from scratch"
+      ]
+    },
+    {
+      "id": "l01-q05",
+      "kind": "claim_vs_source",
+      "lecture": "l01",
+      "context": "The 737 MAX case is often summarized as \"the software was buggy.\"\n\nWhat do the investigations say about the sensor architecture?",
+      "why": "The generalisable shape is not about aircraft. A system that acts on one\ninput has no way to notice that the input is wrong, so the failure is in the\narchitecture rather than in the code that ran correctly on bad data. Ask of\nyour own systems what a single wrong sensor reading would do, and whether\nanything downstream could tell.",
+      "objectives": [
+        "l01-o3"
+      ],
+      "tags": [
+        "architecture",
+        "redundancy",
+        "case-study"
+      ],
+      "true": "That the system acted on a single angle-of-attack sensor, so one faulty input had no contradiction available",
+      "false": [
+        "That redundant sensors were fitted and the voting logic failed to use them",
+        "That the sensors were correct and the fault lay entirely in pilot training",
+        "That sensor data was corrupted in transit between the vane and the flight computer"
+      ]
+    },
+    {
+      "id": "l01-q06",
+      "kind": "mcq",
+      "lecture": "l01",
+      "context": "The course standardizes on `uv` for environments. What failure is that\nchoice preventing?",
+      "why": "Speed and caching are real and neither is why it is in the toolchain. Every\ntool in this course is chosen against a named failure, and this one is\n\"your figure disagrees with your notebook and neither file records why\".\nL13 has that failure on the page: scikit-learn 1.8 and 1.9 assign folds\ndifferently under an identical call, and only a lockfile makes that\nvisible.",
+      "objectives": [
+        "l01-o4"
+      ],
+      "tags": [
+        "toolchain",
+        "reproducibility"
+      ],
+      "true": "A result that cannot be rebuilt, because a lockfile pins what was actually installed rather than what was requested",
+      "false": [
+        "Slow installs, since uv resolves and downloads faster than the alternatives",
+        "Dependency conflicts, which uv resolves where pip would fail",
+        "Disk usage, since uv shares a global cache between projects"
+      ],
+      "terms": {
+        "prompt": "Tools in this course's toolchain",
+        "correct": [
+          "uv",
+          "PostgreSQL",
+          "DuckDB",
+          "Parquet",
+          "pandas",
+          "Polars",
+          "pandera",
+          "MLflow",
+          "PyTorch",
+          "FastAPI",
+          "Docker"
+        ],
+        "wrong": [
+          "Gradle",
+          "Maven",
+          "Jenkins",
+          "CircleCI",
+          "Ansible"
+        ]
+      },
+      "stack": {
+        "brief": "A month of sensor readings, a model that flags anomalies, and a request to put it in front of people who are not you. Fill every layer, then deploy.",
+        "layers": [
+          {
+            "layer": "Environments",
+            "prevents": "rebuilds that are merely probable",
+            "case": "Three clinical trials used a flawed analysis nobody could re-run.",
+            "options": [
+              {
+                "text": "Python + uv",
+                "ok": true,
+                "because": "",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "requirements.txt",
+                "ok": false,
+                "because": "The resolver is free to pick whatever is newest within the loose constraints",
+                "cite": "lectures/l02/notes.md"
+              },
+              {
+                "text": "pandera",
+                "ok": false,
+                "because": "bad data passing silently",
+                "cite": "lectures/l01/notes.md"
+              }
+            ]
+          },
+          {
+            "layer": "Storage",
+            "prevents": "CSV sprawl, silent truncation",
+            "case": "15,841 positive cases fell off the end of a spreadsheet.",
+            "options": [
+              {
+                "text": "PostgreSQL",
+                "ok": true,
+                "because": "",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "DuckDB",
+                "ok": true,
+                "because": "",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "Parquet",
+                "ok": true,
+                "because": "",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "a spreadsheet",
+                "ok": false,
+                "because": "A spreadsheet or a CSV file has no opinion about what belongs in a cell",
+                "cite": "lectures/l03/notes.md"
+              },
+              {
+                "text": "MLflow",
+                "ok": false,
+                "because": "results nobody can attribute",
+                "cite": "lectures/l01/notes.md"
+              }
+            ]
+          },
+          {
+            "layer": "Dataframes",
+            "prevents": "out-of-memory, unreadable transforms",
+            "case": "",
+            "options": [
+              {
+                "text": "pandas",
+                "ok": true,
+                "because": "",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "Polars",
+                "ok": true,
+                "because": "",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "Docker",
+                "ok": false,
+                "because": "works on my machine",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "PyTorch",
+                "ok": false,
+                "because": "hand-derived gradients",
+                "cite": "lectures/l01/notes.md"
+              }
+            ]
+          },
+          {
+            "layer": "Validation",
+            "prevents": "bad data passing silently",
+            "case": "386 degrees Celsius, recorded in good faith by a mote with a dying battery.",
+            "options": [
+              {
+                "text": "pandera",
+                "ok": true,
+                "because": "",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "a one-off script",
+                "ok": false,
+                "because": "the cleaning rules are written down as queries anyone can read rather than buried in a one-off script",
+                "cite": "lectures/l03/notes.md"
+              },
+              {
+                "text": "Parquet",
+                "ok": false,
+                "because": "CSV sprawl, silent truncation",
+                "cite": "lectures/l01/notes.md"
+              }
+            ]
+          },
+          {
+            "layer": "Tracking",
+            "prevents": "results nobody can attribute",
+            "case": "",
+            "options": [
+              {
+                "text": "MLflow",
+                "ok": true,
+                "because": "",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "a notebook",
+                "ok": false,
+                "because": "which settings produced this particular number",
+                "cite": "lectures/l02/notes.md"
+              },
+              {
+                "text": "Polars",
+                "ok": false,
+                "because": "out-of-memory, unreadable transforms",
+                "cite": "lectures/l01/notes.md"
+              }
+            ]
+          },
+          {
+            "layer": "Deep learning",
+            "prevents": "hand-derived gradients",
+            "case": "",
+            "options": [
+              {
+                "text": "PyTorch",
+                "ok": true,
+                "because": "",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "FastAPI",
+                "ok": false,
+                "because": "works on my machine",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "DuckDB",
+                "ok": false,
+                "because": "CSV sprawl, silent truncation",
+                "cite": "lectures/l01/notes.md"
+              }
+            ]
+          },
+          {
+            "layer": "Retrieval",
+            "prevents": "answers ungrounded in your corpus",
+            "case": "",
+            "options": [
+              {
+                "text": "a vector store",
+                "ok": true,
+                "because": "",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "Fine-tuning",
+                "ok": false,
+                "because": "is the right answer far less often than people expect",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "pandas",
+                "ok": false,
+                "because": "out-of-memory, unreadable transforms",
+                "cite": "lectures/l01/notes.md"
+              }
+            ]
+          },
+          {
+            "layer": "Serving",
+            "prevents": "works on my machine",
+            "case": "A fresh checkout broke three times: a missing version, an unpinned seed, an absolute path.",
+            "options": [
+              {
+                "text": "FastAPI",
+                "ok": true,
+                "because": "",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "Docker",
+                "ok": true,
+                "because": "",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "requirements.txt",
+                "ok": false,
+                "because": "a much stronger guarantee than a requirements.txt",
+                "cite": "lectures/l01/notes.md"
+              },
+              {
+                "text": "pandera",
+                "ok": false,
+                "because": "bad data passing silently",
+                "cite": "lectures/l01/notes.md"
+              }
+            ]
+          }
+        ],
+        "workloads": [
+          {
+            "id": "oltp",
+            "text": "Readings arrive continuously while several dashboards query them at once.",
+            "prefers": {
+              "Storage": [
+                "PostgreSQL"
+              ]
+            },
+            "penalises": {
+              "Storage": {
+                "because": "Writing one row at a time while several consumers read concurrently is a relational problem",
+                "from": "lectures/l01/notes.md"
+              }
+            }
+          },
+          {
+            "id": "olap",
+            "text": "One channel, scanned across ten years of history, on a laptop.",
+            "prefers": {
+              "Storage": [
+                "DuckDB",
+                "Parquet"
+              ]
+            },
+            "penalises": {
+              "Storage": {
+                "because": "close to the worst possible layout for the analytical pattern of scanning a single column across the entire history",
+                "from": "lectures/l03/notes.md"
+              }
+            }
+          }
+        ],
+        "requires": [
+          {
+            "layer": "Tracking",
+            "needs": "Environments",
+            "because": "MLflow will record whatever you log. That includes a run whose environment was never locked and whose seed was never pinned.",
+            "cite": "lectures/l02/notes.md"
+          },
+          {
+            "layer": "Serving",
+            "needs": "Environments",
+            "because": "The lockfile says nothing about the system C libraries",
+            "cite": "lectures/l02/notes.md"
+          }
+        ],
+        "epilogue": {
+          "text": "Locking the environment, pinning the seed, and tracking the run will then reproduce the *wrong* answer, every time, with perfect fidelity",
+          "cite": "lectures/l02/notes.md"
+        }
+      }
+    },
+    {
+      "id": "l01-q07",
+      "kind": "mcq",
+      "lecture": "l01",
+      "context": "Where does most of the engineering effort in a deployed ML system actually\ngo?",
+      "why": "This is the claim the whole course is organized around, and the reason the\nfirst four weeks are about storage and pipelines rather than about models.\nThe two case studies in this session make the same point from opposite\ndirections: one system failed with no model in it at all, and the other had\na well-validated model and failed anyway.",
+      "objectives": [
+        "l01-o1"
+      ],
+      "tags": [
+        "system-view"
+      ],
+      "true": "Into the data infrastructure, the evaluation, and the operational practice around the model",
+      "false": [
+        "Into model selection and hyperparameter tuning, which is where accuracy is won",
+        "Into inference optimization, since serving cost dominates the lifetime budget",
+        "Into user interface work, since adoption determines whether a model delivers value"
+      ],
+      "sequence": {
+        "prompt": "Name the stages of an engineering ML system, in the order the lecture names them.",
+        "steps": [
+          "data acquisition",
+          "storage",
+          "pipelines",
+          "features",
+          "training",
+          "evaluation",
+          "deployment",
+          "monitoring"
+        ],
+        "why": "That is the order the lecture names them in. What is not worth believing is that the work runs left to right: reading it as a linear process is the first thing the notes tell you to unlearn. Real systems iterate hard between features and evaluation, and monitoring feeds back into acquisition the moment drift shows up in production."
+      },
+      "terms": {
+        "prompt": "Stages of an engineering ML system",
+        "correct": [
+          "acquisition",
+          "storage",
+          "pipelines",
+          "features",
+          "training",
+          "evaluation",
+          "deployment",
+          "monitoring"
+        ],
+        "wrong": [
+          "minification",
+          "transpilation",
+          "defragmentation",
+          "sharding",
+          "garbage collection"
+        ]
+      }
+    },
+    {
+      "id": "l01-q09",
+      "kind": "notebook_run",
+      "lecture": "l01",
+      "context": "Open [`l01-reproducibility.ipynb`](../lectures/l01/l01-reproducibility.ipynb)\nand run it top to bottom. It is deliberately defective.\n\nOne cell fails for you and a different one fails for your neighbor. Why?",
+      "why": "`np.trapz` was removed in NumPy 2.0 and `np.trapezoid` was added there, so\nexactly one cell fails whichever version you installed, and comparing\nfailures with a neighbor is the discussion. The absolute path is one of\nthe other two deliberate defects and it fails for everybody, which is why it\nis the less interesting one: a defect that only fires on some machines is\nthe kind that reaches production.",
+      "objectives": [
+        "l01-o4"
+      ],
+      "tags": [
+        "reproducibility",
+        "notebook"
+      ],
+      "true": "It integrates a curve twice, once with `np.trapz` and once with `np.trapezoid`, and exactly one exists in your NumPy version",
+      "false": [
+        "Random seeds differ between machines, so the split is different",
+        "The absolute path only exists on the author's machine, so everyone fails identically there",
+        "Cell execution order differs, so the failure depends on how you ran it"
+      ]
+    },
+    {
+      "id": "l01-q10",
+      "kind": "locus_of_control",
+      "lecture": "l01",
+      "context": "Your model's accuracy is unchanged on the test set, but users report it has\ngot worse over the last quarter.\n\nWhat is the most likely explanation, and where does the response belong?",
+      "why": "This is Google Flu Trends in miniature, and it is why \"validating well is\nnot evidence that a system works\" is a section heading rather than an\naside. A frozen test set is exactly right for comparing versions and tells\nyou nothing about whether the world it was drawn from still exists. L23\nturns this into instrumentation.",
+      "objectives": [
+        "l01-o2"
+      ],
+      "tags": [
+        "drift",
+        "validation"
+      ],
+      "true": "The world moved and the frozen test set did not, so the response is monitoring the input distribution rather than re-scoring the same data",
+      "false": [
+        "The users are wrong; a stable test score means stable behavior",
+        "The model has degraded numerically, so retraining on the same data will restore it",
+        "The test set has leaked into training, which inflates the score while real performance falls"
+      ]
+    }
+  ]
+}

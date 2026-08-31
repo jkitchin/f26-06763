@@ -585,3 +585,31 @@ button.clicker-board-refresh {
   border-radius: 6px;
   cursor: pointer;
 }
+
+/* ---- the arcade --------------------------------------------------------- */
+
+/* arcade/arcade.css owns how a cabinet looks, in both a slide and a notes page.
+ * All this theme does is decide how big one is here, because a slide's root is
+ * 30px and a notes page's is not. Load the stylesheet in the deck:
+ *
+ *   <link rel="stylesheet" href=".../arcade/arcade.css">
+ */
+/* A MARP section is display:block, so a cabinet asked for 100% of it takes the
+ * whole slide and starts BELOW the heading, which put the controls under the
+ * footer. Turn the slide into a column and let the cabinet take what is left. */
+section:has(.arcade) {
+  display: flex;
+  flex-direction: column;
+}
+
+section .arcade {
+  font-size: 0.62em;
+  flex: 1 1 auto;
+  min-height: 0;      /* without this a flex item refuses to shrink below content */
+}
+
+/* On a slide the stage is whatever the heading left over. Only a notes page,
+ * where there is room, wants a floor under it. */
+section .arcade-stage {
+  min-height: 6em;
+}
