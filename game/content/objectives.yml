@@ -217,19 +217,20 @@
 - id: l04-o1
   lecture: l04
   text: >-
-    Explain columnar storage and why it accelerates analytical scans, and read and write
-    Parquet.
+    Explain the row-store versus column-store trade-off and why a columnar layout is faster
+    to scan, and read and write Parquet.
 
 - id: l04-o2
   lecture: l04
   text: >-
-    Use DuckDB to query Parquet and PostgreSQL without a server, and choose between OLTP and
-    OLAP tools.
+    Query Parquet with DuckDB, and choose between a transactional (OLTP) and an analytical
+    (OLAP) tool.
 
 - id: l04-o3
   lecture: l04
   text: >-
-    Place document, key-value, and vector stores in the engineering data landscape.
+    Name the other kinds of store (document, key-value, time-series) and say when each one
+    fits.
 
 # L6 and L8 have published notes but no item bank yet (see game/content/l06.yml
 # and l08.yml, both status: unwritten). The objectives are registered anyway,

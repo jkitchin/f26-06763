@@ -45,7 +45,7 @@ TOC = REPO / "_toc.yml"
 #: lives in the Projects part, so it is not listed here. A lecture with no entry
 #: releases no assignment.
 LECTURE_ASSIGNMENTS = {
-    1: ["a01"], 3: ["a02"], 5: ["a03"], 7: ["a04"], 9: ["a05"],
+    1: ["a01"], 4: ["a02"], 5: ["a03"], 7: ["a04"], 9: ["a05"],
     11: ["a06"], 15: ["a08"], 17: ["a09"], 19: ["a10"], 21: ["a11"],
 }
 

@@ -4,8 +4,7 @@
 The L4 demo continues L3: the same Intel Lab readings, now stored columnar. It
 writes the data to a Parquet file, asks the same analytical question three ways
 (pandas, a SQLite row store, and DuckDB over Parquet) with warmed timings, then
-shows DuckDB's zero-import reach: partition pruning, COPY TO, and a live
-PostgreSQL attachment.
+shows DuckDB's zero-import reach: partition pruning and COPY TO.
 
 Design notes so the numbers stay honest:
   - The head-to-head uses a SINGLE Parquet file and warms each query, so DuckDB
@@ -15,8 +14,7 @@ Design notes so the numbers stay honest:
     (make_figures.py) is the cited measurement. The demo reproduces the direction.
 
 Kept in a generator for deterministic cell ids and no hand-edited JSON. The
-committed .ipynb carries no outputs and must run top to bottom. The PostgreSQL
-section is guarded so Restart-and-Run-All finishes even without the L3 database.
+committed .ipynb carries no outputs and must run top to bottom.
 """
 import json
 import sys
@@ -49,12 +47,10 @@ cells = [
        "In L3 we put the Intel Berkeley Lab readings in a relational database and made a\n",
        "selective query fast with an index. This notebook keeps the exact same data and\n",
        "changes only where it lives: into columnar **Parquet**, queried by **DuckDB**. We ask\n",
-       "one analytical question three ways and compare, then use DuckDB to query Parquet and\n",
-       "a live PostgreSQL with no import step.\n",
+       "one analytical question three ways and compare, then use DuckDB to query the Parquet\n",
+       "with no import step.\n",
        "\n",
-       "The data is fetched from a mirror on first run. The final section is optional: it\n",
-       "expects the PostgreSQL from L3's `docker-compose` and is written to skip cleanly if\n",
-       "that database is not running.\n",
+       "The data is fetched from a mirror on first run.\n",
        "\n",
        "> Data: [Intel Lab Data](https://db.csail.mit.edu/labdata/labdata.html), ~2.3M readings\n",
        "> from 54 motes, carried over from L3."),
@@ -190,26 +186,6 @@ cells = [
          "\"\"\")\n",
          "print('wrote data/mote_avg.parquet')"),
 
-    md("## 5. Optional: query the live PostgreSQL from L3\n",
-       "\n",
-       "DuckDB's `postgres` extension attaches a running PostgreSQL and queries it in place,\n",
-       "so the OLTP store and the OLAP engine work together: you can run an analytical query\n",
-       "against the live database, or join a small table there against the large Parquet\n",
-       "history, all with no export.\n",
-       "\n",
-       "This cell needs the PostgreSQL from L3's `docker-compose`. If it is not running, the\n",
-       "cell reports that and the notebook still finishes."),
-
-    code("try:\n",
-         "    duckdb.sql('INSTALL postgres; LOAD postgres;')\n",
-         "    duckdb.sql(\"ATTACH 'dbname=labdata user=postgres password=postgres host=127.0.0.1' \"\n",
-         "               'AS pg (TYPE postgres, READ_ONLY)')\n",
-         "    n = duckdb.sql('SELECT count(*) FROM pg.readings').fetchone()[0]\n",
-         "    print(f'attached PostgreSQL: pg.readings has {n:,} rows')\n",
-         "except Exception as e:\n",
-         "    print('PostgreSQL not attached (start the L3 docker-compose DB to run this section):')\n",
-         "    print('   ', str(e).splitlines()[0][:160])"),
-
     md("---\n",
        "\n",
        "## Takeaway\n",
@@ -217,7 +193,7 @@ cells = [
        "The row store from L3 (OLTP) is built for writes and point lookups; the column store\n",
        "here (OLAP) is built for scanning a few columns over the whole history, and it is much\n",
        "faster and smaller for exactly that. Real platforms run both and move data across the\n",
-       "seam, which is what the `postgres` attachment does. Assignment **A2** has you load the\n",
+       "seam on purpose. Assignment **A2** has you load the\n",
        "same dataset into PostgreSQL and into Parquet/DuckDB and compare, so the second half\n",
        "starts here."),
 ]

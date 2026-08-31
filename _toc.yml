@@ -83,7 +83,7 @@ parts:
     # is out are uncommented; the rest stay hidden like an unreleased lecture.
     chapters:
       - file: course/assignments/a01
-      - file: course/assignments/a02
+#       - file: course/assignments/a02
 #       - file: course/assignments/a03
 #       - file: course/assignments/a04
 #       - file: course/assignments/a05
