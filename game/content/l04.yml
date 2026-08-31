@@ -2,9 +2,9 @@ schema: 1
 lecture: l04
 title: "Beyond relational: columnar, Parquet, DuckDB, and the wider landscape"
 source_notes: lectures/l04/notes.md
-status: unwritten
+status: published
 serve: 5
-pool_version: 3
+pool_version: 4
 provenance:
   drafted_by: hand
   reviewed_by: jkitchin
@@ -37,7 +37,7 @@ items:
     source:
       file: lectures/l04/notes.md
       heading: "Columnar is the wrong home for writes and updates"
-      quote: "a Parquet file is effectively immutable"
+      quote: "Parquet file is effectively immutable"
     verify: {mode: quote, needle: "effectively immutable", volatility: stable}
     tags: [parquet, access-patterns]
 
@@ -58,13 +58,13 @@ items:
     answer: "It is named in the notes as the most common mistake after the lecture: the two compose, and a real platform runs both"
     evidence: |
       PostgreSQL absorbs the live writes with its schema and transactions intact,
-      and the history is periodically laid down as Parquet that DuckDB scans, with
-      the `postgres` extension as the bridge. The skill is not loyalty to a column
-      store or a row store; it is placing each part of the workload where its
-      access pattern is cheap, and moving data across the seam deliberately.
+      and the history is periodically written out as Parquet that DuckDB scans.
+      The skill is not loyalty to a column store or a row store; it is placing each
+      part of the workload where its access pattern is cheap, and moving data
+      across the seam deliberately.
     source:
       file: lectures/l04/notes.md
-      heading: "OLTP and OLAP compose; \"just use DuckDB\" is a trap"
+      heading: "OLTP and OLAP compose"
       quote: "The most common mistake after this lecture"
     verify: {mode: quote, needle: "most common mistake after this lecture", volatility: stable}
     tags: [oltp, olap, architecture]
@@ -87,8 +87,8 @@ items:
       boundary: superb for one analyst's laptop, one pipeline's transform step,
       one service's embedded analytics, and not trying to be a concurrent
       multi-writer server. When several writers need a single consistent view,
-      that is the relational server's job, and DuckDB complements it most
-      naturally through the `postgres` attachment.
+      that is the relational server's job, and DuckDB complements it rather than
+      trying to replace it.
     source:
       file: lectures/l04/notes.md
       heading: "DuckDB is an engine, not a shared server"
@@ -123,7 +123,7 @@ items:
     source:
       file: lectures/l04/notes.md
       heading: "Small data needs none of this"
-      quote: "speedup appears at millions of rows"
+      quote: "speedup shows up at millions of rows"
     verify: {mode: ordering, needle: "millions of rows", volatility: measured}
     tags: [columnar, scale]
 
@@ -179,9 +179,9 @@ items:
       they were built for.
     source:
       file: lectures/l04/notes.md
-      heading: "The NoSQL stores trade away the guarantees you just learned to value"
-      quote: "not because a schema felt like work"
-    verify: {mode: quote, needle: "not because a schema felt like work", volatility: stable}
+      heading: "The other stores, in one line each"
+      quote: "not because designing a schema felt like work"
+    verify: {mode: quote, needle: "not because designing a schema felt like work", volatility: stable}
     tags: [nosql, tradeoffs]
 
   - id: l04-q07
@@ -195,7 +195,7 @@ items:
       - "A column store with Parquet files, since the writes can be appended as new files"
       - "A row store and OLTP, which is the relational database of L3"
       - "A document store, since point lookups by key are its core operation"
-      - "A vector store, since consistency is maintained by the index rather than the engine"
+      - "A time-series database, since it is built for high-rate timestamped writes"
     answer: "A row store and OLTP, which is the relational database of L3"
     evidence: |
       The rule the whole arc is building toward: store data in the shape that
@@ -206,7 +206,7 @@ items:
     source:
       file: lectures/l04/notes.md
       heading: "Where columns and DuckDB stop helping"
-      quote: "Every advantage above was an advantage *for a particular access pattern*"
+      quote: "each advantage was an advantage for one access pattern"
     verify: {mode: quote, needle: "access pattern", volatility: stable}
     tags: [access-patterns, selection]
 
@@ -230,21 +230,19 @@ items:
         needle: "key-value"
       - text: "Time-series store: append-heavy measurements indexed by time"
         needle: "time-series"
-      - text: "Vector store: nearest-neighbor search over embeddings"
-        needle: "vector"
     answer: null
     evidence: |
-      Six families, and the skill this arc is building is not fluency in any one
+      Five families, and the skill this arc is building is not fluency in any one
       of them: it is matching the store to the access pattern, and noticing when
       a system needs two and a deliberate seam between them. Where you stalled is
       your reading assignment.
     source:
       file: lectures/l04/notes.md
-      heading: "The wider landscape: document, key-value, time-series, and vector stores"
-      quote: "document, key-value, time-series, and vector stores"
+      heading: "The other stores, in one line each"
+      quote: "A few other kinds of store exist for access patterns that leave the table behind"
     verify:
       mode: manual
-      needle: "key-value, time-series, and vector stores"
+      needle: "other kinds of store"
       volatility: stable
       exempt_reason: >-
         Free-text recall; each checklist entry is verified against the source
@@ -287,7 +285,7 @@ items:
     objectives: [l04-o2]
     prompt: |
       Open [`l04-storage.ipynb`](../lectures/l04/l04-storage.ipynb) and run the
-      same aggregate against PostgreSQL and against Parquet via DuckDB.
+      same aggregate against a row store and against Parquet via DuckDB.
 
       What should you take from the ratio you measure?
     options:
