@@ -16,7 +16,7 @@ The course is run on [Canvas](https://canvas.cmu.edu/courses/54976).
 
 ## Teaching assistants
 - Tirtha Vinchurkar (tvinchur@andrew.cmu.edu)
-- Robert Jimenez (robertoj@andrew.cmu.edu)
+- Roberto Jimenez (robertoj@andrew.cmu.edu)
 - Nicolas Smits (nsmits@andrew.cmu.edu)
 - Yiyin Zhang (yiyinz@andrew.cmu.edu)
 - Peter Cook (petercoo@andrew.cmu.edu)
