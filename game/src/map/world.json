@@ -114,13 +114,13 @@
       "id": "l04",
       "date": "2026-09-02",
       "title": "Database landscape",
-      "written": false,
+      "written": true,
       "arc_source": "declared",
       "arc": "Data Systems",
       "region": 1,
       "x": 5,
       "y": 1,
-      "notes": null
+      "notes": "../lectures/l04/notes.html"
     },
     {
       "session": "L5",
