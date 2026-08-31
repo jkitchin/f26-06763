@@ -757,12 +757,10 @@ than a universal answer.
 
 ## Assignment
 
-Assignment 2, "Sensor data into PostgreSQL + DuckDB," is released this session and due roughly one week
-later. It asks you to design a schema for the Intel Lab data (or a documented fallback), load
-it into PostgreSQL, and answer a set of engineering queries including a window function and a
-time-bucketed aggregate, then add an index and interpret `EXPLAIN ANALYZE` before and after.
-The second half moves the same data into Parquet and DuckDB, so you can start the PostgreSQL
-half now. This is a pointer, not the rubric.
+Assignment 1, the reproducible project scaffold, is due 08-31-2026. This session's schema
+design, SQL, and indexing are the foundation of Assignment 2, the module's databases
+assignment, which asks you to model the Intel Lab data, load it into PostgreSQL, and answer a
+set of engineering queries with SQL. This is a pointer, not the rubric.
 
 ## Practice module
 

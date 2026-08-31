@@ -286,19 +286,6 @@ The folder name becomes a column; the filter opens one folder.
 
 ---
 
-## DuckDB, reaches into PostgreSQL
-
-```sql
-ATTACH 'dbname=labdata host=localhost' AS pg (TYPE postgres);
-SELECT * FROM pg.readings LIMIT 5;
-```
-
-Query the live Lecture 3 database with no export. One query can join a small PostgreSQL table against a large Parquet history, the OLTP store and the OLAP engine on speaking terms.
-
-[DuckDB: postgres extension](https://duckdb.org/docs/stable/core_extensions/postgres)
-
----
-
 ## DuckDB, write results back
 
 ```sql
@@ -345,50 +332,17 @@ They interoperate. The choice is rarely exclusive.
 
 ---
 
-## The wider landscape, document stores
+## The wider landscape, the other stores
 
-<div class="definition">
+Recognize these; you will not build them here. Each drops a relational guarantee (the schema, the joins, or the transactions) for a fit to one access pattern.
 
-**Document store**: keeps data as JSON-like documents whose fields can vary from one document to the next.
+- **Document store** (MongoDB): flexible, JSON-like records, fields vary per record. For irregular experiment metadata, not uniform readings.
+- **Key-value store** (Redis): a value under a key, often in memory. For caches and hot lookups, not queries.
+- **Time-series database** (InfluxDB): high-rate timestamped writes, bucketing built in.
 
-</div>
+Reach for one because your access pattern demands it, not to dodge a schema.
 
-- wrong for uniform sensor readings (you *want* the schema)
-- right for heterogeneous experiment metadata: run A logged 3 params, run B logged 11
-
-**MongoDB** is the archetype. [MongoDB: document databases](https://www.mongodb.com/resources/basics/databases/document-databases)
-
----
-
-## The wider landscape, key-value and time-series
-
-- **Key-value store**: puts a value under a key and gets it back by that key, often entirely in memory.
-- **Time-series database**: builds in bucketing, retention, and high-rate ingest for millions of points a second.
-
-**Redis** for caches, configs, hot lookups. **InfluxDB** for the high-ingest end.
-[Redis](https://redis.io/about/), [InfluxDB](https://docs.influxdata.com/influxdb/v2/get-started/)
-
----
-
-## The wider landscape, vector stores
-
-<div class="definition">
-
-**Vector store**: holds embeddings and searches them by nearest-neighbor similarity rather than exact match.
-
-</div>
-
-The machinery under **RAG**. Named here so the landscape is complete.
-
-[FAISS](https://github.com/facebookresearch/faiss/wiki)
-
----
-
-## The wider landscape, the common thread
-
-Each of these drops a relational guarantee, usually the schema, the joins, or the transactions, in exchange for a fit to one access pattern.
-
-Choose one when your pattern demands it.
+[MongoDB](https://www.mongodb.com/resources/basics/databases/document-databases) · [Redis](https://redis.io/about/) · [InfluxDB](https://docs.influxdata.com/influxdb/v2/get-started/)
 
 ---
 
@@ -412,7 +366,7 @@ Constantly-corrected data and point lookups are the row store's home turf.
 
 One process. Superb for one analyst, one pipeline.
 
-It is not a shared backend that many clients write to concurrently with transactions. That is still PostgreSQL's job, and DuckDB complements it through the `postgres` attachment.
+It is not a shared backend that many clients write to concurrently with transactions. That is still PostgreSQL's job; DuckDB complements it rather than replacing it.
 
 ---
 
@@ -430,7 +384,7 @@ It is not a shared backend that many clients write to concurrently with transact
 
 ## `l04-storage.ipynb`
 
-Intel Lab data → Parquet → the same query in pandas, a SQLite row store, and DuckDB. Then zero-import over Parquet and PostgreSQL.
+Intel Lab data → Parquet → the same query in pandas, a SQLite row store, and DuckDB. Then zero-import queries straight over the Parquet files.
 
 ---
 
@@ -438,7 +392,7 @@ Intel Lab data → Parquet → the same query in pandas, a SQLite row store, and
 
 1. The analytical scan: the row store **climbs**, DuckDB over Parquet stays **flat**.
 
-2. DuckDB answering a query over Parquet and over the live Postgres it **never loaded**.
+2. DuckDB answering a query over Parquet it **never loaded**.
 
 ---
 
@@ -449,13 +403,13 @@ Intel Lab data → Parquet → the same query in pandas, a SQLite row store, and
 - Column store / OLAP for wide scans: Parquet + DuckDB
 - Measured: `≈80×` faster, `≈5×` smaller on the scan
 - DuckDB queries files and databases with zero import
-- Document, key-value, time-series, vector: each fits one pattern
+- Document, key-value, time-series: each fits one pattern
 
 ---
 
 ## Next
 
-**Assignment 2** (from Lecture 3): its Parquet + DuckDB half is now unblocked
+**Assignment 2** released today: PostgreSQL (Lecture 3) + Parquet/DuckDB (today)
 **Reading** DuckDB Parquet docs; Kleppmann ch. 3
 
 Full notes, with all sources: `lectures/l04/notes.md`

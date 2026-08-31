@@ -1,4 +1,4 @@
-# Lecture 4: Columnar storage, Parquet, DuckDB, and the storage landscape
+# Lecture 4: Columnar storage, Parquet, and DuckDB
 
 :::{admonition} Overview
 :class: tip
@@ -7,79 +7,142 @@
 - **Arc** Data Systems
 - **Slides** <a href="../../slides/l04/">Deck for this session</a>
 - **Practice** <a href="../../game/#/l04">Practice module for this session</a>
-- **Demo** [`l04-storage.ipynb`](l04-storage.ipynb), the same Intel Lab data stored columnar and queried three ways
-- **Assignment 2**, released at Lecture 3; its second half is this session's material
+- **Demo** [`l04-storage.ipynb`](l04-storage.ipynb), the Intel Lab data stored columnar and queried three ways
+- **Assignment 2**, released this session; it draws on Lecture 3's material and this one's
 :::
 
 ## Why this matters
 
-At the end of [Lecture 3](../l03/notes.md) we had the Intel Berkeley Lab readings in a relational database, indexed on `(sensor_id, ts)` so that a selective query, one sensor over one hour, came back in a few hundredths of a millisecond. That is the query a live dashboard makes, and the row-oriented database we built is superb at it. It is not, however, the query an analyst makes. The analyst asks for the average temperature of every mote over the whole month, or the daily energy across the floor for a year, or the distribution of a single channel across the entire history. Those questions do not narrow to a few rows; they read one or two columns across all of them, and an index has nothing to prune. The database reads the whole table.
+At the end of [Lecture 3](../l03/notes.md) the Intel Berkeley Lab readings sat in a relational database, indexed on `(sensor_id, ts)` so that a narrow query, one sensor over one hour, came back in a few hundredths of a millisecond. That is the query a live dashboard makes, and the row-oriented database from Lecture 3 is very good at it.
 
-Here is the part that turns a nuisance into a real cost, and it is a direct consequence of how a row store lays bytes on disk. A row store keeps each row's columns together, one row after another, because that is exactly what makes writing a reading or fetching a whole row cheap. But it means that to average a single column you must still drag every other column of every row off the disk to get to the one you want. Our `readings` table has six columns; to compute an average temperature the database reads humidity, light, voltage, the identifiers, and the timestamps too, on all 2.3 million rows, and then throws almost all of it away. The work scales with the width of the table and the height of the table, when the answer depends on neither.
+It is not good at the other kind of question. An analyst does not ask about one sensor for one hour; they ask for the average temperature of every mote over the whole month, the daily energy across the floor for a year, or how one channel is distributed across the entire history. Those questions do not narrow to a few rows. They read one or two columns across all of the rows, and an index has nothing to prune, so the database reads the whole table.
 
-The fix is not to change what the data means but how the bytes are arranged. Store each column's values together instead of each row's, and the average-temperature query reads only the temperature values, in one contiguous run, already compressed. That single change is the subject of this session. We keep the exact Lecture 3 dataset and change only where it lives, into columnar **Parquet** files and the embedded analytical engine **DuckDB**, and we measure what it buys. On these 2.3 million readings, the same "average temperature per mote over the whole table" runs about **80 times faster** read from Parquet through DuckDB than from a row store, and the Parquet file is about **5.5 times smaller** on disk than the equivalent CSV. The rest of the session is why that works, when it is the right trade and when it is not, and where the other stores you will meet, document, key-value, time-series, and vector, fit around it.
+The reason that is slow comes down to how the data sits on disk. A relational database keeps each row's columns together, one row after another, because that makes writing a reading or fetching a whole row cheap. But it means that to average one column you still have to pull every other column of every row off the disk to reach it. Our `readings` table has six columns; to compute an average temperature the database reads humidity, light, voltage, the identifiers, and the timestamps too, on all 2.3 million rows, and then discards almost all of it.
+
+The fix does not change what the data means, only how the bytes are arranged: store each column's values together instead of each row's. Then the average-temperature query reads only the temperature values, in one contiguous run, already compressed. That single change is the subject of this session. We keep the exact Lecture 3 dataset and move it into columnar **Parquet** files, read by an embedded engine called **DuckDB**, and we measure what it buys. On these 2.3 million readings the same "average temperature per mote" query runs about **80 times faster** from Parquet through DuckDB than from a row store, and the Parquet file is about **5.5 times smaller** on disk than the same data as CSV. The rest of the session is why that works, and when it is the right trade.
 
 ## Learning objectives
 
 By the end of this session you should be able to:
 
-- Explain columnar storage and why it accelerates analytical scans, and read and write Parquet.
-- Use DuckDB to query Parquet and PostgreSQL without a server, and choose between OLTP and OLAP tools.
-- Place document, key-value, and vector stores in the engineering data landscape.
+- Explain the row-store versus column-store trade-off and why a columnar layout is faster to scan, and read and write Parquet.
+- Query Parquet with DuckDB, and choose between a transactional (OLTP) and an analytical (OLAP) tool.
+- Name the other kinds of store (document, key-value, time-series) and say when each one fits.
 
 ## Row stores and column stores
 
-```{index} row store, column store, OLTP, OLAP, column projection, predicate pushdown
+```{index} row store, column store, OLTP, OLAP
 ```
 
-Every database has to decide, at the lowest level, how to place a table's values on disk, and there are two natural answers. A **row store** keeps the values of each row together: row one's every column, then row two's every column, and so on. A **column store** keeps the values of each column together: every row's timestamp, then every row's mote id, then every row's temperature. The logical table is identical either way; what differs is which values end up physically adjacent, and that adjacency decides what is cheap.
+Every database has to decide, at the lowest level, how to place a table's values on disk, and there are two natural answers. The logical table looks identical either way; what changes is which values end up physically next to each other, and that decides what is cheap.
+
+:::{admonition} Definition: row store
+:class: tip
+
+A **row store** keeps each row's columns together on disk: all of row one, then all of row two, and so on. Reading or writing a whole row is cheap, which is why it suits transactional work. PostgreSQL from Lecture 3 is a row store.
+:::
+
+:::{admonition} Definition: column store
+:class: tip
+
+A **column store** keeps each column's values together: every row's timestamp, then every row's mote id, then every temperature. Scanning one column is cheap, because its values are contiguous and the columns you do not ask for are never read.
+:::
 
 ```{figure} figures/row-vs-column.png
-:alt: The same four-column table laid out two ways: a row store stores each row's columns together, a column store stores each column's values together
+:alt: The same four-column table laid out two ways: a row store keeps each row's columns together, a column store keeps each column's values together
 :width: 100%
 
-The same table on disk, two ways. A row store keeps each row's columns together, so a scan of one column still pulls every other column off the disk. A column store keeps each column together, so the same scan reads only the block it needs, and each column, being one type of similar values, compresses well.
+The same table on disk, two ways. A row store keeps each row's columns together, so a scan of one column still pulls every other column off the disk. A column store keeps each column together, so the same scan reads only the block it needs, and each column, holding one kind of value, compresses well.
 ```
 
-The distinction lines up with two different jobs, and the industry has names for them. **OLTP**, online transaction processing, is the world of many small operations that touch whole rows: insert a reading, update a record, fetch this one row by its key. That is what Lecture 3's PostgreSQL is built for, and a row store is the right layout, because a whole row lives in one place. **OLAP**, online analytical processing, is the world of scanning a few columns across enormous numbers of rows to compute an aggregate or a trend. That is the analyst's query above, and a column store is the right layout, because the columns it needs live together and the columns it ignores are never read. This is the single most useful frame for the whole session: not "which database is better," but "is this workload OLTP or OLAP," because the honest answer is usually that a serious platform runs both.
+These two layouts suit two different jobs, and the industry has names for them. Getting the names straight is worth it, because they are the vocabulary for the rest of the session and for the assignment.
 
-A column layout buys its speed in three compounding ways, and they are worth naming because they explain the numbers. The first is **column projection**: a query that names two columns reads two columns, not all of them, so cost scales with the columns you ask for rather than the width of the table. The second is **compression**. A column holds one type of value, and adjacent values are often similar, a temperature near the last temperature, a mote id repeated thousands of times, so general-purpose and specialized encodings shrink it far more than they could shrink the mixed bytes of a row. Smaller data is less to read from disk, which is itself a speedup, and it is most of why the Parquet file is 5.5 times smaller than the CSV. The third is **predicate pushdown**: a columnar reader that keeps small summaries, the minimum and maximum value in each block, can skip whole blocks that cannot possibly match a `WHERE` clause without reading them at all. Martin Kleppmann's *Designing Data-Intensive Applications*, Chapter 3, is the clearest single treatment of why these choices make row and column stores mirror images of each other, and it is the reading to do if this section is new.
+:::{admonition} Definition: OLTP (online transaction processing)
+:class: tip
 
-None of this is free, and the mirror runs both ways. The very layout that makes a column store fast to scan makes it slow to do the row store's job. Reassembling a single whole row means gathering one value from each of many separate column blocks, and writing or updating one row means touching all of them, so point writes and point updates, the OLTP bread and butter, are exactly where column stores lose. That is the trade in one sentence: a column store wins the wide analytical scan and loses the narrow transactional write, which is precisely why it complements the relational database from Lecture 3 rather than replacing it.
+**OLTP** is the work of many small operations that touch whole rows: insert a reading, update a record, fetch this one row by its key. A row store is the right layout, because a whole row lives in one place. This is what Lecture 3's PostgreSQL is built for.
+:::
+
+:::{admonition} Definition: OLAP (online analytical processing)
+:class: tip
+
+**OLAP** is the work of scanning a few columns across enormous numbers of rows to compute an aggregate or a trend. A column store is the right layout, because the columns it needs live together and the columns it ignores are never read.
+:::
+
+The most useful question this session gives you is not "which database is better," but "is this workload OLTP or OLAP," because the honest answer for a real platform is usually that it runs both.
+
+### Why a column layout is fast
+
+```{index} column projection, compression, predicate pushdown
+```
+
+A column layout buys its speed in three ways that stack on top of each other.
+
+:::{admonition} Definition: column projection
+:class: tip
+
+**Column projection**: a query that names two columns reads only those two, so the cost scales with the columns you ask for rather than the width of the whole table.
+:::
+
+The second reason is **compression**. A column holds one kind of value, and neighboring values are often similar: a temperature near the last temperature, a mote id repeated thousands of times. That compresses far better than the mixed bytes of a row, and smaller data is less to read from disk, which is itself a speedup. It is most of why the Parquet file ends up 5.5 times smaller than the CSV.
+
+:::{admonition} Definition: predicate pushdown
+:class: tip
+
+**Predicate pushdown**: a columnar reader keeps a small summary of each block, the minimum and maximum value in it, and uses that to skip whole blocks that cannot match a `WHERE` clause, without reading them at all.
+:::
 
 :::{admonition} A note on the measurement
 :class: note
 
-The 80-times figure measures the same `avg(temperature) GROUP BY mote` over the whole table, growing from 0.2 to 2.3 million rows, against a row store and against Parquet read by DuckDB. Two honesties about it. The row store here is SQLite, chosen because it is serverless so the figure needs no running database, and it stands in for the row-oriented layout rather than benchmarking PostgreSQL specifically. And part of the speedup is DuckDB's vectorized execution, not the layout alone. The shape is the durable lesson: the row store's cost climbs in step with the table (about 46, 138, 310, 608 ms) while the columnar cost barely moves (about 1.5 to 7.6 ms), because one reads everything and the other reads two columns of six.
+The 80-times figure is the same `avg(temperature) GROUP BY mote` over the whole table, as it grows from 0.2 to 2.3 million rows, run against a row store and against Parquet read by DuckDB. Two honest caveats. The row store here is SQLite, chosen because it needs no running server, standing in for the row-oriented layout rather than benchmarking PostgreSQL specifically. And part of the speedup is DuckDB's execution engine, not the layout alone. The shape is the durable lesson: the row store's cost climbs with the table (about 46, 138, 310, 608 ms) while the columnar cost barely moves (about 1.5 to 7.6 ms), because one reads everything and the other reads two columns of six.
 :::
 
 ## Parquet: a columnar file format
 
-```{index} Parquet, row group, column chunk, partition pruning
+```{index} Parquet, row group, partitioning
 ```
 
-Columnar is an idea about layout; **Parquet** is the file format that has become its standard on-disk realization, and it is worth knowing its shape because you will produce and consume it constantly. A Parquet file stores a table column by column, but not naively as one giant column at a time, which would make writing and partial reads awkward. Instead it divides the rows into **row groups**, horizontal slices of perhaps a few hundred thousand rows, and within each row group it stores each column's values together as a **column chunk**, encoded and compressed on its own. The file ends with a footer of metadata that records the schema and, for every column chunk, small statistics including the minimum and maximum value. That footer is what makes a Parquet file self-contained: the types travel inside the file, so a reader needs no external schema to make sense of it, and the per-chunk statistics are what let a reader skip row groups that cannot match a filter.
+Columnar is an idea about layout. Parquet is the file that stores data that way, and it has become the standard on-disk form for it, so you will produce and read it constantly.
 
-Two practical consequences follow. Because each column chunk is compressed independently and holds one type of similar values, Parquet routinely stores engineering data in a fraction of the space of the CSV it came from, which is the 5.5-times reduction the figure above measured. And because the format is just a file, or a directory of files, it needs no server: you write it, copy it, put it in object storage, and any tool that speaks Parquet can read it. You will most often write it from pandas with `df.to_parquet(...)` or from PyArrow directly, and read it back the same way.
+:::{admonition} Definition: Parquet
+:class: tip
 
-The one structural decision Parquet asks of you is **partitioning**. Rather than one enormous file, you can write a directory tree whose folder names encode a column's value, for example `readings/date=2004-03-01/part.parquet`, so that a query filtered to one date opens only that folder and never touches the rest. This is partition pruning, and it is the coarse-grained companion to the row-group skipping above: partitioning prunes whole files by directory, statistics prune row groups within a file. Partition on a column you filter by often, date or sensor for our readings, and keep the partitions from getting too small, because thousands of tiny files carry their own overhead.
+**Parquet** is an open columnar file format. It stores a table column by column, compresses each column on its own, and carries its own schema inside the file, so any tool that speaks Parquet can read it with no server and no separate description of the data.
+:::
+
+Parquet does not store each column as one giant run, which would make writing and partial reads awkward. It divides the rows into row groups, and within each row group it stores each column together, encoded and compressed on its own. A footer at the end of the file records the schema and, for each column in each row group, small statistics including the minimum and maximum value.
+
+:::{admonition} Definition: row group
+:class: tip
+
+A **row group** is a horizontal slice of a Parquet file, perhaps a few hundred thousand rows. Within it, each column is stored and compressed separately, and the footer's per-column min/max statistics are what let a reader skip a row group that cannot match a filter.
+:::
+
+Two practical things follow. Because each column is compressed on its own and holds one kind of value, Parquet routinely stores engineering data in a fraction of the space of the CSV it came from. And because it is just a file, or a folder of files, it needs no server: you write it, copy it, and any tool that reads Parquet can read it. You will most often write it from pandas with `df.to_parquet(...)`, or from PyArrow (the Python library for Apache Arrow) directly, and read it back the same way.
+
+The one structural choice Parquet asks of you is **partitioning**: instead of one enormous file, write a folder tree whose folder names encode a column's value, for example `readings/date=2004-03-01/part.parquet`, so a query filtered to one date opens only that folder. Partition on a column you filter by often, date or sensor for our readings, and do not let the partitions get too small, because thousands of tiny files carry their own overhead.
 
 :::{admonition} Common pitfall
 :class: warning
 
-Parquet is a file format, not a database, and it is easy to expect database behavior it does not provide. A Parquet file has no indexes you build, no transactions, and no in-place update: to change a row you rewrite the file that contains it, and to add data you write new files rather than appending into old ones. That immutability is a feature for analytics, where data arrives in batches and is read far more than written, and a genuine limitation the moment your workload is really point updates. When it is, that is a sign the data belongs in the row store, not the Parquet lake.
+Parquet is a file format, not a database, and it is easy to expect database behavior it does not have. A Parquet file has no indexes you build, no transactions, and no in-place edit: to change a row you rewrite the file that holds it, and to add data you write new files rather than appending to old ones. That immutability suits analytics, where data arrives in batches and is read far more than written. The moment your work is really point updates, that is a sign the data belongs in the row store from Lecture 3, not in Parquet.
 :::
 
 ## DuckDB: SQL analytics inside your process
 
 ```{index} DuckDB, embedded database
 ```
-```{index} single: DuckDB; postgres extension
-```
 
-If Parquet is where analytical data rests, **DuckDB** is the engine that reads it, and its defining choice is that it runs *inside your process*. It is an in-process SQL database tuned for OLAP, with no server to start, no connection to manage, and no data to load into it first: you `import duckdb` and you are querying. The useful mental shorthand is that DuckDB is to analytics what SQLite is to transactions, an embedded database you drop into a program, though that phrasing is the course's framing rather than a claim DuckDB makes about itself. What makes it worth a lecture is that it collapses the distance between your files and your queries.
+If Parquet is where analytical data rests, DuckDB is the engine that reads it.
 
-The clearest example is that DuckDB queries Parquet directly, with no import step at all:
+:::{admonition} Definition: DuckDB
+:class: tip
+
+**DuckDB** is an embedded analytical (OLAP) database: it runs inside your own process, with no server to start, no connection to manage, and no data to load in first. You `import duckdb` and you are querying. The useful shorthand is that DuckDB is to analytics what SQLite is to transactions.
+:::
+
+What makes it worth a lecture is that it collapses the distance between your files and your queries. DuckDB reads Parquet directly, with no import step:
 
 ```sql
 SELECT mote_id, avg(temperature)
@@ -87,104 +150,87 @@ FROM 'readings/*.parquet'
 GROUP BY mote_id;
 ```
 
-There is no `CREATE TABLE`, no `COPY` into a database, no loading phase. DuckDB reads the Parquet files where they sit, and because it is a columnar engine reading a columnar format, it applies exactly the optimizations from the last two sections: it reads only the columns the query names (projection), and it uses the per-row-group statistics to skip groups that cannot match a `WHERE` clause (filter pushdown). Writing is just as direct, with `COPY (SELECT ...) TO 'out.parquet' (FORMAT parquet)`. This is the zero-import story the demo makes concrete, and it is why DuckDB has become the default way to poke at a pile of Parquet.
+There is no `CREATE TABLE` and no load phase. DuckDB reads the Parquet where it sits, and because it is a columnar engine reading a columnar format, it applies exactly the two savings from the last sections: it reads only the columns the query names (projection), and it uses the per-row-group statistics to skip groups that cannot match a `WHERE` clause (predicate pushdown). Writing is just as direct, with `COPY (SELECT ...) TO 'out.parquet' (FORMAT parquet)`.
 
-DuckDB reaches past files, too. Through its `postgres` extension it can attach a running PostgreSQL database, the very one from Lecture 3, and query it in place:
-
-```sql
-ATTACH 'dbname=labdata host=localhost' AS pg (TYPE postgres, READ_ONLY);
-SELECT * FROM pg.readings LIMIT 5;
-```
-
-Now the OLTP store and the OLAP engine are on speaking terms, and you can do the thing that makes the split practical rather than a wall: run an analytical query against the live transactional database without exporting anything, or join a small dimension table living in PostgreSQL against a large history of readings living in Parquet, in one query. That bridge is the answer to "if I have both, how do they work together," and we will build it in the demo.
-
-Where does this leave pandas? pandas is the right tool when the data fits comfortably in memory and you want to compute in Python; DuckDB earns its place when the data is larger than memory, when the work is naturally expressed as SQL, or when you want to query files and databases without first pulling everything into a dataframe. They interoperate cleanly, DuckDB can query a pandas dataframe directly and hand results back as one, so the choice is rarely exclusive. The measured contrast is the point to carry:
+That leaves the question of where pandas fits, since you already use it for data that lives in memory. pandas is the right tool when the data fits comfortably in memory and you want to compute in Python. DuckDB is the better tool when the data is larger than memory, when the work is naturally written as SQL, or when you want to query files without first pulling everything into a dataframe. They also interoperate: DuckDB can query a pandas dataframe directly and hand the result back as one, so the choice is rarely all-or-nothing. The contrast to carry is the measured one:
 
 ```{figure} figures/columnar-scan.png
 :alt: Left, the whole-table average-temperature query timed against a row store and against DuckDB reading Parquet as the table grows; right, CSV versus Parquet file size
 :width: 100%
 
-The same analytical query, `avg(temperature)` per mote over the whole table, as it grows toward 2.3 million rows (left), and the same readings stored as CSV versus Parquet (right). The row store's cost grows with the table because it reads every column of every row; the columnar reader stays nearly flat because it reads two columns of six, vectorized.
+The same analytical query, `avg(temperature)` per mote over the whole table, as it grows toward 2.3 million rows (left), and the same readings stored as CSV versus Parquet (right). The row store's cost grows with the table because it reads every column of every row; the columnar reader stays nearly flat because it reads two columns of six.
 ```
 
-## The wider landscape: document, key-value, time-series, and vector stores
+## The other stores, in one line each
 
-```{index} document store, key-value store, time-series database, vector database, FAISS
-```
-```{index} see: vector store; vector database
+```{index} document store, key-value store, time-series database
 ```
 
-The relational database and the columnar file cover an enormous fraction of engineering data between them, but not all of it, and part of being fluent here is knowing the rest of the landscape well enough to recognize when a problem has outgrown a table. Each of the stores below trades away one of the guarantees you learned to value in Lecture 3, usually the rigid schema or the joins, in exchange for a better fit to a particular access pattern.
+The relational database and the columnar file cover most engineering data between them. A few other kinds of store exist for access patterns that leave the table behind. You should recognize them, not build them here. Each one gives up a relational guarantee you learned to value in Lecture 3, usually the fixed schema or the joins, in exchange for a better fit to one access pattern.
 
-**Document stores**, of which MongoDB is the archetype, keep data as documents, JSON-like objects, whose fields can vary from one document to the next without a schema declared up front. That flexibility is exactly wrong for uniform sensor readings, where the schema contract is the whole point, and exactly right for heterogeneous experiment metadata, where run A recorded three parameters and run B recorded eleven and next month's run will record a set nobody has thought of yet. When the shape of the data is genuinely irregular and unpredictable, the relational schema stops protecting you and starts fighting you, and a document store fits.
+- **Document store** (for example, MongoDB): stores flexible, JSON-like records whose fields can vary from one record to the next. Right for irregular experiment metadata where every run records a different set of parameters; wrong for uniform sensor readings, where the schema is the point.
+- **Key-value store** (for example, Redis): a fast dictionary, a value stored and fetched by its key, often entirely in memory. Right for a cache or a small hot lookup; not for rich queries or joins.
+- **Time-series database** (for example, InfluxDB): a database specialized for very high-rate timestamped writes, with time bucketing and retention built in.
 
-**Key-value stores**, such as Redis, strip the model down to its simplest form, a dictionary: put a value under a key, get it back by that key, extremely fast, often entirely in memory. There are no rich queries and no joins, because that is not the job; the job is a cache in front of a slower store, a place to keep configuration or session state, or a small hot lookup that has to be instant. **Time-series databases**, such as InfluxDB, go the other way and specialize, building in the time bucketing, retention, and high-rate ingestion that a general database makes you assemble by hand, for workloads that are millions of measurements a second and almost nothing else.
-
-Finally, **vector stores** exist to answer a question none of the above can: not "find the row with this key" but "find the items most *similar* to this one." They store high-dimensional vectors, embeddings, and search them by nearest-neighbor similarity rather than by exact match, which is the machinery underneath retrieval-augmented generation. FAISS is the canonical library for the similarity search itself, named here so the landscape is complete.
+The rule for all of them is the same: reach for one because your access pattern demands it, not because designing a schema felt like work.
 
 ## Where columns and DuckDB stop helping
 
-This session has been an argument for columnar storage and for DuckDB, and it is a strong one, but the mature version of the knowledge is knowing the edges of it. Every advantage above was an advantage *for a particular access pattern*, and reaching for the same tool outside that pattern is how you get the worst of both.
+This session has argued for columnar storage and for DuckDB, and it is a strong argument, but each advantage was an advantage for one access pattern. Reaching for the same tool outside that pattern gets you the worst of both.
 
 ### Columnar is the wrong home for writes and updates
 
 ```{index} pair: failure mode; point writes to a column store
 ```
 
-The layout that makes analytical scans fast makes changes slow, and Parquet makes this concrete: a Parquet file is effectively immutable. You add data by writing new files, and you change a value by rewriting the file that holds it, because there is no in-place update and no row-level write. For data that arrives in batches and is read far more than written, that is fine, even helpful. For data that is constantly corrected and updated one record at a time, it is a poor fit, and the record belongs in the row store from Lecture 3. Column stores lose the point write; that is not a defect to engineer around but a property to respect.
+The layout that makes analytical scans fast makes changes slow. A Parquet file is effectively immutable: you add data by writing new files, and you change a value by rewriting the file that holds it, because there is no in-place update. For data that arrives in batches and is read far more than written, that is fine. For data that is constantly corrected one record at a time, it is a poor fit, and that record belongs in the row store from Lecture 3.
 
 ### DuckDB is an engine, not a shared server
 
 ```{index} pair: failure mode; DuckDB as a shared server
 ```
 
-DuckDB runs inside one process, which is the source of its convenience and also its boundary. It is superb for one analyst's laptop, one pipeline's transform step, one service's embedded analytics. It is not a shared transactional backend that many clients write to concurrently with the isolation guarantees PostgreSQL provides, and it is not trying to be. When several writers need a single consistent view under concurrent updates, that is the relational server's job. DuckDB complements it, most naturally through the `postgres` attachment that lets it read the server's data for analysis without becoming the server.
+DuckDB runs inside one process, which is the source of its convenience and also its limit. It is excellent for one analyst's laptop, one pipeline's transform step, one service's embedded analytics. It is not a shared backend that many clients write to at once with the isolation PostgreSQL provides, and it does not try to be. When several writers need one consistent view under concurrent updates, that is the relational server's job.
 
 ### Small data needs none of this
 
-The measured 80-times speedup appears at millions of rows. At a few hundred thousand it shrinks, and at data that fits comfortably in memory a pandas `groupby` is simpler, fast enough, and one fewer moving part. The columnar machinery earns its keep at scale; below that scale, reaching for it is over-engineering, the same lesson Lecture 2 made about scaffolding a throwaway script. Match the tool to the size as well as to the access pattern.
+The 80-times speedup shows up at millions of rows. At a few hundred thousand it shrinks, and for data that fits comfortably in memory a pandas `groupby` is simpler, fast enough, and one fewer moving part. The columnar machinery pays off at scale; below that scale, reaching for it is over-engineering, the same lesson Lecture 2 made about scaffolding a throwaway script.
 
-### OLTP and OLAP compose; "just use DuckDB" is a trap
+### OLTP and OLAP compose
 
-The most common mistake after this lecture is to conclude that DuckDB and Parquet replace the relational database. They do not. A real platform typically runs both: PostgreSQL absorbs the live writes with its schema and transactions intact, and the history is periodically laid down as Parquet that DuckDB scans for analytics, with the `postgres` extension as the bridge between them. The skill is not loyalty to a column store or a row store; it is placing each part of the workload where its access pattern is cheap, and moving data across the seam deliberately.
-
-### The NoSQL stores trade away the guarantees you just learned to value
-
-Document, key-value, and time-series stores each solve a real problem by giving something up, and the thing they give up is usually the relational contract from Lecture 3: the enforced schema, the cross-table joins, the transactions. That is the right trade when your data genuinely does not fit a table, and a bad one when you reach for a document store merely to avoid designing a schema. Choose one because your access pattern demands it, not because a schema felt like work.
+The most common mistake after this lecture is to conclude that DuckDB and Parquet replace the relational database. They do not. A real platform typically runs both: PostgreSQL takes the live writes with its schema and transactions intact, and the history is periodically written out as Parquet that DuckDB scans for analytics. The choice is not loyalty to a row store or a column store; it is putting each part of the workload where its access pattern is cheap.
 
 :::{admonition} What a practitioner should take from this
 :class: tip
 
-Store data in the shape that matches how it will be read. Continuous writes, point lookups, and strong consistency say row store and OLTP, which is the relational database of Lecture 3. Wide scans and aggregates over history say column store and OLAP, which is Parquet plus an engine like DuckDB, and the payoff there is large and measured, not folklore. Most serious systems run both and move data across the seam on purpose. Reach past all of these to a document, key-value, time-series, or vector store only when your access pattern genuinely leaves the relational model behind, and never merely to dodge designing a schema. The skill this arc is building is not fluency in any one store; it is matching the store to the access pattern.
+Store data in the shape that matches how it will be read. Continuous writes, point lookups, and strong consistency mean a row store and OLTP, which is the relational database of Lecture 3. Wide scans and aggregates over history mean a column store and OLAP, which is Parquet plus an engine like DuckDB, and the payoff there is large (about 80 times here). Most serious systems run both and move data across the seam on purpose. Reach past all of these to a document, key-value, or time-series store only when your access pattern leaves the relational model behind, and never just to avoid designing a schema.
 :::
 
 ## In-class demo
 
-We pick up the Intel Lab readings exactly where Lecture 3 left them and change only where they live. Starting from the data, we write it out as partitioned Parquet, then ask the same analytical question, the average temperature per mote over the whole table, three ways: as a pandas `groupby`, as SQL against a row store, and as SQL against the Parquet through DuckDB, comparing both the lines of code and the wall-clock time. Then we lean on DuckDB's zero-import reach: querying the Parquet files directly with no load step, watching a filtered query prune partitions, and, if the Lecture 3 PostgreSQL from its `docker-compose` is running, attaching that live database and even joining its tables against the Parquet in a single query.
+We pick up the Intel Lab readings where Lecture 3 left them and change only where they live. Starting from the data, we write it out as partitioned Parquet, then ask the same analytical question, the average temperature per mote over the whole table, three ways: as a pandas `groupby`, as SQL against a row store, and as SQL against the Parquet through DuckDB, comparing both the lines of code and the wall-clock time. Then we use DuckDB's zero-import reach: querying the Parquet files directly with no load step, and watching a filtered query prune partitions.
 
-The two moments to watch are the ones the figures previewed. The first is the analytical scan: the row store's time climbs with the table while the columnar read stays nearly flat, because one reads every column and the other reads two. The second is the zero-import query against Parquet and against PostgreSQL, where DuckDB answers a question over data it never loaded. The runnable notebook is [`l04-storage.ipynb`](l04-storage.ipynb); the optional PostgreSQL section expects the Lecture 3 compose database and is written to skip cleanly if it is not up.
+The moment to watch is the analytical scan. The row store's time climbs with the table while the columnar read stays nearly flat, because one reads every column and the other reads two. The runnable notebook is [`l04-storage.ipynb`](l04-storage.ipynb).
 
 ## Summary
 
-The lesson of this session is that storage layout should match access pattern. The relational row store from Lecture 3 is built for transactions and point lookups and is the right home for live, continuously written engineering data; it is the wrong tool for scanning one channel across the whole history, because a row store reads every column of every row. A column store fixes exactly that, and Parquet is its standard file form: columnar, compressed per column, partitioned for pruning, and self-contained. DuckDB is the embedded engine that reads Parquet, CSV, and even a live PostgreSQL with no import step, applying projection and predicate pushdown so an analytical query touches only what it needs. On the Intel Lab readings the difference is about 80 times in query time and 5.5 times in file size, measured rather than asserted. Around these two stores sits a wider landscape, document stores for irregular metadata, key-value for caches and configs, time-series for high-rate ingestion, and vector stores for similarity search, each a deliberate trade of a relational guarantee for a fit to one access pattern. The through-line is that storage layout is a choice made against how the data will be read, and matching the two is the skill this session builds.
+Storage layout should match access pattern. The relational row store from Lecture 3 is built for transactions and point lookups and is the right home for live, continuously written data; it is the wrong tool for scanning one channel across the whole history, because a row store reads every column of every row. A column store fixes exactly that, and Parquet is its standard file form: columnar, compressed per column, partitioned for pruning, and self-contained. DuckDB is the embedded engine that reads Parquet with no import step, applying projection and predicate pushdown so a query touches only what it needs. On the Intel Lab readings the difference is about 80 times in query time and 5.5 times in file size, measured rather than assumed. Around these two stores sit a few others, document for irregular metadata, key-value for caches, time-series for high-rate ingestion, each a deliberate trade of a relational guarantee for a fit to one access pattern. The skill this session builds is matching the store to how the data will be read.
 
 ## Resources
 
-- [DuckDB, Reading and writing Parquet](https://duckdb.org/docs/stable/data/parquet/overview). Querying Parquet directly with `read_parquet` and `FROM 'file.parquet'`, and writing it with `COPY ... TO`. The place to start.
+- [DuckDB, Reading and writing Parquet](https://duckdb.org/docs/stable/data/parquet/overview). Querying Parquet directly with `FROM 'file.parquet'` and writing it with `COPY ... TO`. The place to start.
 - [DuckDB, Parquet tips](https://duckdb.org/docs/stable/data/parquet/tips). How projection and row-group skipping (via per-column min/max statistics) actually cut the work.
-- [DuckDB, PostgreSQL extension](https://duckdb.org/docs/stable/core_extensions/postgres). `ATTACH ... (TYPE postgres)` to read and join a live PostgreSQL database with no export.
 - [DuckDB, Why DuckDB](https://duckdb.org/why_duckdb). The in-process, OLAP design goals in the project's own words.
 - [Apache Parquet, File format](https://parquet.apache.org/docs/file-format/) and [overview](https://parquet.apache.org/docs/overview/). Row groups, column chunks, and the footer metadata, from the source.
 - [Kleppmann, *Designing Data-Intensive Applications*, Ch. 3](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781491903063/). "Column-Oriented Storage" is the clearest explanation of why row and column stores make opposite choices (1st edition; chapter numbering differs in the 2nd).
 - [MongoDB, Document databases](https://www.mongodb.com/resources/basics/databases/document-databases). What a document store is and when a flexible, per-record schema fits.
 - [InfluxDB, Get started](https://docs.influxdata.com/influxdb/v2/get-started/). A purpose-built time-series platform, for the high-ingest end of the landscape.
-- [Redis](https://redis.io/about/). The in-memory key-value store, for caches, configs, and hot lookups.
-- [FAISS wiki](https://github.com/facebookresearch/faiss/wiki). Similarity search over dense vectors, the vector-store machinery behind retrieval-augmented generation.
+- [Redis](https://redis.io/about/). The in-memory key-value store, for caches and hot lookups.
 - [Intel Lab Data](https://db.csail.mit.edu/labdata/labdata.html). The dataset carried over from Lecture 3, now stored columnar. Served over plain HTTP.
 
 ## Assignment
 
-Assignment 2, "Sensor data into PostgreSQL + DuckDB," was released at Lecture 3 and is due roughly one week later. Its first half is Lecture 3's material; its second half is this session's, moving the same dataset into Parquet and DuckDB, answering a set of engineering queries there, and comparing the columnar results against the relational ones you already produced. You can therefore start the DuckDB and Parquet half now that this session is done. This is a pointer, not the rubric.
+Assignment 2, "Sensor data into PostgreSQL + DuckDB," is released this session and is due roughly one week later. Its first half is Lecture 3's material, loading the sensor data into PostgreSQL and querying it with SQL; its second half is this session's, moving the same dataset into Parquet and DuckDB and comparing the two. With both halves now covered, you can do the whole assignment. This is a pointer, not the rubric.
 
 ## Practice module
 

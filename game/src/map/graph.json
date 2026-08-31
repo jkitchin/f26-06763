@@ -29,7 +29,7 @@
       "from": "l04",
       "to": "l03",
       "weight": 1,
-      "where": "At the end of [Lecture 3](../l03/notes.md) we had the Intel Berkeley Lab readings in a relational database, indexed on `(sensor_id, ts)` so that a selective que",
+      "where": "At the end of [Lecture 3](../l03/notes.md) the Intel Berkeley Lab readings sat in a relational database, indexed on `(sensor_id, ts)` so that a narrow query, on",
       "origin": "link"
     },
     {

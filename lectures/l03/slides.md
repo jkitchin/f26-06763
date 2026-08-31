@@ -792,6 +792,10 @@ comparison.
 
 ## Loading, indexes, query cost, `EXPLAIN ANALYZE`: read two things
 
+<style scoped>
+section { font-size: 25px; }
+</style>
+
 <div class="definition">
 
 **`EXPLAIN ANALYZE`**: runs the query and prints the plan the database actually chose, annotated with real timings.
@@ -955,14 +959,5 @@ Nicknames only. Everyone who skipped one still counted in every bar you saw.
      data-top="8"
      data-hours="6"
      data-title="Standings"></div>
-
----
-
-## Next
-
-**Assignment 2** released today, due ~1 week
-**Reading** PostgreSQL window functions; Kleppmann Ch. 3
-
-Full notes, with all sources: `lectures/l03/notes.md`
 
 <script src="clicker-slide.js"></script>

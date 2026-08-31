@@ -45,6 +45,7 @@ python tools/release_lecture.py 3
 
 # Verify locally the way CI will:
 python game/validate.py
+python tools/graph.py --check           # map corridors from the notes' cross-links
 python tools/world.py --check
 python tools/pool_archive.py --check
 jupyter-book build . --warningiserror   # builds only the released lectures
