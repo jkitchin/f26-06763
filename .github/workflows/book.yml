@@ -223,31 +223,47 @@ jobs:
           # under. Matches the quiz job so the two cannot drift.
           node-version: "24"
 
-      - name: Check the A1 evidence checksum matches the script
-        # Students are told to compare the sha256 the report prints against
-        # a01-evidence.py.sha256 on the site, and a TA is told to do the same. If
-        # the script is edited and the checksum is not regenerated, every honest
+      - name: Check every evidence checksum matches its script
+        # Students are told to compare the sha256 the report prints against the
+        # a0N-evidence.py.sha256 on the site, and a TA is told to do the same. If
+        # a script is edited and its checksum is not regenerated, every honest
         # submission mismatches at once and the error lands on students who did
         # nothing wrong. That is the same false-positive shape as bumping SCHEMA
         # in one place only, so it is checked here rather than remembered.
+        #
+        # Globbed rather than listed, so adding a03-evidence.py does not
+        # silently ship without its checksum being guarded.
         run: |
           python3 - <<'PY'
           import hashlib
           import pathlib
           import sys
 
-          script = pathlib.Path("course/assignments/a01-evidence.py")
-          published = pathlib.Path("course/assignments/a01-evidence.py.sha256")
-          digest = hashlib.sha256(script.read_bytes()).hexdigest()
-          recorded = published.read_text().split()[0]
-          if digest != recorded:
-              sys.exit(
-                  f"{published} records {recorded}\nbut {script} hashes to {digest}\n"
-                  f"Regenerate it:\n"
-                  f"  shasum -a 256 {script} | "
-                  f"awk '{{print $1\"  a01-evidence.py\"}}' > {published}"
-              )
-          print(f"A1 evidence checksum matches: {digest}")
+          problems, checked = [], 0
+          scripts = sorted(pathlib.Path("course/assignments").glob("a*-evidence.py"))
+          if not scripts:
+              sys.exit("no a*-evidence.py found under course/assignments")
+          for script in scripts:
+              published = script.with_suffix(".py.sha256")
+              if not published.is_file():
+                  problems.append(f"{script} has no {published.name} beside it")
+                  continue
+              digest = hashlib.sha256(script.read_bytes()).hexdigest()
+              recorded = published.read_text().split()[0]
+              if digest != recorded:
+                  problems.append(
+                      f"{published} records {recorded}\n"
+                      f"but {script} hashes to {digest}\n"
+                      f"Regenerate it:\n"
+                      f"  shasum -a 256 {script} | "
+                      f"awk '{{print $1\"  {script.name}\"}}' > {published}"
+                  )
+              else:
+                  checked += 1
+                  print(f"{script.name} checksum matches: {digest}")
+          if problems:
+              sys.exit("\n\n".join(problems))
+          print(f"{checked} evidence checksum(s) match")
           PY
 
       - name: Check every lecture links its practice module
