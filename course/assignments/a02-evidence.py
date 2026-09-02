@@ -4,7 +4,19 @@ r"""Build the Assignment 2 evidence report.
 Run this in the root of your A2 project, the directory holding your `sql/`,
 your loader, your `lab.db` and your `REPORT.md`:
 
-    python3 a02-evidence.py --andrew-id yourid --name "Your Name"
+    uv run --no-project https://kitchingroup.cheme.cmu.edu/f26-06763/a02-evidence.py \
+        --andrew-id yourid --name "Your Name"
+
+or, on a copy you downloaded:
+
+    uv run --no-project a02-evidence.py --andrew-id yourid --name "Your Name"
+
+`--no-project` matters. This script imports nothing outside the standard
+library, so it needs nothing from your project, and that flag keeps it from
+touching your environment on the way in. A plain `uv run` would sync your
+project first, which means a stale lockfile or an unresolvable dependency would
+leave you with no report at all -- one mistake taking down a submission that is
+otherwise fine. `python3 a02-evidence.py ...` works identically if you prefer it.
 
 It writes `evidence.pdf`. Upload that to Canvas. Read it before you send it.
 
@@ -52,9 +64,9 @@ project laid out sensibly under other names still produces a report rather than 
 page of failures. What it found is printed at the top, and the guesses can be
 overridden with --db, --schema, --queries, --report and --raw.
 
-Standard library only -- `sqlite3` is in it -- so this runs on the system Python
-with nothing installed. It shells out to `git` if it is there, and to nothing
-else.
+Standard library only -- `sqlite3` is in it -- so it runs under any Python 3.11
+or newer with nothing installed, whether that is uv's or your system's. It shells
+out to `git` if it is there, and to nothing else.
 """
 
 from __future__ import annotations
