@@ -515,7 +515,7 @@ same query before and after building the index:
 ```sql
 EXPLAIN ANALYZE
 SELECT count(*) FROM readings
-WHERE  sensor_id = 5
+WHERE  sensor_id = 1
   AND  ts BETWEEN '2004-03-15' AND '2004-03-16';
 ```
 

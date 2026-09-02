@@ -759,8 +759,8 @@ Composite, **in that order**: cluster by sensor, sort by time.
 **You created `CREATE INDEX ON readings (sensor_id, ts)`. Which `WHERE` clause does it fail to help?**
 
 <ol class="clicker-opts">
-<li><code>sensor_id = 5 AND ts BETWEEN $1 AND $2</code></li>
-<li><code>sensor_id = 5</code></li>
+<li><code>sensor_id = 1 AND ts BETWEEN $1 AND $2</code></li>
+<li><code>sensor_id = 1</code></li>
 <li><code>ts BETWEEN $1 AND $2</code>, every mote</li>
 <li><code>sensor_id IN (5, 12) AND ts &gt; $1</code></li>
 </ol>
@@ -811,7 +811,7 @@ Run the query; print the real plan and timings.
 ```sql
 EXPLAIN ANALYZE
 SELECT count(*) FROM readings
-WHERE sensor_id = 5
+WHERE sensor_id = 1
   AND ts BETWEEN '2004-03-15' AND '2004-03-16';
 ```
 
@@ -827,7 +827,7 @@ Before the index (9.1M rows):
 Aggregate
   -> Gather  (Workers Planned: 2)
        -> Parallel Seq Scan on readings
-            Filter: (sensor_id = 5 AND ts BETWEEN ...)
+            Filter: (sensor_id = 1 AND ts BETWEEN ...)
 Execution Time: ~190 ms
 ```
 
