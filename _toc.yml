@@ -28,9 +28,9 @@ parts:
       - file: lectures/l04/notes
         sections:
           - file: lectures/l04/l04-storage
-#       - file: lectures/l05/notes
-#         sections:
-#           - file: lectures/l05/l05-pipelines
+      - file: lectures/l05/notes
+        sections:
+          - file: lectures/l05/l05-pipelines
 #       - file: lectures/l06/notes
 #         sections:
 #           - file: lectures/l06/l06-validation
@@ -84,7 +84,7 @@ parts:
     chapters:
       - file: course/assignments/a01
       - file: course/assignments/a02
-#       - file: course/assignments/a03
+      - file: course/assignments/a03
 #       - file: course/assignments/a04
 #       - file: course/assignments/a05
 #       - file: course/assignments/a06
