@@ -169,8 +169,6 @@ Rows win the point write and lookup: one whole row, or one update, touches every
 
 A column store complements the Lecture 3 row store; each handles the workload the other is slow at.
 
-[Kleppmann, DDIA ch. 3](https://www.oreilly.com/library/view/designing-data-intensive-applications/9781491903063/)
-
 ---
 
 <!-- _class: section -->
@@ -410,6 +408,3 @@ Intel Lab data → Parquet → the same query in pandas, a SQLite row store, and
 ## Next
 
 **Assignment 2** released today: PostgreSQL (Lecture 3) + Parquet/DuckDB (today)
-**Reading** DuckDB Parquet docs; Kleppmann ch. 3
-
-Full notes, with all sources: `lectures/l04/notes.md`
