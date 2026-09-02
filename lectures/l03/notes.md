@@ -335,6 +335,22 @@ pleasant and slightly uncanny the first time you notice it, is that the very sam
 by a completely different physical plan tomorrow, after the data has grown or an index has
 appeared, with not a character of the query changed.
 
+A word about the join, because every one in this session is written as a bare
+`JOIN` and that is not the only kind. A plain `JOIN` is an **inner** join: it keeps
+only the rows that match on both sides, and a row with no partner is not returned
+at all. It does not come back with blanks, it is simply absent, and nothing warns
+you. A **`LEFT JOIN`** instead keeps every row of the left-hand table and fills
+`NULL` where the right-hand side had no match, which is what you want whenever the
+left table is a list you need to be complete: a roster of sensors, a calendar of
+days, a catalogue of parts. The difference is invisible until the day it matters,
+and then it is the difference between "these five sensors dropped the most
+readings" and "these five of the sensors that reported at all dropped the most" --
+a sensor that never reported cannot be missing from a result it was never in.
+Keep `LEFT JOIN` in mind for the assignment, and note that after one,
+`count(*)` and `count(some_right_column)` are deliberately different numbers, for
+the `NULL` reasons in the three-valued-logic section below.
+
+
 Time bucketing is the workhorse of time-series SQL, and `date_trunc` is how you do it. It
 rounds a timestamp down to a chosen granularity, the hour or the day or the minute, so that
 grouping by the truncated value collapses a mess of irregular readings into tidy, regular
@@ -723,6 +739,9 @@ than a universal answer.
 - [PostgreSQL Tutorial](https://www.postgresql.org/docs/current/tutorial.html). The official
   walk-through from `CREATE TABLE` to joins and aggregates; the fastest way to get fluent if
   SQL is new to you.
+- [PostgreSQL: Joins Between Tables](https://www.postgresql.org/docs/current/tutorial-join.html).
+  Inner against outer joins in two pages of worked examples. Read it before the
+  assignment: a `LEFT JOIN` is the only way to see a sensor that never reported.
 - [PostgreSQL: Window Functions](https://www.postgresql.org/docs/current/tutorial-window.html).
   The tutorial chapter on `OVER`, `PARTITION BY`, and frames, which are the part of SQL that
   makes time-series tractable.
