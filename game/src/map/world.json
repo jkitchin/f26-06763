@@ -127,13 +127,13 @@
       "id": "l05",
       "date": "2026-09-09",
       "title": "Dataframes and scalable data processing",
-      "written": false,
+      "written": true,
       "arc_source": "declared",
       "arc": "Data Systems",
       "region": 1,
       "x": 4,
       "y": 2,
-      "notes": null
+      "notes": "../lectures/l05/notes.html"
     },
     {
       "session": "L6",

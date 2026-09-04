@@ -2,7 +2,7 @@ schema: 1
 lecture: l05
 title: "Dataframes, batch pipelines, and distributed concepts"
 source_notes: lectures/l05/notes.md
-status: unwritten
+status: published
 serve: 5
 pool_version: 3
 provenance:
