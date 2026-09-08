@@ -147,7 +147,7 @@ items:
     source:
       file: lectures/l05/notes.md
       heading: "Making it safe to rerun"
-      quote: "the stale file gets reused silently, because nothing tells it to invalidate"
+      quote: "The stale file gets reused silently, because nothing tells it to invalidate."
     verify: {mode: quote, needle: "stale file gets reused silently", volatility: stable}
     tags: [pipelines, caching, idempotency]
 

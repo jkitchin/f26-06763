@@ -184,14 +184,15 @@
 - id: l05-o1
   lecture: l05
   text: >-
-    Write pandas and Polars code that operates on whole columns at once instead of row by row,
-    including grouping, joining, and reshaping a table between long and wide form.
+    Get more familiar with pandas and, most importantly, write Polars code that operates on
+    whole columns at once instead of row by row, including grouping, joining, and reshaping a
+    dataset between long and wide form.
 
 - id: l05-o2
   lecture: l05
   text: >-
     Break a data pipeline into small steps that each read one file and write one file, so a run
-    that fails partway through can be started again without corrupting anything.
+    that fails halfway through can be started again without corrupting anything.
 
 - id: l05-o3
   lecture: l05
