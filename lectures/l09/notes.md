@@ -343,8 +343,8 @@ correctable deficiency; a summary statistic will never tell you so.
 
 When the target is a class rather than a quantity, the metric problem changes shape and gets
 harder, because engineering fault data is almost always imbalanced. Consider the
-[UCI SECOM dataset](https://archive.ics.uci.edu/dataset/179/secom) from
-[Lecture 5](../l05/notes.md): 1,567 semiconductor production runs with 590 process sensors each, of
+[UCI SECOM dataset](https://archive.ics.uci.edu/dataset/179/secom), a semiconductor
+fabrication line's process sensors: 1,567 production runs with 590 sensors each, of
 which **104 runs failed**, a 6.6% failure rate. Accuracy is useless here by inspection: a
 model that declares everything a pass scores 93.4%.
 

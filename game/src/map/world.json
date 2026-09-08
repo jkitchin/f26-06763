@@ -126,7 +126,7 @@
       "session": "L5",
       "id": "l05",
       "date": "2026-09-09",
-      "title": "Dataframes and scalable data processing",
+      "title": "Dataframes and batch pipelines",
       "written": false,
       "arc_source": "declared",
       "arc": "Data Systems",
@@ -372,7 +372,15 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "`sensors` and `readings` tables in [Lecture 3](../l03/notes.md), and the same warning applies here that"
+      "where": "[Lecture 3](../l03/notes.md) gave you SQL: describe the result you want, and the database's planner works out how to get it. [Lecture 4](../l04/notes.md) gave y"
+    },
+    {
+      "from": "l05",
+      "to": "l04",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "[Lecture 3](../l03/notes.md) gave you SQL: describe the result you want, and the database's planner works out how to get it. [Lecture 4](../l04/notes.md) gave y"
     },
     {
       "from": "l06",
@@ -404,7 +412,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "[Lecture 5](../l05/notes.md) offers a neat shortcut for finding constant columns: a numeric column is"
+      "where": "same test the batch pipeline in [Lecture 5](../l05/notes.md) uses to drop a dead channel, and this"
     },
     {
       "from": "l08",
@@ -429,14 +437,6 @@
       "relation": null,
       "why": null,
       "where": "[Lecture 7](../l07/notes.md) ended on a leak so small you could miss it. Fitting a scaler on the test data instead of the training data changed the reported err"
-    },
-    {
-      "from": "l09",
-      "to": "l05",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "[Lecture 5](../l05/notes.md): 1,567 semiconductor production runs with 590 process sensors each, of"
     },
     {
       "from": "l09",

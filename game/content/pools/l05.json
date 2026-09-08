@@ -261,6 +261,441 @@
         }
       },
       "serve": 5
+    },
+    "4": {
+      "items": {
+        "l05-q01": {
+          "answer": "It leaks information from the test set into the training set, so the model looks better than it is",
+          "options": [
+            "It is slower than necessary, since the mean could be cached instead of recomputed",
+            "It leaks information from the test set into the training set, so the model looks better than it is",
+            "It silently changes column dtypes, which breaks the downstream schema",
+            "Nothing; imputing before the split is the standard order of operations"
+          ]
+        },
+        "l05-q02": {
+          "answer": "It folds the selection into the scan, so only those 6 columns are read off disk: projection pushdown",
+          "options": [
+            "Nothing; scan_parquet always reads every column regardless of what is selected later",
+            "It folds the selection into the scan, so only those 6 columns are read off disk: projection pushdown",
+            "It reads all 55 columns into memory first, then drops 49 of them: eager projection",
+            "It reads only the first 6 columns in file order, which only works if you select by position"
+          ]
+        },
+        "l05-q03": {
+          "answer": "Errors move away from the line that causes them, frequently not raising until `.collect()`",
+          "options": [
+            "Memory, since the whole plan must be held before anything executes",
+            "Errors move away from the line that causes them, frequently not raising until `.collect()`",
+            "Determinism, since the optimizer may reorder operations between runs",
+            "Type safety, since column types are only known once the data is materialised"
+          ]
+        },
+        "l05-q04": {
+          "answer": "When your collaborators, your codebase, or the library you need next only speaks pandas",
+          "options": [
+            "When the data fits in memory, since Polars' advantage only appears above that",
+            "When your collaborators, your codebase, or the library you need next only speaks pandas",
+            "When the transformations are simple, since Polars' optimizer needs complex queries to pay off",
+            "When you need plotting, since Polars cannot be converted to a plottable form"
+          ]
+        },
+        "l05-q05": {
+          "answer": "The stale file is reused, because nothing keyed on the config invalidates a file keyed only on the stage name",
+          "options": [
+            "The cache is invalidated automatically, since the config is part of the stage's inputs",
+            "The stale file is reused, because nothing keyed on the config invalidates a file keyed only on the stage name",
+            "The stage fails, since the cached schema no longer matches the new config",
+            "A new cache entry is written alongside the old one, and the newer is preferred"
+          ]
+        },
+        "l05-q06": {
+          "answer": "Within a factor of two of 100 times slower",
+          "options": [
+            "Within a factor of two of 100 times slower",
+            "About 5 times slower, which is the usual interpreter overhead",
+            "About 1,000 times slower, since every element crosses the Python-C boundary",
+            "Roughly the same, since NumPy loops internally anyway"
+          ]
+        },
+        "l05-q07": {
+          "answer": "Arrow is an in-memory columnar layout; Parquet is an on-disk columnar file format",
+          "options": [
+            "They are the same format, with Arrow being the newer name",
+            "Arrow is an in-memory columnar layout; Parquet is an on-disk columnar file format",
+            "Arrow is for streaming and Parquet for batch, so they suit different pipeline stages",
+            "Parquet is Arrow with compression enabled, so the two are interchangeable at rest"
+          ]
+        },
+        "l05-q08": {
+          "answer": "It produces the same output for the same input, so a partial failure can be retried without corrupting anything",
+          "options": [
+            "It produces the same output for the same input, so a partial failure can be retried without corrupting anything",
+            "It runs in constant time regardless of input size, which makes scheduling predictable",
+            "It holds no state between invocations, so stages can run in any order",
+            "It writes atomically, so a reader never sees a half-written file"
+          ]
+        },
+        "l05-q09": {},
+        "l05-q10": {
+          "answer": "That the ratio is a property of this workload and this machine, and the transferable habit is measuring rather than assuming",
+          "options": [
+            "That Polars should replace pandas in your projects, since the benchmark settles it",
+            "That the ratio is a property of this workload and this machine, and the transferable habit is measuring rather than assuming",
+            "That the two are equivalent, since the difference is within run-to-run noise",
+            "That benchmarks of this kind are not meaningful, since real pipelines are dominated by input and output"
+          ]
+        }
+      },
+      "serve": 5
+    },
+    "5": {
+      "items": {
+        "l05-q01": {
+          "answer": "It leaks information from the test set into the training set, so the model looks better than it is",
+          "options": [
+            "It is slower than necessary, since the mean could be cached instead of recomputed",
+            "It leaks information from the test set into the training set, so the model looks better than it is",
+            "It silently changes column dtypes, which breaks the downstream schema",
+            "Nothing; imputing before the split is the standard order of operations"
+          ]
+        },
+        "l05-q02": {
+          "answer": "It folds the selection into the scan, so only those 6 columns are read off disk: projection pushdown",
+          "options": [
+            "Nothing; scan_parquet always reads every column regardless of what is selected later",
+            "It folds the selection into the scan, so only those 6 columns are read off disk: projection pushdown",
+            "It reads all 55 columns into memory first, then drops 49 of them: eager projection",
+            "It reads only the first 6 columns in file order, which only works if you select by position"
+          ]
+        },
+        "l05-q03": {
+          "answer": "Errors move away from the line that causes them, frequently not raising until `.collect()`",
+          "options": [
+            "Memory, since the whole plan must be held before anything executes",
+            "Errors move away from the line that causes them, frequently not raising until `.collect()`",
+            "Determinism, since the optimizer may reorder operations between runs",
+            "Type safety, since column types are only known once the data is materialised"
+          ]
+        },
+        "l05-q04": {
+          "answer": "When your collaborators, your codebase, or the library you need next only speaks pandas",
+          "options": [
+            "When the data fits in memory, since Polars' advantage only appears above that",
+            "When your collaborators, your codebase, or the library you need next only speaks pandas",
+            "When the transformations are simple, since Polars' optimizer needs complex queries to pay off",
+            "When you need plotting, since Polars cannot be converted to a plottable form"
+          ]
+        },
+        "l05-q05": {
+          "answer": "The stale file is reused, because nothing keyed on the config invalidates a file keyed only on the stage name",
+          "options": [
+            "The cache is invalidated automatically, since the config is part of the stage's inputs",
+            "The stale file is reused, because nothing keyed on the config invalidates a file keyed only on the stage name",
+            "The stage fails, since the cached schema no longer matches the new config",
+            "A new cache entry is written alongside the old one, and the newer is preferred"
+          ]
+        },
+        "l05-q06": {
+          "answer": "Within a factor of two of 100 times slower",
+          "options": [
+            "Within a factor of two of 100 times slower",
+            "About 5 times slower, which is the usual interpreter overhead",
+            "About 1,000 times slower, since every element crosses the Python-C boundary",
+            "Roughly the same, since NumPy loops internally anyway"
+          ]
+        },
+        "l05-q07": {
+          "answer": "Both represent their columns in the Apache Arrow memory layout, so conversion often shares buffers instead of copying them",
+          "options": [
+            "Both libraries call the same C extension underneath, so no data actually moves",
+            "Both represent their columns in the Apache Arrow memory layout, so conversion often shares buffers instead of copying them",
+            "pandas and Polars use identical column names and types by convention, so no translation is needed",
+            "Polars automatically caches every pandas dataframe it has already seen"
+          ]
+        },
+        "l05-q08": {
+          "answer": "It produces the same output for the same input, so a partial failure can be retried without corrupting anything",
+          "options": [
+            "It produces the same output for the same input, so a partial failure can be retried without corrupting anything",
+            "It runs in constant time regardless of input size, which makes scheduling predictable",
+            "It holds no state between invocations, so stages can run in any order",
+            "It writes atomically, so a reader never sees a half-written file"
+          ]
+        },
+        "l05-q09": {},
+        "l05-q10": {
+          "answer": "That the ratio is a property of this workload and this machine, and the transferable habit is measuring rather than assuming",
+          "options": [
+            "That Polars should replace pandas in your projects, since the benchmark settles it",
+            "That the ratio is a property of this workload and this machine, and the transferable habit is measuring rather than assuming",
+            "That the two are equivalent, since the difference is within run-to-run noise",
+            "That benchmarks of this kind are not meaningful, since real pipelines are dominated by input and output"
+          ]
+        }
+      },
+      "serve": 5
+    },
+    "6": {
+      "items": {
+        "l05-q01": {
+          "answer": "There is no intermediate output to open, so you cannot tell which step introduced it without adding prints and re-running the whole thing",
+          "options": [
+            "Nothing; one function is easier to debug because all the logic sits in one place",
+            "There is no intermediate output to open, so you cannot tell which step introduced it without adding prints and re-running the whole thing",
+            "The error has to be in the aggregation, since that is the last step that ran",
+            "You can only find it by rewriting the pipeline in Polars, whose query plan shows each step"
+          ]
+        },
+        "l05-q02": {
+          "answer": "It folds the selection into the scan, so only those 6 columns are read off disk: projection pushdown",
+          "options": [
+            "Nothing; scan_parquet always reads every column regardless of what is selected later",
+            "It folds the selection into the scan, so only those 6 columns are read off disk: projection pushdown",
+            "It reads all 55 columns into memory first, then drops 49 of them: eager projection",
+            "It reads only the first 6 columns in file order, which only works if you select by position"
+          ]
+        },
+        "l05-q03": {
+          "answer": "Errors move away from the line that causes them, frequently not raising until `.collect()`",
+          "options": [
+            "Memory, since the whole plan must be held before anything executes",
+            "Errors move away from the line that causes them, frequently not raising until `.collect()`",
+            "Determinism, since the optimizer may reorder operations between runs",
+            "Type safety, since column types are only known once the data is materialised"
+          ]
+        },
+        "l05-q04": {
+          "answer": "When your collaborators, your codebase, or the library you need next only speaks pandas",
+          "options": [
+            "When the data fits in memory, since Polars' advantage only appears above that",
+            "When your collaborators, your codebase, or the library you need next only speaks pandas",
+            "When the transformations are simple, since Polars' optimizer needs complex queries to pay off",
+            "When you need plotting, since Polars cannot be converted to a plottable form"
+          ]
+        },
+        "l05-q05": {
+          "answer": "The stale file is reused, because nothing keyed on the config invalidates a file keyed only on the stage name",
+          "options": [
+            "The cache is invalidated automatically, since the config is part of the stage's inputs",
+            "The stale file is reused, because nothing keyed on the config invalidates a file keyed only on the stage name",
+            "The stage fails, since the cached schema no longer matches the new config",
+            "A new cache entry is written alongside the old one, and the newer is preferred"
+          ]
+        },
+        "l05-q06": {
+          "answer": "Within a factor of two of 100 times slower",
+          "options": [
+            "Within a factor of two of 100 times slower",
+            "About 5 times slower, which is the usual interpreter overhead",
+            "About 1,000 times slower, since every element crosses the Python-C boundary",
+            "Roughly the same, since NumPy loops internally anyway"
+          ]
+        },
+        "l05-q07": {
+          "answer": "Both represent their columns in the Apache Arrow memory layout, so conversion often shares buffers instead of copying them",
+          "options": [
+            "Both libraries call the same C extension underneath, so no data actually moves",
+            "Both represent their columns in the Apache Arrow memory layout, so conversion often shares buffers instead of copying them",
+            "pandas and Polars use identical column names and types by convention, so no translation is needed",
+            "Polars automatically caches every pandas dataframe it has already seen"
+          ]
+        },
+        "l05-q08": {
+          "answer": "It produces the same output for the same input, so a partial failure can be retried without corrupting anything",
+          "options": [
+            "It produces the same output for the same input, so a partial failure can be retried without corrupting anything",
+            "It runs in constant time regardless of input size, which makes scheduling predictable",
+            "It holds no state between invocations, so stages can run in any order",
+            "It writes atomically, so a reader never sees a half-written file"
+          ]
+        },
+        "l05-q09": {},
+        "l05-q10": {
+          "answer": "That the ratio is a property of this workload and this machine, and the transferable habit is measuring rather than assuming",
+          "options": [
+            "That Polars should replace pandas in your projects, since the benchmark settles it",
+            "That the ratio is a property of this workload and this machine, and the transferable habit is measuring rather than assuming",
+            "That the two are equivalent, since the difference is within run-to-run noise",
+            "That benchmarks of this kind are not meaningful, since real pipelines are dominated by input and output"
+          ]
+        }
+      },
+      "serve": 5
+    },
+    "7": {
+      "items": {
+        "l05-q01": {
+          "answer": "There is no intermediate output to open, so you cannot tell which step introduced it without adding prints and re-running the whole thing",
+          "options": [
+            "Nothing; one function is easier to debug because all the logic sits in one place",
+            "There is no intermediate output to open, so you cannot tell which step introduced it without adding prints and re-running the whole thing",
+            "The error has to be in the aggregation, since that is the last step that ran",
+            "You can only find it by rewriting the pipeline in Polars, whose query plan shows each step"
+          ]
+        },
+        "l05-q02": {
+          "answer": "It folds the selection into the scan, so only those 6 columns are read off disk: projection pushdown",
+          "options": [
+            "Nothing; scan_parquet always reads every column regardless of what is selected later",
+            "It folds the selection into the scan, so only those 6 columns are read off disk: projection pushdown",
+            "It reads all 55 columns into memory first, then drops 49 of them: eager projection",
+            "It reads only the first 6 columns in file order, which only works if you select by position"
+          ]
+        },
+        "l05-q03": {
+          "answer": "Errors move away from the line that causes them, frequently not raising until `.collect()`",
+          "options": [
+            "Memory, since the whole plan must be held before anything executes",
+            "Errors move away from the line that causes them, frequently not raising until `.collect()`",
+            "Determinism, since the optimizer may reorder operations between runs",
+            "Type safety, since column types are only known once the data is materialized"
+          ]
+        },
+        "l05-q04": {
+          "answer": "When your collaborators, your codebase, or the library you need next only speaks pandas",
+          "options": [
+            "When the data fits in memory, since Polars' advantage only appears above that",
+            "When your collaborators, your codebase, or the library you need next only speaks pandas",
+            "When the transformations are simple, since Polars' optimizer needs complex queries to pay off",
+            "When you need plotting, since Polars cannot be converted to a plottable form"
+          ]
+        },
+        "l05-q05": {
+          "answer": "The stale file is reused, because nothing keyed on the config invalidates a file keyed only on the stage name",
+          "options": [
+            "The cache is invalidated automatically, since the config is part of the stage's inputs",
+            "The stale file is reused, because nothing keyed on the config invalidates a file keyed only on the stage name",
+            "The stage fails, since the cached schema no longer matches the new config",
+            "A new cache entry is written alongside the old one, and the newer is preferred"
+          ]
+        },
+        "l05-q06": {
+          "answer": "Within a factor of two of 100 times slower",
+          "options": [
+            "Within a factor of two of 100 times slower",
+            "About 5 times slower, which is the usual interpreter overhead",
+            "About 1,000 times slower, since every element crosses the Python-C boundary",
+            "Roughly the same, since NumPy loops internally anyway"
+          ]
+        },
+        "l05-q07": {
+          "answer": "Both represent their columns in the Apache Arrow memory layout, so conversion often shares buffers instead of copying them",
+          "options": [
+            "Both libraries call the same C extension underneath, so no data actually moves",
+            "Both represent their columns in the Apache Arrow memory layout, so conversion often shares buffers instead of copying them",
+            "pandas and Polars use identical column names and types by convention, so no translation is needed",
+            "Polars automatically caches every pandas dataframe it has already seen"
+          ]
+        },
+        "l05-q08": {
+          "answer": "It produces the same output for the same input, so a partial failure can be retried without corrupting anything",
+          "options": [
+            "It produces the same output for the same input, so a partial failure can be retried without corrupting anything",
+            "It runs in constant time regardless of input size, which makes scheduling predictable",
+            "It holds no state between invocations, so stages can run in any order",
+            "It writes atomically, so a reader never sees a half-written file"
+          ]
+        },
+        "l05-q09": {},
+        "l05-q10": {
+          "answer": "That the ratio is a property of this workload and this machine, and the transferable habit is measuring rather than assuming",
+          "options": [
+            "That Polars should replace pandas in your projects, since the benchmark settles it",
+            "That the ratio is a property of this workload and this machine, and the transferable habit is measuring rather than assuming",
+            "That the two are equivalent, since the difference is within run-to-run noise",
+            "That benchmarks of this kind are not meaningful, since real pipelines are dominated by input and output"
+          ]
+        }
+      },
+      "serve": 5
+    },
+    "8": {
+      "items": {
+        "l05-q01": {
+          "answer": "There is no intermediate output to open, so you cannot tell which step introduced it without adding prints and re-running the whole thing",
+          "options": [
+            "Nothing; one function is easier to debug because all the logic sits in one place",
+            "There is no intermediate output to open, so you cannot tell which step introduced it without adding prints and re-running the whole thing",
+            "The error has to be in the aggregation, since that is the last step that ran",
+            "You can only find it by rewriting the pipeline in Polars, whose query plan shows each step"
+          ]
+        },
+        "l05-q02": {
+          "answer": "It folds the selection into the scan, so only those 6 columns are read off disk: projection pushdown",
+          "options": [
+            "Nothing; scan_parquet always reads every column regardless of what is selected later",
+            "It folds the selection into the scan, so only those 6 columns are read off disk: projection pushdown",
+            "It reads all 55 columns into memory first, then drops 49 of them: eager projection",
+            "It reads only the first 6 columns in file order, which only works if you select by position"
+          ]
+        },
+        "l05-q03": {
+          "answer": "Errors move away from the line that causes them, sometimes several stages away",
+          "options": [
+            "Memory, since the whole plan must be held before anything executes",
+            "Errors move away from the line that causes them, sometimes several stages away",
+            "Determinism, since the optimizer may reorder operations between runs",
+            "Type safety, since column types are only known once the data is materialized"
+          ]
+        },
+        "l05-q04": {
+          "answer": "When your codebase or your collaborators only speak pandas",
+          "options": [
+            "When the data fits in memory, since Polars' advantage only appears above that",
+            "When your codebase or your collaborators only speak pandas",
+            "When the transformations are simple, since Polars' planner needs complex queries to pay off",
+            "When you need plotting, since Polars cannot be converted to a plottable form"
+          ]
+        },
+        "l05-q05": {
+          "answer": "The stale file is reused silently, because nothing about the filename reflects the config",
+          "options": [
+            "The cache is invalidated automatically, since the config is part of the stage's inputs",
+            "The stale file is reused silently, because nothing about the filename reflects the config",
+            "The stage fails, since the cached schema no longer matches the new config",
+            "A new cache entry is written alongside the old one, and the newer is preferred"
+          ]
+        },
+        "l05-q06": {
+          "answer": "Within a factor of two of 100 times slower",
+          "options": [
+            "Within a factor of two of 100 times slower",
+            "About 5 times slower, which is the usual interpreter overhead",
+            "About 1,000 times slower, since every element crosses the Python-C boundary",
+            "Roughly the same, since NumPy loops internally anyway"
+          ]
+        },
+        "l05-q07": {
+          "answer": "Both lay their columns out the same way in memory, the Arrow format",
+          "options": [
+            "Both libraries call the same C extension underneath, so no data actually moves",
+            "Both lay their columns out the same way in memory, the Arrow format",
+            "pandas and Polars use identical column names and types by convention, so no translation is needed",
+            "Polars automatically caches every pandas dataframe it has already seen"
+          ]
+        },
+        "l05-q08": {
+          "answer": "Running it twice has the same effect as running it once, so a partial failure can be retried without corrupting anything",
+          "options": [
+            "Running it twice has the same effect as running it once, so a partial failure can be retried without corrupting anything",
+            "It runs in constant time regardless of input size, which makes scheduling predictable",
+            "It holds no state between invocations, so stages can run in any order",
+            "It writes atomically, so a reader never sees a half-written file"
+          ]
+        },
+        "l05-q09": {},
+        "l05-q10": {
+          "answer": "That the ratio is a property of this workload and this machine, and the transferable habit is measuring rather than assuming",
+          "options": [
+            "That Polars should replace pandas in your projects, since the benchmark settles it",
+            "That the ratio is a property of this workload and this machine, and the transferable habit is measuring rather than assuming",
+            "That the two are equivalent, since the difference is within run-to-run noise",
+            "That benchmarks of this kind are not meaningful, since real pipelines are dominated by input and output"
+          ]
+        }
+      },
+      "serve": 5
     }
   }
 }
