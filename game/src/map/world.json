@@ -372,7 +372,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "[Lecture 3](../l03/notes.md) gave you SQL: describe the result you want, and the database's planner works out how to get it. [Lecture 4](../l04/notes.md) gave y"
+      "where": "[Lecture 3](../l03/notes.md) gave you SQL: describe the result you want, and the database's planner works out how to get it. [Lecture 4](../l04/notes.md) applie"
     },
     {
       "from": "l05",
@@ -380,7 +380,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "[Lecture 3](../l03/notes.md) gave you SQL: describe the result you want, and the database's planner works out how to get it. [Lecture 4](../l04/notes.md) gave y"
+      "where": "[Lecture 3](../l03/notes.md) gave you SQL: describe the result you want, and the database's planner works out how to get it. [Lecture 4](../l04/notes.md) applie"
     },
     {
       "from": "l06",

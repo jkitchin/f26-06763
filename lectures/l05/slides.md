@@ -31,7 +31,7 @@ footer: "Systems and Toolchains for AI Engineers"
 
 # Why dataframes and pipelines
 
-## a plant hands you a log, not a table
+## from a raw sensor log to one row per fault
 
 ---
 
@@ -88,28 +88,32 @@ Write the cleanup logic as one long script, and a database's guarantees go with 
 
 You have been handling a dataframe since Lecture 3's `read_sql` and Lecture 4's `.df()`.
 
-<div class="definition">
-
-**Vectorization**: express a computation on whole columns, so the loop runs once inside compiled code instead of once per element in Python.
-
-</div>
-
-`readings["xmeas_7"] > threshold` checks the reactor-pressure column once. A loop checks it once per row: routinely **100x** slower. "Vectorize" is a rule, not a preference.
-
----
-
-## Your SQL habits, typed differently, group / join / reshape
-
-The `GROUP BY`, `JOIN`, and long-vs-wide argument from Lecture 3: same ideas, dataframe syntax.
+Two moves carry over from Lecture 3. The `GROUP BY`, the `JOIN`, and the long-vs-wide argument: same ideas, dataframe syntax.
 
 ```python
 readings.group_by("faultNumber").agg(pl.col("^xmeas_.*$").mean())  # every measured column
 ```
 
 - **group-by / join**: a method chain instead of a clause
-- **long / wide**: an operation now, not a permanent schema choice; `pivot`/`melt` convert between them
+- **long / wide**: one operation apart, where Lecture 3 made it a permanent schema choice; `pivot`/`melt` convert
 
 [pandas, group by](https://pandas.pydata.org/docs/user_guide/groupby.html) · [pandas, reshaping](https://pandas.pydata.org/docs/user_guide/reshaping.html)
+
+---
+
+## Your SQL habits, typed differently, vectorization
+
+The third one is new. SQL never let you handle rows one at a time; you described the result and the database walked the rows. Python will let you write the loop.
+
+<div class="definition">
+
+**Vectorization**: express a computation on whole columns, so the loop runs once inside compiled code instead of once per element in Python.
+
+</div>
+
+`readings["xmeas_7"] > threshold` checks the reactor-pressure column once. A loop checks it once per row, routinely **100x** slower.
+
+The database enforced this habit for you. In Python it is yours to keep.
 
 ---
 
@@ -125,7 +129,7 @@ pandas runs each line the moment you write it, on one core. That is **eager** ex
 
 <div class="definition">
 
-**Polars**: a table library like pandas, but built to use every core at once and, if you ask it to, plan the whole computation before running any of it.
+**Polars**: a table library like pandas, but built to use every core at once. If you ask it to, it will also plan the whole computation before running any of it.
 
 </div>
 
