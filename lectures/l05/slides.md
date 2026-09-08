@@ -8,7 +8,7 @@ footer: "Systems and Toolchains for AI Engineers"
 
 <!-- _class: title -->
 
-# Lecture 5: Dataframes & scalable processing
+# Lecture 5: Dataframes and batch pipelines
 
 ## Week 3, Data Systems
 
@@ -18,676 +18,193 @@ footer: "Systems and Toolchains for AI Engineers"
 
 ## Roadmap
 
-1. Why this matters: the loop vs. the column
-2. Dataframe fundamentals, vectorized
-3. Polars and the lazy execution model
-4. Designing a batch pipeline
-5. Orchestration: when a plain DAG is enough
-6. Scaling out: Dask, Spark, and when not to
-7. Live demo: one pipeline, three ways
-
-<!-- 110 min. Budget roughly 15 / 15 / 20 / 15 / 10 / 15 / 20 demo.
-     SECOM: 1,567 runs x 590 sensors. If running long, cut the
-     orchestration section, not the demo. -->
+1. Why dataframes and pipelines
+2. Your SQL habits, typed differently
+3. Getting DuckDB's trick without DuckDB
+4. Making it safe to rerun
+5. Where this pushes back
+6. Live demo: the same pipeline, two ways
 
 ---
 
 <!-- _class: section -->
 
-# Why this matters
+# Why dataframes and pipelines
+
+## a plant hands you a log, not a table
 
 ---
 
-## Why this matters
+## Why dataframes and pipelines
 
-1,567 manufacturing runs. 590 sensor columns.
+Lecture 3 gave you SQL: describe the result, the planner works out how. Lecture 4 gave you a faster layout for that same idea, still inside a database.
 
-Somewhere in there: the difference between a wafer
-that ships and one that gets scrapped.
-
-```python
-for row in data:            # the first working version
-    for sensor in row:
-        clean(sensor)
-```
-
-It runs. It even finishes, on 1,567 rows.
+This session moves both ideas into your own Python code, because cleaning and reshaping this data needs logic SQL does not comfortably express.
 
 ---
 
-## Why this matters, then the data grows
+## Why dataframes and pipelines, a plant's log
 
-Next month: 15,670 rows. A second fab line.
+The Tennessee Eastman process: a simulated chemical plant.
 
-The "quick script" goes from 4 seconds to 7 minutes.
+- 52 measurements (reactor, separator, stripper, feeds, cooling water)
+- sampled every 3 minutes, across hundreds of runs
+- millions of rows before anyone asks a question
 
-Nothing about this is a modeling problem.
+The question: the average sensor **signature of each fault**.
 
-**It's an architecture problem.**
+[Tennessee Eastman data, CC0](https://doi.org/10.7910/DVN/6C3JR1) · [Downs and Vogel, 1993](https://doi.org/10.1016/0098-1354(93)80018-I)
 
-A Python loop pays interpreter overhead
-**590 times a row, every row.**
-
-The honest description of the work is a handful
-of whole-column operations.
-
-**Judgment cuts both ways.**
-
-- Loop instead of vectorizing → too slow, needlessly
-- Spark instead of a laptop → too complex, needlessly
-
-SECOM is a few **megabytes**. It fits on a phone.
-
-Same mistake twice: not matching the tool to the data.
+<!--
+speaker: TEP is a Downs and Vogel 1993 benchmark, a real Eastman plant disguised. faultNumber 0 is normal, 1 to 20 are disturbances. Turning the raw log into per-fault means is a pipeline: load, clean, reshape, aggregate.
+-->
 
 ---
 
-## Why this matters, hear it from the source
+![w:1050](figures/tep-screenshot.png)
 
-2013 talk, revisited in a 2017 post by
-Wes McKinney, who started pandas in 2008:
-
-**"10 Things I Hate About Pandas"** (there are 11)
-
-[wesmckinney.com/blog/apache-arrow-pandas-internals](https://wesmckinney.com/blog/apache-arrow-pandas-internals/)
-
-<!-- The list is from a Nov 2013 talk; the 2017 post walks it item by item and
-     explains what he built instead. Don't say "he published a list in 2017". -->
-
-**Three of the eleven, verbatim.**
-
-- "No support for memory-mapped datasets"
-- "'Slow', limited multicore algorithms for large datasets"
-- **"Eager evaluation model, no query planning"**
-
-Hold that last one. It's what "lazy" answers.
+<span class="source">Reactor, condenser, compressor, separator, stripper: the plant behind this session's 52 columns. Lyu, Botcha, Kulkarni, Pagaria, Alves, Sunshine, and Kitchin (2026). Run it yourself: <a href="https://kitchingroup.cheme.cmu.edu/tep-rust/studio/">TEP Studio</a></span>
 
 ---
 
-## Why this matters, and the memory number
+## Why dataframes and pipelines, the two things you lose
 
-> you should have **5 to 10 times as much RAM**
-> as the size of your dataset
+Write the cleanup logic as one long script, and a database's guarantees go with it:
 
-"a dataset that is 5GB on disk take up 20GB
-or more in memory."
+- **slow**: a Python loop is about **100x** slower than a whole-column operation
+- **unsafe**: dies halfway through, and there is no record of what it finished
 
-That post is the design document for **Apache Arrow**.
-
-<!-- The author of the dominant tool wrote down where it strains, then built the
-     replacement for its internals. That's why the list is worth reading.
-     Blame the BlockManager (2011) and the tight NumPy coupling. -->
+**Polars** gets the speed back. **Small, restartable stages** get the safety back.
 
 ---
 
 <!-- _class: section -->
 
-# Dataframe fundamentals
+# Your SQL habits, typed differently
 
 ---
 
-## Dataframe fundamentals
+## Your SQL habits, typed differently
 
+You have been handling a dataframe since Lecture 3's `read_sql` and Lecture 4's `.df()`.
 
 <div class="definition">
 
-**Vectorization**: running one operation over a whole array in compiled code, instead of looping in Python.
+**Vectorization**: express a computation on whole columns, so the loop runs once inside compiled code instead of once per element in Python.
 
 </div>
-```python
-df['temp_c'] = (df['temp_f'] - 32) * 5 / 9
-```
 
-Runs as a tight loop over contiguous memory, **in C**.
-No per-element Python dispatch.
+`readings["xmeas_7"] > threshold` checks the reactor-pressure column once. A loop checks it once per row: routinely **100x** slower. "Vectorize" is a rule, not a preference.
 
 ---
 
-## Dataframe fundamentals, so we measured it
+## Your SQL habits, typed differently, group / join / reshape
 
-![w:920](figures/vectorization-scaling.png)
-
-<!-- 400k rows, one column, one rescale. Walk the four lines bottom to top.
-     Ask them to predict where .apply lands BEFORE showing the top line. -->
-
----
-
-## Dataframe fundamentals, the numbers, at 400,000 rows
-
-| | vs vectorized |
-|---|---|
-| vectorized pandas / Polars | 1× |
-| Python row loop | **~100× slower** |
-| `.apply(axis=1)` | **~3,000× slower** |
-
-590 columns each paying that tax independently, if you loop.
-
-<!-- Exact ratios move ~20% run to run; the plot carries the measured values
-     from the last regeneration. Don't defend a specific digit.
-     Also point at the bottom two lines: vectorized pandas and a Polars
-     expression are nearly identical here. Polars' win is not per-operation
-     speed, it's the optimizer, and it needs a bigger query to show. -->
-
----
-
-## Dataframe fundamentals, the same idea, twice more
-
-**`groupby`**: "mean reading per run, per shift, per lot"
-= one groupby + one aggregate. Don't hand-roll the buckets.
-
-**Joins**: attach calibration or recipe metadata by key.
-Same rule as [Lecture 3](https://pandas.pydata.org/docs/user_guide/merging.html): a column is a *kind* of measurement,
-never a particular sensor or run.
-
----
-
-## Dataframe fundamentals, reshaping: wide ↔ long
-
-SECOM arrives **wide**: one column per sensor.
-Right shape for a model. Wrong shape for
-"which sensors are most often missing?"
+The `GROUP BY`, `JOIN`, and long-vs-wide argument from Lecture 3: same ideas, dataframe syntax.
 
 ```python
-long = wide.melt(id_vars=['run_id', 'label'],
-                 var_name='sensor', value_name='reading')
+readings.group_by("faultNumber").agg(pl.col("^xmeas_.*$").mean())  # every measured column
 ```
 
-Reshape explicitly. Don't keep two copies that drift.
-[pandas reshaping docs](https://pandas.pydata.org/docs/user_guide/reshaping.html)
+- **group-by / join**: a method chain instead of a clause
+- **long / wide**: an operation now, not a permanent schema choice; `pivot`/`melt` convert between them
 
-**The pitfall: `.apply` isn't vectorized.**
-
-```python
-df.apply(lambda row: row['a'] + row['b'], axis=1)
-```
-
-Looks like one line. It is **~30× slower than
-writing the loop by hand.**
-
----
-
-## Dataframe fundamentals, why it's worse than the loop
-
-`axis=1` builds a **whole `Series` per row**
-just to pass into your function.
-
-Allocate, populate, call, discard. 400,000 times.
-
-Legitimate uses: an external library per row, or
-irregular logic with no column expression. Not arithmetic.
-
-<!-- This surprises people every year: the one-line idiom that LOOKS like the
-     vectorized style is the slowest thing on the plot. Reach for .apply when
-     you've run out of alternatives, not first. -->
+[pandas, group by](https://pandas.pydata.org/docs/user_guide/groupby.html) · [pandas, reshaping](https://pandas.pydata.org/docs/user_guide/reshaping.html)
 
 ---
 
 <!-- _class: section -->
 
-# Polars and lazy execution
+# Getting DuckDB's trick without DuckDB
 
 ---
 
-## Polars and lazy execution
+## Getting DuckDB's trick without DuckDB
 
-pandas (2008): NumPy arrays, often boxed objects
-for strings/nulls, mostly single-threaded.
-
-Polars: Rust, built on Arrow, **typed columnar
-storage, multithreaded by default.**
-
----
-
-## Polars and lazy execution, the key distinction: eager vs. lazy
+pandas runs each line the moment you write it, on one core. That is **eager** execution.
 
 <div class="definition">
 
-**Lazy evaluation**: building a plan of the whole query first, so an optimizer can rewrite it before any data moves.
+**Polars**: a table library like pandas, but built to use every core at once and, if you ask it to, plan the whole computation before running any of it.
 
 </div>
 
-**Eager** (`pl.read_csv`): every step runs immediately.
+---
 
-**Lazy** (`pl.scan_csv`): you get a plan, a `LazyFrame`.
+## Getting DuckDB's trick without DuckDB, lazy evaluation
+
+Lecture 3: you describe the result in SQL, the query planner decides the mechanism. Same idea, now in Python.
+
+<div class="definition">
+
+**Lazy evaluation**: writing an instruction does not run it. It adds a step to a plan. Nothing touches the data until `.collect()`, which runs the whole plan in one pass.
+
+</div>
 
 ```python
-(pl.scan_parquet("sensors/*.parquet")
-   .filter(pl.col("run_id") > 1000)
-   .select(["run_id", "sensor_12", "sensor_87"])
-   .collect())          # nothing ran until here
+pipeline = (pl.scan_parquet("data/tep.parquet")   # reads nothing yet
+            .group_by("faultNumber")
+            .agg(pl.col("^xmeas_.*$").mean()))
+result = pipeline.collect()                        # optimize, then run
 ```
 
-[docs.pola.rs/user-guide/lazy/using](https://docs.pola.rs/user-guide/lazy/using/)
-
 ---
 
-## Polars and lazy execution, what the optimizer does with it
+## Getting DuckDB's trick without DuckDB, the same tricks, no server
 
-<div class="definition">
+You met these in Lecture 4, when DuckDB applied them to Parquet:
 
-**Predicate pushdown**: moving a filter as close to the data source as possible, so rows are never read rather than read and discarded.
+- **projection pushdown**: read only the columns you asked for
+- **predicate pushdown**: a filter moves into the scan
 
-</div>
+Because pandas and Polars both lay columns out the same way in memory (**Arrow**, Parquet's in-memory cousin from Lecture 4), converting between them is cheap too: prototype in whichever you know, convert only if it turns out to matter.
 
-**Predicate pushdown**: move `filter` as early as possible,
-often into the file reader itself.
-
-**Projection pushdown**: only read the columns
-the final `.select()` actually needs.
-
-Not faster at the same computation. Faster because
-it computes **less**, having seen the whole query first.
-
----
-
-## Polars and lazy execution, expressions are what make this possible
-
-```python
-pl.col("sensor_12").mean()          # not a value
-
-df.select([pl.col(c).mean() for c in sensor_cols])
-```
-
-An **object describing a computation**, which Polars can
-inspect, combine, and compile.
-
-590 of them run together, in parallel, **in one pass.**
-[Polars expressions](https://docs.pola.rs/user-guide/expressions/)
-
-**So how much does lazy actually buy you?.**
-
-| rows | Polars vs pandas | Dask vs pandas |
-|---|---|---|
-| 1,567 | ~2× faster | **34× slower** |
-| 200,000 | ~7× faster | 2× slower |
-
-Every performance claim here has a **regime**.
-"Which is faster" is incomplete until someone says how big.
-
----
-
-## Polars and lazy execution, where the 2× comes from
-
-- The read: ~40 ms vs pandas' ~75 ms
-- The stats: **3 passes → 1 pass**, ≈4× on that portion
-
-pandas asks each column for distinct count, then
-missing count, then mean. Three walks over the frame.
-
-**The trap: schema inference.**
-
-```
-ComputeError: could not parse `4.1955`
-as dtype `i64` at column 'column_75'
-```
-
-Polars samples **100 rows**, picks `i64`.
-The decimal shows up on row **1,458** of 1,567.
-
----
-
-## Polars and lazy execution, two fixes, not equally good
-
-| approach | read | outcome |
-|---|---|---|
-| default (100 rows) | n/a | **raises** |
-| `infer_schema_length=None` | ~110 ms | scans everything |
-| `schema_overrides=...` | **~38 ms** | decides nothing |
-| pandas, for reference | ~75 ms | silently upcasts |
-
-Declaring beats inferring: 3× faster **and** unsurprisable.
-
-<!-- Then say it out loud: a declared schema is a
-     belief written down, and a belief written down is one you can check.
-     That's pandera. -->
-
----
-
-## Polars and lazy execution, interop: Arrow ≠ Parquet
-
-<div class="definition">
-
-**Apache Arrow**: an in-memory columnar format. Parquet is the on-disk one; they are not the same thing.
-
-</div>
-
-**Arrow** = in-memory, uncompressed, CPU reads it directly.
-**Parquet** = on-disk, compressed, must be decoded.
-
-> "Arrow and Parquet complement each other" ([Arrow FAQ](https://arrow.apache.org/faq/))
-
-So: **Parquet between stages, Arrow within one.**
-Polars ↔ pandas ↔ DuckDB share the layout, so crossing
-a library boundary is cheap. Pick each stage's tool on merit.
-
-[parquet.apache.org](https://parquet.apache.org/docs/file-format/), [duckdb.org](https://duckdb.org/)
+[Polars, Lazy API](https://docs.pola.rs/user-guide/lazy/) · [Apache Arrow](https://arrow.apache.org/overview/)
 
 ---
 
 <!-- _class: section -->
 
-# Designing a batch pipeline
+# Making it safe to rerun
 
 ---
 
-## Designing a batch pipeline
+## Making it safe to rerun
 
-**ingest** → **clean** → **transform** → **persist**
-
-Each one a pure function: typed input, typed output.
-
-Testable and cacheable **one stage at a time**.
-Debug stage 3 without rerunning stages 1 and 2.
-
----
-
-## Designing a batch pipeline, what `clean` actually removes
-
-![w:880](figures/secom-column-triage.png)
-
-<!-- Ask: how many of the 590 columns do you think survive? Nobody guesses low
-     enough. 440. A quarter of the matrix is gone before any modeling. -->
-
----
-
-## Designing a batch pipeline, two independent failure modes
-
-| reason | columns |
-|---|---|
-| constant, one distinct value | **122** |
-| more than 40% missing | **28** |
-| overlap | 0 |
-| **survive** | **440 of 590** |
-
-A sensor wired up but never varying, and a sensor
-that reports intermittently. Different bugs.
-
----
-
-## Designing a batch pipeline, idempotency
+A pipeline written as one function has no seam: nothing to test, nothing to re-run, on its own. Break it into stages.
 
 <div class="definition">
 
-**Idempotency**: running a stage twice produces the same result as running it once.
+**Pure stage**: output depends only on its input, and it changes nothing else. Same input, same output.
 
 </div>
 
-Running a stage twice on the same input
-produces the **same output, byte for byte.**
-
-- Pin random seeds
-- Sort before order-dependent operations
-
-"Same input, same output" is a **correctness**
-requirement, not a nicety.
-
-<!-- Sounds minor until you're recovering from a partial failure. If clean is
-     idempotent, rerunning after a crash is free. The demo hashes its Parquet
-     output twice and compares: cheapest reconciliation check there is. -->
+load, clean, aggregate: each stage a Parquet file in, a Parquet file out.
 
 ---
 
-## Designing a batch pipeline, case: one server out of eight
+## Making it safe to rerun, idempotency
 
-**Knight Capital Americas, 1 August 2012.**
-\$460M lost in ~45 minutes.
-
-~10% of all trading in listed US equities, at the time.
-
-[SEC Release No. 70694](https://www.sec.gov/litigation/admin/2013/34-70694.pdf)
-
-**The deployment.**
-
-New code for **SMARS**, its order router, to support
-NYSE's Retail Liquidity Program launching that day.
-
-Staged across **8 servers** from 27 July.
-One technician did not copy it to the eighth.
-
-> "Knight did not have a second technician review
-> this deployment... Knight had no written
-> procedures that required such a review."
-
----
-
-## Designing a batch pipeline, mistake 1: the repurposed flag
-
-The new code reused a flag that used to activate
-an old feature, **Power Peg**.
-
-Unused since 2003. Never deleted.
-Still "present and callable."
-
-**Mistake 2: dead code nobody retested.**
-
-2005: Knight moved the function counting
-already-filled shares to an earlier point.
-
-> "did not retest the Power Peg code after moving
-> the cumulative quantity function"
-
-Dead **and** broken, for seven years.
-
----
-
-## Designing a batch pipeline, the result
-
-**212** parent orders into the eighth server.
-
-**4 million** executions, **154** stocks,
-**397 million** shares, ~45 minutes.
-
-\$3.5B unintended long, \$3.15B short.
-
-**The signal that existed.**
-
-**8:01 a.m.**, 90 minutes before the open:
-97 automated emails, "Power Peg disabled."
-
-> "Knight did not design these types of messages
-> to be system alerts, and Knight personnel
-> generally did not review them."
-
----
-
-## Designing a batch pipeline, three habits, all of them Assignment 3
-
-A rollout across 8 machines **is** a batch job whose
-"rows" are servers. 7-of-8 looked exactly like 8-of-8.
-
-1. **Reconcile**: count, hash, version read back
-2. **Delete dead code**; distrust dormant code
-3. **A signal is something or nothing**:
-   97 unread emails are worse than zero
-
-<!-- The demo hashes its Parquet twice and compares: habit 1, small version.
-     On habit 2: Power Peg was harmless until a flag made it reachable, and code
-     nobody calls is code nobody tests. A pipeline stage switched off by config
-     is in exactly that category. -->
-
----
-
-## Designing a batch pipeline, caching to Parquet between stages
-
-Rerunning `ingest` + `clean` every time you
-iterate on `transform` wastes minutes,
-thousands of times over a semester.
-
-Persist each stage. Check the cache before recomputing.
-
----
-
-<!-- _class: section -->
-
-# Orchestration
-
----
-
-## Orchestration
-
-Steps, dependencies, no step depends on its own output.
-The oldest tool that takes this seriously:
-
-```makefile
-clean.parquet: ingest.parquet clean.py
-	python clean.py ingest.parquet clean.parquet
-```
-
-`make` compares timestamps. Reruns only what changed.
-
-<!-- Ten lines per stage buys you incremental caching for free. -->
-
-
----
-
-## Orchestration, what Prefect / Dagster add
-
-For one author on one machine, that Makefile is often
-**enough.** Correctly sized, not under-powered.
-
-- Automatic retries on transient failure
-- A scheduler and a UI: which run failed, why
-- Alerting
-- Dagster: each output as a lineage-tracked **asset**
-
-Not the graph. **Who can operate it**, and what
-happens when a stage fails at 3 a.m.
-
-[Prefect](https://docs.prefect.io/), [Dagster](https://docs.dagster.io/)
-
----
-
-<!-- _class: section -->
-
-# Scaling out
-
----
-
-## Scaling out
-
-**[MapReduce](https://research.google.com/archive/mapreduce-osdi04.pdf)** (Dean & Ghemawat, OSDI 2004):
-split into partitions, map each independently, reduce.
-
-The framework handles parallelism and failures.
-
-Its weak spot: wrote intermediate results to disk
-between **every** stage. Awkward for anything iterative.
-
----
-
-## Scaling out, spark's fix
-
-Zaharia et al., UC Berkeley AMPLab, 2012:
-**[Resilient Distributed Datasets](https://www.usenix.org/system/files/conference/nsdi12/nsdi12-final138.pdf).**
-
-Keep intermediate data in memory across stages.
-
-**Lineage-based fault tolerance.**
+Your laptop sleeps mid-write to `tep_clean.parquet`. Now what?
 
 <div class="definition">
 
-**Lineage**: the recorded chain of operations that produced a partition, so a lost one can be recomputed rather than replicated.
+**Idempotency**: running a stage twice has the same effect as running it once, so a failed stage can be safely retried.
 
 </div>
 
-Record the transformations that produced a partition.
+If clean is idempotent: rerun it. Same input, same output, whether it died at row 100 or row 100,000.
 
-Lost a partition? **Recompute it from lineage**:
-durability without copying the data upfront.
-
----
-
-## Scaling out, two mechanics that recur everywhere
-
-**Partitioning**: split data into independent chunks.
-Choose the key so related rows land together.
-
-**Shuffle**: rows scattered across partitions
-have to be gathered, expensive, over the network.
-
-**Ask this of every operation: `mean` or `nunique`?.**
-
-`mean` → **reduction.** Each partition reports a sum
-and a count. Cheap, parallel, no talking.
-
-exact `nunique` → **shuffle.** No partition knows if
-its `7.2` appears elsewhere. Dask builds one per column.
-
-590 columns = 590 shuffles.
+This is what Lecture 3's transactions gave you for free. You rebuild it by hand once the logic is your own Python.
 
 ---
 
-## Scaling out, measured, on 1,253 rows
+## Making it safe to rerun, the caching trap
 
-| 590 columns | time | tasks (100 cols) |
-|---|---|---|
-| Dask `nunique` | **tens of s** | **9,908** |
-| Dask `std` | **< 0.1 s** | **18** |
+- cache a stage's output to Parquet, so expensive early work runs once
+- **trap**: a cache keyed only on the stage name is not invalidated when a parameter changes, so a stale result is reused
 
-Same 122 constant columns. `std == 0` ⟺ constant.
-You wait on the scheduler, not the arithmetic.
-
----
-
-## Scaling out, how you know it's overhead, not work
-
-![w:1000](figures/dask-overhead.png)
-
-<!-- Right panel: MORE partitions is SLOWER. That's the tell. And in the demo,
-     4× the rows takes the same time. A cost that ignores data size is not the
-     cost of processing data. -->
-
----
-
-## Scaling out, dask DataFrame, and Spark
-
-Dask partitions a big table into many ordinary
-pandas frames. Lazy graph; nothing runs until `.compute()`.
-
-> Dask DataFrame is **pandas that spills**
-> to disk or to a cluster.
-
-Spark: same role, larger scale. JVM runtime, its own
-Catalyst optimizer, much bigger operational footprint.
-
-**Overhead paid before the work starts.**
-
-Partitioning, shuffles, a scheduler:
-all overhead paid **before** one useful byte is processed.
-
-On data that fits in memory: pure cost.
-
-SECOM is a few megabytes.
-
-> Just use [DuckDB](https://duckdb.org/) or Polars
-> on one big machine.
-
----
-
-## Scaling out, don't take it from me
-
-Dask's own best-practices page.
-First section title, in full:
-
-# "Use Pandas"
-
-[docs.dask.org/en/stable/dataframe-best-practices](https://docs.dask.org/en/stable/dataframe-best-practices.html)
-
----
-
-## Scaling out, their words
-
-> For data that fits into RAM, pandas can often be
-> faster and easier to use than Dask DataFrame.
-> While "Big Data" tools can be exciting, they are
-> almost always worse than normal data tools
-> while those remain appropriate.
-
-**A pipeline moves in and out of distributed execution as data size changes.**
-
-<!-- Their second section is "Reduce, and then use pandas": even on genuinely
-     large data there's a step where a filter or aggregate cuts it down to one
-     machine. Call .compute() there and go back to normal tools. -->
+Name the cache after the inputs that determine it, not just the stage.
 
 ---
 
@@ -699,75 +216,17 @@ First section title, in full:
 
 ## Where this pushes back
 
-| pandas | Polars |
-|---|---|
-| forgiving types | stricter, less forgiving |
-| huge ecosystem | younger, thinner ecosystem |
-| eager only | eager **and** lazy, one more concept |
-| everyone already knows it | migration cost if collaborators don't |
+- **stricter has a cost**: more of your mistakes become real errors, and lazy moves errors away from the line that caused them
+- **a fill value is a choice**: it shapes every number downstream, so decide it deliberately and report how much you filled
+- **one machine goes further than you think**: exhaust a laptop with Polars or DuckDB before adding a cluster
 
 ---
 
-## Where this pushes back, when pandas is still the right call
+## Where this pushes back, measure first
 
-Collaborators, codebase, or the next library
-in the chain only speaks pandas.
+![w:1000](figures/eager-vs-lazy.png)
 
-Shared Arrow layout → converting later is cheap.
-**Prototype in what you know; convert if profiling says so.**
-
-<!-- The ecosystem argument is the real one. Nobody migrates for 2x. -->
-
-**Distributed systems: the costs.**
-
-- A scheduler to reason about
-- A new failure mode: a worker dying mid-shuffle
-- Real wall-clock overhead building the task graph
-
-**Fixed cost, size-independent**: dominates on small data.
-
----
-
-## Where this pushes back, lazy evaluation moves the error
-
-A bad expression in a lazy chain often doesn't
-raise until `.collect()` / `.compute()`,
-lines away from the mistake.
-
-Eager pandas fails **at the line**. Genuinely easier to debug.
-
-**Caching isn't free either.**
-
-"Delete the cache when anything upstream changes"
-is easy to state, easy to get wrong.
-
-A stale cache that returns yesterday's answer
-is worse than no cache: it fails **quietly**.
-
-**What a practitioner should take from this.**
-
-Reach for Polars when profiling shows a real,
-columnar bottleneck.
-
-Reach for Dask/Spark when data stops fitting
-in memory, not in anticipation of it.
-
-**"It should be faster" is a hypothesis.**
-Today's demo lets you test it in five minutes.
-
----
-
-## Where this pushes back, and check when the benchmark last ran
-
-The much-linked `h2oai.github.io/db-benchmark` says
-it "runs regularly... and automatically updates."
-
-Its repo's last commit: **June 2023.**
-
-Maintained fork: [duckdblabs.github.io/db-benchmark](https://duckdblabs.github.io/db-benchmark/)
-
-<!-- Small thing, but it's the whole course in miniature: a page claiming to be
-     live is not evidence that it is live. Check the code, not the copy. -->
+A benchmark is one workload on one machine. Measure your own pipeline; do not rewrite on reputation.
 
 ---
 
@@ -777,57 +236,36 @@ Maintained fork: [duckdblabs.github.io/db-benchmark](https://duckdblabs.github.i
 
 ## `l05-pipelines.ipynb`
 
-One 4-stage pipeline: pandas, Polars lazy, and Dask.
+The Tennessee Eastman readings, one 4-stage pipeline built twice: pandas eager and Polars lazy, then timed.
+
+A labeled cell injects the defects (dropped readings, one stuck sensor) so the cleaning stages have real work.
 
 ---
 
 ## What to watch
 
-- pandas vs. Polars: same numbers to 1e-12, ~2× the speed
-- A **direct port** of `nunique` into Dask: painfully slow
-- The `std`-based fix: correct **and** fast
-- Final Dask vs. pandas: at this size, distributed loses
+1. pandas materializes a new table after **every** stage.
 
----
+2. Polars builds a plan and runs it in **one** pass at `.collect()`.
 
-## Three bugs that never raised
-
-1. Quoted timestamp → **whole column `NaT`**,
-   "daily" mean over one meaningless group
-2. Schema inference → breaks on row 1,458
-3. `nunique` port → 800× slower than pandas
-
-All three caught by **a number that didn't match
-an expectation.**
+3. Print that plan with `.explain()`: the column selection is folded into the read. Lecture 4's DuckDB trick, no server.
 
 ---
 
 ## Recap
 
-- Vectorize; `.apply(axis=1)` is worse than the loop it hides
-- Polars: typed, columnar, lazy, an optimizer that sees the whole query
-- Declare schemas; don't let the library guess
-- 4 pure pipeline stages: ingest → clean → transform → persist
-- Knight Capital: partial success that looked like success
-- Dask/Spark: real tools, real overhead. Know your crossover point
-
----
-
-## The one transferable habit
-
-Every number in this session came from measuring,
-and two of them **contradicted** the first draft.
-
-`.apply` is worse than the loop, not equal to it.
-Scanning to be "safe" cost more than declaring.
-
-**Measure. Then write it down.**
+- Lecture 3 and 4's ideas, now in Python: describe first, structure so failure is safe
+- Vectorize first: about **100x**, before any bigger machine
+- Polars: every core, plans ahead, no server needed for the trick
+- Small, pure, idempotent stages that cache to Parquet
+- Measure your own workload before you rewrite it
 
 ---
 
 ## Next
 
-**Assignment 3**, out today, due Wed 16 Sep
-**Reading** [Polars lazy API](https://docs.pola.rs/user-guide/lazy/using/), [Dask best practices](https://docs.dask.org/en/stable/dataframe-best-practices.html), Kleppmann Ch. 10
+- **Practice module** for this session (participation credit)
+- No assignment is released this session
+- **Reading**: Polars Lazy API guide; pandas group-by and reshaping
 
 Full notes, with all sources: `lectures/l05/notes.md`

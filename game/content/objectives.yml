@@ -184,18 +184,21 @@
 - id: l05-o1
   lecture: l05
   text: >-
-    Write idiomatic transformations in pandas and Polars and read/benchmark both.
+    Write pandas and Polars code that operates on whole columns at once instead of row by row,
+    including grouping, joining, and reshaping a table between long and wide form.
 
 - id: l05-o2
   lecture: l05
   text: >-
-    Structure a batch pipeline into reproducible, parameterized stages.
+    Break a data pipeline into small steps that each read one file and write one file, so a run
+    that fails partway through can be started again without corrupting anything.
 
 - id: l05-o3
   lecture: l05
   text: >-
-    Explain the distributed-processing model (partitioning, lazy graphs) without needing a
-    cluster.
+    Explain the difference between pandas running code immediately and Polars planning a
+    computation before running it, and use that difference to choose between the two for a
+    given task.
 
 - id: l03-o1
   lecture: l03

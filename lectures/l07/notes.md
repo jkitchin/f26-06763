@@ -144,10 +144,9 @@ rolling window is for. Sensor 1 does nothing at all, for any engine, ever.
 :::{admonition} A caveat that cost me an hour
 :class: warning
 
-[Lecture 5](../l05/notes.md) offers a neat shortcut for finding constant columns: a numeric column is
-constant exactly when its standard deviation is zero, and `std` is far cheaper to compute than a
-distinct-value count. On this dataset that test **silently fails on two of the six** dead
-channels.
+A tempting shortcut for finding constant columns is to test whether a numeric column's standard
+deviation is zero, since `std` is far cheaper to compute than a distinct-value count. On this
+dataset that test **silently fails on two of the six** dead channels.
 
 The reason is floating point. Sensor 5 holds the value `14.62` in every row and sensor 16 holds
 `0.03`, so both have a true variance of zero, but variance is computed from sums of squared
@@ -155,10 +154,11 @@ deviations rather than looked up, and the rounding leaves `std()` returning `5.3
 `3.5e-18` instead of `0.0`. A literal `spread == 0` test therefore declares them varying and
 keeps them, and you carry eight columns of noise-free nothing into your model.
 
-Use `nunique() <= 1` when you can afford the pass, or `std() < 1e-12` when you cannot. The
-general lesson is worth more than the fix: an equality test against zero on a computed
-floating-point quantity is a bug waiting for the right input, and "the right input" here is
-something as ordinary as a sensor that reads a round number.
+Use `nunique() <= 1` when you can afford the pass, or `std() < 1e-12` when you cannot. It is the
+same test the batch pipeline in [Lecture 5](../l05/notes.md) uses to drop a dead channel, and this
+is exactly why: an equality test against zero on a computed floating-point quantity is a bug
+waiting for the right input, and "the right input" here is something as ordinary as a sensor that
+reads a round number.
 :::
 
 C-MAPSS itself samples on a clean, regular grid, one row per cycle with no gaps, which makes

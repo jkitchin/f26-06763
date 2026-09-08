@@ -8,7 +8,7 @@
 | Lecture 3: 08-31-2026 (Monday)                     | Databases for engineering data                                                             |
 | Lecture 4: 09-02-2026 (Wednesday)                  | Database landscape                                                                         |
 | 09-07-2026 (Monday)                                | Labor Day, no class                                                                        |
-| Lecture 5: 09-09-2026 (Wednesday)                  | Dataframes and scalable data processing                                                    |
+| Lecture 5: 09-09-2026 (Wednesday)                  | Dataframes and batch pipelines                                                             |
 | Lecture 6: 09-14-2026 (Monday)                     | Streaming data and data validation                                                         |
 | Lecture 7: 09-16-2026 (Wednesday)                  | Features for time-series and physical data                                                 |
 | Lecture 8: 09-21-2026 (Monday)                     | Data quality and version control                                                           |
