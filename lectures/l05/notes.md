@@ -13,10 +13,10 @@
 
 ## Why this matters
 
-Imagine a chemical plant. Two gas feeds enter a reactor, where they react over a catalyst to make two liquid products. The reactor's output passes through a condenser, then into a tank that separates the leftover vapor from the liquid, and the liquid moves on to a stripper that removes the last unreacted gas before the rest counts as finished product. Watching all of this are dozens of instruments: pressure gauges on the reactor, level sensors on every tank, temperature probes on every cooling loop, and slow chemical analyzers that report what is actually inside each stream. This is the **Tennessee Eastman process**, a simulated chemical plant published as a benchmark in 1993 that the process-control field has used ever since to test the kind of software this course teaches you to write.
+Imagine a chemical plant. Four gas feeds enter a reactor, where they react over a catalyst to make two liquid products. The reactor's output passes through a condenser, then into a tank that separates the leftover vapor from the liquid, and the liquid moves on to a stripper that removes the last unreacted gas before the rest counts as finished product. Watching all of this are dozens of instruments: pressure gauges on the reactor, level sensors on every tank, temperature probes on every cooling loop, and slow chemical analyzers that report what is actually inside each stream. This is the **Tennessee Eastman process**, a simulated chemical plant published as a benchmark in 1993 that the process-control field has used ever since to test the kind of software this course teaches you to write.
 
 ```{figure} figures/tep-screenshot.png
-:alt: Piping and instrumentation diagram of the Tennessee Eastman process, showing feed streams A, D, and E entering a reactor, a condenser, a compressor, a vapor-liquid separator, and a product stripper, with two sets of analyzers measuring stream composition
+:alt: Piping and instrumentation diagram of the Tennessee Eastman process, showing four feed streams entering a reactor, a condenser, a compressor, a vapor-liquid separator, and a product stripper, with two sets of analyzers measuring stream composition
 :width: 100%
 
 The Tennessee Eastman process, the plant this session's data comes from. Reactor, condenser, compressor, separator, and stripper, wired up with the pressure, level, temperature, and composition instruments that produce this session's 52 columns. Figure from [Lyu, Botcha, Kulkarni, Pagaria, Alves, Sunshine, and Kitchin (2026)](https://chemrxiv.org/doi/abs/10.26434/chemrxiv.10001628/v1).
@@ -164,12 +164,12 @@ A data pipeline turns a raw sensor log into an answer, and Lecture 3 and Lecture
 - [pandas user guide, Group by](https://pandas.pydata.org/docs/user_guide/groupby.html). The split-apply-combine model, the same idea as SQL's `GROUP BY`, in pandas.
 - [pandas user guide, Reshaping and pivot tables](https://pandas.pydata.org/docs/user_guide/reshaping.html). `pivot`, `melt`, and moving between long and wide form.
 - [Apache Arrow overview](https://arrow.apache.org/overview/). The in-memory columnar layout that makes pandas-to-Polars conversion cheap, and how it differs from Parquet on disk.
-- [Tennessee Eastman process simulation data (Rieth et al. 2017)](https://doi.org/10.7910/DVN/6C3JR1). The dataset for this session, on Harvard Dataverse under a CC0 public-domain dedication. Faults 1 to 20 plus fault-free operation, 52 process variables.
+- [Tennessee Eastman process simulation data (Rieth et al. 2017)](https://doi.org/10.7910/DVN/6C3JR1). The dataset for this session. Faults 1 to 20 plus fault-free operation, 52 process variables.
 - [Downs and Vogel, A plant-wide industrial process control problem (1993)](https://doi.org/10.1016/0098-1354(93)80018-I). The original paper that defines the process, its units, and its twenty disturbances. The source for what each fault means.
 
 ## Assignment
 
-No assignment is released this session, so this week's deliverable is the practice module below, which is where your participation credit for the session comes from. This is a pointer, not a rubric.
+No assignment is released this session, so this week's deliverable is the practice module below, which is where your participation credit for the session comes from.
 
 ## Practice module
 
