@@ -88,6 +88,93 @@
       },
       "serve": 6
     },
+    "10": {
+      "items": {
+        "l05-q01": {
+          "answer": "No step saved its output, so there is nothing to inspect",
+          "options": [
+            "No step saved its output, so there is nothing to inspect",
+            "The bug has to be in the last step that ran",
+            "You cannot put print statements inside a function",
+            "Pandas hides intermediate results on purpose"
+          ]
+        },
+        "l05-q02": {
+          "answer": "6: the selection folds into the read",
+          "options": [
+            "6: the selection folds into the read",
+            "55, and then 49 are dropped",
+            "55, because a scan always reads everything",
+            "6, but only if you select by position"
+          ]
+        },
+        "l05-q03": {
+          "answer": "Errors surface at `.collect()`, far from their cause",
+          "options": [
+            "Errors surface at `.collect()`, far from their cause",
+            "Memory, because the plan is held in full",
+            "Repeatability, because the optimizer reorders steps",
+            "Column types, until the data is loaded"
+          ]
+        },
+        "l05-q04": {
+          "answer": "When your codebase or coworkers only use pandas",
+          "options": [
+            "When your codebase or coworkers only use pandas",
+            "When the whole table already fits in memory",
+            "When the transformations are fairly simple",
+            "When you need to plot the result afterwards"
+          ]
+        },
+        "l05-q05": {
+          "answer": "The old file, because its name ignores the setting",
+          "options": [
+            "The old file, because its name ignores the setting",
+            "A fresh result, because the setting is an input",
+            "An error, because the schema no longer matches",
+            "Two files, and the newer one is used"
+          ]
+        },
+        "l05-q06": {
+          "answer": "Hundreds of times slower",
+          "options": [
+            "Hundreds of times slower",
+            "About five times slower",
+            "About the same speed",
+            "Only slower on bigger data"
+          ]
+        },
+        "l05-q07": {
+          "answer": "group_by on faultNumber, then agg with mean",
+          "options": [
+            "group_by on faultNumber, then agg with mean",
+            "join on faultNumber, then agg with mean",
+            "filter on faultNumber, then agg with mean",
+            "sort by faultNumber, then agg with mean"
+          ]
+        },
+        "l05-q08": {
+          "answer": "Running it twice does what running it once does",
+          "options": [
+            "Running it twice does what running it once does",
+            "It takes the same time on any input size",
+            "It keeps no state between two runs",
+            "It never leaves a half-written file"
+          ]
+        },
+        "l05-q09": {},
+        "l05-q10": {
+          "answer": "How these operations run on this machine, and little else",
+          "options": [
+            "How these operations run on this machine, and little else",
+            "That Polars should replace pandas in your work",
+            "That the two are the same once you allow for noise",
+            "That timing a pipeline is not worth doing"
+          ]
+        }
+      },
+      "serve": 5
+    },
     "2": {
       "items": {
         "l05-q01": {
