@@ -4,7 +4,7 @@ title: "Dataframes and batch pipelines"
 source_notes: lectures/l05/notes.md
 status: published
 serve: 5
-pool_version: 8
+pool_version: 9
 provenance:
   drafted_by: hand
   reviewed_by: jkitchin
@@ -64,7 +64,7 @@ items:
       with no server involved.
     source:
       file: lectures/l05/notes.md
-      heading: "Getting DuckDB's trick without DuckDB"
+      heading: "Polars: plan the work, then run it"
       quote: "projection pushdown and predicate pushdown DuckDB applied to Parquet in Lecture 4"
     verify: {mode: quote, needle: "projection pushdown and predicate pushdown", volatility: stable}
     tags: [polars, lazy, query-optimization]
@@ -111,7 +111,8 @@ items:
       Polars is stricter, and stricter costs you while you are still learning
       it: more of your mistakes become real errors instead of quiet
       workarounds. Stay with pandas when your codebase or collaborators only
-      speak it; reach for Polars once the table outgrows comfort. Note the
+      speak it; reach for Polars when a run gets slow enough to interrupt your
+      work. Note the
       last option is wrong for the same reason converting is cheap: shared
       Arrow layout, so plotting from a Polars result costs little.
     source:
@@ -157,28 +158,31 @@ items:
     difficulty: 2
     objectives: [l05-o1]
     prompt: |
-      A Python loop over a sensor column, against the vectorized equivalent.
+      A Python loop over a sensor column, against the same test done on the
+      whole column at once.
 
       Before you look: how much slower is the loop?
     predict:
       ask: "Write down a factor before revealing."
       common_prior: "Maybe 5 or 10 times. Interpreted code is slower but not absurdly so."
     options:
-      - "Within a factor of two of 100 times slower"
+      - "Hundreds of times slower, and thousands of times if you write it with `iterrows()`"
       - "About 5 times slower, which is the usual interpreter overhead"
-      - "About 1,000 times slower, since every element crosses the Python-C boundary"
       - "Roughly the same, since NumPy loops internally anyway"
-    answer: "Within a factor of two of 100 times slower"
+      - "Slower only past a few million rows; at this size it makes little difference"
+    answer: "Hundreds of times slower, and thousands of times if you write it with `iterrows()`"
     evidence: |
-      Two orders of magnitude, and the reason is that the vectorized version
-      hands the whole column to compiled code once while the loop pays
-      Python's per-row overhead every time. This is the measurement that makes
-      "vectorize" a rule rather than a preference.
+      Measured on this session's reactor-pressure column, 480,000 readings:
+      the whole-column comparison takes 0.2 ms, a plain `for` loop takes about
+      20 ms, and the same thing written with `iterrows()` takes about 3,900 ms.
+      The whole-column version hands the work to compiled code once; the loop
+      pays Python's per-row cost 480,000 times. Which loop you write matters
+      as much as whether you write one.
     source:
       file: lectures/l05/notes.md
       heading: "Why this matters"
-      quote: "commonly about **100 times** slower than checking the whole column at once"
-    verify: {mode: ordering, needle: "100 times", volatility: measured}
+      quote: "**hundreds of times** slower than working on the whole column at once"
+    verify: {mode: ordering, needle: "hundreds of times", volatility: measured}
     tags: [vectorization, performance]
 
   - id: l05-q07
@@ -202,7 +206,7 @@ items:
       default.
     source:
       file: lectures/l05/notes.md
-      heading: "Getting DuckDB's trick without DuckDB"
+      heading: "Polars: plan the work, then run it"
       quote: "cheap because both libraries lay columns out the same way in memory"
     verify: {mode: quote, needle: "both libraries lay columns out the same way in memory", volatility: stable}
     tags: [arrow, polars, pandas]
@@ -262,7 +266,7 @@ items:
       stalled is your reading assignment.
     source:
       file: lectures/l05/notes.md
-      heading: "Getting DuckDB's trick without DuckDB"
+      heading: "Polars: plan the work, then run it"
       quote: "hands back a description of the read, not the data"
     verify:
       mode: manual
