@@ -116,6 +116,22 @@ gap and a marker rather than pretending the plant never stopped.
 switched on and off; `--bin schedule` prints the episode plan for a seed;
 `--bin trips` measures the trip rate over a long run.
 
+## Reusing it later
+
+A3 uses the stream for collection and then processes the landed file, so
+nothing a student writes for A3 runs continuously. The pieces that would make
+a genuinely incremental exercise are already here and unused: the publisher
+runs forever, the outage model produces late data in bursts rather than on a
+per-message coin flip, and `--unpaced --max-samples N` replays twelve plant
+days in a couple of seconds, which is what makes a windowing exercise
+testable without waiting for wall clock.
+
+Recorded as an option for the mini-project, which is currently a surrogate
+model with uncertainty quantification and would need a real redesign rather
+than an added task. The smallest version is A3's last stretch item promoted
+to graded work: replay the raw file one message at a time through a bounded
+buffer and report what a watermark would have emitted and when.
+
 ## Access control
 
 There are no per-student credentials, because a hostname and a topic is the
