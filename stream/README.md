@@ -147,3 +147,53 @@ uv run --no-project course/assignments/a03-collect.py \
 
 `--unpaced --max-samples N` runs the publisher flat out, which is how every
 number above was measured: 6,000 messages, twelve plant days, take 2.4 s.
+
+## Deploying it on the Pi
+
+The whole thing is a git clone, a `cargo build --release`, and three config
+files. `deploy/` holds the systemd unit and the nginx location block; the
+broker configuration is in `broker/`.
+
+One thing will waste an afternoon if nobody writes it down: **Debian's
+`mosquitto` package is built without WebSocket support.** Bookworm ships
+2.0.11 linked against no libwebsockets at all, so `protocol websockets` makes
+the broker log `Unable to start any listening sockets` and exit 1, with no
+message naming the actual cause. Install from Eclipse's own repository
+instead, which is where the WebSocket-enabled builds live:
+
+```bash
+sudo curl -fsSL https://repo.mosquitto.org/debian/mosquitto-repo.gpg \
+    -o /etc/apt/keyrings/mosquitto-repo.gpg
+echo "deb [signed-by=/etc/apt/keyrings/mosquitto-repo.gpg] https://repo.mosquitto.org/debian bookworm main" \
+    | sudo tee /etc/apt/sources.list.d/mosquitto.list
+sudo apt-get update && sudo apt-get install mosquitto mosquitto-clients
+```
+
+Pin it to the 2.0 line, in `/etc/apt/preferences.d/mosquitto`:
+
+```
+Package: mosquitto mosquitto-clients libmosquitto1
+Pin: version 2.0.*
+Pin-Priority: 1001
+```
+
+2.1 replaced libwebsockets with libmicrohttpd and changed configuration
+semantics, and an unattended upgrade that silently rewrites how the broker
+authenticates students mid-semester is the same hazard that `Cargo.toml` pins
+the simulator's revision against.
+
+`broker/mosquitto.conf` goes to `/etc/mosquitto/conf.d/tep.conf`; the password
+and ACL files must be owned by `mosquitto` (2.0.22 warns that a future version
+will refuse to load them otherwise). The publisher's password is generated on
+the Pi into `/etc/tep-stream/publisher.secret`, mode 640, root:tepstream, and
+never goes near the repository.
+
+nginx terminates TLS. `deploy/nginx-mqtt.conf` installs as a snippet and is
+pulled into the existing 443 server block with a one-line `include`, rather
+than by pasting it in, so this file stays the only copy. It sits alongside a
+`location /` that proxies an unrelated application: nginx matches the longest
+prefix, so `/mqtt` wins for the broker and everything else is untouched.
+
+`bridge.py` needs `paho-mqtt`, and Debian's `python3-paho-mqtt` (1.6.1) is
+enough. The bridge detects the 1.x callback API rather than requiring 2.x, so
+the Pi needs no virtualenv.
