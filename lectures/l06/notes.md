@@ -133,9 +133,39 @@ Put a validation gate at every boundary where data enters your control, and make
 
 ## In-class demo
 
-We work the validation half concretely and sketch the streaming half. Starting from the sensor data, we declare a pandera schema, dtypes, the set of valid mote ids, an `in_range` check on temperature, and a voltage floor, and run it as a gate before the transform stage. The gate stops on the first problem it meets, a handful of readings tagged with impossible mote ids such as 65407, which is a plain set check earning its keep; running the same schema lazily then reveals the far larger population of out-of-range temperatures and low-voltage rows beneath. We show the cost of skipping the gate, the raw mean temperature is a confident wrong number because roughly a sixth of the readings are physically impossible, then inject two rows we know are bad and watch the `SchemaErrors` report name exactly those rows rather than letting them through to poison an aggregate. Finally we split the feed into a clean stream and a quarantine table, and see that the temperature and voltage rules reject nearly the same rows. For streaming, we measure how out of order the feed really is, about 79.5% of readings arrive before one already seen from the same mote, and replay one mote as tumbling and sliding windowed averages in event time.
+The demo runs on a live plant. A Tennessee Eastman simulation publishes to an MQTT broker
+over WebSockets, and the notebook subscribes to it, collects about three minutes of
+telemetry, and works on whatever arrived. The figures above come from the Intel Lab replay,
+where the answers are already known; the demo uses a feed nobody has cleaned, whose numbers
+come out different every time we run it.
 
-The moment to watch is the gate. A pipeline with the check runs, hits bad data, and stops with a precise complaint; the same pipeline without the check runs to completion and produces a confident, wrong number. That contrast, loud failure versus silent corruption, is the whole argument for validation. The runnable notebook is [`l06-validation.ipynb`](l06-validation.ipynb).
+We start with the plant itself, because a reading whose meaning you do not know is a reading
+you cannot validate: the flowsheet, the 53 tags, and the three gas chromatographs whose
+readings are stale by a known amount. Then the collector, which writes down exactly what
+arrived and does nothing else to it. Then the retained birth message, which is the data
+contract for this feed, and which the validation schema is generated from rather than typed
+out a second time. Decoding the nested JSON gives one row per reading and three timestamps on
+each row: when the instrument took it, when the historian published it, and when our machine
+saw it.
+
+The gate is two schemas, for two different questions. One asks whether the publisher kept its
+promises, meaning tags from the contract, statuses from the OPC UA set, values inside the
+physical range for their declared unit, and nothing published before it was measured. The
+other asks whether the data is fit to average, meaning a real value, a `Good` status, and one
+row per tag per reading. The first usually passes and the second always fails, and the
+failures are the three that recur on any instrument feed: a status code saying the device does
+not trust its own number, a held analyser value republished on a timer so that a naive count
+of product composition measurements comes out about five times too high, and readings that
+arrive after the window they belong to has closed.
+
+The last third is the windowed aggregate. We measure each tag's staleness and check it against
+what the contract predicted, sweep a watermark allowance from zero to three plant hours to
+price the choice between waiting and dropping, and finish by computing the same thirty-minute
+tumbling average twice, once bucketed by event time and once by publish time. Some
+publish-time windows come out empty, which is a gap on a dashboard for a stretch when the
+plant was running normally, and the rest are wrong by an amount worth comparing against the
+tag's own standard deviation. The runnable notebook is
+[`l06-validation.ipynb`](l06-validation.ipynb).
 
 ## Summary
 

@@ -44,6 +44,7 @@ PIP_NAMES = {
     "faiss": "faiss-cpu",
     "rank_bm25": "rank-bm25",
     "yaml": "pyyaml",
+    "paho": "paho-mqtt",
     "dask.dataframe": "dask[dataframe]",
     "pandera.pandas": "pandera",
 }
