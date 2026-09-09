@@ -270,5 +270,3 @@ The simulator's output has no gaps in it, so one clearly marked cell breaks the 
 - **Practice module** for this session (participation credit)
 - No assignment is released this session
 - **Reading**: Polars Lazy API guide; pandas group-by
-
-Full notes, with all sources: `lectures/l05/notes.md`
