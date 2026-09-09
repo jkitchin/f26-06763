@@ -1200,7 +1200,7 @@
       "kind": "mcq",
       "lecture": "l05",
       "context": "When is staying with pandas the right call, even though Polars is faster?",
-      "why": "Polars is stricter, and stricter costs you while you are still learning\nit: more of your mistakes become real errors instead of quiet\nworkarounds. Stay with pandas when your codebase or collaborators only\nspeak it; reach for Polars once the table outgrows comfort. Note the\nlast option is wrong for the same reason converting is cheap: shared\nArrow layout, so plotting from a Polars result costs little.",
+      "why": "Polars is stricter, and stricter costs you while you are still learning\nit: more of your mistakes become real errors instead of quiet\nworkarounds. Stay with pandas when your codebase or collaborators only\nspeak it; reach for Polars when a run gets slow enough to interrupt your\nwork. Note the\nlast option is wrong for the same reason converting is cheap: shared\nArrow layout, so plotting from a Polars result costs little.",
       "objectives": [
         "l05-o3"
       ],
@@ -1241,8 +1241,8 @@
       "id": "l05-q06",
       "kind": "predict_measure",
       "lecture": "l05",
-      "context": "A Python loop over a sensor column, against the vectorized equivalent.\n\nBefore you look: how much slower is the loop?",
-      "why": "Two orders of magnitude, and the reason is that the vectorized version\nhands the whole column to compiled code once while the loop pays\nPython's per-row overhead every time. This is the measurement that makes\n\"vectorize\" a rule rather than a preference.",
+      "context": "A Python loop over a sensor column, against the same test done on the\nwhole column at once.\n\nBefore you look: how much slower is the loop?",
+      "why": "Measured on this session's reactor-pressure column, 480,000 readings:\nthe whole-column comparison takes 0.2 ms, a plain `for` loop takes about\n20 ms, and the same thing written with `iterrows()` takes about 3,900 ms.\nThe whole-column version hands the work to compiled code once; the loop\npays Python's per-row cost 480,000 times. Which loop you write matters\nas much as whether you write one.",
       "objectives": [
         "l05-o1"
       ],
@@ -1250,11 +1250,11 @@
         "vectorization",
         "performance"
       ],
-      "true": "Within a factor of two of 100 times slower",
+      "true": "Hundreds of times slower, and thousands of times if you write it with `iterrows()`",
       "false": [
         "About 5 times slower, which is the usual interpreter overhead",
-        "About 1,000 times slower, since every element crosses the Python-C boundary",
-        "Roughly the same, since NumPy loops internally anyway"
+        "Roughly the same, since NumPy loops internally anyway",
+        "Slower only past a few million rows; at this size it makes little difference"
       ]
     },
     {
