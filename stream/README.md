@@ -116,6 +116,44 @@ gap and a marker rather than pretending the plant never stopped.
 switched on and off; `--bin schedule` prints the episode plan for a seed;
 `--bin trips` measures the trip rate over a long run.
 
+## Watching it
+
+`viewer.html` is a browser view of the live stream: open the file, no server and
+no build step. It subscribes anonymously over the same `wss` endpoint students
+use, waits for the retained birth message to learn the tag names, and then shows
+all fifty-three tags updating with their status codes and their stamp lag. It is
+not published to the course site, because a student watching a dashboard is not
+collecting a file and A3 is about the file.
+
+Two things it makes visible that a collected file makes you work for. The status
+column goes amber and red on its own, and a `Bad_DeviceFailure` metric carries a
+null value rather than a number, which is what a failed instrument should report
+and what breaks a formatter written on the happy path. The stamp lag column is
+empty for the continuous tags and counts up to 720 s on the nineteen composition
+analysers, so the ragged timestamps are on screen rather than in a paragraph.
+
+From a shell, `mosquitto_sub` speaks WebSockets from 2.1 onward. The path has to
+arrive through `-L` while the topic arrives through `-t`, because the URL form
+reads its path as a topic:
+
+```bash
+B=wss://kitchin-services.cheme.cmu.edu:443/mqtt
+
+# the tag dictionary, retained, so it arrives immediately
+mosquitto_sub -L $B -t plant/tep/birth -C 1 \
+  | jq -r '"\(.accelerationFactor)x, \(.tags|length) tags"'
+
+# three samples, three tags each
+mosquitto_sub -L $B -t plant/tep/telemetry -C 3 | jq -r \
+  '"seq \(.seq) \(.timestamp) late=\(.isHistorical) " +
+   ([.metrics[] | select(.name|test("reactor_temperature|reactor_pressure"))]
+    | map("\(.name):\(.value)") | join("  "))'
+```
+
+Debian's 2.0 line, which the Pi is pinned to for the reason above, has no `--ws`
+in its clients, so this works from a laptop and not from the Pi itself. On the
+Pi, subscribe with paho instead.
+
 ## Reusing it later
 
 A3 uses the stream for collection and then processes the landed file, so

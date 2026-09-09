@@ -20,6 +20,9 @@ _build/
 # And once more for the arcade's development harness, which is the page you open
 # to play a game against a local Worker. Source, not build output.
 !arcade/local.html
+# The plant stream's browser view. A hand-written page you open as a file, so it
+# is source too, and the fourth thing the blanket rule above would have eaten.
+!stream/viewer.html
 
 # Node (marp via npx)
 node_modules/

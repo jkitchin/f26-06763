@@ -1,0 +1,160 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>TEP plant stream, live</title>
+<!--
+A browser view of the same stream A3 collects. Open this file directly; it needs
+no server, because the broker speaks MQTT over WebSockets on 443 and anonymous
+clients may read `plant/#`. Nothing here writes to the broker.
+
+It is deliberately not published to the course site: a student who watches a
+dashboard is not collecting a file, and A3 is about the file.
+-->
+<style>
+  :root {
+    --bg: #14171c; --panel: #1c2027; --line: #2a3038; --ink: #dfe4ea;
+    --dim: #8b95a3; --good: #4ea36b; --warn: #d8a13a; --bad: #d1554f; --accent: #5b9dd9;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 14px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  header { padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--panel);
+           display: flex; flex-wrap: wrap; gap: 10px 28px; align-items: baseline; }
+  h1 { font-size: 15px; margin: 0 20px 0 0; font-weight: 600; letter-spacing: .02em; }
+  .stat { white-space: nowrap; }
+  .stat b { color: var(--dim); font-weight: 400; }
+  #dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%;
+         background: var(--bad); margin-right: 6px; vertical-align: middle; }
+  #dot.on { background: var(--good); }
+  main { padding: 16px 20px 40px; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { padding: 3px 10px; text-align: left; border-bottom: 1px solid var(--line);
+           white-space: nowrap; }
+  th { color: var(--dim); font-weight: 400; position: sticky; top: 0;
+       background: var(--bg); border-bottom: 1px solid var(--line); }
+  td.v { text-align: right; font-variant-numeric: tabular-nums; }
+  td.desc { color: var(--dim); white-space: normal; }
+  tr.stale td.v { color: var(--accent); }
+  td.s-Good { color: var(--good); }
+  td.s-Uncertain { color: var(--warn); }
+  td.s-Bad { color: var(--bad); }
+  .flash { animation: f .7s ease-out; }
+  @keyframes f { from { background: #2b3a4a; } to { background: transparent; } }
+  #msg { color: var(--dim); padding: 30px 0; }
+  #events { margin-top: 22px; color: var(--warn); }
+</style>
+
+<header>
+  <h1>Tennessee Eastman, live</h1>
+  <span class="stat"><span id="dot"></span><span id="state">connecting</span></span>
+  <span class="stat"><b>plant clock</b> <span id="pclock">—</span></span>
+  <span class="stat"><b>speed</b> <span id="accel">—</span></span>
+  <span class="stat"><b>seq</b> <span id="seq">—</span></span>
+  <span class="stat"><b>messages</b> <span id="count">0</span></span>
+  <span class="stat"><b>late</b> <span id="late">0</span></span>
+  <span class="stat"><b>out of order</b> <span id="ooo">0</span></span>
+  <span class="stat"><b>not Good</b> <span id="bad">0</span></span>
+</header>
+
+<main>
+  <div id="msg">Waiting for the retained birth message and the first sample…</div>
+  <table id="tbl" hidden>
+    <thead><tr>
+      <th>tag</th><th>description</th><th style="text-align:right">value</th>
+      <th>unit</th><th>status</th><th style="text-align:right">stamp lag</th>
+    </tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <div id="events"></div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/5.15.2/mqtt.min.js"></script>
+<script>
+const HOST = "wss://kitchin-services.cheme.cmu.edu/mqtt";
+const $ = id => document.getElementById(id);
+
+let tags = null, count = 0, late = 0, ooo = 0, bad = 0, maxTs = 0;
+
+const client = mqtt.connect(HOST, {clean: true, reconnectPeriod: 4000});
+
+client.on("connect", () => {
+  $("dot").classList.add("on");
+  $("state").textContent = "connected";
+  // The birth message is retained, so subscribing is enough to get the tag
+  // dictionary even though it was published once, hours ago.
+  client.subscribe("plant/#");
+});
+client.on("reconnect", () => { $("dot").classList.remove("on"); $("state").textContent = "reconnecting"; });
+client.on("close",     () => { $("dot").classList.remove("on"); $("state").textContent = "disconnected"; });
+client.on("error",  e  => { $("state").textContent = "error: " + e.message; });
+
+client.on("message", (topic, buf) => {
+  let m; try { m = JSON.parse(buf.toString()); } catch { return; }
+  if (topic.endsWith("/birth")) return onBirth(m);
+  if (topic.endsWith("/event")) return onEvent(m);
+  onTelemetry(m);
+});
+
+function onBirth(b) {
+  tags = new Map(b.tags.map(t => [t.name, t]));
+  $("accel").textContent = b.accelerationFactor + "× wall clock";
+  buildRows(b.tags);
+  $("msg").hidden = true;
+  $("tbl").hidden = false;
+}
+
+function buildRows(list) {
+  $("rows").innerHTML = list.map(t => `
+    <tr id="r-${t.name}">
+      <td>${t.name}</td>
+      <td class="desc">${t.description}</td>
+      <td class="v" id="v-${t.name}">—</td>
+      <td>${t.unit}</td>
+      <td id="s-${t.name}"></td>
+      <td class="v" id="l-${t.name}"></td>
+    </tr>`).join("");
+}
+
+function onTelemetry(m) {
+  if (!tags) return;                       // no dictionary yet, nothing to label
+  count++;
+  const ts = Date.parse(m.timestamp);
+  if (m.isHistorical) late++;
+  if (ts < maxTs) ooo++; else maxTs = ts;
+
+  $("count").textContent = count;
+  $("late").textContent = late;
+  $("ooo").textContent = ooo;
+  $("seq").textContent = m.seq;
+  $("pclock").textContent = m.timestamp.replace("T", " ").replace(".000Z", "Z");
+
+  for (const met of m.metrics) {
+    const v = $("v-" + met.name); if (!v) continue;
+    const changed = v.textContent !== fmt(met.value);
+    v.textContent = fmt(met.value);
+    if (changed) { v.classList.remove("flash"); void v.offsetWidth; v.classList.add("flash"); }
+
+    const st = $("s-" + met.name);
+    st.textContent = met.statusCode;
+    st.className = "s-" + met.statusCode.split("_")[0];
+    if (met.statusCode !== "Good") bad++;
+
+    // The composition analysers report their previous sample, so their
+    // sourceTimestamp lags the message it arrived in. That lag is the point.
+    const lagS = (ts - Date.parse(met.sourceTimestamp)) / 1000;
+    $("l-" + met.name).textContent = lagS ? lagS + " s" : "";
+    $("r-" + met.name).classList.toggle("stale", lagS > 0);
+  }
+  $("bad").textContent = bad;
+}
+
+function onEvent(e) {
+  const d = document.createElement("div");
+  d.textContent = new Date().toLocaleTimeString() + "  event: " + JSON.stringify(e);
+  $("events").prepend(d);
+}
+
+// A Bad_DeviceFailure metric carries a null value, which is the honest thing for
+// a failed instrument to report and the thing that breaks a naive formatter.
+const fmt = x => x === null || x === undefined ? "—"
+  : (Math.abs(x) >= 1000 || Math.abs(x) < 0.01) ? x.toPrecision(5) : x.toFixed(4);
+</script>
