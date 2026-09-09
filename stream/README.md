@@ -156,19 +156,90 @@ Pi, subscribe with paho instead.
 
 ## Reusing it later
 
-A3 uses the stream for collection and then processes the landed file, so
-nothing a student writes for A3 runs continuously. The pieces that would make
-a genuinely incremental exercise are already here and unused: the publisher
-runs forever, the outage model produces late data in bursts rather than on a
-per-message coin flip, and `--unpaced --max-samples N` replays twelve plant
-days in a couple of seconds, which is what makes a windowing exercise
-testable without waiting for wall clock.
+A3 is the only thing using this so far, and it uses a small part of it: collect
+ten minutes, land the file, process the file. Nothing a student writes for A3
+runs continuously, and the plant keeps running whether or not anybody is
+subscribed. What follows is what the asset can support beyond that, written
+down here because the capability is not obvious from A3 and would otherwise
+have to be rediscovered.
 
-Recorded as an option for the mini-project, which is currently a surrogate
-model with uncertainty quantification and would need a real redesign rather
-than an added task. The smallest version is A3's last stretch item promoted
-to graded work: replay the raw file one message at a time through a bounded
-buffer and report what a watermark would have emitted and when.
+### What is actually available
+
+The publisher runs forever as `tep-stream` on the Pi and has no student-facing
+state, so any number of people can subscribe at any time without coordinating.
+Anonymous read on `plant/#`, no account, no per-student credentials, port 443
+from anywhere. The retained birth message means a subscriber is never more than
+one message away from the full tag dictionary.
+
+Four properties make it useful for teaching rather than merely live:
+
+- **It is unbounded.** There is no last row and no file to sort, which is the
+  one thing a static dataset cannot simulate honestly.
+- **Late data arrives in bursts**, from a modelled outage rather than a
+  per-message coin flip, so a watermark has to survive the length of an outage
+  and not an average delay. That is what makes a watermark exercise have a
+  right and a wrong answer.
+- **Nineteen of the fifty-three channels report the past**, on two duty cycles
+  (fourteen gas channels at 0.1 h, `XMEAS_37` to `XMEAS_41` at 0.25 h), so
+  event time and message time are not interchangeable in a way a student can
+  measure rather than be told.
+- **Faults switch on and off again**, one episode per twelve plant hours, which
+  gives a labelled-in-principle anomaly with two edges rather than the step
+  change every published TEP dataset ends on.
+
+And `--unpaced --max-samples N` replays twelve plant days in a couple of
+seconds, which is what makes any of this testable without waiting for wall
+clock. Every number in this file was measured that way.
+
+### Uses this would carry, and what each needs
+
+**A windowing or watermark exercise, incremental rather than after the fact.**
+The smallest version is A3's last stretch item promoted to graded work: replay
+the raw file one message at a time through a bounded buffer, and report what a
+watermark would have emitted and when, against what the same data says once all
+of it has landed. Needs nothing new here. The unpaced replay is the grader.
+
+**A monitoring or drift exercise for the production arc.** The validation
+checks a student writes for A3 are the same assertions a monitor runs forever,
+which is the seam L6 names and nothing in the course currently exercises. A
+fault episode is a real distribution shift with a known start and end, so an
+alert can be scored against something rather than eyeballed. Needs a small
+runner that holds a connection open and evaluates a schema per message, which
+is thirty lines on top of `a03-collect.py`.
+
+**A soft sensor, which is the honest fit for the mini-project.** A7 is a
+surrogate with uncertainty quantification, and the stream is not a surrogate
+problem as it stands, so it was recorded here as needing a redesign. There is a
+framing that does fit without one. The five product-composition channels are
+the expensive, delayed measurement: `XMEAS_40_product_G` arrives up to twelve
+plant minutes stale and holds still in between, exactly like a lab assay. The
+thirty-four continuous channels are cheap and arrive every sample. Predicting
+the former from the latter is a soft sensor, which is what a surrogate is when
+a chemical plant builds one, and the uncertainty requirement is not decoration:
+a plant acts on a soft sensor between assays and needs to know when to stop
+trusting it. The extrapolation hold-out that A7 asks for is already in the
+data, because a disturbance episode is a regime the quiet stretch does not
+cover, and a model fit on quiet operation and tested across an episode will
+fail in a way worth reporting.
+
+Two cautions before anyone builds a mini-project on that. Ten minutes of
+collecting is roughly 480 samples, which is not a training set, so a student
+would collect for hours or replay unpaced against a local publisher. And the
+target is latched, so the naive framing trains on repeated rows and reports an
+optimistic error; deduplicating on `(tag, sourceTimestamp)` first is the same
+move A3 already asks for, which makes it a reasonable thing to expect of a
+student who has done A3.
+
+### Operational facts a future user needs
+
+The service is `tep-stream` on `kitchin-services.cheme.cmu.edu`, the deployed
+bridge is `/opt/tep-stream/bridge.py`, and the publisher's secret is at
+`/etc/tep-stream/publisher.secret` and is not in this repository. The broker
+holds retained messages in RAM only (`persistence false`), which is why the
+bridge republishes the birth message from `on_connect`; see the deployment
+section above before changing either. Restarting the broker under a running
+bridge is safe and was verified. `viewer.html` is the fastest way to confirm
+the whole chain is alive.
 
 ## Access control
 
