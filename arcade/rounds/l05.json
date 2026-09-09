@@ -1,7 +1,7 @@
 {
   "lecture": "l05",
   "title": "Dataframes and batch pipelines",
-  "pool_version": 9,
+  "pool_version": 10,
   "source_notes": "lectures/l05/notes.md",
   "generated_by": "tools/arcade_rounds.py",
   "items": [
@@ -9,8 +9,8 @@
       "id": "l05-q01",
       "kind": "spot_the_defect",
       "lecture": "l05",
-      "context": "A 200-line pipeline written as one function returns a per-fault summary\ntable, and one column of it looks wrong.\n\nWhat does writing it as a single function cost you here?",
-      "why": "A pipeline built from stages has a seam at every boundary: you can open\nthe output of load, of clean, of aggregate, and see exactly what each one\nproduced. One long function has no such seam, so every question about the\nmiddle costs you a full re-run with prints added.",
+      "context": "Your pipeline is one long function. The table it returns has one column\nof obviously wrong numbers.\n\nWhy is that hard to track down?",
+      "why": "Stages give you a seam at every boundary. You open the output of load,\nthen of clean, then of aggregate, and the first one that looks wrong\ntells you which step to fix. One long function has no such seam, so\nevery question about the middle costs you a full re-run with prints\nadded.",
       "objectives": [
         "l05-o2"
       ],
@@ -19,19 +19,19 @@
         "stages",
         "debugging"
       ],
-      "true": "There is no intermediate output to open, so you cannot tell which step introduced it without adding prints and re-running the whole thing",
+      "true": "No step saved its output, so there is nothing to inspect",
       "false": [
-        "Nothing; one function is easier to debug because all the logic sits in one place",
-        "The error has to be in the aggregation, since that is the last step that ran",
-        "You can only find it by rewriting the pipeline in Polars, whose query plan shows each step"
+        "The bug has to be in the last step that ran",
+        "You cannot put print statements inside a function",
+        "Pandas hides intermediate results on purpose"
       ]
     },
     {
       "id": "l05-q02",
       "kind": "mcq",
       "lecture": "l05",
-      "context": "A Polars pipeline starts with `pl.scan_parquet(...)` and later selects 6 of\na table's 55 columns before `.collect()`.\n\nWhat does the plan do with that, and what is the idea called?",
-      "why": "Because scan_parquet builds a plan instead of reading immediately, a\nlater `.select()` folds back into the read itself, so the columns you\nnever asked for are never pulled off disk. This is the same saving\nDuckDB applied to Parquet in Lecture 4, now inside a dataframe pipeline\nwith no server involved.",
+      "context": "You `scan_parquet` a table of 55 columns, select 6 of them, then\n`.collect()`.\n\nHow many columns come off the disk?",
+      "why": "This is projection pushdown. Because `scan_parquet` builds a plan\ninstead of reading immediately, your later `.select()` folds back into\nthe read itself, so the 49 columns you never asked for are never pulled\noff the disk. DuckDB did the same thing to Parquet in Lecture 4, from\ninside a database. Polars does it with no server involved.",
       "objectives": [
         "l05-o3"
       ],
@@ -40,19 +40,19 @@
         "lazy",
         "query-optimization"
       ],
-      "true": "It folds the selection into the scan, so only those 6 columns are read off disk: projection pushdown",
+      "true": "6: the selection folds into the read",
       "false": [
-        "Nothing; scan_parquet always reads every column regardless of what is selected later",
-        "It reads all 55 columns into memory first, then drops 49 of them: eager projection",
-        "It reads only the first 6 columns in file order, which only works if you select by position"
+        "55, and then 49 are dropped",
+        "55, because a scan always reads everything",
+        "6, but only if you select by position"
       ]
     },
     {
       "id": "l05-q03",
       "kind": "mcq",
       "lecture": "l05",
-      "context": "What does lazy evaluation cost you, in Polars?",
-      "why": "A malformed expression may not raise until `.collect()`, several lines\nand possibly several stages from the mistake, where pandas' eager default\nwould have failed right on the offending line. That debugging cost is\nreal, and it is why an exploratory notebook often stays eager.",
+      "context": "What do you give up by running Polars in lazy mode?",
+      "why": "A bad expression may not raise until `.collect()`, several lines and\nsometimes several stages away from the line that caused it. Eager pandas\nwould have failed on the offending line instead. That is a real\ndebugging cost, and it is why exploratory work often stays eager and\nthe lazy version comes later, once the pipeline has settled.",
       "objectives": [
         "l05-o3"
       ],
@@ -61,19 +61,19 @@
         "lazy",
         "debugging"
       ],
-      "true": "Errors move away from the line that causes them, sometimes several stages away",
+      "true": "Errors surface at `.collect()`, far from their cause",
       "false": [
-        "Memory, since the whole plan must be held before anything executes",
-        "Determinism, since the optimizer may reorder operations between runs",
-        "Type safety, since column types are only known once the data is materialized"
+        "Memory, because the plan is held in full",
+        "Repeatability, because the optimizer reorders steps",
+        "Column types, until the data is loaded"
       ]
     },
     {
       "id": "l05-q04",
       "kind": "mcq",
       "lecture": "l05",
-      "context": "When is staying with pandas the right call, even though Polars is faster?",
-      "why": "Polars is stricter, and stricter costs you while you are still learning\nit: more of your mistakes become real errors instead of quiet\nworkarounds. Stay with pandas when your codebase or collaborators only\nspeak it; reach for Polars when a run gets slow enough to interrupt your\nwork. Note the\nlast option is wrong for the same reason converting is cheap: shared\nArrow layout, so plotting from a Polars result costs little.",
+      "context": "When should you stay with pandas instead of switching to Polars?",
+      "why": "Polars is stricter, and that costs you while you are still learning it:\nmore of your mistakes turn into real errors instead of quiet\nworkarounds. The deciding factor is usually who else has to read your\ncode. Plotting is not a reason to avoid Polars, because converting\nbetween the two is cheap.",
       "objectives": [
         "l05-o3"
       ],
@@ -82,19 +82,19 @@
         "pandas",
         "tooling"
       ],
-      "true": "When your codebase or your collaborators only speak pandas",
+      "true": "When your codebase or coworkers only use pandas",
       "false": [
-        "When the data fits in memory, since Polars' advantage only appears above that",
-        "When the transformations are simple, since Polars' planner needs complex queries to pay off",
-        "When you need plotting, since Polars cannot be converted to a plottable form"
+        "When the whole table already fits in memory",
+        "When the transformations are fairly simple",
+        "When you need to plot the result afterwards"
       ]
     },
     {
       "id": "l05-q05",
       "kind": "spot_the_defect",
       "lecture": "l05",
-      "context": "A pipeline stage caches its output to Parquet under a name that mentions\nonly the stage, `clean.parquet`. A config parameter the stage depends on\nchanges, and the stage is re-run.\n\nWhat happens?",
-      "why": "Naming the cache after the stage rather than after the inputs and\nsettings that actually determine its contents is the trap. The fix is\nto name the cached file after the config too, not just the stage, so a\nchanged setting produces a different filename and the old one is never\nmistaken for current.",
+      "context": "A stage saves its result as `clean.parquet`. You change a setting that\nstage depends on and run the pipeline again.\n\nWhat do you get?",
+      "why": "Nothing links `clean.parquet` to the setting that produced it, so\nnothing marks it stale and the next run quietly reads it back. Name the\ncache after the inputs and settings that determine its contents, so a\nchanged setting produces a different filename and the old one can never\nbe mistaken for current.",
       "objectives": [
         "l05-o2"
       ],
@@ -103,19 +103,19 @@
         "caching",
         "idempotency"
       ],
-      "true": "The stale file is reused silently, because nothing about the filename reflects the config",
+      "true": "The old file, because its name ignores the setting",
       "false": [
-        "The cache is invalidated automatically, since the config is part of the stage's inputs",
-        "The stage fails, since the cached schema no longer matches the new config",
-        "A new cache entry is written alongside the old one, and the newer is preferred"
+        "A fresh result, because the setting is an input",
+        "An error, because the schema no longer matches",
+        "Two files, and the newer one is used"
       ]
     },
     {
       "id": "l05-q06",
       "kind": "predict_measure",
       "lecture": "l05",
-      "context": "A Python loop over a sensor column, against the same test done on the\nwhole column at once.\n\nBefore you look: how much slower is the loop?",
-      "why": "Measured on this session's reactor-pressure column, 480,000 readings:\nthe whole-column comparison takes 0.2 ms, a plain `for` loop takes about\n20 ms, and the same thing written with `iterrows()` takes about 3,900 ms.\nThe whole-column version hands the work to compiled code once; the loop\npays Python's per-row cost 480,000 times. Which loop you write matters\nas much as whether you write one.",
+      "context": "One `for` loop over a column of 480,000 readings, against the same test\ndone on the whole column at once.\n\nBefore you look: how much slower is the loop?",
+      "why": "Measured on the reactor-pressure column, 480,000 readings: the\nwhole-column comparison takes 0.2 ms, a plain `for` loop about 20 ms,\nand the same thing written with `iterrows()` about 3,900 ms. The\nwhole-column version hands the work to compiled code once; the loop\npays Python's per-row cost 480,000 times. Which loop you write matters\nas much as whether you write one at all.",
       "objectives": [
         "l05-o1"
       ],
@@ -123,40 +123,40 @@
         "vectorization",
         "performance"
       ],
-      "true": "Hundreds of times slower, and thousands of times if you write it with `iterrows()`",
+      "true": "Hundreds of times slower",
       "false": [
-        "About 5 times slower, which is the usual interpreter overhead",
-        "Roughly the same, since NumPy loops internally anyway",
-        "Slower only past a few million rows; at this size it makes little difference"
+        "About five times slower",
+        "About the same speed",
+        "Only slower on bigger data"
       ]
     },
     {
       "id": "l05-q07",
       "kind": "mcq",
       "lecture": "l05",
-      "context": "Converting a table from pandas to Polars, or back, is usually cheap. Why?",
-      "why": "Arrow is the columnar format for data held in memory, Parquet's\ncounterpart from Lecture 4 on disk. Because pandas and Polars both lay\ntheir columns out in Arrow, moving a table between the two is cheap,\nwhich is what makes prototyping in whichever one you know a reasonable\ndefault.",
+      "context": "You have one row per reading. You want one row per fault, with each\nsensor averaged over that fault.\n\nWhich operation gets you there?",
+      "why": "This is `GROUP BY faultNumber` from Lecture 3, written as a method call\ninstead of a clause: `readings.group_by(\"faultNumber\").agg(...)`. A join\nmatches rows across two tables, a filter throws rows away, and a sort\nreorders them. None of the three collapses many rows into one summary\nper group, which is the job here.",
       "objectives": [
-        "l05-o3"
+        "l05-o1"
       ],
       "tags": [
-        "arrow",
-        "polars",
-        "pandas"
+        "dataframe",
+        "group-by",
+        "sql"
       ],
-      "true": "Both lay their columns out the same way in memory, the Arrow format",
+      "true": "group_by on faultNumber, then agg with mean",
       "false": [
-        "Both libraries call the same C extension underneath, so no data actually moves",
-        "pandas and Polars use identical column names and types by convention, so no translation is needed",
-        "Polars automatically caches every pandas dataframe it has already seen"
+        "join on faultNumber, then agg with mean",
+        "filter on faultNumber, then agg with mean",
+        "sort by faultNumber, then agg with mean"
       ]
     },
     {
       "id": "l05-q08",
       "kind": "mcq",
       "lecture": "l05",
-      "context": "What does it mean for a pipeline stage to be idempotent, and why does it\nmatter?",
-      "why": "Retryability is the whole payoff. You do not need to know whether the\nlast attempt finished; you just run the stage again. That is what a\ndatabase's transactions gave you for free, and what a plain Python\npipeline has to rebuild by hand.",
+      "context": "What does it mean to say a stage is idempotent?",
+      "why": "The payoff is that you can retry. You do not have to work out whether\nthe last attempt finished, or what it left behind: you just run the\nstage again. A database's transactions gave you this for free, and a\nplain Python pipeline has to rebuild it by hand.",
       "objectives": [
         "l05-o2"
       ],
@@ -164,19 +164,19 @@
         "pipelines",
         "idempotency"
       ],
-      "true": "Running it twice has the same effect as running it once, so a partial failure can be retried without corrupting anything",
+      "true": "Running it twice does what running it once does",
       "false": [
-        "It runs in constant time regardless of input size, which makes scheduling predictable",
-        "It holds no state between invocations, so stages can run in any order",
-        "It writes atomically, so a reader never sees a half-written file"
+        "It takes the same time on any input size",
+        "It keeps no state between two runs",
+        "It never leaves a half-written file"
       ]
     },
     {
       "id": "l05-q10",
       "kind": "notebook_run",
       "lecture": "l05",
-      "context": "Open [`l05-pipelines.ipynb`](../lectures/l05/l05-pipelines.ipynb) and run\nthe pandas-against-Polars benchmark on the sensor data.\n\nWhat should you conclude from whichever number you get?",
-      "why": "A speed ratio measured on one laptop, one dataset, and one set of\noperations does not generalize to your own pipeline. The number worth\ncarrying from this session is the hundredfold vectorization gap, not\nthis ratio, because that one is about the shape of the computation\nrather than about which library you chose.",
+      "context": "Run the pandas-against-Polars benchmark in\n[`l05-pipelines.ipynb`](../lectures/l05/l05-pipelines.ipynb).\n\nWhat does the number you get tell you?",
+      "why": "One laptop, one dataset, one set of operations. Run the same comparison\non a different pipeline and the ratio moves. What does carry over is\nthe gap between a loop and a whole-column operation, because that comes\nfrom the shape of the computation rather than from which library you\npicked. So measure your own pipeline before you rewrite it.",
       "objectives": [
         "l05-o1"
       ],
@@ -185,11 +185,11 @@
         "benchmark",
         "notebook"
       ],
-      "true": "That the ratio is a property of this workload and this machine, and the transferable habit is measuring rather than assuming",
+      "true": "How these operations run on this machine, and little else",
       "false": [
-        "That Polars should replace pandas in your projects, since the benchmark settles it",
-        "That the two are equivalent, since the difference is within run-to-run noise",
-        "That benchmarks of this kind are not meaningful, since real pipelines are dominated by input and output"
+        "That Polars should replace pandas in your work",
+        "That the two are the same once you allow for noise",
+        "That timing a pipeline is not worth doing"
       ]
     }
   ]

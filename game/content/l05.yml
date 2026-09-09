@@ -4,7 +4,7 @@ title: "Dataframes and batch pipelines"
 source_notes: lectures/l05/notes.md
 status: published
 serve: 5
-pool_version: 9
+pool_version: 10
 provenance:
   drafted_by: hand
   reviewed_by: jkitchin
@@ -18,21 +18,22 @@ items:
     difficulty: 3
     objectives: [l05-o2]
     prompt: |
-      A 200-line pipeline written as one function returns a per-fault summary
-      table, and one column of it looks wrong.
+      Your pipeline is one long function. The table it returns has one column
+      of obviously wrong numbers.
 
-      What does writing it as a single function cost you here?
+      Why is that hard to track down?
     options:
-      - "Nothing; one function is easier to debug because all the logic sits in one place"
-      - "There is no intermediate output to open, so you cannot tell which step introduced it without adding prints and re-running the whole thing"
-      - "The error has to be in the aggregation, since that is the last step that ran"
-      - "You can only find it by rewriting the pipeline in Polars, whose query plan shows each step"
-    answer: "There is no intermediate output to open, so you cannot tell which step introduced it without adding prints and re-running the whole thing"
+      - "No step saved its output, so there is nothing to inspect"
+      - "The bug has to be in the last step that ran"
+      - "You cannot put print statements inside a function"
+      - "Pandas hides intermediate results on purpose"
+    answer: "No step saved its output, so there is nothing to inspect"
     evidence: |
-      A pipeline built from stages has a seam at every boundary: you can open
-      the output of load, of clean, of aggregate, and see exactly what each one
-      produced. One long function has no such seam, so every question about the
-      middle costs you a full re-run with prints added.
+      Stages give you a seam at every boundary. You open the output of load,
+      then of clean, then of aggregate, and the first one that looks wrong
+      tells you which step to fix. One long function has no such seam, so
+      every question about the middle costs you a full re-run with prints
+      added.
     source:
       file: lectures/l05/notes.md
       heading: "Making it safe to rerun"
@@ -46,22 +47,22 @@ items:
     difficulty: 2
     objectives: [l05-o3]
     prompt: |
-      A Polars pipeline starts with `pl.scan_parquet(...)` and later selects 6 of
-      a table's 55 columns before `.collect()`.
+      You `scan_parquet` a table of 55 columns, select 6 of them, then
+      `.collect()`.
 
-      What does the plan do with that, and what is the idea called?
+      How many columns come off the disk?
     options:
-      - "Nothing; scan_parquet always reads every column regardless of what is selected later"
-      - "It folds the selection into the scan, so only those 6 columns are read off disk: projection pushdown"
-      - "It reads all 55 columns into memory first, then drops 49 of them: eager projection"
-      - "It reads only the first 6 columns in file order, which only works if you select by position"
-    answer: "It folds the selection into the scan, so only those 6 columns are read off disk: projection pushdown"
+      - "6: the selection folds into the read"
+      - "55, and then 49 are dropped"
+      - "55, because a scan always reads everything"
+      - "6, but only if you select by position"
+    answer: "6: the selection folds into the read"
     evidence: |
-      Because scan_parquet builds a plan instead of reading immediately, a
-      later `.select()` folds back into the read itself, so the columns you
-      never asked for are never pulled off disk. This is the same saving
-      DuckDB applied to Parquet in Lecture 4, now inside a dataframe pipeline
-      with no server involved.
+      This is projection pushdown. Because `scan_parquet` builds a plan
+      instead of reading immediately, your later `.select()` folds back into
+      the read itself, so the 49 columns you never asked for are never pulled
+      off the disk. DuckDB did the same thing to Parquet in Lecture 4, from
+      inside a database. Polars does it with no server involved.
     source:
       file: lectures/l05/notes.md
       heading: "Polars: plan the work, then run it"
@@ -75,18 +76,19 @@ items:
     difficulty: 3
     objectives: [l05-o3]
     prompt: |
-      What does lazy evaluation cost you, in Polars?
+      What do you give up by running Polars in lazy mode?
     options:
-      - "Memory, since the whole plan must be held before anything executes"
-      - "Errors move away from the line that causes them, sometimes several stages away"
-      - "Determinism, since the optimizer may reorder operations between runs"
-      - "Type safety, since column types are only known once the data is materialized"
-    answer: "Errors move away from the line that causes them, sometimes several stages away"
+      - "Errors surface at `.collect()`, far from their cause"
+      - "Memory, because the plan is held in full"
+      - "Repeatability, because the optimizer reorders steps"
+      - "Column types, until the data is loaded"
+    answer: "Errors surface at `.collect()`, far from their cause"
     evidence: |
-      A malformed expression may not raise until `.collect()`, several lines
-      and possibly several stages from the mistake, where pandas' eager default
-      would have failed right on the offending line. That debugging cost is
-      real, and it is why an exploratory notebook often stays eager.
+      A bad expression may not raise until `.collect()`, several lines and
+      sometimes several stages away from the line that caused it. Eager pandas
+      would have failed on the offending line instead. That is a real
+      debugging cost, and it is why exploratory work often stays eager and
+      the lazy version comes later, once the pipeline has settled.
     source:
       file: lectures/l05/notes.md
       heading: "Where this pushes back"
@@ -100,21 +102,19 @@ items:
     difficulty: 2
     objectives: [l05-o3]
     prompt: |
-      When is staying with pandas the right call, even though Polars is faster?
+      When should you stay with pandas instead of switching to Polars?
     options:
-      - "When the data fits in memory, since Polars' advantage only appears above that"
-      - "When your codebase or your collaborators only speak pandas"
-      - "When the transformations are simple, since Polars' planner needs complex queries to pay off"
-      - "When you need plotting, since Polars cannot be converted to a plottable form"
-    answer: "When your codebase or your collaborators only speak pandas"
+      - "When your codebase or coworkers only use pandas"
+      - "When the whole table already fits in memory"
+      - "When the transformations are fairly simple"
+      - "When you need to plot the result afterwards"
+    answer: "When your codebase or coworkers only use pandas"
     evidence: |
-      Polars is stricter, and stricter costs you while you are still learning
-      it: more of your mistakes become real errors instead of quiet
-      workarounds. Stay with pandas when your codebase or collaborators only
-      speak it; reach for Polars when a run gets slow enough to interrupt your
-      work. Note the
-      last option is wrong for the same reason converting is cheap: shared
-      Arrow layout, so plotting from a Polars result costs little.
+      Polars is stricter, and that costs you while you are still learning it:
+      more of your mistakes turn into real errors instead of quiet
+      workarounds. The deciding factor is usually who else has to read your
+      code. Plotting is not a reason to avoid Polars, because converting
+      between the two is cheap.
     source:
       file: lectures/l05/notes.md
       heading: "Where this pushes back"
@@ -128,23 +128,22 @@ items:
     difficulty: 3
     objectives: [l05-o2]
     prompt: |
-      A pipeline stage caches its output to Parquet under a name that mentions
-      only the stage, `clean.parquet`. A config parameter the stage depends on
-      changes, and the stage is re-run.
+      A stage saves its result as `clean.parquet`. You change a setting that
+      stage depends on and run the pipeline again.
 
-      What happens?
+      What do you get?
     options:
-      - "The cache is invalidated automatically, since the config is part of the stage's inputs"
-      - "The stale file is reused silently, because nothing about the filename reflects the config"
-      - "The stage fails, since the cached schema no longer matches the new config"
-      - "A new cache entry is written alongside the old one, and the newer is preferred"
-    answer: "The stale file is reused silently, because nothing about the filename reflects the config"
+      - "The old file, because its name ignores the setting"
+      - "A fresh result, because the setting is an input"
+      - "An error, because the schema no longer matches"
+      - "Two files, and the newer one is used"
+    answer: "The old file, because its name ignores the setting"
     evidence: |
-      Naming the cache after the stage rather than after the inputs and
-      settings that actually determine its contents is the trap. The fix is
-      to name the cached file after the config too, not just the stage, so a
-      changed setting produces a different filename and the old one is never
-      mistaken for current.
+      Nothing links `clean.parquet` to the setting that produced it, so
+      nothing marks it stale and the next run quietly reads it back. Name the
+      cache after the inputs and settings that determine its contents, so a
+      changed setting produces a different filename and the old one can never
+      be mistaken for current.
     source:
       file: lectures/l05/notes.md
       heading: "Making it safe to rerun"
@@ -158,26 +157,26 @@ items:
     difficulty: 2
     objectives: [l05-o1]
     prompt: |
-      A Python loop over a sensor column, against the same test done on the
-      whole column at once.
+      One `for` loop over a column of 480,000 readings, against the same test
+      done on the whole column at once.
 
       Before you look: how much slower is the loop?
     predict:
       ask: "Write down a factor before revealing."
-      common_prior: "Maybe 5 or 10 times. Interpreted code is slower but not absurdly so."
+      common_prior: "Maybe 5 or 10 times. Interpreted code is slower, but not absurdly so."
     options:
-      - "Hundreds of times slower, and thousands of times if you write it with `iterrows()`"
-      - "About 5 times slower, which is the usual interpreter overhead"
-      - "Roughly the same, since NumPy loops internally anyway"
-      - "Slower only past a few million rows; at this size it makes little difference"
-    answer: "Hundreds of times slower, and thousands of times if you write it with `iterrows()`"
+      - "Hundreds of times slower"
+      - "About five times slower"
+      - "About the same speed"
+      - "Only slower on bigger data"
+    answer: "Hundreds of times slower"
     evidence: |
-      Measured on this session's reactor-pressure column, 480,000 readings:
-      the whole-column comparison takes 0.2 ms, a plain `for` loop takes about
-      20 ms, and the same thing written with `iterrows()` takes about 3,900 ms.
-      The whole-column version hands the work to compiled code once; the loop
+      Measured on the reactor-pressure column, 480,000 readings: the
+      whole-column comparison takes 0.2 ms, a plain `for` loop about 20 ms,
+      and the same thing written with `iterrows()` about 3,900 ms. The
+      whole-column version hands the work to compiled code once; the loop
       pays Python's per-row cost 480,000 times. Which loop you write matters
-      as much as whether you write one.
+      as much as whether you write one at all.
     source:
       file: lectures/l05/notes.md
       heading: "Why this matters"
@@ -189,27 +188,30 @@ items:
     kind: mcq
     rung: 2
     difficulty: 2
-    objectives: [l05-o3]
+    objectives: [l05-o1]
     prompt: |
-      Converting a table from pandas to Polars, or back, is usually cheap. Why?
+      You have one row per reading. You want one row per fault, with each
+      sensor averaged over that fault.
+
+      Which operation gets you there?
     options:
-      - "Both libraries call the same C extension underneath, so no data actually moves"
-      - "Both lay their columns out the same way in memory, the Arrow format"
-      - "pandas and Polars use identical column names and types by convention, so no translation is needed"
-      - "Polars automatically caches every pandas dataframe it has already seen"
-    answer: "Both lay their columns out the same way in memory, the Arrow format"
+      - 'group_by on faultNumber, then agg with mean'
+      - 'join on faultNumber, then agg with mean'
+      - 'filter on faultNumber, then agg with mean'
+      - 'sort by faultNumber, then agg with mean'
+    answer: 'group_by on faultNumber, then agg with mean'
     evidence: |
-      Arrow is the columnar format for data held in memory, Parquet's
-      counterpart from Lecture 4 on disk. Because pandas and Polars both lay
-      their columns out in Arrow, moving a table between the two is cheap,
-      which is what makes prototyping in whichever one you know a reasonable
-      default.
+      This is `GROUP BY faultNumber` from Lecture 3, written as a method call
+      instead of a clause: `readings.group_by("faultNumber").agg(...)`. A join
+      matches rows across two tables, a filter throws rows away, and a sort
+      reorders them. None of the three collapses many rows into one summary
+      per group, which is the job here.
     source:
       file: lectures/l05/notes.md
-      heading: "Polars: plan the work, then run it"
-      quote: "cheap because both libraries lay columns out the same way in memory"
-    verify: {mode: quote, needle: "both libraries lay columns out the same way in memory", volatility: stable}
-    tags: [arrow, polars, pandas]
+      heading: "What carries over from SQL"
+      quote: "does the same job as `GROUP BY faultNumber`"
+    verify: {mode: quote, needle: "GROUP BY faultNumber", volatility: stable}
+    tags: [dataframe, group-by, sql]
 
   - id: l05-q08
     kind: mcq
@@ -217,19 +219,18 @@ items:
     difficulty: 2
     objectives: [l05-o2]
     prompt: |
-      What does it mean for a pipeline stage to be idempotent, and why does it
-      matter?
+      What does it mean to say a stage is idempotent?
     options:
-      - "Running it twice has the same effect as running it once, so a partial failure can be retried without corrupting anything"
-      - "It runs in constant time regardless of input size, which makes scheduling predictable"
-      - "It holds no state between invocations, so stages can run in any order"
-      - "It writes atomically, so a reader never sees a half-written file"
-    answer: "Running it twice has the same effect as running it once, so a partial failure can be retried without corrupting anything"
+      - "Running it twice does what running it once does"
+      - "It takes the same time on any input size"
+      - "It keeps no state between two runs"
+      - "It never leaves a half-written file"
+    answer: "Running it twice does what running it once does"
     evidence: |
-      Retryability is the whole payoff. You do not need to know whether the
-      last attempt finished; you just run the stage again. That is what a
-      database's transactions gave you for free, and what a plain Python
-      pipeline has to rebuild by hand.
+      The payoff is that you can retry. You do not have to work out whether
+      the last attempt finished, or what it left behind: you just run the
+      stage again. A database's transactions gave you this for free, and a
+      plain Python pipeline has to rebuild it by hand.
     source:
       file: lectures/l05/notes.md
       heading: "Making it safe to rerun"
@@ -243,27 +244,28 @@ items:
     difficulty: 3
     objectives: [l05-o3]
     prompt: |
-      Close the notes. Explain what happens, step by step, between writing
-      `pl.scan_parquet(...).group_by(...).agg(...)` and getting a result back.
+      Close the notes. Walk through what happens between writing
+      `pl.scan_parquet(...).group_by(...).agg(...)` and getting a table back.
+
       Stop when you stall, and note where.
     checklist:
-      - text: "scan_parquet hands back a description of the read, not the data itself; nothing is read yet"
+      - text: "`scan_parquet` returns a description of the read, not the data. Nothing is read yet."
         needle: "description of the read"
-      - text: "Each method call (group_by, agg) adds a step to that plan"
+      - text: "Each call you chain on adds one step to that plan."
         needle: "step"
-      - text: "Nothing runs until .collect() is called"
+      - text: "Nothing runs until `.collect()`."
         needle: "collect"
-      - text: "At that point the plan runs in one optimized pass, with later steps like column selection folded back into the read"
+      - text: "`.collect()` runs the whole plan in one optimized pass."
         needle: "one optimized pass"
-      - text: "This is the same projection and predicate pushdown DuckDB applied to Parquet in Lecture 4, now with no server"
+      - text: "Column selection folds back into the read, the way DuckDB did it in Lecture 4, with no server."
         needle: "no server"
     answer: null
     evidence: |
-      The whole benefit of the lazy API depends on this order: describe first,
-      then execute in one pass. Skipping straight to "it runs the query"
-      misses why scan_parquet beats read_parquet for a pipeline, and why the
-      plan is worth printing with `.explain()` before you trust it. Where you
-      stalled is your reading assignment.
+      The order is the whole point: describe first, then run once. If you skip
+      to "it runs the query", you lose the reason `scan_parquet` beats
+      `read_parquet` in a pipeline, and the reason the plan is worth printing
+      with `.explain()` before you trust it. Whichever step you stalled on is
+      the paragraph to reread.
     source:
       file: lectures/l05/notes.md
       heading: "Polars: plan the work, then run it"
@@ -283,22 +285,22 @@ items:
     difficulty: 2
     objectives: [l05-o1]
     prompt: |
-      Open [`l05-pipelines.ipynb`](../lectures/l05/l05-pipelines.ipynb) and run
-      the pandas-against-Polars benchmark on the sensor data.
+      Run the pandas-against-Polars benchmark in
+      [`l05-pipelines.ipynb`](../lectures/l05/l05-pipelines.ipynb).
 
-      What should you conclude from whichever number you get?
+      What does the number you get tell you?
     options:
-      - "That Polars should replace pandas in your projects, since the benchmark settles it"
-      - "That the ratio is a property of this workload and this machine, and the transferable habit is measuring rather than assuming"
-      - "That the two are equivalent, since the difference is within run-to-run noise"
-      - "That benchmarks of this kind are not meaningful, since real pipelines are dominated by input and output"
-    answer: "That the ratio is a property of this workload and this machine, and the transferable habit is measuring rather than assuming"
+      - "How these operations run on this machine, and little else"
+      - "That Polars should replace pandas in your work"
+      - "That the two are the same once you allow for noise"
+      - "That timing a pipeline is not worth doing"
+    answer: "How these operations run on this machine, and little else"
     evidence: |
-      A speed ratio measured on one laptop, one dataset, and one set of
-      operations does not generalize to your own pipeline. The number worth
-      carrying from this session is the hundredfold vectorization gap, not
-      this ratio, because that one is about the shape of the computation
-      rather than about which library you chose.
+      One laptop, one dataset, one set of operations. Run the same comparison
+      on a different pipeline and the ratio moves. What does carry over is
+      the gap between a loop and a whole-column operation, because that comes
+      from the shape of the computation rather than from which library you
+      picked. So measure your own pipeline before you rewrite it.
     source:
       file: lectures/l05/notes.md
       heading: "Where this pushes back"
