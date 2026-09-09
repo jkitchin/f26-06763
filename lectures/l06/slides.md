@@ -138,6 +138,44 @@ Kafka is **at-least-once by default**. Exactly-once is opt-in: an idempotent pro
 
 ---
 
+## Batch, streaming, and the log, a question
+
+<div class="clicker" data-tag="l06-at-least-once" data-seconds="45" data-answer="B" data-hint="At-least-once is a promise the broker makes about delivery, not a promise about your code. Work out what it does when the offset was never committed." data-why="B. The offset was never committed, so on restart the broker replays from the last one it has and that reading is added a second time. Nothing in Kafka knows about your total, so nothing corrects it. A is at-most-once, the opposite trade: commit the offset first and a crash loses the reading instead. This is the reason the fix is an idempotent consumer, keyed so a repeat is a no-op, rather than reaching for exactly-once." data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker-main">
+
+**Your consumer reads a Kafka topic and adds each reading to a running total. It crashes after adding one and before committing its offset. What does the total look like after it restarts?**
+
+<ol class="clicker-opts">
+<li>Short by that reading, which is lost</li>
+<li>Too high, because that reading is added twice</li>
+<li>Correct, because Kafka will not redeliver a processed record</li>
+<li>Correct, because the broker rolls the total back</li>
+</ol>
+
+</div>
+<aside class="clicker-panel">
+<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
+<div class="clicker-url">clicker.f26-06763.workers.dev</div>
+<button class="clicker-start">Start voting</button>
+<div class="clicker-timer">45</div>
+<div class="clicker-count">no votes yet</div>
+</aside>
+</div>
+
+<!--
+Tests whether at-least-once is understood as a redelivery guarantee rather than
+a vague promise of reliability.
+
+A is the productive wrong answer: it is what you get from committing the offset
+first, which is a real design and the wrong one here. Ask a defender of A which
+line they would move, and at-most-once falls out of it.
+
+Land on the word idempotent, because A3 asks them to make a pipeline idempotent
+under exactly this delivery model.
+-->
+
+---
+
 ## Batch, streaming, and the log, on devices and under load
 
 MQTT is a "lightweight publish/subscribe messaging transport" for microcontrollers and lossy networks. [MQTT](https://mqtt.org/)
@@ -211,6 +249,43 @@ For a live stream they diverge constantly. A processing-time window mixes events
 
 ---
 
+## Windows, event time, watermarks, a question
+
+<div class="clicker" data-tag="l06-processing-time" data-seconds="45" data-answer="B" data-hint="Processing time is stamped when a reading is observed, not when it was measured. Ask when all of these were observed." data-why="B. Processing time is stamped on arrival, so every buffered reading takes the timestamp of the reconnect and lands in one window: two hours that look like an outage, then one hour that looks like a spike, and neither of those happened. C is the productive wrong answer, because a processing-time window has no late data by definition, and nothing can arrive before it is observed. Event time puts each reading back where it was measured, which is the whole reason the distinction has a name." data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker-main">
+
+**A mote loses its link for two hours, buffers its readings, and uploads all of them the moment it reconnects. You window by processing time, one hour per window. What do those two hours look like?**
+
+<ol class="clicker-opts">
+<li>Two hours of readings, spread across two windows as measured</li>
+<li>Two empty windows, then a single window holding all of them</li>
+<li>The readings are dropped, since their windows closed while the mote was offline</li>
+<li>The same as event time, since each reading carries its own timestamp</li>
+</ol>
+
+</div>
+<aside class="clicker-panel">
+<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
+<div class="clicker-url">clicker.f26-06763.workers.dev</div>
+<button class="clicker-start">Start voting</button>
+<div class="clicker-timer">45</div>
+<div class="clicker-count">no votes yet</div>
+</aside>
+</div>
+
+<!--
+The one question in this deck that decides whether the rest of the section lands.
+A student who cannot answer it is not ready for watermarks.
+
+D is the tempting one: the timestamp does travel with the reading, and that is
+exactly why it is available to window on. Ask which timestamp the window used.
+
+If the room lands in the middle band, draw the two hours on the board as a gap
+followed by a spike, then ask what the plant actually did.
+-->
+
+---
+
 ## Windows, event time, watermarks, watermarks and triggers
 
 <div class="definition">
@@ -234,6 +309,42 @@ The watermark is a guess and can be wrong. You need a policy: drop it, hold wind
 Accumulation decides what a correction means: discard the old value and replace it, or accumulate the straggler onto it. "The hourly mean is 24.1 °C. Correction: 24.3 °C." Downstream must expect updates.
 
 [Streaming 102](https://www.oreilly.com/radar/the-world-beyond-batch-streaming-102/)
+
+---
+
+## Windows, event time, watermarks, a question
+
+<div class="clicker" data-tag="l06-watermark-tradeoff" data-seconds="45" data-answer="A" data-hint="The watermark decides when a window is allowed to close. Ask what the window is doing in the meantime." data-why="A. The watermark is how long you are willing to wait before calling a window complete, so a wider one catches more stragglers and delays every result by the same amount. Completeness and latency are two ends of one dial, and no setting avoids the trade, so the number is one you state and defend rather than a default you accept. D is the common misreading, that a watermark labels records late rather than triggering a window to close." data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker-main">
+
+**You widen your watermark from 10 minutes to 2 hours. What have you bought, and what have you paid?**
+
+<ol class="clicker-opts">
+<li>Fewer late records, and every window emits two hours later</li>
+<li>Fewer late records, at no cost</li>
+<li>More late records, and every window emits sooner</li>
+<li>Nothing: a watermark labels records late, it does not change when a window closes</li>
+</ol>
+
+</div>
+<aside class="clicker-panel">
+<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
+<div class="clicker-url">clicker.f26-06763.workers.dev</div>
+<button class="clicker-start">Start voting</button>
+<div class="clicker-timer">45</div>
+<div class="clicker-count">no votes yet</div>
+</aside>
+</div>
+
+<!--
+This is A3 task 4 in one slide: the sweep asks them to price several allowances
+and defend one, and this is the shape of the answer.
+
+B is the answer a student gives who has only heard watermarks described as a way
+to catch late data. Ask what the window is doing for those two hours.
+
+Worth saying out loud that there is no correct number, only a stated reason.
+-->
 
 ---
 
@@ -314,6 +425,43 @@ voltage      greater_than_or_equal_to(2.4)  1.91
 ```
 
 `lazy=True` hands you which row, which check, which value.
+
+---
+
+## Validation: checks as a gate, a question
+
+<div class="clicker" data-tag="l06-range-check-drift" data-seconds="45" data-answer="B" data-hint="The check runs on one row and knows nothing about the rows before it. Sketch the climb and mark where 50 sits on it." data-why="B. A range check is a per-row predicate: it rejects 122 and it accepts 48, and it has no memory of the same mote reading 24 last week. Everything from the start of the drift up to the crossing of 50 passes the gate. That is why the schema two slides back also checks voltage: the drained battery is the upstream cause and it crosses its floor earlier, so the voltage check catches the same mote sooner. Catching the trend itself is a statistical check, not a schema check. D is worth naming: lazy changes how many failures you are told about, never which rows fail." data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker-main">
+
+**A mote's battery drains. Its temperature readings drift slowly upward over a week and end at 122&deg;C. Your schema checks `temperature` in range 0 to 50. How much of that drift does the gate catch?**
+
+<ol class="clicker-opts">
+<li>All of it, since the mote is rejected once any reading fails</li>
+<li>Only the readings above 50, so the whole climb up to it passes</li>
+<li>None, since a range check cannot see a trend</li>
+<li>All of it, once you pass <code>lazy=True</code></li>
+</ol>
+
+</div>
+<aside class="clicker-panel">
+<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
+<div class="clicker-url">clicker.f26-06763.workers.dev</div>
+<button class="clicker-start">Start voting</button>
+<div class="clicker-timer">45</div>
+<div class="clicker-count">no votes yet</div>
+</aside>
+</div>
+
+<!--
+Ties the failure report on the previous slide to the pandera schema two before it,
+and sets up the pushback section on validation confirming plausibility.
+
+A is the productive wrong answer and it is a good one: students read the gate as
+rejecting the mote rather than the row. Ask what pandera was handed.
+
+C is worth a sentence too, because it is nearly right for the wrong reason: the
+range check does catch the tail, it just cannot catch the climb.
+-->
 
 ---
 
@@ -448,9 +596,23 @@ The gate turns silent corruption into a loud failure.
 
 ---
 
+## Standings
+
+Nicknames only. Everyone who skipped one still counted in every bar you saw.
+
+<div class="clicker-leaderboard"
+     data-read="https://clicker.f26-06763.workers.dev"
+     data-top="8"
+     data-hours="6"
+     data-title="Standings"></div>
+
+---
+
 ## Next
 
-**Assignment 3** (from Lecture 5): its validation half is now unblocked
+**Assignment 3** is released today: collect ten minutes of a live plant stream, then make it trustworthy
 **Reading** Akidau, "The Dataflow Model"; pandera docs
 
 Full notes, with all sources: `lectures/l06/notes.md`
+
+<script src="clicker-slide.js"></script>

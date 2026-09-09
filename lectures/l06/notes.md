@@ -8,7 +8,7 @@
 - **Slides** <a href="../../slides/l06/">Deck for this session</a>
 - **Practice** <a href="../../game/#/l06">Practice module for this session</a>
 - **Demo** [`l06-validation.ipynb`](l06-validation.ipynb), a pandera gate that fails loudly, and a windowed replay of the sensor stream
-- **Assignment 3**, released at Lecture 5; its validation half is this session's material
+- **Assignment 3**, released this session; it uses both halves of this week
 :::
 
 ## Why this matters
@@ -149,7 +149,7 @@ Real sensor data breaks two assumptions a batch pipeline quietly makes: that the
 
 ## Assignment
 
-Assignment 3, "Reproducible, validated data pipeline," was released at Lecture 5 and is due roughly one week later. Its first half is Lecture 5's batch-pipeline material; its second half is this session's, adding pandera or Great Expectations checks that fail the pipeline on bad data, including a physical-plausibility check and a proof that the gate actually halts on injected corruption. You can start the validation half now that this session is done. This is a pointer, not the rubric.
+Assignment 3, "A plant stream, collected and made trustworthy," is released this session and is due roughly one week later. You collect at least ten minutes of a live chemical-plant simulation published over MQTT, then build a pipeline that makes what arrived worth computing on. It draws on both halves of this week: Lecture 5's small, restartable stages and its Polars idioms, and this session's event time, watermarks, and validation as a gate. With both sessions now covered, you can do the whole assignment. This is a pointer, not the rubric.
 
 ## Practice module
 
