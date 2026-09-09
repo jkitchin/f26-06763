@@ -108,7 +108,7 @@ pipeline = (
 result = pipeline.collect()   # only now does anything run
 ```
 
-The demo shows the rest live: the query plan, printed before and after optimization, and pandas-to-Polars conversion. That conversion is cheap because both libraries lay columns out the same way in memory, the Arrow format, Parquet's in-memory cousin from Lecture 4.
+The demo shows the rest live: the query plan, printed before and after optimization, and pandas-to-Polars conversion. That conversion is cheap because both libraries lay columns out the same way in memory, the Arrow format.
 
 ## Making it safe to rerun
 

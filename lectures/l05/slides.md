@@ -169,7 +169,7 @@ You met these in Lecture 4, when DuckDB applied them to Parquet:
 - **projection pushdown**: read only the columns you asked for
 - **predicate pushdown**: a filter moves into the scan
 
-Because pandas and Polars both lay columns out the same way in memory (**Arrow**, Parquet's in-memory cousin from Lecture 4), converting between them is cheap too: prototype in whichever you know, convert only if it turns out to matter.
+Because pandas and Polars both lay columns out the same way in memory (**Arrow**), converting between them is cheap too: prototype in whichever you know, convert only if it turns out to matter.
 
 [Polars, Lazy API](https://docs.pola.rs/user-guide/lazy/) · [Apache Arrow](https://arrow.apache.org/overview/)
 
