@@ -1,0 +1,40 @@
+[Unit]
+Description=Tennessee Eastman plant stream for 06-763 A3
+Documentation=https://github.com/jkitchin/f26-06763/blob/main/stream/README.md
+After=network-online.target mosquitto.service
+Wants=network-online.target
+Requires=mosquitto.service
+
+[Service]
+Type=simple
+User=tepstream
+Group=tepstream
+
+# A pipeline, because the simulator has no network code in it and the bridge
+# has no simulator in it. If the bridge dies the simulator takes SIGPIPE and
+# dies with it, and systemd restarts the pair, which is the failure behaviour
+# we want: half of this running is worse than none of it.
+ExecStart=/bin/sh -c 'exec /opt/tep-stream/tep-stream --speed 30 \
+  | /usr/bin/python3 /opt/tep-stream/bridge.py'
+
+Environment=TEP_BROKER_HOST=127.0.0.1
+Environment=TEP_BROKER_PORT=9001
+Environment=TEP_PUBLISHER_SECRET=/etc/tep-stream/publisher.secret
+
+Restart=always
+RestartSec=5
+# The plant is stateless across a restart by design: it starts a fresh run
+# from a fresh seed and the birth message says so. Nothing to preserve.
+
+# It reads one secret and writes to a socket. Nothing else.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+MemoryMax=256M
+
+[Install]
+WantedBy=multi-user.target
