@@ -197,3 +197,18 @@ prefix, so `/mqtt` wins for the broker and everything else is untouched.
 `bridge.py` needs `paho-mqtt`, and Debian's `python3-paho-mqtt` (1.6.1) is
 enough. The bridge detects the 1.x callback API rather than requiring 2.x, so
 the Pi needs no virtualenv.
+
+The broker runs with `persistence false`, so it writes nothing to the SD card
+and its retained messages live in RAM. The publisher emits the birth message
+once at startup and never again, which means a broker restart underneath a
+running publisher would drop the tag dictionary for good. Telemetry keeps
+arriving, so nothing looks wrong from either end, and every student who
+subscribes afterwards gets fifty-three unlabelled numbers and no way to build
+the schema A3 asks them for. `Requires=mosquitto.service` does not help:
+it propagates a stop, not a restart, and paho reconnects by itself.
+
+The bridge therefore keeps the birth line and republishes it from `on_connect`,
+which covers the cases a persistence file would not, among them a `kill -9`, an
+OOM kill, a power cut, and a reinstall. Verified by killing the broker under a
+running bridge and resubscribing: before the change the birth topic came back
+empty while telemetry flowed; after it, the retained message is there again.

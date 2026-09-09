@@ -32,6 +32,25 @@ client.ws_set_options(path="/mqtt")
 # The one authenticated client on the broker. Students connect anonymously and
 # can only read; nothing they can do puts a message on these topics.
 client.username_pw_set("tep-publisher", SECRET)
+
+# The publisher emits the birth message once, at startup, and never again. The
+# broker holds it as a retained message in RAM, because `persistence false`
+# keeps the Pi from writing anything to its SD card. So a broker restart while
+# the publisher keeps running would drop the tag dictionary permanently, and
+# every student who subscribed afterwards would get telemetry they cannot
+# decode, with nothing anywhere reporting a fault. Keeping the line here and
+# republishing it on connect covers that, and covers the cases a persistence
+# file would not: a kill -9, an OOM kill, a power cut, a reinstall.
+birth = None
+
+
+def on_connect(client, userdata, *args):
+    if birth is not None:
+        client.publish(f"{TOPIC}/birth", birth, qos=1, retain=True)
+
+
+# paho hands on_connect four arguments in 1.x and five in 2.x, hence *args.
+client.on_connect = on_connect
 client.connect(HOST, PORT, keepalive=60)
 client.loop_start()
 
@@ -44,6 +63,7 @@ for line in sys.stdin:
     if kind == "birth":
         # Retained, so a subscriber joining mid-stream gets the tag dictionary
         # before it gets a value rather than after the next restart.
+        birth = line
         client.publish(f"{TOPIC}/birth", line, qos=1, retain=True)
     elif kind == "event":
         client.publish(f"{TOPIC}/event", line, qos=1)
