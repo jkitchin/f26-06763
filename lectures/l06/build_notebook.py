@@ -5,7 +5,7 @@ The L6 demo runs on the live Tennessee Eastman stream, the same feed A3 collects
 from, so the session's ideas are exercised on data nobody has cleaned and whose
 answers nobody knows in advance.
 
-Nine sections, matching the notes:
+Ten sections, matching the notes:
 
   1. The plant. What the 53 tags are, against the flowsheet, so a reader knows
      what a reactor level and a product analyser are before validating them.
@@ -25,7 +25,10 @@ Nine sections, matching the notes:
      lag, and the data agrees, for all 53.
   8. Late data and a watermark. What fraction arrives behind the frontier, and
      how long you have to wait to lose none of it.
-  9. Windows in event time, against the same windows in publish time.
+  9. Long to wide. Pivoting onto the regular sample grid is where the holes
+     show up: the analysers hold, so their columns are mostly empty, and a
+     forward fill writes about a fifth of the table. Keep a mask.
+ 10. Windows in event time, against the same windows in publish time.
 
 Design notes so the demo runs cleanly:
   - Every expected failure is caught, so "Restart and Run All" finishes top to
@@ -532,7 +535,73 @@ cells = [
          "pd.DataFrame(rows)"),
 
     # ------------------------------------------------------------------ 9
-    md("## 9. Windows in event time\n",
+    md("## 9. From long to wide, and the holes that appear\n",
+       "\n",
+       "Everything so far has been long, one row per reading, which is the shape that lets\n",
+       "each row carry its own status and its own timestamp. A correlation, a control chart\n",
+       "and a Hotelling statistic are all defined over the other shape: one row per sample\n",
+       "instant, one column per tag.\n",
+       "\n",
+       "The pivot is one line, and the table that comes out is mostly empty. The 53 tags do\n",
+       "not share a timestamp grid. A continuous instrument stamps the instant it was\n",
+       "sampled; an analyser stamps the instant its last analysis finished, which is an\n",
+       "earlier instant on the same 180-second grid. Pivot on `event_time` and the index\n",
+       "becomes the union of both sets, with each column present only at its own.\n"),
+    code("step = pd.Timedelta(seconds=int(birth[\"sampleIntervalSeconds\"]))\n",
+         'grid = pd.date_range(readings["event_time"].min(),\n',
+         '                     readings["event_time"].max(), freq=step)\n',
+         "\n",
+         "wide = (readings\n",
+         '        .pivot_table(index="event_time", columns="tag", values="value",\n',
+         '                     aggfunc="first")\n',
+         "        .reindex(grid)\n",
+         '        .reindex(columns=contract["tag"]))\n',
+         'wide.index.name = "event_time"\n',
+         "\n",
+         'print(f"{wide.shape[0]} sample instants x {wide.shape[1]} tags")\n',
+         'print(f"empty cells {int(wide.isna().sum().sum())} "\n',
+         '      f"({100 * wide.isna().to_numpy().mean():.1f}% of the table)")\n',
+         'print(f"rows with no holes at all: {int((~wide.isna().any(axis=1)).sum())}")'),
+    md("Split the holes by what caused them, because the two kinds want different answers.\n"),
+    code('analyser = contract.loc[contract["analyserIntervalHours"].notna(), "tag"]\n',
+         'continuous = contract.loc[contract["analyserIntervalHours"].isna(), "tag"]\n',
+         "\n",
+         'for label, cols in (("continuous", continuous), ("analyser", analyser)):\n',
+         "    block = wide[list(cols)]\n",
+         '    print(f"{label:11s} {len(cols):2d} tags, empty "\n',
+         '          f"{int(block.isna().sum().sum()):6d} "\n',
+         '          f"({100 * block.isna().to_numpy().mean():5.2f}%)")'),
+    md("An analyser cell is empty because the instrument has not finished a new analysis.\n",
+       "The composition it is reporting between analyses is still the one from the last\n",
+       "analysis, so carrying the value forward repeats what the instrument is saying.\n",
+       "\n",
+       "A continuous cell is empty because a message never arrived. The value moved while\n",
+       "nobody was looking, and carrying it forward invents a measurement. Both fills are\n",
+       "defensible on a plant dashboard. Neither is defensible if the table that comes out\n",
+       "the far end cannot say which cells were measured.\n",
+       "\n",
+       "So fill it, and keep the mask.\n"),
+    code("was_empty = wide.isna()\n",
+         "filled = wide.ffill()\n",
+         "\n",
+         'print(f"filled {int(was_empty.to_numpy().sum())} cells "\n',
+         '      f"({100 * was_empty.to_numpy().mean():.1f}% of the table)")\n',
+         'print(f"still empty after the fill: {int(filled.isna().sum().sum())} cells in "\n',
+         '      f"{int(filled.isna().any(axis=1).sum())} rows")\n',
+         "\n",
+         'print("\\nthe eight tags we invented the most values for:")\n',
+         "print(was_empty.sum().sort_values(ascending=False).head(8).to_string())"),
+    md("Anything still empty is at the very start of the grid, where an analyser reported a\n",
+       "value stamped before the first continuous sample arrived and there is nothing earlier\n",
+       "to carry forward. Drop those rows or back-fill them, and say which you did.\n",
+       "\n",
+       "`filled` now looks like a complete measurement table, and roughly a fifth of it was\n",
+       "written by us rather than by the plant. `was_empty` beside it is what lets the next\n",
+       "stage tell the two apart. **A3** asks for the same pair on your own capture, with the\n",
+       "two hole counts in your report.\n"),
+
+    # ------------------------------------------------------------------ 10
+    md("## 10. Windows in event time\n",
        "\n",
        "Everything above is preparation for one question: what is the average of this tag\n",
        "over the last half hour of plant time. The answer depends on which clock you bucket\n",
@@ -591,16 +660,19 @@ cells = [
        "validation suite is for: `feed_schema` catches a publisher that has gone wrong,\n",
        "`clean_schema` catches an assumption the next stage was about to make.\n",
        "\n",
-       "The three failures the gate found are the three that recur on any real instrument\n",
+       "The four failures this notebook found are the ones that recur on any real instrument\n",
        "feed. A status code that says the device does not trust its own number, which no\n",
        "amount of looking at the number will reveal. A held value republished on a timer,\n",
        "which inflates every count taken over the raw rows. And data that arrives after the\n",
        "window it belongs to has closed, which is why the aggregate has to be computed in\n",
-       "event time and why a watermark is a deadline rather than a fact.\n",
+       "event time and why a watermark is a deadline rather than a fact. And a wide table\n",
+       "that is a fifth empty the moment you pivot, because the tags are not sampled on a\n",
+       "common grid, which every method defined over complete cases will run into first.\n",
        "\n",
        "Assignment **A3** collects from this same plant, for longer, and asks you to build the\n",
-       "pipeline properly: a contract-generated schema, a quarantine you can defend, and a\n",
-       "windowed aggregate whose lateness policy you have to state and justify.\n"),
+       "pipeline properly: a contract-generated schema, a quarantine you can defend, a filled\n",
+       "sample grid that records which of its numbers you invented, and a windowed aggregate\n",
+       "whose lateness policy you have to state and justify.\n"),
 ]
 
 # The Colab bootstrap cell, injected from the notebook's own imports so this

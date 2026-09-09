@@ -159,9 +159,15 @@ of product composition measurements comes out about five times too high, and rea
 arrive after the window they belong to has closed.
 
 The last third is the windowed aggregate. We measure each tag's staleness and check it against
-what the contract predicted, sweep a watermark allowance from zero to three plant hours to
-price the choice between waiting and dropping, and finish by computing the same thirty-minute
-tumbling average twice, once bucketed by event time and once by publish time. Some
+what the contract predicted, and sweep a watermark allowance from zero to three plant hours to
+price the choice between waiting and dropping. Then we pivot the long table to the wide one an
+analysis actually wants, one row per sample instant and one column per tag, which is where the
+missing data finally becomes visible: the 53 tags are not sampled on a common grid, so about a
+fifth of the table comes out empty, almost all of it in the analyser columns, and a forward
+fill writes that fifth. We keep the mask of which cells we filled, because a table that cannot
+say which of its numbers were measured is a table nobody can audit. We finish by computing the
+same thirty-minute tumbling average twice, once bucketed by event time and once by publish
+time. Some
 publish-time windows come out empty, which is a gap on a dashboard for a stretch when the
 plant was running normally, and the rest are wrong by an amount worth comparing against the
 tag's own standard deviation. The runnable notebook is
