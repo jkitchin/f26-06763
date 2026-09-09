@@ -14,7 +14,7 @@ Group=tepstream
 # has no simulator in it. If the bridge dies the simulator takes SIGPIPE and
 # dies with it, and systemd restarts the pair, which is the failure behaviour
 # we want: half of this running is worse than none of it.
-ExecStart=/bin/sh -c 'exec /opt/tep-stream/tep-stream --speed 30 \
+ExecStart=/bin/sh -c 'exec /opt/tep-stream/tep-stream \
   | /usr/bin/python3 /opt/tep-stream/bridge.py'
 
 Environment=TEP_BROKER_HOST=127.0.0.1

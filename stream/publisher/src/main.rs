@@ -12,28 +12,14 @@
 //! a batch is forwarded as a unit, so 53 copies of it would be 53 copies of
 //! the same instant.
 
+mod episode;
 mod rng;
 mod tags;
 mod time;
 
 use std::io::{BufWriter, Write};
+use episode::{episode, BLOCK_HOURS};
 use tepsim::{Scenario, Simulation};
-
-/// Plant hours between fault episodes. Exactly one onset per block, so any
-/// window this long contains at least one, whenever a student happens to run.
-const BLOCK_HOURS: f64 = 12.0;
-
-/// The disturbances the schedule draws from. IDV(6), a total loss of A feed,
-/// is left out because it walks the plant into a shutdown rather than
-/// perturbing it. IDV(17), (18) and (20) are in on purpose: they are the
-/// random-walk and spike-train channels, and the hardest of the twenty to see.
-/// IDV(7) is left out for a subtler reason than IDV(6): the plant rides it
-/// out fine and then trips on reactor pressure about half an hour *after* it
-/// clears, because restoring the C header pressure in one step over-pressures
-/// a reactor whose controllers have wound up against the loss. No published
-/// TEP dataset shows this, because they all start a fault and run to the end
-/// of the file without ever switching one off.
-const FAULTS: [usize; 13] = [1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 17, 18, 20];
 
 struct Args {
     speed: f64,
@@ -52,11 +38,15 @@ struct Args {
     paced: bool,
 }
 
+/// The pacing is chosen so that ten wall-clock minutes of collecting is one
+/// plant day. The plant samples every 180 s, which is the interval the
+/// published TEP datasets use, and runs 144 times faster than the wall clock,
+/// so a message lands every 1.25 s and 480 of them cover 24 plant hours.
 impl Default for Args {
     fn default() -> Self {
         Self {
-            speed: 30.0,
-            sample_every: 60,
+            speed: 144.0,
+            sample_every: 180,
             seed: 20_260_909,
             drop: 0.005,
             dup: 0.01,
@@ -131,14 +121,6 @@ enum Link {
     Down { until_sample: u64 },
 }
 
-/// One fault episode: which disturbance, when it starts, when it clears.
-fn episode(block: usize, seed: u64) -> (usize, f64, f64) {
-    let mut r = rng::Rng::new(seed ^ (block as u64).wrapping_mul(0x1000_0000_1B3));
-    let fault = r.pick(&FAULTS);
-    let onset = BLOCK_HOURS * block as f64 + r.range(0.5, 7.5);
-    let duration = r.range(1.5, 4.0);
-    (fault, onset, onset + duration)
-}
 
 fn json_escape(s: &str) -> String {
     s.replace('\\', "\\\\").replace('"', "\\\"")

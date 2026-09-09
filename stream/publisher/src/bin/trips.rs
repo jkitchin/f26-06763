@@ -2,18 +2,11 @@
 #[path = "../rng.rs"]
 #[allow(dead_code, reason = "the stream uses more of it than this probe does")]
 mod rng;
+#[path = "../episode.rs"]
+mod episode;
+use episode::{episode, BLOCK_HOURS};
 use tepsim::{Outcome, Scenario, Simulation};
 
-const BLOCK_HOURS: f64 = 12.0;
-const FAULTS: [usize; 13] = [1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 17, 18, 20];
-
-fn episode(block: usize, seed: u64) -> (usize, f64, f64) {
-    let mut r = rng::Rng::new(seed ^ (block as u64).wrapping_mul(0x1000_0000_1B3));
-    let fault = r.pick(&FAULTS);
-    let onset = BLOCK_HOURS * block as f64 + r.range(0.5, 7.5);
-    let duration = r.range(1.5, 4.0);
-    (fault, onset, onset + duration)
-}
 
 fn main() {
     let seed: u64 = std::env::args().nth(1).and_then(|s| s.parse().ok()).unwrap_or(20_260_909);

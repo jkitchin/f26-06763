@@ -26,10 +26,10 @@ The message `timestamp` is the OPC UA `ServerTimestamp` for every `DataValue`
 in the batch, carried once rather than fifty-three times, because a batch is
 forwarded as a unit.
 
-The plant keeps its own clock and runs it 30 times faster than the wall clock,
-so after an hour of collecting, the plant clock is thirty hours past where it
-started and the two are a day apart. They are different clocks and subtracting
-one from the other is meaningless. The birth message publishes
+The plant keeps its own clock and runs it 144 times faster than the wall clock,
+so ten minutes of collecting is a full plant day, and after an hour the plant
+clock is six days past where it started. They are different clocks and
+subtracting one from the other is meaningless. The birth message publishes
 `accelerationFactor` and `plantEpoch` so a reader can convert. Event-time
 reasoning happens entirely in the plant clock; the collector's `receivedAt` is
 the only wall-clock stamp in the pipeline.
@@ -45,16 +45,18 @@ schedule (0.1 h for the two gas analysers, 0.25 h for the product one) and each
 reports the composition from its *previous* sample. So an analyser tag's
 `SourceTimestamp` lags the message it arrives in by up to a full analyser
 interval, and holds still in between while the continuous tags move every
-minute.
+sample.
 
 The publisher does not model that schedule; it detects it. The reported value
 is latched between due times, so a change in the value *is* an update, exactly,
-with no schedule arithmetic to get wrong. Measured against a 360-second gas
-analyser interval at 60-second sampling, the lag cycles 0, 60, ... 300 s with a
-mean of 149 s, which is the model.
+with no schedule arithmetic to get wrong. At 180-second sampling the fourteen
+gas channels, on a 360-second interval, alternate between a lag of 0 and 180 s,
+and the five product channels, on a 900-second interval, cycle 0, 180, ... 720
+s. Measured over 6,000 messages that is a mean of 161 s across the nineteen,
+which is exactly what those two duty cycles predict.
 
 A student who assumes one timestamp per message gets the nineteen composition
-channels wrong by up to fifteen minutes, and every one of those channels is a
+channels wrong by up to twelve minutes, and every one of those channels is a
 composition, so the error lands squarely on the variables a fault-detection
 model would lean on.
 
@@ -72,11 +74,11 @@ Measured over 6,000 messages at the defaults:
 | | |
 |---|---|
 | records arriving after a newer one | 13.6% |
-| lateness, plant minutes | median 17, p95 39, max 66 |
+| lateness, plant minutes | median 51, p95 117, max 198 |
 | samples never delivered at all | 20 in 5,961 |
 | duplicate deliveries | 59 |
 | `Uncertain` / `Bad` status codes | 648 / 146 in 318,000 |
-| bytes per message | 6,195 (53 tags), about 11 MB per hour collected |
+| bytes per message | 6,194 (53 tags), about 3 MB per ten-minute collection |
 
 `isHistorical` is honest: every late record carries it and every record
 carrying it is late. That is what a well-behaved Sparkplug publisher does, and
@@ -87,8 +89,9 @@ not tell you what to do with it.
 
 Exactly one fault episode per 12 plant hours, drawn from a seed, onset in the
 first 7.5 hours of the block and lasting 1.5 to 4 hours. So any 12-hour window
-contains at least one onset, whenever a student happens to run. At 30x that is
-one episode per 24 minutes of collecting. The schedule is driven from the plant
+contains at least one onset, whenever a student happens to run. At 144x a
+block is five minutes of collecting, so the ten-minute collection the assignment
+asks for spans two episodes wherever in the plant day it starts. The schedule is driven from the plant
 clock through `request_disturbance` rather than through a `Scenario` schedule,
 which holds 32 events and would run out after a day and a half.
 
@@ -133,8 +136,8 @@ stream/broker/dev-setup.sh
 # broker
 mosquitto -c stream/broker/mosquitto.dev.conf
 
-# publisher, paced at 30x
-cd stream/publisher && cargo run --release -- --speed 30 \
+# publisher, paced at 144x (the defaults: one message per 1.25 s)
+cd stream/publisher && cargo run --release \
   | uv run ../bridge/bridge.py
 
 # the student side
@@ -143,4 +146,4 @@ uv run --no-project course/assignments/a03-collect.py \
 ```
 
 `--unpaced --max-samples N` runs the publisher flat out, which is how every
-number above was measured: 6,000 messages take about half a second.
+number above was measured: 6,000 messages, twelve plant days, take 2.4 s.
