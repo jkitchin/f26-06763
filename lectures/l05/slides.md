@@ -211,15 +211,6 @@ In Lecture 3 the database's transactions did this for you.
 
 ---
 
-## Making it safe to rerun, caching
-
-- cache a stage's output to Parquet, so the expensive early work runs once
-- **the trap**: nothing invalidates a cache named only after the stage, so when you change a setting the next run quietly reads the old file
-
-Name the cache after the inputs that determine what is in it, not just the stage.
-
----
-
 <!-- _class: section -->
 
 # Where this pushes back

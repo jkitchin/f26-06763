@@ -230,10 +230,6 @@ export function Summary({ bank, log, andrewId, displayName, onHome }: Props) {
                       </p>
                     )}
                     <Markdown className="text-sm leading-relaxed">{item.evidence}</Markdown>
-                    <p className="mt-2 text-xs text-[var(--muted)]">
-                      Source: {item.source.file}
-                      {item.source.heading ? ` · ${item.source.heading}` : ''}
-                    </p>
                   </div>
                 )}
               </li>
