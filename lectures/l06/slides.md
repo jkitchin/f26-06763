@@ -56,6 +56,8 @@ Readings also arrive jumbled in time. In the Intel Lab feed, watched as it lands
 - **79.5%** of readings are out of event-time order
 - normal behavior over a lossy network, not corruption
 
+[Intel Lab Data](https://db.csail.mit.edu/labdata/labdata.html), 2.3 M readings, 54 motes
+
 ---
 
 ## Two facts that break a batch pipeline, dirty data
@@ -64,8 +66,10 @@ The same feed carries physically impossible values.
 
 - ~**18%** of temperatures outside 0 to 50 °C
 - ~**26%** from motes below a trustworthy battery voltage
+- **96%** of the impossible temperatures come from a mote already under 2.4 V
 
-Hundreds of thousands of rows. Nothing announces them.
+Hundreds of thousands of rows. Nothing announces them, and the two checks are
+mostly finding one failure.
 
 ---
 
@@ -501,7 +505,9 @@ Statistical checks ask whether the **distribution** moved:
 - a null rate creeping up
 - a sensor's mean sliding month to month
 
-The seam into **monitoring**: the same checks, run forever. A written schema is also documentation, the shape the next person or service can rely on.
+The seam into **monitoring**: the same checks, run forever.
+
+A written schema is a **data contract**, the shape a consumer is entitled to assume, and documentation that fails the build when it goes stale.
 
 ---
 
