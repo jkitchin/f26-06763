@@ -525,9 +525,15 @@ The markup, the attribute table, and the styling conventions are in
   simply appear, which is what an opinion poll wants.
 - `data-hint` shows **only when the room did not sail through**, so write a pointer at
   what to reconsider, never the answer.
-- `data-why` shows **only when they did**, and says why the answer is the answer. It
-  plays the same role as the `evidence` field in the quiz banks: a celebration that
-  explains nothing teaches nobody, including whoever guessed.
+- `data-why` says why the answer is the answer. It shows at once when the room got
+  there, and otherwise sits behind a **Show answer** button, so every room leaves with
+  it. It plays the same role as the `evidence` field in the quiz banks: a celebration
+  that explains nothing teaches nobody, including whoever guessed. Keep it to one or
+  two sentences, since it replaces the hint on a slide that has no room for both.
+
+**Questions the slides can answer.** A clicker question tests one step, and the slide
+before it states the fact that step needs. A question that asks the room to derive
+something the deck never said lands in the rain band for the wrong reason.
 
 **Reveal bands.** Above 70% correct gives fireworks, 30 to 70 gives "turn to your
 neighbour and convince them", below 30 gives rain. They are Mazur's bands, chosen

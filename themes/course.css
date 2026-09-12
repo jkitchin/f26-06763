@@ -453,8 +453,8 @@ p.clicker-hint {
 
 p.clicker-hint[hidden] { display: none; }
 
-/* Shown only when the room got there: why the answer is the answer. The
- * counterpart to .clicker-hint, which appears only when they did not. */
+/* Why the answer is the answer. Shown at once when the room got there, and
+ * behind the Show answer button when it did not. */
 p.clicker-why {
   margin-top: 0.25em;
   padding: 0.3em 0.7em;
@@ -465,6 +465,22 @@ p.clicker-why {
 }
 
 p.clicker-why[hidden] { display: none; }
+
+/* Appears under Vote again after a reveal that did not go well, so the room
+ * can argue first and still leave with the explanation. */
+button.clicker-answer {
+  margin-top: 0.3em;
+  font-size: 0.5em;
+  font-weight: 600;
+  color: var(--green);
+  background: var(--green-bg);
+  border: 2px solid var(--green);
+  border-radius: 6px;
+  padding: 0.25em 0.8em;
+  cursor: pointer;
+}
+
+button.clicker-answer[hidden] { display: none; }
 
 /* --- Clicker leaderboard ------------------------------------------------ */
 /* Two placements, one renderer. Inside a question's panel it replaces the QR

@@ -103,6 +103,30 @@ mostly finding one failure.
 
 ---
 
+## Batch, streaming, and the log, a broker
+
+<div class="definition">
+
+**Message broker**: a server between the programs that write data and the programs that read it.
+
+</div>
+
+- **producers** write records to a named **topic**: a mote, a plant historian
+- **consumers** subscribe to the topic: a dashboard, an archive, an alarm
+- producers and consumers never talk to each other, only to the broker
+- **Apache Kafka** is the common broker for large streams; **MQTT** is the light one for devices, and A3's plant stream uses it
+
+[Kafka: introduction](https://kafka.apache.org/intro)
+
+<!--
+Nobody in the room is assumed to have seen a broker. Draw the three boxes before
+saying the word Kafka: sensors on the left, readers on the right, one server in
+the middle. The point of the middle box is that adding a fourth reader changes
+nothing for the sensors.
+-->
+
+---
+
 ## Batch, streaming, and the log, the log
 
 <div class="definition">
@@ -111,11 +135,18 @@ mostly finding one failure.
 
 </div>
 
-- a topic is split into **partitions**
-- producers append; consumers read forward at their own **offset**
+- a topic is split into **partitions**, each one a log
+- producers append to the end; nothing in the middle changes
+- each consumer keeps an **offset**: the number of the next record it will read
 - order is guaranteed **per partition**, not per topic
 
-[Kafka: introduction](https://kafka.apache.org/intro)
+---
+
+## Batch, streaming, and the log, the log
+
+![w:1000](figures/log.png)
+
+Three consumers, three offsets. The archive is behind the dashboard, and neither slows the other.
 
 ---
 
@@ -144,16 +175,16 @@ Kafka is **at-least-once by default**. Exactly-once is opt-in: an idempotent pro
 
 ## Batch, streaming, and the log, a question
 
-<div class="clicker" data-tag="l06-at-least-once" data-seconds="45" data-answer="B" data-hint="At-least-once is a promise the broker makes about delivery, not a promise about your code. Work out what it does when the offset was never committed." data-why="B. The offset was never committed, so on restart the broker replays from the last one it has and that reading is added a second time. Nothing in Kafka knows about your total, so nothing corrects it. A is at-most-once, the opposite trade: commit the offset first and a crash loses the reading instead. This is the reason the fix is an idempotent consumer, keyed so a repeat is a no-op, rather than reaching for exactly-once." data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker" data-tag="l06-at-least-once" data-seconds="45" data-answer="B" data-hint="Look at the table on the last slide. What does at least once allow?" data-why="B. At least once means a reading is never lost but can arrive again, and a repeat gets added to the total twice. The fix is a consumer that skips a reading it has already counted." data-read="https://clicker.f26-06763.workers.dev">
 <div class="clicker-main">
 
-**Your consumer reads a Kafka topic and adds each reading to a running total. It crashes after adding one and before committing its offset. What does the total look like after it restarts?**
+**Kafka delivers at least once. Your consumer adds each reading to a running total. What can go wrong?**
 
 <ol class="clicker-opts">
-<li>Short by that reading, which is lost</li>
-<li>Too high, because that reading is added twice</li>
-<li>Correct, because Kafka will not redeliver a processed record</li>
-<li>Correct, because the broker rolls the total back</li>
+<li>A reading is lost, so the total is too low</li>
+<li>A reading arrives twice, so the total is too high</li>
+<li>Nothing, because Kafka never repeats a reading</li>
+<li>Nothing, because Kafka stores the total for you</li>
 </ol>
 
 </div>
@@ -167,12 +198,11 @@ Kafka is **at-least-once by default**. Exactly-once is opt-in: an idempotent pro
 </div>
 
 <!--
-Tests whether at-least-once is understood as a redelivery guarantee rather than
-a vague promise of reliability.
+Tests whether at-least-once is read as "may repeat" rather than a vague promise
+of reliability. The table on the previous slide has the answer in its middle row.
 
-A is the productive wrong answer: it is what you get from committing the offset
-first, which is a real design and the wrong one here. Ask a defender of A which
-line they would move, and at-most-once falls out of it.
+A is at-most-once, the opposite trade. If someone defends it, ask which row of the
+table it describes.
 
 Land on the word idempotent, because A3 asks them to make a pipeline idempotent
 under exactly this delivery model.
@@ -249,22 +279,24 @@ One hour in, one row out. This produces the red steps in the figure.
 - **Event time**: "the time at which the event itself actually occurred," stamped by the sensor.
 - **Processing time**: "the time at which an event is observed at any given point during processing."
 
+Measured at 3:10, arrives at 4:20: event time 3:10, processing time 4:20.
+
 For a live stream they diverge constantly. A processing-time window mixes events from wildly different real times, and with **79.5%** out of order it is meaningless. Group readings by when they were measured.
 
 ---
 
 ## Windows, event time, watermarks, a question
 
-<div class="clicker" data-tag="l06-processing-time" data-seconds="45" data-answer="B" data-hint="Processing time is stamped when a reading is observed, not when it was measured. Ask when all of these were observed." data-why="B. Processing time is stamped on arrival, so every buffered reading takes the timestamp of the reconnect and lands in one window: two hours that look like an outage, then one hour that looks like a spike, and neither of those happened. C is the productive wrong answer, because a processing-time window has no late data by definition, and nothing can arrive before it is observed. Event time puts each reading back where it was measured, which is the whole reason the distinction has a name." data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker" data-tag="l06-processing-time" data-seconds="45" data-answer="B" data-hint="Processing time is the clock when the reading reaches you." data-why="B. Processing time is when the reading arrived, 4:20, so it lands in the 4:00 window. Windowed by event time it would land in the 3:00 window, where it was measured." data-read="https://clicker.f26-06763.workers.dev">
 <div class="clicker-main">
 
-**A mote loses its link for two hours, buffers its readings, and uploads all of them the moment it reconnects. You window by processing time, one hour per window. What do those two hours look like?**
+**A reading is measured at 3:10 and arrives at 4:20. You use one-hour windows in processing time. Which window gets it?**
 
 <ol class="clicker-opts">
-<li>Two hours of readings, spread across two windows as measured</li>
-<li>Two empty windows, then a single window holding all of them</li>
-<li>The readings are dropped, since their windows closed while the mote was offline</li>
-<li>The same as event time, since each reading carries its own timestamp</li>
+<li>3:00 to 4:00, when it was measured</li>
+<li>4:00 to 5:00, when it arrived</li>
+<li>Neither, because it is dropped as late</li>
+<li>Both, split between the two windows</li>
 </ol>
 
 </div>
@@ -279,13 +311,16 @@ For a live stream they diverge constantly. A processing-time window mixes events
 
 <!--
 The one question in this deck that decides whether the rest of the section lands.
-A student who cannot answer it is not ready for watermarks.
+A student who cannot answer it is not ready for watermarks. The 3:10 / 4:20 line
+on the previous slide is the same example.
 
-D is the tempting one: the timestamp does travel with the reading, and that is
-exactly why it is available to window on. Ask which timestamp the window used.
+A is the event-time answer. If it wins, ask which clock the window was told to use.
 
-If the room lands in the middle band, draw the two hours on the board as a gap
-followed by a spike, then ask what the plant actually did.
+C is worth a sentence: a processing-time window never has late data, because a
+reading cannot arrive before it arrives.
+
+Once it lands, extend it: a mote offline for two hours uploads everything at once,
+so processing time shows two empty hours and then a spike that never happened.
 -->
 
 ---
@@ -310,6 +345,8 @@ A **trigger** decides when to emit: at the watermark once, early on a timer, or 
 
 The watermark is a guess and can be wrong. You need a policy: drop it, hold windows open, or re-emit a corrected result.
 
+Wait longer: fewer late readings, but every result comes out later.
+
 Accumulation decides what a correction means: discard the old value and replace it, or accumulate the straggler onto it. "The hourly mean is 24.1 °C. Correction: 24.3 °C." Downstream must expect updates.
 
 [Streaming 102](https://www.oreilly.com/radar/the-world-beyond-batch-streaming-102/)
@@ -318,16 +355,16 @@ Accumulation decides what a correction means: discard the old value and replace 
 
 ## Windows, event time, watermarks, a question
 
-<div class="clicker" data-tag="l06-watermark-tradeoff" data-seconds="45" data-answer="A" data-hint="The watermark decides when a window is allowed to close. Ask what the window is doing in the meantime." data-why="A. The watermark is how long you are willing to wait before calling a window complete, so a wider one catches more stragglers and delays every result by the same amount. Completeness and latency are two ends of one dial, and no setting avoids the trade, so the number is one you state and defend rather than a default you accept. D is the common misreading, that a watermark labels records late rather than triggering a window to close." data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker" data-tag="l06-watermark-tradeoff" data-seconds="45" data-answer="A" data-hint="A window cannot give its result until the watermark passes its end." data-why="A. Waiting longer lets more stragglers in before a window closes, and every window closes that much later. You trade speed for completeness, and no setting avoids the trade." data-read="https://clicker.f26-06763.workers.dev">
 <div class="clicker-main">
 
-**You widen your watermark from 10 minutes to 2 hours. What have you bought, and what have you paid?**
+**You make the watermark wait 2 hours instead of 10 minutes. What changes?**
 
 <ol class="clicker-opts">
-<li>Fewer late records, and every window emits two hours later</li>
-<li>Fewer late records, at no cost</li>
-<li>More late records, and every window emits sooner</li>
-<li>Nothing: a watermark labels records late, it does not change when a window closes</li>
+<li>Fewer late readings, but results come out later</li>
+<li>Fewer late readings, and nothing else changes</li>
+<li>More late readings, but results come out sooner</li>
+<li>Nothing, because the watermark only labels readings</li>
 </ol>
 
 </div>
@@ -342,7 +379,8 @@ Accumulation decides what a correction means: discard the old value and replace 
 
 <!--
 This is A3 task 4 in one slide: the sweep asks them to price several allowances
-and defend one, and this is the shape of the answer.
+and defend one, and this is the shape of the answer. The last line of the
+previous slide states it.
 
 B is the answer a student gives who has only heard watermarks described as a way
 to catch late data. Ask what the window is doing for those two hours.
@@ -411,6 +449,7 @@ schema.validate(df, lazy=True)   # collect every failure
 
 ## Validation: checks as a gate, how it fails
 
+- each check tests **one row at a time**, with no memory of earlier rows
 - `schema.validate(df)` raises `SchemaError` on the **first** break
 - `lazy=True` raises `SchemaErrors` with **every** failing row
 
@@ -434,16 +473,16 @@ voltage      greater_than_or_equal_to(2.4)  1.91
 
 ## Validation: checks as a gate, a question
 
-<div class="clicker" data-tag="l06-range-check-drift" data-seconds="45" data-answer="B" data-hint="The check runs on one row and knows nothing about the rows before it. Sketch the climb and mark where 50 sits on it." data-why="B. A range check is a per-row predicate: it rejects 122 and it accepts 48, and it has no memory of the same mote reading 24 last week. Everything from the start of the drift up to the crossing of 50 passes the gate. That is why the schema two slides back also checks voltage: the drained battery is the upstream cause and it crosses its floor earlier, so the voltage check catches the same mote sooner. Catching the trend itself is a statistical check, not a schema check. D is worth naming: lazy changes how many failures you are told about, never which rows fail." data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker" data-tag="l06-range-check-drift" data-seconds="45" data-answer="A" data-hint="The check looks at one row at a time." data-why="A. A range check tests each row by itself, so 24, 35 and 48 pass even though the mote is clearly drifting. Catching the climb needs a statistical check, or the voltage check that sees the dying battery." data-read="https://clicker.f26-06763.workers.dev">
 <div class="clicker-main">
 
-**A mote's battery drains. Its temperature readings drift slowly upward over a week and end at 122&deg;C. Your schema checks `temperature` in range 0 to 50. How much of that drift does the gate catch?**
+**Your schema checks that `temperature` is between 0 and 50. One mote reads 24, 35, 48, then 122. Which readings fail?**
 
 <ol class="clicker-opts">
-<li>All of it, since the mote is rejected once any reading fails</li>
-<li>Only the readings above 50, so the whole climb up to it passes</li>
-<li>None, since a range check cannot see a trend</li>
-<li>All of it, once you pass <code>lazy=True</code></li>
+<li>Only 122</li>
+<li>All four, because the mote is faulty</li>
+<li>48 and 122, because 48 is near the limit</li>
+<li>None of them, once you pass <code>lazy=True</code></li>
 </ol>
 
 </div>
@@ -460,11 +499,13 @@ voltage      greater_than_or_equal_to(2.4)  1.91
 Ties the failure report on the previous slide to the pandera schema two before it,
 and sets up the pushback section on validation confirming plausibility.
 
-A is the productive wrong answer and it is a good one: students read the gate as
-rejecting the mote rather than the row. Ask what pandera was handed.
+The first bullet on the "how it fails" slide is the answer.
 
-C is worth a sentence too, because it is nearly right for the wrong reason: the
-range check does catch the tail, it just cannot catch the climb.
+B is the productive wrong answer: students read the gate as rejecting the mote
+rather than the row. Ask what pandera was handed.
+
+Once it lands, say the uncomfortable part: the mote was drifting the whole time,
+and the gate passed three of its four readings.
 -->
 
 ---

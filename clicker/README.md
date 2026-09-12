@@ -255,7 +255,7 @@ One question looks like this:
      data-seconds="45"
      data-answer="C"
      data-hint="A pointer at what to reconsider, never the answer."
-     data-why="Why the answer is the answer, shown only when they get there."
+     data-why="Why the answer is the answer, one or two sentences."
      data-read="https://clicker.f26-06763.workers.dev">
 <div class="clicker-main">
 
@@ -287,7 +287,7 @@ One question looks like this:
 | `data-answer` | no | `A`-`D`. Omit for an opinion poll: bars appear, no verdict, no effects |
 | `data-autostart` | no | `false` to require pressing the button instead of opening on slide entry |
 | `data-hint` | no | shown only when the room did **not** sail through |
-| `data-why` | no | shown only when they **did** |
+| `data-why` | no | shown at once when they **did**; otherwise behind a **Show answer** button |
 | `data-top` | no (5) | how many names the board shows at reveal |
 | `data-leaderboard` | no | `false` to reveal this question with no board at all |
 
@@ -339,8 +339,12 @@ chosen because they map onto what to *do* next rather than merely scoring the ro
 | Correct | What appears | What it means you do |
 |---|---|---|
 | **above 70%** | fireworks on a canvas, a short synthesized crackle, the green `data-why` box | They have it. Say why, and move on. |
-| **30% to 70%** | no effect, an amber verdict reading "turn to your neighbour and convince them", and the `data-hint` box | The productive case. Give them 30 seconds to argue, then press **Vote again**. |
-| **below 30%** | dark clouds and rain on a canvas, a filtered-noise downpour, and the `data-hint` box | Not their fault. Re-teach it, then vote again. |
+| **30% to 70%** | no effect, an amber verdict reading "turn to your neighbour and convince them", the `data-hint` box, and a **Show answer** button | The productive case. Give them 30 seconds to argue, then press **Vote again**. Press **Show answer** when you are done voting. |
+| **below 30%** | dark clouds and rain on a canvas, a filtered-noise downpour, the `data-hint` box, and a **Show answer** button | Not their fault. Re-teach it, vote again, then show the answer. |
+
+**Show answer** swaps the hint for the `data-why` box, because both at once overflow the
+slide. **Vote again** hides the explanation and brings the hint back. Keep `data-why` to
+one or two sentences for the same reason.
 
 With no `data-answer` there is no verdict and no effect: the bars simply appear, which
 is what an opinion poll wants. **With no votes at all it says so**, rather than

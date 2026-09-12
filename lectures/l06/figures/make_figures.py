@@ -11,6 +11,7 @@ Intel Lab readings (carried from L3/L4), computed rather than asserted:
 
     windowing.png     tumbling vs sliding windows over one mote's temperature
     validation.png    how many rows fail plausibility checks, and why
+    log.png           producers, a partitioned topic, consumers at offsets (schematic)
 
 The validation figure continues L3's finding: the impossible temperatures come
 from motes whose batteries have drained, so a range check and a voltage check
@@ -175,7 +176,66 @@ def fig_validation(df: pd.DataFrame):
     return dict(n=n, share=share, out_of_order=out_of_order)
 
 
+def fig_log() -> None:
+    """Producers, a topic split into partitions, and consumers reading at offsets.
+
+    A schematic rather than data: it is the picture the log abstraction needs
+    before any of the vocabulary (topic, partition, offset, consumer) means
+    anything. Each partition is drawn as a row of numbered cells, appended on
+    the right, and each consumer as an arrow at the next cell it will read.
+    """
+    from matplotlib.patches import FancyArrowPatch, Rectangle
+
+    fig, ax = plt.subplots(figsize=(11, 4.4))
+    ax.set_xlim(0, 11)
+    ax.set_ylim(0, 4.6)
+    ax.axis("off")
+
+    def arrow(x0, y0, x1, y1, color=MUTED):
+        ax.add_patch(FancyArrowPatch((x0, y0), (x1, y1), arrowstyle="-|>",
+                                     mutation_scale=16, lw=1.6, color=color))
+
+    # producers
+    ax.text(1.0, 4.25, "producers", ha="center", fontsize=12, color=MUTED)
+    producers = [("mote 1", 3.25), ("mote 2", 1.35)]
+    for name, y in producers:
+        ax.add_patch(Rectangle((0.3, y - 0.3), 1.4, 0.6, fc="white", ec=INK, lw=1.4))
+        ax.text(1.0, y, name, ha="center", va="center", fontsize=12)
+
+    # the topic: two partitions, each an append-only row of offsets
+    x0, w = 2.7, 0.62
+    lengths = [8, 6]
+    ax.add_patch(Rectangle((2.45, 0.6), 6.1, 3.4, fc="none", ec=CMU_RED, lw=1.6, ls="--"))
+    ax.text(5.5, 4.25, "topic: temperature", ha="center", fontsize=12, color=CMU_RED)
+    for p, ((_, y), n) in enumerate(zip(producers, lengths)):
+        ax.text(2.7, y + 0.5, f"partition {p}", fontsize=10.5, color=MUTED)
+        for i in range(n):
+            ax.add_patch(Rectangle((x0 + i * w, y - 0.3), w, 0.6,
+                                   fc="#f3f3f3", ec=MUTED, lw=1))
+            ax.text(x0 + i * w + w / 2, y, str(i), ha="center", va="center", fontsize=11)
+        arrow(1.75, y, x0 - 0.05, y)
+        ax.text(x0 + n * w + 0.12, y, "append", va="center", fontsize=10, color=MUTED)
+
+    # consumers, each at its own offset
+    ax.text(9.9, 4.25, "consumers", ha="center", fontsize=12, color=MUTED)
+    readers = [("dashboard", 0, 7, 3.25), ("archive", 0, 3, 2.35), ("alarm", 1, 5, 1.35)]
+    for name, p, off, y in readers:
+        py = producers[p][1]
+        ax.add_patch(Rectangle((9.25, y - 0.28), 1.3, 0.56, fc="white", ec=BLUE, lw=1.4))
+        ax.text(9.9, y, name, ha="center", va="center", fontsize=11.5, color=BLUE)
+        cx = x0 + off * w + w / 2
+        arrow(9.2, y, cx, py - 0.32 if y < py else py + 0.32, color=BLUE)
+        ax.text(9.9, y - 0.45, f"next offset {off}", ha="center", fontsize=9.5, color=BLUE)
+
+    ax.text(5.5, 0.2, "Reading does not delete. Each consumer keeps its own offset.",
+            ha="center", fontsize=11, color=INK)
+    fig.savefig(HERE / "log.png")
+    plt.close(fig)
+    print("wrote log.png")
+
+
 if __name__ == "__main__":
+    fig_log()
     data = load()
     print(f"loaded {len(data):,} rows, {data.moteid.nunique()} motes, "
           f"{data.ts.min().date()} to {data.ts.max().date()}")
