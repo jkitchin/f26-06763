@@ -19,8 +19,8 @@ footer: "Systems and Toolchains for AI Engineers"
 ## Roadmap
 
 1. Why dataframes and pipelines
-2. Your SQL habits, typed differently
-3. Getting DuckDB's trick without DuckDB
+2. What carries over from SQL
+3. Polars: plan the work, then run it
 4. Making it safe to rerun
 5. Where this pushes back
 6. Live demo: the same pipeline, two ways
@@ -31,15 +31,19 @@ footer: "Systems and Toolchains for AI Engineers"
 
 # Why dataframes and pipelines
 
-## from a raw sensor log to one row per fault
-
 ---
 
 ## Why dataframes and pipelines
 
 Lecture 3 gave you SQL: describe the result, the planner works out how. Lecture 4 gave you a faster layout for that same idea, still inside a database.
 
-This session moves both ideas into your own Python code, because cleaning and reshaping this data needs logic SQL does not comfortably express.
+So why leave the database? Because this lecture's work is awkward to write as a query:
+
+- decide what goes in the gaps where a sensor dropped out
+- throw away channels that never moved
+- rerun the whole thing tomorrow when the file changes
+
+That is ordinary programming. Python is better at it.
 
 ---
 
@@ -51,7 +55,7 @@ The Tennessee Eastman process: a simulated chemical plant.
 - sampled every 3 minutes, across hundreds of runs
 - millions of rows before anyone asks a question
 
-The question: the average sensor **signature of each fault**.
+What we want out of it: **one row per fault**, showing what each sensor read on average while that fault was running. Put two faults side by side and you can see which sensors moved.
 
 [Tennessee Eastman data, CC0](https://doi.org/10.7910/DVN/6C3JR1) · [Downs and Vogel, 1993](https://doi.org/10.1016/0098-1354(93)80018-I)
 
@@ -69,10 +73,10 @@ speaker: TEP is a Downs and Vogel 1993 benchmark, a real Eastman plant disguised
 
 ## Why dataframes and pipelines, the two things you lose
 
-Write the cleanup logic as one long script, and a database's guarantees go with it:
+Leaving the database costs you something. Write this as one long Python script and two things it was handling for you become your problem:
 
-- **slow**: a Python loop is about **100x** slower than a whole-column operation
-- **unsafe**: dies halfway through, and there is no record of what it finished
+- **slow**: looping over the readings one at a time is **hundreds of times** slower than comparing the whole column at once
+- **unsafe**: if the script stops halfway, nothing recorded which steps already finished, so you cannot tell whether rerunning it is safe
 
 **Polars** gets the speed back. **Small, restartable stages** get the safety back.
 
@@ -80,50 +84,54 @@ Write the cleanup logic as one long script, and a database's guarantees go with 
 
 <!-- _class: section -->
 
-# Your SQL habits, typed differently
+# What carries over from SQL
 
 ---
 
-## Your SQL habits, typed differently
+## What carries over from SQL
 
-You have been handling a dataframe since Lecture 3's `read_sql` and Lecture 4's `.df()`.
+A **dataframe** is a table in memory: named columns, each with a fixed type. You have used one since Lecture 3.
 
-Two moves carry over from Lecture 3. The `GROUP BY`, the `JOIN`, and the long-vs-wide argument: same ideas, dataframe syntax.
+You already wrote grouping and joining in SQL. Here they are methods, not clauses.
 
 ```python
 readings.group_by("faultNumber").agg(pl.col("^xmeas_.*$").mean())  # every measured column
 ```
 
-- **group-by / join**: a method chain instead of a clause
-- **long / wide**: one operation apart, where Lecture 3 made it a permanent schema choice; `pivot`/`melt` convert
+- `group_by` does the job `GROUP BY` did
+- a join still matches two tables on a shared column, so a result reads "reactor cooling water" instead of `faultNumber = 4`
 
-[pandas, group by](https://pandas.pydata.org/docs/user_guide/groupby.html) · [pandas, reshaping](https://pandas.pydata.org/docs/user_guide/reshaping.html)
+[pandas, group by](https://pandas.pydata.org/docs/user_guide/groupby.html)
 
 ---
 
-## Your SQL habits, typed differently, vectorization
+## What carries over from SQL, vectorizing
 
-The third one is new. SQL never let you handle rows one at a time; you described the result and the database walked the rows. Python will let you write the loop.
+This one does not carry over. SQL never let you handle rows one at a time: you asked for a result, and the database walked the rows however it wanted.
 
 <div class="definition">
 
-**Vectorization**: express a computation on whole columns, so the loop runs once inside compiled code instead of once per element in Python.
+**Vectorization**: compute on a whole column at once instead of one value at a time.
 
 </div>
 
-`readings["xmeas_7"] > threshold` checks the reactor-pressure column once. A loop checks it once per row, routinely **100x** slower.
+On the reactor-pressure column, 480,000 readings:
 
-The database enforced this habit for you. In Python it is yours to keep.
+- `readings["xmeas_7"] > threshold` compares the whole column: **0.2 ms**
+- the same test as a plain `for` loop: **20 ms**
+- with `iterrows()`, the usual first attempt: **3,900 ms**
+
+Hundreds of times slower, and that is before anyone reaches for a bigger machine.
 
 ---
 
 <!-- _class: section -->
 
-# Getting DuckDB's trick without DuckDB
+# Polars: plan the work, then run it
 
 ---
 
-## Getting DuckDB's trick without DuckDB
+## Polars: plan the work, then run it
 
 pandas runs each line the moment you write it, on one core. That is **eager** execution.
 
@@ -135,7 +143,7 @@ pandas runs each line the moment you write it, on one core. That is **eager** ex
 
 ---
 
-## Getting DuckDB's trick without DuckDB, lazy evaluation
+## Polars: plan the work, then run it, lazy evaluation
 
 Lecture 3: you describe the result in SQL, the query planner decides the mechanism. Same idea, now in Python.
 
@@ -154,14 +162,14 @@ result = pipeline.collect()                        # optimize, then run
 
 ---
 
-## Getting DuckDB's trick without DuckDB, the same tricks, no server
+## Polars: plan the work, then run it, no server needed
 
 You met these in Lecture 4, when DuckDB applied them to Parquet:
 
 - **projection pushdown**: read only the columns you asked for
 - **predicate pushdown**: a filter moves into the scan
 
-Because pandas and Polars both lay columns out the same way in memory (**Arrow**, Parquet's in-memory cousin from Lecture 4), converting between them is cheap too: prototype in whichever you know, convert only if it turns out to matter.
+Because pandas and Polars both lay columns out the same way in memory (**Arrow**), converting between them is cheap too: prototype in whichever you know, convert only if it turns out to matter.
 
 [Polars, Lazy API](https://docs.pola.rs/user-guide/lazy/) · [Apache Arrow](https://arrow.apache.org/overview/)
 
@@ -175,7 +183,7 @@ Because pandas and Polars both lay columns out the same way in memory (**Arrow**
 
 ## Making it safe to rerun
 
-A pipeline written as one function has no seam: nothing to test, nothing to re-run, on its own. Break it into stages.
+A pipeline written as one long function has no seam: no smaller piece you can test on its own, and none you can re-run on its own. Break it into stages.
 
 <div class="definition">
 
@@ -189,26 +197,17 @@ load, clean, aggregate: each stage a Parquet file in, a Parquet file out.
 
 ## Making it safe to rerun, idempotency
 
-Your laptop sleeps mid-write to `tep_clean.parquet`. Now what?
+Your laptop goes to sleep while the clean stage is still writing `tep_clean.parquet`. You are left with half a file and no way to tell how much of it is good.
 
 <div class="definition">
 
-**Idempotency**: running a stage twice has the same effect as running it once, so a failed stage can be safely retried.
+**Idempotency**: running a stage twice has the same effect as running it once, so you can safely retry a stage that failed.
 
 </div>
 
-If clean is idempotent: rerun it. Same input, same output, whether it died at row 100 or row 100,000.
+If the clean stage is idempotent, the fix is to run it again. It reads the same input and overwrites the same output, so it makes no difference whether the first attempt stopped at row 100 or row 100,000.
 
-This is what Lecture 3's transactions gave you for free. You rebuild it by hand once the logic is your own Python.
-
----
-
-## Making it safe to rerun, the caching trap
-
-- cache a stage's output to Parquet, so expensive early work runs once
-- **trap**: a cache keyed only on the stage name is not invalidated when a parameter changes, so a stale result is reused
-
-Name the cache after the inputs that determine it, not just the stage.
+In Lecture 3 the database's transactions did this for you.
 
 ---
 
@@ -220,7 +219,7 @@ Name the cache after the inputs that determine it, not just the stage.
 
 ## Where this pushes back
 
-- **stricter has a cost**: more of your mistakes become real errors, and lazy moves errors away from the line that caused them
+- **stricter has a cost**: more of your mistakes become real errors, and lazy evaluation reports them at `.collect()` rather than at the line that caused them
 - **a fill value is a choice**: it shapes every number downstream, so decide it deliberately and report how much you filled
 - **one machine goes further than you think**: exhaust a laptop with Polars or DuckDB before adding a cluster
 
@@ -228,9 +227,9 @@ Name the cache after the inputs that determine it, not just the stage.
 
 ## Where this pushes back, measure first
 
-![w:1000](figures/eager-vs-lazy.png)
+![w:840](figures/eager-vs-lazy.png)
 
-A benchmark is one workload on one machine. Measure your own pipeline; do not rewrite on reputation.
+One workload, one machine. Measure your own pipeline before you rewrite it.
 
 ---
 
@@ -242,7 +241,7 @@ A benchmark is one workload on one machine. Measure your own pipeline; do not re
 
 The Tennessee Eastman readings, one 4-stage pipeline built twice: pandas eager and Polars lazy, then timed.
 
-A labeled cell injects the defects (dropped readings, one stuck sensor) so the cleaning stages have real work.
+The simulator's output has no gaps in it, so one clearly marked cell breaks the data on purpose: it deletes a chunk of readings and freezes one sensor at a constant. Now the cleaning stages have something real to fix.
 
 ---
 
@@ -259,7 +258,7 @@ A labeled cell injects the defects (dropped readings, one stuck sensor) so the c
 ## Recap
 
 - Lecture 3 and 4's ideas, now in Python: describe first, structure so failure is safe
-- Vectorize first: about **100x**, before any bigger machine
+- Vectorize first: **hundreds of times**, before reaching for a bigger machine
 - Polars: every core, plans ahead, no server needed for the trick
 - Small, pure, idempotent stages that cache to Parquet
 - Measure your own workload before you rewrite it
@@ -270,6 +269,4 @@ A labeled cell injects the defects (dropped readings, one stuck sensor) so the c
 
 - **Practice module** for this session (participation credit)
 - No assignment is released this session
-- **Reading**: Polars Lazy API guide; pandas group-by and reshaping
-
-Full notes, with all sources: `lectures/l05/notes.md`
+- **Reading**: Polars Lazy API guide; pandas group-by

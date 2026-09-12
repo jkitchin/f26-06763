@@ -35,14 +35,14 @@
     {
       "from": "l05",
       "to": "l03",
-      "weight": 5,
+      "weight": 3,
       "where": "[Lecture 3](../l03/notes.md) gave you SQL: describe the result you want, and the database's planner works out how to get it. [Lecture 4](../l04/notes.md) applie",
       "origin": "link"
     },
     {
       "from": "l05",
       "to": "l04",
-      "weight": 3,
+      "weight": 2,
       "where": "[Lecture 3](../l03/notes.md) gave you SQL: describe the result you want, and the database's planner works out how to get it. [Lecture 4](../l04/notes.md) applie",
       "origin": "link"
     },
@@ -330,8 +330,8 @@
   "in_weight": {
     "l01": 2,
     "l02": 3,
-    "l03": 9,
-    "l04": 5,
+    "l03": 7,
+    "l04": 4,
     "l05": 4,
     "l06": 1,
     "l07": 10,

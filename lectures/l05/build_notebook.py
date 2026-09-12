@@ -56,29 +56,26 @@ cells = [
     md("""
 # L5 demo: the same pipeline, two ways
 
-We take the Tennessee Eastman process readings and build one four-stage batch
-pipeline, **load, drop bad columns, impute, aggregate by fault**, and write it
-twice: once in **pandas** (eager) and once in **Polars** (lazy). Then we time
-them and read the Polars query plan.
+We build one pipeline twice, once in **pandas** and once in **Polars**, then
+time both.
 
-The data is clean by construction, so one clearly-labeled cell injects the
-defects on purpose, the kind a real sensor log carries, so the cleaning stages
-have real work to do.
+Four stages: **load, drop bad columns, fill gaps, average by fault.**
 
-> Data: [Tennessee Eastman process simulation data](https://doi.org/10.7910/DVN/6C3JR1)
-> (Rieth et al. 2017, Harvard Dataverse, CC0). 52 process variables, fault-free
-> operation plus faults 1 to 20.
+The simulator's data is clean, so cell 2 breaks it on purpose. Otherwise the
+cleaning stages would have nothing to do.
+
+> Data: [Tennessee Eastman process](https://doi.org/10.7910/DVN/6C3JR1)
+> (Rieth et al. 2017, CC0). 52 sensors, normal operation plus faults 1 to 20.
 """),
 
     md("""
 ## 1. Load the readings
 
-The multi-fault label lives only in the 494 MB `Faulty_Training` file, so we
-fetch it once, keep every fault but a slice of the 500 simulation runs, drop the
-nominal start of each run (the fault is injected after sample 20), and cache a
-compact Parquet. Later runs read the Parquet and download nothing. Set
-`FAULT_FREE = True` to use the 24.7 MB fault-free file instead, at the cost of a
-single fault class.
+Downloads once, then caches a Parquet file. Every later run reads the cache and
+downloads nothing.
+
+We keep 50 of the 500 runs per fault, and drop each run's first 20 samples
+because the fault has not been injected yet.
 """),
 
     code("""
@@ -106,21 +103,34 @@ SOURCE = {
 
 
 def load_tep() -> pd.DataFrame:
+    # 1. Already cached? Then we are done.
     if PARQUET.exists():
         return pd.read_parquet(PARQUET)
+
+    # 2. Download the .RData file, once. (Dataverse rejects urllib's default
+    #    user agent, so we set a browser one and stream it to disk.)
     url, obj = SOURCE[FAULT_FREE]
     raw = DATA / (PARQUET.stem + ".RData")
     if not raw.exists():
         print(f"fetching {url} (one time, ~{'25' if FAULT_FREE else '494'} MB)")
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req) as r, open(raw, "wb") as f:
-            shutil.copyfileobj(r, f)   # stream; Dataverse 403s the default urllib agent
-    df = pyreadr.read_r(str(raw))[obj]              # pyreadr needs no R install
+            shutil.copyfileobj(r, f)
+
+    # 3. Read it into a dataframe. pyreadr reads R files without installing R.
+    df = pyreadr.read_r(str(raw))[obj]
+
+    # 4. R stores all numbers as floats, so put the three ID columns back to int.
     for c in ("faultNumber", "simulationRun", "sample"):
-        df[c] = df[c].astype(int)                   # R numerics come back as float
+        df[c] = df[c].astype(int)
+
+    # 5. Shrink it: keep 50 runs per fault, and drop each run's first 20
+    #    samples, where the fault has not started yet.
     if not FAULT_FREE:
         df = df[(df["simulationRun"] <= RUNS_KEPT) & (df["sample"] > 20)]
     df = df.reset_index(drop=True)
+
+    # 6. Save as Parquet so the next run skips steps 2 to 5.
     df.to_parquet(PARQUET, engine="pyarrow", compression="snappy")
     return df
 
@@ -132,12 +142,12 @@ readings.head(3)
 """),
 
     md("""
-## 2. Inject the defects, on purpose
+## 2. Break the data, on purpose
 
-Tennessee Eastman ships clean: no missing values, no dead channels. To give the
-cleaning stages something real to do, we damage a **copy** and say exactly what
-we did. These are the defects a real sensor log carries: a channel that dropped
-out heavily, one that dropped out lightly, and one that stuck at a constant.
+The simulator has no missing values and no dead sensors, so we damage a **copy**
+and say exactly how. All three defects are ones real sensor logs have:
+a sensor that mostly stopped reporting, one that dropped a few readings, and one
+stuck at a single value.
 """),
 
     code("""
@@ -158,12 +168,10 @@ dirty.to_parquet("data/tep_dirty.parquet", engine="pyarrow", compression="snappy
 """),
 
     md("""
-## 3. The pipeline in pandas (eager)
+## 3. The pipeline in pandas
 
-Four stages: load, drop the columns that are constant or more than half missing,
-impute the rest with each column's median, and aggregate to the mean of every
-surviving sensor per fault. pandas runs each stage immediately and holds the
-result in memory before the next one starts.
+pandas runs each line as it reaches it, and holds the whole table in memory
+between stages.
 """),
 
     code("""
@@ -172,15 +180,23 @@ MISSING_MAX = 0.5
 
 
 def pipeline_pandas(path):
-    df = pd.read_parquet(path)                                    # 1. load
+    # 1. LOAD: read the whole file into memory.
+    df = pd.read_parquet(path)
+
+    # 2. DROP: keep a sensor only if it changes at all, and is less than half
+    #    missing. A frozen sensor tells us nothing; a mostly-empty one is guesswork.
     sensors = [c for c in df.columns if c not in ID_COLS]
     nunique = df[sensors].nunique(dropna=True)
     null_frac = df[sensors].isna().mean()
     keep = [c for c in sensors
-            if nunique[c] > 1 and null_frac[c] <= MISSING_MAX]    # 2. drop
+            if nunique[c] > 1 and null_frac[c] <= MISSING_MAX]
     df = df[ID_COLS + keep].copy()
-    df[keep] = df[keep].fillna(df[keep].median())                 # 3. impute
-    return (df.groupby("faultNumber")[keep].mean()                # 4. aggregate
+
+    # 3. FILL: put each surviving column's median into its remaining gaps.
+    df[keep] = df[keep].fillna(df[keep].median())
+
+    # 4. AVERAGE: one row per fault, each sensor averaged over that fault.
+    return (df.groupby("faultNumber")[keep].mean()
               .reset_index().sort_values("faultNumber"))
 
 
@@ -190,30 +206,41 @@ result_pd.iloc[:3, :6]
 """),
 
     md("""
-## 4. The same pipeline in Polars (lazy)
+## 4. The same pipeline in Polars
 
-`scan_parquet` reads nothing; it builds a plan. The drop stage needs one cheap
-pass to learn which columns are constant or too sparse, then the rest of the
-plan, select, impute, group-by, stays lazy until `.collect()` runs it in a
-single optimized pass.
+Same four stages. The difference: `scan_parquet` reads nothing, it builds a
+plan, and nothing runs until `.collect()`.
+
+We do need one small pass up front to find out which columns to drop. Everything
+after that stays a plan.
 """),
 
     code("""
 def pipeline_polars(path):
-    lf = pl.scan_parquet(path)                                    # 1. load (lazy)
+    # 1. LOAD: builds a plan. Reads nothing yet.
+    lf = pl.scan_parquet(path)
+
+    # 2a. To decide what to drop we need real numbers, so run one small pass:
+    #     how many rows, and per sensor, how many distinct values and nulls.
     stats = (lf.select(
                  pl.len().alias("_n"),
                  pl.exclude(ID_COLS).n_unique().name.suffix("_nu"),
                  pl.exclude(ID_COLS).null_count().name.suffix("_nz"))
-               .collect().row(0, named=True))                     # one small pass
+               .collect().row(0, named=True))
     n = stats["_n"]
+
+    # 2b. DROP: same rule as pandas. Changes at all, less than half missing.
     sensors = [c for c in lf.collect_schema().names() if c not in ID_COLS]
     keep = [c for c in sensors
             if stats[f"{c}_nu"] > 1 and stats[f"{c}_nz"] / n <= MISSING_MAX]
-    plan = (lf.select(ID_COLS + keep)                             # 2. drop
-              .with_columns(pl.col(keep).fill_null(pl.col(keep).median()))  # 3. impute
-              .group_by("faultNumber").agg(pl.col(keep).mean())   # 4. aggregate
+
+    # 3 and 4. FILL and AVERAGE, added to the plan. Still nothing has run.
+    plan = (lf.select(ID_COLS + keep)
+              .with_columns(pl.col(keep).fill_null(pl.col(keep).median()))
+              .group_by("faultNumber").agg(pl.col(keep).mean())
               .sort("faultNumber"))
+
+    # 5. RUN: now the whole plan executes, in one pass, using every core.
     return plan.collect(), plan
 
 
@@ -237,9 +264,9 @@ print("max abs difference between pandas and Polars:",
     md("""
 ## 5. Read the query plan
 
-The optimized plan shows the work Polars will actually do. Compare it with the
-unoptimized plan and you can see the column selection pushed down into the
-Parquet scan, so only the columns the pipeline uses are read off disk.
+This prints what Polars actually decided to do. Look for the column list
+appearing on the scan line: the selection moved down into the read, so the
+columns we dropped are never loaded at all.
 """),
 
     code("""
@@ -249,8 +276,8 @@ print(plan.explain(format="tree"))
     md("""
 ## 6. Time them
 
-Warm each pipeline once, then take the best of a few runs, so we compare
-steady-state work rather than first-call overhead.
+Run each once to warm up, then take the best of three, so we are not timing
+one-off startup costs.
 """),
 
     code("""
@@ -271,22 +298,20 @@ print(f"Polars lazy    {pl_ms:8.0f} ms   ({pd_ms / pl_ms:.1f}x)")
 """),
 
     md("""
-Both pipelines produce the same per-fault signatures. Polars is usually faster
-here because it fuses the middle stages and reads only the columns it needs,
-across every core at once, while pandas materializes a new table after each
-stage. The exact ratio is a property of this workload and this machine, so the
-habit to carry is measuring your own pipeline, not the number on this slide.
+Same answer from both. Polars is usually faster here because it reads only the
+columns it needs, runs the middle stages together, and uses every core, while
+pandas builds a fresh table after each stage.
+
+The ratio you just measured belongs to this machine and this data. Measure your
+own pipeline before rewriting it.
 
 ---
 
 ## Takeaway
 
-A pipeline is load, clean, transform, aggregate, and how you write it decides
-whether it is fast, correct, and safe to re-run. Vectorized dataframe operations
-replace slow Python loops; Polars adds multithreading and a query optimizer on
-top of that; and building the work from small, pure stages that cache to Parquet
-is what makes it survivable. pandas or Polars, the durable skills are the same:
-vectorize, stage the work honestly, and measure before you optimize.
+Work on whole columns, not one row at a time. Build the pipeline from small
+stages that each read a file and write a file, so a crash costs you one stage
+instead of the whole run.
 """),
 ]
 

@@ -30,7 +30,7 @@ Every three minutes, all 52 of those instruments report a number. Run the simula
 [**TEP Studio**](https://kitchingroup.cheme.cmu.edu/tep-rust/studio/) runs this exact simulator live in your browser: start it, watch the 52 channels trend in real time, inject one of the 20 faults, and download the resulting CSV.
 :::
 
-Turning those readings into one row per fault, the average of each sensor during that fault, is what this course calls a **data pipeline**.
+Here is what we want out of all that. One row for each of the 21 conditions, showing what every sensor read on average while that condition was running. Put fault 4 next to fault 11 and you can see which sensors moved and which did not. Getting from millions of raw readings to that one small table is what this course calls a **data pipeline**.
 
 :::{admonition} Definition: data pipeline
 :class: tip
@@ -38,9 +38,11 @@ Turning those readings into one row per fault, the average of each sensor during
 A **data pipeline** is the sequence of steps that turns raw readings into an answer: load the data, clean it up, reshape it if you need to, and aggregate it into the result you actually wanted.
 :::
 
-[Lecture 3](../l03/notes.md) gave you SQL: describe the result you want, and the database's planner works out how to get it. [Lecture 4](../l04/notes.md) applied that same idea to a file, with DuckDB reading Parquet, still inside a database engine. This lecture is where the work leaves the database and becomes Python code, because filling gaps and reshaping tables needs logic a `SELECT` statement does not express comfortably. You may be tempted to write one plain script over the raw data. Two things the database was doing for you disappear when you do:
+[Lecture 3](../l03/notes.md) gave you SQL: describe the result you want, and the database's planner works out how to get it. [Lecture 4](../l04/notes.md) applied that same idea to a file, with DuckDB reading Parquet, still inside a database engine. So why leave the database at all? Because the work this lecture does is awkward to write as a query. You have to decide what to put in the gaps where a sensor dropped out, throw away channels that never moved, and rerun the whole thing tomorrow when the file changes. That is ordinary programming, and Python is better at it.
 
-- **It can be slow.** A Python loop that checks one reading at a time is commonly about **100 times** slower than checking the whole column at once.
+The catch is that you give something up when you leave. Write this as one long Python script and two things the database was handling for you are suddenly your problem:
+
+- **It can be slow.** A Python loop that walks the readings one at a time is **hundreds of times** slower than working on the whole column at once. The section below measures it.
 - **It can be unsafe.** If the script stops halfway, it leaves no record of which steps finished. You cannot tell whether running it again will pick up where it left off or double-count the work it already did.
 
 This session rebuilds both in Python. **Polars** gets the speed back, along with the describe-first-run-later habit, and it needs no server. **Small, restartable stages** get the safety back.
@@ -49,30 +51,32 @@ This session rebuilds both in Python. **Polars** gets the speed back, along with
 
 By the end of this session you should be able to:
 
-- Get more familiar with pandas and, most importantly, write Polars code that operates on whole columns at once instead of row by row, including grouping, joining, and reshaping a dataset between long and wide form.
+- Get more familiar with pandas and, most importantly, write Polars code that operates on whole columns at once instead of row by row, including grouping and joining.
 - Break a data pipeline into small steps that each read one file and write one file, so a run that fails halfway through can be started again without corrupting anything.
 - Explain the difference between pandas running code immediately and Polars planning a computation before running it, and use that difference to choose between the two for a given task.
 
-## Your SQL habits, typed differently
+## What carries over from SQL
 
-```{index} dataframe, vectorization, long format, wide format
+```{index} dataframe, vectorization
 ```
 
-You have been handling a **dataframe**, a table held in memory with named, typed columns, since [Lecture 3](../l03/notes.md) and [Lecture 4](../l04/notes.md). Two of the three moves below you already know from SQL, with new syntax and the same meaning underneath. The third is new.
+A **dataframe** is a table held in memory, with named columns that each have a fixed type. You have been using one since [Lecture 3](../l03/notes.md).
 
-**Group and join.** [Lecture 3](../l03/notes.md) gave you `GROUP BY` to fold many rows into one summary per group, and `JOIN` to reach into another table by matching keys. Both are method calls here: `readings.group_by("faultNumber")` is `GROUP BY faultNumber`, and a join still lines up two tables on a shared key, so a result can say "reactor cooling water" instead of `faultNumber = 4`.
+Grouping and joining you already did in Lecture 3. Vectorizing is new.
 
-**Long and wide.** This is [Lecture 3](../l03/notes.md)'s opening argument, one level down. There, long beat wide as a permanent decision about how to store the data. Here the two shapes are one operation apart: `pivot` spreads one column per sensor, and `melt` (`unpivot` in Polars) puts the readings back one per row. Pick whichever shape the next step wants.
+**Grouping and joining.** You wrote both in Lecture 3. Here they are method calls instead of clauses. `readings.group_by("faultNumber")` does the same job as `GROUP BY faultNumber`, and a join still matches two tables on a shared column, so your result can say "reactor cooling water" instead of `faultNumber = 4`.
 
-**Vectorize.** This one is new, and it is new for a reason. Nothing in the SQL you wrote in Lecture 3 let you handle rows one at a time: you described the result you wanted, and the database decided how to walk the rows. Python offers no such guardrail. It will let you write the loop, and the loop is about a hundred times slower.
+**Vectorizing.** This one is new, because SQL never gave you the choice. You asked for a result and the database walked the rows however it wanted. Python does give you the choice, and one of the options is slow.
 
 :::{admonition} Definition: vectorization
 :class: tip
 
-**Vectorization** means doing a computation on a whole column at once instead of one value at a time. `readings["xmeas_7"] > threshold` does that comparison once, in compiled code; a loop over the column does it once per row, in the Python interpreter.
+**Vectorization** means computing on a whole column at once instead of one value at a time. `readings["xmeas_7"] > threshold` compares the entire column in one step, inside compiled code. A `for` loop compares one reading per step, in Python.
 :::
 
-## Getting DuckDB's trick without DuckDB
+The gap is large enough to change how you write. On this session's reactor-pressure column, 480,000 readings, the whole-column comparison takes **0.2 ms**. The same test as a plain `for` loop takes **20 to 24 ms**, and written with `iterrows()`, which is the idiom most people reach for first, about **3,900 ms**. So the penalty runs from a hundred times to several thousand, depending on how you write the loop. All three numbers come from `figures/make_figures.py`, so you can rerun them on your own machine.
+
+## Polars: plan the work, then run it
 
 ```{index} Polars, eager execution, lazy evaluation, Apache Arrow
 ```
@@ -104,7 +108,7 @@ pipeline = (
 result = pipeline.collect()   # only now does anything run
 ```
 
-The demo shows the rest live: the query plan, printed before and after optimization, and pandas-to-Polars conversion. That conversion is cheap because both libraries lay columns out the same way in memory, the Arrow format, Parquet's in-memory cousin from Lecture 4.
+The demo shows the rest live: the query plan, printed before and after optimization, and pandas-to-Polars conversion. That conversion is cheap because both libraries lay columns out the same way in memory, the Arrow format.
 
 ## Making it safe to rerun
 
@@ -141,7 +145,7 @@ One trap: cache a stage's output under a name that mentions only the stage, `cle
 - **Polars is stricter, and stricter costs you while you are learning it.** More of your mistakes become real errors instead of quiet workarounds, and lazy evaluation moves errors away from the line that caused them, sometimes several stages away. Stay with pandas when your codebase or collaborators only speak it. Reach for Polars when a run has grown slow enough to interrupt your work, or when the pipeline is a job you run repeatedly.
 - **A fill value is a decision you are making about the data.** Whatever number you put in a gap becomes part of every result computed downstream of it. Choose it deliberately, and report how much of a column you filled alongside any summary of it.
 - **One machine goes further than you think.** Vectorized pandas, and especially Polars with DuckDB over Parquet, comfortably handle hundreds of thousands of rows on a laptop. Exhaust one good machine before adding a cluster.
-- **A benchmark measures one workload on one machine.** The pandas-versus-Polars ratio you see in the demo will not transfer to a different pipeline. The hundredfold vectorization gap does transfer, because it comes from the shape of the computation, a loop against a whole-column operation, rather than from which library you picked. Measure your own pipeline before you rewrite it.
+- **A benchmark measures one workload on one machine.** The pandas-versus-Polars ratio you see in the demo will not transfer to a different pipeline. The gap between a loop and a whole-column operation does transfer, because it comes from the shape of the computation, a loop against a whole-column operation, rather than from which library you picked. Measure your own pipeline before you rewrite it.
 
 ## In-class demo
 
@@ -151,7 +155,7 @@ Watch the difference between eager and lazy. The pandas version builds a new tab
 
 ## Summary
 
-A data pipeline turns a raw sensor log into an answer. Lecture 3 and Lecture 4 already taught you most of how to do that well: describe the result and let a planner work out how to get it, and structure the work so a partial failure cannot corrupt anything. This session moves both ideas out of the database and into your own Python code. Vectorization and Polars get the speed back, about a hundredfold from vectorizing alone. Small, pure, idempotent stages that cache to Parquet get the safety back. Whichever library you use, the two habits carry over from the last two lectures: describe the work and let the planner decide how to run it, and split the work so a failure partway through leaves nothing to untangle.
+A data pipeline turns a raw sensor log into an answer. Lecture 3 and Lecture 4 already taught you most of how to do that well: describe the result and let a planner work out how to get it, and structure the work so a partial failure cannot corrupt anything. This session moves both ideas out of the database and into your own Python code. Vectorization and Polars get the speed back, hundreds of times over on this data. Small, pure, idempotent stages that cache to Parquet get the safety back. Whichever library you use, the two habits carry over from the last two lectures: describe the work and let the planner decide how to run it, and split the work so a failure partway through leaves nothing to untangle.
 
 ## Resources
 
@@ -160,7 +164,6 @@ A data pipeline turns a raw sensor log into an answer. Lecture 3 and Lecture 4 a
 - [Polars user guide, Lazy API](https://docs.pola.rs/user-guide/lazy/). What a `LazyFrame` is, why `scan_parquet` beats `read_parquet` for a pipeline, and how `.collect()` triggers optimization. Start here.
 - [Polars user guide, Expressions](https://docs.pola.rs/user-guide/expressions/). The expression API the whole library is built on, with the group-by and selection patterns the demo uses.
 - [pandas user guide, Group by](https://pandas.pydata.org/docs/user_guide/groupby.html). The split-apply-combine model, the same idea as SQL's `GROUP BY`, in pandas.
-- [pandas user guide, Reshaping and pivot tables](https://pandas.pydata.org/docs/user_guide/reshaping.html). `pivot`, `melt`, and moving between long and wide form.
 - [Apache Arrow overview](https://arrow.apache.org/overview/). The in-memory columnar layout that makes pandas-to-Polars conversion cheap, and how it differs from Parquet on disk.
 - [Tennessee Eastman process simulation data (Rieth et al. 2017)](https://doi.org/10.7910/DVN/6C3JR1). The dataset for this session. Faults 1 to 20 plus fault-free operation, 52 process variables.
 - [Downs and Vogel, A plant-wide industrial process control problem (1993)](https://doi.org/10.1016/0098-1354(93)80018-I). The original paper that defines the process, its units, and its twenty disturbances. The source for what each fault means.

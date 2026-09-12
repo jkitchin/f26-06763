@@ -185,8 +185,7 @@
   lecture: l05
   text: >-
     Get more familiar with pandas and, most importantly, write Polars code that operates on
-    whole columns at once instead of row by row, including grouping, joining, and reshaping a
-    dataset between long and wide form.
+    whole columns at once instead of row by row, including grouping and joining.
 
 - id: l05-o2
   lecture: l05

@@ -353,10 +353,6 @@ export function SessionPlayer({
               </p>
             )}
             <Markdown className="text-[15px] leading-relaxed">{item.evidence}</Markdown>
-            <p className="mt-3 text-xs text-[var(--muted)]">
-              Source: {item.source.file}
-              {item.source.heading ? ` · ${item.source.heading}` : ''}
-            </p>
           </aside>
         )}
       </main>

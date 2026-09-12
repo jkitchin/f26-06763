@@ -122,6 +122,31 @@ def median_ms(fn, n=5) -> float:
     return float(np.median(s))
 
 
+def measure_vectorization(df: pd.DataFrame) -> dict:
+    """Time a Python loop against the vectorized comparison, on one real column.
+
+    This is the source of the "about 100 times" figure the notes and slides
+    cite, so it is measured here rather than asserted. The loop idiom matters
+    enormously: iterrows() is four orders of magnitude off, which is why the
+    notes quote the plain loop rather than the worst case.
+    """
+    col = df["xmeas_7"]                      # reactor pressure
+    threshold = float(col.mean())
+    variants = {
+        "vectorized": lambda: (col > threshold),
+        "loop over Series": lambda: [v > threshold for v in col],
+        "loop over ndarray": lambda: [v > threshold for v in col.to_numpy()],
+        "itertuples": lambda: [r.xmeas_7 > threshold for r in df[["xmeas_7"]].itertuples()],
+    }
+    base = median_ms(variants["vectorized"])
+    out = {k: median_ms(f) for k, f in variants.items()}
+    print(f"\nvectorization, xmeas_7, {len(col):,} rows")
+    for k, v in out.items():
+        ratio = "" if k == "vectorized" else f"  {v / base:.0f}x"
+        print(f"  {k:20s} {v:8.2f} ms{ratio}")
+    return {k: v / base for k, v in out.items()}
+
+
 def fig_eager_vs_lazy(df: pd.DataFrame) -> dict:
     """Measure pandas eager vs Polars lazy, as the table grows taller and wider.
 
@@ -202,4 +227,5 @@ if __name__ == "__main__":
     data = load()
     print(f"loaded {len(data):,} rows, {data.shape[1]} columns, "
           f"{data['faultNumber'].nunique()} fault classes")
+    measure_vectorization(data)
     fig_eager_vs_lazy(data)
