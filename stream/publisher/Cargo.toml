@@ -1,0 +1,16 @@
+[package]
+name = "tep-stream"
+version = "0.1.0"
+edition = "2021"
+description = "Streams a continuously running Tennessee Eastman plant as OPC UA DataValue records"
+publish = false
+
+[dependencies]
+# Pinned to a revision, not a branch. The plant's numbers are an input to an
+# assignment, and a stream whose behaviour changes when upstream lands a commit
+# is one nobody can grade against.
+tepsim = { git = "https://github.com/jkitchin/tep-rust", rev = "62388b06d0be28b12495d7f9718460542066eae9" }
+tepsim-core = { git = "https://github.com/jkitchin/tep-rust", rev = "62388b06d0be28b12495d7f9718460542066eae9" }
+
+[profile.release]
+opt-level = 2

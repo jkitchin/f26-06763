@@ -8,7 +8,7 @@
 - **Slides** <a href="../../slides/l06/">Deck for this session</a>
 - **Practice** <a href="../../game/#/l06">Practice module for this session</a>
 - **Demo** [`l06-validation.ipynb`](l06-validation.ipynb), a pandera gate that fails loudly, and a windowed replay of the sensor stream
-- **Assignment 3**, released at Lecture 5; its validation half is this session's material
+- **Assignment 3**, released this session; it uses both halves of this week
 :::
 
 ## Why this matters
@@ -31,7 +31,7 @@ By the end of this session you should be able to:
 
 ## Batch, streaming, and the log
 
-```{index} streaming, batch processing, log, Kafka, offset, delivery semantics, backpressure
+```{index} streaming, batch processing, micro-batch, log, Kafka, offset, delivery semantics, backpressure
 ```
 
 A **batch** job runs on a schedule over a bounded chunk of data: yesterday's readings, this run's export, the file that just landed. It has a beginning and an end, it can be rerun, and it is by far the simplest thing to reason about, which is why Lecture 5 built one and why most engineering teams should start there. A **streaming** system, by contrast, processes an *unbounded* input as it arrives, record by record, and never runs out of input. The distinction that matters is not the tool but the shape of the data: bounded data invites batch, unbounded data eventually demands streaming, and the honest middle ground, **micro-batch**, runs a batch job every few seconds over whatever has accumulated, buying most of the latency of streaming with much of the simplicity of batch.
@@ -42,7 +42,7 @@ Two properties of any such system decide how much you can trust it. The first is
 
 ## Windows, event time, and watermarks
 
-```{index} windowing, tumbling window, sliding window, session window, event time, processing time, watermark, late data
+```{index} windowing, tumbling window, sliding window, session window, event time, processing time, watermark, late data, trigger, accumulation mode
 ```
 
 The question a stream forces on you is one a batch job never has to ask: if the data never ends, what exactly are you aggregating? You cannot take the average of an infinite sequence. The answer is a **window**, which, in the words of the canonical reference, Akidau and colleagues' [Dataflow Model](https://www.vldb.org/pvldb/vol8/p1792-Akidau.pdf) (VLDB 2015), "slices up a dataset into finite chunks for processing as a group." Three window shapes cover almost everything. A **tumbling** window (the paper calls it fixed) has a static size and does not overlap: the average temperature in each clock hour, one number per hour. A **sliding** window (sometimes hopping) has a size and a shorter step, so windows overlap and the aggregate updates more often: a one-hour average recomputed every fifteen minutes. A **session** window has no fixed size at all; it groups activity separated by gaps of inactivity, which fits event bursts better than a clock. The paper's own summary is worth keeping: fixed windows are just the special case of sliding windows where the size equals the step.
@@ -56,11 +56,15 @@ The same unbounded stream, aggregated two ways. Tumbling one-hour windows (red) 
 
 Windows raise a subtler question, and it is the one that separates people who have run a stream from people who have only read about one: *which time do you mean?* The Dataflow paper draws the line cleanly. **Event time** is "the time at which the event itself actually occurred," stamped by the sensor. **Processing time** is "the time at which an event is observed at any given point during processing." For a batch over a static file the two barely differ; for a live stream they diverge constantly, because events take a variable, unpredictable time to travel from the sensor to your code. And this is where the 79.5% from the opening returns with teeth. When readings arrive that far out of order, a window defined by *processing* time, "everything I received between 3:00 and 4:00," mixes together events that happened at wildly different real times, and the answer is meaningless. You almost always want windows in *event* time, grouping readings by when they were measured, not when they showed up.
 
-But event-time windows create a problem of their own: if a reading can arrive late, when is it safe to say a window is finished and emit its result? Waiting forever is not an option. The mechanism is a **watermark**, which the paper defines as "a lower bound (often heuristically established) on event times that have been processed by the pipeline." A watermark is the system's best guess that it has now seen all events up to some event time; when the watermark passes the end of a window, the window closes and its result is emitted. The word *heuristic* is load-bearing: the watermark can be wrong, and a reading can arrive after its window has already closed. That is **late data**, and a real streaming system needs an explicit policy for it, drop it, or hold windows open long enough to let stragglers in, or re-emit a corrected result when one arrives. The Streaming [101](https://www.oreilly.com/radar/the-world-beyond-batch-streaming-101/) and [102](https://www.oreilly.com/radar/the-world-beyond-batch-streaming-102/) articles are the readable long form here; 102 is where watermarks and triggers are actually developed, so send yourself there rather than 101 for that part.
+But event-time windows create a problem of their own: if a reading can arrive late, when is it safe to say a window is finished and emit its result? Waiting forever is not an option. The mechanism is a **watermark**, which the paper defines as "a lower bound (often heuristically established) on event times that have been processed by the pipeline." A watermark is the system's best guess that it has now seen all events up to some event time; when the watermark passes the end of a window, the window closes and its result is emitted. A heuristic watermark can be wrong, and a reading can arrive after its window has already closed. That is **late data**, and a real streaming system needs an explicit policy for it, drop it, or hold windows open long enough to let stragglers in, or re-emit a corrected result when one arrives.
+
+Choosing between those policies is the job of a **trigger**, which decides when a window emits its result: once, when the watermark passes the end of the window; early, on a timer, if you would rather have a provisional answer sooner than a correct one; or again on each straggler that turns up after the window closed. A window that can emit more than once raises a second question, which is what the later emission means to whoever reads it. That is the **accumulation mode**. An accumulating window adds the straggler to the result it already sent and re-emits the whole answer, so "the hourly mean is 24.1 degrees" is followed by "correction, 24.3 degrees"; a discarding window sends only the part that is new and leaves the reader to combine the pieces. Both are defensible, and the failure is picking neither, because a dashboard that treats a correction as a fresh reading double-counts every late row.
+
+The Streaming [101](https://www.oreilly.com/radar/the-world-beyond-batch-streaming-101/) and [102](https://www.oreilly.com/radar/the-world-beyond-batch-streaming-102/) articles are the readable long form here; 102 is where watermarks and triggers are actually developed, so send yourself there rather than 101 for that part.
 
 ## Data validation: checks as a gate
 
-```{index} data validation, schema check, pandera, Great Expectations, quarantine
+```{index} data validation, schema check, pandera, Great Expectations, quarantine, data contract
 ```
 
 Streaming is about *when* data arrives; validation is about *whether it is any good*, and it is the more universally useful of the two, because every pipeline, batch or streaming, has data entering it that some upstream process swears is fine. **Data validation** is the practice of writing down what you expect of the data as executable checks, and running them as a **gate**: a stage that data must pass before the pipeline will act on it. The checks fall into three kinds, and a good suite has all three. **Schema checks** assert structure: this column exists, it is a timestamp with a zone, it is a float, it is or is not allowed to be null. **Statistical checks** assert distributions: the null rate is below some bound, an id is unique, a value's mean has not drifted off its historical range. **Physical-plausibility checks** assert what the engineering domain knows: a temperature is inside the instrument's range, a timestamp does not run backwards, a flow is non-negative. That last category is where engineering data validation earns its keep, because a value can be a perfectly good float and still be physically impossible, exactly the 386-degree readings from Lecture 3.
@@ -94,9 +98,14 @@ As of pandera v0.24 the recommended import for dataframe validation is `import p
 
 The heavier alternative is **Great Expectations**, which is less a library call and more a framework. Its vocabulary, from the [GX overview](https://docs.greatexpectations.io/docs/core/introduction/gx_overview/), is worth recognizing: an **Expectation** is "a verifiable assertion about data," an **Expectation Suite** is a collection of them, a **Checkpoint** runs a suite against data in production, and **Data Docs** are the human-readable reports it generates. That last piece is the real differentiator: Great Expectations is aimed at teams who want validation results as living documentation a non-engineer can read, at the cost of more setup than a pandera schema. One caution if you reach for it: the workflow changed substantially at the 0.18-to-1.0 boundary (Checkpoints now run "Validation Definitions"), so tie any example to a specific version and do not mix 1.x code with the older docs. For this course, pandera is the default for a pipeline gate and Great Expectations is the tool to know exists when the audience for the results is people rather than code.
 
+Statistical checks are also the seam between validation and monitoring, because a check on a null rate or a monthly mean is the same assertion whether you run it once in a pipeline or forever against production, and a drift you would want an alert for is a check you have already written. A schema also does a second job while it sits there. It is the written-down shape of the data, which makes it a **data contract**: the agreement between whoever produces a table and whoever consumes it about what the columns are, what they may contain, and what a consumer is entitled to assume. Stated that way it is documentation the next person can build against without reading your loader, and unlike a wiki page it fails the build when it goes stale.
+
 Wherever the checks live, the decision that actually shapes a pipeline is what a failure *does*. There are three honest options. **Block**: the pipeline halts and nothing downstream runs, which is right when bad data must never reach a model or a report. **Warn**: the pipeline logs the problem and continues, which is right for a metric you are monitoring but will not act on immediately. **Quarantine**: the bad rows are routed aside for inspection while the good ones flow on, which is often the most practical for a large dirty feed where halting on every impossible temperature would stop everything. A check that can only ever pass is untested decoration; the discipline, as with the Lecture 1 demo, is to inject bad data on purpose and prove the gate catches it.
 
 ## Where streaming and validation push back
+
+```{index} pair: failure mode; clock drift
+```
 
 Both disciplines in this session are easy to over-apply, and the mature judgment is knowing their limits as well as their uses.
 
@@ -106,7 +115,7 @@ A batch pipeline is a function you can rerun, inspect, and reason about; a strea
 
 ### A window in event time is only as good as your timestamps
 
-Everything in the windowing section rested on trusting the event-time stamp on each reading. If a sensor's clock is wrong, or drifts, or resets on a power cycle, then event-time windows group readings by a lie, and no watermark saves you. This is the point where streaming and validation meet: the monotonic-timestamp check from the validation section is not bookkeeping, it is what lets you trust the event times that windowing depends on. Garbage timestamps make sophisticated windowing produce confident nonsense.
+Everything in the windowing section rested on trusting the event-time stamp on each reading. **Clock drift** is the failure mode: if a sensor's clock is wrong, or drifts, or resets on a power cycle, then event-time windows group readings by a lie, and no watermark saves you. This is the point where streaming and validation meet: the monotonic-timestamp check from the validation section is not bookkeeping, it is what lets you trust the event times that windowing depends on. Garbage timestamps make sophisticated windowing produce confident nonsense.
 
 ### Validation confirms plausibility, not correctness
 
@@ -124,9 +133,45 @@ Put a validation gate at every boundary where data enters your control, and make
 
 ## In-class demo
 
-We work the validation half concretely and sketch the streaming half. Starting from the sensor data, we declare a pandera schema, dtypes, the set of valid mote ids, an `in_range` check on temperature, and a voltage floor, and run it as a gate before the transform stage. The gate stops on the first problem it meets, a handful of readings tagged with impossible mote ids such as 65407, which is a plain set check earning its keep; running the same schema lazily then reveals the far larger population of out-of-range temperatures and low-voltage rows beneath. We show the cost of skipping the gate, the raw mean temperature is a confident wrong number because roughly a sixth of the readings are physically impossible, then inject two rows we know are bad and watch the `SchemaErrors` report name exactly those rows rather than letting them through to poison an aggregate. Finally we split the feed into a clean stream and a quarantine table, and see that the temperature and voltage rules reject nearly the same rows. For streaming, we measure how out of order the feed really is, about 79.5% of readings arrive before one already seen from the same mote, and replay one mote as tumbling and sliding windowed averages in event time.
+The demo runs on a live plant. A Tennessee Eastman simulation publishes to an MQTT broker
+over WebSockets, and the notebook subscribes to it, collects about three minutes of
+telemetry, and works on whatever arrived. The figures above come from the Intel Lab replay,
+where the answers are already known; the demo uses a feed nobody has cleaned, whose numbers
+come out different every time we run it.
 
-The moment to watch is the gate. A pipeline with the check runs, hits bad data, and stops with a precise complaint; the same pipeline without the check runs to completion and produces a confident, wrong number. That contrast, loud failure versus silent corruption, is the whole argument for validation. The runnable notebook is [`l06-validation.ipynb`](l06-validation.ipynb).
+We start with the plant itself, because a reading whose meaning you do not know is a reading
+you cannot validate: the flowsheet, the 53 tags, and the three gas chromatographs whose
+readings are stale by a known amount. Then the collector, which writes down exactly what
+arrived and does nothing else to it. Then the retained birth message, which is the data
+contract for this feed, and which the validation schema is generated from rather than typed
+out a second time. Decoding the nested JSON gives one row per reading and three timestamps on
+each row: when the instrument took it, when the historian published it, and when our machine
+saw it.
+
+The gate is two schemas, for two different questions. One asks whether the publisher kept its
+promises, meaning tags from the contract, statuses from the OPC UA set, values inside the
+physical range for their declared unit, and nothing published before it was measured. The
+other asks whether the data is fit to average, meaning a real value, a `Good` status, and one
+row per tag per reading. The first usually passes and the second always fails, and the
+failures are the three that recur on any instrument feed: a status code saying the device does
+not trust its own number, a held analyser value republished on a timer so that a naive count
+of product composition measurements comes out about five times too high, and readings that
+arrive after the window they belong to has closed.
+
+The last third is the windowed aggregate. We measure each tag's staleness and check it against
+what the contract predicted, and sweep a watermark allowance from zero to three plant hours to
+price the choice between waiting and dropping. Then we pivot the long table to the wide one an
+analysis actually wants, one row per sample instant and one column per tag, which is where the
+missing data finally becomes visible: the 53 tags are not sampled on a common grid, so about a
+fifth of the table comes out empty, almost all of it in the analyser columns, and a forward
+fill writes that fifth. We keep the mask of which cells we filled, because a table that cannot
+say which of its numbers were measured is a table nobody can audit. We finish by computing the
+same thirty-minute tumbling average twice, once bucketed by event time and once by publish
+time. Some
+publish-time windows come out empty, which is a gap on a dashboard for a stretch when the
+plant was running normally, and the rest are wrong by an amount worth comparing against the
+tag's own standard deviation. The runnable notebook is
+[`l06-validation.ipynb`](l06-validation.ipynb).
 
 ## Summary
 
@@ -144,12 +189,12 @@ Real sensor data breaks two assumptions a batch pipeline quietly makes: that the
 - [MQTT](https://mqtt.org/). The lightweight publish/subscribe protocol for internet of things (IoT) and sensor telemetry.
 - [Reactive Streams](https://www.reactive-streams.org/). Backpressure as a standard: not overwhelming a slow consumer.
 - [Intel Lab Data](https://db.csail.mit.edu/labdata/labdata.html). The streaming/validation feed, carried from Lecture 3, replayed by timestamp. Served over plain HTTP.
-- [UCI SECOM](https://archive.ics.uci.edu/dataset/179/secom). The wide, dirty semiconductor feature matrix from Lecture 5: about 1,500 runs, roughly 590 process measurements, heavy missingness, a natural target for a validation suite.
+- [UCI SECOM](https://archive.ics.uci.edu/dataset/179/secom). A wide, dirty semiconductor feature matrix: about 1,500 runs, roughly 590 process measurements, heavy missingness, a natural target to practise a validation suite on once you have written one here.
 - Kleppmann, *Designing Data-Intensive Applications*, Ch. 11 ("Stream Processing"). The clearest single treatment of logs, streams, and their relationship to batch.
 
 ## Assignment
 
-Assignment 3, "Reproducible, validated data pipeline," was released at Lecture 5 and is due roughly one week later. Its first half is Lecture 5's batch-pipeline material; its second half is this session's, adding pandera or Great Expectations checks that fail the pipeline on bad data, including a physical-plausibility check and a proof that the gate actually halts on injected corruption. You can start the validation half now that this session is done. This is a pointer, not the rubric.
+Assignment 3, "A plant stream, collected and made trustworthy," is released this session and is due roughly one week later. You collect at least ten minutes of a live chemical-plant simulation published over MQTT, then build a pipeline that makes what arrived worth computing on. It draws on both halves of this week: Lecture 5's small, restartable stages and its Polars idioms, and this session's event time, watermarks, and validation as a gate. With both sessions now covered, you can do the whole assignment. This is a pointer, not the rubric.
 
 ## Practice module
 

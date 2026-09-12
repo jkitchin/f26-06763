@@ -1,0 +1,11 @@
+# Rules before the first `user` line apply to every client, which here means
+# every anonymous one: the students. They may read the plant and nothing else.
+# In particular they may not publish, so no one can inject a fabricated
+# reading into the stream somebody else is collecting.
+topic read plant/#
+
+# The simulator is the one client that writes, and it is the only reason the
+# broker has a password file at all. Anonymous read plus one authenticated
+# writer is the whole access-control design.
+user tep-publisher
+topic write plant/#

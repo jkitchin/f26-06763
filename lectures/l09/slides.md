@@ -362,7 +362,7 @@ is a **correctable** deficiency.
 
 **Fault detection changes the shape.**
 
-**UCI SECOM** (from Lecture 5): 1,567 semiconductor runs,
+**UCI SECOM**: 1,567 semiconductor runs,
 590 process sensors, **104 failures = 6.6%**.
 
 Accuracy is useless here by inspection.
