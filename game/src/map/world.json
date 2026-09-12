@@ -140,13 +140,13 @@
       "id": "l06",
       "date": "2026-09-14",
       "title": "Streaming data and data validation",
-      "written": false,
+      "written": true,
       "arc_source": "declared",
       "arc": "Data Systems",
       "region": 1,
       "x": 5,
       "y": 2,
-      "notes": null
+      "notes": "../lectures/l06/notes.html"
     },
     {
       "session": "L7",
