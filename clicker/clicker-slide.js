@@ -17,9 +17,11 @@
  * on the discuss band and the re-teach band. It is the nudge that makes a second
  * vote worth taking, so keep it a pointer rather than the answer.
  *
- * data-why is its complement, shown only when the room got there. Celebrating
- * without saying why the answer is the answer teaches nobody, including the people
- * who guessed. It plays the same role as the `evidence` field in the quiz banks.
+ * data-why says why the answer is the answer. It appears by itself when the room got
+ * there, because celebrating without saying why teaches nobody, including the people
+ * who guessed. When the room did not, a "Show answer" button appears instead, so the
+ * hint stays up while people argue and the explanation is one click away once the
+ * argument is over. It plays the same role as the `evidence` field in the quiz banks.
  *
  * Voting opens by itself when the slide comes up, so the presenter does not have to
  * remember to press anything. data-autostart="false" opts a question out. Coming
@@ -443,6 +445,21 @@
     why.textContent = whyText;
     main.appendChild(why);
 
+    // A room that did not get there still has to leave with the explanation, but
+    // not before it has argued. The presenter decides when, so it is a button.
+    // Clicking it swaps the hint for the explanation: both at once overflow 720px.
+    var showWhy = document.createElement('button');
+    showWhy.className = 'clicker-answer';
+    showWhy.type = 'button';
+    showWhy.textContent = 'Show answer';
+    showWhy.hidden = true;
+    showWhy.addEventListener('click', function () {
+      hint.hidden = true;
+      why.hidden = false;
+      showWhy.hidden = true;
+    });
+    btn.insertAdjacentElement('afterend', showWhy);
+
     var round = 0;
 
     // The heading is already the question, so read it rather than making the
@@ -555,11 +572,12 @@
       verdict.className = 'clicker-verdict is-' + b.key;
       verdict.hidden = false;
 
-      // The hint is for the rooms that need a second go; the explanation is for the
-      // ones that got there. A celebration on its own teaches nobody, including
-      // whoever guessed.
+      // The hint is for the rooms that need a second go, and the explanation is
+      // shown straight away to the ones that got there. Every other room gets the
+      // explanation behind a button, so nobody leaves the question without it.
       if (hintText && b.key !== 'good') hint.hidden = false;
       if (whyText && b.key === 'good') why.hidden = false;
+      if (whyText && b.key !== 'good') showWhy.hidden = false;
 
       if (b.key === 'good') fireworks(section, muted());
       else if (b.key === 'poor') rain(section, muted());
@@ -611,6 +629,8 @@
           if (opts) opts.hidden = false;
           verdict.hidden = true;
           why.hidden = true;
+          showWhy.hidden = true;
+          if (hintText && round > 1) hint.hidden = false;
           hideBoard();
           document.querySelectorAll('canvas.clicker-fx').forEach(function (c) { c.remove(); });
 
