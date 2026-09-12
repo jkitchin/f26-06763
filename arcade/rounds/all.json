@@ -1318,6 +1318,259 @@
         "That the two are the same once you allow for noise",
         "That timing a pipeline is not worth doing"
       ]
+    },
+    {
+      "id": "l06-q01",
+      "kind": "mcq",
+      "lecture": "l06",
+      "context": "Your plant historian produces readings continuously. The team wants a\ndaily report and a model retrained once a week.\n\nWhat should the first version of the pipeline be?",
+      "why": "A report once a day and a model once a week are batch questions, even\nthough the readings arrive continuously. Streaming buys low latency and\ncosts you a long-lived service with state, watermarks and delivery\nsemantics. Nothing here needs the latency, so start with batch and move\nto streaming only when a real latency requirement forces it.",
+      "objectives": [
+        "l06-o1"
+      ],
+      "tags": [
+        "streaming",
+        "batch",
+        "design"
+      ],
+      "true": "A scheduled batch or micro-batch job",
+      "false": [
+        "A Kafka consumer with exactly-once semantics",
+        "Event-time windows closed by a watermark",
+        "A stream, since the source never stops"
+      ]
+    },
+    {
+      "id": "l06-q02",
+      "kind": "mcq",
+      "lecture": "l06",
+      "context": "You publish every mote's readings to one Kafka topic with several\npartitions.\n\nWhat does Kafka promise about the order you read them back in?",
+      "why": "Kafka appends each event to one partition, and a consumer reads each\npartition forward in the order events were appended. There is no\nguarantee across partitions. If you need one mote's readings in order,\nthey have to land in the same partition. Kafka also knows nothing about\nevent time: append order is not the order the readings were measured.",
+      "objectives": [
+        "l06-o1"
+      ],
+      "tags": [
+        "kafka",
+        "log",
+        "ordering"
+      ],
+      "true": "Order within each partition only",
+      "false": [
+        "Order across the whole topic",
+        "Order by each event's timestamp",
+        "No order at all"
+      ]
+    },
+    {
+      "id": "l06-q03",
+      "kind": "spot_the_defect",
+      "lecture": "l06",
+      "context": "A consumer reads flow readings from Kafka with default settings and adds\neach one to a running total of product shipped.\n\nWhat will eventually make the total wrong?",
+      "why": "Kafka is at-least-once by default: a message is never lost, but it can\narrive more than once. A running sum is not idempotent, so every\nredelivery inflates it. Exactly-once is opt-in machinery rather than a\nsetting on the cluster, so assume duplicates and make the processing\ntolerate them, for example by de-duplicating on a message id.",
+      "objectives": [
+        "l06-o1"
+      ],
+      "tags": [
+        "kafka",
+        "delivery-semantics",
+        "idempotency"
+      ],
+      "true": "A redelivered message gets counted twice",
+      "false": [
+        "A message is lost and never delivered",
+        "Two partitions deliver the same reading at once",
+        "The offset resets to zero on every restart"
+      ]
+    },
+    {
+      "id": "l06-q04",
+      "kind": "mcq",
+      "lecture": "l06",
+      "context": "Most readings in a sensor feed arrive out of order. You average them in\nwindows of \"everything received between 3:00 and 4:00\".\n\nWhat is wrong with the result?",
+      "why": "That is a window in processing time: it groups readings by when your\ncode saw them. When most readings arrive out of order, the 3:00 window\nholds readings measured at many different real times, so its average\ndoes not describe any hour of the process. Bucket by event time, the\ntimestamp the sensor stamped, instead.",
+      "objectives": [
+        "l06-o2"
+      ],
+      "tags": [
+        "windowing",
+        "event-time",
+        "processing-time"
+      ],
+      "true": "Each window mixes readings measured at different times",
+      "false": [
+        "It reads fine, only a little later than you wanted",
+        "The windows overlap, so each reading is counted twice",
+        "Nothing, as long as the window is at least an hour"
+      ]
+    },
+    {
+      "id": "l06-q05",
+      "kind": "mcq",
+      "lecture": "l06",
+      "context": "What is a watermark in a streaming pipeline?",
+      "why": "A watermark is the system's estimate that it has now seen every event up\nto some event time, and when it passes the end of a window the window\ncloses and emits. It is usually a heuristic, so it can be wrong: a\nreading can still turn up after its window closed. That is late data,\nand the pipeline needs a policy for it.",
+      "objectives": [
+        "l06-o2"
+      ],
+      "tags": [
+        "watermark",
+        "late-data",
+        "event-time"
+      ],
+      "true": "A guess that events up to some time have arrived",
+      "false": [
+        "A guarantee that no later event will ever arrive",
+        "The processing time at which a window was emitted",
+        "The timestamp of the newest event seen so far"
+      ]
+    },
+    {
+      "id": "l06-q06",
+      "kind": "spot_the_defect",
+      "lecture": "l06",
+      "context": "An hourly window emits 24.1 degrees. A straggler arrives, and the window,\nset to accumulate, emits 24.3 degrees. The dashboard adds every emission\nto its daily total.\n\nWhat goes wrong?",
+      "why": "An accumulating window re-emits the whole answer, so 24.3 is a\ncorrection that replaces 24.1. A reader that treats it as a new result\ncounts that hour twice, every time a straggler arrives. Pick the\naccumulation mode on purpose and make whoever reads the window agree\non what a second emission means.",
+      "objectives": [
+        "l06-o2"
+      ],
+      "tags": [
+        "trigger",
+        "accumulation-mode",
+        "late-data"
+      ],
+      "true": "Every late reading is counted twice",
+      "false": [
+        "The straggler is dropped from the day",
+        "The 24.1 result is overwritten and lost",
+        "Only the hour with the straggler breaks"
+      ]
+    },
+    {
+      "id": "l06-q07",
+      "kind": "mcq",
+      "lecture": "l06",
+      "context": "A mote's clock resets every time its battery is swapped. Why check that\nits timestamps never run backwards before you compute event-time windows?",
+      "why": "Event-time windows group readings by the time the sensor stamped. If the\nclock is wrong, readings land in the wrong window, and no watermark can\nnotice. The monotonic check is what earns that trust. Note the last\noption: out-of-order arrival is normal on a lossy network, which is\ndifferent from a clock that runs backwards.",
+      "objectives": [
+        "l06-o2",
+        "l06-o3"
+      ],
+      "tags": [
+        "clock-drift",
+        "event-time",
+        "validation"
+      ],
+      "true": "The windows trust those timestamps and cannot tell a bad one",
+      "false": [
+        "The check makes the windowing code run faster",
+        "Pandera cannot parse a timestamp that goes backwards",
+        "Out-of-order readings are always sensor faults"
+      ]
+    },
+    {
+      "id": "l06-q08",
+      "kind": "mcq",
+      "lecture": "l06",
+      "context": "A thermocouple reads 24 degrees and passes every check in your schema.\n\nWhat has the schema shown about that reading?",
+      "why": "Validation catches the impossible and the malformed. A miscalibrated\nsensor that reads plausibly passes, and so does a units error that lands\ninside the allowed range. A green validation run means the data is\nplausible, which is worth a lot, and it is not evidence that the numbers\nare right.",
+      "objectives": [
+        "l06-o3"
+      ],
+      "tags": [
+        "validation",
+        "plausibility",
+        "limits"
+      ],
+      "true": "That it is possible, not that it is true",
+      "false": [
+        "That it is correct to within the range",
+        "That the sensor is calibrated",
+        "Nothing, because the check is only a range"
+      ]
+    },
+    {
+      "id": "l06-q09",
+      "kind": "mcq",
+      "lecture": "l06",
+      "context": "You run `schema.validate(df, lazy=True)` in pandera on a dirty table that\nbreaks five different checks.\n\nWhat do you get back?",
+      "why": "By default pandera raises a `SchemaError` at the first falsified check,\nso a dirty table costs one run per problem. With `lazy=True` it\ncollects every failure and raises a single `SchemaErrors` that\nsummarizes the offending rows. That is what you want when you are\ncleaning data and would rather see every problem at once.",
+      "objectives": [
+        "l06-o3"
+      ],
+      "tags": [
+        "pandera",
+        "validation",
+        "lazy"
+      ],
+      "true": "One `SchemaErrors` listing all five failures",
+      "false": [
+        "A `SchemaError` for the first failure only",
+        "The table with the failing rows removed",
+        "A warning, and the table unchanged"
+      ]
+    },
+    {
+      "id": "l06-q10",
+      "kind": "mcq",
+      "lecture": "l06",
+      "context": "A large sensor feed carries a steady trickle of impossible temperatures.\nHalting the pipeline on each one would stop it all day.\n\nWhat should the gate do with a failing row?",
+      "why": "Blocking halts everything, which is right only when bad data must never\nreach a model or report. Warning lets impossible values through. A\nquarantine routes the bad rows aside for inspection and keeps the\npipeline running. Clipping hides the problem: the row now looks\nplausible, and nothing records that it was ever wrong.",
+      "objectives": [
+        "l06-o3"
+      ],
+      "tags": [
+        "validation",
+        "gate",
+        "quarantine"
+      ],
+      "true": "Quarantine it, and let the good rows flow on",
+      "false": [
+        "Block, so nothing downstream runs",
+        "Clip it to the nearest value in range",
+        "Warn, and pass it on with the rest"
+      ]
+    },
+    {
+      "id": "l06-q11",
+      "kind": "predict_measure",
+      "lecture": "l06",
+      "context": "On the Intel Lab feed, one check rejects temperatures outside 0 to 50\ndegrees and another rejects readings from motes below 2.4 V.\n\nBefore you look: how do the readings the two checks reject relate to\neach other?",
+      "why": "96% of the impossible temperatures come from a mote already below\n2.4 V. The two checks overlap heavily because they catch one failure\nfrom two sides: a dying battery makes the temperature sensor report\nnonsense. A plausibility check on a physical quantity often finds\nthe cause, not only the symptom.",
+      "objectives": [
+        "l06-o3"
+      ],
+      "tags": [
+        "validation",
+        "plausibility",
+        "intel-lab"
+      ],
+      "true": "Nearly every bad temperature is from a low-battery mote",
+      "false": [
+        "The checks catch unrelated readings",
+        "About half of the bad temperatures are low-battery",
+        "Low-battery readings are all in range"
+      ]
+    },
+    {
+      "id": "l06-q12",
+      "kind": "notebook_run",
+      "lecture": "l06",
+      "context": "In [`l06-validation.ipynb`](../lectures/l06/l06-validation.ipynb),\ncompute the thirty-minute tumbling average twice: once bucketed by\nevent time, once by publish time.\n\nWhat do some of the publish-time windows show?",
+      "why": "Bucketing by publish time puts each reading where it arrived, not where\nit was measured. Some windows receive nothing, which a dashboard shows\nas a gap during normal operation, and the other windows are off by an\namount worth comparing against the tag's own standard deviation. The\nevent-time windows are the ones that describe the plant.",
+      "objectives": [
+        "l06-o2"
+      ],
+      "tags": [
+        "windowing",
+        "event-time",
+        "notebook"
+      ],
+      "true": "Empty windows while the plant ran normally",
+      "false": [
+        "The same averages, only a little later",
+        "Fewer readings, but the same mean",
+        "Readings from the next window mixed in"
+      ]
     }
   ]
 }

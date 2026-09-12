@@ -2,15 +2,359 @@ schema: 1
 lecture: l06
 title: "Streaming concepts and data validation"
 source_notes: lectures/l06/notes.md
-# The notes are published, the item bank is not written yet. This stub says so
-# deliberately: validate.py refuses a published lecture with no bank at all,
-# because a lecture that silently has no practice module is indistinguishable
-# from one somebody forgot. load.ts skips any bank with this status, so the
-# module does not appear in the app and the map draws the room as shuttered.
-status: unwritten
-serve: 0
-pool_version: 1
+status: published
+serve: 6
+pool_version: 2
 provenance:
-  drafted_by: none
+  drafted_by: claude
   reviewed_by: none
-items: []
+
+items:
+
+  - id: l06-q01
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l06-o1]
+    prompt: |
+      Your plant historian produces readings continuously. The team wants a
+      daily report and a model retrained once a week.
+
+      What should the first version of the pipeline be?
+    options:
+      - "A scheduled batch or micro-batch job"
+      - "A Kafka consumer with exactly-once semantics"
+      - "Event-time windows closed by a watermark"
+      - "A stream, since the source never stops"
+    answer: "A scheduled batch or micro-batch job"
+    evidence: |
+      A report once a day and a model once a week are batch questions, even
+      though the readings arrive continuously. Streaming buys low latency and
+      costs you a long-lived service with state, watermarks and delivery
+      semantics. Nothing here needs the latency, so start with batch and move
+      to streaming only when a real latency requirement forces it.
+    source:
+      file: lectures/l06/notes.md
+      heading: "Streaming is a large cost you should defer as long as you can"
+      quote: "Most engineering questions, a daily report, a model retrained weekly, an analysis of last month, are batch questions wearing a streaming costume"
+    verify: {mode: quote, needle: "batch questions wearing a streaming costume", volatility: stable}
+    tags: [streaming, batch, design]
+
+  - id: l06-q02
+    kind: mcq
+    rung: 2
+    difficulty: 3
+    objectives: [l06-o1]
+    prompt: |
+      You publish every mote's readings to one Kafka topic with several
+      partitions.
+
+      What does Kafka promise about the order you read them back in?
+    options:
+      - "Order within each partition only"
+      - "Order across the whole topic"
+      - "Order by each event's timestamp"
+      - "No order at all"
+    answer: "Order within each partition only"
+    evidence: |
+      Kafka appends each event to one partition, and a consumer reads each
+      partition forward in the order events were appended. There is no
+      guarantee across partitions. If you need one mote's readings in order,
+      they have to land in the same partition. Kafka also knows nothing about
+      event time: append order is not the order the readings were measured.
+    source:
+      file: lectures/l06/notes.md
+      heading: "Batch, streaming, and the log"
+      quote: "Kafka guarantees order *within a partition*, not across a topic"
+    verify: {mode: quote, needle: "within a partition", volatility: stable}
+    tags: [kafka, log, ordering]
+
+  - id: l06-q03
+    kind: spot_the_defect
+    rung: 3
+    difficulty: 3
+    objectives: [l06-o1]
+    prompt: |
+      A consumer reads flow readings from Kafka with default settings and adds
+      each one to a running total of product shipped.
+
+      What will eventually make the total wrong?
+    options:
+      - "A redelivered message gets counted twice"
+      - "A message is lost and never delivered"
+      - "Two partitions deliver the same reading at once"
+      - "The offset resets to zero on every restart"
+    answer: "A redelivered message gets counted twice"
+    evidence: |
+      Kafka is at-least-once by default: a message is never lost, but it can
+      arrive more than once. A running sum is not idempotent, so every
+      redelivery inflates it. Exactly-once is opt-in machinery rather than a
+      setting on the cluster, so assume duplicates and make the processing
+      tolerate them, for example by de-duplicating on a message id.
+    source:
+      file: lectures/l06/notes.md
+      heading: "Batch, streaming, and the log"
+      quote: "Assume at-least-once, and design your processing to tolerate a message arriving twice."
+    verify: {mode: quote, needle: "tolerate a message arriving twice", volatility: stable}
+    tags: [kafka, delivery-semantics, idempotency]
+
+  - id: l06-q04
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l06-o2]
+    prompt: |
+      Most readings in a sensor feed arrive out of order. You average them in
+      windows of "everything received between 3:00 and 4:00".
+
+      What is wrong with the result?
+    options:
+      - "Each window mixes readings measured at different times"
+      - "It reads fine, only a little later than you wanted"
+      - "The windows overlap, so each reading is counted twice"
+      - "Nothing, as long as the window is at least an hour"
+    answer: "Each window mixes readings measured at different times"
+    evidence: |
+      That is a window in processing time: it groups readings by when your
+      code saw them. When most readings arrive out of order, the 3:00 window
+      holds readings measured at many different real times, so its average
+      does not describe any hour of the process. Bucket by event time, the
+      timestamp the sensor stamped, instead.
+    source:
+      file: lectures/l06/notes.md
+      heading: "Windows, event time, and watermarks"
+      quote: "You almost always want windows in *event* time, grouping readings by when they were measured, not when they showed up."
+    verify: {mode: quote, needle: "grouping readings by when they were measured", volatility: stable}
+    tags: [windowing, event-time, processing-time]
+
+  - id: l06-q05
+    kind: mcq
+    rung: 2
+    difficulty: 3
+    objectives: [l06-o2]
+    prompt: |
+      What is a watermark in a streaming pipeline?
+    options:
+      - "A guess that events up to some time have arrived"
+      - "A guarantee that no later event will ever arrive"
+      - "The processing time at which a window was emitted"
+      - "The timestamp of the newest event seen so far"
+    answer: "A guess that events up to some time have arrived"
+    evidence: |
+      A watermark is the system's estimate that it has now seen every event up
+      to some event time, and when it passes the end of a window the window
+      closes and emits. It is usually a heuristic, so it can be wrong: a
+      reading can still turn up after its window closed. That is late data,
+      and the pipeline needs a policy for it.
+    source:
+      file: lectures/l06/notes.md
+      heading: "Windows, event time, and watermarks"
+      quote: "a lower bound (often heuristically established) on event times that have been processed by the pipeline"
+    verify: {mode: quote, needle: "often heuristically established", volatility: stable}
+    tags: [watermark, late-data, event-time]
+
+  - id: l06-q06
+    kind: spot_the_defect
+    rung: 3
+    difficulty: 3
+    objectives: [l06-o2]
+    prompt: |
+      An hourly window emits 24.1 degrees. A straggler arrives, and the window,
+      set to accumulate, emits 24.3 degrees. The dashboard adds every emission
+      to its daily total.
+
+      What goes wrong?
+    options:
+      - "Every late reading is counted twice"
+      - "The straggler is dropped from the day"
+      - "The 24.1 result is overwritten and lost"
+      - "Only the hour with the straggler breaks"
+    answer: "Every late reading is counted twice"
+    evidence: |
+      An accumulating window re-emits the whole answer, so 24.3 is a
+      correction that replaces 24.1. A reader that treats it as a new result
+      counts that hour twice, every time a straggler arrives. Pick the
+      accumulation mode on purpose and make whoever reads the window agree
+      on what a second emission means.
+    source:
+      file: lectures/l06/notes.md
+      heading: "Windows, event time, and watermarks"
+      quote: "a dashboard that treats a correction as a fresh reading double-counts every late row"
+    verify: {mode: quote, needle: "double-counts every late row", volatility: stable}
+    tags: [trigger, accumulation-mode, late-data]
+
+  - id: l06-q07
+    kind: mcq
+    rung: 2
+    difficulty: 3
+    objectives: [l06-o2, l06-o3]
+    prompt: |
+      A mote's clock resets every time its battery is swapped. Why check that
+      its timestamps never run backwards before you compute event-time windows?
+    options:
+      - "The windows trust those timestamps and cannot tell a bad one"
+      - "The check makes the windowing code run faster"
+      - "Pandera cannot parse a timestamp that goes backwards"
+      - "Out-of-order readings are always sensor faults"
+    answer: "The windows trust those timestamps and cannot tell a bad one"
+    evidence: |
+      Event-time windows group readings by the time the sensor stamped. If the
+      clock is wrong, readings land in the wrong window, and no watermark can
+      notice. The monotonic check is what earns that trust. Note the last
+      option: out-of-order arrival is normal on a lossy network, which is
+      different from a clock that runs backwards.
+    source:
+      file: lectures/l06/notes.md
+      heading: "A window in event time is only as good as your timestamps"
+      quote: "the monotonic-timestamp check from the validation section is not bookkeeping, it is what lets you trust the event times that windowing depends on"
+    verify: {mode: quote, needle: "lets you trust the event times that windowing depends on", volatility: stable}
+    tags: [clock-drift, event-time, validation]
+
+  - id: l06-q08
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l06-o3]
+    prompt: |
+      A thermocouple reads 24 degrees and passes every check in your schema.
+
+      What has the schema shown about that reading?
+    options:
+      - "That it is possible, not that it is true"
+      - "That it is correct to within the range"
+      - "That the sensor is calibrated"
+      - "Nothing, because the check is only a range"
+    answer: "That it is possible, not that it is true"
+    evidence: |
+      Validation catches the impossible and the malformed. A miscalibrated
+      sensor that reads plausibly passes, and so does a units error that lands
+      inside the allowed range. A green validation run means the data is
+      plausible, which is worth a lot, and it is not evidence that the numbers
+      are right.
+    source:
+      file: lectures/l06/notes.md
+      heading: "Validation confirms plausibility, not correctness"
+      quote: "a check confirms the reading is *possible*, not that it is *true*"
+    verify: {mode: quote, needle: "confirms the reading is", volatility: stable}
+    tags: [validation, plausibility, limits]
+
+  - id: l06-q09
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l06-o3]
+    prompt: |
+      You run `schema.validate(df, lazy=True)` in pandera on a dirty table that
+      breaks five different checks.
+
+      What do you get back?
+    options:
+      - "One `SchemaErrors` listing all five failures"
+      - "A `SchemaError` for the first failure only"
+      - "The table with the failing rows removed"
+      - "A warning, and the table unchanged"
+    answer: "One `SchemaErrors` listing all five failures"
+    evidence: |
+      By default pandera raises a `SchemaError` at the first falsified check,
+      so a dirty table costs one run per problem. With `lazy=True` it
+      collects every failure and raises a single `SchemaErrors` that
+      summarizes the offending rows. That is what you want when you are
+      cleaning data and would rather see every problem at once.
+    source:
+      file: lectures/l06/notes.md
+      heading: "Data validation: checks as a gate"
+      quote: "with `lazy=True` it instead collects every failure and raises a single `SchemaErrors`"
+    verify: {mode: quote, needle: "collects every failure", volatility: stable}
+    tags: [pandera, validation, lazy]
+
+  - id: l06-q10
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l06-o3]
+    prompt: |
+      A large sensor feed carries a steady trickle of impossible temperatures.
+      Halting the pipeline on each one would stop it all day.
+
+      What should the gate do with a failing row?
+    options:
+      - "Quarantine it, and let the good rows flow on"
+      - "Block, so nothing downstream runs"
+      - "Clip it to the nearest value in range"
+      - "Warn, and pass it on with the rest"
+    answer: "Quarantine it, and let the good rows flow on"
+    evidence: |
+      Blocking halts everything, which is right only when bad data must never
+      reach a model or report. Warning lets impossible values through. A
+      quarantine routes the bad rows aside for inspection and keeps the
+      pipeline running. Clipping hides the problem: the row now looks
+      plausible, and nothing records that it was ever wrong.
+    source:
+      file: lectures/l06/notes.md
+      heading: "Data validation: checks as a gate"
+      quote: "**Quarantine**: the bad rows are routed aside for inspection while the good ones flow on"
+    verify: {mode: quote, needle: "routed aside for inspection", volatility: stable}
+    tags: [validation, gate, quarantine]
+
+  - id: l06-q11
+    kind: predict_measure
+    rung: 1
+    difficulty: 3
+    objectives: [l06-o3]
+    prompt: |
+      On the Intel Lab feed, one check rejects temperatures outside 0 to 50
+      degrees and another rejects readings from motes below 2.4 V.
+
+      Before you look: how do the readings the two checks reject relate to
+      each other?
+    predict:
+      ask: "Decide before revealing: separate problems, or one?"
+      common_prior: "Two checks on two different columns catch two different problems."
+    options:
+      - "Nearly every bad temperature is from a low-battery mote"
+      - "The checks catch unrelated readings"
+      - "About half of the bad temperatures are low-battery"
+      - "Low-battery readings are all in range"
+    answer: "Nearly every bad temperature is from a low-battery mote"
+    evidence: |
+      96% of the impossible temperatures come from a mote already below
+      2.4 V. The two checks overlap heavily because they catch one failure
+      from two sides: a dying battery makes the temperature sensor report
+      nonsense. A plausibility check on a physical quantity often finds
+      the cause, not only the symptom.
+    source:
+      file: lectures/l06/notes.md
+      heading: "Data validation: checks as a gate"
+      quote: "96% of the impossible temperatures come from a mote already below 2.4 V"
+    verify: {mode: ordering, needle: "96% of the impossible temperatures", volatility: stable}
+    tags: [validation, plausibility, intel-lab]
+
+  - id: l06-q12
+    kind: notebook_run
+    rung: 4
+    difficulty: 3
+    objectives: [l06-o2]
+    prompt: |
+      In [`l06-validation.ipynb`](../lectures/l06/l06-validation.ipynb),
+      compute the thirty-minute tumbling average twice: once bucketed by
+      event time, once by publish time.
+
+      What do some of the publish-time windows show?
+    options:
+      - "Empty windows while the plant ran normally"
+      - "The same averages, only a little later"
+      - "Fewer readings, but the same mean"
+      - "Readings from the next window mixed in"
+    answer: "Empty windows while the plant ran normally"
+    evidence: |
+      Bucketing by publish time puts each reading where it arrived, not where
+      it was measured. Some windows receive nothing, which a dashboard shows
+      as a gap during normal operation, and the other windows are off by an
+      amount worth comparing against the tag's own standard deviation. The
+      event-time windows are the ones that describe the plant.
+    source:
+      file: lectures/l06/notes.md
+      heading: "In-class demo"
+      quote: "publish-time windows come out empty, which is a gap on a dashboard for a stretch when the plant was running normally"
+    verify: {mode: quote, needle: "publish-time windows come out empty", volatility: stable}
+    tags: [windowing, event-time, notebook]
