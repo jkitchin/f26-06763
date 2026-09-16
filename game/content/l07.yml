@@ -4,7 +4,7 @@ title: "Features for time-series models"
 source_notes: lectures/l07/notes.md
 status: published
 serve: 5
-pool_version: 6
+pool_version: 7
 provenance:
   drafted_by: hand
   reviewed_by: jkitchin
@@ -209,35 +209,6 @@ items:
       quote: "Three-minute samples are far too close together for a loop that takes hours"
     verify: {mode: quote, needle: "far too close together for a loop that takes hours", volatility: stable}
     tags: [sampling, diagnostics]
-
-  - id: l07-q08
-    kind: spot_the_defect
-    rung: 3
-    difficulty: 3
-    objectives: [l07-o3]
-    prompt: |
-      You fit a stretch where the valve never moved off 57.6 %. The gain comes
-      back as +0.000 and the design matrix has rank 1 instead of 2.
-
-      What went wrong?
-    options:
-      - "Nothing; the record has no evidence about the valve"
-      - "The fit failed to converge and needs a restart"
-      - "The valve column was accidentally dropped"
-      - "The mean should not have been subtracted"
-    answer: "Nothing; the record has no evidence about the valve"
-    evidence: |
-      The valve did nothing, so the data cannot say what it would have done, and the
-      solve reports that honestly with no warning attached. No feature and no larger
-      model recovers it, because the information was never collected. Note how little
-      movement is needed: a single step is enough to bring the design matrix back to
-      rank 2. Only a genuinely constant input fails.
-    source:
-      file: lectures/l07/notes.md
-      heading: "The valve that never moved"
-      quote: "The valve did nothing, so nothing in the file says what would\nhave happened if it had."
-    verify: {mode: quote, needle: "nothing in the file says what would", volatility: stable}
-    tags: [excitation, limitations]
 
   - id: l07-q09
     kind: mcq
