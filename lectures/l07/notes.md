@@ -74,7 +74,7 @@ There is a second benefit. The textbook way to get a time constant is a
 **step test**: move the valve, wait for the measurement to settle, read the response off the
 chart. Try scheduling one. A step test means asking operations to take a production unit off its
 setpoint so you can watch it drift. Meanwhile the plant has logged that same loop every three
-minutes for a year, and nobody had to approve anything.
+minutes for years, and nobody had to approve anything.
 
 ### The logged data has a problem
 
@@ -129,15 +129,18 @@ watch. You cannot, so that figure is simulated, at the time constant and gain me
 plant's own data and at its own operating point (57.6 % valve, 8.79 flow). It is there to show
 you the shape.
 
-What you actually have is a year of normal operation, and it looks like this.
+What you actually have is what the plant recorded while it ran, and it looks like this.
 
 ```{figure} figures/archive-cloud.png
 :alt: Two plots. On the left, the valve position over 25 hours, rattling up and down every sample under automatic control. On the right, feed flow against valve position for 480 logged rows, forming a diffuse cloud with an upward trend and no visible loop.
 :width: 100%
 
-The same two columns, from 480 logged rows. The valve is under automatic control, so it
-rattles every sample instead of ramping, and the loop is gone. What's left is a cloud with a
-correlation of +0.69.
+The same two columns, from 480 logged rows: 24 hours at three-minute sampling. The valve is
+under automatic control, so it rattles every sample instead of ramping, and the loop is gone.
+What is left is a cloud with a correlation of +0.69. Note that this run is not quiet operation
+either. It carries fault 1, a step in the A and C feed ratio, which is a disturbance on the very
+stream we are identifying. Real archives are like that: the quiet stretches are the ones nobody
+kept.
 ```
 
 Note that the logged data can't draw the loop at all. That isn't a flaw in the logged data, and we come
@@ -370,7 +373,7 @@ and losing one row out of four hundred costs nothing.
 The file holds 192,000 rows. Those rows are not one long dataset. They're 400 separate
 experiments, each run on its own simulated plant. `shift(1)` doesn't know that,
 so applied to the sorted table it hands the first row of one experiment the last reading of the
-one before. Here's the boundary printed live from the demo:
+one before. Here is the boundary, on `xmeas_4`:
 
 | fault | run | sample | `xmeas_4` | `shift(1)` | `.over(run)` | `.over(fault, run)` |
 |---|---|---|---|---|---|---|
@@ -514,7 +517,7 @@ ten-and-a-half-minute time constant.
 
 Sampling that fast has a consequence: consecutive rows barely differ. Guess that nothing changes
 between one row and the next on reactor pressure and you are wrong by only 9 % of that channel's
-spread. The demo measures it. Any model of a fast-sampled channel is competing against that.
+spread. Any model of a fast-sampled channel is competing against that.
 So a fit can look excellent and still be worthless.
 
 ## Multiple lags and the regression vector
@@ -550,8 +553,8 @@ df.with_columns([
 So how many lags? That question is nontrivial, and we will talk about it in the next lectures.
 
 Lags of a smooth signal are nearly copies of each other. Measured on one run: `xmeas_4`
-correlates with its own first lag at **0.928**, and two adjacent lag columns correlate with each
-other at **0.927**. On reactor pressure, a slower channel, it is **0.996**. So the columns of
+correlates with its own first lag at **0.927**. On reactor pressure, a slower channel, it is
+**0.996**. So the columns of
 $\Phi$ are close to linearly dependent, and least squares is free to trade one nearly-identical
 column against another.
 
@@ -581,10 +584,10 @@ columns are almost entirely offset. A model with no constant term would spend bo
 explaining that offset and get `a` badly wrong.
 
 On one run of the plant data the solve returns `a = 0.7529` and `b = 0.0322`. Converted, that is
-**tau = 10.6 min** and **K = 0.1304**. The design matrix has rank 2, meaning its two columns carry
+**tau = 10.6 min** and **K = 0.1304** kscmh per percent of valve. The design matrix has rank 2, meaning its two columns carry
 genuinely different information.
 
-The output is **minutes** and **flow per percent of valve**. A plant engineer who knows that line
+The output is **minutes** and **kscmh per percent of valve** (`xmeas_4` is a flow in thousand standard cubic metres per hour). A plant engineer who knows that line
 can tell you whether ten and a half minutes is credible for it. Nobody can tell you whether an
 R-squared is credible.
 
@@ -662,7 +665,8 @@ answer the question. In both cases below you get a plausible number instead of a
 
 ### The valve that never moved
 
-Rerun the identical code on a day when the operator left the valve alone. The rank of the design
+Freeze the valve at its average and rerun the identical code, which is what the demo does to
+stand in for a day when the operator left it alone. The rank of the design
 matrix drops from 2 to 1, `b` comes back as **0.0000**, and the gain converts to **0.000**
 against a truth of 0.130. The model says the valve does nothing.
 
@@ -670,8 +674,9 @@ The model is right about this data. The valve did nothing, so nothing in the fil
 have happened if it had. No feature engineering recovers that, and no larger model recovers it
 either, because the information was never collected.
 
-How much movement is enough? A single step is plenty: the same fit on data driven by one step
-change recovers tau = 11.1 min against a truth of 10.6. Only a genuinely constant input fails.
+How much movement is enough? Less than you would think. The test is the **rank** of the design
+matrix: a constant input leaves it at rank 1, and a single step is enough to bring it to rank 2
+and give a usable fit. Only a genuinely constant input fails.
 That is why plants run step tests, and why an identification experiment adds a small deliberate
 wiggle to a valve instead of waiting for one to happen.
 

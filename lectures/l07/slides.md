@@ -97,7 +97,7 @@ Now go and schedule one.
 
 | a step test | the logged data |
 |---|---|
-| gives you tau directly | 3-minute samples, a year of them |
+| gives you tau directly | 3-minute samples, already recorded |
 | needs a production unit off setpoint | already on disk, nobody to ask |
 | hours of somebody's shift | free |
 
@@ -228,7 +228,7 @@ Here: `xmv_4` is the valve, `xmeas_4` is the A and C feed flow. Samples every **
 
 ---
 
-## The loop, what a year of it looks like
+## The loop, what the recorded data looks like
 
 ![w:900](figures/archive-cloud.png)
 
@@ -328,9 +328,9 @@ To predict row $t+1$ you need exactly two numbers from row $t$:
 
 ## Continuous and discrete, the lag plot
 
-![w:620](figures/feed-lag-plot.png)
+![w:560](figures/feed-lag-plot.png)
 
-A straight line whose slope is `a`. You can read the coefficient off the chart before you fit anything.
+A straight line whose slope is `a`, simulated with the valve held steady. Read the coefficient off the chart before you fit anything.
 
 <!--
 speaker: the cheapest diagnostic in the course. Do not cut. A curved lag plot says the model is
@@ -503,7 +503,7 @@ Four steps, and nothing else:
 
 1. **The matrix, printed.** Read one row across: these were the flow and the valve at this moment, and that is what the flow did next.
 
-2. **It loses rows.** One lag drops 2, three lags drop 4. A row needs all of its past to exist.
+2. **It loses rows.** 480 in; one lag leaves 479, three lags leave 477. A row needs all of its past *and* its answer.
 
 3. **The coefficient splits.** With one lag, `y[t]` gets **0.753**. With three, it gets **0.417** and the rest lands on `y[t-1]` and `y[t-2]`.
 
@@ -532,14 +532,14 @@ In process control this is working in **deviation variables**.
 
 ## Fitting, what came back
 
-| | the record we made | the logged data |
-|---|---|---|
-| a | 0.7560 | 0.753 |
-| tau | **10.7 min** | **10.6 min** |
-| K | 0.1317 | 0.1304 |
-| truth | 10.6 min, 0.130 | nobody told us |
+| | fitted |
+|---|---|
+| a | 0.7529 |
+| b | 0.0322 |
+| **tau** | **10.6 min** |
+| **K** | **0.1304** kscmh per % of valve |
 
-The method recovered a known answer on a record we made, then returned the same answer on a record the plant made.
+Two coefficients in, minutes and flow-per-percent out.
 
 Minutes, and flow per percent of valve. A plant engineer understands this.
 
@@ -658,7 +658,7 @@ The data really does contain no evidence about the valve. It never moved, so the
 
 </div>
 
-How much is enough? A single step is **plenty**: the same fit on one-step data recovers **tau = 11.1 min**.
+How much is enough? A single step is **plenty**. What matters is the **rank**: a constant input gives rank 1 and no gain, a single step gives rank 2 and a usable fit.
 
 The fix is an experiment, not an algorithm. Move the setpoint, or add a small deliberate wiggle (a PRBS).
 

@@ -226,8 +226,9 @@ print(pl.DataFrame(Phi_B[:5], schema=names_B).with_columns(
     md("""
 Two things to notice.
 
-**The matrix lost rows.** Example A dropped 2, example B dropped 4. A row needs all of
-its past to exist, so the deeper the model, the more of the start you throw away.
+**The matrix lost rows.** 480 rows went in. Example A came back with 479, example B with
+477. A row needs all of its past *and* its answer, so the deeper the model, the more of
+the record you throw away at each end.
 
 **The columns look alike.** `y[t]` and `y[t-1]` are consecutive samples of a smooth
 signal, so they are nearly the same column. We check that next.
@@ -272,7 +273,7 @@ K = b / (1 - a)
 
 print(f"a = {a:.4f}   b = {b:.4f}")
 print(f"time constant = {tau:.1f} minutes")
-print(f"gain          = {K:+.4f} flow per % of valve")
+print(f"gain          = {K:+.4f} kscmh per % of valve")
 """),
 
     md("""

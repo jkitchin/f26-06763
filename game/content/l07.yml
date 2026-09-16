@@ -115,7 +115,7 @@ items:
       - "Nothing, because sorting by run already handles it"
     answer: "Given each run's first row the previous run's last reading"
     evidence: |
-      The demo prints it: the first row of the second experiment claims a previous
+      The notes print the boundary row: the first row of the second experiment claims a previous
       `xmeas_4` of 8.9419, which is the last reading of the experiment before, from a
       different simulated plant. Feed flow really is around 9 in both, so the
       fabricated value is plausible, nothing raises an error, and one corrupted row
@@ -216,7 +216,7 @@ items:
     difficulty: 3
     objectives: [l07-o3]
     prompt: |
-      You fit a record where the operator left the valve at 0.6 all day. The gain comes
+      You fit a stretch where the valve never moved off 57.6 %. The gain comes
       back as +0.000 and the design matrix has rank 1 instead of 2.
 
       What went wrong?
@@ -230,8 +230,8 @@ items:
       The valve did nothing, so the data cannot say what it would have done, and the
       solve reports that honestly with no warning attached. No feature and no larger
       model recovers it, because the information was never collected. Note how little
-      movement is needed: a single step recovers tau = 20.0 min correctly. The failure
-      needs an input that is genuinely constant.
+      movement is needed: a single step is enough to bring the design matrix back to
+      rank 2. Only a genuinely constant input fails.
     source:
       file: lectures/l07/notes.md
       heading: "The valve that never moved"
