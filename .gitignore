@@ -68,3 +68,6 @@ mlartifacts/
 # would drift the day the vote URL changes.
 lectures/*/figures/clicker-qr.png
 lectures/*/clicker-slide.js
+
+# reference materials
+attic/

@@ -1,34 +1,64 @@
 #!/usr/bin/env python3
-"""Generate the L7 figures from NASA's C-MAPSS turbofan degradation data.
+"""Generate the L7 figures.
 
 Run with:
-    uv run --with pandas,numpy,scikit-learn,matplotlib python make_figures.py
+    uv run --with pandas --with numpy --with matplotlib --with pyarrow python make_figures.py
 
-Every figure is measured from the real FD001 subset rather than copied from a
-paper, for the licensing reason (this course site is public) and the pedagogical
-one (a figure you can regenerate is a figure you can check).
+Every number in the notes and the deck comes from this script or from the demo
+notebook. Nothing is asserted.
 
-Two of these figures changed what the lecture claims. The leakage figure was
-drafted expecting the leaky pipeline to score visibly worse; it does not, for
-`Ridge`, and the honest version of the plot is now a comparison across four
-models showing that the gap depends entirely on which model you measure with,
-and can even favour the leaky pipeline. And the sensor panel was drafted to show
-"a few flat channels" and turned up four that are exactly constant plus several
-more that are effectively so.
+ONE UNIT, TWO RECORDS
+---------------------
+The whole session runs on a single loop: the A and C feed of the Tennessee Eastman
+plant, `xmv_4` (the valve) against `xmeas_4` (the flow). An earlier draft opened on
+daily beer sales in Sao Paulo and then moved to a stirred tank, so the room met three
+datasets before the first fit. It now meets one.
+
+That loop has two records, and the difference between them is the session:
+
+  * the record we make. The same loop, open loop, ramped and not waited on. This is
+    the experiment operations will not let you run on a live unit, so we simulate it
+    at the parameters measured FROM the archive (tau = 10.6 min, K = 0.130) at the
+    archive's own operating point (valve 57.6 %, flow 8.79). Same loop, same units.
+  * the record we have. The archive itself, 3-minute samples, under automatic control.
+
+Two findings shaped this and are worth recording, because both contradicted a draft.
+
+The archive CANNOT draw the loop. `xmv_4` is under closed-loop control and rattles
+every sample, so flow against valve comes back as a cloud with a trend and the best
+60-row window is a scribble. That is not a reason to avoid the archive. It is the
+session's closing argument (closed-loop identification) arriving as a picture on slide
+three, which is why `archive-cloud.png` exists and is shown next to the loop.
+
+And the excitation failure cannot be shown with a step. A step recovers the true time
+constant to three figures. It needs an input that genuinely never moves, which drops
+the design matrix to rank 1 and returns a gain of exactly zero. That is a failure of
+persistent excitation, not of the fit.
+
+FIGURE SHAPES ARE CHOSEN FOR THE SLIDE
+--------------------------------------
+Every figure here lands on a 1280x720 MARP slide whose content box is 1140x620 after
+the theme's padding, and MARP's `w:` sets width only. A near-square plot at a width
+readable from the back of a room is taller than the whole content box, so the heading
+and the closing line get clipped with no warning. Twelve L7 slides shipped that way
+before anyone rendered the deck. Nothing here is taller than about 1.45:1, and after
+changing any figsize run:
+
+    node tools/check_slide_overflow.mjs _build/html/slides/l07/index.html
 
 Outputs (committed alongside this script):
-    sensor-degradation.png   which channels carry a degradation signal, and which are flat
-    grouped-vs-not.png       what a rolling window does when you forget to group by unit
-    leakage-by-model.png     one leak, four models, four different verdicts
+    feed-loop.png            wait at each valve position, or ramp: the curve and the loop
+    archive-cloud.png        the same two columns from the real archive, which is a cloud
+    feed-lag-plot.png        y[t] against y[t+1] is a straight line whose slope is a
+    flat-channels.png        which channels are only repeating their last analyser result
+    tep-flowsheet.png        the plant, with this session's channels marked on it
 
-The raw archive is cached in .cache/ and is gitignored; do not commit it.
+Raw data is cached in .cache/ and is gitignored. The archive figures read L5's cache of
+the Tennessee Eastman archive (Rieth et al. 2017, CC0) and skip themselves if it is
+absent, so the committed PNGs are the source of truth on a fresh clone.
 """
-
 from __future__ import annotations
 
-import io
-import urllib.request
-import zipfile
 from pathlib import Path
 
 import matplotlib
@@ -36,28 +66,19 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import LinearRegression, Ridge
-from sklearn.metrics import mean_squared_error
-from sklearn.neighbors import KNeighborsRegressor
-from sklearn.preprocessing import StandardScaler
 
 HERE = Path(__file__).parent
-CACHE = HERE / ".cache"
-URL = ("https://phm-datasets.s3.amazonaws.com/NASA/"
-       "6.+Turbofan+Engine+Degradation+Simulation+Data+Set.zip")
+TEP_CACHE = HERE.parent.parent / "l05" / "figures" / ".cache" / "_bench_cols.parquet"
 
 CMU_RED = "#c41230"
 INK = "#1a1a1a"
 MUTED = "#5c5c5c"
-RULE = "#d8d8d8"
 BLUE = "#1f5c99"
-GREEN = "#2b7a4b"
-AMBER = "#b8860b"
 
 plt.rcParams.update({
-    "font.size": 13,
-    "axes.labelsize": 13,
-    "axes.titlesize": 15,
+    "font.size": 12,
+    "axes.labelsize": 12,
+    "axes.titlesize": 13,
     "axes.spines.top": False,
     "axes.spines.right": False,
     "axes.edgecolor": MUTED,
@@ -69,284 +90,221 @@ plt.rcParams.update({
     "savefig.bbox": "tight",
 })
 
-N_SETTINGS, N_SENSORS = 3, 21
-COLUMNS = (["unit", "cycle"]
-           + [f"setting{i + 1}" for i in range(N_SETTINGS)]
-           + [f"sensor{i + 1}" for i in range(N_SENSORS)])
-SENSORS = [f"sensor{i + 1}" for i in range(N_SENSORS)]
-MAX_RUL = 125
-WINDOW = 5
+DT = 3.0
+#: Measured from the archive itself in `archive_fit()`, then used to simulate the same
+#: loop open loop. Quoting them here keeps the two records at the same parameters.
+TAU_TRUE, K_TRUE = 10.6, 0.130
+A_TRUE = np.exp(-DT / TAU_TRUE)
+B_TRUE = K_TRUE * (1 - A_TRUE)
+#: The archive's operating point, so the simulated record carries real units.
+U0, Y0 = 57.6, 8.79
+#: 25 samples up and 25 back down, so 75 minutes each way. Slower ramps close the loop
+#: until it is invisible from the back of a room: 360 min up gives a gap of 0.08,
+#: 75 min gives 0.40. Faster is not more honest, it is just more legible.
+RAMP_N = 25
 
 
-def load() -> tuple[pd.DataFrame, pd.DataFrame, pd.Series]:
-    """Fetch (once) and parse FD001 train, test, and the true test RUL."""
-    CACHE.mkdir(exist_ok=True)
-    needed = ["train_FD001.txt", "test_FD001.txt", "RUL_FD001.txt"]
-    if not all((CACHE / f).exists() for f in needed):
-        print(f"downloading {URL}")
-        with urllib.request.urlopen(URL) as response:
-            payload = response.read()
-        outer = zipfile.ZipFile(io.BytesIO(payload))
-        inner_name = next(n for n in outer.namelist() if n.lower().endswith(".zip"))
-        inner = zipfile.ZipFile(io.BytesIO(outer.read(inner_name)))
-        for name in needed:
-            (CACHE / name).write_bytes(inner.read(name))
-
-    def read(path):
-        df = pd.read_csv(path, sep=r"\s+", header=None, names=COLUMNS)
-        df[["unit", "cycle"]] = df[["unit", "cycle"]].astype(int)
-        return df
-
-    train = read(CACHE / "train_FD001.txt")
-    test = read(CACHE / "test_FD001.txt")
-    train["rul"] = (train.groupby("unit")["cycle"].transform("max")
-                    - train["cycle"]).clip(upper=MAX_RUL)
-    rul_true = pd.read_csv(CACHE / "RUL_FD001.txt", header=None, names=["rul"])["rul"]
-    rul_true.index = np.arange(1, len(rul_true) + 1)
-    return train, test, rul_true
+def load_run(fault=1, run=1):
+    """One run of the archive, or None when L5's cache is not present."""
+    if not TEP_CACHE.exists():
+        return None
+    df = pd.read_parquet(TEP_CACHE)
+    g = df[(df.faultNumber == fault) & (df.simulationRun == run)]
+    return g.sort_values("sample").reset_index(drop=True)
 
 
-def engineer(df, sensors, window=WINDOW):
-    """Per-unit rolling/delta/rate features, selected by exact name."""
-    df = df.sort_values(["unit", "cycle"]).copy()
-    g = df.groupby("unit", group_keys=False)
-    names = []
-    for s in sensors:
-        built = {
-            f"{s}_roll_mean": lambda x: x.rolling(window, min_periods=1).mean(),
-            f"{s}_roll_std": lambda x: x.rolling(window, min_periods=1).std().fillna(0),
-            f"{s}_delta0": lambda x: x - x.iloc[0],
-            f"{s}_roc": lambda x: x.diff().fillna(0),
-        }
-        for name, fn in built.items():
-            df[name] = g[s].transform(fn)
-        names.extend(built)
-        names.append(s)
-    return df, names
+def fit_first_order(y, u, dt=DT):
+    """Find a and b in y[t+1] = a*y[t] + b*u[t]. Returns (a, b, tau, K, rank)."""
+    y = np.asarray(y, float); y = y - y.mean()
+    u = np.asarray(u, float); u = u - u.mean()
+    X = np.column_stack([y[:-1], u[:-1]])
+    coef, *_ = np.linalg.lstsq(X, y[1:], rcond=None)
+    a, b = coef
+    return a, b, -dt / np.log(a), b / (1 - a), np.linalg.matrix_rank(X)
 
 
-# --------------------------------------------------------------------------
-# Figure 1: which channels actually carry a signal
-# --------------------------------------------------------------------------
-def fig_sensor_degradation(train: pd.DataFrame) -> dict:
-    """Rank all 21 channels by |corr| with RUL, and show three trajectories.
+def simulate(u, noise=0.010, seed=7, settled=True):
+    """The same loop, open loop. u is a deviation from the operating point.
 
-    Constant channels are found with nunique(), not std() == 0. Six FD001
-    channels hold a single value, but two of them (sensors 5 and 16) return a
-    standard deviation of 5e-15 and 3e-18 rather than exactly zero, because the
-    variance of a column of 14.62s is computed, not looked up. Testing std == 0
-    silently misses them. See the note in notes.md; L5's "constant iff std is
-    zero" shortcut needs a tolerance in floating point.
+    `settled` starts the loop already at rest for the first valve position. Without it
+    the first twenty samples are a startup transient that reaches across the loop plot
+    and reads, to a student, as part of the loop.
     """
-    constant = [s for s in SENSORS if train[s].nunique(dropna=True) <= 1]
-    fp_residue = {s: train[s].std() for s in constant if train[s].std() != 0}
-    corr = train[SENSORS].corrwith(train["rul"])
-    order = corr.abs().fillna(0).sort_values(ascending=False)
+    rng = np.random.default_rng(seed)
+    y = np.zeros(len(u))
+    if settled:
+        y[0] = K_TRUE * u[0]
+    for t in range(len(u) - 1):
+        y[t + 1] = A_TRUE * y[t] + B_TRUE * u[t] + rng.normal(0, noise)
+    return y
 
-    fig = plt.figure(figsize=(13.5, 6.0))
-    gs = fig.add_gridspec(3, 2, width_ratios=[1.15, 1], hspace=0.35, wspace=0.25)
-    ax1 = fig.add_subplot(gs[:, 0])
 
-    labels = [s.replace("sensor", "") for s in order.index]
-    colours = [CMU_RED if s in constant else BLUE for s in order.index]
-    ax1.barh(range(len(order)), order.values, color=colours)
-    ax1.set_yticks(range(len(order)))
-    ax1.set_yticklabels(labels, fontsize=10)
-    ax1.invert_yaxis()
-    ax1.set_xlabel("|correlation| with clipped RUL")
-    ax1.set_ylabel("Sensor channel")
-    ax1.set_title("Not every channel is a signal", pad=10)
-    ax1.grid(True, axis="x", color=RULE, lw=0.7)
-    ax1.set_axisbelow(True)
-    ax1.text(0.97, 0.03,
-             f"{len(constant)} channels hold one value\n"
-             f"(sensors {', '.join(s.replace('sensor', '') for s in constant)})\n"
-             f"but only {len(constant) - len(fp_residue)} of them\nreturn std == 0 exactly",
-             transform=ax1.transAxes, ha="right", va="bottom", fontsize=10.5,
-             color=CMU_RED, fontweight="bold")
+def fig_feed_loop():
+    """Wait at each valve position and you get a line. Ramp and you get a loop."""
+    u = np.concatenate([np.linspace(-5, 5, RAMP_N), np.linspace(5, -5, RAMP_N)])
+    y = simulate(u, noise=0.0)
+    i_up, i_dn = RAMP_N // 2, RAMP_N + RAMP_N // 2
 
-    # Each channel gets its own y-scale. Sharing one axis across readings that
-    # span 47 to 1400 makes the informative channels look as flat as the dead one,
-    # which is the opposite of the point.
-    best = list(order.index[:2])
-    dead = constant[0] if constant else order.index[-1]
-    for row, (s, colour) in enumerate([(best[0], BLUE), (best[1], GREEN),
-                                       (dead, CMU_RED)]):
-        ax = fig.add_subplot(gs[row, 1])
-        for unit in (1, 2, 3):
-            traj = train[train["unit"] == unit]
-            ax.plot(traj["cycle"], traj[s], "-", color=colour, lw=1.0, alpha=0.8)
-        ax.set_ylabel(s, fontsize=11)
-        ax.grid(True, color=RULE, lw=0.7)
-        ax.set_axisbelow(True)
-        ax.tick_params(labelsize=10)
-        if row == 0:
-            ax.set_title("Three engines, own scale each", pad=8)
-        if row == 2:
-            ax.set_xlabel("Cycle")
-            ax.set_ylim(train[s].iloc[0] - 1, train[s].iloc[0] + 1.6)
-            ax.text(0.5, 0.82, "one value, every engine, every cycle",
-                    transform=ax.transAxes, ha="center", va="center",
-                    fontsize=10.5, color=CMU_RED, fontweight="bold")
-        else:
-            ax.set_xticklabels([])
+    fig, ax = plt.subplots(1, 2, figsize=(10.5, 4.0), sharey=True)
+    ax[0].plot(U0 + u, Y0 + K_TRUE * u, lw=2.2, color=MUTED)
+    ax[0].set(xlabel="xmv_4, valve %", ylabel="xmeas_4, feed flow",
+              title="set the valve, wait, write it down")
 
-    fig.savefig(HERE / "sensor-degradation.png")
+    ax[1].plot(U0 + u, Y0 + y, lw=2.0, color=CMU_RED)
+    ax[1].plot(U0 + u, Y0 + K_TRUE * u, lw=1, ls="--", color=MUTED,
+               label="if you had waited")
+    ax[1].plot([U0 + u[i_up], U0 + u[i_dn]], [Y0 + y[i_up], Y0 + y[i_dn]],
+               "o", color=INK, ms=7, zorder=5)
+    ax[1].annotate("same valve,\ntwo flows", xy=(U0 + u[i_dn], Y0 + y[i_dn]),
+                   xytext=(U0 - 5.0, Y0 + 0.28), fontsize=11, color=INK,
+                   arrowprops=dict(arrowstyle="->", color=INK, lw=1.2))
+    ax[1].set(xlabel="xmv_4, valve %", title="ramp it up and back down")
+    ax[1].legend(frameon=False, fontsize=10, loc="lower right")
+    fig.savefig(HERE / "feed-loop.png")
     plt.close(fig)
-    print(f"wrote sensor-degradation.png  ({len(constant)} single-valued: {constant}; "
-          f"{len(fp_residue)} with float residue "
-          f"{ {k: f'{v:.1e}' for k, v in fp_residue.items()} }; "
-          f"strongest {order.index[0]} at {order.iloc[0]:.3f})")
-    return {"constant": constant, "top": list(order.index[:3]),
-            "top_corr": float(order.iloc[0]), "fp_residue": fp_residue}
+    print(f"wrote feed-loop.png   at valve {U0 + u[i_up]:.1f}%: "
+          f"up {Y0 + y[i_up]:.3f}, down {Y0 + y[i_dn]:.3f}, "
+          f"waited {Y0 + K_TRUE * u[i_up]:.3f}")
 
 
-# --------------------------------------------------------------------------
-# Figure 2: the grouping bug, drawn
-# --------------------------------------------------------------------------
-def fig_grouped_vs_not(train: pd.DataFrame, sensor: str) -> dict:
-    """A rolling mean computed with and without groupby('unit'), at a boundary."""
-    pair = train[train["unit"].isin([1, 2])].sort_values(["unit", "cycle"]).copy()
-    pair["row"] = np.arange(len(pair))
+def fig_archive_cloud():
+    """The same two columns from the archive. It is a cloud, and that is why."""
+    g = load_run()
+    if g is None:
+        print("skipped archive-cloud.png (no TEP cache; run L5's make_figures first)")
+        return
+    u, y = g["xmv_4"].to_numpy(), g["xmeas_4"].to_numpy()
 
-    pair["right"] = (pair.groupby("unit", group_keys=False)[sensor]
-                     .transform(lambda x: x.rolling(WINDOW, min_periods=1).mean()))
-    pair["wrong"] = pair[sensor].rolling(WINDOW, min_periods=1).mean()
-
-    boundary = int(pair[pair["unit"] == 1]["row"].max()) + 1
-    window = pair[(pair["row"] > boundary - 22) & (pair["row"] < boundary + 22)]
-    err = (window["wrong"] - window["right"]).abs()
-
-    fig, ax = plt.subplots(figsize=(10.5, 5.6))
-    ax.plot(window["row"], window[sensor], "o", color=RULE, ms=3.5,
-            label=f"{sensor}, raw")
-    ax.plot(window["row"], window["right"], "-", color=BLUE, lw=2.1,
-            label="rolling mean, grouped by unit")
-    ax.plot(window["row"], window["wrong"], "-", color=CMU_RED, lw=2.1,
-            label="rolling mean, forgot to group")
-    ax.axvline(boundary - 0.5, color=INK, lw=1.2, ls="--")
-    ax.text(boundary - 0.5, ax.get_ylim()[1], "  engine 1 ends,\n  engine 2 begins",
-            va="top", fontsize=11, color=INK)
-
-    ax.set_xlabel("Row index, as the dataframe is sorted")
-    ax.set_ylabel(f"{sensor}")
-    ax.set_title("The same feature, one missing groupby", pad=10)
-    ax.legend(frameon=False, fontsize=11, loc="lower left")
-    ax.grid(True, color=RULE, lw=0.7)
-    ax.set_axisbelow(True)
-    ax.annotate(f"engine 2's first {WINDOW - 1} cycles are\n"
-                f"contaminated by engine 1\n(peak error {err.max():.3f})",
-                xy=(boundary + 1, window["wrong"].iloc[len(window) // 2]),
-                xytext=(boundary + 6, window[sensor].min()),
-                fontsize=11, color=CMU_RED, fontweight="bold",
-                arrowprops=dict(arrowstyle="->", color=CMU_RED, lw=1.3))
-
-    fig.savefig(HERE / "grouped-vs-not.png")
+    fig, ax = plt.subplots(1, 2, figsize=(11, 4.0))
+    ax[0].plot(g["sample"] * DT / 60, u, lw=0.8, color=BLUE)
+    ax[0].set(xlabel="hours", ylabel="xmv_4, valve %",
+              title="the valve, under automatic control")
+    ax[1].plot(u, y, ".", ms=4, alpha=0.55, color=CMU_RED)
+    ax[1].set(xlabel="xmv_4, valve %", ylabel="xmeas_4, feed flow",
+              title="480 rows of archive: no loop, just a cloud")
+    fig.savefig(HERE / "archive-cloud.png")
     plt.close(fig)
-    print(f"wrote grouped-vs-not.png  (peak contamination {err.max():.4f} "
-          f"on {sensor}, {WINDOW - 1} rows affected per engine boundary)")
-    return {"peak_error": float(err.max()), "rows_affected": WINDOW - 1}
+    print(f"wrote archive-cloud.png   valve std {u.std():.2f} %, "
+          f"corr(u, y) = {np.corrcoef(u, y)[0, 1]:+.2f}")
 
 
-# --------------------------------------------------------------------------
-# Figure 3: one leak, four models
-# --------------------------------------------------------------------------
-def fig_leakage_by_model(train: pd.DataFrame, test: pd.DataFrame,
-                         rul_true: pd.Series, sensors: list[str]) -> dict:
-    """The identical scaler leak, scored by four models of differing scale-sensitivity."""
-    train_fe, cols = engineer(train, sensors)
-    test_fe, _ = engineer(test, sensors)
-    last = test_fe.sort_values("cycle").groupby("unit").tail(1).sort_values("unit")
-    y_true = rul_true.loc[last["unit"]].to_numpy()
-
-    honest = StandardScaler().fit(train_fe[cols])
-    leaky = StandardScaler().fit(pd.concat([train_fe[cols], test_fe[cols]], axis=0))
-    rel_mean = (np.abs(honest.mean_ - leaky.mean_)
-                / (np.abs(honest.mean_) + 1e-12)).max()
-    rel_scale = (np.abs(honest.scale_ - leaky.scale_) / honest.scale_).max()
-
-    def rmse(scaler, factory):
-        model = factory().fit(scaler.transform(train_fe[cols]), train_fe["rul"])
-        return mean_squared_error(
-            y_true, model.predict(scaler.transform(last[cols]))) ** 0.5
-
-    candidates = [
-        ("LinearRegression", LinearRegression),
-        ("Ridge\n(alpha=10)", lambda: Ridge(alpha=10.0)),
-        ("Ridge\n(alpha=1e4)", lambda: Ridge(alpha=1e4)),
-        ("KNeighbors\n(k=5)", lambda: KNeighborsRegressor(5)),
-    ]
-    names, gaps = [], []
-    for name, factory in candidates:
-        gap = rmse(leaky, factory) - rmse(honest, factory)
-        names.append(name)
-        gaps.append(gap)
-        print(f"  {name.replace(chr(10), ' '):22s} gap {gap:+.4f}")
-
-    fig, ax = plt.subplots(figsize=(10.5, 5.8))
-    colours = [CMU_RED if g > 0.05 else (AMBER if g < -0.05 else MUTED) for g in gaps]
-    bars = ax.bar(range(len(gaps)), gaps, color=colours, width=0.62)
-    ax.axhline(0, color=INK, lw=1.1)
-    ax.set_xticks(range(len(names)))
-    ax.set_xticklabels(names, fontsize=11)
-    ax.set_ylabel("RMSE penalty from the leak, cycles\n(positive = leaky is worse)")
-    ax.set_title("One leak, four models, four verdicts", pad=10)
-    ax.grid(True, axis="y", color=RULE, lw=0.7)
-    ax.set_axisbelow(True)
-
-    pad = max(abs(min(gaps)), abs(max(gaps))) * 0.12
-    for bar, g in zip(bars, gaps):
-        ax.text(bar.get_x() + bar.get_width() / 2,
-                g + (pad * 0.35 if g >= 0 else -pad * 0.35),
-                f"{g:+.3f}", ha="center",
-                va="bottom" if g >= 0 else "top",
-                fontsize=11.5, fontweight="bold",
-                color=CMU_RED if g > 0.05 else (AMBER if g < -0.05 else MUTED))
-    # Generous headroom: the two caption lines sit above the tallest bar.
-    ax.set_ylim(min(gaps) - pad * 2.4, max(gaps) + pad * 6.5)
-
-    ax.text(0.5, 0.97,
-            f"The leak shifted feature centres by up to {rel_mean:.0%} "
-            f"and spreads by up to {rel_scale:.0%} in every case.",
-            transform=ax.transAxes, ha="center", va="top", fontsize=11.5,
-            color=INK)
-    ax.text(0.5, 0.895,
-            "Only the model changes. Your metric is not a leak detector.",
-            transform=ax.transAxes, ha="center", va="top", fontsize=11.5,
-            color=CMU_RED, fontweight="bold")
-
-    fig.savefig(HERE / "leakage-by-model.png")
+def fig_feed_lag_plot():
+    """y[t] against y[t+1]: a straight line whose slope is a. The derivation, drawn."""
+    rng = np.random.default_rng(7)
+    u = np.repeat(rng.choice([-3.0, 3.0], size=200), 2)[:400]
+    y = simulate(u)
+    keep = u[:-1] > 0            # hold the valve up so the line is visible
+    fig, ax = plt.subplots(figsize=(7.4, 4.6))
+    ax.plot(Y0 + y[:-1][keep], Y0 + y[1:][keep], ".", ms=5, color=CMU_RED, alpha=0.7)
+    xs = np.linspace(Y0 + y.min(), Y0 + y.max(), 10)
+    ax.plot(xs, A_TRUE * (xs - Y0) + B_TRUE * 3.0 + Y0, lw=1.6, color=INK,
+            label=f"slope a = {A_TRUE:.3f}")
+    ax.set(xlabel="flow now,  y[t]", ylabel="flow next sample,  y[t+1]",
+           title="A lag plot, with the valve held open")
+    ax.legend(frameon=False, fontsize=10)
+    fig.savefig(HERE / "feed-lag-plot.png")
     plt.close(fig)
-    print(f"wrote leakage-by-model.png  (scaler differs by {rel_mean:.1%} in centre, "
-          f"{rel_scale:.1%} in spread; gaps {[round(g, 4) for g in gaps]})")
-    return {"gaps": dict(zip([n.replace("\n", " ") for n in names], gaps)),
-            "rel_mean": float(rel_mean), "rel_scale": float(rel_scale)}
+    print(f"wrote feed-lag-plot.png   a = {A_TRUE:.4f} -> tau = {-DT / np.log(A_TRUE):.1f} min")
+
+
+def fig_flat_channels():
+    """Which channels repeat their last value, and how often.
+
+    A slow analyser reports on its own cycle and the historian holds the last result
+    between cycles, which is a zero-order hold. On a 3-minute grid the channel is then
+    flat on most rows. Downs and Vogel table 5 give the analyser cycles as 0.1 h for
+    the feed and purge streams and 0.25 h for the product stream, which is 6 and 15
+    minutes. The measured plateaus at 1/2 and 4/5 are exactly those two cycles on a
+    3-minute grid, so the picture recovers the instrument from the data.
+    """
+    g = load_run()
+    if g is None:
+        print("skipped flat-channels.png (no TEP cache; run L5's make_figures first)")
+        return
+    cols = sorted((c for c in g.columns if c.startswith("xmeas_")),
+                  key=lambda c: int(c.split("_")[1]))
+    frac = np.array([float((g[c].diff() == 0).mean()) for c in cols])
+
+    fig, ax = plt.subplots(figsize=(11, 3.8))
+    ax.bar(range(len(cols)), frac, width=0.75,
+           color=[CMU_RED if f > 0.4 else MUTED for f in frac])
+    ax.set_xticks(range(len(cols)))
+    ax.set_xticklabels([c.split("_")[1] for c in cols], fontsize=8)
+    for level, label in ((0.5, "a 6-minute analyser"), (0.8, "a 15-minute analyser")):
+        ax.axhline(level, ls="--", lw=1, color=BLUE)
+        ax.text(0.5, level + 0.02, f"{label} on a 3-minute grid", fontsize=10, color=BLUE)
+    ax.set(xlabel="xmeas channel number", ylim=(0, 1.0),
+           ylabel="fraction of rows equal\nto the row before",
+           title="One run of the archive: which channels are only repeating themselves")
+    fig.savefig(HERE / "flat-channels.png")
+    plt.close(fig)
+    print(f"wrote flat-channels.png   {int((frac > 0.4).sum())} of {len(cols)} channels "
+          f"flat on more than 40% of rows")
+
+
+def fig_tep_flowsheet():
+    """The plant, with the three channel families this session touches marked on it.
+
+    The base drawing is the course's own P&ID of the Tennessee Eastman process, the same
+    one Lecture 5 uses. The annotation is what makes it an L7 figure: a room looking at a
+    52-instrument flowsheet cannot find `xmv_4` unless somebody points at it, and the
+    instructor should not have to do that with a cursor from the back of the hall.
+
+    Coordinates are in pixels of L5's tep-screenshot.png (1908 x 1160) and were read off
+    the drawing by hand, so they move if that PNG is ever regenerated.
+    """
+    # L5's committed P&ID, read in place. An earlier version kept a byte-identical
+    # copy in this directory, which is a second 318 KB binary to keep in step with
+    # the first for no benefit.
+    raw = HERE.parent.parent / "l05" / "figures" / "tep-screenshot.png"
+    if not raw.exists():
+        print("skipped tep-flowsheet.png (L5's tep-screenshot.png not found)")
+        return
+    img = plt.imread(raw)
+    h, w = img.shape[0], img.shape[1]
+
+    fig, ax = plt.subplots(figsize=(13, 13 * h / w))
+    ax.imshow(img)
+    ax.set_axis_off()
+
+    def callout(xy, xytext, text, color):
+        ax.annotate(
+            text, xy=xy, xytext=xytext, fontsize=15, color="white", weight="bold",
+            ha="center", va="center",
+            bbox=dict(boxstyle="round,pad=0.45", fc=color, ec="none", alpha=0.95),
+            arrowprops=dict(arrowstyle="-|>", color=color, lw=3,
+                            shrinkA=2, shrinkB=6, connectionstyle="arc3,rad=0.15"),
+        )
+
+    # Two callouts, not three. The room can absorb two arrows on a 52-instrument P&ID,
+    # and reactor pressure no longer appears in the notes or the deck.
+    #
+    # The loop this whole session runs on: FC-4 on the A and C feed, bottom left.
+    callout((555, 945), (300, 1105), "xmv_4  the valve\nxmeas_4  the flow", CMU_RED)
+    # The composition analysers: the 0.500 and 0.800 plateaus in the channel screen.
+    callout((1618, 520), (1380, 690), "xmeas_23-41\nthe slow analysers", "#2e7d32")
+
+    fig.savefig(HERE / "tep-flowsheet.png")
+    plt.close(fig)
+    print(f"wrote tep-flowsheet.png  ({w}x{h} base)")
+
+
+def archive_fit():
+    """The numbers the simulator is set to. Printed so the two records stay in step."""
+    g = load_run()
+    if g is None:
+        print("skipped archive fit (no TEP cache)")
+        return
+    a, b, tau, K, rank = fit_first_order(g["xmeas_4"], g["xmv_4"])
+    print(f"archive fit, xmeas_4 ~ xmv_4: a = {a:.3f}, tau = {tau:.1f} min, "
+          f"K = {K:+.4f}, rank {rank}")
+    print(f"  operating point: valve {g['xmv_4'].mean():.1f} %, flow {g['xmeas_4'].mean():.2f}")
 
 
 if __name__ == "__main__":
-    train, test, rul_true = load()
-    print(f"loaded FD001: {len(train):,} train rows / {train.unit.nunique()} engines, "
-          f"{len(test):,} test rows / {test.unit.nunique()} engines, "
-          f"median life {train.groupby('unit').cycle.max().median():.0f} cycles")
-
-    print("\nfig_sensor_degradation")
-    sensor_info = fig_sensor_degradation(train)
-    key = sensor_info["top"]
-
-    print("\nfig_grouped_vs_not")
-    grouping = fig_grouped_vs_not(train, key[0])
-
-    print("\nfig_leakage_by_model")
-    leak = fig_leakage_by_model(train, test, rul_true, key)
-
-    print("\n--- numbers cited in notes.md and slides.md ---")
-    print(f"constant channels: {sensor_info['constant']}")
-    print(f"  of which std() != 0 from float error: "
-          f"{ {k: f'{v:.2e}' for k, v in sensor_info['fp_residue'].items()} }")
-    print(f"strongest channels: {key} (top |corr| {sensor_info['top_corr']:.3f})")
-    print(f"grouping bug: {grouping['rows_affected']} rows per boundary, "
-          f"peak error {grouping['peak_error']:.4f}")
-    print(f"scaler leak shifts centres up to {leak['rel_mean']:.1%}, "
-          f"spreads up to {leak['rel_scale']:.1%}")
-    for name, gap in leak["gaps"].items():
-        print(f"  {name:22s} {gap:+.4f}")
+    archive_fit()
+    fig_feed_loop()
+    fig_archive_cloud()
+    fig_feed_lag_plot()
+    fig_flat_channels()
+    fig_tep_flowsheet()

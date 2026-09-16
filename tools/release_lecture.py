@@ -41,11 +41,12 @@ REPO = Path(__file__).resolve().parent.parent
 TOC = REPO / "_toc.yml"
 
 #: Which assignment is released with which lecture, from course/schedule.md's
-#: "Assignment N released" markers. The mini-project (A7) launches at L13 and
+#: "Assignment N released" markers. A4 moved from L7 to L8 when L8 became the ML
+#: workflow session: A4 asks for an ML model, and L7 fits without ever scoring. The mini-project (A7) launches at L13 and
 #: lives in the Projects part, so it is not listed here. A lecture with no entry
 #: releases no assignment.
 LECTURE_ASSIGNMENTS = {
-    1: ["a01"], 4: ["a02"], 6: ["a03"], 7: ["a04"], 9: ["a05"],
+    1: ["a01"], 4: ["a02"], 6: ["a03"], 8: ["a04"], 9: ["a05"],
     11: ["a06"], 15: ["a08"], 17: ["a09"], 19: ["a10"], 21: ["a11"],
 }
 

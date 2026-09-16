@@ -106,17 +106,20 @@
 - id: l07-o1
   lecture: l07
   text: >-
-    Construct lag, window, and frequency-domain features for sensor/simulation signals.
+    Explain why a dynamic process needs its own past in the feature table, and a
+    steady-state measurement does not.
 
 - id: l07-o2
   lecture: l07
   text: >-
-    Apply appropriate scaling and encoding while avoiding leakage.
+    Build a feature table from a sensor log in which every value in a row was knowable
+    at that row's timestamp, dropping the rows whose past lies outside the record.
 
 - id: l07-o3
   lecture: l07
   text: >-
-    Assemble features into a reproducible feature pipeline with fitted transformers.
+    Convert the two coefficients of a fitted first-order model into a time constant and
+    a gain, and say whether they are physically plausible.
 
 - id: l17-o1
   lecture: l17
