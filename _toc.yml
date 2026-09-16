@@ -85,7 +85,7 @@ parts:
       - file: course/assignments/a01
       - file: course/assignments/a02
       - file: course/assignments/a03
-      - file: course/assignments/a04
+#       - file: course/assignments/a04
 #       - file: course/assignments/a05
 #       - file: course/assignments/a06
 #       - file: course/assignments/a08
