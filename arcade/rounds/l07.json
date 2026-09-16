@@ -69,7 +69,7 @@
       "kind": "spot_the_defect",
       "lecture": "l07",
       "context": "A log holds 400 independent simulation runs laid end to end, sorted and ready.\nYou build a lag column with `shift(1)` and no `.over()`.\n\nWhat have you just done?",
-      "why": "The demo prints it: the first row of the second experiment claims a previous\n`xmeas_4` of 8.9419, which is the last reading of the experiment before, from a\ndifferent simulated plant. Feed flow really is around 9 in both, so the\nfabricated value is plausible, nothing raises an error, and one corrupted row\nper experiment sits in the training data forever.",
+      "why": "The notes print the boundary row: the first row of the second experiment claims a previous\n`xmeas_4` of 8.9419, which is the last reading of the experiment before, from a\ndifferent simulated plant. Feed flow really is around 9 in both, so the\nfabricated value is plausible, nothing raises an error, and one corrupted row\nper experiment sits in the training data forever.",
       "objectives": [
         "l07-o2"
       ],
@@ -148,8 +148,8 @@
       "id": "l07-q08",
       "kind": "spot_the_defect",
       "lecture": "l07",
-      "context": "You fit a record where the operator left the valve at 0.6 all day. The gain comes\nback as +0.000 and the design matrix has rank 1 instead of 2.\n\nWhat went wrong?",
-      "why": "The valve did nothing, so the data cannot say what it would have done, and the\nsolve reports that honestly with no warning attached. No feature and no larger\nmodel recovers it, because the information was never collected. Note how little\nmovement is needed: a single step recovers tau = 20.0 min correctly. The failure\nneeds an input that is genuinely constant.",
+      "context": "You fit a stretch where the valve never moved off 57.6 %. The gain comes\nback as +0.000 and the design matrix has rank 1 instead of 2.\n\nWhat went wrong?",
+      "why": "The valve did nothing, so the data cannot say what it would have done, and the\nsolve reports that honestly with no warning attached. No feature and no larger\nmodel recovers it, because the information was never collected. Note how little\nmovement is needed: a single step is enough to bring the design matrix back to\nrank 2. Only a genuinely constant input fails.",
       "objectives": [
         "l07-o3"
       ],
