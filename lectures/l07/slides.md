@@ -133,30 +133,6 @@ Flow depends on the valve **and** on where the flow was three minutes ago. A tab
 
 ---
 
-## The logged data has a problem?
-
-<div class="clicker"
-     data-tag="l07-loop-two-flows"
-     data-seconds="45"
-     data-answer="B"
-     data-hint="Nothing here is broken. Ask what the flow was doing in the ten minutes before each reading."
-     data-why="B. The loop is dynamic, so one valve position sits at two flows depending on whether the flow was rising or falling. Which branch you are on is decided by the previous flow."
-     data-read="https://clicker.f26-06763.workers.dev">
-<div class="clicker-main">
-
-**Two points from the ramp on the last slide. `xmv_4` reads 57.6 % on both. `xmeas_4` is 8.58 on one and 9.00 on the other. What is wrong?**
-
-<ol class="clicker-opts">
-<li>One of the two flow readings is bad</li>
-<li>Nothing: the loop had not settled, so where it came from still matters</li>
-<li>The valve is nonlinear, so 57.6 % does not mean one flow</li>
-<li>The two points are too far apart in time to compare</li>
-</ol>
-
-</div>
-
----
-
 ## Structuring data for time series modeling
 
 The valve alone cannot tell you which branch of the loop you are on. One extra column can: **the previous flow**.
@@ -184,7 +160,7 @@ The valve alone cannot tell you which branch of the loop you are on. One extra c
 
 <!--
 TIMING, 110 minutes. 60 slides, of which 8 are dividers.
-  opening through "the answer is a column"   ~18 min  (includes the one clicker)
+  opening through "the answer is a column"   ~14 min
   one loop / continuous vs discrete          ~22 min
   leakage                                    ~10 min
   data preparation (rapid fire)              ~ 8 min
@@ -193,8 +169,9 @@ TIMING, 110 minutes. 60 slides, of which 8 are dividers.
   what the data cannot answer                ~ 8 min
   recap                                      ~ 4 min
 
-ONE clicker question now (the loop, slide 9). The leakage and reversed-causality questions
-were cut, so there is no leaderboard slide either.
+NO clicker questions now. All three were cut, and the leaderboard slide went with them.
+clicker-slide.js is still loaded at the end of the deck, deliberately: CI copies it beside
+every deck anyway, and leaving the tag means a clicker slide pasted back in just works.
 
 ABORT SEQUENCE, in this order of preference:
   1. "Data preparation, rolling window statistics", replaced by its one sentence
