@@ -1,209 +1,773 @@
-# Lecture 8: Data quality, versioning, and leakage-free splits
+# Lecture 8: The machine learning workflow I, time series
 
-:::{admonition} Overview
+:::{admonition} At a glance
 :class: tip
 
 - **Session** Lecture 8, Week 4
-- **Arc** Data Systems
+- **Arc** Machine learning and deep learning
 - **Slides** <a href="../../slides/l08/">Deck for this session</a>
 - **Practice** <a href="../../game/#/l08">Practice module for this session</a>
-- **Demo** [`l08-splits-versioning.ipynb`](l08-splits-versioning.ipynb), the split that inflates a score, then versioning and tracking
-- **Assignment 4**, released at Lecture 7; its dataset-versioning half is this session's material
+- **Demo** [`l08-forecasting.ipynb`](l08-forecasting.ipynb), forecasting reactor pressure at several horizons and scoring it honestly
+- **Tools** Polars for the table, scikit-learn for the models and the splits
+- **Assignment** A4 is released today and is due Monday 09-28
 :::
 
 ## Why this matters
 
-[Lecture 7](../l07/notes.md) ended on a leak so small you could miss it. Fitting a scaler on the test data instead of the training data changed the reported error by about 0.002 cycles, because an unregularized linear model barely cares how its inputs are scaled. This session opens with the opposite: a leak from the same dataset that makes a model look **37% better than it really is**, and that you would ship without noticing, because the number it produces looks good.
+[Lecture 7](../l07/notes.md) built a feature table and fitted a model to it, and it never
+asked whether the model was any good. This session asks. The question sounds simple and is
+not, because a time-series model can report an excellent score and still be useless.
 
-The leak is in the **split**. On the C-MAPSS turbofan data from Lecture 7, we build ordinary per-engine features and predict remaining useful life with one model, then score it two ways that differ only in how the rows are divided into training and test. A random split of the rows reports a root-mean-square error of **12.2 cycles**. A split that keeps each engine wholly in training or wholly in test reports **16.7 cycles**. Same features, same model, same data. The first number is a fiction: because consecutive cycles of one engine are almost identical, a random split drops cycle 150 of an engine into training and cycle 151 into test, so the model is graded on rows nearly identical to ones it has already seen. The 12.2 is the score on a problem the model will never face. The 16.7 is the score on the problem it will.
+Here is how that happens. Lecture 7 noted that guessing "nothing changes in the next three
+minutes" on reactor pressure is already close to right. Any model of a fast-sampled channel
+inherits that closeness for free. Fit a model, predict one step ahead, and you will see
+predictions that hug the data and an R-squared near 0.99. Most of that score belongs to the
+guess, and none of it tells you whether the model knows anything the guess did not.
 
-This is the most consequential mistake in the whole data arc, because it does not fail loudly. The pipeline runs, the metric improves, the plot looks clean, and the model is quietly worthless on the first engine it has never met. This session is about the three habits that keep it honest: splitting the data so the evaluation measures deployment, versioning the data so a result can be reproduced from its raw inputs, and iterating on the data itself rather than only on the model.
+Now make the question useful. An operator does not need to know the pressure three minutes
+from now. They need to know it thirty or sixty minutes from now, early enough to act. The
+further ahead you look, the worse the free guess gets, and at some point a different free
+guess wins: "the pressure will be at its usual value." A model earns its place only if it
+beats both guesses, at the horizon somebody needs, on data it has never seen.
+
+None of this is specific to a chemical plant. The same three questions (how far ahead, better
+than what, scored how) decide whether an electricity load forecast, a demand forecast, a
+weather model or a trading signal is worth anything. Finance supplies the sharpest version.
+Stock prices behave so much like a random walk that "tomorrow equals today" is very hard to
+beat. Eugene Fama found in 1965 that the correlations between successive price changes were
+"extremely close to zero," and exchange-rate forecasters learned the same lesson in the
+1980s, as a case study below shows. Every number in this session comes from our own plant,
+and each section points out where the same idea shows up elsewhere.
 
 ## Learning objectives
 
 By the end of this session you should be able to:
 
-- Design leakage-free splits for temporal and grouped data and detect leakage empirically.
-- Version datasets and feature sets so results are reproducible from raw inputs.
-- Run a data-centric improvement loop and attribute gains to data changes.
+- Frame a time-series forecast as a supervised learning problem, stating the horizon and what is known when the forecast is made.
+- Compare a forecasting model against persistence and mean baselines across horizons, and say whether the model earned its place.
+- Choose between direct and recursive multi-step forecasting, and explain why recursive errors grow with the horizon.
+- Evaluate a forecaster with a time-ordered split whose gap is at least the horizon, and explain why a shuffled split inflates the score.
+- Use forecast residuals as a simple anomaly detector, setting the threshold on normal data and reporting false alarms and detection delay.
 
-## Splits done right
+## Time series as supervised learning
 
-```{index} train/test split, grouped split, GroupKFold, temporal split, TimeSeriesSplit, nested cross-validation
+```{index} supervised learning, hyperparameter, forecast horizon
 ```
 
-A train/test split has one job: to make the test set a fair stand-in for the data the model will see in deployment. Every splitting rule in this section follows from that one requirement, and the default tool most people reach for, a random shuffle, violates it for the two kinds of data engineering produces most often: grouped data and time-series data.
+Machine learning, for this course, means fitting a function to data instead of deriving it
+from physics. You already did this once. In Lecture 7 you built a design matrix $\Phi$ and a
+target vector $y$, and `numpy.linalg.lstsq` returned the coefficients $\theta$ that made
+$\Phi\theta$ as close to $y$ as possible. Everything in this session is that same step with
+better bookkeeping.
 
-The C-MAPSS data is both. It is **grouped** because every row belongs to one of 100 engines, and the deployment question is always about a *new* engine, not a new cycle of an engine you have already watched fail. It is **temporal** because within an engine the rows are ordered by cycle, and the deployment question is always about the *future*, not a cycle wedged between two you have already seen. A random shuffle ignores both facts. It splits at the level of the row, so the same engine lands in both halves, and it splits without regard to time, so the model trains on cycle 151 and is tested on cycle 150.
-
-The fix for grouped data is a **grouped split**: assign whole groups to training or test, so no group is in both.
-
-:::{admonition} Definition: grouped split
+:::{admonition} Definition: supervised learning
 :class: tip
 
-A **grouped split** divides the data by an entity, such as an engine, a patient, or a site, so that all rows from one entity fall entirely in training or entirely in test. In scikit-learn, `GroupKFold` "ensures that the same group is not represented in both testing and training sets," and `GroupShuffleSplit` holds out a random subset of groups. Use them whenever rows from the same entity are correlated.
+**Supervised learning** fits a function from a table of **features** (the columns you know)
+to a **target** (the column you want), using rows where both are known. Once fitted, the
+function predicts the target for new rows where only the features are known.
 :::
 
-The fix for time-series data is a **temporal split**: train on the past and test on the future, never the reverse.
+scikit-learn, the library we use from here on, gives every model the same two methods.
+`fit(X, y)` learns from the training rows. `predict(X)` returns a prediction for any rows
+with the same columns. A linear model, a random forest and a gradient-boosted ensemble all
+look the same from the outside, which is why you can swap one for another in a single line.
 
-:::{admonition} Definition: temporal split
+### Parameters and hyperparameters
+
+Two kinds of number go into a fitted model, and it helps to keep them apart.
+
+:::{admonition} Definition: parameter and hyperparameter
 :class: tip
 
-A **temporal split** trains on earlier data and tests on later data, so the model is never evaluated on a time it could have learned from. scikit-learn's `TimeSeriesSplit` does this across several folds, and its "successive training sets are supersets of those that come before them," growing the training window forward through time.
+A **parameter** is a number the fitting chooses, such as the coefficients $a$ and $b$ of an
+ARX model. A **hyperparameter** is a number you choose before fitting, such as how many lags
+to include or how strongly to penalize large coefficients.
 :::
 
-The two concerns can compound, and a serious evaluation respects both. If you want a model that generalizes to a new engine *and* forecasts forward in time, you hold out whole engines and, within the training engines, respect cycle order. When you also need to tune hyperparameters, the honest structure is **nested cross-validation**: an outer split that estimates performance and an inner split, carved only from the outer training data, that selects the model. Collapsing the two, tuning on the same data you report, is a milder cousin of the same leak this session is about, because the reported number then reflects a configuration chosen with the test set in view.
+The distinction matters because the fitting procedure can only optimize parameters. If you
+also pick hyperparameters by looking at how well the model does on some data, that data has
+been used for fitting too, and it can no longer tell you how the model will do on new data.
 
-The measured cost of getting this wrong is the figure below. It is the same RandomForest on the same 46 features; only the split changes.
+### The held-out score
 
-```{figure} figures/leakage.png
-:alt: Two bars of remaining-useful-life error. A random row split reports RMSE 12.2 cycles; a per-unit GroupKFold split reports 16.7 cycles, about 1.37 times higher.
-:width: 80%
-:align: center
+The one genuinely new idea in this section is the **held-out score**: the error of the model
+on rows it did not see while fitting. Lecture 7 never computed one. It fitted the model to a
+run and read the coefficients back, and on that run the model was bound to look good, because
+the fit was chosen to make it look good on exactly those rows.
 
-The same model and features scored two ways. A random row split reports 12.2 cycles of error because adjacent cycles of one engine leak across the split; the honest per-unit split reports 16.7. The leak makes the model look about 1.37 times better than it is on a new engine.
+A held-out score is an estimate of how the model will do in use. It is only an honest
+estimate if the held-out rows resemble the rows the model will meet in use. For a time series
+that requirement is harder to meet than it sounds, and the section on evaluating on time is
+about exactly that.
+
+### The forecast horizon
+
+Lecture 7 predicted the next sample, `y[t+1]`. A forecast can reach further.
+
+:::{admonition} Definition: forecast horizon
+:class: tip
+
+The **forecast horizon** $h$ is how many samples ahead the model predicts. A model with
+horizon $h$ uses what is known at time $t$ to predict `y[t+h]`. On our plant, one sample is
+three minutes, so $h = 10$ is a thirty-minute forecast.
+:::
+
+Changing the horizon changes one line of the table. The features stay at time $t$ and the
+target moves $h$ rows into the future:
+
+```python
+h = 10
+table = df.with_columns(
+    [pl.col("xmeas_7").shift(k).over(RUN).alias(f"y[t-{k}]") for k in range(10)]
+    + [pl.col("xmeas_7").shift(-h).over(RUN).alias("target")]
+).drop_nulls()
 ```
 
-The schematic makes the mechanism visible. Under a random split every engine contributes rows to both training and test; under a grouped split, whole engines are held out.
+The `.over(RUN)` is Lecture 7's run-boundary rule. Without it the target of the last rows in
+one run is read from the start of the next run.
 
-```{figure} figures/splits.png
-:alt: Two panels showing six engines as rows of cycle cells. On the left, a random split colors cells train or test at random so every engine has both; on the right, a grouped split colors whole engines either train or test.
+Before building any table, write down what is known at the moment the forecast is made. The
+channel's own past is known. The current valve positions are known. The *future* valve
+positions are not known, unless they come from a plan, and this is easy to miss. A load
+forecaster can use tomorrow's weather only because a weather forecast for tomorrow exists
+today. A plant forecaster can use a future setpoint only if the setpoint schedule is written
+down in advance. Anything else in the future is leakage, the same failure Lecture 7 named for
+a single row, now stretched across $h$ rows.
+
+## What makes a series forecastable
+
+```{index} autocorrelation, stationarity, white noise, random walk
+```
+
+Some series can be forecast and some cannot, and you can usually tell which before fitting
+anything. The tool for telling is the autocorrelation function.
+
+:::{admonition} Definition: autocorrelation
+:class: tip
+
+The **autocorrelation** at lag $k$ is the correlation between a series and itself shifted
+by $k$ samples. The **autocorrelation function** (ACF) plots it against $k$. A value near 1
+means rows $k$ apart are nearly the same; a value near 0 means they are unrelated.
+:::
+
+The figure below shows three series side by side, with their ACFs underneath. The first is
+reactor pressure `xmeas_7` from one fault-free run. The second is the product separator level
+`xmeas_12` from the same run. The third is a simulated random walk, which is the textbook model
+of a stock price.
+
+```{figure} figures/three-series.png
+:alt: Three time series in the top row (reactor pressure, separator level, and a simulated random walk) with their autocorrelation functions in the bottom row. Pressure decays from 1 to zero at about 75 minutes then goes negative. Separator level drops to zero after lag 0. The random walk decays slowly and stays high.
 :width: 100%
 
-The same fleet, split two ways. Left: a random row split scatters every engine across both sets, so the model is tested on near-duplicates of its training rows. Right: a per-unit split holds out whole engines, which is the question deployment actually asks.
+Three kinds of series. Reactor pressure (lag-1 autocorrelation 0.944) and separator level
+(0.015) are from run 1 of the Rieth et al. (2017) fault-free training file. The random walk is
+simulated (lag-1 autocorrelation 0.980; its day-to-day changes have lag-1 autocorrelation
+-0.012). Generated by `figures/make_figures.py`.
 ```
 
-## A taxonomy of leakage
+Each one calls for a different kind of forecast.
 
-```{index} data leakage, target leakage, temporal leakage, group leakage
-```
+**Reactor pressure** wanders around a fixed operating level. Its ACF starts near 1 and decays,
+crossing zero at about 75 minutes and going negative after that, which is the slow oscillation
+visible in the top trace. Near-term values carry information about the next few samples.
+Values an hour or more back carry almost none.
 
-Leakage is the general fault the split above is one instance of. The definition worth memorizing comes from Kaufman and colleagues, who call it "one of the top ten data mining mistakes."
+**Separator level** is noise around a setpoint. Its ACF drops to zero immediately. The last
+value tells you nothing about the next one beyond the average, because the level controller
+removes any deviation before the next sample. Seven of the 22 continuous TEP channels look
+like this (`xmeas_5, 6, 9, 12, 14, 15, 17`). A series with no autocorrelation at any lag is
+called **white noise**.
 
-:::{admonition} Definition: leakage
+**The random walk** has no fixed level at all. Each value is the previous value plus a random
+step, so the series drifts anywhere. Its ACF stays high for a long time. That looks like good
+news for forecasting, and it is not: the steps themselves are white noise, so the best forecast
+of the next value is simply the current one.
+
+### Stationarity
+
+:::{admonition} Definition: stationarity
 :class: tip
 
-**Leakage** is, in the words of [Kaufman et al. (2012)](https://www.cs.umb.edu/~ding/history/470_670_fall_2011/papers/cs670_Tran_PreferredPaper_LeakingInDataMining.pdf), "the introduction of information about the target of a data mining problem, which should not be legitimately available to mine from." A model that learns from leaked information reports a score it cannot reproduce in deployment, because the leaked information will not be there.
+A series is **stationary** when its mean, its spread and its autocorrelation do not change
+over time. A plant held at an operating point is roughly stationary. A random walk is not,
+because its level can drift arbitrarily far.
 :::
 
-Leakage arrives in four recognizable shapes, and a good audit checks for each by hand, because no metric will announce them.
+Stationarity matters because every model in this session learns from the past and assumes the
+future looks like it. On a stationary series that assumption is reasonable. On a
+nonstationary one it can fail badly, since the future level may be somewhere the training data
+never went.
 
-**Target leakage** is a feature that encodes the label, often through the way the data was recorded. A "number of late-payment reminders sent" column predicts default almost perfectly, because it is filled in *after* the customer defaults. On a sensor feed the equivalent is a maintenance-action flag that a technician sets once a failure is already visible. Audit it by asking, of every feature, whether its value would actually be known at the moment you need a prediction.
+The standard fix is **differencing**: model the change `y[t] - y[t-1]` instead of the level.
+A random walk becomes white noise after one difference. In finance this is the move from
+prices to **returns**, and it is why financial models almost always work on returns. The same
+idea, applied repeatedly and combined with autoregression, is the "I" (integrated) in ARIMA.
 
-**Train/test contamination** is a statistic computed over all the data before the split, which is the Lecture 7 scaler leak: a mean, a standard deviation, an imputation value, or a category list fit on rows that include the test set. Audit it by finding every `.fit()` call and confirming the test rows were not in scope when it ran, which is exactly what a scikit-learn `Pipeline` fit inside the split guarantees.
+### Trend and seasonality
 
-**Temporal leakage** is using the future to predict the past: a rolling feature that reaches forward, a target defined over a window that overlaps the features, or simply a random split of time-ordered data. Audit it by checking that every feature at time *t* depends only on data from time *t* or earlier.
+Two other patterns are common outside a plant. A **trend** is a slow, sustained change in
+level, like electricity demand growing year on year. **Seasonality** is a pattern that repeats
+on a fixed calendar, like demand peaking every weekday evening. Both make a series
+nonstationary, and both have standard treatments (differencing at the seasonal lag, or
+calendar features in the table).
 
-**Group leakage** is the split from the previous section: rows from the same entity in both training and test. Audit it by confirming your split key is the entity, not the row.
-
-The reason leakage deserves its own vocabulary is that it defeats the instrument you would normally trust. Your validation score is supposed to tell you whether the model works. When the data leaks, the score tells you how well the model exploited information it will not have, and a higher score is then worse news, not better. You cannot find leakage by looking at the metric; you find it by reasoning about where each number came from.
-
-## Versioning data and features
-
-```{index} data versioning, DVC, content hash, dvc.yaml
-```
-
-Reproducibility, from [Lecture 2](../l02/notes.md), is the ability to take your data and your code and get your numbers back. Lecture 2 versioned the code with git and kept the raw data out of git behind a content hash. This session closes the remaining gap: a tool that versions the data and the derived feature sets *by content*, and ties a specific data version to the code version and the experiment that used it.
-
-That tool is **DVC** (Data Version Control). Its model is simple and worth understanding before the commands. When you run `dvc add features.parquet`, DVC computes a content hash of the file, moves the file into a local cache, and writes a small text file next to it.
-
-:::{admonition} Definition: DVC and the `.dvc` file
-:class: tip
-
-**DVC** versions large data and model files alongside code in git. For each tracked file it writes a small `.dvc` metafile that, in the [DVC docs'](https://dvc.org/doc/start/data-management/data-versioning) words, "acts as a placeholder for the original data for the purpose of Git tracking." The metafile holds the content hash and path (for example `md5: 22a1a29...` and `path: features.parquet`); git tracks the metafile, and the raw bytes go to a cache and a remote. A DVC "remote" can be "just a directory in the local file system," so you need no cloud account to use it.
-:::
-
-Because git now tracks the hash and the code together, checking out an old commit gives you the exact code *and* a pointer to the exact data that went with it; `dvc checkout` then restores that data from the cache. The version of the data is pinned as precisely as the version of the code.
-
-DVC also records the pipeline that produced a feature set, so the derivation is reproducible and not only the file. A `dvc.yaml` file lists **stages**, each of which "wraps around an executable shell command and specifies any file-based dependencies as well as outputs" through `deps:` and `outs:`. Running `dvc repro` re-executes only the stages whose inputs changed, skipping the rest, which turns "rebuild the feature matrix from raw data" into one command that is guaranteed to match what a commit describes.
-
-The habit that makes this pay off is to log the data version next to the run that used it. When you train a model, record the DVC hash of the input data as a parameter in your experiment tracker, so an [MLflow](../l02/notes.md) run carries the git SHA of the code, the DVC hash of the data, and the seed together. Recreate those three and you recreate the result, from raw inputs to reported number.
-
-## Documenting a dataset
-
-A hash tells you *that* a dataset is a particular version; it says nothing about what is in it, how it was collected, or what it is safe to use for. That description is the job of a **datasheet**, and writing one is the difference between a dataset a colleague can use correctly and one they will misuse in good faith.
-
-:::{admonition} Definition: datasheet for a dataset
-:class: tip
-
-A **datasheet** is a structured document, proposed by [Gebru et al. (2021)](https://arxiv.org/abs/1803.09010), that records a dataset's "motivation, composition, collection process, recommended uses, and so on." The paper gives 57 questions across seven sections, from why the data was collected to how it should be maintained, by analogy with the datasheet that accompanies an electronic component.
-:::
-
-For engineering data the high-value entries are provenance and known issues: which instrument and firmware produced the readings, the units and sample rate of each channel, the calibration state, and the defects you already know about. C-MAPSS is a clean example to document, because it has surprises worth writing down. Six of its 21 sensor channels are constant and carry no information, the remaining-useful-life target in the training set is the true cycle count while the test set withholds it, and the "operating condition" is fixed for FD001 but varies in the other three subsets. A one-page card that states those facts saves the next person the hour it costs to rediscover them, and it is the natural home for the pitfalls this arc has surfaced: the dying-battery motes from [Lecture 6](../l06/notes.md), the constant channels from Lecture 7, the units convention on every column.
-
-## Data-centric iteration
-
-```{index} datasheet, data-centric iteration
-```
-
-The reflex when a model underperforms is to change the model: a bigger network, a different algorithm, more hyperparameter search. **Data-centric iteration** inverts that reflex. You hold the model fixed and improve the data, then measure whether the data change helped.
-
-:::{admonition} Definition: data-centric iteration
-:class: tip
-
-**Data-centric iteration** improves a model by improving its data, labels, and features while holding the model and its hyperparameters fixed, so any change in the score is attributable to the data. The phrasing "data-centric AI" was popularized informally by Andrew Ng in 2021; for a structured treatment see the [MIT Introduction to Data-Centric AI](https://dcai.csail.mit.edu/) course.
-:::
-
-The discipline is in the measurement. Fix the model and the split, change one thing about the data (drop the six dead sensor channels, correct a mislabeled failure cycle, add a physically motivated feature, remove the readings from a mote that was below its trustworthy voltage), and log the before and after as two runs in MLflow tagged with the two data versions. The score difference is then a clean attribution to that specific data change, which is a stronger claim than "the model got better after we changed some things." Because the split is held fixed and honest, and the data version is recorded, the improvement is reproducible and defensible in a way that a lucky hyperparameter is not.
-
-## Where this pushes back
-
-Each habit in this session has a limit, and the mature version of this knowledge is knowing where each one stops helping.
-
-### A leakage-free split does not fix distribution shift
-
-A grouped, temporal split makes the test set a fair sample of the *same* data-generating process. It does nothing about a new process. C-MAPSS FD001 is one simulated operating condition, so even the honest 16.7-cycle score is optimistic for a real engine at a new site with a different ambient temperature, a different sensor vendor, and a different duty cycle. An honest split protects you from grading yourself on near-duplicates; it does not promise the world will resemble your training set.
-
-### Grouped and temporal splits cost you data
-
-Holding out whole engines means fewer distinct training entities, and a strict temporal split throws away the most recent data by construction. On a fleet of 100 engines this is affordable; on a study with eight patients it can leave you unable to both train and evaluate. The split still has to be honest, so the answer is usually to collect more entities rather than to relax the split, but the cost is real and worth naming when you plan a data collection.
-
-### Versioning is bookkeeping, not understanding
-
-DVC will faithfully version a corrupt dataset, and a `.dvc` hash proves two runs used identical bytes without saying whether those bytes were any good. Versioning makes a result reproducible and auditable; it is the precondition for catching a data problem, in the same way reproducibility was the precondition for catching a code problem in Lecture 2, and it is no substitute for the validation from Lecture 6 or the physical reasoning from Lecture 7.
-
-### A datasheet is only as honest as its author
-
-A datasheet is unenforced prose. It can be out of date, optimistic, or silent about the defect that matters most, and nothing checks it against the data the way a pandera schema checks a feed. Treat it as documentation that lowers the cost of using data correctly, not as a guarantee that the data is correct.
-
-### Data-centric iteration can overfit the validation set
-
-Running many data changes against one fixed validation split, and keeping the ones that improve it, eventually tunes the data to that split, which is the multiple-comparisons trap from Lecture 7 wearing new clothes. A held-back test set that you touch rarely, and honestly, is what keeps a season of data-centric tweaks from quietly becoming a slow leak.
+A continuous plant held at an operating point mostly has neither. Where it does have a daily
+cycle, the cause is usually something measurable, such as the cooling water warming in the
+afternoon. The better feature is then the measured temperature, not the hour of the day.
 
 :::{admonition} What a practitioner should take from this
+:class: note
+
+Plot the ACF before you fit anything. If it drops to zero after lag 0, no model built from the
+channel's own past will beat the mean, and the honest report is "this channel is unforecastable
+from its history." If the ACF stays near 1 and the series drifts, difference it first.
+:::
+
+## Baselines and skill
+
+```{index} baseline, persistence forecast, skill score
+```
+```{index} see: naive forecast; persistence forecast
+```
+```{index} pair: metric; MASE
+```
+
+A **baseline** is a forecast that needs no fitting. Every model must be compared with one,
+because an error of 4 kPa means nothing on its own. It means something only next to what
+you could have had for free.
+
+:::{admonition} Definition: persistence forecast
 :class: tip
 
-Choose the split before you choose the model, and choose it to match the deployment question: hold out whole entities when rows are grouped, and train on the past when data is ordered in time. Audit for leakage by reasoning about where each feature's value comes from and when it is known, because your metric will not warn you. Version the data with the same seriousness you version code, and log the data hash, the code SHA, and the seed together so a number can be rebuilt from raw inputs. Then improve the data against a fixed model, and measure the change, so you can say what helped and prove it.
+The **persistence forecast** predicts that the future equals the present: `y[t+h] = y[t]`.
+It is also called the **naive forecast**. Lecture 7 used it without the name when it said
+"guess that nothing changes."
 :::
+
+Two baselines cover most of what a plant engineer needs.
+
+- **Persistence**: `y[t+h] = y[t]`.
+- **The mean**: `y[t+h]` equals the average of the training data.
+
+Other fields add a few more. A **seasonal naive** forecast copies the value from one season
+ago (the same hour yesterday, for electricity load). A **drift** forecast extends the average
+past change in a straight line. Hyndman and Athanasopoulos cover all four in the chapter linked
+under Resources.
+
+### Which baseline wins depends on the horizon
+
+For a stationary series the two main baselines can be compared exactly. Call the series'
+standard deviation $\sigma$ and its autocorrelation at lag $h$ $\rho_h$. Then the error of the
+mean forecast is $\sigma$ at every horizon, and the error of persistence is
+
+$$\text{RMSE}_{\text{persistence}}(h) = \sigma \sqrt{2\,(1 - \rho_h)}$$
+
+Persistence beats the mean exactly when $\rho_h > 0.5$. Two special cases are worth
+checking against the figure above. On white noise, $\rho_h = 0$, so persistence is
+$\sqrt{2} \approx 1.41$ times worse than the mean at every horizon. On separator level the
+measured ratio is 1.415. Where the ACF goes negative, persistence is worse still, because it
+bets on the wrong side of an oscillation.
+
+On reactor pressure the crossover sits between 30 and 60 minutes. The figure shows the
+measured errors on 100 held-out runs.
+
+```{figure} figures/skill-horizon.png
+:alt: Test RMSE against forecast horizon in minutes for reactor pressure. Persistence rises from 1.9 to 12.3 kPa. The mean is flat at about 7.5 kPa. The direct AR model stays below both, rising from 1.8 to 7.2 kPa. The recursive AR model follows the direct one closely at short horizons and rises above the mean after about 75 minutes.
+:width: 100%
+
+Test RMSE against horizon for reactor pressure, trained on runs 1 to 300 and tested on runs
+401 to 500 of the fault-free file. The standard deviation of pressure on the test runs is
+7.51 kPa. Generated by `figures/make_figures.py`.
+```
+
+| Horizon | Persistence (kPa) | Mean (kPa) | Direct AR(10) (kPa) | Skill vs. better baseline |
+|---|---|---|---|---|
+| 3 min | 1.92 | 7.51 | 1.83 | 5 % |
+| 30 min | 5.82 | 7.57 | 5.02 | 14 % |
+| 45 min | 7.39 | 7.59 | 5.87 | 21 % |
+| 60 min | 8.87 | 7.61 | 6.51 | 15 % |
+| 120 min | 12.29 | 7.65 | 7.17 | 6 % |
+
+Read the table from the top. At three minutes persistence is four times better than the mean
+and the model adds only 5 %. That small gain is the honest version of the "R-squared of 0.99"
+from the opening. At two hours the mean is the better baseline and the model again adds little,
+because pressure two hours out is nearly unrelated to pressure now. The model earns the most
+in the middle, where neither free guess is good.
+
+### Skill scores and MASE
+
+A percentage improvement over a baseline is called a skill score.
+
+:::{admonition} Definition: skill score
+:class: tip
+
+A **skill score** compares a model's error with a reference forecast's error on the same data:
+$\text{skill} = 1 - \text{RMSE}_{\text{model}} / \text{RMSE}_{\text{reference}}$. Zero means no
+better than the reference. Negative means worse.
+:::
+
+Use the better of the two baselines as the reference at each horizon. Beating the worse one
+proves nothing.
+
+Hyndman and Koehler (2006) proposed a related scale-free measure, the **mean absolute scaled
+error** (MASE). It divides the model's mean absolute error by the mean absolute error of a
+one-step naive forecast on the training data. MASE below 1 means the model beats that naive
+forecast on average. Because it has no units, it can be averaged across series measured in
+different units, which is what forecasting competitions need.
+
+Report errors in the units of the measurement as well. "5.0 kPa at thirty minutes" is
+something an operator can judge. A skill score of 0.14 is not.
+
+### Case study: the random walk that beat the economists
+
+```{index} pair: case study; Meese and Rogoff exchange-rate forecasts
+```
+
+Richard Meese and Kenneth Rogoff tested the leading structural models of exchange rates
+from the 1970s, published in 1983. They forecast the dollar against the pound, the mark and
+the yen at horizons of one to twelve months, re-estimating each model with rolling regressions
+so that every forecast used only past data. That is rolling-origin evaluation, a decade before
+the term was common. The reference was a random walk, which is a persistence forecast.
+
+Their working paper states the result directly: "a random walk model would have outperformed
+all the other models as a predictor of the logarithm of major-country exchange rates during
+the 1970's." Univariate time-series models and a vector autoregression lost to it too, and so
+did optimally weighted combinations of the forecasts. The models fitted history well. What
+they could not do was forecast better than "next month equals this month," and only the
+comparison with that baseline showed it.
+
+### Case study: simple methods in the M4 competition
+
+```{index} pair: case study; M4 forecasting competition
+```
+
+The M competitions, organized by Spyros Makridakis, ask many teams to forecast the same set
+of real series and score everyone the same way. The fourth, M4, used 100,000 series. Two of its
+benchmarks were deliberately simple: Naïve2, a persistence forecast with the seasonality
+removed, and "Comb," an average of three basic exponential smoothing methods.
+
+The organizers' summary (Makridakis, Spiliotis and Assimakopoulos, 2018) reports three findings
+that matter here. Of the 17 most accurate methods, 12 were combinations of mostly statistical
+approaches. The six pure machine-learning methods "performed poorly, with none of them being
+more accurate than the combination benchmark and only one being more accurate than Naïve2."
+And the biggest surprise was a hybrid of statistical and machine-learning parts, about 10 %
+more accurate than the combination benchmark. M4 repeats Meese and Rogoff's result at
+scale: on real series simple baselines are strong, and a sophisticated model has to show it
+beats them.
+
+:::{admonition} What a practitioner should take from this
+:class: note
+
+Report persistence and the mean next to every forecast, at every horizon you claim. If your
+model does not beat the better of the two, say so, and ship the baseline. It is cheaper, it
+cannot overfit, and nobody has to maintain it.
+:::
+
+## Model families and multi-step strategies
+
+```{index} direct forecasting, recursive forecasting
+```
+```{index} pair: failure mode; recursive error accumulation
+```
+
+There are two broad ways to build a forecaster, and they meet in the middle.
+
+The first comes from statistics and control. **Autoregressive** models predict the next value
+as a weighted sum of past values. Lecture 7's ARX model is one, with an exogenous input added.
+**ARIMA** extends autoregression with differencing (the "I") and a moving-average term on past
+errors (the "MA"). The `statsmodels` package fits all of these, along with seasonal versions
+and state-space forms, and reports standard errors on the coefficients. These models are small,
+well understood, and a strong first choice on a single series.
+
+The second comes from machine learning, and it is the one this course uses most. Build the lag
+table from the first section, then hand it to any regressor. Ridge regression, a random forest
+and gradient boosting all work unchanged, because to them a lag table is just a table. This
+move, turning a forecasting problem into an ordinary regression problem, is sometimes called
+**reduction**. It is how scikit-learn's forecasting examples and the `skforecast` library work.
+
+The two routes meet at the linear model. A ridge regression on ten lags is an AR(10) model
+fitted with a small penalty. The difference is what comes next: the regression route lets you
+swap in a nonlinear model, add window features, or add many exogenous columns without changing
+any code.
+
+### Ridge, and why scaling matters now
+
+Ridge regression is least squares with a penalty on the size of the coefficients. The penalty
+helps when the lag columns are nearly copies of each other, which Lecture 7 measured at a
+correlation of 0.996 on reactor pressure. Without a penalty, nearly identical columns let the
+coefficients trade off against each other freely.
+
+The penalty has a side effect. It shrinks all coefficients by the same rule, so a column
+measured in kPa and a column measured in percent are treated unequally. Plain least squares
+gives the same predictions whether or not you rescale; ridge does not. So the columns must be
+standardized first, and the scaler must be fitted on the training rows only. scikit-learn's
+`Pipeline` makes that structural:
+
+```python
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import Ridge
+
+model = make_pipeline(StandardScaler(), Ridge(alpha=1.0))
+model.fit(X_train, y_train)      # the scaler sees training rows only
+model.predict(X_test)            # and reuses those means and spreads here
+```
+
+A scaler fitted on all the rows would read the test rows' mean and spread, which is a small
+leak, and a pipeline removes the chance to make it.
+
+### Direct and recursive forecasting
+
+To forecast $h$ steps ahead there are two strategies.
+
+:::{admonition} Definition: direct and recursive forecasting
+:class: tip
+
+A **direct** forecaster fits a separate model for each horizon, each trained on the target
+`y[t+h]`. A **recursive** forecaster fits one model for `y[t+1]` and applies it $h$ times,
+feeding each prediction back in as if it were a measurement.
+:::
+
+The recursive strategy is appealing because it needs only one model, and it produces the whole
+path to $h$ in one pass. Its weakness is that each step's error becomes the next step's input.
+Small errors compound, and the model ends up running on its own guesses. This is the "running
+free" behaviour Lecture 7 mentioned: a model that looks excellent one step ahead can wander off
+when it has to simulate.
+
+The measurement on reactor pressure shows it. Both strategies use the same ten lags of
+pressure and the same ridge regression.
+
+| Horizon | Direct (kPa) | Recursive (kPa) | Mean (kPa) |
+|---|---|---|---|
+| 3 min | 1.83 | 1.83 | 7.51 |
+| 30 min | 5.02 | 5.19 | 7.57 |
+| 60 min | 6.51 | 7.08 | 7.61 |
+| 120 min | 7.17 | 8.11 | 7.65 |
+
+At one step they are identical, as they must be. From there the recursive errors grow faster,
+and at two hours the recursive forecast is worse than simply predicting the mean. The direct
+forecaster costs one model per horizon, which for a linear model is nothing.
+
+The recursive strategy has a second problem when the model uses exogenous inputs. To feed
+`y[t+1]` back in, it also needs `u[t+1]`, which is not known at time $t$. You must either
+forecast the inputs too or assume they stay where they are. The direct strategy avoids the
+question: it uses only the inputs known at $t$. Adding the eleven current valve positions to the
+direct model lowers its thirty-minute error from 5.02 to 4.71 kPa.
+
+Direct does not always win. Taieb and colleagues (2012) compared recursive,
+direct and several hybrid strategies on the 111 series of the NN5 forecasting competition, and
+among the single-model strategies they found the recursive one "has almost always a smaller
+SMAPE and a better ranking than the DIR strategy." Their best results came from multi-output
+strategies that predict the whole horizon at once. Which strategy wins depends on the series
+and the model, so measure both on your own data, as the table above does.
+
+### Window features
+
+Lecture 7 showed how to compute rolling statistics. The decision it left open is the window
+length, and a forecasting horizon gives that decision a criterion. A short window follows the
+latest movement and carries noise. A long window is stable and lags behind a change. Which one
+helps depends on the horizon: a thirty-minute forecast gains little from a two-minute average
+of noise, and a three-minute forecast gains little from a two-hour average. Try two or three
+lengths, and keep the ones that lower the held-out error at the horizon you care about.
+
+## Evaluating on time
+
+```{index} rolling origin, TimeSeriesSplit, forward chaining
+```
+```{index} pair: failure mode; shuffling a time series before splitting
+```
+
+A held-out score is honest only if the held-out rows resemble the future the model will face.
+For a time series that means the held-out rows must come from *after* the training rows, and
+must not be near-copies of them.
+
+### Why a shuffled split leaks
+
+The standard recipe for a held-out score is to shuffle the rows and set some aside, or to do
+that five times over in **K-fold cross-validation**. On a time series this goes wrong. Lecture
+7 named the failure (train-test contamination), and the ACF explains the mechanism.
+Neighbouring rows are near-copies of each other. When you shuffle, most test rows have their
+own neighbours in the training set, a few minutes before and a few minutes after. A model that
+can memorize the training rows can then "predict" a test row by recalling its neighbours,
+including neighbours from *after* the test row. The score measures how densely the series was
+sampled, not how well the model forecasts.
+
+The figure shows the size of the effect on single runs of reactor pressure, thirty minutes
+ahead, averaged over ten runs.
+
+```{figure} figures/leaky-split.png
+:alt: Bar chart of cross-validated RMSE for a random forest and a ridge model under three splitting schemes. Shuffled KFold gives 4.32 and 4.82 kPa. TimeSeriesSplit gives 6.92 and 6.67. TimeSeriesSplit with a gap of 10 gives 7.23 and 7.41. A dashed line marks persistence at 6.09 kPa.
+:width: 100%
+
+Cross-validated RMSE at $h = 10$ (thirty minutes), with ten lags of pressure and the eleven
+valve positions as features, one run at a time, averaged over runs 1 to 10. Generated by
+`figures/make_figures.py`.
+```
+
+Under the shuffled split, the random forest scores 4.32 kPa and ridge 4.82, both well below
+persistence at about 6.1. Under a time-ordered split, the forest scores 6.92 and ridge 6.67,
+and both are *worse* than persistence. The shuffled split reports a model that beats the
+baseline by 30 %. The honest split reports a model that should not be used.
+
+There is a boundary to this rule, and the data shows it too. When the table pools 200
+independent simulation runs, ridge scores 4.74 kPa on a shuffled row split and 4.71 on a split
+by run. With that much data, one test row's few neighbours barely move a linear model. Bergmeir,
+Hyndman and Koo (2018) showed the theoretical version: ordinary K-fold is valid for a purely
+autoregressive model when its errors are uncorrelated. The rule "never shuffle a time series"
+is a safe default with known exceptions. The shuffled score is most dangerous when the series is short,
+the model is flexible, or the errors are autocorrelated, and a single long series has all three.
+
+### Rolling origin and TimeSeriesSplit
+
+The honest alternative is to train on the past and test on what follows, then move forward
+and repeat.
+
+:::{admonition} Definition: rolling origin
+:class: tip
+
+**Rolling-origin evaluation** (also called **forward chaining** or backtesting) trains on data
+up to a cutoff, tests on the block after it, then moves the cutoff forward and repeats. Every
+test block lies after its training block.
+:::
+
+scikit-learn implements this as `TimeSeriesSplit`. Each fold's training set is everything
+before its test block, so the training set grows fold by fold.
+
+```{figure} figures/rolling-origin.png
+:alt: Five horizontal bars, one per fold. Each bar has a blue training block starting at time zero and growing longer with each fold, a hatched gap block, a red test block, and grey unused time after it.
+:width: 100%
+
+Rolling-origin evaluation with a gap. Each fold trains on everything before its cutoff, skips
+a gap of at least $h$ samples, and tests on the next block.
+```
+
+### The gap must be at least the horizon
+
+This is the detail most people miss. A row at time $t$ has target `y[t+h]`. The last training
+row therefore has a target $h$ samples past the cutoff, which lands inside the test block. The
+model was trained on a value it is then tested near. The fix is a gap of at least $h$ samples
+between the last training row and the first test row:
+
+```python
+from sklearn.model_selection import TimeSeriesSplit
+
+cv = TimeSeriesSplit(n_splits=5, gap=h)
+```
+
+On the single-run comparison above, adding the gap raised the forest's error from 6.92 to 7.23
+kPa. The difference is small here, and it grows with the horizon, since a larger $h$ means more
+training targets land inside the test block.
+
+### Many series: split by series
+
+When the data holds many separate series, such as 500 simulation runs, 300 electricity meters or
+the stocks in an index, there is a second way to hold data out: keep whole series out of
+training. Our main results train on runs 1 to 300 and test on runs 401 to 500, so no test run
+contributed anything to the fit. Within each series, time order still matters for the features,
+which is why the table is built with `.over(RUN)`.
+
+### Look-ahead and survivorship bias
+
+Finance has names for two versions of these failures, and they apply everywhere.
+
+**Look-ahead bias** is using information in a backtest that was not available on the date of
+the simulated decision. Lecture 7 introduced it for a single column. A shuffled split is the
+same bias applied to the whole evaluation.
+
+**Survivorship bias** is testing only on the series that still exist at the end. A backtest on
+today's index members ignores the companies that failed and were removed, and it overstates
+returns. The plant version is a dataset of runs that were kept because nothing went wrong, and
+the meter version is a dataset of the meters that never broke. A model scored on survivors has
+not been scored on the cases that matter most.
+
+:::{admonition} What a practitioner should take from this
+:class: note
+
+Use `TimeSeriesSplit(gap=h)` for any single series, and split by series when you have many.
+If a shuffled score is much better than a time-ordered one, trust the time-ordered one, and
+treat the gap as a warning that the model is recalling neighbours.
+:::
+
+## Residuals: diagnosis and detection
+
+```{index} anomaly detection, false-alarm rate, detection delay
+```
+
+A **residual** is the difference between the measurement and the model's prediction. Residuals
+are useful twice: to check the model, and to watch the process.
+
+### Checking the model
+
+If a forecaster has captured everything predictable in a series, what remains should be white
+noise. Plot the ACF of the one-step residuals. A spike at some lag means there is structure the
+model missed, and a feature at that lag may help. A slow decay means the model is missing
+something persistent, often an input that was left out.
+
+### Residuals as an anomaly detector
+
+A model trained on normal operation predicts normal operation. When the process does something
+the model has never seen, the residual grows. That makes the residual a detector. It will not
+say what went wrong, but it can say that something did, and it needs no examples of faults to
+train on.
+
+:::{admonition} Definition: anomaly detection
+:class: tip
+
+**Anomaly detection** flags observations that do not fit the pattern of normal data. A
+residual-based detector raises an alarm when the forecast error leaves the range it occupies
+during normal operation.
+:::
+
+Building one takes three steps.
+
+1. Fit the forecaster on normal data.
+2. Compute its residuals on *other* normal data, held out, and choose a threshold from them,
+   for example the 99th percentile of the absolute residual.
+3. Raise an alarm when a new residual exceeds the threshold.
+
+On reactor pressure, a one-step model with the valve positions has a residual standard
+deviation of 1.70 kPa on the held-out fault-free runs, and its 99th percentile is 4.38 kPa.
+
+### False alarms are set by the threshold
+
+A 99th-percentile threshold is exceeded by 1 % of normal samples, by construction. That sounds
+small until you count. The plant logs one sample every three minutes, which is 480 a day, so
+the detector raises about 4.8 false alarms a day. Operators learn to ignore a detector like that
+within a week.
+
+:::{admonition} Definition: false-alarm rate and detection delay
+:class: tip
+
+The **false-alarm rate** is how often the detector fires on normal data. The **detection
+delay** is how long after a fault begins the detector first fires. Lowering one raises the
+other.
+:::
+
+A common fix is to require several exceedances in a row. Requiring three consecutive samples
+above the threshold drops the measured false-alarm rate to 0.01 a day on the held-out runs. The
+cost is delay, at least six extra minutes for every fault, and more for a fault whose residual
+flickers across the threshold.
+
+### One fault, measured
+
+The figure shows the detector on fault 1 of the Rieth faulty training file, a step change in
+the A/C feed ratio introduced one hour into the run.
+
+```{figure} figures/residual-detector.png
+:alt: Two stacked plots over 25 hours. Top, reactor pressure oscillates strongly after the fault at hour 1, with swings of about 100 kPa that decay over 15 hours. Bottom, the one-step residual leaves a grey band of plus or minus 4.38 kPa during the first few hours and returns inside it as the oscillation dies down.
+:width: 100%
+
+Reactor pressure and the one-step residual for fault 1, run 1 of the Rieth et al. (2017)
+faulty training file. The grey band is the threshold chosen on fault-free runs. Generated by
+`figures/make_figures.py`.
+```
+
+The three-in-a-row detector fires 45 minutes after the fault begins. Two other things in the
+figure are worth noticing. First, the pressure swings by 100 kPa, but the residual is only
+about 5 to 10 kPa, because a one-step model follows a slow swing closely. The residual reacts
+to what the model did not expect, not to how far the process has moved. Second, the residual
+returns inside the band as the plant settles into a new steady state, even though the fault is
+still present. The controller has compensated, and from the pressure channel alone the new
+state looks normal.
+
+Across all twenty faults on this one channel and run, the detector fires within an hour for
+faults 1, 7 and 12, fires hours later for several others, and never fires for faults 2, 3, 4,
+9, 10, 11, 15 and 16. Many faults do not show up in reactor
+pressure at all, and a detector watching one channel can only see what that channel sees.
+
+## Limitations: when a forecaster fails
+
+```{index} pair: failure mode; forecasting across a regime change
+```
+
+Everything in this session assumes the future resembles the past. Four situations break that
+assumption, and each one produces a confident number and no error message.
+
+**Regime change.** A forecaster trained at one operating point, one market regime, or one
+pre-pandemic demand pattern has no knowledge of any other. When the process moves to a new
+grade, a new catalyst, or a new normal, the model keeps predicting the old one. The fault 1
+figure shows the mild version: the model is out of its depth for several hours after the step.
+The only defences are to monitor the residuals and to retrain.
+
+**Feedback.** Lecture 7's closed-loop case applies here too. Under control, the valve moves
+*because* the pressure moved, so the model's picture of how the inputs drive the output is
+partly a picture of the controller. Retune the controller and the forecaster's picture is out
+of date. Markets have a stronger version: a forecast that many traders act on changes the
+prices it was forecasting.
+
+**Faults that were never in the training data.** A residual detector can flag something new,
+but a forecaster cannot predict through it. After a fault, its forecasts are extrapolations
+from a regime it never saw.
+
+**A horizon ceiling.** Beyond some horizon, no model beats the mean, because the series simply
+does not remember that far back. On reactor pressure, skill falls to 6 % at two hours. More data
+or a larger model will not move that ceiling much, because the limit is in the process, not in
+the model. The ACF shows you roughly where it is before you fit anything.
 
 ## In-class demo
 
-We take the C-MAPSS feature set from Lecture 7 and score one RandomForest two ways: a random row split and a per-unit `GroupKFold`. The random split reports about 12 cycles of error and the grouped split about 17, and we confirm the mechanism directly by counting how many engines appear in both halves of the random split. We then compute a content hash of the feature file, which is the value a `.dvc` metafile would store, and narrate the DVC workflow (`dvc add`, a `dvc.yaml` stage, a local-directory remote) without needing DVC installed. Finally we log both runs to MLflow tagged with the data hash, so the honest and leaky scores sit side by side as reproducible facts, and we run one data-centric change against the fixed model to show the score move attributed to the data.
+The notebook is [`l08-forecasting.ipynb`](l08-forecasting.ipynb). It downloads the 25 MB
+fault-free file from Rieth et al. (2017) on first run and works on reactor pressure throughout.
 
-The moment to watch is the two scores. The leaky split gives the lower error, so it is the one a careless review would ship. The runnable notebook is [`l08-splits-versioning.ipynb`](l08-splits-versioning.ipynb).
+1. **Build the horizon table.** Lecture 7's `build_arx` gains an `h` argument and a `.over`
+   on the run key, so the notebook does not depend on having run Lecture 7.
+2. **Score the baselines.** Persistence and the mean at several horizons, on runs held out
+   from training.
+3. **Fit direct and recursive models** and plot error against horizon, which reproduces the
+   figure in the baselines section.
+4. **Shuffle, then don't.** On a single run, compare shuffled `KFold` with
+   `TimeSeriesSplit(gap=h)` for a random forest, and watch the shuffled score beat persistence
+   while the honest one does not.
+
+The residual detector stays in these notes, because the faulty file is 500 MB.
 
 ## Summary
 
-A train/test split has to make the test set a fair stand-in for deployment, and a random shuffle fails that for the grouped and time-ordered data engineering produces most often. On C-MAPSS the failure is measurable: a random row split reports 12.2 cycles of error and an honest per-unit split reports 16.7, a 37% illusion from nothing but the split. Grouped splits hold out whole entities, temporal splits train on the past, and nested cross-validation keeps tuning out of the reported number. Leakage is the general fault, in four shapes, target, contamination, temporal, and group, and it is found by reasoning about each feature rather than by reading the metric it corrupts. DVC versions the data and the feature pipeline by content, so a run's data can be pinned as precisely as its code and logged beside the git SHA and seed in MLflow. A datasheet records what a hash cannot: provenance, units, and known issues. And data-centric iteration improves the data against a fixed model so the gain is attributable and reproducible. An honest split is the ground the rest of these habits stand on.
+A forecast is a supervised learning problem with a horizon attached. The features are what is
+known at time $t$, the target is `y[t+h]`, and anything from after $t$ that is not a plan is
+leakage. Whether a series can be forecast at all shows up in its autocorrelation: a channel whose
+ACF drops to zero cannot be forecast from its own past, and a random walk is best forecast by its
+last value.
+
+A model earns its place only if it beats the better of two free forecasts, persistence and the
+mean, at the horizon that matters. For a stationary series, persistence wins while the
+autocorrelation stays above one half. On reactor pressure that is roughly the first 45 minutes,
+and the fitted model adds most in between the two regimes. Meese and Rogoff's exchange-rate
+result and the M4 competition show that the same comparison decides real forecasting problems.
+
+Direct forecasters, one per horizon, held up better than recursive ones on reactor pressure,
+because recursive errors compound, although published comparisons on other series have found
+the opposite, so measure the choice on your own data. The score itself has to be earned honestly: train on the past, test on what
+follows, leave a gap of at least $h$, and split by series when there are many. A shuffled split
+on a single run made two models look 30 % better than persistence when both were worse.
+
+Finally, the residuals of a good forecaster are a detector in their own right. Their threshold
+sets the false-alarm rate, and a threshold that sounds strict can still raise several false
+alarms a day at a three-minute sampling rate.
 
 ## Resources
 
-- [scikit-learn User Guide: Cross-validation](https://scikit-learn.org/stable/modules/cross_validation.html). `GroupKFold`, `GroupShuffleSplit`, and `TimeSeriesSplit`, from the source; the section that turns "split correctly" into specific tools.
-- [scikit-learn: Common pitfalls and recommended practices](https://scikit-learn.org/stable/common_pitfalls.html). The library's own writeup of leakage and how fitting inside a pipeline avoids the contamination kind.
-- [Kaufman, Rosset, Perlich, Stitelman, "Leakage in Data Mining"](https://www.cs.umb.edu/~ding/history/470_670_fall_2011/papers/cs670_Tran_PreferredPaper_LeakingInDataMining.pdf) (KDD 2011; ACM TKDD 2012, [DOI](https://doi.org/10.1145/2382577.2382579)). The formal definition and taxonomy, and the "learn-predict separation" fix.
-- [DVC: Data Versioning](https://dvc.org/doc/start/data-management/data-versioning). What `dvc add` does, what a `.dvc` file contains, and the local-directory remote used in the assignment.
-- [DVC: Pipelines](https://dvc.org/doc/user-guide/pipelines). `dvc.yaml` stages with `deps` and `outs`, and `dvc repro` to rebuild only what changed.
-- [Gebru et al., "Datasheets for Datasets"](https://arxiv.org/abs/1803.09010) (CACM 2021, [DOI](https://doi.org/10.1145/3458723)). The 57 questions and seven sections; read the Composition and Collection sections first.
-- [MIT: Introduction to Data-Centric AI](https://dcai.csail.mit.edu/). A structured course on iterating the data rather than the model; a better anchor than the informal talks that named the idea.
-- A. Saxena, K. Goebel, D. Simon, and N. Eklund, "Damage Propagation Modeling for Aircraft Engine Run-to-Failure Simulation," *PHM* 2008 ([NASA NTRS copy](https://ntrs.nasa.gov/citations/20090029214), titled "...Prognostics"). The C-MAPSS methodology and provenance. The four subsets FD001 to FD004 are a property of the [NASA PCoE data set distribution](https://www.nasa.gov/intelligent-systems-division/discovery-and-systems-health/pcoe/pcoe-data-set-repository/), not of this paper.
+- Hyndman and Athanasopoulos, [*Forecasting: Principles and Practice*, 3rd ed., chapter 5](https://otexts.com/fpp3/toolbox.html). The simple baselines, forecast accuracy and time-series cross-validation, free online and written for practitioners.
+- Hyndman and Athanasopoulos, [section 9.1, stationarity and differencing](https://otexts.com/fpp3/stationarity.html). The clearest short treatment of when a series needs differencing.
+- Hyndman and Koehler (2006), [Another look at measures of forecast accuracy](https://robjhyndman.com/papers/mase.pdf). The paper that introduced MASE, and a useful catalogue of what goes wrong with percentage errors (author's copy).
+- Hyndman and Athanasopoulos, [section 5.2, simple forecasting methods](https://otexts.com/fpp3/simple-methods.html) and [section 5.10, time series cross-validation](https://otexts.com/fpp3/tscv.html). Mean, naive, seasonal naive and drift, then evaluation on a rolling origin.
+- Meese and Rogoff, [Empirical exchange rate models of the seventies: are any fit to survive?](https://www.federalreserve.gov/pubs/ifdp/1981/184/ifdp184.pdf). The random-walk result from the first case study. This is the free 1981 Federal Reserve working paper; the 1983 journal version is [here](https://doi.org/10.1016/0022-1996(83)90017-X) and is paywalled.
+- Makridakis, Spiliotis and Assimakopoulos (2018), [The M4 Competition: results, findings, conclusion and way forward](https://econpapers.repec.org/RePEc:eee:intfor:v:34:y:2018:i:4:p:802-808). The abstract carries every M4 figure quoted above (index page; the [journal version](https://doi.org/10.1016/j.ijforecast.2018.06.001) is paywalled). The full results paper, [Makridakis et al. (2020)](https://doi.org/10.1016/j.ijforecast.2019.04.014), is open access.
+- Fama (1965), [Random walks in stock-market prices](https://www.chicagobooth.edu/~/media/34F68FFD9CC04EF1A76901F6C61C0A76.PDF). A short, readable account of why price changes are close to unpredictable (Chicago Booth reprint).
+- Taieb, Bontempi, Atiya and Sorjamaa (2012), [A review and comparison of strategies for multi-step ahead time series forecasting](https://arxiv.org/abs/1108.3259). Recursive, direct and the hybrid strategies between them, compared on competition data (arXiv preprint; the journal version is paywalled). Note that its recursive strategy beat its direct one.
+- Bergmeir, Hyndman and Koo (2018), [A note on the validity of cross-validation for evaluating autoregressive time series prediction](https://robjhyndman.com/papers/cv-wp.pdf). The boundary of the "never shuffle" rule (author's copy).
+- scikit-learn, [`TimeSeriesSplit`](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.TimeSeriesSplit.html). The splitter used in this session, including the `gap` parameter.
+- scikit-learn, [Lagged features for time series forecasting](https://scikit-learn.org/stable/auto_examples/applications/plot_time_series_lagged_features.html). The reduction to regression, built in Polars.
+- skforecast, [recursive multi-step forecasting](https://skforecast.org/latest/user_guides/autoregressive-forecaster.html) and [direct multi-step forecasting](https://skforecast.org/latest/user_guides/direct-multi-step-forecasting.html). Both strategies wrapped around any scikit-learn regressor.
+- statsmodels, [time series analysis](https://www.statsmodels.org/stable/tsa.html). AR, ARIMA and state-space models with standard errors, for when a single series deserves a classical model.
+- Rieth, Amsel, Tran and Cook (2017), [Additional Tennessee Eastman process simulation data](https://doi.org/10.7910/DVN/6C3JR1). The dataset used throughout, CC0.
 
 ## Assignment
 
-Assignment 4, "Feature pipeline and dataset versioning," was released at [Lecture 7](../l07/notes.md) and is due about a week later. Its second half is this session's material: put the C-MAPSS feature set under DVC with a local remote, implement a correct grouped or temporal split, quantify the cost of a leaky split against the honest one, and log both runs to MLflow tagged with the DVC data version. This is a pointer, not the rubric.
+A4, [an h-step forecaster for a plant channel](../../course/assignments/a04.md), is released
+today and is due Monday 09-28.
 
 ## Practice module
 
-<a href="../../game/#/l08"><strong>Practice module for this session</strong></a>, about ten
-minutes of questions drawn from this session's notes, slides and demo. It runs entirely in
-your browser, the questions are selected from your Andrew ID, and it ends by producing a PDF
-you upload for participation credit.
+<a href="../../game/#/l08"><strong>Practice module for this session</strong></a>.

@@ -93,6 +93,8 @@ sphinx:
       - course/assignments/a03-collect.py
       - course/assignments/a03-evidence.py
       - course/assignments/a03-evidence.py.sha256
+      - course/assignments/a04-evidence.py
+      - course/assignments/a04-evidence.py.sha256
     # Do NOT add html_theme_options here. Jupyter Book merges sphinx.config into
     # its own defaults without recursing, so setting it would replace the theme
     # options built from the html: block above and drop use_repository_button

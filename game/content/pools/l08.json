@@ -4,6 +4,155 @@
     "1": {
       "items": {},
       "serve": 0
+    },
+    "2": {
+      "items": {
+        "l08-q01": {
+          "answer": "Valve positions ten samples after t",
+          "options": [
+            "Valve positions ten samples after t",
+            "Pressure nine samples before t",
+            "Valve positions at t",
+            "A rolling mean of pressure ending at t"
+          ]
+        },
+        "l08-q02": {
+          "answer": "The last rows of each run take their target from the next run",
+          "options": [
+            "The last rows of each run take their target from the next run",
+            "The first rows of each run lose their lag features",
+            "The target is h rows in the past instead of the future",
+            "Nothing, because the runs are sorted by sample number"
+          ]
+        },
+        "l08-q03": {
+          "answer": "Persistence is about 1.41 times worse than the mean",
+          "options": [
+            "Persistence is about 1.41 times worse than the mean",
+            "Persistence and the mean are equally good",
+            "Persistence is about 1.41 times better than the mean",
+            "Persistence wins at short horizons and loses at long ones"
+          ]
+        },
+        "l08-q04": {
+          "answer": "When the lag-h autocorrelation exceeds 0.5",
+          "options": [
+            "When the lag-h autocorrelation exceeds 0.5",
+            "Whenever the lag-h autocorrelation is positive",
+            "Only when the lag-h autocorrelation is near 1",
+            "Whenever h is a single step"
+          ]
+        },
+        "l08-q05": {
+          "answer": "Three minutes out, persistence is already close to right",
+          "options": [
+            "Three minutes out, persistence is already close to right",
+            "The one-step model was trained on fewer rows",
+            "One-step models cannot use lag features",
+            "The mean is the stronger baseline at one step"
+          ]
+        },
+        "l08-q06": {
+          "answer": "The mean, because it is the better baseline at this horizon",
+          "options": [
+            "The mean, because it is the better baseline at this horizon",
+            "Persistence, because it is always the standard baseline",
+            "Whichever makes the model's skill look largest",
+            "Neither, because skill scores need a fitted reference model"
+          ]
+        },
+        "l08-q07": {
+          "answer": "The random walk forecast as well or better than all of them",
+          "options": [
+            "The random walk forecast as well or better than all of them",
+            "The structural models beat the random walk at every horizon",
+            "The models won at one month and lost at twelve months",
+            "The comparison was impossible because exchange rates are not stationary"
+          ]
+        },
+        "l08-q08": {
+          "answer": "Each step feeds its prediction back in, so errors compound",
+          "options": [
+            "Each step feeds its prediction back in, so errors compound",
+            "The recursive model was trained on a different target",
+            "It uses fewer lags than the direct model",
+            "The mean is overfitted at long horizons"
+          ]
+        },
+        "l08-q09": {
+          "answer": "The valve positions at each future step",
+          "options": [
+            "The valve positions at each future step",
+            "The pressure at each future step",
+            "A separate model for every horizon",
+            "Nothing beyond what the one-step model already uses"
+          ]
+        },
+        "l08-q10": {
+          "answer": "Not always: on the NN5 series, recursive beat direct",
+          "options": [
+            "Not always: on the NN5 series, recursive beat direct",
+            "Correct: direct wins on every published benchmark",
+            "Correct, but only for linear models",
+            "Not always: both strategies always give identical errors"
+          ]
+        },
+        "l08-q11": {
+          "answer": "The last h training rows",
+          "options": [
+            "The last h training rows",
+            "Only the final training row",
+            "None, since the split is time-ordered",
+            "Every training row"
+          ]
+        },
+        "l08-q12": {
+          "answer": "The forest loses to persistence, so do not use it",
+          "options": [
+            "The forest loses to persistence, so do not use it",
+            "The forest beats persistence by about 30 %",
+            "The average of the two scores, about 5.6 kPa",
+            "Neither, because the two splits disagree"
+          ]
+        },
+        "l08-q13": {
+          "answer": "Never shuffling is a safe default, and this case sits at its boundary",
+          "options": [
+            "Never shuffling is a safe default, and this case sits at its boundary",
+            "Shuffling is always safe for linear models on any series",
+            "The by-run split must contain a bug",
+            "The runs must share neighbouring rows"
+          ]
+        },
+        "l08-q14": {
+          "answer": "About 4.8",
+          "options": [
+            "About 4.8",
+            "About 0.01",
+            "About 48",
+            "About 0.48"
+          ]
+        },
+        "l08-q15": {
+          "answer": "The controller compensated, so the new state looks normal on this channel",
+          "options": [
+            "The controller compensated, so the new state looks normal on this channel",
+            "The fault cleared itself partway through the run",
+            "The threshold was recalculated during the run",
+            "The model was retrained on the faulty data"
+          ]
+        },
+        "l08-q16": {
+          "answer": "Every fault is detected later",
+          "options": [
+            "Every fault is detected later",
+            "The threshold no longer comes from normal data",
+            "The detector can no longer run without fault examples",
+            "Nothing, since false alarms and delay are unrelated"
+          ]
+        }
+      },
+      "serve": 5
     }
   }
 }

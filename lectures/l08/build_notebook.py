@@ -1,35 +1,37 @@
 #!/usr/bin/env python3
-"""Generate lectures/l08/l08-splits-versioning.ipynb.
+"""Generate lectures/l08/l08-forecasting.ipynb.
 
-The L8 demo is the payoff of the Data Systems arc: a leak that inflates a score,
-then the versioning and tracking that make an honest result reproducible.
+About twenty minutes of the session, placed after the evaluation section. It does
+four things on reactor pressure (`xmeas_7`) from the Rieth et al. (2017) fault-free
+training file, and stops:
 
-  1. Build per-engine features and a clipped RUL target on C-MAPSS FD001.
-  2. Score one RandomForest two ways, a random row split and a per-unit
-     GroupKFold. The random split leaks and looks about 37% better.
-  3. Show the mechanism: count engines that land in both halves of a random split.
-  4. Content-hash the feature file, the value a DVC .dvc metafile would store,
-     and narrate the DVC workflow (add, dvc.yaml, local remote) without needing
-     DVC installed.
-  5. Log the leaky and honest runs to MLflow (sqlite) tagged with the data hash.
-  6. Data-centric iteration: hold the model and the honest split fixed, improve
-     the features, and measure the gain.
+  1. build the horizon table: L7's `build_arx`, extended with `h` and `.over(RUN)`
+  2. score persistence and the mean across horizons on held-out runs
+  3. fit direct and recursive ridge models and plot error against horizon
+  4. on single runs, shuffled KFold against TimeSeriesSplit(gap=h) for a random
+     forest, where the shuffled score beats persistence and the honest one does not
 
 Design notes:
-  - Same loader, features, model, and folds as figures/make_figures.py, so the
-    demo reproduces the figure's numbers (about 12.2 random, 16.7 grouped).
-  - DVC is narrated, not executed, per the course choice; the runnable core is
-    the leak quantification and the MLflow tracking.
-  - Runs top to bottom on "Restart and Run All"; relative paths only; the seed
-    is fixed. C-MAPSS is fetched and cached under data/ (gitignored).
+  - Self-contained. L7 no longer writes a Parquet file, and a student who missed L7
+    should still be able to run this. The fault-free file is 25 MB.
+  - Same channel, lags, split and model settings as figures/make_figures.py, so the
+    notebook reproduces the numbers in the notes (persistence 5.82, mean 7.57,
+    direct 5.02, recursive 5.19 kPa at h = 10; forest 4.3 shuffled against 6.9
+    time-ordered on runs 1-10). The notebook uses scikit-learn's Ridge with
+    alpha = 1.0 on standardized columns, which is the same model as the figure
+    script's hand-written ridge to the second decimal.
+  - The residual detector is notes-only: the faulty file is 500 MB.
 
-Kept in a generator for deterministic cell ids and no hand-edited JSON.
+Kept in a generator for deterministic cell ids and no hand-edited JSON. The committed
+.ipynb carries no outputs and must run top to bottom.
+
+    python3 lectures/l08/build_notebook.py
 """
 import json
 import sys
 from pathlib import Path
 
-OUT = Path(__file__).parent / "l08-splits-versioning.ipynb"
+OUT = Path(__file__).parent / "l08-forecasting.ipynb"
 
 _n = 0
 
@@ -40,279 +42,302 @@ def _next_id(kind):
     return f"{kind}-{_n:02d}"
 
 
-def md(*lines):
+def _src(text):
+    lines = text.strip("\n").split("\n")
+    return [ln + "\n" for ln in lines[:-1]] + [lines[-1]]
+
+
+def md(text):
     return {"cell_type": "markdown", "id": _next_id("md"),
-            "metadata": {}, "source": list(lines)}
+            "metadata": {}, "source": _src(text)}
 
 
-def code(*lines):
+def code(text):
     return {"cell_type": "code", "id": _next_id("code"), "execution_count": None,
-            "metadata": {}, "outputs": [], "source": list(lines)}
+            "metadata": {}, "outputs": [], "source": _src(text)}
 
 
 cells = [
-    md("# L8 demo: the split that inflates a score, then versioning\n",
-       "\n",
-       "We reuse the NASA C-MAPSS turbofan data from L7 and predict remaining useful life\n",
-       "(RUL). The point of this notebook is not the model. It is that the same model and the\n",
-       "same features can report two very different scores depending only on how the rows are\n",
-       "split, and that only one of those scores is the one the model will earn on a new engine.\n",
-       "\n",
-       "Then we make the honest result reproducible: content-hash the data the way DVC does,\n",
-       "and log the runs to MLflow tagged with that hash.\n",
-       "\n",
-       "> Data: [C-MAPSS FD001](https://www.nasa.gov/intelligent-systems-division/discovery-and-systems-health/pcoe/pcoe-data-set-repository/),\n",
-       "> 100 run-to-failure engines, carried over from L7."),
+    md("""
+# L8 demo: forecasting reactor pressure, and scoring it honestly
 
-    md("## 1. Load C-MAPSS FD001\n",
-       "\n",
-       "One row per engine per cycle: 3 operational settings and 21 sensor channels, with the\n",
-       "failure cycle known in the training data. Fetched once and cached under `data/`."),
+We do four things.
 
-    code("import io\n",
-         "import urllib.request\n",
-         "import zipfile\n",
-         "from pathlib import Path\n",
-         "\n",
-         "import numpy as np\n",
-         "import pandas as pd\n",
-         "\n",
-         "CACHE = Path('data/CMAPSS')\n",
-         "URL = ('https://phm-datasets.s3.amazonaws.com/NASA/'\n",
-         "       '6.+Turbofan+Engine+Degradation+Simulation+Data+Set.zip')\n",
-         "NEEDED = ['train_FD001.txt', 'test_FD001.txt', 'RUL_FD001.txt', 'readme.txt']\n",
-         "\n",
-         "N_SETTINGS, N_SENSORS = 3, 21\n",
-         "COLUMNS = (['unit', 'cycle']\n",
-         "           + [f'setting{i + 1}' for i in range(N_SETTINGS)]\n",
-         "           + [f'sensor{i + 1}' for i in range(N_SENSORS)])\n",
-         "\n",
-         "\n",
-         "def fetch():\n",
-         "    CACHE.mkdir(parents=True, exist_ok=True)\n",
-         "    if all((CACHE / f).exists() for f in NEEDED):\n",
-         "        return\n",
-         "    print('downloading', URL)\n",
-         "    with urllib.request.urlopen(URL) as r:\n",
-         "        payload = r.read()\n",
-         "    outer = zipfile.ZipFile(io.BytesIO(payload))\n",
-         "    inner_name = next(n for n in outer.namelist() if n.lower().endswith('.zip'))\n",
-         "    inner = zipfile.ZipFile(io.BytesIO(outer.read(inner_name)))\n",
-         "    for name in NEEDED:\n",
-         "        (CACHE / name).write_bytes(inner.read(name))\n",
-         "\n",
-         "\n",
-         "fetch()\n",
-         "train = pd.read_csv(CACHE / 'train_FD001.txt', sep=r'\\s+', header=None, names=COLUMNS)\n",
-         "train[['unit', 'cycle']] = train[['unit', 'cycle']].astype(int)\n",
-         "print(f\"{len(train):,} rows, {train['unit'].nunique()} engines\")\n",
-         "train.head(3)"),
+1. Build a table whose target is `h` samples in the future.
+2. Score two free forecasts, **persistence** and **the mean**, at several horizons.
+3. Fit **direct** and **recursive** models and see which holds up further out.
+4. Score one model two ways, with a **shuffled** split and a **time-ordered** split.
 
-    md("## 2. Per-engine features and a clipped RUL target\n",
-       "\n",
-       "Every rolling feature is computed **within an engine** (`groupby('unit')`), never across\n",
-       "the boundary between one engine and the next, exactly as L7 insisted. Six of the 21\n",
-       "sensors are constant and drop out. The target is remaining cycles, clipped at 125, which\n",
-       "is a modeling choice this dataset conventionally makes."),
+One channel throughout: reactor pressure `xmeas_7`, in kPa, from the Tennessee Eastman
+fault-free simulations. Samples are 3 minutes apart, so `h = 10` is thirty minutes.
+"""),
 
-    code("WINDOW, RUL_CAP, SEED = 5, 125, 0\n",
-         "\n",
-         "\n",
-         "def build_features(df, rolling=True):\n",
-         "    df = df.sort_values(['unit', 'cycle']).reset_index(drop=True)\n",
-         "    sensors = [c for c in df.columns if c.startswith('sensor')]\n",
-         "    live = [c for c in sensors if df[c].nunique() > 1]\n",
-         "    g = df.groupby('unit', group_keys=False)\n",
-         "    feats = {'cycle': df['cycle']}\n",
-         "    for c in live:\n",
-         "        feats[c] = df[c]\n",
-         "        if rolling:\n",
-         "            feats[f'{c}_rmean'] = g[c].transform(\n",
-         "                lambda s: s.rolling(WINDOW, min_periods=1).mean())\n",
-         "            feats[f'{c}_rstd'] = g[c].transform(\n",
-         "                lambda s: s.rolling(WINDOW, min_periods=1).std()).fillna(0.0)\n",
-         "    X = pd.DataFrame(feats)\n",
-         "    life = g['cycle'].transform('max')\n",
-         "    y = (life - df['cycle']).clip(upper=RUL_CAP).to_numpy()\n",
-         "    groups = df['unit'].to_numpy()\n",
-         "    return X, y, groups, live\n",
-         "\n",
-         "\n",
-         "X, y, groups, live = build_features(train)\n",
-         "print(f'{X.shape[1]} features from {len(live)} live sensors; target clipped at {RUL_CAP}')"),
+    code("""
+import numpy as np
+import polars as pl
+import matplotlib.pyplot as plt
 
-    md("## 3. The same model, two splits\n",
-       "\n",
-       "We score one RandomForest with 5-fold cross-validation two ways. A **random** split\n",
-       "shuffles the rows. A **grouped** split keeps each engine wholly in train or in test. The\n",
-       "only difference between the two calls is the splitter."),
+DT = 3.0                 # minutes between samples
+Y = "xmeas_7"            # reactor pressure, kPa
+RUN = "simulationRun"
+XMV = [f"xmv_{i}" for i in range(1, 12)]
+"""),
 
-    code("from sklearn.ensemble import RandomForestRegressor\n",
-         "from sklearn.model_selection import KFold, GroupKFold, cross_val_score\n",
-         "\n",
-         "model = RandomForestRegressor(n_estimators=100, n_jobs=-1, random_state=SEED)\n",
-         "rmse = 'neg_root_mean_squared_error'\n",
-         "\n",
-         "random_rmse = -cross_val_score(\n",
-         "    model, X, y, cv=KFold(5, shuffle=True, random_state=SEED), scoring=rmse).mean()\n",
-         "group_rmse = -cross_val_score(\n",
-         "    model, X, y, cv=GroupKFold(5), groups=groups, scoring=rmse).mean()\n",
-         "\n",
-         "print(f'random row split (leaks) : {random_rmse:5.2f} cycles RMSE')\n",
-         "print(f'per-unit GroupKFold      : {group_rmse:5.2f} cycles RMSE')\n",
-         "print(f'the leak makes the model look {group_rmse / random_rmse:.2f}x better than it is')"),
+    md("""
+## 1. Load the data
 
-    md("The random split reports the lower error, so it is the one a careless review would\n",
-       "ship. The grouped split reports what the model will actually earn on an engine it has\n",
-       "never seen. Same rows, same model; only the split differs."),
+The fault-free training file holds 500 independent simulation runs of 500 samples each
+(25 hours per run). It is downloaded once, about 25 MB.
+"""),
 
-    md("## 4. Why the random split leaks\n",
-       "\n",
-       "Consecutive cycles of one engine are near-duplicates, so a shuffled split puts almost\n",
-       "every engine on both sides of the line. We can count it directly for one split."),
+    code("""
+from pathlib import Path
+import urllib.request, shutil
 
-    code("from sklearn.model_selection import train_test_split\n",
-         "\n",
-         "idx = np.arange(len(X))\n",
-         "tr, te = train_test_split(idx, test_size=0.2, random_state=SEED)\n",
-         "both = set(groups[tr]) & set(groups[te])\n",
-         "print(f'{len(both)} of {train[\"unit\"].nunique()} engines appear in BOTH train and test')\n",
-         "print('so the model is graded on cycles almost identical to ones it trained on')"),
+DATA = Path("data"); DATA.mkdir(exist_ok=True)
+PARQUET = DATA / "tep_fault_free.parquet"
 
-    md("The honest splitters keep an entity whole. `GroupKFold` and `GroupShuffleSplit` split\n",
-       "by engine; `TimeSeriesSplit` trains on past cycles and tests on later ones. All three\n",
-       "take the same one-line shape as the calls above."),
+def load_fault_free():
+    \"\"\"Read the fault-free Tennessee Eastman file, downloading it the first time.\"\"\"
+    if PARQUET.exists():
+        return pl.read_parquet(PARQUET)
+    import pyreadr
+    raw = DATA / "tep_fault_free.RData"
+    if not raw.exists():
+        url = "https://dataverse.harvard.edu/api/access/datafile/3031241"
+        print(f"fetching {url} (one time, ~25 MB)")
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req) as r, open(raw, "wb") as f:
+            shutil.copyfileobj(r, f)
+    pdf = pyreadr.read_r(str(raw))["fault_free_training"]
+    for c in ("faultNumber", "simulationRun", "sample"):
+        pdf[c] = pdf[c].astype(int)
+    out = pl.from_pandas(pdf).sort(RUN, "sample")
+    out.write_parquet(PARQUET)
+    return out
 
-    code("from sklearn.model_selection import GroupShuffleSplit, TimeSeriesSplit\n",
-         "\n",
-         "gss = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=SEED)\n",
-         "tr_g, te_g = next(gss.split(X, y, groups))\n",
-         "print(f'GroupShuffleSplit holds out {len(set(groups[te_g]))} whole engines, '\n",
-         "      f'{len(set(groups[tr_g]) & set(groups[te_g]))} shared')\n",
-         "print(f'TimeSeriesSplit gives {TimeSeriesSplit(n_splits=5).get_n_splits()} past/future folds')"),
 
-    md("## 5. Version the data by content\n",
-       "\n",
-       "Reproducing a result means pinning the data as precisely as the code. DVC does this by\n",
-       "**content hashing**: it hashes the file's bytes and tracks that hash in git. We can\n",
-       "compute the same hash ourselves to see what it stores."),
+tep = load_fault_free()
+tep.select(RUN, "sample", Y, "xmv_1").head()
+"""),
 
-    code("import hashlib\n",
-         "\n",
-         "Path('artifacts').mkdir(exist_ok=True)\n",
-         "feature_path = Path('artifacts/features.parquet')\n",
-         "X.assign(rul=y, unit=groups).to_parquet(feature_path)\n",
-         "\n",
-         "digest = hashlib.md5(feature_path.read_bytes()).hexdigest()\n",
-         "print(f'{feature_path}  ->  md5 {digest}')\n",
-         "print('this hash is exactly what a .dvc metafile records for the file')"),
+    code("""
+print(tep.height, "rows,", tep[RUN].n_unique(), "runs")
+print(f"pressure: mean {tep[Y].mean():.1f} kPa, standard deviation {tep[Y].std():.2f} kPa")
+"""),
 
-    md("### Narrated DVC workflow (commands shown, not run here)\n",
-       "\n",
-       "DVC is a command-line tool. In the assignment you run these; the point to see now is that\n",
-       "the `.dvc` metafile git tracks is tiny, and the data itself goes to a cache and a\n",
-       "**local remote that is just a directory**, so no cloud account is needed.\n",
-       "\n",
-       "```bash\n",
-       "dvc init\n",
-       "dvc remote add -d local ../dvc-store    # a plain directory\n",
-       "dvc add artifacts/features.parquet      # hashes + caches the file\n",
-       "git add artifacts/features.parquet.dvc .gitignore\n",
-       "dvc push                                # copy bytes to the remote\n",
-       "```\n",
-       "\n",
-       "The `features.parquet.dvc` file that git then tracks looks like this, and its `md5`\n",
-       "matches the digest printed above:\n",
-       "\n",
-       "```yaml\n",
-       "outs:\n",
-       "  - md5: <the digest above>\n",
-       "    path: features.parquet\n",
-       "```\n",
-       "\n",
-       "A `dvc.yaml` records the pipeline that produced the file, so `dvc repro` rebuilds it from\n",
-       "raw data and reruns only the stages whose inputs changed:\n",
-       "\n",
-       "```yaml\n",
-       "stages:\n",
-       "  featurize:\n",
-       "    cmd: python featurize.py\n",
-       "    deps: [data/CMAPSS/train_FD001.txt, featurize.py]\n",
-       "    outs: [artifacts/features.parquet]\n",
-       "```"),
+    md("""
+## 2. The horizon table
 
-    md("## 6. Track the runs, tagged with the data version\n",
-       "\n",
-       "Now the honest and leaky scores become reproducible facts. Each MLflow run records the\n",
-       "split, the score, and the **data hash**, so a run can be tied back to the exact bytes it\n",
-       "used. MLflow stores this in a local SQLite file, with no server to start."),
+This is Lecture 7's `build_arx` with two changes. The target is `y[t+h]` instead of
+`y[t+1]`, and every shift runs `.over(RUN)` so no row reaches into another run.
 
-    code("import mlflow\n",
-         "\n",
-         "mlflow.set_tracking_uri('sqlite:///mlflow.db')\n",
-         "mlflow.set_experiment('l08-rul-splits')\n",
-         "\n",
-         "for split_name, score in [('random_row', random_rmse), ('per_unit_group', group_rmse)]:\n",
-         "    with mlflow.start_run(run_name=split_name):\n",
-         "        mlflow.log_param('split', split_name)\n",
-         "        mlflow.log_param('data_md5', digest)\n",
-         "        mlflow.log_param('model', 'RandomForest(100)')\n",
-         "        mlflow.log_metric('rmse_cycles', score)\n",
-         "\n",
-         "runs = mlflow.search_runs(experiment_names=['l08-rul-splits'])\n",
-         "print(runs[['params.split', 'metrics.rmse_cycles', 'params.data_md5']].to_string(index=False))"),
+Everything in a row is known at time `t`. The valve positions are the ones at `t`,
+because the future valve positions are not known when the forecast is made.
+"""),
 
-    md("## 7. Data-centric iteration\n",
-       "\n",
-       "Improve the model by improving the data, with the model and the honest split held fixed,\n",
-       "so any change in the score is attributable to the data. The change here is a **label**\n",
-       "decision. C-MAPSS RUL is conventionally clipped at 125 cycles, which encodes that an\n",
-       "engine's health is roughly flat until late in life. We train on the raw remaining-cycle\n",
-       "count and on the clipped version, score both on the same clipped target (the quantity we\n",
-       "actually care about) under the same `GroupKFold`, and log each as a run."),
+    code("""
+def build_table(df, h, n_lags=10, valves=False):
+    \"\"\"Features known at time t, and the target y[t+h], built inside each run.\"\"\"
+    cols = {f"y[t-{k}]" if k else "y[t]": pl.col(Y).shift(k).over(RUN)
+            for k in range(n_lags)}
+    if valves:
+        cols |= {v: pl.col(v) for v in XMV}
+    cols["target"] = pl.col(Y).shift(-h).over(RUN)
+    table = df.select(RUN, **cols).drop_nulls()
+    names = [c for c in cols if c != "target"]
+    return table, names
 
-    code("from sklearn.model_selection import cross_val_predict\n",
-         "\n",
-         "def rmse(a, b):\n",
-         "    return float(np.sqrt(((a - b) ** 2).mean()))\n",
-         "\n",
-         "d = train.sort_values(['unit', 'cycle']).reset_index(drop=True)\n",
-         "rul_raw = (d.groupby('unit')['cycle'].transform('max') - d['cycle']).to_numpy()\n",
-         "y_true = np.clip(rul_raw, 0, RUL_CAP)          # scored on this, both ways\n",
-         "gkf = GroupKFold(5)\n",
-         "\n",
-         "scores = {}\n",
-         "for name, y_train in [('unclipped_rul', rul_raw), ('clipped_rul_125', y_true)]:\n",
-         "    path = Path(f'artifacts/features_{name}.parquet')\n",
-         "    X.assign(rul=y_train, unit=groups).to_parquet(path)\n",
-         "    d_md5 = hashlib.md5(path.read_bytes()).hexdigest()\n",
-         "    pred = np.clip(cross_val_predict(model, X, y_train, cv=gkf, groups=groups), 0, RUL_CAP)\n",
-         "    scores[name] = rmse(y_true, pred)\n",
-         "    with mlflow.start_run(run_name=name):\n",
-         "        mlflow.log_param('label_scheme', name)\n",
-         "        mlflow.log_param('data_md5', d_md5)\n",
-         "        mlflow.log_metric('rmse_cycles', scores[name])\n",
-         "\n",
-         "gain = scores['unclipped_rul'] - scores['clipped_rul_125']\n",
-         "print(f\"train on unclipped RUL : {scores['unclipped_rul']:5.2f} cycles (honest split, scored on clipped)\")\n",
-         "print(f\"train on clipped RUL   : {scores['clipped_rul_125']:5.2f} cycles\")\n",
-         "print(f'clipping the label improved the honest RMSE by {gain:.2f} cycles, same model and split')"),
 
-    md("---\n",
-       "\n",
-       "## Takeaway\n",
-       "\n",
-       "The split decides whether your score means anything. A random split of grouped, ordered\n",
-       "data leaks, and it flatters the model by about 37% here; a per-unit split reports what the\n",
-       "model earns on a new engine. Version the data by content so a run pins its exact inputs,\n",
-       "log the data hash beside the score, and then improve the data against a fixed model so the\n",
-       "gain is attributable and reproducible. Assignment **A4** has you put the C-MAPSS features\n",
-       "under DVC, implement a correct split, and quantify the leak, so its second half starts here."),
+table, names = build_table(tep, h=10)
+table.head()
+"""),
+
+    md("""
+Split **by run**: train on runs 1 to 300, test on runs 401 to 500. No test run
+contributes anything to the fit.
+"""),
+
+    code("""
+def split(table, names):
+    train = table.filter(pl.col(RUN) <= 300)
+    test = table.filter(pl.col(RUN) > 400)
+    return (train.select(names).to_numpy(), train["target"].to_numpy(),
+            test.select(names).to_numpy(), test["target"].to_numpy())
+
+
+def rmse(e):
+    return float(np.sqrt(np.mean(np.square(e))))
+"""),
+
+    md("""
+## 3. Two free forecasts
+
+- **Persistence**: `y[t+h] = y[t]`, the first feature column.
+- **The mean**: the average pressure in the training runs.
+
+Neither needs fitting. Watch which one wins as `h` grows.
+"""),
+
+    code("""
+HORIZONS = [1, 2, 5, 10, 15, 20, 30, 40]
+rows = []
+for h in HORIZONS:
+    Xtr, ytr, Xte, yte = split(*build_table(tep, h))
+    rows.append({"h": h, "minutes": h * DT,
+                 "persistence": rmse(yte - Xte[:, 0]),
+                 "mean": rmse(yte - ytr.mean())})
+baselines = pl.DataFrame(rows)
+baselines
+"""),
+
+    md("""
+**Stop and predict.** Persistence starts about four times better than the mean. Where do
+they cross? For a stationary series the answer is where the autocorrelation drops below
+one half.
+"""),
+
+    md("""
+## 4. Direct and recursive models
+
+Both use the same ten lags and the same ridge regression inside a `Pipeline`, so the
+scaler is fitted on training rows only.
+
+- **Direct**: one model per horizon, trained on `y[t+h]`.
+- **Recursive**: one model for `y[t+1]`, applied `h` times, feeding each prediction back in.
+"""),
+
+    code("""
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import Ridge
+
+
+def ridge():
+    return make_pipeline(StandardScaler(), Ridge(alpha=1.0))
+
+
+# the one-step model the recursive forecaster reuses
+Xtr1, ytr1, _, _ = split(*build_table(tep, 1))
+one_step = ridge().fit(Xtr1, ytr1)
+
+
+def recursive(X, h):
+    \"\"\"Apply the one-step model h times, shifting each prediction into y[t].\"\"\"
+    Z = X.copy()
+    for _ in range(h):
+        nxt = one_step.predict(Z)
+        Z = np.column_stack([nxt, Z[:, :-1]])
+    return nxt
+"""),
+
+    code("""
+direct_err, recursive_err = [], []
+for h in HORIZONS:
+    Xtr, ytr, Xte, yte = split(*build_table(tep, h))
+    direct_err.append(rmse(yte - ridge().fit(Xtr, ytr).predict(Xte)))
+    recursive_err.append(rmse(yte - recursive(Xte, h)))
+
+results = baselines.with_columns(direct=pl.Series(direct_err),
+                                 recursive=pl.Series(recursive_err))
+results.with_columns(
+    skill=1 - pl.col("direct") / pl.min_horizontal("persistence", "mean"))
+"""),
+
+    code("""
+m = results["minutes"]
+fig, ax = plt.subplots(figsize=(8, 4))
+ax.plot(m, results["persistence"], "o-", label="persistence")
+ax.plot(m, results["mean"], "s--", label="mean")
+ax.plot(m, results["recursive"], "^-", label="recursive")
+ax.plot(m, results["direct"], "o-", lw=2.5, label="direct")
+ax.set_xlabel("horizon, minutes")
+ax.set_ylabel("test RMSE, kPa")
+ax.set_ylim(0, None)
+ax.legend();
+"""),
+
+    md("""
+Read the plot from left to right.
+
+- At 3 minutes, the model barely beats persistence. That small gap is the honest version
+  of an R-squared near 0.99.
+- In the middle, neither free forecast is good, and the model earns the most.
+- Far out, the recursive model has compounded its own errors past the mean.
+"""),
+
+    md("""
+### Does knowing the valves help?
+
+Add the eleven valve positions at time `t` to the direct model, at thirty minutes.
+"""),
+
+    code("""
+Xtr, ytr, Xte, yte = split(*build_table(tep, 10, valves=True))
+print(f"direct, pressure lags only : {direct_err[HORIZONS.index(10)]:.2f} kPa")
+print(f"direct, lags and valves    : {rmse(yte - ridge().fit(Xtr, ytr).predict(Xte)):.2f} kPa")
+"""),
+
+    md("""
+## 5. Shuffle, then don't
+
+Now a single run, the situation of one stock, one meter or one plant historian. Score a
+random forest two ways at `h = 10`:
+
+- `KFold(shuffle=True)`: rows go to train and test at random.
+- `TimeSeriesSplit(gap=h)`: train on the past, skip `h` samples, test on what follows.
+
+Persistence is scored on the same test folds.
+"""),
+
+    code("""
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import KFold, TimeSeriesSplit
+
+h = 10
+schemes = {"shuffled KFold": KFold(5, shuffle=True, random_state=0),
+           f"TimeSeriesSplit(gap={h})": TimeSeriesSplit(5, gap=h)}
+
+
+def cv_scores(run):
+    table, names = build_table(tep.filter(pl.col(RUN) == run), h, valves=True)
+    X, y = table.select(names).to_numpy(), table["target"].to_numpy()
+    out = {}
+    for name, cv in schemes.items():
+        forest, pers = [], []
+        for tr, te in cv.split(X):
+            model = RandomForestRegressor(100, n_jobs=-1, random_state=0).fit(X[tr], y[tr])
+            forest.append(rmse(y[te] - model.predict(X[te])))
+            pers.append(rmse(y[te] - X[te, 0]))
+        out[name] = (np.mean(forest), np.mean(pers))
+    return out
+"""),
+
+    code("""
+rows = []
+for run in range(1, 6):
+    for name, (forest, pers) in cv_scores(run).items():
+        rows.append({"run": run, "split": name, "forest": forest, "persistence": pers})
+
+pl.DataFrame(rows).group_by("split").agg(pl.col("forest", "persistence").mean())
+"""),
+
+    md("""
+**What happened.** Under the shuffled split, every test row has its neighbours from a few
+minutes before *and after* in the training set, and the forest recalls them. The forest
+looks far better than persistence. Under the time-ordered split, it is worse than
+persistence, which is the number you would see in use.
+
+**Try it.**
+
+1. Replace the forest with `ridge()`. Does the shuffled score still flatter it?
+2. Set `gap=0`. How much does the score change at `h = 10`? At `h = 40`?
+3. Pick a white-noise channel, `xmeas_12`. What do persistence and the mean score there,
+   and can any model beat the mean?
+"""),
 ]
 
-# The Colab bootstrap cell, injected from the notebook's own imports so this
-# generator does not carry a second copy of the requirement list. See
-# tools/colab_setup.py.
+# The Colab bootstrap cell, injected from the notebook's own imports.
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
 from colab_setup import with_colab_cell  # noqa: E402
 
