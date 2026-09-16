@@ -13,7 +13,7 @@ from the start, but stays hidden until its session is a couple of days out:
     module (the map room follows _toc.yml, not the bank);
   * the assignment released with it (if any) commented out of _toc.yml too,
     from the schedule's "Assignment N released" markers;
-  * the mini-project (L13) and final project (L17), whose whole Projects part
+  * the mini-project (L9) and final project (L17), whose whole Projects part
     is held until the first of them is released.
 
 Releasing flips them all back on and regenerates the map. Nothing here commits or
@@ -42,7 +42,7 @@ TOC = REPO / "_toc.yml"
 
 #: Which assignment is released with which lecture, from course/schedule.md's
 #: "Assignment N released" markers. A4 moved from L7 to L8 when L8 became the ML
-#: workflow session: A4 asks for an ML model, and L7 fits without ever scoring. The mini-project (A7) launches at L13 and
+#: workflow session: A4 asks for an ML model, and L7 fits without ever scoring. The mini-project (A7) launches at L9 and
 #: lives in the Projects part, so it is not listed here. A lecture with no entry
 #: releases no assignment.
 LECTURE_ASSIGNMENTS = {
@@ -51,12 +51,12 @@ LECTURE_ASSIGNMENTS = {
 }
 
 #: Which project page (course/<slug>.md) is released with which lecture. The
-#: mini-project launches at L13. The final project is released at L17, right
+#: mini-project launches at L9 (issue #134), ahead of fall break. The final project is released at L17, right
 #: after the mini-project ends and a week ahead of the proposal deadline at L19;
 #: there is no schedule marker for it, so this date is a deliberate choice and
 #: the one line to change if it should move.
 LECTURE_PROJECTS = {
-    13: ["miniproject"], 17: ["final-project"],
+    9: ["miniproject"], 17: ["final-project"],
 }
 
 
