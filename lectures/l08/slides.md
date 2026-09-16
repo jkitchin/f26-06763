@@ -15,8 +15,10 @@ footer: "Systems and Toolchains for AI Engineers"
 **Systems and Toolchains for AI Engineers**
 
 <!--
-Budget, 90 minutes: opening 5, supervised 6, forecastable 10, baselines 11,
-models 9, evaluation 10, demo 20, residuals 5, limitations 4, close 3. About 83.
+Budget: 90 minutes of lecture, then 20 for the notebook and questions.
+Lecture: opening 6, supervised 9, forecastable 14, baselines 17, models 13,
+evaluation 15, residuals 8, limitations 5. About 87, with recap and standings
+after the notebook.
 Abort order if running long: window-features slide, look-ahead/survivorship slide,
 the second residual slide.
 -->
@@ -33,8 +35,9 @@ Today:
 2. What makes a series **forecastable** at all
 3. **Baselines**: better than what?
 4. **Direct** and **recursive** forecasts
-5. **Evaluating on time**, then the demo
+5. **Evaluating on time**
 6. **Residuals** as a detector, and the limits
+7. The notebook, then questions
 
 ---
 
@@ -572,21 +575,6 @@ Both inflate the score. Neither raises an error.
 
 ---
 
-<!-- _class: demo -->
-
-# Demo
-
-## `l08-forecasting.ipynb`
-
-Reactor pressure, 500 runs. Build the horizon table, score persistence and the mean,
-fit direct and recursive, then shuffle and don't.
-
-<!--
-20 minutes. Pause at "stop and predict" before the baseline table prints. The last
-cell takes about 15 seconds.
--->
-
----
 
 <!-- _class: section -->
 
@@ -660,6 +648,22 @@ One channel sees only what that channel sees.
 | **horizon ceiling** | pressure skill 6 % at two hours | the ACF shows it before fitting |
 
 Each one returns a **confident number**, not an error.
+
+---
+
+<!-- _class: demo -->
+
+# Demo
+
+## `l08-forecasting.ipynb`
+
+Reactor pressure, 500 runs. Build the horizon table, score persistence and the mean,
+fit direct and recursive, then shuffle and don't.
+
+<!--
+The last 20 minutes, notebook then questions. Pause at "stop and predict" before
+the baseline table prints. The last cell takes about 15 seconds.
+-->
 
 ---
 

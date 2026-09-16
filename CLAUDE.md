@@ -378,8 +378,10 @@ the readings and the assignment for this week and any prep to do before the next
 lecture at a time and that lecture is not out yet. Same rule as the notes Summary in
 section 4.
 
-**Sessions are 110 minutes.** Budget accordingly, and note that this is long enough that a
-deck which merely names topics will run dry well before the room does.
+**Sessions are 110 minutes, and the deck gets 90 of them.** The last 20 minutes are kept for
+the worked notebook and questions, so budget the lecture itself at 90 minutes and put the demo
+slide at the end of the deck. Ninety minutes is still long enough that a deck which merely
+names topics will run dry well before the room does.
 
 **Title by topic, not by headline.** A deck should read like a conference talk. Group the
 content under a handful of topics, each opened by a `<!-- _class: section -->` divider, and
@@ -395,8 +397,8 @@ Slides can be moderately dense, as long as the deck carries the same amount of c
 session needs. A topic slide may hold a few related points, or a small table plus a line of
 framing, instead of a single fragment. It stays fragments and pointers rather than paragraphs,
 because the slide anchors what you say and does not replace it. Budget by content and by time
-rather than by a fixed slide count: a 110-minute session with a 20-minute demo runs to roughly
-**35 to 55 topic slides**. Too much text on a single slide is a worse failure than too few
+rather than by a fixed slide count: a 90-minute lecture, with the notebook and questions in
+the remaining 20, runs to roughly **40 to 50 topic slides**. Too much text on a single slide is a worse failure than too few
 slides, so if a deck feels thin, add topics and real content. L1 and L2 predate this
 convention and are sparser, one idea per slide; migrate them to topic titles when they are
 next revised.

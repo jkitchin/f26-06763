@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate lectures/l08/l08-forecasting.ipynb.
 
-About twenty minutes of the session, placed after the evaluation section. It does
+The last twenty minutes of the session, with questions, after the lecture. It does
 four things on reactor pressure (`xmeas_7`) from the Rieth et al. (2017) fault-free
 training file, and stops:
 
