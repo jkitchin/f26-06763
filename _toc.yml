@@ -34,9 +34,9 @@ parts:
       - file: lectures/l06/notes
         sections:
           - file: lectures/l06/l06-validation
-#       - file: lectures/l07/notes
-#         sections:
-#           - file: lectures/l07/l07-features
+      - file: lectures/l07/notes
+        sections:
+          - file: lectures/l07/l07-features
 #       - file: lectures/l08/notes
 #         sections:
 #           - file: lectures/l08/l08-splits-versioning
@@ -85,7 +85,7 @@ parts:
       - file: course/assignments/a01
       - file: course/assignments/a02
       - file: course/assignments/a03
-#       - file: course/assignments/a04
+      - file: course/assignments/a04
 #       - file: course/assignments/a05
 #       - file: course/assignments/a06
 #       - file: course/assignments/a08
