@@ -392,27 +392,11 @@
     },
     {
       "from": "l07",
-      "to": "l01",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "directly back to the sensor drift you measured in [Lecture 1](../l01/notes.md): if a channel's raw"
-    },
-    {
-      "from": "l07",
-      "to": "l03",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "data to a fixed grid**. For that, recall the Intel Berkeley Lab motes from [Lecture 3](../l03/notes.md),"
-    },
-    {
-      "from": "l07",
       "to": "l05",
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "same test the batch pipeline in [Lecture 5](../l05/notes.md) uses to drop a dead channel, and this"
+      "where": "- **Tools** Polars for the table (same as [Lecture 5](../l05/notes.md)), `numpy.linalg.lstsq` for the fit"
     },
     {
       "from": "l08",

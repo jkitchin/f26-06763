@@ -261,6 +261,345 @@
         }
       },
       "serve": 5
+    },
+    "4": {
+      "items": {
+        "l07-q01": {
+          "answer": "The flow depends on where the flow just was",
+          "options": [
+            "The flow depends on where the flow just was",
+            "One of the two sensors is out of calibration",
+            "The valve and the flow are simply unrelated",
+            "The record covers too short a period"
+          ]
+        },
+        "l07-q02": {
+          "answer": "The controller never let the valve ramp, so the record cannot show the loop",
+          "options": [
+            "The controller never let the valve ramp, so the record cannot show the loop",
+            "The archive is sampled too slowly to resolve anything",
+            "The flow meter and the valve are on different time bases",
+            "The loop is at steady state, so there is nothing to see"
+          ]
+        },
+        "l07-q03": {
+          "answer": "It carries information you would not have had when the prediction was due",
+          "options": [
+            "It carries information you would not have had when the prediction was due",
+            "It has been scaled differently from the other columns",
+            "It has more missing values than the rows around it",
+            "It came from an instrument that was out of calibration"
+          ]
+        },
+        "l07-q04": {
+          "answer": "Given each run's first row the previous run's last reading",
+          "options": [
+            "Given each run's first row the previous run's last reading",
+            "Reversed the direction of the shift",
+            "Dropped the first row of every run in the log",
+            "Nothing, because sorting by run already handles it"
+          ]
+        },
+        "l07-q05": {
+          "answer": "Drop them",
+          "options": [
+            "Drop them",
+            "Fill them with zero",
+            "Fill them with the column mean",
+            "Carry the next value backwards"
+          ]
+        },
+        "l07-q06": {
+          "answer": "A time constant of 10.7 min and a gain of 0.1317",
+          "options": [
+            "A time constant of 10.7 min and a gain of 0.1317",
+            "An accuracy of 76% and a prediction error of 0.03",
+            "A 10.7 minute delay before the valve acts on the flow",
+            "Nothing at all until you have a held-out test set"
+          ]
+        },
+        "l07-q07": {
+          "answer": "The samples sit too close together for those loops",
+          "options": [
+            "The samples sit too close together for those loops",
+            "Those loops genuinely take several hours to settle down",
+            "The fit needs more lag columns to converge",
+            "Those channels should be dropped as broken"
+          ]
+        },
+        "l07-q08": {
+          "answer": "Nothing; the record has no evidence about the valve",
+          "options": [
+            "Nothing; the record has no evidence about the valve",
+            "The fit failed to converge and needs a restart",
+            "The valve column was accidentally dropped",
+            "The mean should not have been subtracted"
+          ]
+        },
+        "l07-q09": {
+          "answer": "The question; the controller caused that correlation",
+          "options": [
+            "The question; the controller caused that correlation",
+            "The model; it needs a longer record to settle",
+            "The data; the cooling water sensor reads backwards",
+            "The model; the sign should be flipped by hand"
+          ]
+        },
+        "l07-q10": {
+          "answer": "Waiting for steady state erases the history on purpose",
+          "options": [
+            "Waiting for steady state erases the history on purpose",
+            "Lab instruments are far more precise than plant ones",
+            "A calibration curve uses fewer points",
+            "The lab tank has no thermal mass"
+          ]
+        },
+        "l07-q11": {
+          "answer": "It groups by half the key, so most boundaries are still wrong",
+          "options": [
+            "It groups by half the key, so most boundaries are still wrong",
+            "Nothing, since `simulationRun` already separates the experiments",
+            "`.over()` reverses the direction of the shift",
+            "`shift(1)` cannot be combined with `.over()` in Polars"
+          ]
+        },
+        "l07-q12": {
+          "answer": "Forward-fill `u` and leave `y` null",
+          "options": [
+            "Forward-fill `u` and leave `y` null",
+            "Forward-fill both, since a gap is a gap",
+            "Forward-fill `y` and leave `u` null",
+            "Fill both with the column mean so nothing is missing"
+          ]
+        }
+      },
+      "serve": 5
+    },
+    "5": {
+      "items": {
+        "l07-q01": {
+          "answer": "The flow depends on where the flow just was",
+          "options": [
+            "The flow depends on where the flow just was",
+            "One of the two sensors is out of calibration",
+            "The valve and the flow are simply unrelated",
+            "The record covers too short a period"
+          ]
+        },
+        "l07-q02": {
+          "answer": "The controller never let the valve ramp, so the record cannot show the loop",
+          "options": [
+            "The controller never let the valve ramp, so the record cannot show the loop",
+            "The archive is sampled too slowly to resolve anything",
+            "The flow meter and the valve are on different time bases",
+            "The loop is at steady state, so there is nothing to see"
+          ]
+        },
+        "l07-q03": {
+          "answer": "It carries information you would not have had when the prediction was due",
+          "options": [
+            "It carries information you would not have had when the prediction was due",
+            "It has been scaled differently from the other columns",
+            "It has more missing values than the rows around it",
+            "It came from an instrument that was out of calibration"
+          ]
+        },
+        "l07-q04": {
+          "answer": "Given each run's first row the previous run's last reading",
+          "options": [
+            "Given each run's first row the previous run's last reading",
+            "Reversed the direction of the shift",
+            "Dropped the first row of every run in the log",
+            "Nothing, because sorting by run already handles it"
+          ]
+        },
+        "l07-q05": {
+          "answer": "Drop them",
+          "options": [
+            "Drop them",
+            "Fill them with zero",
+            "Fill them with the column mean",
+            "Carry the next value backwards"
+          ]
+        },
+        "l07-q06": {
+          "answer": "A time constant of 10.6 min and a gain of 0.1304",
+          "options": [
+            "A time constant of 10.6 min and a gain of 0.1304",
+            "An accuracy of 75% and a prediction error of 0.03",
+            "A 10.6 minute delay before the valve acts on the flow",
+            "Nothing at all until you have a held-out test set"
+          ]
+        },
+        "l07-q07": {
+          "answer": "The samples sit too close together for those loops",
+          "options": [
+            "The samples sit too close together for those loops",
+            "Those loops genuinely take several hours to settle down",
+            "The fit needs more lag columns to converge",
+            "Those channels should be dropped as broken"
+          ]
+        },
+        "l07-q08": {
+          "answer": "Nothing; the record has no evidence about the valve",
+          "options": [
+            "Nothing; the record has no evidence about the valve",
+            "The fit failed to converge and needs a restart",
+            "The valve column was accidentally dropped",
+            "The mean should not have been subtracted"
+          ]
+        },
+        "l07-q09": {
+          "answer": "The question; the controller caused that correlation",
+          "options": [
+            "The question; the controller caused that correlation",
+            "The model; it needs a longer record to settle",
+            "The data; the cooling water sensor reads backwards",
+            "The model; the sign should be flipped by hand"
+          ]
+        },
+        "l07-q10": {
+          "answer": "Waiting for steady state erases the history on purpose",
+          "options": [
+            "Waiting for steady state erases the history on purpose",
+            "Lab instruments are far more precise than plant ones",
+            "A calibration curve uses fewer points",
+            "The lab tank has no thermal mass"
+          ]
+        },
+        "l07-q11": {
+          "answer": "It groups by half the key, so most boundaries are still wrong",
+          "options": [
+            "It groups by half the key, so most boundaries are still wrong",
+            "Nothing, since `simulationRun` already separates the experiments",
+            "`.over()` reverses the direction of the shift",
+            "`shift(1)` cannot be combined with `.over()` in Polars"
+          ]
+        },
+        "l07-q12": {
+          "answer": "Forward-fill `u` and leave `y` null",
+          "options": [
+            "Forward-fill `u` and leave `y` null",
+            "Forward-fill both, since a gap is a gap",
+            "Forward-fill `y` and leave `u` null",
+            "Fill both with the column mean so nothing is missing"
+          ]
+        }
+      },
+      "serve": 5
+    },
+    "6": {
+      "items": {
+        "l07-q01": {
+          "answer": "The flow depends on where the flow just was",
+          "options": [
+            "The flow depends on where the flow just was",
+            "One of the two sensors is out of calibration",
+            "The valve and the flow are simply unrelated",
+            "The record covers too short a period"
+          ]
+        },
+        "l07-q02": {
+          "answer": "The controller never let the valve ramp, so the record cannot show the loop",
+          "options": [
+            "The controller never let the valve ramp, so the record cannot show the loop",
+            "The archive is sampled too slowly to resolve anything",
+            "The flow meter and the valve are on different time bases",
+            "The loop is at steady state, so there is nothing to see"
+          ]
+        },
+        "l07-q03": {
+          "answer": "It carries information you would not have had when the prediction was due",
+          "options": [
+            "It carries information you would not have had when the prediction was due",
+            "It has been scaled differently from the other columns",
+            "It has more missing values than the rows around it",
+            "It came from an instrument that was out of calibration"
+          ]
+        },
+        "l07-q04": {
+          "answer": "Given each run's first row the previous run's last reading",
+          "options": [
+            "Given each run's first row the previous run's last reading",
+            "Reversed the direction of the shift",
+            "Dropped the first row of every run in the log",
+            "Nothing, because sorting by run already handles it"
+          ]
+        },
+        "l07-q05": {
+          "answer": "Drop them",
+          "options": [
+            "Drop them",
+            "Fill them with zero",
+            "Fill them with the column mean",
+            "Carry the next value backwards"
+          ]
+        },
+        "l07-q06": {
+          "answer": "A time constant of 10.6 min and a gain of 0.1304",
+          "options": [
+            "A time constant of 10.6 min and a gain of 0.1304",
+            "An accuracy of 75% and a prediction error of 0.03",
+            "A 10.6 minute delay before the valve acts on the flow",
+            "Nothing at all until you have a held-out test set"
+          ]
+        },
+        "l07-q07": {
+          "answer": "The samples sit too close together for those loops",
+          "options": [
+            "The samples sit too close together for those loops",
+            "Those loops genuinely take several hours to settle down",
+            "The fit needs more lag columns to converge",
+            "Those channels should be dropped as broken"
+          ]
+        },
+        "l07-q08": {
+          "answer": "Nothing; the record has no evidence about the valve",
+          "options": [
+            "Nothing; the record has no evidence about the valve",
+            "The fit failed to converge and needs a restart",
+            "The valve column was accidentally dropped",
+            "The mean should not have been subtracted"
+          ]
+        },
+        "l07-q09": {
+          "answer": "The question; the controller caused that correlation",
+          "options": [
+            "The question; the controller caused that correlation",
+            "The model; it needs a longer record to settle",
+            "The data; the cooling water sensor reads backwards",
+            "The model; the sign should be flipped by hand"
+          ]
+        },
+        "l07-q10": {
+          "answer": "Waiting for steady state erases the history on purpose",
+          "options": [
+            "Waiting for steady state erases the history on purpose",
+            "Step tests use more precise instruments than a historian",
+            "A step test records fewer points",
+            "At steady state the loop has no dynamics to begin with"
+          ]
+        },
+        "l07-q11": {
+          "answer": "It groups by half the key, so most boundaries are still wrong",
+          "options": [
+            "It groups by half the key, so most boundaries are still wrong",
+            "Nothing, since `simulationRun` already separates the experiments",
+            "`.over()` reverses the direction of the shift",
+            "`shift(1)` cannot be combined with `.over()` in Polars"
+          ]
+        },
+        "l07-q12": {
+          "answer": "Forward-fill `u` and leave `y` null",
+          "options": [
+            "Forward-fill `u` and leave `y` null",
+            "Forward-fill both, since a gap is a gap",
+            "Forward-fill `y` and leave `u` null",
+            "Fill both with the column mean so nothing is missing"
+          ]
+        }
+      },
+      "serve": 5
     }
   }
 }

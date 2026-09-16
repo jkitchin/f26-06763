@@ -1,10 +1,10 @@
 schema: 1
 lecture: l07
-title: "Features for time-series and physical data: transforms, scaling, leakage"
+title: "Features for time-series models"
 source_notes: lectures/l07/notes.md
 status: published
 serve: 5
-pool_version: 3
+pool_version: 6
 provenance:
   drafted_by: hand
   reviewed_by: jkitchin
@@ -13,126 +13,119 @@ provenance:
 items:
 
   - id: l07-q01
-    kind: predict_measure
-    rung: 1
-    difficulty: 3
-    objectives: [l07-o2]
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l07-o1]
     prompt: |
-      The same engine data, featurized identically, with a `StandardScaler` fit
-      two ways: on the training engines only, and on training plus test combined.
+      You ramp a feed valve up and back down without waiting, log it, and plot flow
+      against valve position. The points fall on a loop rather than a line.
 
-      Before you look: how big is the gap in a `Ridge` model's RMSE?
-    predict:
-      ask: "Write down what you expect the leak to be worth."
-      common_prior: "Noticeable. That is why the rule exists."
+      What is the loop telling you?
     options:
-      - "About 0.002 cycles, which is to say invisible"
-      - "Around 2 cycles, small but detectable if you look for it"
-      - "Around 15 cycles, large enough that any review would catch it"
-      - "It cannot be measured, because the leaky fit changes the test set itself"
-    answer: "About 0.002 cycles, which is to say invisible"
+      - "The flow depends on where the flow just was"
+      - "One of the two sensors is out of calibration"
+      - "The valve and the flow are simply unrelated"
+      - "The record covers too short a period"
+    answer: "The flow depends on where the flow just was"
     evidence: |
-      The scaler statistics diverge by up to 23% between the two fits, so the leak
-      is real before any model is involved. The `Ridge` gap is 0.002 cycles, which
-      establishes something more uncomfortable: a real leak can be invisible in a
-      metric. Across four estimators the same leak reads as zero, negligible,
-      negative, and clearly positive depending only on the estimator, which is
-      why you cannot audit for this by looking at scores. You audit the code.
+      The same valve position shows up twice with two different flows, once while the
+      valve is opening and once while it is closing. On this loop a valve at 57.6 %
+      sits at 8.578 going up and 8.997 coming down, and would settle at 8.790 if left
+      alone. Nothing is broken. The loop is dynamic, so it is still catching up with
+      an input that keeps moving.
     source:
       file: lectures/l07/notes.md
-      heading: "In-class demo"
-      quote: "The **`Ridge` gap is only 0.002 cycles**, small enough that a real leak can be invisible in a metric"
-    verify: {mode: quote, needle: "0.002 cycles", volatility: measured}
-    tags: [leakage, scaling]
+      heading: "The loop, and the data we have of it"
+      quote: "Waiting erases the history on purpose."
+    verify: {mode: quote, needle: "Waiting erases the history on purpose", volatility: stable}
+    tags: [dynamics, lag-feature]
 
   - id: l07-q02
-    kind: locus_of_control
+    kind: mcq
     rung: 3
-    difficulty: 3
-    objectives: [l07-o2]
-    prompt: |
-      You want to know whether a colleague's pipeline leaks. What do you look at?
-    options:
-      - "The validation score, since a leak inflates it and the inflation is what you are detecting"
-      - "The code; the same leak reads four different ways across four estimators"
-      - "The gap between train and validation error, which widens characteristically when data has leaked"
-      - "A learning curve, since leakage shows up as a curve that plateaus above its achievable floor"
-    answer: "The code; the same leak reads four different ways across four estimators"
-    evidence: |
-      Every option except the second is an attempt to detect a leak from
-      symptoms, and this session's measurement is that the symptoms are not
-      reliable: one real leak produced four different verdicts across four
-      estimators, including one that pointed the wrong way. Leakage is a property
-      of the procedure, not of the score, so it is found by reading what was
-      fitted on what.
-    source:
-      file: lectures/l07/notes.md
-      heading: "In-class demo"
-      quote: "the same leak reading as zero, negligible, negative, and clearly positive depending only on the estimator, so scores alone cannot tell you whether a leak occurred"
-    verify: {mode: quote, needle: "scores alone cannot tell you whether a leak occurred", volatility: stable}
-    tags: [leakage, review]
-
-  - id: l07-q03
-    kind: claim_vs_source
-    rung: 2
     difficulty: 3
     objectives: [l07-o1]
     prompt: |
-      Mars Climate Orbiter is usually told as "NASA lost a spacecraft because
-      someone confused pounds and newtons."
+      You plot the same two columns from a year of plant archive, taken while the loop
+      was in automatic. Instead of a loop you get a diffuse cloud.
 
-      What did the investigation add that the popular version leaves out?
+      What does that tell you about the record?
     options:
-      - "That the units were correct and the failure was a navigation software defect"
-      - "That the mismatch was known and survivable in principle, and the root cause was not identified until six days after the loss"
-      - "That the spacecraft was lost to a propulsion failure unrelated to units"
-      - "That the conversion error was introduced during the final approach manoeuvre"
-    answer: "That the mismatch was known and survivable in principle, and the root cause was not identified until six days after the loss"
+      - "The controller never let the valve ramp, so the record cannot show the loop"
+      - "The archive is sampled too slowly to resolve anything"
+      - "The flow meter and the valve are on different time bases"
+      - "The loop is at steady state, so there is nothing to see"
+    answer: "The controller never let the valve ramp, so the record cannot show the loop"
     evidence: |
-      The Board records 80 km as the minimum survivable altitude for this
-      spacecraft; the reconstructed actual first periapsis was 57 km, which it
-      judged too low. Tracking during the preceding week had already put the
-      predicted altitude as low as 110 km against a planned 226 km. The lesson
-      the notes draw is not "check your units", which everyone already agrees
-      with. It is that a quantity crossed an interface, was silently converted,
-      and every diagnostic downstream reported the converted value as if it were
-      fine.
+      Under automatic control the valve rattles around the operating point every
+      sample instead of ramping, so no branch of a loop ever gets traced out. Measured
+      on one run of the archive, the valve's standard deviation is 1.98 % and its
+      correlation with the flow is +0.69: a trend, and no hysteresis. This is the same
+      fact as the closed-loop identification problem at the end of the session, and it
+      is why the session simulates the open-loop record rather than looking for one in
+      the archive.
     source:
       file: lectures/l07/notes.md
-      heading: "The part that should worry you more than the units"
-      quote: "The root cause was not identified until **29 September 1999**"
-    verify: {mode: quote, needle: "29 September 1999", volatility: stable}
-    tags: [units, case-study]
+      heading: "The loop, and the data we have of it"
+      quote: "the logged data can't draw the loop at all"
+    verify: {mode: quote, needle: "can't draw the loop at all", volatility: stable}
+    tags: [closed-loop, dynamics]
+
+  - id: l07-q03
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l07-o2]
+    prompt: |
+      A feature column is **leaking**. What does that mean?
+    options:
+      - "It carries information you would not have had when the prediction was due"
+      - "It has been scaled differently from the other columns"
+      - "It has more missing values than the rows around it"
+      - "It came from an instrument that was out of calibration"
+    answer: "It carries information you would not have had when the prediction was due"
+    evidence: |
+      Ask it of every column: would this value have been available at the moment the
+      prediction was due? That one question catches the direction of the shift, a lab
+      assay logged against sampling time rather than result time, and a `faultNumber`
+      column that somebody wrote down after the run. In control the same property has
+      a different name: a feature that uses only the present and the past is causal.
+    source:
+      file: lectures/l07/notes.md
+      heading: "Data leakage"
+      quote: "**Data leakage** happens when a model is trained on information that would not be available at\nthe time it has to make a prediction."
+    verify: {mode: quote, needle: "would not be available at", volatility: stable}
+    tags: [leakage]
 
   - id: l07-q04
     kind: spot_the_defect
     rung: 3
-    difficulty: 2
-    objectives: [l07-o1]
+    difficulty: 3
+    objectives: [l07-o2]
     prompt: |
-      ```python
-      cols = [c for c in df.columns if c.startswith('sensor2')]
-      ```
-      This line was in the demo notebook until it was checked. What does it do?
+      A log holds 400 independent simulation runs laid end to end, sorted and ready.
+      You build a lag column with `shift(1)` and no `.over()`.
+
+      What have you just done?
     options:
-      - "Nothing wrong; it selects sensor2 as intended and is the idiomatic way to do it"
-      - "It quietly sweeps in sensor20 and sensor21, since startswith matches a prefix"
-      - "It fails on an empty DataFrame, which is why a guard is needed before it"
-      - "It selects the columns in a non-deterministic order, which changes the feature matrix between runs"
-    answer: "It quietly sweeps in sensor20 and sensor21, since startswith matches a prefix"
+      - "Given each run's first row the previous run's last reading"
+      - "Reversed the direction of the shift"
+      - "Dropped the first row of every run in the log"
+      - "Nothing, because sorting by run already handles it"
+    answer: "Given each run's first row the previous run's last reading"
     evidence: |
-      Two silent bugs were in this notebook until somebody checked, and both are
-      documented in place rather than quietly fixed: this one, and a constant
-      sensor promoted to a "key degradation channel". Neither raises, neither
-      changes a shape, and both alter the feature matrix. Selecting columns by
-      prefix is a recurring version of the same mistake, and the fix is an exact
-      match or an explicit list.
+      The demo prints it: the first row of the second experiment claims a previous
+      `xmeas_4` of 8.9419, which is the last reading of the experiment before, from a
+      different simulated plant. Feed flow really is around 9 in both, so the
+      fabricated value is plausible, nothing raises an error, and one corrupted row
+      per experiment sits in the training data forever.
     source:
       file: lectures/l07/notes.md
-      heading: "In-class demo"
-      quote: "a `startswith('sensor2')` filter"
-    verify: {mode: quote, needle: "startswith('sensor2')", volatility: stable}
-    tags: [features, silent-failure]
+      heading: "Record boundaries and the group key"
+      quote: "it hands the first row of one experiment the last reading of the one before"
+    verify: {mode: quote, needle: "the last reading of the one before", volatility: stable}
+    tags: [run-boundary, polars]
 
   - id: l07-q05
     kind: mcq
@@ -140,181 +133,231 @@ items:
     difficulty: 2
     objectives: [l07-o2]
     prompt: |
-      Where should a `StandardScaler` be fitted when you are cross-validating?
+      `shift(1)` leaves a null in the first row of each record, because that row has no
+      previous value.
+
+      What should you do with those rows?
     options:
-      - "Once on the full dataset, since scaling uses no label information and therefore cannot leak"
-      - "Inside the loop, on each training fold, with the fitted transform applied to the held-out fold"
-      - "Once on the training split, then reused unchanged for every fold within it"
-      - "Separately on each fold including the held-out one, so every fold is on a comparable scale"
-    answer: "Inside the loop, on each training fold, with the fitted transform applied to the held-out fold"
+      - "Drop them"
+      - "Fill them with zero"
+      - "Fill them with the column mean"
+      - "Carry the next value backwards"
+    answer: "Drop them"
     evidence: |
-      The last option is the most tempting and the most wrong: fitting a scaler
-      on the held-out fold uses it, which is the leak. That labels are not
-      involved is beside the point, since the mean and variance of the inputs are
-      still information from rows you are pretending not to have seen. Measured
-      here, the two fits' statistics diverge by up to 23%, and the effect on the
-      score is unreliable enough that you cannot detect the mistake from the
-      score.
+      Their past lies outside the run, so there is nothing to recover. Filling with zero
+      invents a loop at zero flow and asks the fit to explain a step that never
+      happened. Losing one row per run costs nothing.
     source:
       file: lectures/l07/notes.md
-      heading: "Scaling, encoding, and fitting on train only"
-      quote: "up to 23%"
-    verify: {mode: quote, needle: "23%", volatility: measured}
-    tags: [leakage, scaling, pipelines]
+      heading: "The first row of a run"
+      quote: "Don't fill it with zero, which invents a loop at zero flow"
+    verify: {mode: quote, needle: "invents a loop at zero flow", volatility: stable}
+    tags: [feature-table, nulls]
 
   - id: l07-q06
     kind: mcq
     rung: 2
-    difficulty: 2
+    difficulty: 3
     objectives: [l07-o3]
     prompt: |
-      What does saving a fitted pipeline with `joblib` and reloading it establish?
+      A fit on three-minute samples returns `a = 0.7529` and `b = 0.0322`.
+
+      What do those two numbers become?
     options:
-      - "That the model will generalize, since a reproducible pipeline is a validated one"
-      - "That it reproduces its own predictions exactly, which is the minimum bar before anything is deployed"
-      - "That the feature engineering is correct, since a broken transform would fail to serialize"
-      - "That the pipeline is portable across environments, since joblib pins its dependencies"
-    answer: "That it reproduces its own predictions exactly, which is the minimum bar before anything is deployed"
+      - "A time constant of 10.6 min and a gain of 0.1304"
+      - "An accuracy of 75% and a prediction error of 0.03"
+      - "A 10.6 minute delay before the valve acts on the flow"
+      - "Nothing at all until you have a held-out test set"
+    answer: "A time constant of 10.6 min and a gain of 0.1304"
     evidence: |
-      A fitted pipeline carries the transformer state, the scaler's means and
-      variances among it, so serializing and reloading checks that the thing you
-      will call in production is the thing you validated. It says nothing about
-      generalization and nothing about portability: joblib does not pin
-      dependencies, and a pipeline pickled under one scikit-learn version is not
-      guaranteed to load under another, which is why L2's environment discipline
-      is a prerequisite rather than an aside.
+      `tau = -dt / ln(a)` and `K = b / (1 - a)`. The output is minutes and flow per
+      percent of valve, which a plant engineer who knows that feed line can check
+      against what they know about it. An accuracy score cannot be checked that way,
+      which is the reason this session converts the coefficients at all.
     source:
       file: lectures/l07/notes.md
-      heading: "In-class demo"
-      quote: "confirm it reproduces\nits own predictions exactly"
-    verify: {mode: quote, needle: "reproduces", volatility: stable}
-    tags: [pipelines, reproducibility]
+      heading: "Least squares and the conversion to physics"
+      quote: "**tau = 10.6 min** and **K = 0.1304**"
+    verify: {mode: quote, needle: "tau = 10.6 min", volatility: measured}
+    tags: [least-squares, physics]
 
   - id: l07-q07
-    kind: mechanism_recall
-    rung: 5
+    kind: mcq
+    rung: 2
     difficulty: 3
-    objectives: [l07-o1]
+    objectives: [l07-o3]
     prompt: |
-      Close the notes. Write down the families of feature you would build from a
-      per-unit sensor trajectory, and say what each one is for. Stop when you
-      stall, and note where.
-    checklist:
-      - text: "Lag features: the value some steps ago"
-        needle: "lag"
-      - text: "Rolling window statistics: mean, standard deviation, min and max over a window"
-        needle: "window"
-      - text: "Delta from start, and rate of change"
-        needle: "rate-of-change"
-      - text: "Frequency-domain features, where the signal has periodic content"
-        needle: "frequency"
-      - text: "Physical and domain features, derived from what the quantity means"
-        needle: "Physical and domain features"
-    answer: null
+      Several archive channels come back with `a` near 0.99, which converts to a time
+      constant of about 298 minutes on a three-minute sampler.
+
+      What should you conclude?
+    options:
+      - "The samples sit too close together for those loops"
+      - "Those loops genuinely take several hours to settle down"
+      - "The fit needs more lag columns to converge"
+      - "Those channels should be dropped as broken"
+    answer: "The samples sit too close together for those loops"
     evidence: |
-      The one worth checking yourself on is the last. Lag and window features are
-      mechanical and can be generated for any channel; a physical feature
-      requires knowing what the measurement is, and it is where the engineering
-      knowledge you have that a generic pipeline does not actually enters the
-      model. Where you stalled is your reading assignment.
+      Consecutive rows are near-copies, `a` lands in the steep part of the conversion,
+      and the fitted time constant mostly reflects the sampling rate and the noise.
+      Treat a fitted `a` above about 0.99 as a warning rather than a result. Reported
+      as a score instead, those channels would have looked excellent, because
+      predicting that a slow channel does not change is easy.
     source:
       file: lectures/l07/notes.md
-      heading: "Time-series features from a per-unit trajectory"
-      quote: "is a lag-1 feature's natural companion"
-    verify:
-      mode: manual
-      needle: "lag-1 feature"
-      volatility: stable
-      exempt_reason: >-
-        Free-text recall; each checklist entry is verified against the source
-        individually rather than the answer being matched as a whole.
-    tags: [features, self-test]
+      heading: "Sensitivity of the time constant to `a`"
+      quote: "Three-minute samples are far too close together for a loop that takes hours"
+    verify: {mode: quote, needle: "far too close together for a loop that takes hours", volatility: stable}
+    tags: [sampling, diagnostics]
 
   - id: l07-q08
-    kind: locus_of_control
+    kind: spot_the_defect
     rung: 3
-    difficulty: 2
-    objectives: [l07-o1]
+    difficulty: 3
+    objectives: [l07-o3]
     prompt: |
-      A channel in your sensor set is constant across every unit and every cycle.
-      Your feature-selection step nonetheless promoted it to a "key degradation
-      channel".
+      You fit a record where the operator left the valve at 0.6 all day. The gain comes
+      back as +0.000 and the design matrix has rank 1 instead of 2.
 
-      Where is the defect?
+      What went wrong?
     options:
-      - "In the sensor: a constant reading means the instrument has failed and should be replaced"
-      - "In the selection step, which ranked a zero-variance column without checking whether it varies at all"
-      - "In the model, which should regularize a constant feature to zero weight automatically"
-      - "In the scaling, which divides by a near-zero standard deviation and amplifies noise"
-    answer: "In the selection step, which ranked a zero-variance column without checking whether it varies at all"
+      - "Nothing; the record has no evidence about the valve"
+      - "The fit failed to converge and needs a restart"
+      - "The valve column was accidentally dropped"
+      - "The mean should not have been subtracted"
+    answer: "Nothing; the record has no evidence about the valve"
     evidence: |
-      This was a real bug in the demo notebook, left documented in place rather
-      than quietly fixed. A constant column carries no information by
-      construction, so any procedure that ranks it highly is telling you about
-      the procedure rather than about the data. The model may well shrink it to
-      zero and that does not make the selection step correct: it makes the defect
-      invisible, which is the worse outcome.
+      The valve did nothing, so the data cannot say what it would have done, and the
+      solve reports that honestly with no warning attached. No feature and no larger
+      model recovers it, because the information was never collected. Note how little
+      movement is needed: a single step recovers tau = 20.0 min correctly. The failure
+      needs an input that is genuinely constant.
     source:
       file: lectures/l07/notes.md
-      heading: "In-class demo"
-      quote: "a constant sensor promoted to a \"key degradation channel,\""
-    verify: {mode: quote, needle: "constant sensor promoted", volatility: stable}
-    tags: [features, silent-failure]
+      heading: "The valve that never moved"
+      quote: "The valve did nothing, so nothing in the file says what would\nhave happened if it had."
+    verify: {mode: quote, needle: "nothing in the file says what would", volatility: stable}
+    tags: [excitation, limitations]
 
   - id: l07-q09
-    kind: notebook_run
-    rung: 4
-    difficulty: 2
-    objectives: [l07-o2]
-    prompt: |
-      Open [`l07-features.ipynb`](../lectures/l07/l07-features.ipynb) and run the
-      leaky-versus-honest scaler comparison across the four estimators.
-
-      What is the pattern across models?
-    options:
-      - "All four show the leak clearly, in proportion to how flexible the model is"
-      - "The same leak reads as zero, negligible, negative and clearly positive depending only on the estimator"
-      - "Only the linear models show it, since trees are invariant to monotone rescaling"
-      - "None of them shows it, which is why scaler leakage is considered a theoretical concern"
-    answer: "The same leak reads as zero, negligible, negative and clearly positive depending only on the estimator"
-    evidence: |
-      One of the four points the wrong way, which is the part worth sitting with:
-      a leak that makes the score *worse* on one estimator would be dismissed as
-      noise by anyone auditing from scores. The scaler statistics diverge by up
-      to 23% regardless, which is the check that does work, because it looks at
-      what was fitted rather than at what it produced.
-    source:
-      file: lectures/l07/notes.md
-      heading: "In-class demo"
-      quote: "zero, negligible, negative, and clearly positive"
-    verify: {mode: ordering, needle: "negligible, negative", volatility: measured}
-    tags: [leakage, notebook]
-
-  - id: l07-q10
     kind: mcq
     rung: 3
     difficulty: 3
     objectives: [l07-o3]
     prompt: |
-      What is the strongest argument for assembling feature engineering into a
-      fitted pipeline object rather than a sequence of notebook cells?
+      Fitted on a year of ordinary plant history, a model says more cooling water goes
+      with a hotter reactor.
+
+      Is the model wrong, the data wrong, or the question wrong?
     options:
-      - "It runs faster, because the transforms are applied in a single vectorized pass over the data"
-      - "The transform applied at prediction time is the object fitted at training time"
-      - "It documents the feature engineering, which makes the notebook easier for a reviewer to follow"
-      - "It allows hyperparameter search over the feature steps, which is not possible with loose cells"
-    answer: "The transform applied at prediction time is the object fitted at training time"
+      - "The question; the controller caused that correlation"
+      - "The model; it needs a longer record to settle"
+      - "The data; the cooling water sensor reads backwards"
+      - "The model; the sign should be flipped by hand"
+    answer: "The question; the controller caused that correlation"
     evidence: |
-      Hyperparameter search over feature steps is a real benefit and it is not the
-      main one. The main one is that a scaler holds fitted state, and loose cells
-      let training and serving apply different state without anything raising:
-      the classic production failure is a model served with a scaler refitted on
-      whatever data happened to be around. A pipeline makes that a single object
-      you save and reload, which is why the demo ends by doing exactly that.
+      The temperature controller opened the cooling water valve because the reactor got
+      hot, so in the record every increase in cooling follows an increase in
+      temperature. You wanted to know what happens when *you* open the valve, which is
+      the opposite causal direction, and a tightly controlled record holds almost no
+      evidence about it. Do not repair the sign by deleting terms. Move the setpoint,
+      or add a small deliberate excitation.
     source:
       file: lectures/l07/notes.md
-      heading: "A leakage-safe pipeline, and what \"safe\" actually buys you"
-      quote: |-
-        Scikit-learn's `Pipeline` and `ColumnTransformer` exist to make the fit-on-train-only rule
-    verify: {mode: quote, needle: "pipeline", volatility: stable}
-    tags: [pipelines, serving]
+      heading: "Closed-loop identification"
+      quote: "The data is right and the question is wrong."
+    verify: {mode: quote, needle: "the question is wrong", volatility: stable}
+    tags: [closed-loop, case-study]
+
+  - id: l07-q10
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l07-o1]
+    prompt: |
+      A step test sets the valve, waits for the flow to settle, and records the pair.
+      Why does that need no column holding the past?
+    options:
+      - "Waiting for steady state erases the history on purpose"
+      - "Step tests use more precise instruments than a historian"
+      - "A step test records fewer points"
+      - "At steady state the loop has no dynamics to begin with"
+    answer: "Waiting for steady state erases the history on purpose"
+    evidence: |
+      Whatever the loop was doing before, once it settles the only thing left is the
+      relationship between input and output, so the past carries no extra information.
+      Normal operation cannot afford to wait, so the history is still in there, and a
+      table that omits it is asking a question the data cannot answer. Note the third
+      distractor: the loop is dynamic either way, it has simply finished responding.
+    source:
+      file: lectures/l07/notes.md
+      heading: "The loop, and the data we have of it"
+      quote: "Waiting erases the history on purpose."
+    verify: {mode: quote, needle: "erases the history on purpose", volatility: stable}
+    tags: [steady-state, dynamics]
+
+  - id: l07-q11
+    kind: spot_the_defect
+    rung: 3
+    difficulty: 3
+    objectives: [l07-o2]
+    prompt: |
+      The plant archive holds 20 fault types, each simulated 20 times, so one
+      experiment is the pair `(faultNumber, simulationRun)`. A classmate writes:
+
+      ```python
+      pl.col("xmeas_4").shift(1).over("simulationRun")
+      ```
+
+      They check the column, see nulls in it, and move on. What is wrong?
+    options:
+      - "It groups by half the key, so most boundaries are still wrong"
+      - "Nothing, since `simulationRun` already separates the experiments"
+      - "`.over()` reverses the direction of the shift"
+      - "`shift(1)` cannot be combined with `.over()` in Polars"
+    answer: "It groups by half the key, so most boundaries are still wrong"
+    evidence: |
+      Run 1 of fault 1 and run 1 of fault 4 are different plants that share a run
+      number, so grouping by `simulationRun` alone merges them. Count the nulls: a
+      correct shift leaves exactly one per experiment, so 400 of them. `shift(1)`
+      alone leaves 1 and fixes no boundaries, `.over("simulationRun")` leaves 20 and
+      fixes 19 of 399, and only `.over("faultNumber", "simulationRun")` fixes all of
+      them. Half a group key is more dangerous than none, because the nulls make it
+      look like it worked.
+    source:
+      file: lectures/l07/notes.md
+      heading: "Record boundaries and the group key"
+      quote: "It's grouping by half the key."
+    verify: {mode: quote, needle: "grouping by half the key", volatility: stable}
+    tags: [run-boundary, polars]
+
+  - id: l07-q12
+    kind: mcq
+    rung: 3
+    difficulty: 3
+    objectives: [l07-o2]
+    prompt: |
+      A dropout leaves a hole in a dataset holding a valve position `u` and the flow
+      `y` that valve sets. You put the rows back on a fixed grid, and now some rows are
+      null in both columns.
+
+      Which fill is defensible?
+    options:
+      - "Forward-fill `u` and leave `y` null"
+      - "Forward-fill both, since a gap is a gap"
+      - "Forward-fill `y` and leave `u` null"
+      - "Fill both with the column mean so nothing is missing"
+    answer: "Forward-fill `u` and leave `y` null"
+    evidence: |
+      A control system genuinely holds its last commanded valve position until it
+      writes a new one, so the carried value is what physically happened. Nothing held
+      the flow steady: an invented `y` becomes a row you then fit against, and least
+      squares cannot tell a measurement from a guess. Keep a mask column either way,
+      because a table that cannot say which of its numbers were measured is a table
+      nobody can audit.
+    source:
+      file: lectures/l07/notes.md
+      heading: "Resampling and fill policy"
+      quote: "Least squares cannot tell\nan invented number from a measured one."
+    verify: {mode: quote, needle: "cannot tell", volatility: stable}
+    tags: [resampling, data-quality]

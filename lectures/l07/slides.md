@@ -8,7 +8,7 @@ footer: "Systems and Toolchains for AI Engineers"
 
 <!-- _class: title -->
 
-# Lecture 7: Features for time-series & physical data
+# Lecture 7: Features for time-series models
 
 ## Week 4, Data Systems
 
@@ -16,643 +16,471 @@ footer: "Systems and Toolchains for AI Engineers"
 
 ---
 
+## What today is about
+
+**Features for time-series data**: which columns belong in the table when the rows came from a process that changes over time.
+
+| in chemical engineering | other |
+|---|---|
+| a flow responding to its valve | a bearing's vibration as wear accumulates |
+| a concentration falling through a batch | a battery's state of charge |
+| a historian logging a unit for years | a room chasing its thermostat |
+| a channel drifting before it alarms | a request queue, given how long it already was |
+
+All of them share one property: **what you measure now depends on what the system was doing a moment ago.**
+
+---
+
+## What today is about, what is being stored
+
+| in chemical engineering | other |
+|---|---|
+| heat stored in a vessel | damage stored in a bearing |
+| mass held up in a drum | charge stored in a cell |
+
+Every one of those has something **stored** in it, which is why its past belongs in the table.
+
+---
+
+## How would you know your feature table is right?
+
+You build a table, fit a model, and it reports **R-squared 0.94**.
+
+That number is just as high for a table that:
+
+- quietly used a value from the future
+- grouped on the wrong column
+- leaned on a sensor that was only repeating its last reading
+
+**The score cannot see any of those.** It goes up either way.
+
+<!--
+speaker: this is the slide the whole session hangs on. Ask the room how they would catch
+any of those three from a score alone. Let the silence sit.
+-->
+
+---
+
+## So we pick a problem whose answer is checkable
+
+One loop all class: the **A and C feed** of the Tennessee Eastman plant, from Lecture 5.
+`xmv_4` is the valve, `xmeas_4` is the flow it sets.
+
+The process behind it is **first order**, so the two fitted coefficients convert into:
+
+- a **time constant**, in minutes
+- a **gain**, in flow per percent of valve
+
+A plant engineer who knows that line can tell you whether ten minutes is credible. **Nobody can tell you whether an R-squared is credible.**
+
+
+---
+
+## The plant, and where these channels are
+
+![w:760](figures/tep-flowsheet.png)
+
+<span class="source">P&ID from <a href="https://chemrxiv.org/doi/abs/10.26434/chemrxiv.10001628/v1">Lyu, Botcha, Kulkarni, Pagaria, Alves, Sunshine and Kitchin (2026)</a></span>
+
+<!--
+speaker: point at FC-4 on the Feed A,B,C line. That single loop is the whole session. Then
+point at the three Analyzer blocks on the edges, because those come back in the channel screen.
+-->
+
+---
+
+## Textbook time-series vs real data
+
+The textbook way to get a time constant is a **step test**: move the valve, wait for it to settle, read the response off the chart.
+
+Now go and schedule one.
+
+| a step test | the logged data |
+|---|---|
+| gives you tau directly | 3-minute samples, a year of them |
+| needs a production unit off setpoint | already on disk, nobody to ask |
+| hours of somebody's shift | free |
+
+<!--
+speaker: ask the room who has actually been told no. Then wait for it.
+-->
+
+---
+
+## The logged data has a problem?
+
+![w:820](figures/feed-loop.png)
+
+At 57.6 % the flow is **8.578** going up and **8.997** coming down. If you had waited: **8.790**.
+
+<span class="source">Simulated at the time constant and gain measured from the plant's own data. No operator will ramp a live feed valve so you can draw this.</span>
+
+---
+
+## The logged data has a problem?
+
+None of the three is a measurement error.
+
+The loop is **dynamic**: it takes time to respond, so it is almost never at steady state.
+
+<div class="definition">
+
+**Dynamic**, as opposed to at **steady state**: the measurement right now depends on the input *and* on where the measurement already was.
+
+</div>
+
+Flow depends on the valve **and** on where the flow was three minutes ago. A table with one column for each has thrown the second one away.
+
+---
+
+## The logged data has a problem?
+
+<div class="clicker"
+     data-tag="l07-loop-two-flows"
+     data-seconds="45"
+     data-answer="B"
+     data-hint="Nothing here is broken. Ask what the flow was doing in the ten minutes before each reading."
+     data-why="B. The loop is dynamic, so one valve position sits at two flows depending on whether the flow was rising or falling. Which branch you are on is decided by the previous flow."
+     data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker-main">
+
+**Two points from the ramp on the last slide. `xmv_4` reads 57.6 % on both. `xmeas_4` is 8.58 on one and 9.00 on the other. What is wrong?**
+
+<ol class="clicker-opts">
+<li>One of the two flow readings is bad</li>
+<li>Nothing: the loop had not settled, so where it came from still matters</li>
+<li>The valve is nonlinear, so 57.6 % does not mean one flow</li>
+<li>The two points are too far apart in time to compare</li>
+</ol>
+
+</div>
+
+---
+
+## Structuring data for time series modeling
+
+The valve alone cannot tell you which branch of the loop you are on. One extra column can: **the previous flow**.
+
+<div class="definition">
+
+**Lag feature** (lagged variable, or one entry of the regression vector in system identification): a column holding an earlier value of a series, lined up on the row where you would use it.
+
+</div>
+
+
+---
+
 ## Roadmap
 
-1. Why this matters: where meaning gets lost
-2. Time-series features from a per-unit trajectory
-3. Physical and domain features
-4. Scaling, encoding, and fitting on train only
-5. A leakage-safe pipeline
-6. Live demo: the leak a scaler can hide
+1. The loop, and the data we have of it
+2. From differential equations to discrete columns
+3. Leakage: could you have known this at the time?
+4. Four more things you do to time series tables
+5. Live demo
+6. Fitting, and converting to physics
+7. More than one past value
+8. ARX systems
+9. Two things the record cannot tell you
 
-<!-- 110 min. Budget roughly 15 / 20 / 15 / 20 / 10 / 20 demo, slack for questions.
-     C-MAPSS FD001: 100 engines, run-to-failure, 21 sensors + 3 settings.
-     If running long, cut the spectral-features slides, not the demo. -->
+<!--
+TIMING, 110 minutes. 60 slides, of which 8 are dividers.
+  opening through "the answer is a column"   ~18 min  (includes the one clicker)
+  one loop / continuous vs discrete          ~22 min
+  leakage                                    ~10 min
+  data preparation (rapid fire)              ~ 8 min
+  demo                                       ~35 min
+  fitting, more lags, model structures       ~15 min
+  what the data cannot answer                ~ 8 min
+  recap                                      ~ 4 min
 
----
+ONE clicker question now (the loop, slide 9). The leakage and reversed-causality questions
+were cut, so there is no leaderboard slide either.
 
-<!-- _class: section -->
+ABORT SEQUENCE, in this order of preference:
+  1. "Data preparation, rolling window statistics", replaced by its one sentence
+  2. "Model structures, the same arithmetic" (the family table carries the bridge alone)
+  3. "Data preparation, what the plateaus are" (the screen slide before it carries the number)
+NEVER cut the closed-loop block. The logged-data cloud early on is its setup.
 
-# Why this matters
-
----
-
-## Why this matters
-
-Physical measurement in. A number a model
-can multiply out.
-
-Feels mechanical. That's exactly why it's
-where meaning goes missing unnoticed.
-
----
-
-## Why this matters, nothing crashes when it goes wrong
-
-Wrong units. A leaked statistic. A raw value
-with no physical context.
-
-The pipeline still runs. The model still trains.
-Predictions look exactly as plausible.
-
-<!-- And the clearest illustration isn't an ML example at all: feature
-     engineering has always meant turning physical quantities into numbers some
-     system consumes. The consumer used to be a guidance algorithm. -->
-
-
----
-
-## Why this matters, the second failure: leakage
-
-Quieter. No units mismatch required.
-
-A statistic computed to describe "training data"
-quietly peeked at "data I'll be judged on."
-
-**The question that decides everything.**
-
-Every transform, a mean, a std, a category list,
-is a statistic computed over **some set of rows**.
-
-Which rows, is the whole question.
+NOTE: the run-boundary and group-key slides were cut from the deck on 2026-09-16. That
+content (the .over("simulationRun") half-key bug, and the null-count check) now lives only
+in the notes and in the demo, where it is run live. Do not let it drop out of the demo.
+-->
 
 ---
 
 <!-- _class: section -->
 
-# Time-series features
+# The loop, and the data we have of it
 
 ---
 
-## Time-series features
+## The loop, the column naming
 
+The logged data uses two column families:
+
+- `xmv_*` are the **manipulated variables** (MVs): what the operator or the controller moves
+- `xmeas_*` are the **measurements**: what the plant reports back
+
+Here: `xmv_4` is the valve, `xmeas_4` is the A and C feed flow. Samples every **3 minutes**.
+
+<span class="source">Rieth et al. 2017, <a href="https://doi.org/10.7910/DVN/6C3JR1">Harvard Dataverse, CC0</a> / <a href="https://doi.org/10.1016/0098-1354(93)80018-I">Downs and Vogel, 1993</a></span>
+
+---
+
+## The loop, what a year of it looks like
+
+![w:900](figures/archive-cloud.png)
+
+The valve is under automatic control, so it rattles instead of ramping. No loop, just a cloud.
+
+<!--
+speaker: do NOT explain this yet. Say you will come back to it and move on. It is the setup for
+the closed-loop block at the end. There is no callback slide any more, so when you reach
+"Limitations, closed-loop identification", say out loud that this cloud was the evidence.
+-->
+
+---
+
+<!-- _class: section -->
+
+# Continuous-time and discrete-time models
+
+---
+
+## Continuous and discrete, two kinds of model
+
+Most models you have written are probably in **continuous time**. Mole balances, energy balances, rate laws, forces acting on a structure: all differential equations, all describing an instant.
 
 <div class="definition">
 
-**Lag feature**: the value of a channel some fixed number of steps earlier in the same unit's history.
+**Continuous-time model**: the process at every instant, as a differential equation.
+$\tau\,dy/dt = -y + Ku$
 
 </div>
-**NASA C-MAPSS**: simulated turbofan engines,
-run-to-failure, one row per engine per cycle.
-
-21 sensors + 3 operating settings.
-Failure cycle known in train, withheld in test.
-
-FD001: 100 train / 100 test engines, median life 199 cycles.
-[NASA PCoE repository](https://www.nasa.gov/intelligent-systems-division/discovery-and-systems-health/pcoe/pcoe-data-set-repository/)
-
----
-
-## Time-series features, first: look at what you actually have
-
-![w:1000](figures/sensor-degradation.png)
-
-<!-- SIX of 21 channels hold one constant value. Ask how many they'd have
-     noticed by eye. -->
-
----
-
-## Time-series features, six dead channels of twenty-one
-
-A rolling mean of a constant is a constant.
-Its rolling std is 0. Its delta-from-cycle-1 is 0.
-
-**Four columns of nothing, per dead channel.**
-
-**And the trap in detecting them.**
-
-Lecture 5 said: constant ⟺ `std == 0`. True in arithmetic.
-
-```
-sensor5:  one value (14.62),  std() = 5.3e-15
-sensor16: one value (0.03),   std() = 3.5e-18
-```
-
-`std == 0` misses **2 of the 6.** Use `nunique()`,
-or a tolerance. Never `== 0` on a computed float.
-
----
-
-## Time-series features, the structural rule
-
-Every feature must respect: data is
-**grouped by engine**, **ordered by cycle**.
-
-Get the grouping wrong, and you fabricate
-a feature without an error ever firing.
-
-**The vocabulary: lag & difference.**
-
-**Lag**: `sensor.shift(k)`, what was this doing
-k steps ago.
-
-**Difference**: `sensor.diff()`, how much did
-it change since last cycle.
-
----
-
-## Time-series features, the vocabulary: rolling & expanding
 
 <div class="definition">
 
-**Rolling window feature**: a statistic over the last k samples, recomputed at every step, and never reaching forward in time.
+**Discrete-time model**: the process only at the instants you sampled, as a recipe for the next sample.
+$y[t+1] = a\,y[t] + b\,u[t]$
 
 </div>
 
-**Rolling** mean/std/min/max: smooths noise,
-surfaces trend. Window length is a real choice.
+---
 
-**Expanding**: an all-history-so-far statistic,
-no fixed length.
+## Continuous vs discrete?
+
+Your **data is discrete**. One row every 3 minutes, nothing in between. A dataframe has rows, not a continuum.
+
+So a model you can fit to a table has to be in discrete time.
+
+And the discrete model is what tells you **which columns the table needs**.
 
 ---
 
-## Time-series features, the vocabulary: rate-of-change & time-since-event
+## Continuous vs discrete? the continuous model
 
-**Rate-of-change**: a difference, normalized by
-elapsed time.
+A vessel or line with one place to store something (heat, mass, momentum):
 
-**Time-since-event**: cycles since a condition
-last held, exactly what an alarm model needs.
+$$\tau \frac{dy}{dt} = -y + K u$$
 
-**Always inside a group.**
+<div class="definition">
+
+**Time constant** $\tau$: how long to cover 63 % of the distance to the new steady state.
+**Steady-state gain** $K$: how far it finally moves per unit of input.
+
+</div>
+
+---
+
+## Continuous vs discrete?, discretizing it
+
+We need sample $t+1$ from sample $t$. That needs an assumption about the input in between, and the plant gives it to us free: **the valve holds its position between samples**.
+
+That is **zero-order hold** (ZOH). Integrate across one interval with `u` held constant:
+
+$$y[t+1] = a\, y[t] + b\, u[t] \qquad a = e^{-\Delta t / \tau} \quad b = K(1-a)$$
+
+---
+
+## Continuous and discrete, the model gives the feature list
+
+Read that equation as a table specification, not as physics.
+
+To predict row $t+1$ you need exactly two numbers from row $t$:
+
+| the model asks for | the column |
+|---|---|
+| $y[t]$ | the previous measurement, `xmeas_4_prev` |
+| $u[t]$ | the valve at that row, `xmv_4` |
+
+**That is where the features come from.** Not a guess, not everything in the file. The discretized model names them.
+
+---
+
+## Continuous and discrete, terminology (ARX)
+
+<!-- _class: definition -->
+
+**ARX(1,1)**: autoregressive with exogenous input. One lag of the output, one of the input. The simplest model structure in system identification.
+
+---
+
+## Continuous and discrete, the lag plot
+
+![w:620](figures/feed-lag-plot.png)
+
+A straight line whose slope is `a`. You can read the coefficient off the chart before you fit anything.
+
+<!--
+speaker: the cheapest diagnostic in the course. Do not cut. A curved lag plot says the model is
+wrong; a fat cloud says the signal is mostly noise.
+-->
+
+---
+
+## Continuous and discrete, getting the physics back
+
+$$\tau = \frac{-\Delta t}{\ln a} \qquad K = \frac{b}{1-a}$$
+
+<div class="definition">
+
+**Time constant**: how long the loop takes to cover about 63 % of the distance to its new steady state.
+
+</div>
+
+<div class="definition">
+
+**Steady-state gain**: how far the output finally moves per unit of input.
+
+</div>
+
+---
+
+<!-- _class: section -->
+
+# Leakage
+
+---
+
+## Leakage, the definition
+
+<div class="definition">
+
+**Data leakage**: a model is trained on information that would not be available at the time it has to make a prediction.
+
+</div>
+
+---
+
+## Leakage, the credit card example
+
+Predict **fraudulent transactions**. The file has: customer, amount, location, fraud found, **chargeback received**.
+
+A chargeback is the customer disputing the charge. It happens *after* somebody decided it was fraud.
+
+- the model learns "chargeback means fraud". Validation looks excellent
+- it goes live. There is no chargeback column yet, because you are trying to catch the fraud first
+- accuracy collapses
+
+Nothing about the data was wrong. That column just did not exist yet.
+
+<span class="source"><a href="https://www.ibm.com/think/topics/data-leakage-machine-learning">IBM, data leakage in machine learning</a></span>
+
+---
+
+## Leakage, the same thing in our plant data
+
+| the chargeback | our version |
+|---|---|
+| filled in after fraud is decided | **`faultNumber`**: what was wrong during the run, written down afterwards |
+| not available at prediction time | in production it is the thing you are predicting |
+
+And the subtle one: **`xmeas_23` to `xmeas_41`**, the slow analysers.
+
+---
+
+## Leakage, two ways it gets in
+
+1. **Target leakage.** A column holds information from after the row's timestamp. The chargeback, `faultNumber`, the analysers. A property of the **table**. Ours today.
+
+2. **Train-test contamination.** Training rows come from after the test rows. Shuffle a time series at random and every test row has its neighbours in training.
+
+The second needs a held-out score to show, so it belongs with the sessions that fit models. Carry the fix: **split on time, not at random.**
+
+---
+
+<!-- _class: section -->
+
+# Common data preparation operations
+
+---
+
+## Data preparation, build the clock and check it
+
+No timestamps in this file. Just `sample`, an integer counter. Build the clock, then check it:
 
 ```python
-g = df.groupby('unit', group_keys=False)
-df['sensor4_roll_mean_5'] = (
-    g['sensor4'].transform(lambda x: x.rolling(5).mean())
-)
+ts = start + sample * 3 minutes
+df.select(pl.col("ts").diff().value_counts())
 ```
 
----
-
-## Time-series features, what that looks like, measured
-
-![w:820](figures/grouped-vs-not.png)
-
-<!-- 5-cycle rolling mean across the engine 1 / engine 2 boundary. The red line
-     spends 4 rows blending in engine 1's end-of-life readings. Peak error ~1.0
-     on a channel whose whole fleet range is ~1.7. -->
+**Why bother:** `shift(1)` reaches back one **row**, not three minutes. If one row is missing, that lag quietly spans six minutes instead, and the fitted time constant is wrong.
 
 ---
 
-## Time-series features, why it's worse than noise
+## Data preparation, putting rows back on the grid
 
-pandas **will not complain.** The contamination is
-worst at each engine's **first** cycles, where RUL
-is longest, and it always drags them toward the
-previous engine's **end of life.**
-
-**Bias with the shape of your signal.**
-
----
-
-## Time-series features, resampling irregular data
-
-C-MAPSS is a clean, regular grid. Real sensors
-often aren't: recall the Intel Lab motes (Lecture 3),
-~31s cadence, unpredictable dropouts.
-
-Resample to a fixed cadence; choose a policy
-for the gap: forward-fill, interpolate, or leave null.
-
-**The policy is itself a feature decision.**
-
-Forward-filling a dropout invents continuity
-that wasn't there.
-
-A model that never sees the gap can't learn
-that dropouts predict anything.
-
----
-
-<!-- _class: section -->
-
-# Physical and domain features
-
----
-
-## Physical and domain features
-
-<div class="definition">
-
-**Dimensionless group**: a ratio of physical quantities whose units cancel, so it transfers across scales.
-
-</div>
-
-Ratios engineered to be independent of scale:
-Reynolds number, power factor.
-
-Collapse a nuisance dimension instead of asking
-the model to learn it away from raw values.
-
----
-
-## Physical and domain features, energy & power features
-
-Usually **derived**, not measured: kinetic energy
-from shaft speed, specific power from pressure
-ratio and mass flow.
-
-Grounded in a known physical law, not a
-coincidental correlation.
-
----
-
-## Physical and domain features, calibration corrections
-
-A channel's raw output degrades over an
-instrument's lifetime (Lecture 1's drift argument, again).
-
-The correction belongs in the pipeline,
-applied consistently, not patched in after.
-
-**Unit consistency.**
-
-The discipline tying all of this together.
-
-Not a habit of careful people.
-An engineering requirement.
-
----
-
-## Physical and domain features, case: a specification nobody checked
-
-**Mars Climate Orbiter**, launched 11 Dec 1998.
-Signal lost 09:04:52 UTC, 23 September 1999.
-
-A Software Interface Specification **required
-newton-seconds**. The code wrote **pound-seconds**.
-
-[Mishap Investigation Board report](https://llis.nasa.gov/llis_lib/pdf/1009464main1_0641-mr.pdf)
-
----
-
-## Physical and domain features, the error had a number
-
-> underestimated the effect on the spacecraft
-> trajectory by **a factor of 4.45**
-
-1 lbf = 4.45 N. Every firing modeled as
-four and a half times too weak.
-
-**Why "small forces" weren't small.**
-
-The solar array was **asymmetric**, unlike Mars
-Global Surveyor's.
-
-Desaturation firings happened **10-14× more often
-than the navigation team expected.**
-
-4.45× error × 10-14× more often × 9 months.
-
----
-
-## Physical and domain features, the altitudes, from the report
-
-| | km |
-|---|---|
-| planned first periapsis | **226** |
-| a week out | 150-170 |
-| one hour out | 110 |
-| **minimum survivable** | **80** |
-| reconstructed actual | **57** |
-
-<!-- Popular retellings say "planned 150 km". They're quoting an already-degraded
-     intermediate estimate as if it were the plan. 226 km was the plan. -->
-
----
-
-## Physical and domain features, about that $327 million
-
-The MIB report **never mentions cost.**
-
-\$327.6M was the **two-spacecraft** Mars Surveyor '98
-program. The orbiter itself: nearer \$125M.
-
-The verified facts are damning enough.
-
-<!-- Same discipline as Lecture 1's "<10% of code is ML code" non-claim. Check whether
-     the source you're citing contains the number you're citing it for. -->
-
----
-
-## Physical and domain features, the mechanism is a feature engineering failure
-
-A physical quantity, computed correctly in one
-team's units, consumed by a system expecting another.
-
-Nothing marked which convention the number was in.
-Both are just a float.
-
-**The part that should worry you more.**
-
-> concerns existed at the working level regarding
-> discrepancies observed between navigation solutions
-
-Noted "**only informally reported**."
-Doppler solutions consistently disagreed.
-
-> These discrepancies were not resolved.
-
----
-
-## Physical and domain features, months, not minutes
-
-The discrepancy was visible **spring and summer 1999.**
-
-Root cause identified **29 September**:
-six days *after* the spacecraft was gone.
-
-Same shape as Lecture 5's 97 unread "Power Peg disabled" emails.
-
-<!-- This is the through-line of the whole course. Say it explicitly: an anomaly
-     that is "noted informally" is not monitoring. -->
-
----
-
-## Physical and domain features, what a practitioner should take from this
-
-Never let a column imply its own units.
-`thrust_lbf`, not `thrust`.
-
-But note: MCO **had** a written spec requiring N-s.
-It didn't help, because nothing checked compliance.
-
-**A data contract that isn't executed is a comment.**
-
-**Spectral features.**
-
-Vibration/acoustic data: the information isn't
-in the level, it's in **which frequencies** carry energy.
-
-**FFT** decomposes a windowed signal into
-frequency components.
-
----
-
-## Physical and domain features, band energy
-
-<div class="definition">
-
-**Band energy**: the power in a named frequency band, which turns a spectrum into a small number of features.
-
-</div>
+Rows are missing. Put them back, so every row is 3 minutes apart:
 
 ```python
-def band_energy(signal, fs, f_lo, f_hi):
-    freqs = np.fft.rfftfreq(len(signal), d=1/fs)
-    spectrum = np.abs(np.fft.rfft(signal)) ** 2
-    return spectrum[(freqs >= f_lo) & (freqs <= f_hi)].sum()
+df.upsample("ts", every="3m")
 ```
 
-Which bands matter is a physical judgment
-(bearing geometry, shaft speed). The transform is 3 lines.
+That creates empty rows. Do you fill them?
 
----
-
-<!-- _class: section -->
-
-# Scaling, encoding, fitting on train only
-
----
-
-## Scaling, encoding, fitting on train only
-
-| Method | Use when |
+| `xmv_4`, the valve | `xmeas_4`, the flow |
 |---|---|
-| Standardize | roughly symmetric, no natural bound |
-| Min-max | need a fixed bounded range |
-| Robust (median/IQR) | heavy-tailed outliers, fault spikes |
-| Log / Box-Cox | naturally skewed physical quantities |
-
-[sklearn preprocessing](https://scikit-learn.org/stable/modules/preprocessing.html), [Box-Cox (NIST)](https://www.itl.nist.gov/div898/handbook/eda/section3/eda336.htm)
+| **fill it** with the last value | **leave it empty** |
+| the valve really did hold that position | nobody measured the flow then |
+| filling records what happened | filling invents a measurement |
 
 ---
 
-## Scaling, encoding, fitting on train only, categorical encoding
-
-One-hot or target encoding for an equipment ID
-or an operating regime.
-
-Same idea, non-numeric columns. The encoding
-determines generalization to an unseen regime.
-
----
-
-## Scaling, encoding, fitting on train only, every transform is fit from data
-
-<div class="definition">
-
-**Data leakage**: any path by which information from outside the training fold reaches the model fit on it.
-
-</div>
-
-A mean. A standard deviation. A Box-Cox lambda.
-A category list.
-
-Every one is a statistic. Every one can leak.
-
----
-
-## Scaling, encoding, fitting on train only, the rule, stated once
-
-> Fit every transform on the training split only.
-> Apply the already-fitted transform to
-> validation/test, unchanged.
-
-A statistic computed with test rows included
-has already seen something it shouldn't.
-
----
-
-## Scaling, encoding, fitting on train only, today's demo tests this directly
-
-`StandardScaler` fit on **training engines only**
-vs. the same scaler fit on **train + test combined**.
-
-Compare RUL error.
-
-**Encoding, fitting on train only, the honest result.**
-
-Gap in RMSE: **+0.002 cycles.** Out of ~19.
-
-Not a typo. Not a scare number.
-
----
-
-## Scaling, encoding, fitting on train only, but the leak definitely happened
-
-The two scalers disagree about where a feature sits by
-**up to 23%**, and about its spread by **up to 9%**.
-
-So: the transform was badly contaminated,
-and the metric reported ~nothing.
-
----
-
-## Scaling, encoding, fitting on train only, the actual lesson
-
-# Your metric is not a leak detector.
-
----
-
-## Scaling, encoding, fitting on train only, one leak, four models
-
-![w:900](figures/leakage-by-model.png)
-
-<!-- Ask them to predict the ordering before revealing. Nobody predicts that the
-     alpha=1e4 bar goes NEGATIVE. -->
-
----
-
-## Scaling, encoding, fitting on train only, read the third bar again
-
-| model | gap |
-|---|---|
-| `LinearRegression` | exactly **0** |
-| `Ridge(alpha=10)` | +0.002 |
-| `Ridge(alpha=1e4)` | **−0.14** ← leak *helps* |
-| `KNeighbors(k=5)` | **+0.35** |
-
-A leak doesn't reliably inflate your score.
-It makes your score **meaningless**.
-
----
-
-## Scaling, encoding, fitting on train only, so you cannot audit this with metrics
-
-You have to audit the **code**:
-
-find every `.fit()` and check what was
-in scope when it ran.
-
-**Encoding, fitting on train only, fit on train only, on principle.**
-
-You cannot know in advance which model,
-which dataset, which year, is the one
-where the shortcut costs you.
-
----
-
-<!-- _class: section -->
-
-# A leakage-safe pipeline
-
----
-
-## A leakage-safe pipeline
-
-<div class="definition">
-
-**scikit-learn pipeline**: a single estimator holding every transform and the model, so fitting it can only ever see the training fold.
-
-</div>
-
-Not for convenience. For making the rule
-**structurally hard to break**.
-
-`pipeline.fit(X_train, y_train)`: every step fits
-using only what you handed it.
-
----
-
-## A leakage-safe pipeline, no path back to the leak
+## Data preparation, rolling window statistics
 
 ```python
-pipeline = Pipeline([
-    ('scale', StandardScaler()),
-    ('model', Ridge(alpha=10.0)),
-]).fit(X_train, y_train)
-
-pipeline.predict(X_test)   # only ever .transform()'d
+pl.col("xmeas_4").rolling_std(window_size=10).over(GROUP)
 ```
 
-No `.fit()` call anywhere has `X_test` in scope.
+- rolling **standard deviation** screens for a sticking valve or a chattering transmitter
+- rolling **min and max** find a channel sitting at its range limit
+- longer than your lag depth adds something new.
 
 ---
 
-## A leakage-safe pipeline, persist the whole pipeline
+## Data preparation, channel screening
 
-`joblib.dump(pipeline, ...)` saves weights **and**
-every transform's fitted statistics, together.
+```python
+run.select(pl.col("^xmeas.*$").diff().eq(0).mean())
+```
 
-Reload it a month later: exact same predictions.
-Not a script's best attempt at reconstructing them.
+![w:720](figures/flat-channels.png)
 
-**Feature stores (concept, not built here).**
-
-Centralize feature **definitions** so training
-and serving compute the same feature the same way.
-
-A well-built `Pipeline` already gives you this,
-at the scale of one project.
+**19 of 41** channels, at exactly **0.500** and **0.800**.
 
 ---
 
-<!-- _class: section -->
+## Data preparation, what the plateaus are
 
-# Where this pushes back
+Composition analysers running on their own cycle, with the historian holding the last result in between. Zero-order hold, again.
 
----
+| analyser | cycle | on a 3-minute grid |
+|---|---|---|
+| feed and purge, `xmeas_23-36` | 6 min | 1 repeat in 2 = **0.500** |
+| product, `xmeas_37-41` | 15 min | 4 repeats in 5 = **0.800** |
 
-## Where this pushes back
-
-A hundred engines, a few hundred generated
-lag/rolling/delta columns: a recipe for
-overfitting the training fleet.
-
-**Automated extraction raises the stakes.**
-
-[tsfresh](https://tsfresh.readthedocs.io/) can generate hundreds of
-candidate features from one signal, one call.
-
-Test enough candidates against one target,
-some correlate **by chance alone**.
-
----
-
-## Where this pushes back, a clipped RUL target is an assumption
-
-Capping at 125 cycles assumes health is
-roughly constant, then declines late.
-
-Reasonable here. Not universal:
-a sudden-fault mode would break it.
-
----
-
-## Where this pushes back, transforms complicate the number you report
-
-Predict log-RUL, and RMSE in that space
-isn't cycles until you exponentiate back.
-
-Easy to report a wrong number that
-looks exactly like a right one.
-
-**A safe pipeline defends one leak, not every leak.**
-
-Fitting on the training fold stops **this**
-session's bug.
-
-It does nothing about a row-level split
-that puts cycle 150 in train, 151 in test.
-
----
-
-## Where this pushes back, a leak no pipeline catches
-
-No `Pipeline` catches a split-level leak:
-the split happens before the pipeline
-ever sees the data.
-
-**What a practitioner should take from this.**
-
-Fewer features you can explain physically >
-many you generated and hope correlate.
-
-Fit inside a `Pipeline`, on the training fold,
-as a structural habit, not a remembered rule.
+<span class="source">Cycles from <a href="https://doi.org/10.1016/0098-1354(93)80018-I">Downs and Vogel 1993</a>, table 5.</span>
 
 ---
 
@@ -660,59 +488,244 @@ as a structural habit, not a remembered rule.
 
 # Demo
 
-## `l07-features.ipynb`
+## `l07-timeseries.ipynb`
 
-Rolling/delta/rate-of-change features on C-MAPSS FD001.
-`Ridge` RUL model, two scalers.
+Four steps, and nothing else:
+
+1. load one run and build the clock
+2. build the **regressor matrix**, twice, at two lag depths
+3. solve with `lstsq`, convert to a time constant
+4. freeze the valve and refit
 
 ---
 
 ## What to watch
 
-- 6 of 21 channels screened out as constant
-- Scalers disagree by 23%; `Ridge` gap is 0.002
-- Same leak across 4 models: 0, 0.002, **−0.14**, **+0.35**
-- `Pipeline` saved with `joblib`, reloaded, reproduces itself exactly
+1. **The matrix, printed.** Read one row across: these were the flow and the valve at this moment, and that is what the flow did next.
+
+2. **It loses rows.** One lag drops 2, three lags drop 4. A row needs all of its past to exist.
+
+3. **The coefficient splits.** With one lag, `y[t]` gets **0.753**. With three, it gets **0.417** and the rest lands on `y[t-1]` and `y[t-2]`.
+
+4. **The gain goes to zero** when the valve is frozen.
 
 ---
 
-## Two bugs that were in this notebook
+<!-- _class: section -->
 
-1. `sensor5` promoted to "key degradation channel."
-   It is **constant.**
-2. `startswith('sensor2')` also matched
-   `sensor20`, `sensor21`.
+# Fitting, and converting to physics
 
-Bug 2 **improved** the score. That's the hard kind.
+---
 
-<!-- Both documented in the notebook in place. Neither raised. -->
+## Fitting, deviation variables
+
+```python
+y = y - y.mean()      # xmeas_4 sits at 8.79
+u = u - u.mean()      # xmv_4 sits at 57.6
+```
+
+Both columns are almost entirely **offset**. A model with no constant term spends both coefficients explaining that offset and gets `a` badly wrong.
+
+In process control this is working in **deviation variables**. 
+
+---
+
+## Fitting, what came back
+
+| | the record we made | the logged data |
+|---|---|---|
+| a | 0.7560 | 0.753 |
+| tau | **10.7 min** | **10.6 min** |
+| K | 0.1317 | 0.1304 |
+| truth | 10.6 min, 0.130 | nobody told us |
+
+The method recovered a known answer on a record we made, then returned the same answer on a record the plant made.
+
+Minutes, and flow per percent of valve. A plant engineer understands this.
+
+---
+
+<!-- _class: section -->
+
+# Multiple lags and the regression vector
+
+---
+
+## Multiple lags, the general form
+
+One lag is where you start, not a rule. There are situations you may need more lag/regressors.
+
+$$y[t+1] = a_1 y[t] + a_2 y[t-1] + \dots + b_1 u[t] + b_2 u[t-1] + \dots$$
+
+```python
+df.with_columns([
+    pl.col("xmeas_4").shift(k).over(GROUP).alias(f"xmeas_4_lag{k}")
+    for k in (1, 2, 3)
+])
+```
+
+Nothing about the method changes.
+
+---
+
+## Multiple lags, the regression vector
+
+Collect the right-hand side into one row, the **regression vector** $\varphi(t)$:
+
+$$\varphi(t) = [\, y[t],\ y[t-1],\ \dots,\ u[t],\ u[t-1],\ \dots \,]$$
+
+Stack one row per sample and you have the **design matrix** $\Phi$. The whole model is
+
+$$y = \Phi\,\theta$$
+
+`lstsq` solves that for $\theta$ at any width of $\Phi$.
+
+---
+
+<!-- _class: section -->
+
+# Model structures: ARX, NARX, state space, RNN
+
+---
+
+## Model structures, the family
+
+| | |
+|---|---|
+| **ARX(1,1)** | what you just built |
+| **ARX($n_a$, $n_b$)** | more lags, same `lstsq` |
+| **FOPDT** | add dead time; what PID rules are written against |
+| **NARX** | same $\varphi(t)$, nonlinear function on it |
+| **state-space** | $x[t+1] = Ax[t] + Bu[t]$; ours is the 1x1 case |
+| **RNN / LSTM** | vector state, nonlinear update, gates |
+
+---
+
+## Model structures, the same arithmetic
+
+Ours:
+
+$$y[t+1] = a\, y[t] + b\, u[t]$$
+
+An RNN cell:
+
+$$h[t+1] = \tanh(W h[t] + U u[t] + b)$$
+
+Some of where you were, plus some of the input. An **LSTM** adds gates deciding how much of $h[t]$ to keep, which is why its name says memory.
+
+What changes across the family is how much state you carry and how nonlinear the update is.
+
+---
+
+## Model structures, why the table came first
+
+Every model in that list uses **the same feature table** you just built.
+
+If the past is missing from the table, or a column leaked, no amount of capacity further down the list repairs it.
+
+<div class="definition">
+
+A bigger model cannot recover information the table never contained.
+
+</div>
+
+---
+
+<!-- _class: section -->
+
+# Limitations: what the data cannot answer
+
+---
+
+## Limitations, the valve that never moved
+
+Same code, same clean table, one different day: the operator left the valve alone all day.
+
+```
+rank of the design matrix: 2  ->  1
+b = 0.0000      K = 0.000      (the truth is K = 0.130)
+```
+
+The data really does contain no evidence about the valve. It never moved, so the data cannot say what it would have done.
+
+---
+
+## Limitations, persistent excitation
+
+<div class="definition">
+
+**Persistent excitation**: the input has to move over enough distinct frequencies to make the parameters **identifiable**. A constant input is persistently exciting of order zero.
+
+</div>
+
+How much is enough? A single step is **plenty**: the same fit on one-step data recovers **tau = 11.1 min**.
+
+The fix is an experiment, not an algorithm. Move the setpoint, or add a small deliberate wiggle (a PRBS).
+
+---
+
+## Limitations, closed-loop identification
+
+```
+   open loop     valve  ->  measurement
+
+   closed loop   valve  ->  measurement
+                   ^              |
+                   +-- controller +
+```
+
+The controller moves the valve **because** the measurement moved. In the record, the effect arrives first and the cause follows.
+
+This is **closed-loop identification**, and it is the normal condition of historian data.
+
+---
+
+## Limitations, what a closed-loop fit returns
+
+Under tight control with no external excitation, fitting the record directly pulls the estimate toward the **negative inverse of the controller**.
+
+You identify your own PID tuning, not the process.
+
+Everything about the fit looks healthy: full rank, small residuals, a tidy plot.
+
+---
+
+## Limitations, what to do
+
+- log the **setpoint** as well as the valve, so the thing that moved on its own is in the table
+- fit on days where the setpoint stepped, not where the plant held still
+- ask for a deliberate wiggle: minutes of a small perturbation buys a number no logged data contains
+
+<!--
+speaker: NEVER CUT THIS BLOCK.
+-->
 
 ---
 
 ## Recap
 
-- A feature translates physical measurement into a model input, silently, if you let it
-- Units are an engineering requirement; MCO had a spec and nobody checked it
-- Group before every window, or you bias each engine's earliest cycles
-- Every transform is a statistic; fit it on the training split only
-- The gap was 0.002 and the leak was still real: **audit code, not metrics**
-- `Pipeline`/`ColumnTransformer` make the rule structural, not remembered
+- A **dynamic** loop draws a loop, so its past has to become a column
+- **Leakage**: every value in a row was knowable at that row's timestamp
+- The group key travels with the shift, and here it is two columns, not one
+- Two coefficients convert to a **time constant** and a **gain**: 10.7 min on our record, 10.6 on the plant's
+- A valve that never moved, and a controller in the loop, both return confident wrong numbers
 
 ---
 
-## Three things measurement changed today
+## Recap, the names you can now look up
 
-- `.apply`-style reasoning: the leak was **0.002**, not dramatic
-- `std == 0` misses 2 of 6 constant channels
-- A strong penalty made the leaky pipeline score **better**
+You built an **ARX(1,1)** model by **zero-order hold** discretization, widened it to a **regression vector**, and met two reasons the data refuses to answer.
 
-Every one of those was a draft claim that a run corrected.
+None of this is new. **Process control has been identifying models from plant data for over fifty years**, and the ARX structure you just built is where that field starts. What changed is the size and "nature" of the models, not the table underneath them.
+
+- Nelles, *Nonlinear System Identification: From Classical Approaches to Neural Networks, Fuzzy Models, and Gaussian Processes*, 2nd ed., [Springer 2020](https://link.springer.com/book/10.1007/978-3-030-47439-3). Goes from simple ARX to neural networks.
 
 ---
 
 ## Next
 
-**Assignment 4**, out today, due ~1 week
-**Reading** [sklearn pitfalls & leakage](https://scikit-learn.org/stable/common_pitfalls.html), [Pipelines](https://scikit-learn.org/stable/modules/compose.html), Saxena et al. 2008
+**Practice module** for this session, for participation credit
 
-Full notes, with all sources: `lectures/l07/notes.md`
+**Assignment 4** is released at the next session, on 2026-09-21
+
+<script src="clicker-slide.js"></script>

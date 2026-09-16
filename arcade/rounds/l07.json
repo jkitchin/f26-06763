@@ -1,0 +1,248 @@
+{
+  "lecture": "l07",
+  "title": "Features for time-series models",
+  "pool_version": 6,
+  "source_notes": "lectures/l07/notes.md",
+  "generated_by": "tools/arcade_rounds.py",
+  "items": [
+    {
+      "id": "l07-q01",
+      "kind": "mcq",
+      "lecture": "l07",
+      "context": "You ramp a feed valve up and back down without waiting, log it, and plot flow\nagainst valve position. The points fall on a loop rather than a line.\n\nWhat is the loop telling you?",
+      "why": "The same valve position shows up twice with two different flows, once while the\nvalve is opening and once while it is closing. On this loop a valve at 57.6 %\nsits at 8.578 going up and 8.997 coming down, and would settle at 8.790 if left\nalone. Nothing is broken. The loop is dynamic, so it is still catching up with\nan input that keeps moving.",
+      "objectives": [
+        "l07-o1"
+      ],
+      "tags": [
+        "dynamics",
+        "lag-feature"
+      ],
+      "true": "The flow depends on where the flow just was",
+      "false": [
+        "One of the two sensors is out of calibration",
+        "The valve and the flow are simply unrelated",
+        "The record covers too short a period"
+      ]
+    },
+    {
+      "id": "l07-q02",
+      "kind": "mcq",
+      "lecture": "l07",
+      "context": "You plot the same two columns from a year of plant archive, taken while the loop\nwas in automatic. Instead of a loop you get a diffuse cloud.\n\nWhat does that tell you about the record?",
+      "why": "Under automatic control the valve rattles around the operating point every\nsample instead of ramping, so no branch of a loop ever gets traced out. Measured\non one run of the archive, the valve's standard deviation is 1.98 % and its\ncorrelation with the flow is +0.69: a trend, and no hysteresis. This is the same\nfact as the closed-loop identification problem at the end of the session, and it\nis why the session simulates the open-loop record rather than looking for one in\nthe archive.",
+      "objectives": [
+        "l07-o1"
+      ],
+      "tags": [
+        "closed-loop",
+        "dynamics"
+      ],
+      "true": "The controller never let the valve ramp, so the record cannot show the loop",
+      "false": [
+        "The archive is sampled too slowly to resolve anything",
+        "The flow meter and the valve are on different time bases",
+        "The loop is at steady state, so there is nothing to see"
+      ]
+    },
+    {
+      "id": "l07-q03",
+      "kind": "mcq",
+      "lecture": "l07",
+      "context": "A feature column is **leaking**. What does that mean?",
+      "why": "Ask it of every column: would this value have been available at the moment the\nprediction was due? That one question catches the direction of the shift, a lab\nassay logged against sampling time rather than result time, and a `faultNumber`\ncolumn that somebody wrote down after the run. In control the same property has\na different name: a feature that uses only the present and the past is causal.",
+      "objectives": [
+        "l07-o2"
+      ],
+      "tags": [
+        "leakage"
+      ],
+      "true": "It carries information you would not have had when the prediction was due",
+      "false": [
+        "It has been scaled differently from the other columns",
+        "It has more missing values than the rows around it",
+        "It came from an instrument that was out of calibration"
+      ]
+    },
+    {
+      "id": "l07-q04",
+      "kind": "spot_the_defect",
+      "lecture": "l07",
+      "context": "A log holds 400 independent simulation runs laid end to end, sorted and ready.\nYou build a lag column with `shift(1)` and no `.over()`.\n\nWhat have you just done?",
+      "why": "The demo prints it: the first row of the second experiment claims a previous\n`xmeas_4` of 8.9419, which is the last reading of the experiment before, from a\ndifferent simulated plant. Feed flow really is around 9 in both, so the\nfabricated value is plausible, nothing raises an error, and one corrupted row\nper experiment sits in the training data forever.",
+      "objectives": [
+        "l07-o2"
+      ],
+      "tags": [
+        "run-boundary",
+        "polars"
+      ],
+      "true": "Given each run's first row the previous run's last reading",
+      "false": [
+        "Reversed the direction of the shift",
+        "Dropped the first row of every run in the log",
+        "Nothing, because sorting by run already handles it"
+      ]
+    },
+    {
+      "id": "l07-q05",
+      "kind": "mcq",
+      "lecture": "l07",
+      "context": "`shift(1)` leaves a null in the first row of each record, because that row has no\nprevious value.\n\nWhat should you do with those rows?",
+      "why": "Their past lies outside the run, so there is nothing to recover. Filling with zero\ninvents a loop at zero flow and asks the fit to explain a step that never\nhappened. Losing one row per run costs nothing.",
+      "objectives": [
+        "l07-o2"
+      ],
+      "tags": [
+        "feature-table",
+        "nulls"
+      ],
+      "true": "Drop them",
+      "false": [
+        "Fill them with zero",
+        "Fill them with the column mean",
+        "Carry the next value backwards"
+      ]
+    },
+    {
+      "id": "l07-q06",
+      "kind": "mcq",
+      "lecture": "l07",
+      "context": "A fit on three-minute samples returns `a = 0.7529` and `b = 0.0322`.\n\nWhat do those two numbers become?",
+      "why": "`tau = -dt / ln(a)` and `K = b / (1 - a)`. The output is minutes and flow per\npercent of valve, which a plant engineer who knows that feed line can check\nagainst what they know about it. An accuracy score cannot be checked that way,\nwhich is the reason this session converts the coefficients at all.",
+      "objectives": [
+        "l07-o3"
+      ],
+      "tags": [
+        "least-squares",
+        "physics"
+      ],
+      "true": "A time constant of 10.6 min and a gain of 0.1304",
+      "false": [
+        "An accuracy of 75% and a prediction error of 0.03",
+        "A 10.6 minute delay before the valve acts on the flow",
+        "Nothing at all until you have a held-out test set"
+      ]
+    },
+    {
+      "id": "l07-q07",
+      "kind": "mcq",
+      "lecture": "l07",
+      "context": "Several archive channels come back with `a` near 0.99, which converts to a time\nconstant of about 298 minutes on a three-minute sampler.\n\nWhat should you conclude?",
+      "why": "Consecutive rows are near-copies, `a` lands in the steep part of the conversion,\nand the fitted time constant mostly reflects the sampling rate and the noise.\nTreat a fitted `a` above about 0.99 as a warning rather than a result. Reported\nas a score instead, those channels would have looked excellent, because\npredicting that a slow channel does not change is easy.",
+      "objectives": [
+        "l07-o3"
+      ],
+      "tags": [
+        "sampling",
+        "diagnostics"
+      ],
+      "true": "The samples sit too close together for those loops",
+      "false": [
+        "Those loops genuinely take several hours to settle down",
+        "The fit needs more lag columns to converge",
+        "Those channels should be dropped as broken"
+      ]
+    },
+    {
+      "id": "l07-q08",
+      "kind": "spot_the_defect",
+      "lecture": "l07",
+      "context": "You fit a record where the operator left the valve at 0.6 all day. The gain comes\nback as +0.000 and the design matrix has rank 1 instead of 2.\n\nWhat went wrong?",
+      "why": "The valve did nothing, so the data cannot say what it would have done, and the\nsolve reports that honestly with no warning attached. No feature and no larger\nmodel recovers it, because the information was never collected. Note how little\nmovement is needed: a single step recovers tau = 20.0 min correctly. The failure\nneeds an input that is genuinely constant.",
+      "objectives": [
+        "l07-o3"
+      ],
+      "tags": [
+        "excitation",
+        "limitations"
+      ],
+      "true": "Nothing; the record has no evidence about the valve",
+      "false": [
+        "The fit failed to converge and needs a restart",
+        "The valve column was accidentally dropped",
+        "The mean should not have been subtracted"
+      ]
+    },
+    {
+      "id": "l07-q09",
+      "kind": "mcq",
+      "lecture": "l07",
+      "context": "Fitted on a year of ordinary plant history, a model says more cooling water goes\nwith a hotter reactor.\n\nIs the model wrong, the data wrong, or the question wrong?",
+      "why": "The temperature controller opened the cooling water valve because the reactor got\nhot, so in the record every increase in cooling follows an increase in\ntemperature. You wanted to know what happens when *you* open the valve, which is\nthe opposite causal direction, and a tightly controlled record holds almost no\nevidence about it. Do not repair the sign by deleting terms. Move the setpoint,\nor add a small deliberate excitation.",
+      "objectives": [
+        "l07-o3"
+      ],
+      "tags": [
+        "closed-loop",
+        "case-study"
+      ],
+      "true": "The question; the controller caused that correlation",
+      "false": [
+        "The model; it needs a longer record to settle",
+        "The data; the cooling water sensor reads backwards",
+        "The model; the sign should be flipped by hand"
+      ]
+    },
+    {
+      "id": "l07-q10",
+      "kind": "mcq",
+      "lecture": "l07",
+      "context": "A step test sets the valve, waits for the flow to settle, and records the pair.\nWhy does that need no column holding the past?",
+      "why": "Whatever the loop was doing before, once it settles the only thing left is the\nrelationship between input and output, so the past carries no extra information.\nNormal operation cannot afford to wait, so the history is still in there, and a\ntable that omits it is asking a question the data cannot answer. Note the third\ndistractor: the loop is dynamic either way, it has simply finished responding.",
+      "objectives": [
+        "l07-o1"
+      ],
+      "tags": [
+        "steady-state",
+        "dynamics"
+      ],
+      "true": "Waiting for steady state erases the history on purpose",
+      "false": [
+        "Step tests use more precise instruments than a historian",
+        "A step test records fewer points",
+        "At steady state the loop has no dynamics to begin with"
+      ]
+    },
+    {
+      "id": "l07-q11",
+      "kind": "spot_the_defect",
+      "lecture": "l07",
+      "context": "The plant archive holds 20 fault types, each simulated 20 times, so one\nexperiment is the pair `(faultNumber, simulationRun)`. A classmate writes:\n\n```python\npl.col(\"xmeas_4\").shift(1).over(\"simulationRun\")\n```\n\nThey check the column, see nulls in it, and move on. What is wrong?",
+      "why": "Run 1 of fault 1 and run 1 of fault 4 are different plants that share a run\nnumber, so grouping by `simulationRun` alone merges them. Count the nulls: a\ncorrect shift leaves exactly one per experiment, so 400 of them. `shift(1)`\nalone leaves 1 and fixes no boundaries, `.over(\"simulationRun\")` leaves 20 and\nfixes 19 of 399, and only `.over(\"faultNumber\", \"simulationRun\")` fixes all of\nthem. Half a group key is more dangerous than none, because the nulls make it\nlook like it worked.",
+      "objectives": [
+        "l07-o2"
+      ],
+      "tags": [
+        "run-boundary",
+        "polars"
+      ],
+      "true": "It groups by half the key, so most boundaries are still wrong",
+      "false": [
+        "Nothing, since `simulationRun` already separates the experiments",
+        "`.over()` reverses the direction of the shift",
+        "`shift(1)` cannot be combined with `.over()` in Polars"
+      ]
+    },
+    {
+      "id": "l07-q12",
+      "kind": "mcq",
+      "lecture": "l07",
+      "context": "A dropout leaves a hole in a dataset holding a valve position `u` and the flow\n`y` that valve sets. You put the rows back on a fixed grid, and now some rows are\nnull in both columns.\n\nWhich fill is defensible?",
+      "why": "A control system genuinely holds its last commanded valve position until it\nwrites a new one, so the carried value is what physically happened. Nothing held\nthe flow steady: an invented `y` becomes a row you then fit against, and least\nsquares cannot tell a measurement from a guess. Keep a mask column either way,\nbecause a table that cannot say which of its numbers were measured is a table\nnobody can audit.",
+      "objectives": [
+        "l07-o2"
+      ],
+      "tags": [
+        "resampling",
+        "data-quality"
+      ],
+      "true": "Forward-fill `u` and leave `y` null",
+      "false": [
+        "Forward-fill both, since a gap is a gap",
+        "Forward-fill `y` and leave `u` null",
+        "Fill both with the column mean so nothing is missing"
+      ]
+    }
+  ]
+}
