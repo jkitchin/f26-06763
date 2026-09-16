@@ -1,7 +1,7 @@
 {
   "lecture": "l07",
   "title": "Features for time-series models",
-  "pool_version": 6,
+  "pool_version": 7,
   "source_notes": "lectures/l07/notes.md",
   "generated_by": "tools/arcade_rounds.py",
   "items": [
@@ -142,26 +142,6 @@
         "Those loops genuinely take several hours to settle down",
         "The fit needs more lag columns to converge",
         "Those channels should be dropped as broken"
-      ]
-    },
-    {
-      "id": "l07-q08",
-      "kind": "spot_the_defect",
-      "lecture": "l07",
-      "context": "You fit a stretch where the valve never moved off 57.6 %. The gain comes\nback as +0.000 and the design matrix has rank 1 instead of 2.\n\nWhat went wrong?",
-      "why": "The valve did nothing, so the data cannot say what it would have done, and the\nsolve reports that honestly with no warning attached. No feature and no larger\nmodel recovers it, because the information was never collected. Note how little\nmovement is needed: a single step is enough to bring the design matrix back to\nrank 2. Only a genuinely constant input fails.",
-      "objectives": [
-        "l07-o3"
-      ],
-      "tags": [
-        "excitation",
-        "limitations"
-      ],
-      "true": "Nothing; the record has no evidence about the valve",
-      "false": [
-        "The fit failed to converge and needs a restart",
-        "The valve column was accidentally dropped",
-        "The mean should not have been subtracted"
       ]
     },
     {
