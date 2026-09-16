@@ -680,16 +680,6 @@ This is **closed-loop identification**, and it is the normal condition of histor
 
 ---
 
-## Limitations, what a closed-loop fit returns
-
-Under tight control with no external excitation, fitting the record directly pulls the estimate toward the **negative inverse of the controller**.
-
-You identify your own PID tuning, not the process.
-
-Everything about the fit looks healthy: full rank, small residuals, a tidy plot.
-
----
-
 ## Limitations, what to do
 
 - log the **setpoint** as well as the valve, so the thing that moved on its own is in the table
