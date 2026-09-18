@@ -89,9 +89,10 @@ There is **no proctored final exam**, and assessment is based on projects, quizz
 - **Assignments:** one assignment/homework per module, each reinforcing that
   week's tools. Submitted via Canvas. Typically due one week after
   release.
-- **Mini-project:** takes an engineering dataset through the full workflow of acquiring
-  data, training a model, and evaluating it, ending in a **surrogate or predictive model**
-  with a short report and a code walkthrough.
+- **Mini-project:** a team project, in groups of three or four with one role each, that
+  builds and compares two unsupervised fault detectors for a chemical plant, trained on
+  normal operation only, and ends in a short report. Released with Lecture 9, due before
+  fall break.
 - **Final project:** **student-chosen**. Must
   integrate remaining topics: an **LLM/agentic system** with real **evaluation and
   deployment**. Deliverables: proposal, build (repo), and presentation.

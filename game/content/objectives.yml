@@ -238,8 +238,8 @@
     Name the other kinds of store (document, key-value, time-series) and say when each one
     fits.
 
-# L6 and L8 have published notes but no item bank yet (see game/content/l06.yml
-# and l08.yml, both status: unwritten). The objectives are registered anyway,
+# L6 has published notes but no item bank yet (see game/content/l06.yml,
+# status: unwritten). L8's bank is written and held until release. The objectives are registered anyway,
 # lifted verbatim, so that whoever writes those banks maps items onto objectives
 # that already exist rather than inventing a second set. validate.py checks the
 # text against the notes, so these cannot drift silently either.
@@ -262,17 +262,27 @@
 - id: l08-o1
   lecture: l08
   text: >-
-    Design leakage-free splits for temporal and grouped data and detect leakage empirically.
+    Frame a time-series forecast as a supervised learning problem, stating the horizon and what is known when the forecast is made.
 
 - id: l08-o2
   lecture: l08
   text: >-
-    Version datasets and feature sets so results are reproducible from raw inputs.
+    Compare a forecasting model against persistence and mean baselines across horizons, and say whether the model earned its place.
 
 - id: l08-o3
   lecture: l08
   text: >-
-    Run a data-centric improvement loop and attribute gains to data changes.
+    Choose between direct and recursive multi-step forecasting, and explain why recursive errors grow with the horizon.
+
+- id: l08-o4
+  lecture: l08
+  text: >-
+    Evaluate a forecaster with a time-ordered split whose gap is at least the horizon, and explain why a shuffled split inflates the score.
+
+- id: l08-o5
+  lecture: l08
+  text: >-
+    Use forecast residuals as a simple anomaly detector, setting the threshold on normal data and reporting false alarms and detection delay.
 
 # L10, published notes and no bank yet (game/content/l10.yml, status: unwritten).
 # Registered so whoever writes that bank maps onto objectives that already exist.

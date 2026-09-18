@@ -62,23 +62,9 @@
     },
     {
       "from": "l08",
-      "to": "l02",
-      "weight": 2,
-      "where": "Reproducibility, from [Lecture 2](../l02/notes.md), is the ability to take your data and your code and get your numbers back. Lecture 2 versioned the code with ",
-      "origin": "link"
-    },
-    {
-      "from": "l08",
-      "to": "l06",
-      "weight": 1,
-      "where": "For engineering data the high-value entries are provenance and known issues: which instrument and firmware produced the readings, the units and sample rate of e",
-      "origin": "link"
-    },
-    {
-      "from": "l08",
       "to": "l07",
-      "weight": 2,
-      "where": "[Lecture 7](../l07/notes.md) ended on a leak so small you could miss it. Fitting a scaler on the test data instead of the training data changed the reported err",
+      "weight": 1,
+      "where": "[Lecture 7](../l07/notes.md) built a feature table and fitted a model to it, and it never",
       "origin": "link"
     },
     {
@@ -293,11 +279,11 @@
   ],
   "in_degree": {
     "l01": 1,
-    "l02": 2,
+    "l02": 1,
     "l03": 4,
     "l04": 3,
     "l05": 3,
-    "l06": 1,
+    "l06": 0,
     "l07": 6,
     "l08": 2,
     "l09": 4,
@@ -315,12 +301,12 @@
   },
   "in_weight": {
     "l01": 1,
-    "l02": 3,
+    "l02": 1,
     "l03": 6,
     "l04": 4,
     "l05": 5,
-    "l06": 1,
-    "l07": 10,
+    "l06": 0,
+    "l07": 9,
     "l08": 4,
     "l09": 9,
     "l10": 0,
@@ -343,7 +329,7 @@
     "l05": 2,
     "l06": 1,
     "l07": 1,
-    "l08": 3,
+    "l08": 1,
     "l09": 1,
     "l10": 4,
     "l11": 2,
@@ -358,6 +344,7 @@
     "l21": 5
   },
   "unreferenced": [
+    "l06",
     "l10",
     "l12",
     "l14",

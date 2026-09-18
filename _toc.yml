@@ -39,7 +39,7 @@ parts:
           - file: lectures/l07/l07-timeseries
 #       - file: lectures/l08/notes
 #         sections:
-#           - file: lectures/l08/l08-splits-versioning
+#           - file: lectures/l08/l08-forecasting
 #       - file: lectures/l09/notes
 #         sections:
 #           - file: lectures/l09/l09-model-selection
@@ -94,7 +94,7 @@ parts:
 #       - file: course/assignments/a11
 
 # Projects: hidden until their lecture. tools/release_lecture.py uncomments the
-# part header and the mini-project (A7) at Lecture 13, and the final project
+# part header and the mini-project (A7) at Lecture 9, and the final project
 # ahead of the proposal deadline; see LECTURE_PROJECTS there.
 #   - caption: Projects
 #     chapters:

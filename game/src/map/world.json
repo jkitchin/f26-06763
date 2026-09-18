@@ -3,12 +3,12 @@
   "note": "Rooms are the sessions in course/schedule.md, regions are the arcs the notes declare, corridors are the edges tools/graph.py verified. Nothing is placed by hand.",
   "grid": {
     "width": 16,
-    "height": 5,
+    "height": 6,
     "cols_per_region": 2
   },
   "spawn": {
     "x": 1,
-    "y": 4
+    "y": 5
   },
   "regions": [
     {
@@ -29,15 +29,15 @@
         "l04",
         "l05",
         "l06",
-        "l07",
-        "l08"
+        "l07"
       ]
     },
     {
       "name": "Machine learning and deep learning",
       "x0": 7,
-      "rows": 3,
+      "rows": 4,
       "rooms": [
+        "l08",
         "l09",
         "l10",
         "l11",
@@ -168,10 +168,10 @@
       "title": "The machine learning (ML) workflow I: Time series",
       "written": false,
       "arc_source": "declared",
-      "arc": "Data Systems",
-      "region": 1,
-      "x": 5,
-      "y": 3,
+      "arc": "Machine learning and deep learning",
+      "region": 2,
+      "x": 7,
+      "y": 1,
       "notes": null
     },
     {
@@ -183,7 +183,7 @@
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
       "region": 2,
-      "x": 7,
+      "x": 8,
       "y": 1,
       "notes": null
     },
@@ -196,8 +196,8 @@
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
       "region": 2,
-      "x": 8,
-      "y": 1,
+      "x": 7,
+      "y": 2,
       "notes": null
     },
     {
@@ -209,7 +209,7 @@
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
       "region": 2,
-      "x": 7,
+      "x": 8,
       "y": 2,
       "notes": null
     },
@@ -222,8 +222,8 @@
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
       "region": 2,
-      "x": 8,
-      "y": 2,
+      "x": 7,
+      "y": 3,
       "notes": null
     },
     {
@@ -235,7 +235,7 @@
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
       "region": 2,
-      "x": 7,
+      "x": 8,
       "y": 3,
       "notes": null
     },
@@ -248,8 +248,8 @@
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
       "region": 2,
-      "x": 8,
-      "y": 3,
+      "x": 7,
+      "y": 4,
       "notes": null
     },
     {
@@ -400,27 +400,11 @@
     },
     {
       "from": "l08",
-      "to": "l02",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "Reproducibility, from [Lecture 2](../l02/notes.md), is the ability to take your data and your code and get your numbers back. Lecture 2 versioned the code with "
-    },
-    {
-      "from": "l08",
-      "to": "l06",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "For engineering data the high-value entries are provenance and known issues: which instrument and firmware produced the readings, the units and sample rate of e"
-    },
-    {
-      "from": "l08",
       "to": "l07",
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "[Lecture 7](../l07/notes.md) ended on a leak so small you could miss it. Fitting a scaler on the test data instead of the training data changed the reported err"
+      "where": "[Lecture 7](../l07/notes.md) built a feature table and fitted a model to it, and it never"
     },
     {
       "from": "l09",

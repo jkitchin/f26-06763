@@ -1,134 +1,273 @@
-# Miniproject (A7) — An Engineering Surrogate Model with Uncertainty Quantification
-**Launched:** Week 07 (L13/L14) · **Dedicated week:** Week 08 (MP-1 build/studio + MP-2 demos) · **Due:** end of Week 08 · **Weight: 15% of course grade.**
+# Miniproject (A7): Detecting faults in a chemical plant without examples of faults
+
+**Released:** Lecture 9 (2026-09-23) · **Due:** Friday 2026-10-09 · **Teams:** 3 or 4, with roles · **Weight:** 20 % of the course grade
 
 ## Overview
-This is the integrative capstone of the data → train → evaluate arc. Working (individually,
-or in a pair if the instructor approves a larger scope) you will take a real engineering
-dataset all the way from raw data to a **surrogate / predictive model that reports calibrated
-uncertainty**, tracked end-to-end in MLflow. A surrogate here means a cheap model that stands
-in for an expensive simulation, experiment, or measurement — and because engineers act on
-these predictions, an *honest uncertainty estimate is a first-class requirement*, not an
-add-on. You will deliver a working repo, a short technical report, and a recorded code
-walkthrough. This project pulls together everything from Weeks 1–7: reproducible
-environments, validated pipelines, leakage-free splits, model selection, PyTorch, MLflow, and
-the Week-7 surrogate/UQ ideas.
+
+A plant runs normally almost all the time. Faults are rare and varied, and the next one is
+often of a kind nobody has recorded. A fault detector trained on labelled examples of past
+faults cannot see a new one. So process monitoring usually works the other way round: learn
+what normal operation looks like, and raise an alarm when the plant stops looking like that.
+
+In this project your team builds two such detectors for the Tennessee Eastman plant, trains
+both on fault-free data only, and tests them against twenty different faults. One detector is
+the classical tool of process monitoring: principal component analysis with the Hotelling
+T² and SPE statistics. The other is the forecast-residual detector from
+[Lecture 8](../lectures/l08/notes.md), extended from one channel to all 52. Then you compare
+them fault by fault and explain the differences.
+
+Both detectors are specified exactly below, so an evidence script can rebuild each one from
+the data and check your numbers. Your effort goes into making the pieces fit together,
+measuring honestly, and explaining what the numbers say about the plant.
 
 ## Learning outcomes
-- Scope and execute a complete applied-ML project on real engineering data with a defensible
-  problem framing and evaluation plan.
-- Build a surrogate/predictive model (classical, deep, or hybrid) and quantify **aleatoric vs.
-  epistemic uncertainty** with a method you can justify.
-- **Calibrate and validate** the uncertainty (coverage / reliability), not just the point
-  prediction, and test behavior on **extrapolation**, not just random held-out rows.
-- Track the full study in MLflow so any result is reproducible from its logged config, data
-  hash, and code version.
-- Communicate results honestly in writing and in a live code walkthrough, including where the
-  model fails.
 
-## What you build
-A predictive **surrogate** for an engineering quantity that:
-1. is trained on a real engineering dataset through a validated, versioned data pipeline;
-2. beats a **strong baseline** on a leakage-free, appropriately grouped/time-aware split;
-3. reports **predictive uncertainty** via at least one principled method (deep ensemble,
-   MC-dropout, Gaussian process, mean-variance/heteroscedastic net, quantile regression, or
-   conformal prediction);
-4. has its uncertainty **calibrated and checked** (reliability diagram + prediction-interval
-   coverage probability, or conformal coverage);
-5. is **fully tracked in MLflow** and reproducible from the repo.
+- Train an anomaly detector on normal data only, and set its threshold on separate normal data.
+- Build a PCA monitoring model and compute the T² and SPE statistics for new observations.
+- Build a multivariate forecast-residual detector and explain what it responds to.
+- Report detection rate, detection delay and false-alarm rate per fault, and say which faults
+  neither detector can see.
+- Work as a team on a shared, reproducible pipeline where each member owns one part.
 
-## Suggested datasets (pick one, or bring your own)
-All are real and documented. You may use a dataset from a prior week if you take it
-meaningfully further (add UQ, extrapolation testing, a design-space analysis).
+## The data
 
-- **NASA C-MAPSS Turbofan (FD001–FD004)** — remaining-useful-life prediction from
-  multivariate run-to-failure sensor streams. Rich UQ story (confidence in RUL matters for
-  maintenance decisions); requires GroupKFold-by-engine. (NASA Prognostics Data Repository.)
-- **UCI Superconductivity** — predict critical temperature from 81 compositional/derived
-  features (21,263 compounds). A materials-discovery surrogate; natural design-loop framing
-  (which composition to try next). (Hamidieh 2018.)
-- **UCI Concrete Compressive Strength** or **NASA Airfoil Self-Noise** — compact,
-  well-behaved surrogate problems where a full UQ + extrapolation study is very achievable in
-  two weeks and where a Gaussian process gives clean epistemic uncertainty.
-- **Bring your own:** any real engineering dataset (sensor/IoT time series, simulation
-  outputs, experimental/materials data) where a cheap model stands in for an expensive
-  quantity. Requires instructor approval by the end of Week 7; record source, version, and
-  hash.
+Two Parquet files, subsets of the Tennessee Eastman simulations published by
+[Rieth, Amsel, Tran and Cook (2017)](https://doi.org/10.7910/DVN/6C3JR1) under CC0. The
+original faulty file needs about 9 GB of memory to read, so the course hosts the part you need.
 
-## Requirements
-- **Data pipeline.** Reproducible ingestion into a clean, **validated** feature table
-  (reuse your Wk3 validation and Wk4 versioning). Log a dataset hash. Document units,
-  ranges, and structure in a data card.
-- **Splits done right.** A locked test set plus an appropriate CV/validation scheme —
-  GroupKFold by unit/specimen/batch, or a time-aware split, as the data demands. Reserve an
-  **extrapolation hold-out**: a region of the input/design space (not random rows) held out
-  entirely, to test out-of-envelope behavior.
-- **Baseline.** A strong classical baseline (ridge/GBM/GP or persistence for time series) on
-  the same split. Your surrogate must beat it or you must explain why not.
-- **Surrogate / DL model.** A neural or advanced surrogate (PyTorch MLP/CNN/sequence model,
-  GP, or a physics-constrained variant — e.g., a soft physics penalty, or a
-  positivity/monotonicity constraint). Full PINNs are welcome but optional and higher-risk.
-- **Uncertainty quantification.** At least one principled UQ method, with a clear statement of
-  which part of the uncertainty is aleatoric vs. epistemic.
-- **Calibration & evaluation.** Point metrics (RMSE/MAE/R² or classification analogs) **and**
-  UQ metrics: reliability diagram, PICP at a stated nominal level (e.g., 90%), and
-  NLL/CRPS if applicable. Report interpolation vs. extrapolation performance separately.
-- **MLflow tracking.** Every run logs params, metrics, seed, git SHA, dataset hash, and
-  artifacts (calibration plots, the fitted model). Results reproducible from logged config.
-- **Honest error analysis.** Show and discuss the worst predictions and where the uncertainty
-  was miscalibrated. State the model's operating envelope and what you would *not* trust it to
-  do.
+| File | Rows | Contents |
+|---|---|---|
+| [`tep_fault_free_training.parquet`](https://kitchin-services.cheme.cmu.edu/f26-06763/data/tep_fault_free_training.parquet) | 250,000 | fault-free, `simulationRun` 1 to 500, `sample` 1 to 500 |
+| [`tep_faulty_training_runs01-20.parquet`](https://kitchin-services.cheme.cmu.edu/f26-06763/data/tep_faulty_training_runs01-20.parquet) | 200,000 | `faultNumber` 1 to 20, `simulationRun` 1 to 20, `sample` 1 to 500 |
 
-## Deliverables
-1. **Repo** — a `uv` project (`pyproject.toml` + `uv.lock`), `src/` with the pipeline, model,
-   UQ, and evaluation code, a runnable entry point, a `README` with exact run instructions,
-   and MLflow runs (exported or reproducible locally). Include a `CREDITS` file.
-2. **Report (~3–5 pages, PDF or `report.md`)** — problem framing and engineering motivation;
-   data card; method (baseline, surrogate, UQ choice with justification); evaluation
-   (point + UQ metrics, interpolation vs. extrapolation, calibration plots); honest error
-   analysis and stated operating envelope; and a reproducibility statement (how to regenerate
-   the headline numbers).
-3. **Recorded code walkthrough (~5–8 min)** — screen recording where you walk through the
-   repo structure, the training/UQ code, and your MLflow runs, and explain one key design
-   decision and one failure mode. This is where you demonstrate you can *defend* the work.
+Download both into `data/` and check them against the published
+[checksums](https://kitchin-services.cheme.cmu.edu/f26-06763/data/SHA256SUMS). The evidence
+script refuses files that do not match.
 
-## Timeline
-Week 8 is a **dedicated mini-project week** (two class sessions): **MP-1 = build/studio day**
-and **MP-2 = demo day** (see `modules/wk08.md`).
-- **Wk7 L13 (launch):** project released. Choose dataset; scope problem, baseline, and UQ
-  method. Bring-your-own datasets approved by end of Week 7.
-- **Wk7 L14 → weekend — Milestone 1 (data + baseline):** validated pipeline, locked split
-  (with extrapolation hold-out defined), and a tracked baseline in MLflow. A short status
-  post/commit.
-- **Wk8 MP-1 (build/studio day):** supervised in-class work + clinic slots; goal is a
-  surrogate model with a first UQ estimate and calibration check, all tracked, beating (or
-  characterized against) the baseline.
-- **Wk8 MP-2 (demo day):** ~5-min code + results walkthrough per student/team, with peer
-  feedback (mirrors the demo checklist in `modules/wk08.md`).
-- **End of Week 8 — due:** repo + report + recorded walkthrough submitted. In-class or
-  office-hour spot-checks on the walkthrough may follow.
+```bash
+mkdir -p data && cd data
+for f in tep_fault_free_training.parquet tep_faulty_training_runs01-20.parquet SHA256SUMS; do
+  curl -fLO https://kitchin-services.cheme.cmu.edu/f26-06763/data/$f
+done
+shasum -a 256 -c SHA256SUMS
+```
 
-## Rubric (100 pts) — 15% of course grade
+Samples are 3 minutes apart, so a run is 25 hours. In the faulty file, each fault is introduced
+one hour into the run, so samples 1 to 20 are normal and samples 21 onward are faulty. The
+twenty faults (IDV 1 to 20) are listed in the header of the original simulation code,
+[`teprob.f`](https://github.com/camaramm/tennessee-eastman-profBraatz/blob/master/teprob.f),
+and in Table 1 of Chiang, Russell and Braatz (2000), linked under Resources. **Do not commit the
+data.**
 
-| Criterion                                                                              | Pts     |
-|----------------------------------------------------------------------------------------|---------|
-| Problem framing + engineering motivation; sensible scope                               | 10      |
-| Reproducible, validated data pipeline + versioned/hashed data                          | 10      |
-| Correct splits: grouped/time-aware + a real extrapolation hold-out                     | 10      |
-| Strong baseline, fairly compared on the same split                                     | 10      |
-| Surrogate/DL (or physics-constrained) model, appropriate and well-trained              | 15      |
-| Uncertainty quantification: principled method, aleatoric vs. epistemic articulated     | 15      |
-| Calibration & evaluation: point + UQ metrics; interpolation vs. extrapolation reported | 10      |
-| MLflow tracking: complete and reproducible (params/metrics/artifacts/SHA/hash/seed)    | 5       |
-| Honest error analysis + stated operating envelope                                      | 5       |
-| Report clarity + recorded walkthrough (defends design + a failure mode)                | 10      |
-| **Total**                                                                              | **100** |
+## Team and roles
 
-## Allowed tools & AI-use note
-Python + `uv`, PyTorch, scikit-learn, MLflow, and any of GPyTorch/BoTorch/Ax, Optuna,
-`mapie`/conformal libraries, pandas/Polars, matplotlib. GPU is available via the course cloud
-environment. Per the syllabus, generative-AI assistants are permitted and encouraged as
-engineering tools, but you must (a) **disclose** where and how you used them in `CREDITS`,
-(b) **cite** generated code/text, and (c) be able to **explain and defend everything** — the
-recorded walkthrough and any spot-check exist precisely to verify this. Using AI to produce a
-UQ pipeline you cannot explain defeats the purpose of the miniproject and will be treated as
-a policy violation. When in doubt, disclose.
+Teams have three or four members. Every member owns one role, and the team owns the comparison
+and the report. List who did what in `ROLES.md`, one line per role with the Andrew ID.
+
+| Role | Owns | Teams of |
+|---|---|---|
+| **A: PCA monitor** | the PCA model, and T² and SPE for every scored row | 3 and 4 |
+| **B: forecast monitor** | the ridge forecaster, and its residual score for every scored row | 3 and 4 |
+| **C: evaluation** | thresholds, alarms, and the detection table | 3 and 4 |
+| **D: diagnosis** | which channels drive each alarm | 4 |
+
+A team of three writes the diagnosis section of the report together, without the
+`contributions.csv` file. Roles share one repository and one pipeline, and A and B should agree
+early on the shared preprocessing below, because C depends on both.
+
+## The recipe
+
+### Shared by everyone
+
+| Choice | Value |
+|---|---|
+| Channels | all 52: `xmeas_1` to `xmeas_41` and `xmv_1` to `xmv_11` |
+| Training runs | fault-free runs 1 to 300 |
+| Validation runs | fault-free runs 301 to 400, used only to set thresholds |
+| Test runs | fault-free runs 401 to 500, used only to measure false alarms |
+| Faulty runs | faults 1 to 20, runs 1 to 20 |
+| Standardization | subtract each channel's mean and divide by its standard deviation (`ddof=1`), both computed on the training runs |
+| Rows to score | every row of the validation, test and faulty runs |
+
+### Role A: PCA monitor
+
+1. Standardize the training data. Compute the principal components of its covariance matrix
+   (on standardized data this is the correlation matrix).
+2. Keep the smallest number of components $k$ whose eigenvalues add up to at least 90 % of the
+   total. Report $k$ in `REPORT.md`.
+3. For each standardized row $z$, with $P$ the $k$ retained loading vectors and $\lambda_i$ their
+   eigenvalues, compute the score $t = P^\top z$ and
+
+   $$T^2 = \sum_{i=1}^{k} \frac{t_i^2}{\lambda_i}, \qquad \text{SPE} = \lVert z - P P^\top z \rVert^2$$
+
+`sklearn.decomposition.PCA` gives the same model: fit it on the standardized training data,
+use `explained_variance_` for $\lambda_i$, and `inverse_transform(transform(z))` for $P P^\top z$.
+Write `results/scores_pca.parquet` with columns `faultNumber`, `simulationRun`, `sample`, `T2`, `SPE`.
+Fault-free rows have `faultNumber` 0.
+
+### Role B: forecast monitor
+
+1. Inside each run, build a table whose features are the standardized rows at $t-1$ and $t-2$
+   (104 columns) and whose targets are the standardized row at $t$ (52 columns). The first two
+   samples of each run have no score.
+2. Fit one `Ridge(alpha=1.0)` on the training runs, predicting all 52 targets at once.
+3. On the training runs, compute each channel's residual standard deviation (`ddof=1`).
+4. For every scored row, divide each channel's residual by that standard deviation, square,
+   and sum over the 52 channels. That sum is the score.
+
+This is the detector from Lecture 8, applied to every channel at once. Write
+`results/scores_ridge.parquet` with columns `faultNumber`, `simulationRun`, `sample`, `score`.
+
+### Role C: evaluation
+
+1. **Thresholds.** For each of the three statistics (`T2`, `SPE`, `ridge`), the threshold is
+   `numpy.quantile(scores, 0.99)` over the validation runs, with NumPy's default interpolation.
+   Write `results/thresholds.csv` with columns `detector`, `threshold`.
+2. **Alarms.** A sample is in alarm when it and the two samples before it all exceed the
+   threshold. Alarms never cross a run boundary.
+3. **Metrics**, for each detector:
+   - **false-alarm rate:** the share of samples in alarm over the test runs, reported as fault 0;
+   - **detection rate:** for each faulty run, the share of samples after sample 20 that are in
+     alarm, averaged over the 20 runs;
+   - **detection delay:** for each faulty run, minutes from sample 20 to the first alarm after
+     it; report the median over the runs that alarmed, and how many runs never alarmed.
+
+Write `results/detection.csv` with columns `fault`, `detector`, `detection_rate`,
+`median_delay_min`, `runs_missed`: 21 rows for each detector, faults 0 to 20.
+
+### Role D: diagnosis
+
+For the SPE and ridge detectors, a statistic that is a sum of squares splits naturally into one
+term per channel. That split is called a **contribution**.
+
+- SPE: the contribution of channel $j$ is $(z_j - (P P^\top z)_j)^2$.
+- Ridge: the contribution of channel $j$ is its squared standardized residual.
+
+For each fault and each of the two detectors, average the contributions over every sample that
+is in alarm after sample 20, across the 20 runs. Write `results/contributions.csv` with columns
+`fault`, `detector`, `rank`, `channel`, `contribution`, keeping the top five channels per fault
+and detector. Then check a few of them against what the fault physically is, from the fault
+list. A contribution plot points at where the fault shows up, which is not always where it
+started.
+
+## The report
+
+`REPORT.md`, **four pages maximum**, written by the team, in this order:
+
+1. **The plant and the task.** Two paragraphs, for a reader who has not taken this course.
+2. **The two detectors.** How each works, $k$ for the PCA model, and one plot of each statistic
+   on one fault run with its threshold.
+3. **Results.** The detection table as a figure or table: detection rate and median delay per
+   fault for all three statistics, and the false-alarm rates.
+4. **Comparison.** Which faults one detector catches and the other does not, and why, given what
+   each responds to.
+5. **Faults nobody catches.** Which faults all three miss, and what that says about the data.
+   Check your answer against the literature under Resources.
+6. **Diagnosis.** For three faults, which channels drive the alarm and whether that matches the
+   fault's description.
+7. **Limits.** What this setup cannot tell you about a real plant.
+8. **Who did what, and AI use.** One line per member, and one line disclosing generative-AI use.
+
+## Submit
+
+Each member runs the evidence script from the repository root with their own role, and uploads
+their own PDF to Canvas:
+
+```bash
+uv run --no-project https://kitchingroup.cheme.cmu.edu/f26-06763/a07-evidence.py \
+    --andrew-id yourid --name "Your Name" --role A
+```
+
+- The script rebuilds both detectors from the data files and compares them with yours. It does
+  not run your code and does not download anything.
+- **Read the PDF before uploading.** A failing check is a reason to fix it and rerun.
+- The PDF prints the script's sha256, which matches
+  <https://kitchingroup.cheme.cmu.edu/f26-06763/a07-evidence.py.sha256>.
+
+## Grading
+
+Each member is scored out of 100.
+
+| Part | Points | Decided by |
+|---|---|---|
+| **Your role** | 35 | the script, from your role's files checked against its own rebuild |
+| **Team evaluation** | 25 | the script, the same for every member: `ROLES.md`, a complete detection table, the undetectable faults reported, and a fault-by-fault comparison in the report |
+| **REPORT.md** | 40 | your TA, for the team, with adjustments for an individual's contribution where `ROLES.md` and the repository history disagree |
+
+The checks per role:
+
+| Role | Checks |
+|---|---|
+| A | `scores_pca.parquet` present; every required row scored and no others; T² and SPE within 0.1 % of the rebuild on 99.9 % of rows; $k$ reported |
+| B | `scores_ridge.parquet` present; every required row scored and no others; score within 0.1 % of the rebuild on 99.9 % of rows; a ridge fit in the code |
+| C | `thresholds.csv` for all three statistics; thresholds equal to the 99th percentile of the team's own validation scores; `detection.csv` equal to a recomputation from the team's own scores and thresholds; false-alarm rows present |
+| D | `contributions.csv` present; top channel per fault and detector matches the rebuild for at least 90 % of them; faults discussed in the report |
+
+Role C is checked against the team's own scores, so an error upstream in A or B costs A or B,
+not C. Projects are group work and the course's automatic grace days do not apply.
+
+## AI use
+
+Generative AI is allowed with disclosure in `REPORT.md`. Every member must be able to explain
+their own role's code and the team's comparison. Editing a generated PDF by hand is falsifying
+a submission.
+
+## A one-page primer on PCA monitoring
+
+PCA finds the directions along which the standardized data vary most. On a plant with 52
+channels and a few underlying drivers, most of the variation lies in a much smaller number of
+directions, because the channels move together. PCA monitoring asks two questions of every new
+sample.
+
+**Is it unusual *within* the normal pattern?** Project the sample onto the $k$ retained
+directions. $T^2$ is the squared distance from the centre in that subspace, with each direction
+scaled by its own variance $\lambda_i$, so a large move along a direction that normally barely
+moves counts for more. It catches a plant that is still behaving like itself, only more so.
+
+**Is it unusual *outside* the normal pattern?** The part of the sample the $k$ directions
+cannot reproduce is the residual, and SPE (the squared prediction error, also called $Q$) is its
+squared length. A large SPE means the channels have stopped moving together the way they
+normally do: a relationship between them has broken. MacGregor and Kourti (1995) recommend
+monitoring both charts together for this reason.
+
+**Where the threshold comes from.** Textbooks give theoretical limits: an $F$-distribution
+limit for $T^2$ and the Jackson and Mudholkar approximation for SPE, both in Russell, Chiang
+and Braatz (2000). Those limits assume independent, normally distributed samples, and plant data
+sampled every 3 minutes are neither. This project uses the empirical 99th percentile on held-out
+normal runs instead, which makes no such assumption and is directly comparable across the three
+statistics.
+
+**What PCA cannot see.** A fault that moves the plant in a way that looks exactly like normal
+variation, or that the controllers absorb completely, leaves both statistics unchanged. Some of
+the twenty faults are like that, and the literature says which.
+
+A minimal sketch, for orientation only; the recipe above is what is graded:
+
+```python
+lam, vecs = np.linalg.eigh(np.cov(Z_train, rowvar=False))  # ascending order
+lam, vecs = lam[::-1], vecs[:, ::-1]                      # largest first
+P, lam_k = vecs[:, :k], lam[:k]
+t = z @ P                                                 # scores of one sample
+```
+
+## Resources
+
+- Russell, Chiang and Braatz (2000), [Fault detection in industrial processes using canonical variate analysis and dynamic principal component analysis](https://web.mit.edu/braatzgroup/36_Fault_detection_in_industrial_processes_using_canonical_variate_analysis_and_dynamic_principal_component_analysis.pdf), *Chemometrics and Intelligent Laboratory Systems* 51. The $T^2$ and $Q$ definitions and limits, and a detection study on this plant that singles out three faults (author's copy).
+- Chiang, Russell and Braatz (2000), [Fault diagnosis in chemical processes using Fisher discriminant analysis, discriminant partial least squares, and principal component analysis](https://web.mit.edu/braatzgroup/35_Fault_diagnosis_in_chemical_processes_using_Fisher_discriminant_analysis_discriminant_partial_least_squares_and_principal_component_analysis.pdf). Table 1 lists the twenty faults; the paper compares $T^2$ and $Q$ for telling faults apart (author's copy).
+- De Ketelaere, Hubert and Schmitt, [A review of PCA-based statistical process monitoring methods for time-dependent, high-dimensional data](https://wis.kuleuven.be/stat/robust/papers/2013/deketelaere-review.pdf). The clearest open derivation of both control limits, plus the dynamic and moving-window variants (authors' preprint).
+- Severson, Chaiwatanodom and Braatz (2016), [Perspectives on process monitoring of industrial systems](https://web.mit.edu/braatzgroup/Severson_ARC_2016.pdf), *Annual Reviews in Control* 42. A readable review of where PCA monitoring sits among the alternatives (author's copy).
+- Westerhuis, Gurden and Smilde (2000), [Generalized contribution plots in multivariate statistical process monitoring](https://three-mode.leidenuniv.nl/pdf/w/westerhuis_etal2000cils.pdf), *Chemometrics and Intelligent Laboratory Systems* 51. What contribution plots show, and the "smearing" that makes them misleading (third-party copy).
+- BibMon, [PCA for fault detection in the Tennessee Eastman process](https://bibmon.readthedocs.io/en/latest/tutorial_tep.html). A worked tutorial on this plant with SPE and contribution heatmaps; it uses its own preprocessing, so do not expect identical numbers.
+- scikit-learn, [`PCA`](https://scikit-learn.org/stable/modules/generated/sklearn.decomposition.PCA.html) and [`Ridge`](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Ridge.html).
+- Lyu, Botcha, Kulkarni, Pagaria, Alves, Sunshine and Kitchin (2026), [Benchmarking machine learning fault detection methods on the Tennessee Eastman process dataset](https://doi.org/10.26434/chemrxiv.10001628/v1), ChemRxiv. Supervised methods on the same data, for contrast with this project's unsupervised setup.
+- Rieth, Amsel, Tran and Cook (2017), [Additional Tennessee Eastman process simulation data](https://doi.org/10.7910/DVN/6C3JR1). The source of both files.
+- [Lecture 8](../lectures/l08/notes.md), the section on residuals, for the forecast-residual detector and the false-alarm trade-off.
+
+## Stretch (not graded)
+
+- Replace the ridge forecaster with a nonlinear model of your choice, keep everything else
+  fixed, and report whether any fault moves from missed to caught.
+- Run the detectors against ten minutes of the live plant stream from Assignment 3, and report
+  what the alarms say about its disturbances.
+- Add lagged copies of the channels to the PCA model (dynamic PCA, in the Russell et al. paper)
+  and compare.
