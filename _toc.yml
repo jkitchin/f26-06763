@@ -37,9 +37,9 @@ parts:
       - file: lectures/l07/notes
         sections:
           - file: lectures/l07/l07-timeseries
-#       - file: lectures/l08/notes
-#         sections:
-#           - file: lectures/l08/l08-forecasting
+      - file: lectures/l08/notes
+        sections:
+          - file: lectures/l08/l08-forecasting
 #       - file: lectures/l09/notes
 #         sections:
 #           - file: lectures/l09/l09-model-selection
@@ -85,7 +85,7 @@ parts:
       - file: course/assignments/a01
       - file: course/assignments/a02
       - file: course/assignments/a03
-#       - file: course/assignments/a04
+      - file: course/assignments/a04
 #       - file: course/assignments/a05
 #       - file: course/assignments/a06
 #       - file: course/assignments/a08

@@ -5,7 +5,7 @@ source_notes: lectures/l08/notes.md
 # Held until release: tools/release_lecture.py flips this to published.
 # Pool version 1 was the empty stub for the old L8 (splits, DVC); no student was
 # ever served it, so the rewrite starts at version 2.
-status: unwritten
+status: published
 serve: 5
 pool_version: 2
 provenance:
