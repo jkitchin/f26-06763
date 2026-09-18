@@ -166,13 +166,13 @@
       "id": "l08",
       "date": "2026-09-21",
       "title": "The machine learning (ML) workflow I: Time series",
-      "written": false,
+      "written": true,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
       "region": 2,
       "x": 7,
       "y": 1,
-      "notes": null
+      "notes": "../lectures/l08/notes.html"
     },
     {
       "session": "L9",

@@ -1790,6 +1790,327 @@
         "Forward-fill `y` and leave `u` null",
         "Fill both with the column mean so nothing is missing"
       ]
+    },
+    {
+      "id": "l08-q01",
+      "kind": "spot_the_defect",
+      "lecture": "l08",
+      "context": "You are building a table to forecast reactor pressure 30 minutes ahead\n(h = 10). Each row is time t. Which feature makes the table leak?",
+      "why": "Everything in a row has to be known when the forecast is made. The channel's\npast and the valves at t are known. The valves 30 minutes from now are not,\nunless they come from a written plan, so using them is leakage stretched\nacross h rows.",
+      "objectives": [
+        "l08-o1"
+      ],
+      "tags": [
+        "horizon",
+        "leakage"
+      ],
+      "true": "Valve positions ten samples after t",
+      "false": [
+        "Pressure nine samples before t",
+        "Valve positions at t",
+        "A rolling mean of pressure ending at t"
+      ]
+    },
+    {
+      "id": "l08-q02",
+      "kind": "mcq",
+      "lecture": "l08",
+      "context": "A table pools 500 simulation runs, one after another. The target is built\nwith `pl.col(\"xmeas_7\").shift(-h)`, with no `.over(RUN)`.\n\nWhat goes wrong?",
+      "why": "A negative shift reads forward. Without the run key it reads straight across\nthe boundary, so the final h rows of every run are asked to predict the\nopening of a different, independent simulation.",
+      "objectives": [
+        "l08-o1"
+      ],
+      "tags": [
+        "horizon",
+        "run-boundary"
+      ],
+      "true": "The last rows of each run take their target from the next run",
+      "false": [
+        "The first rows of each run lose their lag features",
+        "The target is h rows in the past instead of the future",
+        "Nothing, because the runs are sorted by sample number"
+      ]
+    },
+    {
+      "id": "l08-q03",
+      "kind": "mcq",
+      "lecture": "l08",
+      "context": "A channel's autocorrelation is zero at every lag above zero: it is white noise\naround a setpoint. How does persistence compare with forecasting the mean?",
+      "why": "With rho_h = 0 the persistence error is sigma times sqrt(2), while the mean's\nerror is sigma. The last value adds its own noise to the next value's noise.\nSeparator level measures 1.415 on the fault-free runs.",
+      "objectives": [
+        "l08-o2"
+      ],
+      "tags": [
+        "baseline",
+        "white-noise"
+      ],
+      "true": "Persistence is about 1.41 times worse than the mean",
+      "false": [
+        "Persistence and the mean are equally good",
+        "Persistence is about 1.41 times better than the mean",
+        "Persistence wins at short horizons and loses at long ones"
+      ]
+    },
+    {
+      "id": "l08-q04",
+      "kind": "mcq",
+      "lecture": "l08",
+      "context": "For a stationary series, you read the autocorrelation at lag h off the ACF\nbefore fitting anything. When will persistence beat the mean at horizon h?",
+      "why": "The mean's error is sigma and persistence's is sigma times sqrt(2(1 - rho_h)).\nThe two are equal at rho_h = 0.5. Above it, persistence wins. A positive but\nsmall autocorrelation is not enough, and one step is not enough on white noise.",
+      "objectives": [
+        "l08-o2"
+      ],
+      "tags": [
+        "baseline",
+        "autocorrelation"
+      ],
+      "true": "When the lag-h autocorrelation exceeds 0.5",
+      "false": [
+        "Whenever the lag-h autocorrelation is positive",
+        "Only when the lag-h autocorrelation is near 1",
+        "Whenever h is a single step"
+      ]
+    },
+    {
+      "id": "l08-q05",
+      "kind": "mcq",
+      "lecture": "l08",
+      "context": "A one-step forecaster for reactor pressure improves on persistence by 5 %.\nA thirty-minute forecaster for the same channel improves on the better\nbaseline by 14 %. What explains the small one-step gain?",
+      "why": "At three minutes persistence is four times better than the mean, so there is\nlittle left to win. The model earns most in the middle horizons, where\nneither free guess is good. That small gap is also why an R-squared near 0.99\none step ahead says little about the model.",
+      "objectives": [
+        "l08-o2"
+      ],
+      "tags": [
+        "baseline",
+        "skill"
+      ],
+      "true": "Three minutes out, persistence is already close to right",
+      "false": [
+        "The one-step model was trained on fewer rows",
+        "One-step models cannot use lag features",
+        "The mean is the stronger baseline at one step"
+      ]
+    },
+    {
+      "id": "l08-q06",
+      "kind": "mcq",
+      "lecture": "l08",
+      "context": "At a 60-minute horizon on reactor pressure, persistence scores 8.87 kPa and\nthe mean scores 7.61 kPa. Which one should your model's skill score use as\nits reference?",
+      "why": "Beating the worse baseline proves nothing. At an hour, pressure is weakly\nrelated to pressure now, so the mean has overtaken persistence, and it is the\none the model has to beat.",
+      "objectives": [
+        "l08-o2"
+      ],
+      "tags": [
+        "skill",
+        "baseline"
+      ],
+      "true": "The mean, because it is the better baseline at this horizon",
+      "false": [
+        "Persistence, because it is always the standard baseline",
+        "Whichever makes the model's skill look largest",
+        "Neither, because skill scores need a fitted reference model"
+      ]
+    },
+    {
+      "id": "l08-q07",
+      "kind": "mcq",
+      "lecture": "l08",
+      "context": "Meese and Rogoff scored 1970s exchange-rate models out of sample. The models\nfitted the historical data well. What did the comparison with a random walk\nshow?",
+      "why": "Their working paper says a random walk \"would have outperformed all the other\nmodels,\" including univariate models, a VAR, and combinations of forecasts.\nA good in-sample fit said nothing about forecasting; only the baseline did.",
+      "objectives": [
+        "l08-o2"
+      ],
+      "tags": [
+        "baseline",
+        "case-study",
+        "finance"
+      ],
+      "true": "The random walk forecast as well or better than all of them",
+      "false": [
+        "The structural models beat the random walk at every horizon",
+        "The models won at one month and lost at twelve months",
+        "The comparison was impossible because exchange rates are not stationary"
+      ]
+    },
+    {
+      "id": "l08-q08",
+      "kind": "mcq",
+      "lecture": "l08",
+      "context": "A recursive AR(10) forecaster for reactor pressure matches the direct one at\nthree minutes, but at two hours it is worse than simply forecasting the mean.\nWhy does it fall apart further out?",
+      "why": "The recursive forecaster applies a one-step model h times, and each application\ntreats the previous guess as a measurement. Small errors become the next\nstep's input and grow. The direct forecaster trains on y[t+h] itself.",
+      "objectives": [
+        "l08-o3"
+      ],
+      "tags": [
+        "multi-step",
+        "recursive"
+      ],
+      "true": "Each step feeds its prediction back in, so errors compound",
+      "false": [
+        "The recursive model was trained on a different target",
+        "It uses fewer lags than the direct model",
+        "The mean is overfitted at long horizons"
+      ]
+    },
+    {
+      "id": "l08-q09",
+      "kind": "mcq",
+      "lecture": "l08",
+      "context": "Your one-step model uses pressure lags and the current valve positions. You\nwant to run it recursively ten steps ahead. What extra information does that\nrequire?",
+      "why": "To feed y[t+1] back in, the model also needs u[t+1], which is not known at\ntime t. You must forecast the inputs or assume they stay put. A direct\nforecaster uses only the inputs known at t and avoids the question.",
+      "objectives": [
+        "l08-o3"
+      ],
+      "tags": [
+        "multi-step",
+        "exogenous"
+      ],
+      "true": "The valve positions at each future step",
+      "false": [
+        "The pressure at each future step",
+        "A separate model for every horizon",
+        "Nothing beyond what the one-step model already uses"
+      ]
+    },
+    {
+      "id": "l08-q10",
+      "kind": "claim_vs_source",
+      "lecture": "l08",
+      "context": "A teammate says: \"On reactor pressure, direct beat recursive, so direct\nforecasting is always the better strategy.\" What does the published evidence\nsay?",
+      "why": "Taieb and colleagues found that among single-model strategies the recursive one\nalmost always had the smaller error on the 111 NN5 series, and multi-output\nstrategies did best of all. The choice is measured on your own data.",
+      "objectives": [
+        "l08-o3"
+      ],
+      "tags": [
+        "multi-step",
+        "evidence"
+      ],
+      "true": "Not always: on the NN5 series, recursive beat direct",
+      "false": [
+        "Correct: direct wins on every published benchmark",
+        "Correct, but only for linear models",
+        "Not always: both strategies always give identical errors"
+      ]
+    },
+    {
+      "id": "l08-q11",
+      "kind": "mcq",
+      "lecture": "l08",
+      "context": "You forecast h samples ahead and split one series in time order, with the\ntest block starting right after the last training row and no gap. Which\ntraining rows have targets that land inside the test block?",
+      "why": "A row at time t has target y[t+h]. For the last h training rows, t+h is past\nthe cutoff, so the model was trained on values it is then tested near. A gap\nof at least h samples removes them.",
+      "objectives": [
+        "l08-o4"
+      ],
+      "tags": [
+        "evaluation",
+        "gap"
+      ],
+      "true": "The last h training rows",
+      "false": [
+        "Only the final training row",
+        "None, since the split is time-ordered",
+        "Every training row"
+      ]
+    },
+    {
+      "id": "l08-q12",
+      "kind": "mcq",
+      "lecture": "l08",
+      "context": "On single runs of reactor pressure, 30 minutes ahead, a random forest scores\n4.32 kPa under shuffled KFold and 6.92 kPa under TimeSeriesSplit. Persistence\nscores about 6.1. What should you report?",
+      "why": "Shuffled, each test row has neighbours from before and after it in training,\nand a forest recalls them. The time-ordered score is the one you would see in\nuse, and it is worse than persistence.",
+      "objectives": [
+        "l08-o4"
+      ],
+      "tags": [
+        "evaluation",
+        "leakage"
+      ],
+      "true": "The forest loses to persistence, so do not use it",
+      "false": [
+        "The forest beats persistence by about 30 %",
+        "The average of the two scores, about 5.6 kPa",
+        "Neither, because the two splits disagree"
+      ]
+    },
+    {
+      "id": "l08-q13",
+      "kind": "claim_vs_source",
+      "lecture": "l08",
+      "context": "Pooled over 200 independent runs, a ridge model scores 4.74 kPa on a shuffled\nrow split and 4.71 kPa split by run. A classmate concludes the notes were wrong\nabout shuffling. What is the better reading?",
+      "why": "With that much data a linear model barely leans on a test row's few\nneighbours, and K-fold is valid for a purely autoregressive model with\nuncorrelated errors. The shuffled score is most dangerous on one short series\nwith a flexible model, where it flattered two models past persistence.",
+      "objectives": [
+        "l08-o4"
+      ],
+      "tags": [
+        "evaluation",
+        "boundary"
+      ],
+      "true": "Never shuffling is a safe default, and this case sits at its boundary",
+      "false": [
+        "Shuffling is always safe for linear models on any series",
+        "The by-run split must contain a bug",
+        "The runs must share neighbouring rows"
+      ]
+    },
+    {
+      "id": "l08-q14",
+      "kind": "mcq",
+      "lecture": "l08",
+      "context": "A residual detector alarms whenever a residual exceeds the 99th percentile of\nnormal residuals. The plant logs one sample every three minutes. Roughly how\nmany false alarms a day should you expect?",
+      "why": "The 99th percentile is exceeded by 1 % of normal samples by construction, and\na day holds 480 three-minute samples. Operators learn to ignore a detector that\ncries wolf five times a day.",
+      "objectives": [
+        "l08-o5"
+      ],
+      "tags": [
+        "detection",
+        "false-alarm"
+      ],
+      "true": "About 4.8",
+      "false": [
+        "About 0.01",
+        "About 48",
+        "About 0.48"
+      ]
+    },
+    {
+      "id": "l08-q15",
+      "kind": "mcq",
+      "lecture": "l08",
+      "context": "After fault 1 begins, the one-step residual on reactor pressure leaves its\nnormal band, then returns inside it hours later, while the fault is still\npresent. Why?",
+      "why": "A residual reacts to surprise, not to distance from normal. Once the plant\nsettles into a new steady state, a one-step model predicts it well again, and\nfrom the pressure channel alone nothing looks wrong.",
+      "objectives": [
+        "l08-o5"
+      ],
+      "tags": [
+        "detection",
+        "residual"
+      ],
+      "true": "The controller compensated, so the new state looks normal on this channel",
+      "false": [
+        "The fault cleared itself partway through the run",
+        "The threshold was recalculated during the run",
+        "The model was retrained on the faulty data"
+      ]
+    },
+    {
+      "id": "l08-q16",
+      "kind": "mcq",
+      "lecture": "l08",
+      "context": "You want fewer false alarms from a residual detector, so you require three\nconsecutive exceedances before alarming. What do you give up?",
+      "why": "Lowering the false-alarm rate raises the detection delay. Three in a row\ncannot fire until the third sample, so every alarm comes at least six minutes\nlater, and later still for a residual that flickers across the threshold.",
+      "objectives": [
+        "l08-o5"
+      ],
+      "tags": [
+        "detection",
+        "trade-off"
+      ],
+      "true": "Every fault is detected later",
+      "false": [
+        "The threshold no longer comes from normal data",
+        "The detector can no longer run without fault examples",
+        "Nothing, since false alarms and delay are unrelated"
+      ]
     }
   ]
 }
