@@ -87,19 +87,22 @@ to include or how strongly to penalize large coefficients.
 
 The distinction matters because the fitting procedure can only optimize parameters. If you
 also pick hyperparameters by looking at how well the model does on some data, that data has
-been used for fitting too, and it can no longer tell you how the model will do on new data.
+been used for fitting too, and it can no longer tell you how the model will do on new data. 
 
 ### The held-out score
 
-The one genuinely new idea in this section is the **held-out score**: the error of the model
-on rows it did not see while fitting. Lecture 7 never computed one. It fitted the model to a
-run and read the coefficients back, and on that run the model was bound to look good, because
-the fit was chosen to make it look good on exactly those rows.
+The one genuinely new idea in this section is the **held-out score**: the error
+of the model on rows it did not see while fitting. Lecture 7 never computed one.
+It fitted the model to a run and read the coefficients back, and on that run the
+model was bound to look good, because the fit was chosen to make it look good on
+exactly those rows. In other areas of ML this may be called test or validation
+data.
 
-A held-out score is an estimate of how the model will do in use. It is only an honest
-estimate if the held-out rows resemble the rows the model will meet in use. For a time series
-that requirement is harder to meet than it sounds, and the section on evaluating on time is
-about exactly that.
+A held-out score is an estimate of how the model will do in use on data the
+model has not seen before. It is only an honest estimate if the held-out rows
+resemble the rows the model will meet in use. For a time series that requirement
+is harder to meet than it sounds, and the section on evaluating on time is about
+exactly that.
 
 ### The forecast horizon
 
