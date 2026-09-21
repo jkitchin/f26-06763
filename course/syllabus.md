@@ -89,8 +89,8 @@ There is **no proctored final exam**, and assessment is based on projects, quizz
 - **Assignments:** one assignment/homework per module, each reinforcing that
   week's tools. Submitted via Canvas. Typically due one week after
   release.
-- **Mini-project:** a team project, in groups of three or four with one role each, that
-  builds and compares two unsupervised fault detectors for a chemical plant, trained on
+- **Mini-project:** a team project, in groups of about four working in pairs the first week,
+  that builds and compares two unsupervised fault detectors for a chemical plant, trained on
   normal operation only, and ends in a short report. Released with Lecture 9, due before
   fall break.
 - **Final project:** **student-chosen**. Must
