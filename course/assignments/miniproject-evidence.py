@@ -2,7 +2,7 @@
 # requires-python = ">=3.11"
 # dependencies = ["polars>=1.20", "numpy>=1.26", "pyarrow"]
 # ///
-r"""Build the miniproject (A7) evidence report for one team member.
+r"""Build the miniproject evidence report for one team member.
 
 Run this in the root of your team's repository, once per person:
 
@@ -838,7 +838,7 @@ def write_html(path, lines):
         for runs in lines
     )
     Path(path).write_text(
-        "<!doctype html><meta charset='utf-8'><title>A7 evidence</title>"
+        "<!doctype html><meta charset='utf-8'><title>Miniproject evidence</title>"
         "<style>body{font:10pt/1.35 ui-monospace,Menlo,monospace;max-width:62rem;"
         "margin:2rem auto;padding:0 1rem}div{white-space:pre-wrap}</style>\n" + body)
 
@@ -888,7 +888,7 @@ def report_lines(root, args, found, result):
     auto = sum(r["earned"] for r in rows if r["who"] == "script")
     held = sum(r["held"] for r in rows)
     stamp = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M %Z")
-    lines = [plain("Miniproject (A7) evidence", bold=True), plain("")]
+    lines = [plain("Miniproject evidence", bold=True), plain("")]
     lines += [plain(t) for t in [
         f"{args.name or args.andrew_id} ({args.andrew_id})",
         f"generated {stamp} on {platform.platform()}, polars {pl.__version__}, numpy {np.__version__}",
@@ -929,7 +929,7 @@ def report_lines(root, args, found, result):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Build the miniproject (A7) evidence PDF.")
+    parser = argparse.ArgumentParser(description="Build the miniproject evidence PDF.")
     parser.add_argument("--andrew-id", required=True)
     parser.add_argument("--name", default="")
     for flag in ("free", "faulty", "pca", "ridge", "thresholds", "detection", "contributions"):
@@ -948,7 +948,7 @@ def main():
     result["script_sha"] = self_hash()
     lines, rows, auto, held = report_lines(root, args, found, result)
     out = args.out or f"evidence-{args.andrew_id}.pdf"
-    pages = write_pdf(root / out, lines, f"A7 evidence, {args.andrew_id}")
+    pages = write_pdf(root / out, lines, f"Miniproject evidence, {args.andrew_id}")
     if args.html:
         write_html(root / f"evidence-{args.andrew_id}.html", lines)
 

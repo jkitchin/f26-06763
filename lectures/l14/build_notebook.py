@@ -295,7 +295,7 @@ cells = [
        "part to internalize: report over many seeds against a random-search baseline, because a\n",
        "single run is a sample of one. Active learning is the same loop aimed at the model instead\n",
        "of the optimum, spending each query where the surrogate is most uncertain. This is the\n",
-       "design-loop payoff the miniproject (A7) asks you to demonstrate."),
+       "design-loop payoff the miniproject asks you to demonstrate."),
 ]
 
 # The Colab bootstrap cell, injected from the notebook's own imports so this
