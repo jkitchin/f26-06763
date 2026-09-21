@@ -2,17 +2,17 @@
 # requires-python = ">=3.11"
 # dependencies = ["polars>=1.20", "numpy>=1.26", "pyarrow"]
 # ///
-r"""Build the miniproject evidence report for one team member.
+r"""Build the miniproject evidence report for a team.
 
-Run this in a folder holding your team's code and results, once per person:
+Run this once per team, in a folder holding the team's code and results, listing
+every member's Andrew ID:
 
     uv run --no-project https://kitchingroup.cheme.cmu.edu/f26-06763/miniproject-evidence.py \
-        --andrew-id yourid --name "Your Name"
+        --andrew-ids id1 id2 id3 id4 --team "Team name"
 
-It writes `evidence-<andrew-id>.pdf`. Each member uploads their own. It checks the
-team's files, not one person's part, so every member of a team should get the
-same automatic score. Who did what is reported by the team in REPORT.pdf, which
-is submitted separately and which this script does not read.
+It writes `miniproject-evidence.pdf`, which one member uploads for the whole team.
+Who did what is reported by the team in REPORT.pdf, which is submitted
+separately and which this script does not read.
 
 WHAT IT DOES. The miniproject fixes both detectors exactly, so this script can
 build them itself from the two data files and compare. It recomputes:
@@ -75,7 +75,7 @@ THRESHOLD_RTOL = 1e-6  # a threshold is one exact numpy.quantile call
 METRIC_TOL = 1e-3
 DETECTORS = ["T2", "SPE", "ridge"]
 
-# Points out of 15 for one person: 10 from this script, 5 for the report.
+# Points out of 15 for the team: 10 from this script, 5 for the report.
 GROUPS = [
     ("detectors", "Detectors",                5, "script"),
     ("evaluation", "Evaluation and diagnosis", 5, "script"),
@@ -890,7 +890,7 @@ def report_lines(root, args, found, result):
     stamp = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M %Z")
     lines = [plain("Miniproject evidence", bold=True), plain("")]
     lines += [plain(t) for t in [
-        f"{args.name or args.andrew_id} ({args.andrew_id})",
+        f"team {args.team or '(unnamed)'}: {', '.join(args.andrew_ids)}",
         f"generated {stamp} on {platform.platform()}, polars {pl.__version__}, numpy {np.__version__}",
         f"project {root.name}",
         f"evidence script sha256 {result['script_sha']}",
@@ -921,7 +921,7 @@ def report_lines(root, args, found, result):
     for path in found["code"][:8]:
         lines += [plain(""), plain(f"Code: {rel(root, path)}", bold=True), plain("")]
         lines += highlight(read(path))
-    summary = {"andrew_id": args.andrew_id, "generated": stamp,
+    summary = {"team": args.team, "andrew_ids": args.andrew_ids, "generated": stamp,
                "auto_score": round(auto, 1), "auto_of": AUTO_TOTAL, "held_for_ta": round(held, 1),
                "total": TOTAL, "script_sha256": result["script_sha"]}
     lines += [plain(""), plain("Summary line", bold=True), plain(""), plain(f"  {json.dumps(summary)}")]
@@ -930,8 +930,9 @@ def report_lines(root, args, found, result):
 
 def main():
     parser = argparse.ArgumentParser(description="Build the miniproject evidence PDF.")
-    parser.add_argument("--andrew-id", required=True)
-    parser.add_argument("--name", default="")
+    parser.add_argument("--andrew-ids", required=True, nargs="+", metavar="ID",
+                        help="every member's Andrew ID")
+    parser.add_argument("--team", default="", help="the team's name")
     for flag in ("free", "faulty", "pca", "ridge", "thresholds", "detection", "contributions"):
         parser.add_argument(f"--{flag}", default=None)
     parser.add_argument("--out", default=None)
@@ -940,17 +941,17 @@ def main():
 
     root = Path.cwd()
     found = discover(root, args)
-    print(f"Building evidence for {args.andrew_id} in {root}")
+    print(f"Building evidence for {', '.join(args.andrew_ids)} in {root}")
     for label in ("free", "faulty", "pca", "ridge", "thresholds", "detection", "contributions"):
         print(f"  {label:<14} {rel(root, found[label])}")
 
     result = collect(root, args, found, [])
     result["script_sha"] = self_hash()
     lines, rows, auto, held = report_lines(root, args, found, result)
-    out = args.out or f"evidence-{args.andrew_id}.pdf"
-    pages = write_pdf(root / out, lines, f"Miniproject evidence, {args.andrew_id}")
+    out = args.out or "miniproject-evidence.pdf"
+    pages = write_pdf(root / out, lines, f"Miniproject evidence, {' '.join(args.andrew_ids)}")
     if args.html:
-        write_html(root / f"evidence-{args.andrew_id}.html", lines)
+        write_html(root / Path(out).with_suffix(".html").name, lines)
 
     print(f"\nWrote {out}, {pages} pages.\n")
     for r in rows:

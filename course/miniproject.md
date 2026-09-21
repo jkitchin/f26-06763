@@ -175,29 +175,28 @@ analyses. This is where you report your own roles, and it does not count toward 
 
 ## Submit
 
-There are two submissions, to two separate Canvas assignments.
+The team makes two submissions, once each, to two separate Canvas assignments.
 
-1. **The report.** The team submits `REPORT.pdf` once.
-2. **The evidence.** Each member copies the team's code and `results/` files into a folder on
-   their own machine, with the data in `data/`, runs the evidence script from that folder, and
-   uploads their own `evidence-<andrew-id>.pdf`:
+1. **The report.** `REPORT.pdf`.
+2. **The evidence.** One member puts the team's code and `results/` files in a folder, with the
+   data in `data/`, runs the evidence script from that folder with every member's Andrew ID, and
+   uploads the `miniproject-evidence.pdf` it writes:
 
 ```bash
 uv run --no-project https://kitchingroup.cheme.cmu.edu/f26-06763/miniproject-evidence.py \
-    --andrew-id yourid --name "Your Name"
+    --andrew-ids id1 id2 id3 id4 --team "Team name"
 ```
 
 - The script rebuilds both detectors from the data files and compares them with yours. It does
   not run your code and does not download anything.
-- It checks the team's files, so every member of a team should get the same automatic score.
-  It does not read the report.
+- It checks the team's files as a whole and does not read the report.
 - **Read the PDF before uploading.** A failing check is a reason to fix it and rerun.
 - The PDF prints the script's sha256, which matches
   <https://kitchingroup.cheme.cmu.edu/f26-06763/miniproject-evidence.py.sha256>.
 
 ## Grading
 
-Each member is scored out of 15.
+The team is scored out of 15, and every member receives the team's score.
 
 | Part | Points | Decided by |
 |---|---|---|
