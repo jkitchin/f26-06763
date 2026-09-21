@@ -527,11 +527,25 @@ is in the coefficients' units. The pipeline makes the rule structural rather tha
 
 - recursive: one model, the whole path, **but it runs on its own guesses**
 - errors compound: this is "running free" from Lecture 7
-- recursive with valves needs **future** valve positions, which are not known
+- recursive needs the whole future input path `u[t+1] ... u[t+h-1]`; **direct needs only what is known at t**
 
 <!--
 Ask how to reach 10 steps with a one-step model. Someone will say iterate. That is the recursive
 strategy, and the question of what it is standing on at step 7 follows by itself.
+
+The input line needs saying out loud, because the bullet is compressed. Write the two steps up:
+  y[t+1] = f(y[t], y[t-1], ..., u[t])
+  y[t+2] = f(y[t+1], y[t], ..., u[t+1])   <- u[t+1] does not exist yet
+You have the prediction for y[t+1]; you do not have the valve positions three minutes from now,
+because the controller has not moved them. Four ways out, and we take the last: forecast the
+valves too (a second model, errors compounding twice, and the controller reacts to exactly what
+you are forecasting); freeze them at u[t] (assumes the controller does nothing for two hours,
+and it is no longer the model you fitted); use a plan, which is legitimate when a setpoint
+schedule or a recipe exists, the same exception as tomorrow's weather forecast; or drop the
+inputs, which is what our recursive model does, lags of pressure only.
+
+That is why direct can take the valves and gain something real: 5.02 kPa to 4.71 at 30 minutes.
+A4 section 4 asks students for this argument.
 -->
 
 ---
@@ -545,12 +559,15 @@ strategy, and the question of what it is standing on at step 7 follows by itself
 | 60 min | 6.51 | 7.08 | 7.61 |
 | 120 min | **7.17** | 8.11 | 7.65 |
 
-Same 10 lags, same ridge. At two hours, **recursive is worse than the mean**.
+Test RMSE in kPa, runs 401 to 500. Same 10 lags, same ridge.
+At two hours, **recursive is worse than the mean**.
 Adding the 11 current valve positions to direct: 5.02 to **4.71** kPa at 30 min.
 
 <!--
-At two hours the recursive forecast (8.11 kPa) is worse than the mean (7.65). Direct costs one
-model per horizon, which for a linear model is nothing.
+Say the units: every number in the table is a test RMSE in kPa, on the held-out runs, against a
+channel whose own spread is 7.51 kPa. At two hours the recursive forecast (8.11) is worse than
+simply predicting the mean (7.65). Direct costs one model per horizon, which for a linear model
+is nothing.
 -->
 
 ---
