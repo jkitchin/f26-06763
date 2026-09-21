@@ -632,12 +632,23 @@ training set. The ACF from slide 12 is why that matters.
 
 ## Evaluating on time, measured
 
-![w:840](figures/leaky-split.png)
+![w:660](figures/leaky-split.png)
+
+- bars are **error**: lower is better, and the dashed line is persistence
+- **below the line** the model beats the free forecast; **above it** it loses
+- same model and features; only the **split** changed
 
 <span class="source">One run at a time, $h = 10$, pressure lags and valves, mean of runs 1 to 10. <code>figures/make_figures.py</code></span>
 
 <!--
-Let the room read the bars before you say anything.
+Let the room read the bars before you say anything, then give them the reading rule: these are
+errors, so lower is better, and the dashed line at 6.09 kPa is what persistence costs on the
+same folds. Below the line means the model is worth having; above it means the free forecast
+was better.
+
+Then the question to put to them: which of these two pictures would you show a plant manager?
+The left pair is the same model as the right pair. Nothing changed but how the rows were split.
+Numbers are on the next slide.
 -->
 
 ---
