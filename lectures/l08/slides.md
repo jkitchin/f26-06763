@@ -527,11 +527,25 @@ is in the coefficients' units. The pipeline makes the rule structural rather tha
 
 - recursive: one model, the whole path, **but it runs on its own guesses**
 - errors compound: this is "running free" from Lecture 7
-- recursive with valves needs **future** valve positions, which are not known
+- recursive needs the whole future input path `u[t+1] ... u[t+h-1]`; **direct needs only what is known at t**
 
 <!--
 Ask how to reach 10 steps with a one-step model. Someone will say iterate. That is the recursive
 strategy, and the question of what it is standing on at step 7 follows by itself.
+
+The input line needs saying out loud, because the bullet is compressed. Write the two steps up:
+  y[t+1] = f(y[t], y[t-1], ..., u[t])
+  y[t+2] = f(y[t+1], y[t], ..., u[t+1])   <- u[t+1] does not exist yet
+You have the prediction for y[t+1]; you do not have the valve positions three minutes from now,
+because the controller has not moved them. Four ways out, and we take the last: forecast the
+valves too (a second model, errors compounding twice, and the controller reacts to exactly what
+you are forecasting); freeze them at u[t] (assumes the controller does nothing for two hours,
+and it is no longer the model you fitted); use a plan, which is legitimate when a setpoint
+schedule or a recipe exists, the same exception as tomorrow's weather forecast; or drop the
+inputs, which is what our recursive model does, lags of pressure only.
+
+That is why direct can take the valves and gain something real: 5.02 kPa to 4.71 at 30 minutes.
+A4 section 4 asks students for this argument.
 -->
 
 ---
@@ -545,12 +559,15 @@ strategy, and the question of what it is standing on at step 7 follows by itself
 | 60 min | 6.51 | 7.08 | 7.61 |
 | 120 min | **7.17** | 8.11 | 7.65 |
 
-Same 10 lags, same ridge. At two hours, **recursive is worse than the mean**.
+Test RMSE in kPa, runs 401 to 500. Same 10 lags, same ridge.
+At two hours, **recursive is worse than the mean**.
 Adding the 11 current valve positions to direct: 5.02 to **4.71** kPa at 30 min.
 
 <!--
-At two hours the recursive forecast (8.11 kPa) is worse than the mean (7.65). Direct costs one
-model per horizon, which for a linear model is nothing.
+Say the units: every number in the table is a test RMSE in kPa, on the held-out runs, against a
+channel whose own spread is 7.51 kPa. At two hours the recursive forecast (8.11) is worse than
+simply predicting the mean (7.65). Direct costs one model per horizon, which for a linear model
+is nothing.
 -->
 
 ---
@@ -615,12 +632,23 @@ training set. The ACF from slide 12 is why that matters.
 
 ## Evaluating on time, measured
 
-![w:840](figures/leaky-split.png)
+![w:660](figures/leaky-split.png)
+
+- bars are **error**: lower is better, and the dashed line is persistence
+- **below the line** the model beats the free forecast; **above it** it loses
+- same model and features; only the **split** changed
 
 <span class="source">One run at a time, $h = 10$, pressure lags and valves, mean of runs 1 to 10. <code>figures/make_figures.py</code></span>
 
 <!--
-Let the room read the bars before you say anything.
+Let the room read the bars before you say anything, then give them the reading rule: these are
+errors, so lower is better, and the dashed line at 6.09 kPa is what persistence costs on the
+same folds. Below the line means the model is worth having; above it means the free forecast
+was better.
+
+Then the question to put to them: which of these two pictures would you show a plant manager?
+The left pair is the same model as the right pair. Nothing changed but how the rows were split.
+Numbers are on the next slide.
 -->
 
 ---
@@ -640,75 +668,6 @@ Shuffling bites hardest on **one short series, a flexible model, correlated erro
 The honest split says do not ship this model. Then give the boundary immediately: pooled over
 200 runs, ridge scores 4.74 shuffled against 4.71 by run. Nobody should leave thinking a shuffled
 split is always fatal; it bites on one short series with a flexible model.
--->
-
----
-
-## Evaluating on time, rolling origin
-
-<div class="definition">
-
-**Rolling origin** (forward chaining, backtesting): train up to a cutoff, test on the block after it, move the cutoff forward, repeat.
-
-</div>
-
-![w:860](figures/rolling-origin.png)
-
-<!--
-Point at the training block growing fold by fold. Every test block lies after its training block.
--->
-
----
-
-## Evaluating on time, the gap
-
-- a row at $t$ has target `y[t+h]`
-- the last training rows have targets **inside** the test block
-- fix: skip at least $h$ samples
-
-```python
-from sklearn.model_selection import TimeSeriesSplit
-cv = TimeSeriesSplit(n_splits=5, gap=h)
-```
-
-Many series (runs, meters, stocks): **hold whole series out**, as with runs 401 to 500.
-
-<span class="source"><a href="https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.TimeSeriesSplit.html"><code>TimeSeriesSplit</code>, the <code>gap</code> parameter</a></span>
-
-<!--
-Derive it rather than assert it: a row at t has its target at t+h, so the last h training rows
-have targets inside the test block. The clicker on the next slide asks exactly this.
--->
-
----
-
-## Evaluating on time, a question
-
-<div class="clicker" data-tag="l08-gap" data-seconds="60" data-answer="D" data-hint="Row t has target y[t+10]. Which t put that target at 301 or later?" data-why="D. A row at t has target y[t+10], which reaches sample 301 or later when t is at least 291. Those ten training targets sit inside the test block, so the gap must be at least h = 10." data-read="https://clicker.f26-06763.workers.dev">
-<div class="clicker-main">
-
-**Horizon $h = 10$. Training rows end at sample 300; test rows start at 301, with no gap. Which training rows have targets inside the test block?**
-
-<ol class="clicker-opts">
-<li>None of them</li>
-<li>Only row 300</li>
-<li>All of them</li>
-<li>Rows 291 to 300</li>
-</ol>
-
-</div>
-<aside class="clicker-panel">
-<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
-<div class="clicker-url">clicker.f26-06763.workers.dev</div>
-<button class="clicker-start">Start voting</button>
-<div class="clicker-timer">60</div>
-<div class="clicker-count">no votes yet</div>
-</aside>
-</div>
-
-<!--
-B tempts students who picture h = 1. A tempts students who think a time-ordered split is
-automatically clean.
 -->
 
 ---
