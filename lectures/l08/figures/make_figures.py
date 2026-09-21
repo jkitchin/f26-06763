@@ -235,6 +235,34 @@ def fig_three_series(data):
     note(f"  white-noise channels (ratio > 1.35 at h=1 and h=20): {white}")
 
 
+def diagnostics(data):
+    """Three ways to tell a stationary channel from a random walk, on one run each.
+
+    Written for the notes section "Telling the two apart", after a question in the
+    2026-09-21 session: the plotted ACFs differ by whether they cross zero inside
+    two hours, which is a property of the window rather than of the process. This
+    prints what does separate them.
+    """
+    rng = np.random.default_rng(8)
+    walk = 100 + np.cumsum(rng.normal(0, 1, 500))
+    y = data[1][CH].to_numpy()
+
+    note("diagnostics (run 1 of the fault-free file against the simulated walk):")
+    note("  sample ACF at long lags, where a 500-point series has little to average over")
+    for k in (60, 80, 100, 150):
+        note(f"    lag {k:>3} ({k * DT:>4.0f} min): pressure {acf(y, k)[k]:+.3f}, walk {acf(walk, k)[k]:+.3f}")
+    note("  ACF of the differences, which is where forecastability lives")
+    for label, x in (("pressure", np.diff(y)), ("walk", np.diff(walk))):
+        note(f"    {label:<9} " + " ".join(f"lag{k} {acf(x, k)[k]:+.3f}" for k in (1, 2, 3, 5)))
+    note("  block means of 100 samples, and whether the series returns to a level")
+    for label, x in (("pressure", y), ("walk", walk)):
+        blocks = " ".join(f"{x[i:i + 100].mean():.1f}" for i in range(0, 500, 100))
+        note(f"    {label:<9} {blocks}  (sd {x.std():.2f})")
+    note("  variance of the last 100 samples over the first 100")
+    for label, x in (("pressure", y), ("walk", walk)):
+        note(f"    {label:<9} {x[-100:].var() / x[:100].var():.2f}")
+
+
 def fig_skill_horizon(data):
     one = Ridge().fit(*table(TRAIN, data, 1)[:2])
     rows = []
@@ -435,6 +463,7 @@ def main():
     note(f"fault-free training: {df.height} rows, {len(data)} runs, "
          f"{df.group_by('simulationRun').len()['len'].unique().to_list()} samples per run")
     fig_three_series(data)
+    diagnostics(data)
     fig_skill_horizon(data)
     fig_rolling_origin()
     fig_leaky_split(data)
