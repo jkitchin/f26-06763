@@ -94,9 +94,10 @@ Same three questions everywhere: **how far ahead, better than what, scored how.*
 
 </div>
 
-- pick hyperparameters by peeking at test data, and **the test data has been used for fitting**
+- a dataset you used to **choose** hyperparameters is no longer a fair test of them
+- so: train fits parameters, **validation** picks hyperparameters, **test** is touched once
 - **held-out score**: the error on rows the fit never saw. Lecture 7 never computed one.
-- honest only if the held-out rows **look like the future the model will face**, which is the hard part for a time series
+- honest only if the held-out rows **look like the future the model will face**, the hard part for a time series
 
 ---
 
