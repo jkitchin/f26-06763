@@ -140,7 +140,7 @@ a single row, now stretched across $h$ rows.
 
 ## What makes a series forecastable
 
-```{index} autocorrelation, stationarity, white noise, random walk
+```{index} autocorrelation, stationarity, white noise, random walk, unit root test
 ```
 
 Some series can be forecast and some cannot, and you can usually tell which before fitting
@@ -186,6 +186,45 @@ called **white noise**.
 step, so the series drifts anywhere. Its ACF stays high for a long time. That looks like good
 news for forecasting, and it is not: the steps themselves are white noise, so the best forecast
 of the next value is simply the current one.
+
+### Telling the two apart
+
+Looking at the figure, the obvious difference between pressure and the random walk is that
+one ACF crosses zero inside two hours and the other does not. That is a property of the
+window rather than of the process. Carry the same walk's ACF further out and it crosses too:
+it reaches -0.26 at 300 minutes and -0.44 at 450. A 500-point series has few independent
+stretches to average over at those lags, so the long-lag values are mostly sampling noise,
+and a different random seed draws a different picture.
+
+Three checks do separate them, and all three are worth running on any new channel.
+
+**Difference the series and look at the ACF again.** This is the decisive one, because it
+asks the question forecasting actually cares about: is there structure in the *changes*?
+Pressure's changes still carry some, with autocorrelations of +0.146, -0.219 and -0.203 at
+the first three lags. The walk's changes carry none, every one of them within 0.06 of zero.
+A random walk is defined by having unpredictable changes, so this goes straight at the
+definition.
+
+**Ask whether the series returns to a level.** Block means over 100 samples at a time run
+2701.0, 2703.3, 2706.3, 2704.3 and 2706.8 kPa for pressure, all within about one standard
+deviation (5.96 kPa) of each other. The walk's run 96.6, 97.7, 99.8, 89.4 and 100.8, wandering
+several standard deviations with no level to come back to.
+
+**Ask whether the spread grows.** A random walk's variance grows with time, because it is the
+accumulation of independent steps. On these two series the variance of the last 100 samples is
+2.12 times the variance of the first 100 for the walk, against 1.41 for pressure. On 500
+points that is suggestive rather than conclusive, which is why the differencing check is the
+one to reach for first.
+
+The formal versions of this question are the unit root tests, the best known being the
+augmented Dickey-Fuller test and the KPSS test. `statsmodels` has both. They are worth knowing
+by name, and on a plant channel they rarely tell you anything the three checks above did not.
+
+One more thing the figure shows and a decaying ACF alone would not. Pressure's ACF goes
+negative between about 75 and 150 minutes rather than simply decaying to zero. A first-order
+process decays exponentially and never crosses, so the crossing says this channel oscillates,
+with the trough near two hours. That oscillation is structure a model can use, and it is part
+of why the fitted model still beats persistence at 45 and 60 minutes.
 
 ### Stationarity
 
