@@ -144,7 +144,7 @@ def build_table(df, h, n_lags=10, valves=False):
     if valves:
         cols |= {v: pl.col(v) for v in XMV}
     cols["target"] = pl.col(Y).shift(-h).over(RUN)
-    table = df.select(RUN, **cols).drop_nulls()
+    table = df.select(RUN, "sample", **cols).drop_nulls()
     names = [c for c in cols if c != "target"]
     return table, names
 
@@ -232,10 +232,11 @@ def recursive(X, h):
 """),
 
     code("""
-direct_err, recursive_err = [], []
+direct_err, recursive_err, direct_models = [], [], {}
 for h in HORIZONS:
     Xtr, ytr, Xte, yte = split(*build_table(tep, h))
-    direct_err.append(rmse(yte - ridge().fit(Xtr, ytr).predict(Xte)))
+    direct_models[h] = ridge().fit(Xtr, ytr)      # kept, for the pictures below
+    direct_err.append(rmse(yte - direct_models[h].predict(Xte)))
     recursive_err.append(rmse(yte - recursive(Xte, h)))
 
 results = baselines.with_columns(direct=pl.Series(direct_err),
@@ -264,6 +265,124 @@ Read the plot from left to right.
   of an R-squared near 0.99.
 - In the middle, neither free forecast is good, and the model earns the most.
 - Far out, the recursive model has compounded its own errors past the mean.
+"""),
+
+    md("""
+### What does that look like as a forecast?
+
+The error curve says which method is better. It does not say what the forecasts *do*.
+Three pictures, all at one horizon or from one origin.
+
+**1. One origin, the whole path ahead.** Stand at a single moment in a test run and
+forecast the next two hours with each method.
+"""),
+
+    code("""
+RUN_ID, ORIGIN = 401, 200          # a test run, and a sample to stand at
+
+g = tep.filter(pl.col(RUN) == RUN_ID).sort("sample")
+y = g[Y].to_numpy()
+future = np.arange(1, 41)                        # 1 to 40 samples ahead
+
+# the direct models, each asked for its own horizon from this one origin
+direct_path = []
+for h in HORIZONS:
+    rows, names = build_table(tep, h)
+    row = rows.filter((pl.col(RUN) == RUN_ID) & (pl.col("sample") == ORIGIN))
+    direct_path.append(direct_models[h].predict(row.select(names).to_numpy())[0])
+
+# the recursive model, walked forward one step at a time from the same origin
+lags = y[ORIGIN - 1::-1][:10].reshape(1, -1)      # y[t], y[t-1], ... at the origin
+recursive_path = []
+for _ in future:
+    nxt = one_step.predict(lags)
+    recursive_path.append(nxt[0])
+    lags = np.column_stack([nxt, lags[:, :-1]])
+
+fig, ax = plt.subplots(figsize=(9, 4.5))
+ax.plot(np.arange(-20, 41) * DT, y[ORIGIN - 21:ORIGIN + 40], color="0.3", label="what happened")
+ax.axvline(0, color="0.7", lw=1)
+ax.axhline(y[ORIGIN - 1], ls=":", label="persistence: hold today's value")
+ax.axhline(ytr1.mean(), ls="--", label="mean: the usual value")
+ax.plot(future * DT, recursive_path, "^-", ms=4, label="recursive: one step, 40 times")
+ax.plot(np.array(HORIZONS) * DT, direct_path, "o", ms=9, label="direct: one model per h")
+ax.set_xlabel("minutes from the origin")
+ax.set_ylabel("reactor pressure, kPa")
+ax.legend(fontsize=8);
+"""),
+
+    md("""
+Persistence is a flat line at today's value, and the mean is a flat line at the usual value.
+Both are horizontal on purpose: neither knows anything about *when*. The recursive path bends
+at first and then flattens, because each step feeds on the last one and the errors pull it
+toward the average. The direct points are each fitted for their own horizon, so they are free
+to disagree with that path, and here the two-hour point sits well above what actually happened.
+
+One origin is an anecdote: at this moment the plant kept rising and then turned over, and no
+method saw the turn. The RMSE table averages this picture over the 48,100 origins in the test runs. Run the
+cell again with a different `ORIGIN` and the story changes; run it enough times and you get
+the table.
+
+**2. The same run as a timeline.** Every point is a forecast made `h` samples earlier,
+drawn at the time it was about.
+"""),
+
+    code("""
+H_SHOW = 10                                       # 30 minutes ahead
+rows, names = build_table(tep, H_SHOW)
+one_run = rows.filter(pl.col(RUN) == RUN_ID)
+X = one_run.select(names).to_numpy()
+target_time = (one_run["sample"].to_numpy() + H_SHOW) * DT / 60
+
+fig, ax = plt.subplots(figsize=(10, 4.2))
+ax.plot(target_time, one_run["target"], color="0.3", lw=2, label="what happened")
+ax.plot(target_time, X[:, 0], ls=":", label="persistence")
+ax.plot(target_time, direct_models[H_SHOW].predict(X), label="direct")
+ax.plot(target_time, recursive(X, H_SHOW), alpha=0.8, label="recursive")
+ax.axhline(ytr1.mean(), ls="--", color="0.6", label="mean")
+ax.set_xlabel(f"hours into run {RUN_ID}")
+ax.set_ylabel("reactor pressure, kPa")
+ax.set_title(f"every forecast is {H_SHOW * DT:.0f} minutes old")
+ax.legend(ncol=5, fontsize=8);
+"""),
+
+    md("""
+Persistence is the truth shifted 30 minutes to the right, which is exactly what it is. Watch
+where that costs it: every turning point arrives half an hour late. The fitted models turn
+earlier, and they are visibly flatter than the truth, which is what a model does when it is
+unsure: it pulls toward the mean rather than guessing the size of a swing.
+
+**3. Parity plots.** Predicted against actual, for every test row at this horizon. Perfect
+forecasts sit on the diagonal.
+"""),
+
+    code("""
+Xtr, ytr, Xte, yte = split(*build_table(tep, H_SHOW))
+preds = {"persistence": Xte[:, 0], "mean": np.full_like(yte, ytr.mean()),
+         "recursive": recursive(Xte, H_SHOW), "direct": direct_models[H_SHOW].predict(Xte)}
+
+sample = np.random.default_rng(0).choice(len(yte), 4000, replace=False)
+lo, hi = yte.min(), yte.max()
+fig, axes = plt.subplots(1, 4, figsize=(13, 3.6), sharex=True, sharey=True)
+for ax, (name, p) in zip(axes, preds.items()):
+    ax.plot([lo, hi], [lo, hi], color="0.6", lw=1)
+    ax.scatter(yte[sample], p[sample], s=3, alpha=0.25)
+    ax.set_title(f"{name}, RMSE {rmse(yte - p):.2f} kPa", fontsize=10)
+    ax.set_xlabel("actual, kPa")
+axes[0].set_ylabel("predicted, kPa")
+fig.tight_layout();
+"""),
+
+    md("""
+Each panel fails in its own way.
+
+- **Mean** is a horizontal band: it predicts the same number whatever happens.
+- **Persistence** is a wide cloud along the diagonal, unbiased but noisy.
+- **Direct** is the tightest cloud, and it is tilted: at the extremes it under-predicts, because
+  a model fitted to minimise squared error hedges toward the middle.
+- **Recursive** looks like direct, slightly wider.
+
+That tilt is worth knowing before you promise anyone a forecast of the next big excursion.
 """),
 
     md("""

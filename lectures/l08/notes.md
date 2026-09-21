@@ -757,7 +757,9 @@ fault-free file from Rieth et al. (2017) on first run and works on reactor press
 2. **Score the baselines.** Persistence and the mean at several horizons, on runs held out
    from training.
 3. **Fit direct and recursive models** and plot error against horizon, which reproduces the
-   figure in the baselines section.
+   figure in the baselines section. Then look at what those forecasts do rather than what they
+   score: the path ahead from a single origin, a whole test run where every forecast is thirty
+   minutes old, and a parity plot per method.
 4. **Shuffle, then don't.** On a single run, compare shuffled `KFold` with
    `TimeSeriesSplit(gap=h)` for a random forest, and watch the shuffled score beat persistence
    while the honest one does not.
