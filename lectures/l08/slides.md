@@ -39,6 +39,11 @@ Today:
 6. **Residuals** as a detector, and the limits
 7. The notebook, then questions
 
+<!--
+Roadmap, 1 minute. Say where the demo sits: the lecture runs to the recap, then the last
+20 minutes are the notebook and questions.
+-->
+
 ---
 
 ## Why this matters
@@ -50,6 +55,11 @@ Fit a one-step model on reactor pressure: predictions hug the data, **R-squared 
 - an operator needs **30 to 60 minutes** of warning, not 3
 
 A model is worth keeping only if it beats the free guesses, **at the horizon somebody needs, on data it never saw.**
+
+<!--
+The hook. A one-step model on pressure reports R-squared near 0.99 and is mostly the free
+guess. Ask who would sign off on that model. Do not give numbers yet; slide 21 has them.
+-->
 
 ---
 
@@ -64,11 +74,20 @@ A model is worth keeping only if it beats the free guesses, **at the horizon som
 
 Same three questions everywhere: **how far ahead, better than what, scored how.**
 
+<!--
+One minute. Ask the room for the free guess in their own field before reading the table.
+The finance row returns in the clicker on slide 16.
+-->
+
 ---
 
 <!-- _class: section -->
 
 # Time series as supervised learning
+
+<!--
+About 9 minutes for this arc. No new mathematics: L7 already solved a least-squares problem.
+-->
 
 ---
 
@@ -84,6 +103,11 @@ Same three questions everywhere: **how far ahead, better than what, scored how.*
 - scikit-learn: every model has `fit(X, y)` and `predict(X)`
 - linear model, random forest, boosting: **swap in one line**
 
+<!--
+Point back at L7's lstsq. Same step, better bookkeeping. fit/predict is the only new vocabulary,
+and the one-line swap between model families is what makes the rest of the course possible.
+-->
+
 ---
 
 ## Supervised learning, two kinds of number
@@ -98,6 +122,11 @@ Same three questions everywhere: **how far ahead, better than what, scored how.*
 - so: train fits parameters, **validation** picks hyperparameters, **test** is touched once
 - **held-out score**: the error on rows the fit never saw. Lecture 7 never computed one.
 - honest only if the held-out rows **look like the future the model will face**, the hard part for a time series
+
+<!--
+The consequence is the part students miss: a dataset used to CHOOSE a setting can no longer
+measure it. A4 makes them do this for real, nine settings scored on runs 301 to 400.
+-->
 
 ---
 
@@ -116,6 +145,11 @@ cols["target"] = pl.col("xmeas_7").shift(-h).over(RUN)   # the only new line
 
 `.over(RUN)`: Lecture 7's run-boundary rule, still required.
 
+<!--
+Write y[t+h] on the board. The only code change from L7 is shift(-h). Ask what .over(RUN)
+protects against, and let someone say the run boundary.
+-->
+
 ---
 
 ## Supervised learning, what is known at time t
@@ -129,11 +163,20 @@ cols["target"] = pl.col("xmeas_7").shift(-h).over(RUN)   # the only new line
 
 Anything in the right column is **leakage**, stretched across $h$ rows.
 
+<!--
+The weather row is the one that lands: you may use tomorrow's FORECAST, not tomorrow's weather.
+Ask for the plant equivalent; a written setpoint schedule is the answer.
+-->
+
 ---
 
 <!-- _class: section -->
 
 # What makes a series forecastable
+
+<!--
+About 14 minutes. This section decides whether a model is possible at all, before any fitting.
+-->
 
 ---
 
@@ -148,6 +191,11 @@ Anything in the right column is **leakage**, stretched across $h$ rows.
 - plot it against $k$: the **ACF**
 - tells you **before fitting** whether the past can help
 - `statsmodels.graphics.tsaplots.plot_acf`, or three lines of numpy
+
+<!--
+Ask them to sketch the ACF of a constant series and of pure noise before the next slide.
+Thirty seconds, and it makes the next figure readable.
+-->
 
 ---
 
@@ -174,6 +222,11 @@ speaker: ask the room to say, for each column, what they would guess for the nex
 
 **7 of 22** continuous TEP channels look like separator level: **white noise**.
 
+<!--
+Ask the third row before revealing it: the random walk's ACF is 0.98, so is it the easiest to
+forecast? The returns line answers it. Same trap as the R-squared of 0.99 in the opening.
+-->
+
 ---
 
 ## Forecastability, stationarity
@@ -188,6 +241,11 @@ speaker: ask the room to say, for each column, what they would guess for the nex
 - fix for a drifting level: **differencing**, model `y[t] - y[t-1]`
 - finance: prices to **returns**; the "I" in **ARIMA**
 
+<!--
+Differencing is the fix, and prices to returns is the same move. ARIMA is named here, not
+taught; say so, so nobody waits for it.
+-->
+
 ---
 
 ## Forecastability, trend and seasonality
@@ -200,6 +258,11 @@ A plant at an operating point has **mostly neither**.
 A daily cycle there usually has a measured cause (cooling water temperature): **put that column in the table, not the hour.**
 
 <span class="source"><a href="https://otexts.com/fpp3/stationarity.html">Hyndman and Athanasopoulos, FPP3, section 9.1</a></span>
+
+<!--
+A continuous plant has no weekly seasonality. Its daily cycle is usually cooling water
+temperature, so put the measured channel in the table rather than the hour of the day.
+-->
 
 ---
 
@@ -239,6 +302,10 @@ should be used, which is useless on a drifting level.
 
 # Baselines and skill
 
+<!--
+About 17 minutes. The core of the session: everything here is what makes a score mean something.
+-->
+
 ---
 
 ## Baselines
@@ -257,6 +324,11 @@ should be used, which is useless on a drifting level.
 | drift | the average past change, extended | trending series |
 
 <span class="source"><a href="https://otexts.com/fpp3/simple-methods.html">FPP3, section 5.2</a></span>
+
+<!--
+L7 used persistence without naming it. Ask which baseline they would pick for a stock price,
+a load curve, and a controlled level, and let the disagreement stand until the next slide.
+-->
 
 ---
 
@@ -282,6 +354,13 @@ speaker: the ACF you just looked at tells you the crossover before any fitting.
 
 <span class="source">Train runs 1 to 300, test runs 401 to 500. Test standard deviation 7.51 kPa. <code>figures/make_figures.py</code></span>
 
+<!--
+Walk the four curves, do not just show them. Persistence rises 1.92 to 12.29 kPa; the mean is
+flat at about 7.5; they cross between 45 and 60 minutes. The model sits under both and is
+closest to them at the two ends. Recursive passes the mean past about 75 minutes, which sets
+up the next section.
+-->
+
 ---
 
 ## Baselines, reactor pressure, the numbers
@@ -294,6 +373,11 @@ speaker: the ACF you just looked at tells you the crossover before any fitting.
 | 120 min | 12.29 | **7.65** | 7.17 | 6 % |
 
 RMSE in kPa. The model earns most **where neither free guess is good**.
+
+<!--
+Read the 5 % row and the 21 % row aloud. The model earns least where a free guess is already
+good, and most where neither one is.
+-->
 
 ---
 
@@ -310,6 +394,11 @@ RMSE in kPa. The model earns most **where neither free guess is good**.
 - also report **kPa**: an operator can judge 5.0 kPa, not 0.14
 
 <span class="source"><a href="https://robjhyndman.com/papers/mase.pdf">Hyndman and Koehler (2006)</a>, author's copy</span>
+
+<!--
+The reference is the BETTER baseline at that horizon. MASE if asked: scale-free, below 1 beats
+the naive forecast. Always say the kPa as well; an operator can judge 5 kPa, not 0.14.
+-->
 
 ---
 
@@ -356,6 +445,11 @@ They fitted history well. **Only the baseline comparison showed they could not f
 
 <span class="source"><a href="https://www.federalreserve.gov/pubs/ifdp/1981/184/ifdp184.pdf">Meese and Rogoff, Fed IFDP 184 (1981)</a>, the working paper of the 1983 J. Int. Econ. article</span>
 
+<!--
+The quote is the slide. Note the rolling regressions: rolling-origin evaluation, in 1983.
+Ask why beating a random walk on exchange rates is so hard, and link back to slide 13.
+-->
+
 ---
 
 ## Baselines, case study: the M4 competition
@@ -380,6 +474,10 @@ baseline. It is cheap, cannot overfit, and needs no maintenance.
 
 # Model families and multi-step strategies
 
+<!--
+About 13 minutes.
+-->
+
 ---
 
 ## Model families
@@ -393,6 +491,10 @@ baseline. It is cheap, cannot overfit, and needs no maintenance.
 - `statsmodels` for the first route, scikit-learn and `skforecast` for the second
 
 <span class="source"><a href="https://www.statsmodels.org/stable/tsa.html">statsmodels tsa</a> · <a href="https://scikit-learn.org/stable/auto_examples/applications/plot_time_series_lagged_features.html">scikit-learn lagged features</a></span>
+
+<!--
+Two routes that meet at the linear model: ridge on ten lags IS an AR(10). ARIMA is named only.
+-->
 
 ---
 
@@ -408,6 +510,11 @@ model = make_pipeline(StandardScaler(), Ridge(alpha=1.0))
 model.fit(X_train, y_train)     # scaler sees training rows only
 ```
 
+<!--
+Contrast with L7: plain least squares does not care about scale, ridge does, because the penalty
+is in the coefficients' units. The pipeline makes the rule structural rather than remembered.
+-->
+
 ---
 
 ## Multi-step strategies
@@ -421,6 +528,11 @@ model.fit(X_train, y_train)     # scaler sees training rows only
 - recursive: one model, the whole path, **but it runs on its own guesses**
 - errors compound: this is "running free" from Lecture 7
 - recursive with valves needs **future** valve positions, which are not known
+
+<!--
+Ask how to reach 10 steps with a one-step model. Someone will say iterate. That is the recursive
+strategy, and the question of what it is standing on at step 7 follows by itself.
+-->
 
 ---
 
@@ -436,6 +548,11 @@ model.fit(X_train, y_train)     # scaler sees training rows only
 Same 10 lags, same ridge. At two hours, **recursive is worse than the mean**.
 Adding the 11 current valve positions to direct: 5.02 to **4.71** kPa at 30 min.
 
+<!--
+At two hours the recursive forecast (8.11 kPa) is worse than the mean (7.65). Direct costs one
+model per horizon, which for a linear model is nothing.
+-->
+
 ---
 
 ## Multi-step strategies, not a law
@@ -447,6 +564,11 @@ On the 111 series of the NN5 competition, **recursive beat direct**.
 - so: **measure both on your data**
 
 <span class="source"><a href="https://arxiv.org/abs/1108.3259">Taieb, Bontempi, Atiya and Sorjamaa (2012)</a>, arXiv preprint</span>
+
+<!--
+Hold this line: our data says direct, the NN5 competition says recursive. The transferable rule
+is to measure both, not to memorize a winner.
+-->
 
 ---
 
@@ -469,6 +591,10 @@ The horizon is the criterion: try two or three lengths, **keep what lowers the h
 
 # Evaluating on time
 
+<!--
+About 15 minutes, and the notebook runs it again afterwards.
+-->
+
 ---
 
 ## Evaluating on time, why shuffling leaks
@@ -480,6 +606,11 @@ The horizon is the criterion: try two or three lengths, **keep what lowers the h
 
 The score measures **how densely you sampled**, not how well you forecast. Lecture 7 named this **train-test contamination**.
 
+<!--
+Ask where a test row's neighbours end up after shuffling. Three minutes either side, in the
+training set. The ACF from slide 12 is why that matters.
+-->
+
 ---
 
 ## Evaluating on time, measured
@@ -487,6 +618,10 @@ The score measures **how densely you sampled**, not how well you forecast. Lectu
 ![w:840](figures/leaky-split.png)
 
 <span class="source">One run at a time, $h = 10$, pressure lags and valves, mean of runs 1 to 10. <code>figures/make_figures.py</code></span>
+
+<!--
+Let the room read the bars before you say anything.
+-->
 
 ---
 
@@ -501,6 +636,12 @@ Shuffling bites hardest on **one short series, a flexible model, correlated erro
 
 <span class="source"><a href="https://robjhyndman.com/papers/cv-wp.pdf">Bergmeir, Hyndman and Koo (2018)</a>, author's copy</span>
 
+<!--
+The honest split says do not ship this model. Then give the boundary immediately: pooled over
+200 runs, ridge scores 4.74 shuffled against 4.71 by run. Nobody should leave thinking a shuffled
+split is always fatal; it bites on one short series with a flexible model.
+-->
+
 ---
 
 ## Evaluating on time, rolling origin
@@ -512,6 +653,10 @@ Shuffling bites hardest on **one short series, a flexible model, correlated erro
 </div>
 
 ![w:860](figures/rolling-origin.png)
+
+<!--
+Point at the training block growing fold by fold. Every test block lies after its training block.
+-->
 
 ---
 
@@ -529,6 +674,11 @@ cv = TimeSeriesSplit(n_splits=5, gap=h)
 Many series (runs, meters, stocks): **hold whole series out**, as with runs 401 to 500.
 
 <span class="source"><a href="https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.TimeSeriesSplit.html"><code>TimeSeriesSplit</code>, the <code>gap</code> parameter</a></span>
+
+<!--
+Derive it rather than assert it: a row at t has its target at t+h, so the last h training rows
+have targets inside the test block. The clicker on the next slide asks exactly this.
+-->
 
 ---
 
@@ -603,6 +753,11 @@ feature at that lag; a slow decay means a missing input. The notes carry the det
 
 Pressure, one step: residual sd **1.70 kPa**, threshold **4.38 kPa**. No fault examples needed.
 
+<!--
+The threshold comes from held-out fault-free runs, never from the training residuals. Residual
+sd 1.70 kPa, 99th percentile 4.38. No fault examples are needed anywhere in this recipe.
+-->
+
 ---
 
 ## Residuals, false alarms
@@ -617,6 +772,11 @@ Pressure, one step: residual sd **1.70 kPa**, threshold **4.38 kPa**. No fault e
 - 480 samples a day, so **4.8 false alarms a day**
 - require 3 in a row: **0.01 a day**, at the cost of delay
 
+<!--
+Do the arithmetic out loud: 1 % of 480 samples a day is 4.8 false alarms a day, and an operator
+will mute that within a week. Three in a row drops it to 0.01 a day, for at least six minutes of delay.
+-->
+
 ---
 
 ## Residuals, one fault
@@ -624,6 +784,11 @@ Pressure, one step: residual sd **1.70 kPa**, threshold **4.38 kPa**. No fault e
 ![w:840](figures/residual-detector.png)
 
 <span class="source">Fault 1 (A/C feed ratio step), run 1, faulty training file of <a href="https://doi.org/10.7910/DVN/6C3JR1">Rieth et al. (2017)</a>. 3-in-a-row alarm 45 min after onset.</span>
+
+<!--
+Fault 1 is a step in the A/C feed ratio, one hour into the run. The three-in-a-row detector fires
+45 minutes after onset. Let them look before you explain the residual returning to the band.
+-->
 
 ---
 
@@ -649,6 +814,11 @@ One channel sees only what that channel sees.
 | **horizon ceiling** | pressure skill 6 % at two hours | the ACF shows it before fitting |
 
 Each one returns a **confident number**, not an error.
+
+<!--
+Every row of this table returns a confident number and no error message. The feedback row is
+L7's closed-loop case arriving again.
+-->
 
 ---
 
@@ -677,6 +847,10 @@ the baseline table prints. The last cell takes about 15 seconds.
 - **TimeSeriesSplit(gap=h)**, or split by series; a shuffled score flattered two models past persistence
 - Residuals are a detector; the threshold sets the **false alarms**
 
+<!--
+Land these six lines fast, then go to the notebook. The last 20 minutes are demo plus questions.
+-->
+
 ---
 
 ## Standings
@@ -689,6 +863,10 @@ Nicknames only. Everyone who skipped one still counted in every bar you saw.
      data-hours="6"
      data-title="Standings"></div>
 
+<!--
+Skip this slide if no clicker questions were run.
+-->
+
 ---
 
 ## Next
@@ -700,3 +878,8 @@ Nicknames only. Everyone who skipped one still counted in every bar you saw.
 Full notes, with all sources: `lectures/l08/notes.md`
 
 <script src="clicker-slide.js"></script>
+
+<!--
+A4 is released today and due 09-28. The data is a 25 MB Parquet from kitchin-services; the link
+is in the assignment, and the checksum check is one line.
+-->
