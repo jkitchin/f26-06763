@@ -4,7 +4,7 @@
 # ///
 r"""Build the miniproject evidence report for one team member.
 
-Run this in the root of your team's repository, once per person:
+Run this in a folder holding your team's code and results, once per person:
 
     uv run --no-project https://kitchingroup.cheme.cmu.edu/f26-06763/miniproject-evidence.py \
         --andrew-id yourid --name "Your Name"
