@@ -2,15 +2,17 @@
 # requires-python = ">=3.11"
 # dependencies = ["polars>=1.20", "numpy>=1.26", "pyarrow"]
 # ///
-r"""Build the miniproject (A7) evidence report for one team member.
+r"""Build the miniproject evidence report for a team.
 
-Run this in the root of your team's repository, once per person, with your role:
+Run this once per team, in a folder holding the team's code and results, listing
+every member's Andrew ID:
 
-    uv run --no-project https://kitchingroup.cheme.cmu.edu/f26-06763/a07-evidence.py \
-        --andrew-id yourid --name "Your Name" --role A
+    uv run --no-project https://kitchingroup.cheme.cmu.edu/f26-06763/miniproject-evidence.py \
+        --andrew-ids id1 id2 id3 id4 --team "Team name"
 
-Roles: A (PCA monitor), B (forecast monitor), C (evaluation), D (diagnosis, teams
-of four). It writes `evidence-<andrew-id>.pdf`. Each member uploads their own.
+It writes `miniproject-evidence.pdf`, which one member uploads for the whole team.
+Who did what is reported by the team in REPORT.pdf, which is submitted
+separately and which this script does not read.
 
 WHAT IT DOES. The miniproject fixes both detectors exactly, so this script can
 build them itself from the two data files and compare. It recomputes:
@@ -20,10 +22,10 @@ build them itself from the two data files and compare. It recomputes:
   * the two 99th-percentile thresholds from your own validation scores;
   * three-in-a-row alarms, detection rate, detection delay and false-alarm rate
     for every fault, from your own scores and thresholds;
-  * the per-channel contributions for the diagnosis role.
+  * the per-channel contributions for the diagnosis.
 
-Your files are then checked against those. Your score is your role's group plus
-the team's shared evaluation, plus the report, which a person reads.
+Your files are then checked against those. The script scores the detectors and
+the evaluation; the report is read by a person.
 
 IT DOES NOT CHANGE YOUR FILES and does not download anything. The data files are
 checked against the published sha256 before they are used.
@@ -47,7 +49,7 @@ import polars as pl
 SKIP_DIRS = {".venv", ".git", "node_modules", "__pycache__", ".ipynb_checkpoints",
              "build", "dist", ".pytest_cache", "site-packages", ".mypy_cache",
              ".ruff_cache", "target", "mlruns"}
-OURS = ("a07-evidence.py",)
+OURS = ("miniproject-evidence.py",)
 
 FREE_FILE = "tep_fault_free_training.parquet"
 FAULTY_FILE = "tep_faulty_training_runs01-20.parquet"
@@ -73,17 +75,11 @@ THRESHOLD_RTOL = 1e-6  # a threshold is one exact numpy.quantile call
 METRIC_TOL = 1e-3
 DETECTORS = ["T2", "SPE", "ridge"]
 
-ROLES = {
-    "A": "PCA monitor",
-    "B": "forecast monitor",
-    "C": "evaluation",
-    "D": "diagnosis",
-}
-# Points out of 100 for one person: their role, the team's evaluation, the report.
+# Points out of 15 for the team: 10 from this script, 5 for the report.
 GROUPS = [
-    ("role",    "Your role",            35, "script"),
-    ("team",    "Team evaluation",      25, "script"),
-    ("report",  "REPORT.md",            40, "your TA"),
+    ("detectors", "Detectors",                5, "script"),
+    ("evaluation", "Evaluation and diagnosis", 5, "script"),
+    ("report",    "REPORT.pdf",               5, "your TA"),
 ]
 TOTAL = sum(g[2] for g in GROUPS)
 AUTO_TOTAL = sum(g[2] for g in GROUPS if g[3] == "script")
@@ -168,8 +164,6 @@ def discover(root, args):
         "thresholds": _match(root, "thresholds.csv") if not args.thresholds else given_path(root, args.thresholds),
         "detection": _match(root, "detection.csv") if not args.detection else given_path(root, args.detection),
         "contributions": _match(root, "contributions.csv") if not args.contributions else given_path(root, args.contributions),
-        "roles": _match(root, "ROLES.md"),
-        "report": _match(root, "REPORT.md") if not args.report else given_path(root, args.report),
         "code": [p for p in walk(root, ["*.py", "*.ipynb"]) if p.name not in OURS],
     }
 
@@ -395,7 +389,6 @@ def collect(root, args, found, steps):
     def decided(v):
         return PASS if v else FAIL
 
-    role = args.role
     frames = load(found, steps)
     ref = None
     if frames:
@@ -419,111 +412,95 @@ def collect(root, args, found, steps):
     con_tab = read_table(found["contributions"])
     no_data = "the data files are missing or do not match the published sha256"
 
-    # ---- the role's own work
-    if role == "A":
-        if pca is None:
-            for label in ("scores_pca.parquet present", "every required row scored",
-                          "T2 matches the reference", "SPE matches the reference",
-                          "number of components reported"):
-                add("role", label, FAIL, "no scores_pca.parquet")
+    # ---- the detectors
+    if pca is None:
+        for label in ("scores_pca.parquet present", "every required PCA row scored",
+                      "T2 matches the reference", "SPE matches the reference"):
+            add("detectors", label, FAIL, "no scores_pca.parquet")
+    else:
+        add("detectors", "scores_pca.parquet present", PASS)
+        if ref is None:
+            for label in ("every required PCA row scored", "T2 matches the reference",
+                          "SPE matches the reference"):
+                add("detectors", label, SKIP, no_data)
         else:
-            add("role", "scores_pca.parquet present", PASS)
-            if ref is None:
-                for label in ("every required row scored", "T2 matches the reference",
-                              "SPE matches the reference"):
-                    add("role", label, SKIP, no_data)
-            else:
-                cmp = compare_scores(pca.rename({c: c.lower() for c in pca.columns if c.lower() in ("t2", "spe")}),
-                                     ref_pca, ["t2", "spe"])
-                steps.append(Step("scores_pca.parquet against the reference", json.dumps(cmp, indent=1)))
-                add("role", "every required row scored",
-                    decided(cmp.get("covered", 0) >= 0.999 and cmp.get("extra", 1) == 0),
-                    f"{cmp.get('covered', 0):.2%} covered, {cmp.get('extra', '?')} extra rows")
-                add("role", "T2 matches the reference", decided(cmp.get("t2", 0) >= 0.999),
-                    f"{cmp.get('t2', 0):.2%} of rows within 0.1 %")
-                add("role", "SPE matches the reference", decided(cmp.get("spe", 0) >= 0.999),
-                    f"{cmp.get('spe', 0):.2%} of rows within 0.1 %")
-            add("role", "number of components reported",
-                decided(ref is not None and report_mentions(found["report"], str(ref.k))) if ref else SKIP,
-                f"the reference keeps {ref.k}" if ref else no_data)
-    elif role == "B":
-        if ridge is None:
-            for label in ("scores_ridge.parquet present", "every required row scored",
-                          "score matches the reference"):
-                add("role", label, FAIL, "no scores_ridge.parquet")
+            cmp = compare_scores(_lower(pca), ref_pca, ["t2", "spe"])
+            steps.append(Step("scores_pca.parquet against the reference", json.dumps(cmp, indent=1)))
+            add("detectors", "every required PCA row scored",
+                decided(cmp.get("covered", 0) >= 0.999 and cmp.get("extra", 1) == 0),
+                f"{cmp.get('covered', 0):.2%} covered, {cmp.get('extra', '?')} extra rows")
+            add("detectors", "T2 matches the reference", decided(cmp.get("t2", 0) >= 0.999),
+                f"{cmp.get('t2', 0):.2%} of rows within 0.1 %")
+            add("detectors", "SPE matches the reference", decided(cmp.get("spe", 0) >= 0.999),
+                f"{cmp.get('spe', 0):.2%} of rows within 0.1 %")
+    if ridge is None:
+        for label in ("scores_ridge.parquet present", "every required ridge row scored",
+                      "ridge score matches the reference"):
+            add("detectors", label, FAIL, "no scores_ridge.parquet")
+    else:
+        add("detectors", "scores_ridge.parquet present", PASS)
+        if ref is None:
+            add("detectors", "every required ridge row scored", SKIP, no_data)
+            add("detectors", "ridge score matches the reference", SKIP, no_data)
         else:
-            add("role", "scores_ridge.parquet present", PASS)
-            if ref is None:
-                add("role", "every required row scored", SKIP, no_data)
-                add("role", "score matches the reference", SKIP, no_data)
-            else:
-                cmp = compare_scores(ridge, ref_ridge, ["score"])
-                steps.append(Step("scores_ridge.parquet against the reference", json.dumps(cmp, indent=1)))
-                add("role", "every required row scored",
-                    decided(cmp.get("covered", 0) >= 0.999 and cmp.get("extra", 1) == 0),
-                    f"{cmp.get('covered', 0):.2%} covered, {cmp.get('extra', '?')} extra rows")
-                add("role", "score matches the reference", decided(cmp.get("score", 0) >= 0.999),
-                    f"{cmp.get('score', 0):.2%} of rows within 0.1 %")
-        add("role", "a ridge regression fit in the code",
-            decided(code_has(found["code"], r"Ridge\s*\(|np\.linalg\.solve|lstsq")))
-    elif role == "C":
-        add("role", "thresholds.csv with T2, SPE and ridge",
-            decided(thr_tab is not None and {"T2", "SPE", "ridge"} <= set(_col(thr_tab, "detector"))))
-        mine_thr = threshold_dict(thr_tab)
-        own = {}
-        if pca is not None:
-            own["T2"] = thresholds_from(_lower(pca), "t2")
-            own["SPE"] = thresholds_from(_lower(pca), "spe")
-        if ridge is not None:
-            own["ridge"] = thresholds_from(ridge, "score")
-        agree = [k for k in own if own[k] is not None and k in mine_thr and _close(mine_thr[k], own[k], THRESHOLD_RTOL)]
-        add("role", "thresholds are the 99th percentile of the team's validation scores",
-            decided(len(agree) == 3), f"agree for {agree or 'none'}")
-        if det_tab is None or not own or not mine_thr:
-            add("role", "detection.csv matches a recomputation from the team's scores", FAIL,
-                "needs scores, thresholds and detection.csv")
-        else:
-            merged = _scores_wide(pca, ridge)
-            mine_metrics = metrics(merged, {k: v for k, v in mine_thr.items() if k in DETECTORS})
-            ok, note = compare_detection(det_tab, mine_metrics)
-            steps.append(Step("detection.csv against a recomputation", note))
-            add("role", "detection.csv matches a recomputation from the team's scores",
-                decided(ok), note.splitlines()[0])
-        add("role", "false-alarm rows (fault 0) reported for each detector",
-            decided(det_tab is not None and _has_fault0(det_tab)))
-    elif role == "D":
-        if con_tab is None:
-            add("role", "contributions.csv present", FAIL)
-            add("role", "top channels match the reference", FAIL, "no contributions.csv")
-        else:
-            add("role", "contributions.csv present",
-                decided({"fault", "detector", "rank", "channel"} <= set(c.lower() for c in con_tab.columns)))
-            if ref is None:
-                add("role", "top channels match the reference", SKIP, no_data)
-            else:
-                ref_con = contributions(ref, frames["faulty"], {"SPE": ref_thr["SPE"], "ridge": ref_thr["ridge"]})
-                share, note = compare_contributions(_lower(con_tab), ref_con)
-                steps.append(Step("contributions.csv against the reference", note))
-                add("role", "top channels match the reference", decided(share >= 0.9),
-                    f"{share:.0%} of fault/detector top channels agree")
-        add("role", "each diagnosed fault named in REPORT.md",
-            decided(report_mentions(found["report"], "fault")))
+            cmp = compare_scores(ridge, ref_ridge, ["score"])
+            steps.append(Step("scores_ridge.parquet against the reference", json.dumps(cmp, indent=1)))
+            add("detectors", "every required ridge row scored",
+                decided(cmp.get("covered", 0) >= 0.999 and cmp.get("extra", 1) == 0),
+                f"{cmp.get('covered', 0):.2%} covered, {cmp.get('extra', '?')} extra rows")
+            add("detectors", "ridge score matches the reference", decided(cmp.get("score", 0) >= 0.999),
+                f"{cmp.get('score', 0):.2%} of rows within 0.1 %")
+    add("detectors", "a ridge regression fit in the code",
+        decided(code_has(found["code"], r"Ridge\s*\(|np\.linalg\.solve|lstsq")))
 
-    # ---- the team's shared evaluation, same for every member
-    add("team", "ROLES.md names who did which role",
-        decided(found["roles"] is not None and args.andrew_id.lower() in text_of(found["roles"]).lower()),
-        "" if found["roles"] else "no ROLES.md")
-    add("team", "detection.csv covers faults 1 to 20 for all three detectors",
+    # ---- the evaluation and diagnosis, from the team's own scores
+    add("evaluation", "thresholds.csv with T2, SPE and ridge",
+        decided(thr_tab is not None and {"T2", "SPE", "ridge"} <= set(_col(thr_tab, "detector"))))
+    mine_thr = threshold_dict(thr_tab)
+    own = {}
+    if pca is not None:
+        own["T2"] = thresholds_from(_lower(pca), "t2")
+        own["SPE"] = thresholds_from(_lower(pca), "spe")
+    if ridge is not None:
+        own["ridge"] = thresholds_from(ridge, "score")
+    agree = [k for k in own if own[k] is not None and k in mine_thr and _close(mine_thr[k], own[k], THRESHOLD_RTOL)]
+    add("evaluation", "thresholds are the 99th percentile of the team's validation scores",
+        decided(len(agree) == 3), f"agree for {agree or 'none'}")
+    if det_tab is None or not own or not mine_thr:
+        add("evaluation", "detection.csv matches a recomputation from the team's scores", FAIL,
+            "needs scores, thresholds and detection.csv")
+    else:
+        merged = _scores_wide(pca, ridge)
+        mine_metrics = metrics(merged, {k: v for k, v in mine_thr.items() if k in DETECTORS})
+        ok, note = compare_detection(det_tab, mine_metrics)
+        steps.append(Step("detection.csv against a recomputation", note))
+        add("evaluation", "detection.csv matches a recomputation from the team's scores",
+            decided(ok), note.splitlines()[0])
+    add("evaluation", "false-alarm rows (fault 0) reported for each detector",
+        decided(det_tab is not None and _has_fault0(det_tab)))
+    add("evaluation", "detection.csv covers faults 1 to 20 for all three detectors",
         decided(det_tab is not None and _covers(det_tab)))
     if ref is None or det_tab is None:
-        add("team", "faults 3, 9 and 15 reported as not detected", SKIP if ref is None else FAIL)
+        add("evaluation", "faults 3, 9 and 15 reported as not detected", SKIP if ref is None else FAIL)
     else:
         low = _rates(det_tab, [3, 9, 15])
-        add("team", "faults 3, 9 and 15 reported as not detected",
+        add("evaluation", "faults 3, 9 and 15 reported as not detected",
             decided(low and max(low) < 0.05), f"largest rate {max(low):.3f}" if low else "")
-    add("team", "REPORT.md compares the detectors fault by fault",
-        decided(report_mentions(found["report"], "SPE") and report_mentions(found["report"], "ridge")))
-    add("report", "read by your TA", SKIP, "")
+    if con_tab is None:
+        add("evaluation", "contributions.csv present", FAIL)
+        add("evaluation", "top channels match the reference", FAIL, "no contributions.csv")
+    else:
+        add("evaluation", "contributions.csv present",
+            decided({"fault", "detector", "rank", "channel"} <= set(c.lower() for c in con_tab.columns)))
+        if ref is None:
+            add("evaluation", "top channels match the reference", SKIP, no_data)
+        else:
+            ref_con = contributions(ref, frames["faulty"], {"SPE": ref_thr["SPE"], "ridge": ref_thr["ridge"]})
+            share, note = compare_contributions(_lower(con_tab), ref_con)
+            steps.append(Step("contributions.csv against the reference", note))
+            add("evaluation", "top channels match the reference", decided(share >= 0.9),
+                f"{share:.0%} of fault/detector top channels agree")
+    add("report", "REPORT.pdf, submitted separately and read by your TA", SKIP, "")
 
     if ref is not None:
         ref_det = metrics(_scores_wide(ref_pca, ref_ridge), ref_thr)
@@ -645,10 +622,6 @@ def compare_contributions(mine, ref):
     for k in sorted(top_ref)[:12]:
         lines.append(f"  fault {k[0]:>2} {k[1]:<6} reference {top_ref[k]:<9} yours {top_mine.get(k, '-')}")
     return share, "\n".join(lines)
-
-
-def report_mentions(path, needle):
-    return path is not None and needle.lower() in text_of(path).lower()
 
 
 def strip_comments(body):
@@ -865,7 +838,7 @@ def write_html(path, lines):
         for runs in lines
     )
     Path(path).write_text(
-        "<!doctype html><meta charset='utf-8'><title>A7 evidence</title>"
+        "<!doctype html><meta charset='utf-8'><title>Miniproject evidence</title>"
         "<style>body{font:10pt/1.35 ui-monospace,Menlo,monospace;max-width:62rem;"
         "margin:2rem auto;padding:0 1rem}div{white-space:pre-wrap}</style>\n" + body)
 
@@ -915,9 +888,9 @@ def report_lines(root, args, found, result):
     auto = sum(r["earned"] for r in rows if r["who"] == "script")
     held = sum(r["held"] for r in rows)
     stamp = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M %Z")
-    lines = [plain("Miniproject (A7) evidence", bold=True), plain("")]
+    lines = [plain("Miniproject evidence", bold=True), plain("")]
     lines += [plain(t) for t in [
-        f"{args.name or args.andrew_id} ({args.andrew_id}), role {args.role}: {ROLES[args.role]}",
+        f"team {args.team or '(unnamed)'}: {', '.join(args.andrew_ids)}",
         f"generated {stamp} on {platform.platform()}, polars {pl.__version__}, numpy {np.__version__}",
         f"project {root.name}",
         f"evidence script sha256 {result['script_sha']}",
@@ -925,11 +898,11 @@ def report_lines(root, args, found, result):
     lines += [plain(""), [("Score  ", True, BLACK),
                           (f"{auto:.1f} / {AUTO_TOTAL}", True, GREEN if auto >= AUTO_TOTAL - 1e-9 else BLACK),
                           (f"  automatic, of {TOTAL} for the miniproject.", False, BLACK)]]
-    lines.append(plain("  REPORT.md is worth 40 and is read by your TA.", colour=GREY))
+    lines.append(plain(f"  REPORT.pdf is worth {TOTAL - AUTO_TOTAL}, is submitted separately, and is read by your TA.", colour=GREY))
     if held > 1e-9:
         lines.append(plain(f"  {held:.1f} could not be decided here and is held for your TA.", colour=AMBER))
     lines += [plain(""), plain("What this script found", bold=True), plain("")]
-    for label in ("free", "faulty", "pca", "ridge", "thresholds", "detection", "contributions", "roles", "report"):
+    for label in ("free", "faulty", "pca", "ridge", "thresholds", "detection", "contributions"):
         lines.append(plain(f"  {label:<14} {rel(root, found[label])}"))
     for r in rows:
         lines += [plain(""), [(r["title"], True, BLACK),
@@ -948,9 +921,7 @@ def report_lines(root, args, found, result):
     for path in found["code"][:8]:
         lines += [plain(""), plain(f"Code: {rel(root, path)}", bold=True), plain("")]
         lines += highlight(read(path))
-    lines += [plain(""), plain(f"REPORT: {rel(root, found['report'])}", bold=True), plain("")]
-    lines += [plain(f"  {l}") for l in read(found["report"]).splitlines()]
-    summary = {"andrew_id": args.andrew_id, "role": args.role, "generated": stamp,
+    summary = {"team": args.team, "andrew_ids": args.andrew_ids, "generated": stamp,
                "auto_score": round(auto, 1), "auto_of": AUTO_TOTAL, "held_for_ta": round(held, 1),
                "total": TOTAL, "script_sha256": result["script_sha"]}
     lines += [plain(""), plain("Summary line", bold=True), plain(""), plain(f"  {json.dumps(summary)}")]
@@ -958,11 +929,11 @@ def report_lines(root, args, found, result):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Build the miniproject (A7) evidence PDF.")
-    parser.add_argument("--andrew-id", required=True)
-    parser.add_argument("--name", default="")
-    parser.add_argument("--role", required=True, choices=sorted(ROLES))
-    for flag in ("free", "faulty", "pca", "ridge", "thresholds", "detection", "contributions", "report"):
+    parser = argparse.ArgumentParser(description="Build the miniproject evidence PDF.")
+    parser.add_argument("--andrew-ids", required=True, nargs="+", metavar="ID",
+                        help="every member's Andrew ID")
+    parser.add_argument("--team", default="", help="the team's name")
+    for flag in ("free", "faulty", "pca", "ridge", "thresholds", "detection", "contributions"):
         parser.add_argument(f"--{flag}", default=None)
     parser.add_argument("--out", default=None)
     parser.add_argument("--html", action="store_true")
@@ -970,24 +941,24 @@ def main():
 
     root = Path.cwd()
     found = discover(root, args)
-    print(f"Building evidence for {args.andrew_id}, role {args.role} ({ROLES[args.role]}), in {root}")
-    for label in ("free", "faulty", "pca", "ridge", "thresholds", "detection", "contributions", "roles", "report"):
+    print(f"Building evidence for {', '.join(args.andrew_ids)} in {root}")
+    for label in ("free", "faulty", "pca", "ridge", "thresholds", "detection", "contributions"):
         print(f"  {label:<14} {rel(root, found[label])}")
 
     result = collect(root, args, found, [])
     result["script_sha"] = self_hash()
     lines, rows, auto, held = report_lines(root, args, found, result)
-    out = args.out or f"evidence-{args.andrew_id}.pdf"
-    pages = write_pdf(root / out, lines, f"A7 evidence, {args.andrew_id}, role {args.role}")
+    out = args.out or "miniproject-evidence.pdf"
+    pages = write_pdf(root / out, lines, f"Miniproject evidence, {' '.join(args.andrew_ids)}")
     if args.html:
-        write_html(root / f"evidence-{args.andrew_id}.html", lines)
+        write_html(root / Path(out).with_suffix(".html").name, lines)
 
     print(f"\nWrote {out}, {pages} pages.\n")
     for r in rows:
         if r["who"] != "script":
-            print(f"  {r['title']:<18}    ? / {r['points']}   (read by your TA)")
+            print(f"  {r['title']:<26}    ? / {r['points']}   (read by your TA)")
             continue
-        print(f"  {r['title']:<18} {r['earned']:5.1f} / {r['points']}   ({r['passed']}/{r['of']} checks"
+        print(f"  {r['title']:<26} {r['earned']:5.1f} / {r['points']}   ({r['passed']}/{r['of']} checks"
               + (f", {r['skipped']} held" if r["skipped"] else "") + ")")
         for _, label, state, note in r["checks"]:
             if state != PASS:

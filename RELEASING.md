@@ -134,7 +134,7 @@ calendar, or to catch up out of band.
   assignment listed for that lecture in its `LECTURE_ASSIGNMENTS` map, taken from
   the schedule's "Assignment N released" markers (A1 with L1, A2 with L3, and so
   on). A lecture that releases no assignment simply skips this.
-- **Projects release the same way.** The mini-project (A7) is uncommented at L13
+- **Projects release the same way.** The miniproject is uncommented at L13
   and the final project at L17, from `LECTURE_PROJECTS`. Their whole Projects
   part stays commented out until the first one releases, because a part with no
   chapters will not build, so releasing the mini-project also restores the part

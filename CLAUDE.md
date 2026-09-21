@@ -76,9 +76,10 @@ Rules that follow:
 
 **Naming.** Lectures are `l01` through `l22`, zero-padded, matching the L-numbers in
 `course/schedule.md`, which is the source of truth for how many there are. Assignments
-are `a01` through `a11` (there is deliberately no `a07`; the mini-project is A7). The
-mini-project no longer has dedicated class days, so there are no `mp1` and `mp2`
-directories, and the final presentations are unnumbered sessions with no directory.
+are `a01` through `a11` (there is no `a07`: that slot once belonged to the mini-project,
+which is now just "the miniproject" and carries no A-number). The mini-project no longer
+has dedicated class days, so there are no `mp1` and `mp2` directories, and the final
+presentations are unnumbered sessions with no directory.
 
 One directory per **session**, not per week. Week 1 is two directories, `l01` and `l02`.
 A session that leaves the schedule takes its directory with it: the MLOps material that

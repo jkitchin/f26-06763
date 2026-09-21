@@ -207,7 +207,7 @@ alert can be scored against something rather than eyeballed. Needs a small
 runner that holds a connection open and evaluates a schema per message, which
 is thirty lines on top of `a03-collect.py`.
 
-**A soft sensor, which is the honest fit for the mini-project.** A7 is a
+**A soft sensor, which is the honest fit for the mini-project.** The miniproject is a
 surrogate with uncertainty quantification, and the stream is not a surrogate
 problem as it stands, so it was recorded here as needing a redesign. There is a
 framing that does fit without one. The five product-composition channels are
@@ -217,7 +217,7 @@ thirty-four continuous channels are cheap and arrive every sample. Predicting
 the former from the latter is a soft sensor, which is what a surrogate is when
 a chemical plant builds one, and the uncertainty requirement is not decoration:
 a plant acts on a soft sensor between assays and needs to know when to stop
-trusting it. The extrapolation hold-out that A7 asks for is already in the
+trusting it. The extrapolation hold-out that the miniproject asks for is already in the
 data, because a disturbance episode is a regime the quiet stretch does not
 cover, and a model fit on quiet operation and tested across an episode will
 fail in a way worth reporting.

@@ -1,6 +1,6 @@
-# Miniproject (A7): Detecting faults in a chemical plant without examples of faults
+# Miniproject: Detecting faults in a chemical plant without examples of faults
 
-**Released:** Lecture 9 (2026-09-23) · **Due:** Friday 2026-10-09 · **Teams:** 3 or 4, with roles · **Weight:** 20 % of the course grade
+**Released:** Lecture 9 (2026-09-23) · **Due:** Friday 2026-10-09 · **Teams:** about 4, working in pairs the first week · **Points:** 15 (10 from the evidence script, 5 for the report) · **Weight:** 20 % of the course grade
 
 ## Overview
 
@@ -27,7 +27,8 @@ measuring honestly, and explaining what the numbers say about the plant.
 - Build a multivariate forecast-residual detector and explain what it responds to.
 - Report detection rate, detection delay and false-alarm rate per fault, and say which faults
   neither detector can see.
-- Work as a team on a shared, reproducible pipeline where each member owns one part.
+- Work as a team on a shared, reproducible pipeline, building parts in parallel and then
+  combining them.
 
 ## The data
 
@@ -56,45 +57,43 @@ Samples are 3 minutes apart, so a run is 25 hours. In the faulty file, each faul
 one hour into the run, so samples 1 to 20 are normal and samples 21 onward are faulty. The
 twenty faults (IDV 1 to 20) are listed in the header of the original simulation code,
 [`teprob.f`](https://github.com/camaramm/tennessee-eastman-profBraatz/blob/master/teprob.f),
-and in Table 1 of Chiang, Russell and Braatz (2000), linked under Resources. **Do not commit the
-data.**
+and in Table 1 of Chiang, Russell and Braatz (2000), linked under Resources. 
 
-## Team and roles
+## Teams and how to split the work
 
-Teams have three or four members. Every member owns one role, and the team owns the comparison
-and the report. List who did what in `ROLES.md`, one line per role with the Andrew ID.
+Teams have about four members. We suggest splitting into two pairs for the first week: one pair
+builds the PCA monitor, the other builds the forecast monitor. The two detectors do not depend on
+each other, so the pairs can work in parallel, but they share the preprocessing below, so agree on
+it on the first day and put it in one place that both pairs can use.
 
-| Role | Owns | Teams of |
-|---|---|---|
-| **A: PCA monitor** | the PCA model, and T² and SPE for every scored row | 3 and 4 |
-| **B: forecast monitor** | the ridge forecaster, and its residual score for every scored row | 3 and 4 |
-| **C: evaluation** | thresholds, alarms, and the detection table | 3 and 4 |
-| **D: diagnosis** | which channels drive each alarm | 4 |
+In the second week the team combines the two halves. The thresholds, the alarms, the detection
+table, the contributions and the report all need scores from both detectors, so neither pair can
+finish without the other. Plan for that: a pair whose scores arrive on the last day leaves the
+team no time to evaluate them.
 
-A team of three writes the diagnosis section of the report together, without the
-`contributions.csv` file. Roles share one repository and one pipeline, and A and B should agree
-early on the shared preprocessing below, because C depends on both.
+The split is a suggestion, not a rule. The evidence script checks the team's whole pipeline and
+does not ask who built which part. You report that yourselves, in an appendix to the report.
 
 ## The recipe
 
 ### Shared by everyone
 
-| Choice | Value |
-|---|---|
-| Channels | all 52: `xmeas_1` to `xmeas_41` and `xmv_1` to `xmv_11` |
-| Training runs | fault-free runs 1 to 300 |
-| Validation runs | fault-free runs 301 to 400, used only to set thresholds |
-| Test runs | fault-free runs 401 to 500, used only to measure false alarms |
-| Faulty runs | faults 1 to 20, runs 1 to 20 |
+| Choice          | Value                                                                                                            |
+|-----------------|------------------------------------------------------------------------------------------------------------------|
+| Channels        | all 52: `xmeas_1` to `xmeas_41` and `xmv_1` to `xmv_11`                                                          |
+| Training runs   | fault-free runs 1 to 300                                                                                         |
+| Validation runs | fault-free runs 301 to 400, used only to set thresholds                                                          |
+| Test runs       | fault-free runs 401 to 500, used only to measure false alarms                                                    |
+| Faulty runs     | faults 1 to 20, runs 1 to 20                                                                                     |
 | Standardization | subtract each channel's mean and divide by its standard deviation (`ddof=1`), both computed on the training runs |
-| Rows to score | every row of the validation, test and faulty runs |
+| Rows to score   | every row of the validation, test and faulty runs                                                                |
 
-### Role A: PCA monitor
+### PCA monitor (first week)
 
 1. Standardize the training data. Compute the principal components of its covariance matrix
    (on standardized data this is the correlation matrix).
 2. Keep the smallest number of components $k$ whose eigenvalues add up to at least 90 % of the
-   total. Report $k$ in `REPORT.md`.
+   total. Report $k$ in the report.
 3. For each standardized row $z$, with $P$ the $k$ retained loading vectors and $\lambda_i$ their
    eigenvalues, compute the score $t = P^\top z$ and
 
@@ -105,7 +104,7 @@ use `explained_variance_` for $\lambda_i$, and `inverse_transform(transform(z))`
 Write `results/scores_pca.parquet` with columns `faultNumber`, `simulationRun`, `sample`, `T2`, `SPE`.
 Fault-free rows have `faultNumber` 0.
 
-### Role B: forecast monitor
+### Forecast monitor (first week)
 
 1. Inside each run, build a table whose features are the standardized rows at $t-1$ and $t-2$
    (104 columns) and whose targets are the standardized row at $t$ (52 columns). The first two
@@ -118,7 +117,7 @@ Fault-free rows have `faultNumber` 0.
 This is the detector from Lecture 8, applied to every channel at once. Write
 `results/scores_ridge.parquet` with columns `faultNumber`, `simulationRun`, `sample`, `score`.
 
-### Role C: evaluation
+### Evaluation (second week)
 
 1. **Thresholds.** For each of the three statistics (`T2`, `SPE`, `ridge`), the threshold is
    `numpy.quantile(scores, 0.99)` over the validation runs, with NumPy's default interpolation.
@@ -135,7 +134,7 @@ This is the detector from Lecture 8, applied to every channel at once. Write
 Write `results/detection.csv` with columns `fault`, `detector`, `detection_rate`,
 `median_delay_min`, `runs_missed`: 21 rows for each detector, faults 0 to 20.
 
-### Role D: diagnosis
+### Diagnosis (second week)
 
 For the SPE and ridge detectors, a statistic that is a sum of squares splits naturally into one
 term per channel. That split is called a **contribution**.
@@ -152,7 +151,9 @@ started.
 
 ## The report
 
-`REPORT.md`, **four pages maximum**, written by the team, in this order:
+`REPORT.pdf`, **four pages maximum** plus an appendix, written by the team. Write it in
+whatever you like (Markdown, a notebook, LaTeX, a word processor), but hand in a PDF so the
+figures come with it. The sections, in this order:
 
 1. **The plant and the task.** Two paragraphs, for a reader who has not taken this course.
 2. **The two detectors.** How each works, $k$ for the PCA model, and one plot of each statistic
@@ -166,50 +167,60 @@ started.
 6. **Diagnosis.** For three faults, which channels drive the alarm and whether that matches the
    fault's description.
 7. **Limits.** What this setup cannot tell you about a real plant.
-8. **Who did what, and AI use.** One line per member, and one line disclosing generative-AI use.
+8. **AI use.** One line disclosing generative-AI use.
+
+**Appendix: contributions.** One entry per member, with their Andrew ID, saying what they
+contributed to the project: which parts of the code, which sections of the report, which
+analyses. This is where you report your own roles, and it does not count toward the four pages.
 
 ## Submit
 
-Each member runs the evidence script from the repository root with their own role, and uploads
-their own PDF to Canvas:
+The team makes two submissions, once each, to two separate Canvas assignments.
+
+1. **The report.** `REPORT.pdf`.
+2. **The evidence.** One member puts the team's code and `results/` files in a folder, with the
+   data in `data/`, runs the evidence script from that folder with every member's Andrew ID, and
+   uploads the `miniproject-evidence.pdf` it writes:
 
 ```bash
-uv run --no-project https://kitchingroup.cheme.cmu.edu/f26-06763/a07-evidence.py \
-    --andrew-id yourid --name "Your Name" --role A
+uv run --no-project https://kitchingroup.cheme.cmu.edu/f26-06763/miniproject-evidence.py \
+    --andrew-ids id1 id2 id3 id4 --team "Team name"
 ```
 
 - The script rebuilds both detectors from the data files and compares them with yours. It does
   not run your code and does not download anything.
+- It checks the team's files as a whole and does not read the report.
 - **Read the PDF before uploading.** A failing check is a reason to fix it and rerun.
 - The PDF prints the script's sha256, which matches
-  <https://kitchingroup.cheme.cmu.edu/f26-06763/a07-evidence.py.sha256>.
+  <https://kitchingroup.cheme.cmu.edu/f26-06763/miniproject-evidence.py.sha256>.
 
 ## Grading
 
-Each member is scored out of 100.
+The team is scored out of 15, and every member receives the team's score.
 
 | Part | Points | Decided by |
 |---|---|---|
-| **Your role** | 35 | the script, from your role's files checked against its own rebuild |
-| **Team evaluation** | 25 | the script, the same for every member: `ROLES.md`, a complete detection table, the undetectable faults reported, and a fault-by-fault comparison in the report |
-| **REPORT.md** | 40 | your TA, for the team, with adjustments for an individual's contribution where `ROLES.md` and the repository history disagree |
+| **Detectors** | 5 | the evidence script: both score files checked against its own rebuild |
+| **Evaluation and diagnosis** | 5 | the evidence script: thresholds, the detection table, contributions, and the undetectable faults |
+| **REPORT.pdf** | 5 | your TA, for the team, with adjustments for an individual's contribution based on the contributions appendix |
 
-The checks per role:
+Within each scripted part, the points are split evenly over that part's checks.
 
-| Role | Checks |
+The checks:
+
+| Part | Checks |
 |---|---|
-| A | `scores_pca.parquet` present; every required row scored and no others; T² and SPE within 0.1 % of the rebuild on 99.9 % of rows; $k$ reported |
-| B | `scores_ridge.parquet` present; every required row scored and no others; score within 0.1 % of the rebuild on 99.9 % of rows; a ridge fit in the code |
-| C | `thresholds.csv` for all three statistics; thresholds equal to the 99th percentile of the team's own validation scores; `detection.csv` equal to a recomputation from the team's own scores and thresholds; false-alarm rows present |
-| D | `contributions.csv` present; top channel per fault and detector matches the rebuild for at least 90 % of them; faults discussed in the report |
+| Detectors | `scores_pca.parquet` present; every required row scored and no others; T² and SPE within 0.1 % of the rebuild on 99.9 % of rows; the same for `scores_ridge.parquet` and its score; a ridge fit in the code |
+| Evaluation and diagnosis | `thresholds.csv` for all three statistics; thresholds equal to the 99th percentile of the team's own validation scores; `detection.csv` equal to a recomputation from the team's own scores and thresholds, with false-alarm rows and faults 1 to 20 for all three statistics; faults 3, 9 and 15 reported as not detected; `contributions.csv` whose top channel per fault and detector matches the rebuild for at least 90 % of them |
 
-Role C is checked against the team's own scores, so an error upstream in A or B costs A or B,
-not C. Projects are group work and the course's automatic grace days do not apply.
+The evaluation checks use the team's own scores, so an error in a detector costs points once,
+under Detectors, and not again in every table built from it. Projects are group work and the
+course's automatic grace days do not apply.
 
 ## AI use
 
-Generative AI is allowed with disclosure in `REPORT.md`. Every member must be able to explain
-their own role's code and the team's comparison. Editing a generated PDF by hand is falsifying
+Generative AI is allowed with disclosure in the report. Every member must be able to explain
+the code they wrote and the team's comparison. Editing a generated PDF by hand is falsifying
 a submission.
 
 ## A one-page primer on PCA monitoring

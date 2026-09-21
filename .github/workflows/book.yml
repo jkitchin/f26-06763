@@ -225,7 +225,7 @@ jobs:
 
       - name: Check every evidence checksum matches its script
         # Students are told to compare the sha256 the report prints against the
-        # a0N-evidence.py.sha256 on the site, and a TA is told to do the same. If
+        # *-evidence.py.sha256 on the site, and a TA is told to do the same. If
         # a script is edited and its checksum is not regenerated, every honest
         # submission mismatches at once and the error lands on students who did
         # nothing wrong. That is the same false-positive shape as bumping SCHEMA
@@ -240,9 +240,9 @@ jobs:
           import sys
 
           problems, checked = [], 0
-          scripts = sorted(pathlib.Path("course/assignments").glob("a*-evidence.py"))
+          scripts = sorted(pathlib.Path("course/assignments").glob("*-evidence.py"))
           if not scripts:
-              sys.exit("no a*-evidence.py found under course/assignments")
+              sys.exit("no *-evidence.py found under course/assignments")
           for script in scripts:
               published = script.with_suffix(".py.sha256")
               if not published.is_file():
