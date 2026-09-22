@@ -1,47 +1,46 @@
 # Miniproject: Detecting faults in a chemical plant without examples of faults
 
-**Released:** Lecture 9 (2026-09-23) · **Due:** Friday 2026-10-09 · **Teams:** about 4, working in pairs the first week · **Points:** 15 (10 from the evidence script, 5 for the report) · **Weight:** 20 % of the course grade
+**Released:** Lecture 9 (2026-09-23) · **Due:** Friday 2026-10-09 · **Teams:** 4, working in pairs in the first week · **Points:** 15 (10 from the evidence script, 5 for the report) · **Weight:** 20 % of the course grade
 
 ## Overview
 
-A plant runs normally almost all the time. Faults are rare and varied, and the next one is
-often of a kind nobody has recorded. A fault detector trained on labelled examples of past
-faults cannot see a new one. So process monitoring usually works the other way round: learn
+A plant runs normally almost all the time. Faults are uncommon and diverse/varied, and the next faulty is
+usually of a certain type nobody has recorded before. A fault detector trained on labelled examples of past
+faults simply "cannot see" a new one. So process monitoring usually works the other way round: learn
 what normal operation looks like, and raise an alarm when the plant stops looking like that.
 
-In this project your team builds two such detectors for the Tennessee Eastman plant, trains
-both on fault-free data only, and tests them against twenty different faults. One detector is
-the classical tool of process monitoring: principal component analysis with the Hotelling
-T² and SPE statistics. The other is the forecast-residual detector from
-[Lecture 8](../lectures/l08/notes.md), extended from one channel to all 52. Then you compare
+In this project your team builds two such fault detectors for the Tennessee Eastman Process (TEP), trains
+both predictors on fault-free data only, and tests them against twenty different faults. One detector is
+the classical tool of process monitoring: principal component analysis (PCA) with the T² and squared prediction error (SPE) statistics. The other is the forecast-residual detector we've seen in
+[Lecture 8](../lectures/l08/notes.md), extended from one channel to all 52 that exist. Then, you compare
 them fault by fault and explain the differences.
 
-Both detectors are specified exactly below, so an evidence script can rebuild each one from
+Both detectors are specified below, so an evidence script can rebuild each one from
 the data and check your numbers. Your effort goes into making the pieces fit together,
-measuring honestly, and explaining what the numbers say about the plant.
+measuring everything, and explaining what the numbers actually say about the plant.
 
 ## Learning outcomes
 
-- Train an anomaly detector on normal data only, and set its threshold on separate normal data.
+- Train an anomaly detector on normal data regime, and set its threshold on separate normal data.
 - Build a PCA monitoring model and compute the T² and SPE statistics for new observations.
 - Build a multivariate forecast-residual detector and explain what it responds to.
 - Report detection rate, detection delay and false-alarm rate per fault, and say which faults
-  neither detector can see.
+  none of the detectors can see.
 - Work as a team on a shared, reproducible pipeline, building parts in parallel and then
-  combining them.
+  combining them afterwards.
 
 ## The data
 
-Two Parquet files, subsets of the Tennessee Eastman simulations published by
-[Rieth, Amsel, Tran and Cook (2017)](https://doi.org/10.7910/DVN/6C3JR1) under CC0. The
-original faulty file needs about 9 GB of memory to read, so the course hosts the part you need.
+Two Parquet files, subsets of the TEP simulations originally published by
+[Rieth, Amsel, Tran and Cook (2017)](https://doi.org/10.7910/DVN/6C3JR1). The
+original faulty file needs about 9 GB of memory to read, so the we host only the part you need (details below).
 
 | File | Rows | Contents |
 |---|---|---|
 | [`tep_fault_free_training.parquet`](https://kitchin-services.cheme.cmu.edu/f26-06763/data/tep_fault_free_training.parquet) | 250,000 | fault-free, `simulationRun` 1 to 500, `sample` 1 to 500 |
 | [`tep_faulty_training_runs01-20.parquet`](https://kitchin-services.cheme.cmu.edu/f26-06763/data/tep_faulty_training_runs01-20.parquet) | 200,000 | `faultNumber` 1 to 20, `simulationRun` 1 to 20, `sample` 1 to 500 |
 
-Download both into `data/` and check them against the published
+Download both into a `data/` folder and check them against the published
 [checksums](https://kitchin-services.cheme.cmu.edu/f26-06763/data/SHA256SUMS). The evidence
 script refuses files that do not match.
 
@@ -61,9 +60,8 @@ and in Table 1 of Chiang, Russell and Braatz (2000), linked under Resources.
 
 ## Teams and how to split the work
 
-Teams have about four members. We suggest splitting into two pairs for the first week: one pair
-builds the PCA monitor, the other builds the forecast monitor. The two detectors do not depend on
-each other, so the pairs can work in parallel, but they share the preprocessing below, so agree on
+Teams have four members. We suggest splitting into two pairs for the first week: one pair
+builds the PCA monitor, the other builds the forecast monitor. The two detectors are independent from each other, which means you can work in parallel, but they share the preprocessing below, so agree on
 it on the first day and put it in one place that both pairs can use.
 
 In the second week the team combines the two halves. The thresholds, the alarms, the detection
@@ -71,10 +69,10 @@ table, the contributions and the report all need scores from both detectors, so 
 finish without the other. Plan for that: a pair whose scores arrive on the last day leaves the
 team no time to evaluate them.
 
-The split is a suggestion, not a rule. The evidence script checks the team's whole pipeline and
+The split is a suggestion, not a rule. Feel free to work as you see fit within your assigned group. The evidence script checks the team's whole pipeline and
 does not ask who built which part. You report that yourselves, in an appendix to the report.
 
-## The recipe
+## The "project recipe"
 
 ### Shared by everyone
 
@@ -151,23 +149,23 @@ started.
 
 ## The report
 
-`REPORT.pdf`, **four pages maximum** plus an appendix, written by the team. Write it in
+`REPORT.pdf`, **four pages maximum** plus an appendix, written by the whole team. Write it in
 whatever you like (Markdown, a notebook, LaTeX, a word processor), but hand in a PDF so the
 figures come with it. The sections, in this order:
 
-1. **The plant and the task.** Two paragraphs, for a reader who has not taken this course.
+1. **The plant and the task.** ~Two paragraphs. This should read such in a way that a reader who has not taken this course before, would be able to clearly follow what is the proposed work here.
 2. **The two detectors.** How each works, $k$ for the PCA model, and one plot of each statistic
    on one fault run with its threshold.
-3. **Results.** The detection table as a figure or table: detection rate and median delay per
+3. **Results.** The detection table either as a figure or table: detection rate and median delay per
    fault for all three statistics, and the false-alarm rates.
 4. **Comparison.** Which faults one detector catches and the other does not, and why, given what
    each responds to.
-5. **Faults nobody catches.** Which faults all three miss, and what that says about the data.
+5. **Faults nobody catches.** Which faults all three miss (if applicable), and what that says about the data.
    Check your answer against the literature under Resources.
 6. **Diagnosis.** For three faults, which channels drive the alarm and whether that matches the
    fault's description.
 7. **Limits.** What this setup cannot tell you about a real plant.
-8. **AI use.** One line disclosing generative-AI use.
+8. **AI use.** Disclosing generative-AI use. Be clear and transparent on what you used and why.
 
 **Appendix: contributions.** One entry per member, with their Andrew ID, saying what they
 contributed to the project: which parts of the code, which sections of the report, which
@@ -274,9 +272,9 @@ t = z @ P                                                 # scores of one sample
 - Rieth, Amsel, Tran and Cook (2017), [Additional Tennessee Eastman process simulation data](https://doi.org/10.7910/DVN/6C3JR1). The source of both files.
 - [Lecture 8](../lectures/l08/notes.md), the section on residuals, for the forecast-residual detector and the false-alarm trade-off.
 
-## Stretch (not graded)
+## Stretch - Extra, not required (not graded)
 
-- Replace the ridge forecaster with a nonlinear model of your choice, keep everything else
+- Replace the ridge forecaster with a nonlinear ML model of your choice, keep everything else
   fixed, and report whether any fault moves from missed to caught.
 - Run the detectors against ten minutes of the live plant stream from Assignment 3, and report
   what the alarms say about its disturbances.
