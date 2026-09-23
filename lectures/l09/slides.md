@@ -84,8 +84,7 @@ section:has(.nn-ann li[data-marpit-fragment="5"][data-bespoke-marp-fragment="act
 
 <!--
 110 minutes: lecture 90, questions 20. The notebook is a worked example students run after
-class; it is not shown live. The miniproject problem statement is shown from the course site,
-outside this deck.
+class; it is not shown live.
 Plan, by slide: opening and the examples (2-7) 9, types (9-12) 5, workflow (14-17) 6, training as
 optimization (19-23) 9, regression families (25-52) 36, cross-validation (54-59) 7, capacity
 (61-63) 5, limitations and the close (65-69) 5.
@@ -278,7 +277,7 @@ cannot always achieve (ACI).
 <!--
 Supervised: labels (target outputs). Unsupervised: no labels, find hidden structure
 (clustering, dimensionality reduction). Reinforcement: actions, state updates, feedback.
-Today is all supervised. The miniproject is the unsupervised case.
+Today is all supervised.
 -->
 
 ---
@@ -2505,4 +2504,3 @@ random_state.
 
 **Practice module** for this session, for participation credit
 **Worked example** `l09-regression.ipynb`, to run after class
-**Miniproject** is released today, due Friday 10-09

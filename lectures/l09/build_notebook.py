@@ -8,7 +8,7 @@ The last twenty minutes of the session, with questions. Two datasets, in five st
   3. fit the four model families with the same fit/predict, and score them under
      KFold and GroupKFold
   4. test the chosen model once
-  5. NARX: Lecture 8's reactor-pressure table, from the miniproject's fault-free
+  5. NARX: Lecture 8's reactor-pressure table, from the fault-free
      Tennessee Eastman file, fitted with a ridge ARX, an NN-NARX and a GP-NARX (on
      1,000 rows, because of the GP's O(N^3) cost)
 
@@ -287,7 +287,7 @@ random draw; with `random_state=0` to `9` in step 2 the same GP scores between 5
 
 Reactor pressure `xmeas_7`, 30 minutes ahead (`H = 10` samples), from ten lags of pressure and
 the eleven valve positions at time $t$. Train on fault-free runs 1 to 300, test on runs 401 to
-500, exactly as in Lecture 8. The first time, the miniproject's fault-free plant file downloads
+500, exactly as in Lecture 8. The first time, the fault-free plant file downloads
 25 MB.
 """),
 
