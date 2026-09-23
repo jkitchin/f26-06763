@@ -83,13 +83,13 @@ section:has(.nn-ann li[data-marpit-fragment="5"][data-bespoke-marp-fragment="act
 **Systems and Toolchains for AI Engineers**
 
 <!--
-Budget (110 minutes): lecture 90, then questions for 20. The notebook is a worked example the
-students run after class, not shown live. The miniproject problem statement is shown from the
-course site, not from this deck.
+110 minutes: lecture 90, questions 20. The notebook is a worked example students run after
+class; it is not shown live. The miniproject problem statement is shown from the course site,
+outside this deck.
 Plan, by slide: opening and the examples (2-7) 9, types (9-12) 5, workflow (14-17) 6, training as
 optimization (19-23) 9, regression families (25-52) 36, cross-validation (54-59) 7, capacity
 (61-63) 5, limitations and the close (65-69) 5.
-That is about 82 minutes at a steady pace. If it runs long, cut in this order: the optimizer paths
+About 82 minutes at a steady pace. If it runs long, the first to go, in order: the optimizer paths
 (23, one sentence), what each training solves (48), the kernel and prediction slide (43, the notes
 carry it), the NARX forecast figure (52).
 -->
@@ -105,10 +105,10 @@ Lecture 8: a time series, where **order in time** decided everything. Today: mos
 
 1. Four **examples**, and the **types** of machine learning
 2. The **workflow**, and **training as optimization**
-3. **Regression**: linear, trees, neural networks, Gaussian processes, NARX
+3. **Regression**: linear, trees, neural networks, Gaussian processes, NARX (nonlinear)
 4. **Cross-validation** and **model capacity**
-5. **Limitations**, and one question left open
-6. The **worked example**, to run after class
+5. **Limitations**, and one question left open (hyperparameters)
+6. A **worked example**, to run after class
 
 </div>
 <div>
@@ -121,7 +121,7 @@ Lecture 8: a time series, where **order in time** decided everything. Today: mos
 </div>
 
 <!--
-Let them read the comic. "Just stir the pile until they start looking right" is the failure this
+A pause for the comic. "Just stir the pile until they start looking right" is the failure this
 session is about. ML: building models that learn patterns from data; instead of explicitly
 programming rules of physics/nature, we train algorithms to generalize from examples.
 -->
@@ -148,14 +148,14 @@ Water sealed in a rigid container: how fast does its pressure rise as it heats? 
 </div>
 </div>
 
-<span class="source"><a href="https://webbook.nist.gov/chemistry/fluid/">NIST Chemistry WebBook</a>, from the IAPWS-95 equation of state for water</span>
+<span class="source"><a href="https://webbook.nist.gov/chemistry/fluid/">NIST source</a>.</span>
 
 <!--
 "Constant density" is the physics: a fixed mass of liquid water in a sealed, rigid container, so
 its density stays at 1000 kg/m3. It cannot expand when heated, so the pressure climbs steeply,
-from about 0.4 MPa near 0 C to about 100 MPa (roughly 1000 atm) at 100 C. This is the first of
-today's examples; it comes back for feature engineering, regularization, the first tree, and at
-the end for what every family does outside its data.
+from about 0.4 MPa near 0 C to about 100 MPa (roughly 1000 atm) at 100 C. First of today's
+examples; it comes back for feature engineering, regularization, the first tree, and at the end
+for what every family does outside its data.
 -->
 
 ---
@@ -172,23 +172,29 @@ the end for what every family does outside its data.
 </div>
 <div>
 
-- **Wormlike micelles**: a surfactant with a salt self-assembles into long, tangled micelles that behave like polymer chains
-- **Zero-shear viscosity**: the viscosity at rest, as the shear rate goes to zero
-- It sets how thick the fluid is: shampoos, fracturing fluids, drag reduction
-- As salt is added the viscosity climbs **about 400-fold** to a sharp peak, then falls
+- **Surfactant**: a soap-like molecule; with salt, many join into long, tangled worms
+- **Zero-shear viscosity**: how thick the liquid is at rest, in the bottle or your hand
+- Salt is the knob: a little thickens shampoo, too much makes it runny again
+- In our data, viscosity climbs **about 400-fold** with salt, then falls
 - 16 experiments: our **Gaussian process** case study
 
 </div>
 </div>
 
-<span class="source"><a href="https://doi.org/10.1021/j100327a031">Rehage and Hoffmann (1988)</a>, cetylpyridinium chloride with sodium salicylate; points from a GP design of experiments (<a href="https://kitchingroup.cheme.cmu.edu/s20-06681/08-nonlinear-sklearn/08-nonlinear-sklearn.html">Kitchin group</a>)</span>
+<span class="source"><a href="https://doi.org/10.1021/j100327a031">Rehage and Hoffmann (1988)</a> / <a href="https://kitchingroup.cheme.cmu.edu/s20-06681/08-nonlinear-sklearn/08-nonlinear-sklearn.html">Kitchin group</a></span>
 
 <!--
-Why the peak: salt binding screens the headgroup charges, so spherical micelles grow into long
-worms and the viscosity climbs; beyond the peak the viscosity falls, commonly attributed to the
+The paper's system: the surfactant cetylpyridinium chloride (also the antiseptic in some
+over-the-counter mouthwashes) with the salt sodium salicylate. The long worms are wormlike
+micelles, and they tangle like polymer chains. Zero-shear viscosity is the plateau the viscosity
+reaches as the shear rate goes to zero: the thickness of the liquid sitting still.
+Why the peak: the salt screens the charges on the surfactant heads, so small spherical micelles
+grow into long worms and the viscosity climbs; past the peak it falls, commonly attributed to the
 worms branching or shortening (which of the two is still debated, Ziserman et al. 2009). The
-concentration axis is most likely the salt, in mmol/L, at a fixed surfactant concentration; the
-course notes that supply the data label it salt concentration.
+Kitchin group page labels the axis salt concentration and gives no units. The 16 points follow the
+shape of the paper's curve (sharp peak, dip, smaller second peak, fall) on a compressed scale:
+about 400-fold here, about five decades in the paper's own curve (replotted in Berret 2004, at
+100 mmol/L of surfactant).
 -->
 
 ---
@@ -205,20 +211,28 @@ course notes that supply the data label it salt concentration.
 </div>
 <div>
 
-- **Compressive strength**: the stress (MPa) at which a cured cylinder crushes in a test machine; designs specify it at **28 days**
-- **The data** (Yeh 1998): 1,030 lab tests; each row is **one mix, crushed at one age** (1 to 365 days)
-- **Inputs**: 7 ingredients (kg/m³: cement, slag, fly ash, water, superplasticizer, coarse and fine aggregate) and the age
-- **The figure**: a gray dot is one crushed specimen; a colored line follows one mix as it ages
+- **Concrete**: cement and water glue sand and gravel together; it keeps hardening for months
+- **A mix**: one recipe, kg per m³ of 7 ingredients: cement, water, sand, gravel, slag, fly ash, superplasticizer
+- **A test**: cast cylinders from a mix, crush them days later; **strength** is the breaking stress (MPa)
+- **Each gray dot**: one test, at its age and strength; one row of the data (1,030 rows)
+- **Each colored line**: one mix, its cylinders crushed at several ages, 3 days to a year
 
 </div>
 </div>
 
-<span class="source"><a href="https://archive.ics.uci.edu/dataset/165/concrete+compressive+strength">Yeh (1998), UCI, CC BY 4.0</a> / <a href="https://www.nrmca.org/wp-content/uploads/2021/01/35pr.pdf">NRMCA, testing compressive strength</a></span>
+<span class="source"><a href="https://archive.ics.uci.edu/dataset/165/concrete+compressive+strength">Yeh (1998)</a>, UCI, CC BY 4.0 / NRMCA on <a href="https://www.nrmca.org/about-nrmca/about-concrete/">concrete</a> and <a href="https://www.nrmca.org/wp-content/uploads/2021/01/35pr.pdf">strength tests</a></span>
 
 <!--
-Only 428 distinct mixes: most were crushed at several ages, which matters for the folds in the
-cross-validation section. High-performance concrete: concrete meeting performance and uniformity
-requirements that conventional ingredients and practice cannot always achieve (ACI).
+Sand and gravel are the file's fine and coarse aggregate. Slag (a byproduct of iron making) and
+fly ash (from coal power plants) replace part of the cement; superplasticizer is an additive that
+lets the fresh mix flow with less water. In standard practice a test result is the average of at
+least two cylinders crushed at the same age (NRMCA CIP 35); the UCI files do not say how many
+cylinders each row averages. Crushing destroys a cylinder, so a line is several cylinders of one
+mix, one per age. Designs specify strength at 28 days, which is why 425 of the 1,030 rows are
+28-day tests. Only 428 distinct mixes, and 182 of them were crushed at several ages, which
+matters for the folds in the cross-validation section. High-performance concrete: concrete
+meeting performance and uniformity requirements that conventional ingredients and practice
+cannot always achieve (ACI).
 -->
 
 ---
@@ -273,13 +287,13 @@ Today is all supervised. The miniproject is the unsupervised case.
 
 <div class="definition">
 
-**Classification** predicts discrete categories (faulty/not faulty). **Regression** predicts continuous values (temperature, pressure, flow rates).
+**Classification** predicts discrete categories (faulty/not faulty). 
+**Regression** predicts continuous values (temperature, pressure, flow rates).
 
 </div>
 
 - Most engineering problems: **supervised regression**
 - Process control: reinforcement learning and **classification** (fault diagnosis) are common too
-- The miniproject: **unsupervised**, no fault is ever labeled
 
 ---
 
@@ -312,7 +326,7 @@ Today is all supervised. The miniproject is the unsupervised case.
 </div>
 
 <!--
-Go round the four cards: what is one row, what goes in, what comes out, which task.
+Four cards: what is one row, what goes in, what comes out, which task.
 -->
 
 ---
@@ -397,7 +411,7 @@ Four **separate** models, fitted and scored the same way so we can **compare** t
 
 <!--
 scikit-learn testimonials (https://scikit-learn.org/stable/testimonials/testimonials.html): is it
-used in real applications? Yes. Then: what does each .fit solve? That is the next section.
+used in real applications? Yes. The next section's question: what does each .fit solve?
 -->
 
 ---
@@ -436,7 +450,7 @@ used in real applications? Yes. Then: what does each .fit solve? That is the nex
 </div>
 
 <!--
-Click through: each click adds one label and its arrow.
+The labels and their arrows come in one at a time.
 -->
 
 ---
@@ -479,9 +493,9 @@ Click through: each click adds one label and its arrow.
 No constraints: the parameters are free. Most training problems are unconstrained; the Gaussian process will add bounds.
 
 <!--
-Click through: each click adds one label and its arrow. Compare it with the previous slide: same
-shape, but now the decision variables are the model's parameters and the data are constants.
-Regularization adds a penalty term to this objective, later in the regression section.
+The labels and their arrows come in one at a time. Same shape as the previous slide, now with the model's
+parameters as the decision variables and the data as constants. Regularization adds a penalty
+term to this objective, later in the regression section.
 -->
 
 ---
@@ -517,7 +531,7 @@ Regularization adds a penalty term to this objective, later in the regression se
 </div>
 
 <!--
-Click through the four terms. This one update covers every method on the next slide: they differ
+Four terms, one at a time. This one update covers every method on the next slide; they differ
 only in where g comes from and what H is.
 -->
 
@@ -555,15 +569,204 @@ L-BFGS-B, with bounds on every hyperparameter.
 
 ## Training as optimization, four optimizers on one problem
 
-![h:400](figures/opt-paths.png)
+<style>
+/* the four optimizers, animated */
+.optw-widget { font-size: 22px; }
+.optw-controls { display: flex; gap: 0.9em; align-items: center; justify-content: center; margin: 0 0 0.15em; }
+.optw-controls input[type=range] { width: 460px; accent-color: #c41230; }
+.optw-controls button { font: inherit; font-size: 20px; min-width: 5.4em; padding: 0.1em 0.6em; color: #c41230; background: #fff; border: 2px solid #c41230; border-radius: 6px; cursor: pointer; }
+.optw-iter { min-width: 8.2em; color: #1a1a1a; font-variant-numeric: tabular-nums; }
+.optw-widget svg { display: block; margin: 0 auto; }
+</style>
+<div class="optw-widget">
+<div class="optw-controls">
+<button type="button" id="optw-play">Play</button>
+<input type="range" id="optw-clock" min="0" max="1" step="0.001" value="0">
+<span class="optw-iter" id="optw-iter">Iteration 0</span>
+</div>
+<svg id="optw-svg" viewBox="0 0 1120 372" width="1120" height="372"></svg>
+</div>
+
+<script>
+(() => {
+  const svg = document.getElementById("optw-svg");
+  if (!svg || svg.dataset.ready) return;
+  svg.dataset.ready = "1";
+  // The straight line P = a + b (T / 20 C) on the water data, the problem of opt-paths.png.
+  // Printed by figures/make_figures.py widgets: the loss is LOSS_OPT + (w - W_OPT)' A (w - W_OPT),
+  // and each path is that optimizer's own iterates, rounded to 0.01.
+  const A = [[1.0,2.5005],[2.5005,8.544167]], W_OPT = [-15.562,20.78], LOSS_OPT = 53.010, START = [30.0,-10.0];
+  const STEPS = {lbfgs: 6, gd: 305, adam: 249}, CAP = 2000;
+  // L-BFGS, gradient descent and Adam up to the iterate from which each stays within 0.01 of
+  // its last point; SGD at every iterate to SGD_FULL, then every SGD_EVERY-th, to the cap.
+  const LBFGS = [[30.0,-10.0],[31.03,-5.11],[32.09,6.54],[25.71,9.24],[-10.57,20.51],[-15.55,20.8],[-15.57,20.78]];
+  const GD = [[30.0,-10.0],[33.38,6.03],[32.08,6.42],[30.82,6.8],[29.59,7.17],[28.39,7.53],[27.23,7.89],[26.09,8.23],[24.99,8.56],[23.91,8.88],[22.87,9.2],[21.85,9.51],[20.86,9.81],[19.89,10.1],[18.95,10.38],[18.04,10.66],[17.14,10.92],[16.28,11.18],[15.43,11.44],[14.61,11.69],[13.81,11.93],[13.03,12.16],[12.28,12.39],[11.54,12.61],[10.82,12.83],[10.12,13.04],[9.44,13.25],[8.78,13.45],[8.13,13.64],[7.5,13.83],[6.89,14.01],[6.3,14.19],[5.72,14.37],[5.15,14.54],[4.6,14.7],[4.07,14.86],[3.55,15.02],[3.04,15.17],[2.55,15.32],[2.07,15.47],[1.6,15.61],[1.15,15.74],[0.7,15.88],[0.27,16.01],[-0.15,16.13],[-0.56,16.26],[-0.95,16.38],[-1.34,16.49],[-1.72,16.61],[-2.09,16.72],[-2.44,16.83],[-2.79,16.93],[-3.13,17.03],[-3.46,17.13],[-3.78,17.23],[-4.09,17.32],[-4.4,17.41],[-4.69,17.5],[-4.98,17.59],[-5.26,17.68],[-5.53,17.76],[-5.8,17.84],[-6.06,17.92],[-6.31,17.99],[-6.56,18.07],[-6.79,18.14],[-7.03,18.21],[-7.25,18.28],[-7.47,18.34],[-7.69,18.41],[-7.9,18.47],[-8.1,18.53],[-8.3,18.59],[-8.49,18.65],[-8.68,18.71],[-8.86,18.76],[-9.04,18.81],[-9.21,18.87],[-9.38,18.92],[-9.54,18.97],[-9.7,19.01],[-9.86,19.06],[-10.01,19.11],[-10.16,19.15],[-10.3,19.19],[-10.44,19.24],[-10.57,19.28],[-10.71,19.32],[-10.84,19.36],[-10.96,19.39],[-11.08,19.43],[-11.2,19.47],[-11.32,19.5],[-11.43,19.53],[-11.54,19.57],[-11.65,19.6],[-11.75,19.63],[-11.85,19.66],[-11.95,19.69],[-12.05,19.72],[-12.14,19.75],[-12.23,19.78],[-12.32,19.8],[-12.4,19.83],[-12.49,19.85],[-12.57,19.88],[-12.65,19.9],[-12.73,19.92],[-12.8,19.95],[-12.87,19.97],[-12.94,19.99],[-13.01,20.01],[-13.08,20.03],[-13.15,20.05],[-13.21,20.07],[-13.27,20.09],[-13.33,20.11],[-13.39,20.13],[-13.45,20.14],[-13.51,20.16],[-13.56,20.18],[-13.61,20.19],[-13.67,20.21],[-13.72,20.22],[-13.77,20.24],[-13.81,20.25],[-13.86,20.27],[-13.9,20.28],[-13.95,20.29],[-13.99,20.31],[-14.03,20.32],[-14.07,20.33],[-14.11,20.34],[-14.15,20.35],[-14.19,20.37],[-14.23,20.38],[-14.26,20.39],[-14.3,20.4],[-14.33,20.41],[-14.36,20.42],[-14.39,20.43],[-14.42,20.44],[-14.45,20.45],[-14.48,20.45],[-14.51,20.46],[-14.54,20.47],[-14.57,20.48],[-14.59,20.49],[-14.62,20.5],[-14.64,20.5],[-14.67,20.51],[-14.69,20.52],[-14.72,20.52],[-14.74,20.53],[-14.76,20.54],[-14.78,20.54],[-14.8,20.55],[-14.82,20.56],[-14.84,20.56],[-14.86,20.57],[-14.88,20.57],[-14.9,20.58],[-14.91,20.58],[-14.93,20.59],[-14.95,20.59],[-14.96,20.6],[-14.98,20.6],[-15.0,20.61],[-15.01,20.61],[-15.03,20.62],[-15.04,20.62],[-15.05,20.63],[-15.07,20.63],[-15.08,20.63],[-15.09,20.64],[-15.11,20.64],[-15.12,20.65],[-15.13,20.65],[-15.14,20.65],[-15.15,20.66],[-15.16,20.66],[-15.17,20.66],[-15.18,20.67],[-15.19,20.67],[-15.2,20.67],[-15.21,20.67],[-15.22,20.68],[-15.23,20.68],[-15.24,20.68],[-15.25,20.69],[-15.26,20.69],[-15.27,20.69],[-15.27,20.69],[-15.28,20.69],[-15.29,20.7],[-15.3,20.7],[-15.3,20.7],[-15.31,20.7],[-15.32,20.71],[-15.32,20.71],[-15.33,20.71],[-15.34,20.71],[-15.34,20.71],[-15.35,20.71],[-15.35,20.72],[-15.36,20.72],[-15.36,20.72],[-15.37,20.72],[-15.37,20.72],[-15.38,20.72],[-15.38,20.73],[-15.39,20.73],[-15.39,20.73],[-15.4,20.73],[-15.4,20.73],[-15.41,20.73],[-15.41,20.73],[-15.41,20.74],[-15.42,20.74],[-15.42,20.74],[-15.43,20.74],[-15.43,20.74],[-15.43,20.74],[-15.44,20.74],[-15.44,20.74],[-15.44,20.74],[-15.45,20.74],[-15.45,20.75],[-15.45,20.75],[-15.46,20.75],[-15.46,20.75],[-15.46,20.75],[-15.46,20.75],[-15.47,20.75],[-15.47,20.75],[-15.47,20.75],[-15.47,20.75],[-15.48,20.75],[-15.48,20.75],[-15.48,20.76],[-15.48,20.76],[-15.48,20.76],[-15.49,20.76],[-15.49,20.76],[-15.49,20.76],[-15.49,20.76],[-15.49,20.76],[-15.5,20.76],[-15.5,20.76],[-15.5,20.76],[-15.5,20.76],[-15.5,20.76],[-15.5,20.76],[-15.51,20.76],[-15.51,20.76],[-15.51,20.76],[-15.51,20.76],[-15.51,20.76],[-15.51,20.76],[-15.51,20.77],[-15.52,20.77],[-15.52,20.77],[-15.52,20.77],[-15.52,20.77],[-15.52,20.77],[-15.52,20.77],[-15.52,20.77],[-15.52,20.77],[-15.52,20.77],[-15.53,20.77],[-15.53,20.77],[-15.53,20.77],[-15.53,20.77],[-15.53,20.77],[-15.53,20.77],[-15.53,20.77],[-15.53,20.77],[-15.53,20.77],[-15.53,20.77],[-15.53,20.77],[-15.53,20.77],[-15.54,20.77],[-15.54,20.77],[-15.54,20.77],[-15.54,20.77],[-15.54,20.77],[-15.54,20.77],[-15.54,20.77],[-15.54,20.77],[-15.54,20.77],[-15.54,20.77],[-15.54,20.77],[-15.54,20.77],[-15.54,20.77],[-15.54,20.77],[-15.54,20.77],[-15.54,20.77],[-15.54,20.77],[-15.55,20.77],[-15.55,20.77],[-15.55,20.77],[-15.55,20.78],[-15.55,20.78],[-15.55,20.78],[-15.55,20.78],[-15.55,20.78],[-15.55,20.78],[-15.55,20.78],[-15.55,20.78],[-15.55,20.78],[-15.55,20.78],[-15.55,20.78],[-15.55,20.78],[-15.55,20.78],[-15.55,20.78],[-15.55,20.78],[-15.55,20.78],[-15.55,20.78],[-15.55,20.78],[-15.55,20.78]];
+  const ADAM = [[30.0,-10.0],[31.0,-9.0],[32.0,-8.0],[32.98,-7.01],[33.95,-6.03],[34.9,-5.05],[35.83,-4.09],[36.71,-3.14],[37.55,-2.22],[38.33,-1.32],[39.04,-0.45],[39.66,0.39],[40.18,1.19],[40.59,1.95],[40.88,2.67],[41.06,3.34],[41.11,3.95],[41.04,4.51],[40.87,5.02],[40.58,5.46],[40.21,5.86],[39.74,6.2],[39.21,6.49],[38.61,6.73],[37.95,6.92],[37.24,7.07],[36.49,7.19],[35.71,7.27],[34.9,7.32],[34.07,7.35],[33.23,7.36],[32.37,7.36],[31.51,7.35],[30.65,7.33],[29.8,7.32],[28.95,7.31],[28.12,7.3],[27.3,7.31],[26.5,7.33],[25.71,7.37],[24.95,7.43],[24.22,7.5],[23.5,7.6],[22.81,7.72],[22.15,7.85],[21.51,8.01],[20.89,8.18],[20.3,8.37],[19.73,8.58],[19.17,8.8],[18.63,9.03],[18.11,9.28],[17.6,9.53],[17.1,9.78],[16.61,10.04],[16.13,10.3],[15.65,10.55],[15.17,10.81],[14.69,11.06],[14.21,11.3],[13.73,11.53],[13.25,11.76],[12.76,11.98],[12.27,12.18],[11.78,12.38],[11.28,12.57],[10.78,12.74],[10.28,12.91],[9.77,13.07],[9.27,13.22],[8.76,13.36],[8.26,13.49],[7.75,13.62],[7.25,13.74],[6.75,13.86],[6.26,13.98],[5.77,14.09],[5.29,14.21],[4.82,14.32],[4.36,14.44],[3.9,14.55],[3.46,14.67],[3.02,14.78],[2.6,14.9],[2.18,15.02],[1.77,15.14],[1.38,15.27],[0.99,15.39],[0.61,15.52],[0.24,15.64],[-0.12,15.77],[-0.48,15.9],[-0.82,16.02],[-1.16,16.15],[-1.5,16.27],[-1.83,16.39],[-2.15,16.51],[-2.47,16.62],[-2.78,16.74],[-3.09,16.84],[-3.4,16.95],[-3.7,17.05],[-3.99,17.15],[-4.29,17.25],[-4.58,17.34],[-4.86,17.43],[-5.14,17.52],[-5.42,17.6],[-5.69,17.68],[-5.96,17.76],[-6.22,17.84],[-6.48,17.91],[-6.73,17.99],[-6.98,18.06],[-7.22,18.13],[-7.45,18.2],[-7.68,18.27],[-7.91,18.33],[-8.13,18.4],[-8.34,18.47],[-8.55,18.53],[-8.76,18.6],[-8.95,18.66],[-9.15,18.72],[-9.34,18.78],[-9.52,18.84],[-9.7,18.9],[-9.87,18.96],[-10.04,19.02],[-10.21,19.07],[-10.37,19.13],[-10.53,19.18],[-10.68,19.23],[-10.83,19.28],[-10.98,19.33],[-11.12,19.38],[-11.26,19.42],[-11.4,19.47],[-11.54,19.51],[-11.67,19.55],[-11.79,19.59],[-11.92,19.63],[-12.04,19.67],[-12.16,19.7],[-12.27,19.74],[-12.38,19.77],[-12.49,19.81],[-12.6,19.84],[-12.7,19.87],[-12.8,19.9],[-12.9,19.93],[-12.99,19.96],[-13.08,19.99],[-13.17,20.02],[-13.26,20.04],[-13.34,20.07],[-13.42,20.1],[-13.5,20.12],[-13.57,20.14],[-13.64,20.17],[-13.71,20.19],[-13.78,20.21],[-13.85,20.24],[-13.91,20.26],[-13.98,20.28],[-14.04,20.3],[-14.09,20.31],[-14.15,20.33],[-14.21,20.35],[-14.26,20.37],[-14.31,20.38],[-14.36,20.4],[-14.41,20.41],[-14.45,20.43],[-14.5,20.44],[-14.54,20.46],[-14.58,20.47],[-14.63,20.48],[-14.66,20.49],[-14.7,20.51],[-14.74,20.52],[-14.77,20.53],[-14.81,20.54],[-14.84,20.55],[-14.87,20.56],[-14.9,20.57],[-14.93,20.58],[-14.96,20.59],[-14.98,20.6],[-15.01,20.6],[-15.04,20.61],[-15.06,20.62],[-15.08,20.63],[-15.1,20.63],[-15.13,20.64],[-15.15,20.65],[-15.16,20.65],[-15.18,20.66],[-15.2,20.67],[-15.22,20.67],[-15.24,20.68],[-15.25,20.68],[-15.27,20.69],[-15.28,20.69],[-15.3,20.7],[-15.31,20.7],[-15.32,20.7],[-15.33,20.71],[-15.35,20.71],[-15.36,20.71],[-15.37,20.72],[-15.38,20.72],[-15.39,20.72],[-15.4,20.73],[-15.41,20.73],[-15.41,20.73],[-15.42,20.74],[-15.43,20.74],[-15.44,20.74],[-15.45,20.74],[-15.45,20.74],[-15.46,20.75],[-15.46,20.75],[-15.47,20.75],[-15.48,20.75],[-15.48,20.75],[-15.49,20.76],[-15.49,20.76],[-15.49,20.76],[-15.5,20.76],[-15.5,20.76],[-15.51,20.76],[-15.51,20.76],[-15.51,20.76],[-15.52,20.77],[-15.52,20.77],[-15.52,20.77],[-15.53,20.77],[-15.53,20.77],[-15.53,20.77],[-15.53,20.77],[-15.54,20.77],[-15.54,20.77],[-15.54,20.77],[-15.54,20.77],[-15.54,20.77],[-15.54,20.77],[-15.55,20.77],[-15.55,20.78],[-15.55,20.78],[-15.55,20.78],[-15.55,20.78],[-15.55,20.78],[-15.55,20.78]];
+  const SGD_FULL = 400, SGD_EVERY = 4;
+  const SGD = [[30.0,-10.0],[32.48,0.77],[32.56,3.88],[31.26,2.61],[32.27,8.11],[30.86,6.24],[30.38,7.02],[29.08,5.72],[28.46,6.38],[28.77,8.82],[28.31,7.96],[27.88,8.22],[27.02,8.17],[27.01,8.88],[25.95,7.31],[25.54,8.38],[24.72,7.23],[24.58,8.45],[23.44,6.75],[22.48,5.61],[23.84,13.43],[22.63,11.52],[22.19,11.34],[21.62,11.11],[20.58,9.49],[20.04,10.04],[18.95,8.44],[18.74,10.21],[18.82,11.0],[17.58,9.9],[17.71,10.76],[17.4,11.77],[17.36,13.0],[16.79,11.99],[15.5,10.35],[15.24,10.6],[15.06,11.66],[13.99,10.2],[13.04,8.95],[14.1,13.91],[13.84,13.48],[13.08,12.19],[13.09,13.13],[12.58,13.45],[11.67,12.46],[11.16,11.45],[11.8,15.11],[10.86,13.33],[10.49,13.43],[9.82,12.47],[9.54,12.52],[8.81,11.41],[8.54,11.57],[9.76,17.34],[8.77,14.88],[8.05,13.71],[7.16,12.36],[6.7,11.58],[7.08,14.83],[7.05,15.3],[6.79,15.19],[6.43,14.73],[5.94,14.78],[5.21,13.48],[5.58,15.84],[5.02,14.68],[4.76,15.33],[4.32,14.59],[3.72,13.64],[3.7,14.2],[4.06,16.36],[4.05,17.16],[3.3,15.64],[2.67,14.7],[2.54,14.94],[2.43,15.34],[2.29,15.86],[2.09,15.93],[2.02,16.85],[1.45,15.17],[1.01,14.65],[1.08,16.1],[0.73,16.13],[0.21,15.04],[0.47,16.92],[0.15,16.14],[-0.08,16.32],[-0.18,17.13],[-0.53,16.18],[-0.58,16.72],[-0.98,15.87],[-0.76,17.7],[-0.84,18.17],[-1.53,17.08],[-1.79,16.4],[-2.11,15.65],[-1.48,18.96],[-2.02,17.81],[-2.49,16.71],[-2.55,16.9],[-3.21,15.77],[-3.1,16.78],[-3.23,17.01],[-3.55,16.2],[-3.52,17.06],[-3.94,16.1],[-4.1,15.73],[-4.31,15.55],[-4.42,15.76],[-3.64,19.43],[-4.39,17.6],[-4.68,17.0],[-4.36,19.12],[-4.81,18.05],[-5.27,17.28],[-5.32,17.39],[-5.18,18.09],[-5.07,18.76],[-5.43,18.2],[-5.83,17.58],[-6.1,17.05],[-6.23,16.93],[-5.6,19.89],[-6.16,18.84],[-6.44,18.27],[-6.58,18.24],[-6.62,18.66],[-6.84,18.25],[-7.07,17.48],[-7.2,17.58],[-6.93,19.2],[-7.32,18.26],[-7.06,19.39],[-7.18,19.23],[-7.77,18.06],[-7.95,17.87],[-7.77,18.57],[-8.07,18.18],[-7.82,19.78],[-8.05,19.24],[-8.38,18.45],[-8.29,18.7],[-8.37,18.7],[-8.2,19.89],[-8.7,18.81],[-8.89,18.48],[-9.01,18.07],[-9.02,18.35],[-9.0,18.94],[-8.86,19.63],[-9.34,18.63],[-9.37,18.44],[-9.4,18.4],[-9.43,18.96],[-9.48,19.42],[-9.59,19.37],[-10.02,18.26],[-9.97,18.65],[-10.13,18.76],[-9.97,19.69],[-9.93,19.63],[-10.01,19.03],[-10.31,18.42],[-10.3,19.02],[-10.27,19.68],[-10.41,19.25],[-10.48,19.27],[-10.68,18.7],[-10.75,19.1],[-10.64,20.13],[-10.82,19.74],[-11.07,19.45],[-11.19,19.93],[-11.44,19.24],[-11.19,19.68],[-11.16,19.62],[-11.16,19.36],[-11.51,18.63],[-11.2,19.4],[-11.45,19.03],[-11.19,20.5],[-11.25,20.3],[-11.73,19.17],[-11.4,20.16],[-11.85,19.25],[-11.93,18.79],[-12.11,18.42],[-11.99,18.91],[-11.83,19.99],[-11.71,19.88],[-11.82,19.84],[-11.63,19.81],[-11.94,19.14],[-12.07,19.44],[-12.06,19.9],[-11.98,20.24],[-12.34,19.5],[-12.29,19.93],[-11.89,20.58],[-12.26,19.72],[-12.54,19.04],[-12.35,19.31],[-12.32,19.84],[-12.43,19.17],[-12.57,19.08],[-12.58,19.35],[-12.68,19.13],[-12.57,19.39],[-12.51,20.17],[-12.64,19.9],[-12.51,20.14],[-12.46,19.53],[-12.08,21.31],[-12.61,20.14],[-12.75,19.69],[-12.83,19.82],[-12.83,20.31],[-13.2,19.51],[-13.11,19.72],[-12.84,20.34],[-13.0,20.14],[-13.11,20.02],[-13.05,19.66],[-13.09,19.36],[-12.93,20.34],[-13.2,20.01],[-13.24,19.64],[-13.18,19.91],[-13.26,19.39],[-13.37,19.21],[-13.19,20.44],[-13.13,20.73],[-13.15,21.11],[-13.42,20.42],[-13.39,20.23],[-13.63,19.39],[-13.93,18.77],[-13.67,20.25],[-13.59,20.82],[-13.79,20.16],[-13.44,20.57],[-13.77,19.95],[-13.83,19.87],[-13.67,21.06],[-13.88,20.39],[-13.78,20.68],[-13.5,21.37],[-13.66,20.7],[-14.05,19.86],[-14.21,19.48],[-13.95,20.33],[-13.95,19.94],[-13.4,22.0],[-13.86,20.51],[-13.98,20.27],[-14.26,19.54],[-14.38,19.37],[-14.08,20.36],[-14.06,20.6],[-14.32,19.93],[-13.99,20.73],[-14.15,20.54],[-14.01,20.3],[-14.24,19.73],[-14.24,20.17],[-14.21,20.09],[-14.35,19.97],[-14.45,19.48],[-14.25,20.14],[-13.87,21.08],[-14.31,19.98],[-14.33,20.2],[-14.19,20.17],[-14.29,20.35],[-14.34,20.03],[-14.2,20.61],[-14.19,20.46],[-14.09,20.92],[-14.36,20.29],[-14.53,20.28],[-14.44,20.06],[-14.39,20.46],[-14.55,20.07],[-14.47,20.97],[-14.67,20.12],[-14.58,20.68],[-14.74,20.18],[-14.92,19.67],[-14.91,20.16],[-14.78,20.78],[-14.63,21.43],[-14.89,20.63],[-15.06,20.69],[-14.77,21.27],[-14.67,21.21],[-14.89,20.7],[-15.29,19.79],[-14.95,20.91],[-14.78,20.85],[-15.06,20.16],[-14.72,21.37],[-14.9,20.45],[-14.73,20.71],[-14.75,20.94],[-14.92,20.47],[-14.94,20.92],[-14.93,21.37],[-15.0,21.14],[-14.67,21.65],[-15.12,20.55],[-15.2,20.11],[-14.97,20.73],[-15.01,21.0],[-14.89,20.79],[-14.91,20.99],[-15.38,19.89],[-15.35,19.82],[-15.05,20.58],[-15.19,20.25],[-15.09,20.72],[-15.22,20.44],[-15.03,20.18],[-14.8,21.14],[-14.91,20.8],[-15.09,20.87],[-15.35,20.13],[-15.27,19.85],[-14.97,21.45],[-15.06,21.34],[-15.46,20.29],[-15.53,19.97],[-15.66,19.53],[-15.36,21.04],[-15.13,20.75],[-15.15,21.08],[-15.38,20.55],[-15.12,22.06],[-15.57,20.6],[-15.74,20.08],[-15.67,19.84],[-15.55,19.71],[-15.33,20.64],[-14.87,21.08],[-15.1,20.7],[-15.47,19.96],[-15.26,20.95],[-15.32,21.09],[-14.99,21.03],[-15.02,21.08],[-15.19,20.84],[-15.4,20.41],[-14.98,20.9],[-15.18,20.31],[-15.23,20.45],[-15.38,19.95],[-15.29,20.83],[-15.13,20.97],[-15.37,20.35],[-15.15,20.6],[-15.14,21.16],[-15.31,20.8],[-15.21,20.72],[-14.89,21.49],[-14.88,21.66],[-15.21,20.82],[-15.51,20.2],[-15.49,19.72],[-15.4,19.66],[-15.4,19.52],[-15.2,20.58],[-15.18,21.03],[-15.26,21.18],[-15.26,20.59],[-15.55,19.9],[-15.35,20.35],[-15.05,21.36],[-15.39,20.43],[-15.07,21.12],[-15.41,20.39],[-15.42,20.93],[-15.19,21.01],[-15.3,20.68],[-15.0,21.73],[-15.48,20.46],[-15.45,21.13],[-15.33,20.71],[-15.17,20.67],[-15.38,20.08],[-15.36,20.58],[-15.47,20.19],[-15.1,21.59],[-14.79,21.88],[-14.81,21.9],[-15.22,20.89],[-15.33,20.58],[-15.57,20.05],[-15.5,20.54],[-15.3,21.11],[-15.47,21.02],[-15.56,20.85],[-15.41,20.55],[-15.32,20.78],[-15.58,19.82],[-14.95,22.16],[-15.63,19.65],[-15.25,21.19],[-15.43,20.73],[-15.43,19.99],[-15.56,19.61],[-15.22,20.85],[-15.22,21.4],[-15.46,20.66],[-15.18,21.3],[-15.3,21.24],[-15.72,20.43],[-15.59,20.56],[-15.68,20.47],[-15.5,20.87],[-15.63,21.02],[-15.9,20.5],[-15.58,21.99],[-16.0,20.86],[-15.61,21.61],[-15.97,21.01],[-16.28,21.32],[-16.18,20.88],[-15.93,21.4],[-15.75,21.94],[-15.99,21.54],[-16.29,20.43],[-15.88,21.23],[-15.73,21.78],[-15.66,21.72],[-16.12,20.2],[-16.12,20.75],[-15.96,20.88],[-15.97,21.31],[-15.93,20.31],[-15.7,20.03],[-15.54,20.97],[-15.52,21.33],[-15.69,20.51],[-15.66,20.02],[-15.97,20.03],[-15.58,20.97],[-15.68,20.71],[-15.5,20.68],[-15.78,21.23],[-16.06,20.38],[-15.84,20.55],[-15.61,21.01],[-15.79,20.99],[-15.41,21.58],[-15.72,20.34],[-15.79,20.71],[-15.59,21.09],[-15.37,21.34],[-15.61,21.0],[-15.73,20.5],[-15.56,20.86],[-15.72,20.38],[-15.61,20.43],[-15.3,21.0],[-15.24,21.84],[-15.54,20.31],[-15.36,21.37],[-15.59,20.82],[-15.23,20.72],[-15.84,20.18],[-15.51,20.41],[-15.29,21.58],[-16.11,20.22],[-15.72,20.47],[-15.39,20.68],[-15.7,20.5],[-15.61,20.99],[-15.65,21.99],[-15.66,21.4],[-15.58,20.77],[-15.69,20.67],[-15.8,20.72],[-16.04,20.84],[-16.03,20.01],[-15.95,20.27],[-15.53,21.34],[-15.67,20.75],[-15.77,20.2],[-15.32,21.41],[-15.84,20.57],[-15.68,21.3],[-15.74,20.45],[-15.5,20.78],[-15.52,20.26],[-15.65,20.89],[-16.0,20.41],[-15.81,20.89],[-15.78,20.44],[-15.36,21.33],[-15.86,21.17],[-15.98,20.27],[-15.69,20.67],[-15.79,21.07],[-15.87,20.18],[-15.75,21.27],[-15.7,20.42],[-15.77,20.55],[-15.63,20.91],[-15.82,20.51],[-15.95,20.0],[-15.4,21.68],[-15.48,20.96],[-15.53,21.22],[-15.48,20.5],[-15.26,20.59],[-15.7,20.16],[-15.24,21.61],[-15.19,21.33],[-15.54,20.89],[-15.52,20.56],[-15.49,21.35],[-15.46,21.4],[-15.5,21.2],[-15.3,21.73],[-15.63,21.62],[-15.53,20.83],[-15.64,20.98],[-15.64,20.86],[-15.62,20.44],[-15.81,20.33],[-15.56,21.43],[-15.76,20.31],[-15.64,19.98],[-15.6,20.58],[-15.44,21.0],[-15.52,20.65],[-15.77,20.42],[-15.64,20.46],[-15.74,20.66],[-15.54,20.93],[-15.61,20.23],[-15.65,20.46],[-15.87,20.62],[-15.74,20.2],[-15.64,20.7],[-15.79,20.87],[-15.78,20.24],[-15.49,21.05],[-15.63,20.55],[-15.84,20.52],[-15.49,20.59],[-15.55,20.67],[-15.51,21.72],[-15.62,21.01],[-15.54,21.17],[-15.25,21.55],[-15.41,21.24],[-15.49,20.91],[-15.1,22.36],[-15.49,20.33],[-16.0,20.36],[-15.95,20.79],[-15.75,21.55],[-16.13,20.24],[-15.84,20.93],[-15.48,22.14],[-15.98,20.51],[-15.77,20.78],[-15.54,21.11],[-15.93,20.44],[-15.98,20.32],[-15.51,21.86],[-15.6,21.24],[-15.71,20.17],[-16.03,20.08],[-15.31,21.81],[-15.8,20.66],[-15.84,19.92],[-15.62,20.69],[-16.16,20.12],[-15.49,21.76],[-15.76,21.54],[-16.02,20.43],[-15.59,20.84],[-15.76,21.36],[-16.03,19.75],[-15.77,21.16],[-15.54,21.86],[-15.9,21.01],[-16.09,20.42],[-15.6,21.49],[-16.0,20.26],[-15.84,20.4],[-15.82,20.58],[-15.54,21.1],[-15.89,20.18],[-15.56,21.63],[-15.75,20.27],[-15.65,20.31],[-15.86,20.64],[-16.06,19.9],[-15.31,22.04],[-15.32,21.73],[-15.78,20.95],[-15.85,20.9],[-15.76,20.0],[-15.68,20.65],[-15.64,20.51],[-15.94,20.39],[-15.2,22.22],[-16.03,20.16],[-15.82,20.73],[-15.7,20.84],[-15.58,21.19],[-15.72,21.03],[-16.07,20.22],[-15.67,21.21],[-15.82,21.5],[-15.89,20.65],[-15.89,20.49],[-15.44,21.5],[-15.63,21.16],[-15.62,21.09],[-15.57,20.62],[-15.4,21.33],[-15.74,21.06],[-15.66,20.79],[-15.9,20.62],[-15.71,20.79],[-15.5,21.03],[-15.46,20.39],[-15.75,20.48],[-15.51,20.83],[-15.89,20.31],[-15.89,21.06],[-16.08,20.14],[-15.82,20.7],[-16.0,20.83],[-15.77,20.46],[-15.42,21.08],[-16.03,20.16],[-15.25,22.3],[-15.59,20.8],[-15.64,20.5],[-15.58,20.57],[-15.43,21.66],[-15.95,20.35],[-15.88,20.03],[-15.75,20.34],[-15.5,21.01],[-15.79,20.4],[-15.39,21.51],[-15.67,20.24],[-15.24,21.14],[-15.93,20.48],[-15.47,20.78],[-15.57,21.04],[-15.39,21.33],[-16.05,20.84],[-15.51,20.72],[-15.7,21.05],[-15.33,21.77],[-15.8,21.2],[-15.66,20.78],[-15.95,20.77],[-15.73,20.89],[-15.85,20.71],[-15.71,21.27],[-15.69,20.53],[-15.76,21.57],[-15.53,20.65],[-15.83,20.74],[-15.71,20.62],[-15.79,20.95],[-15.67,21.23],[-15.86,20.63],[-15.64,20.99],[-15.8,21.22],[-15.68,20.95],[-15.83,20.23],[-15.7,20.44],[-15.62,20.92],[-15.94,20.33],[-15.7,21.04],[-15.73,20.62],[-15.56,20.63],[-15.28,21.88],[-15.63,20.05],[-15.45,21.47],[-15.49,21.09],[-15.72,20.02],[-15.74,20.58],[-15.44,21.39],[-15.59,20.3],[-15.7,20.8],[-15.66,21.22],[-15.54,21.13],[-15.58,20.26],[-15.62,20.92],[-16.01,20.02],[-15.53,21.35],[-15.82,20.33],[-15.65,21.72],[-15.75,21.19],[-15.43,21.19],[-15.5,20.8],[-15.89,20.0],[-15.68,20.36],[-15.8,20.93],[-15.67,20.36],[-15.46,20.72],[-15.52,21.35],[-15.56,21.39],[-15.67,20.74],[-15.69,20.96],[-15.82,19.74],[-15.57,20.72],[-15.54,20.46],[-15.69,20.85],[-15.81,20.45],[-15.71,20.49],[-15.47,20.92],[-15.34,21.54],[-15.58,20.71],[-15.33,20.8],[-15.57,20.65],[-15.54,20.88],[-15.69,20.63],[-15.87,20.4],[-15.76,20.61],[-15.63,21.75],[-15.83,20.65],[-15.93,19.86],[-15.45,21.42],[-15.64,21.12],[-15.5,21.42],[-16.0,20.38],[-15.74,21.38],[-16.06,20.56],[-15.94,20.06],[-15.67,21.15],[-15.81,20.52],[-15.48,21.24],[-15.93,20.32],[-15.53,20.77],[-15.99,20.14],[-15.85,20.79],[-16.12,19.7],[-15.9,21.12],[-15.82,19.97],[-16.21,20.13],[-15.71,21.33],[-15.54,21.53],[-15.82,20.76],[-15.7,20.99],[-16.1,19.74],[-15.66,20.99],[-15.72,20.56],[-15.44,20.92],[-15.61,21.66],[-16.03,20.73],[-15.66,21.31],[-15.68,20.82],[-16.12,19.77],[-15.9,20.32],[-15.45,21.36],[-15.74,20.92],[-15.75,20.71],[-15.9,21.26],[-15.66,20.63],[-15.7,21.16],[-15.8,20.84],[-15.41,21.85],[-15.67,21.27],[-15.71,19.92],[-15.83,20.94],[-15.89,20.35],[-15.55,21.91],[-15.72,21.08],[-15.65,21.68],[-16.07,20.81],[-15.96,20.84],[-15.84,21.35],[-16.12,20.49],[-15.81,21.5],[-15.8,21.5],[-16.1,20.19],[-15.54,21.85],[-15.5,21.95],[-15.75,20.46],[-15.68,20.87],[-15.83,20.83],[-15.88,21.61],[-15.87,21.16],[-15.48,21.21],[-15.59,21.61],[-15.74,20.87],[-15.5,21.46],[-15.65,20.5],[-15.38,21.94],[-15.42,20.95],[-15.94,19.85]];
+  const NS = "http://www.w3.org/2000/svg";
+  const el = (tag, attrs, text) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (text !== undefined) e.textContent = text;
+    return e;
+  };
+  const add = (tag, attrs, text, parent = svg) => parent.appendChild(el(tag, attrs, text));
+  const P = {x0: 84, x1: 736, y0: 8, y1: 314, xa: -24, xb: 48, ya: -14, yb: 26.5};
+  const sx = v => P.x0 + (v - P.xa) / (P.xb - P.xa) * (P.x1 - P.x0);
+  const sy = v => P.y1 - (v - P.ya) / (P.yb - P.ya) * (P.y1 - P.y0);
+  const xy = w => `${sx(w[0]).toFixed(1)},${sy(w[1]).toFixed(1)}`;
+  add("clipPath", {id: "optw-clip"}).appendChild(el("rect", {x: P.x0, y: P.y0, width: P.x1 - P.x0, height: P.y1 - P.y0}));
+  const plot = add("g", {"clip-path": "url(#optw-clip)"});
+  // contours at the static figure's levels, LOSS_OPT times 10^-2 to 10^2.5 above the minimum:
+  // with A = R'R, the ellipse (w - W_OPT)' A (w - W_OPT) = c is W_OPT + sqrt(c) R^-1 (cos t, sin t)
+  const r11 = Math.sqrt(A[0][0]), r12 = A[0][1] / r11, r22 = Math.sqrt(A[1][1] - r12 * r12);
+  // cut each contour at the frame, so no element's box runs outside the plot
+  const cut = (a, b) => {
+    let t0 = 0, t1 = 1;
+    const d = [b[0] - a[0], b[1] - a[1]];
+    for (const [q, r] of [[-d[0], a[0] - P.x0], [d[0], P.x1 - a[0]], [-d[1], a[1] - P.y0], [d[1], P.y1 - a[1]]]) {
+      if (q === 0) { if (r < 0) return null; continue; }
+      const t = r / q;
+      if (q < 0) { if (t > t1) return null; t0 = Math.max(t0, t); } else { if (t < t0) return null; t1 = Math.min(t1, t); }
+    }
+    return {t0, t1, a: [a[0] + t0 * d[0], a[1] + t0 * d[1]], b: [a[0] + t1 * d[0], a[1] + t1 * d[1]]};
+  };
+  for (let i = 0; i < 10; i++) {
+    const s = Math.sqrt(LOSS_OPT * 10 ** (-2 + 0.5 * i)), ring = [], runs = [];
+    for (let j = 0; j < 360; j++) {
+      const t = 2 * Math.PI * j / 360, v = s * Math.sin(t) / r22, u = (s * Math.cos(t) - r12 * v) / r11;
+      ring.push([sx(W_OPT[0] + u), sy(W_OPT[1] + v)]);
+    }
+    let run = null;
+    ring.forEach((a, j) => {
+      const c = cut(a, ring[(j + 1) % ring.length]);
+      if (!c) { run = null; return; }
+      if (!run || c.t0 > 0) { run = [c.a]; runs.push(run); }
+      run.push(c.b);
+      if (c.t1 < 1) run = null;
+    });
+    runs.forEach(r => add("polyline", {points: r.map(q => `${q[0].toFixed(1)},${q[1].toFixed(1)}`).join(" "),
+      fill: "none", stroke: "#c7c7c7", "stroke-width": 1.3}, undefined, plot));
+  }
+  add("rect", {x: P.x0, y: P.y0, width: P.x1 - P.x0, height: P.y1 - P.y0, fill: "none", stroke: "#bbb"});
+  const minus = v => String(v).replace("-", "−");
+  [-20, -10, 0, 10, 20, 30, 40].forEach(v => add("text", {x: sx(v), y: P.y1 + 24, "text-anchor": "middle", "font-size": 18, fill: "#5c5c5c"}, minus(v)));
+  [-10, 0, 10, 20].forEach(v => add("text", {x: P.x0 - 10, y: sy(v) + 6, "text-anchor": "end", "font-size": 18, fill: "#5c5c5c"}, minus(v)));
+  add("text", {x: (P.x0 + P.x1) / 2, y: P.y1 + 52, "text-anchor": "middle", "font-size": 20, fill: "#1a1a1a"}, "Intercept a (MPa)");
+  add("text", {x: P.x0 - 52, y: (P.y0 + P.y1) / 2, "text-anchor": "middle", "font-size": 20, fill: "#1a1a1a",
+    transform: `rotate(-90 ${P.x0 - 52} ${(P.y0 + P.y1) / 2})`}, "Slope b (MPa per 20 C)");
+  // drawn bottom to top as in the static figure: SGD, gradient descent, Adam, L-BFGS
+  const RUNS = [
+    {path: SGD, color: "#b07d12", width: 1.4, steps: null, name: "SGD, batches of 4", sub: `(still jittering after ${CAP.toLocaleString("en-US")})`, row: 3},
+    {path: GD, color: "#1f5c99", width: 3, steps: STEPS.gd, name: "Gradient descent", row: 1},
+    {path: ADAM, color: "#2e7d32", width: 3, steps: STEPS.adam, name: "Adam, full batch", row: 2},
+    {path: LBFGS, color: "#c41230", width: 2.6, steps: STEPS.lbfgs, name: "L-BFGS", row: 0, dots: true},
+  ];
+  RUNS.forEach(m => {
+    m.pts = m.path.map(xy);
+    m.index = m.path === SGD
+      ? n => (n <= SGD_FULL ? n : SGD_FULL + Math.floor((n - SGD_FULL) / SGD_EVERY))
+      : n => Math.min(n, m.path.length - 1);
+    m.trail = add("polyline", {fill: "none", stroke: m.color, "stroke-width": m.width, "stroke-linejoin": "round", "stroke-opacity": m.path === SGD ? 0.9 : 1}, undefined, plot);
+    m.marks = m.dots ? m.path.map(w => add("circle", {cx: sx(w[0]), cy: sy(w[1]), r: 5, fill: m.color}, undefined, plot)) : [];
+    m.shown = -1;
+  });
+  add("circle", {cx: sx(START[0]), cy: sy(START[1]), r: 8, fill: "#1a1a1a"});
+  const halo = {"font-size": 20, fill: "#1a1a1a", stroke: "#fff", "stroke-width": 6, "paint-order": "stroke", "stroke-linejoin": "round"};
+  add("text", {...halo, x: sx(START[0]) + 14, y: sy(START[1]) + 7}, "Start");
+  const star = [];
+  for (let j = 0; j < 10; j++) {
+    const rad = j % 2 ? 6 : 15, t = Math.PI / 2 + Math.PI * j / 5;
+    star.push(`${(sx(W_OPT[0]) + rad * Math.cos(t)).toFixed(1)},${(sy(W_OPT[1]) - rad * Math.sin(t)).toFixed(1)}`);
+  }
+  add("polygon", {points: star.join(" "), fill: "#1a1a1a", stroke: "#fff", "stroke-width": 1.5});
+  add("text", {...halo, x: sx(W_OPT[0]), y: sy(W_OPT[1]) - 22, "text-anchor": "middle"}, "Optimum");
+  RUNS.forEach(m => { m.head = add("circle", {r: 7, fill: m.color, stroke: "#fff", "stroke-width": 2}); });
+  // the legend, in the static figure's order, with each method's steps to converge
+  const LX = 770;
+  RUNS.forEach(m => {
+    const y = 40 + 46 * m.row;
+    add("line", {x1: LX, x2: LX + 36, y1: y - 7, y2: y - 7, stroke: m.color, "stroke-width": Math.max(m.width, 2.5)});
+    if (m.dots) add("circle", {cx: LX + 18, cy: y - 7, r: 5, fill: m.color});
+    m.label = add("text", {x: LX + 48, y, "font-size": 20, fill: "#1a1a1a"},
+      m.steps === null ? m.name : `${m.name} (${m.steps.toLocaleString("en-US")} steps)`);
+    if (m.sub) add("text", {x: LX + 48, y: y + 25, "font-size": 20, fill: "#1a1a1a"}, m.sub);
+  });
+  const note = ["Bold: reached the minimum", "The clock speeds up as it runs", `SGD is drawn at every step to ${SGD_FULL},`, `then every ${SGD_EVERY}th`];
+  note.forEach((t, i) => add("text", {x: LX, y: 260 + 25 * i, "font-size": 18, fill: "#5c5c5c"}, t));
+  // one clock for all four, the iteration number, on a log scale so the first steps can be seen
+  const DUR = 14000, C = 2;
+  const iterAt = p => (p >= 1 ? CAP : Math.floor(C * (Math.pow(1 + CAP / C, p) - 1) + 1e-9));
+  const slider = document.getElementById("optw-clock");
+  const btn = document.getElementById("optw-play");
+  const readout = document.getElementById("optw-iter");
+  let p = 0;
+  const draw = () => {
+    const n = iterAt(p);
+    RUNS.forEach(m => {
+      const i = m.index(n);
+      if (i !== m.shown) {
+        m.trail.setAttribute("points", m.pts.slice(0, i + 1).join(" "));
+        m.marks.forEach((c, j) => c.setAttribute("visibility", j <= i ? "visible" : "hidden"));
+        m.head.setAttribute("cx", sx(m.path[i][0]));
+        m.head.setAttribute("cy", sy(m.path[i][1]));
+        m.shown = i;
+      }
+      const done = m.steps !== null && n >= m.steps;
+      m.head.setAttribute("visibility", n >= 1 && !done ? "visible" : "hidden");
+      m.label.setAttribute("font-weight", done ? 700 : 400);
+    });
+    readout.textContent = `Iteration ${n.toLocaleString("en-US")}`;
+  };
+  let playing = false, last = null, raf = 0;
+  const setPlaying = on => {
+    playing = on;
+    cancelAnimationFrame(raf);
+    if (on) {
+      if (p >= 1) { p = 0; slider.value = 0; draw(); }
+      last = null;
+      raf = requestAnimationFrame(tick);
+    }
+    btn.textContent = on ? "Pause" : p >= 1 ? "Replay" : "Play";
+  };
+  // the presentation template changes slides without a hashchange, so every frame also checks
+  // that this slide is still the one shown (its classes are set after this script has run)
+  const host = svg.closest("[data-marpit-svg]");
+  const away = () => host && host.classList.contains("bespoke-marp-slide") && !host.classList.contains("bespoke-marp-active");
+  const tick = t => {
+    if (!playing) return;
+    if (away()) { setPlaying(false); return; }
+    if (last !== null) {
+      p = Math.min(1, p + Math.min(t - last, 100) / DUR);
+      slider.value = p;
+      draw();
+      if (p >= 1) { setPlaying(false); return; }
+    }
+    last = t;
+    raf = requestAnimationFrame(tick);
+  };
+  // blur after the click: a focused button keeps the arrow keys from the deck
+  btn.addEventListener("click", () => { setPlaying(!playing); btn.blur(); });
+  slider.addEventListener("keydown", e => e.stopPropagation());
+  slider.addEventListener("input", () => { setPlaying(false); p = parseFloat(slider.value); draw(); btn.textContent = p >= 1 ? "Replay" : "Play"; });
+  slider.addEventListener("change", () => slider.blur());
+  window.addEventListener("hashchange", () => setPlaying(false));
+  draw();
+})();
+</script>
 
 A straight line on the water data, one start: three optimizers reach the minimum, SGD bounces around it. L-BFGS takes **6** steps.
 
 <!--
+One clock for all four, the iteration number, on a log scale, so it speeds up as it runs:
+L-BFGS's six steps fill the first three seconds and the last 1,600 iterations take about three.
+A dot drops out when its method reaches the minimum, and its legend entry turns bold. SGD is
+drawn at every step to 400, then every 4th.
 A least squares problem, so the loss is a quadratic bowl, but a long narrow one: intercept and
 slope trade off (condition number 37.7). L-BFGS learns the shape of the valley in its first
 steps. SGD (4 rows per step, fixed step) reaches the floor fast and keeps bouncing: every
-mini-batch points somewhere slightly different. Adam is run on the full gradient here, so only its
+mini-batch points somewhere slightly different. Adam runs on the full gradient here, so only its
 update differs from gradient descent; its momentum overshoots (the loop), then it settles.
 -->
 
@@ -776,9 +979,9 @@ Large alpha: a simpler model, and a risk of underfitting. Small alpha: plain lea
 </script>
 
 <!--
-Drag from small alpha to large. Small alpha: the curve chases the noise near the edges, training
-RMSE low, test RMSE higher. Large alpha: the curve flattens, both RMSEs rise. Lasso: watch the
-nonzero count fall. The right panel is a validation curve.
+Small alpha: the curve chases the noise near the edges, training RMSE low, test RMSE higher.
+Large alpha: the curve flattens, both RMSEs rise. Lasso: the nonzero count falls as alpha grows.
+The right panel is a validation curve.
 -->
 
 ---
@@ -794,16 +997,22 @@ nonzero count fall. The right panel is a validation curve.
 | Neural network | Layers of weights and activations | Any shape, large data | Small data, scaling, tuning |
 | Gaussian process | A distribution over functions | Small data, an uncertainty | $\mathcal{O}(N^3)$, the kernel choice |
 
-**No free lunch** (Wolpert 1996), loosely: for any two learning algorithms there are as many problems where the first wins as where the second does. A family wins when its **assumptions match the problem**, so choose it per problem, by validation.
+**No free lunch** (Wolpert 1996): averaged over every possible problem, every method has the same error on new inputs. Our reading: a family wins when its **assumptions match your problem**, so compare families on held-out data.
 
-<span class="source"><a href="https://doi.org/10.1162/neco.1996.8.7.1341">Wolpert (1996), Neural Computation 8(7)</a> / <a href="https://arxiv.org/abs/2007.10928">Wolpert (2020), free overview</a></span>
+<span class="source"><a href="https://doi.org/10.1162/neco.1996.8.7.1341">Wolpert (1996)</a> / <a href="https://arxiv.org/abs/2007.10928">Wolpert (2020), free overview</a></span>
 
 <!--
 Linear regression first, because it is the one they know; this is why the other three exist.
+"Every possible problem" means every input-output relationship, weighted equally, and "new
+inputs" means points outside the training set (Wolpert's off-training-set error). Strictly, the
+1996 theorem is proved for losses like zero-one, where a guess is right or wrong. For squared
+error the companion paper finds an edge, but all of it comes from where a method's guesses sit in
+the output range; on average, the way a method uses its data adds nothing.
 The surprise in Wolpert's abstract: it holds even for cross-validation against
-"anti-cross-validation" (pick the model with the largest validation error), averaged over every
-conceivable problem. Real problems are not every conceivable problem: a family wins when its
-assumptions (smoothness, boxes, the right features) match the one in front of you.
+"anti-cross-validation" (pick the model with the largest validation error). So the second
+sentence is our reading and goes beyond the theorem: trusting validation is itself an assumption,
+that real problems have structure (smoothness, boxes, the right features) and that held-out
+points resemble the ones you will predict.
 -->
 
 ---
@@ -916,10 +1125,10 @@ A **neural network** is layers of: multiply by **weights**, add **biases**, appl
 </div>
 
 <!--
-Click through: each click lights one hidden unit and writes its term beside it, at the same
-height, in its color; then the output bias; then the sum. It is the previous slide's equation,
-one row per unit. The input weight w0k and bias b0k sit inside the tanh, the output weight w1k
-outside it. The deep version, several hidden layers, is on the hyperparameters slide.
+One hidden unit at a time lights up and its term appears beside it, at the same height, in its
+color; then the output bias; then the sum. The previous slide's equation, one row per unit. The
+input weight w0k and bias b0k sit inside the tanh, the output weight w1k outside it. The deep
+version, several hidden layers, is on the hyperparameters slide.
 -->
 
 ---
@@ -931,8 +1140,8 @@ outside it. The deep version, several hidden layers, is on the hyperparameters s
 Each unit adds one tanh-shaped piece: unit 3 makes the steep early rise, unit 1 a steady slope, unit 2 a small kink at the end. The output adds them and $b_1$; the colors match the network diagram.
 
 <!--
-Point at one colored curve and its unit on the previous slide: w0k and b0k set where the curve
-bends and how sharply, w1k sets how tall it is and its sign. The fitted terms are large and nearly
+Each colored curve is one unit from the previous slide: w0k and b0k set where the curve bends
+and how sharply, w1k sets how tall it is and its sign. The fitted terms are large and nearly
 cancel (offsets near -37, -23 and +64), so each is drawn shifted to start at zero; the offsets and
 b1 fold into one constant. The sum is the fit.
 -->
@@ -1070,6 +1279,8 @@ A **ReLU** unit, $\max(0, z)$, fires once its weighted input passes zero. Five o
   let playing = false, dir = 1, last = null, raf = 0;
   const tick = t => {
     if (!playing) return;
+    // the presentation template changes slides without firing hashchange, so check visibility
+    if (svg.checkVisibility && !svg.checkVisibility()) { setPlaying(false); return; }
     if (last !== null) {
       let v = xv + dir * 0.22 * Math.min(t - last, 100) / 1000;
       if (v >= 1) { v = 1; dir = -1; } else if (v <= 0) { v = 0; dir = 1; }
@@ -1097,9 +1308,9 @@ A **ReLU** unit, $\max(0, z)$, fires once its weighted input passes zero. Five o
 </script>
 
 <!--
-Press Play, or drag x. A unit lights up when it is on. Every kink in the curve is one unit
-switching on or off, so a ReLU network is piecewise linear. Unit 3 is on over the whole range, so
-it only adds a straight line.
+Play or the slider moves x. A unit lights up when it is on. Each kink is one unit switching on
+or off, so a ReLU network is piecewise linear. Unit 3 is on over the whole range, so it only adds
+a straight line.
 -->
 
 ---
@@ -1152,7 +1363,7 @@ Ten starts: training sum of squared errors (SSE) **0.0796 to 0.1177**, test $R^2
 
 <!--
 Gradients by backpropagation. The worked example silences a ConvergenceWarning from the concrete
-network: the optimizer ran out of iterations (5,000) before it declared convergence.
+network: the optimizer hit its 5,000-iteration limit before declaring convergence.
 -->
 
 ---
@@ -1167,29 +1378,217 @@ Two inputs that both matter, on very different scales: $x_1 \in [0,1]$ and $x_2 
 
 <!--
 With x2 in the millions, all 20 tanh units saturate at plus or minus 1 on every training row,
-the gradients vanish, and the network predicts the training mean (0.128) for every sample.
-Standardize: zero mean, unit variance, fitted on training rows only.
+the gradients vanish and the network predicts the training mean (0.128) everywhere.
+Standardizing fixes it: zero mean, unit variance, fit on training rows only.
 -->
 
 ---
 
 ## Gaussian processes
 
-A distribution of numbers describes uncertain **values**; a Gaussian process, an uncertain **function**:
+<style>
+/* the Gaussian process build: a distribution of numbers, then of functions, one click at a time */
+.gpi-widget svg { display: block; margin: 0 auto; }
+.gpi-step { display: none; }
+/* the definition fades in over half a second, as the F25 PowerPoint's layers did */
+div.definition.gpi-def[data-bespoke-marp-fragment="active"] { animation: gpi-fade 0.5s ease-out; }
+@keyframes gpi-fade { from { opacity: 0; } }
+</style>
+<div class="gpi-widget">
+<svg id="gpi-svg" viewBox="0 0 1120 270" width="1120" height="270" role="img" aria-label="Left, a bell-shaped Gaussian density with fifteen values drawn from it, marked as ticks. Right, five smooth functions drawn from a Gaussian process over x from 0 to 1, with a dashed mean at zero and a gray band of two standard deviations."></svg>
+<span class="gpi-step" data-marpit-fragment="1"></span>
+<span class="gpi-step" data-marpit-fragment="2"></span>
+<span class="gpi-step" data-marpit-fragment="3"></span>
+</div>
 
-![w:700](figures/gp-idea.png)
+<script>
+(() => {
+  const svg = document.getElementById("gpi-svg");
+  if (!svg || svg.dataset.ready) return;
+  svg.dataset.ready = "1";
+  // gp-idea.png's draws (figures/make_figures.py, gp_intro_figures, seed 0): 15 values from N(0, 1),
+  // then five functions from a GP prior with mean 0 and an RBF kernel of length scale 0.3, on the 200
+  // values of np.linspace(0, 1, 200). Printed by figures/make_figures.py widgets; the functions are
+  // rounded to 0.01, at most an eighth of a pixel here.
+  const DRAWS = [0.12573, -0.132105, 0.640423, 0.1049, -0.535669, 0.361595, 1.304, 0.947081, -0.703735, -1.265421, -0.623274, 0.041326, -2.325031, -0.218792, -1.245911];
+  const FS = [
+    [-0.74, -0.71, -0.67, -0.64, -0.61, -0.57, -0.54, -0.5, -0.47, -0.43, -0.39, -0.36, -0.32, -0.28, -0.25, -0.21, -0.18, -0.14, -0.1, -0.07, -0.03, 0.0, 0.04, 0.07, 0.11, 0.14, 0.17, 0.21, 0.24, 0.27, 0.3, 0.34, 0.37, 0.4, 0.43, 0.45, 0.48, 0.51, 0.54, 0.56, 0.59, 0.61, 0.63, 0.66, 0.68, 0.7, 0.72, 0.74, 0.75, 0.77, 0.79, 0.8, 0.82, 0.83, 0.84, 0.86, 0.87, 0.88, 0.88, 0.89, 0.9, 0.9, 0.91, 0.91, 0.92, 0.92, 0.92, 0.92, 0.92, 0.92, 0.91, 0.91, 0.91, 0.9, 0.9, 0.89, 0.88, 0.87, 0.86, 0.85, 0.84, 0.83, 0.82, 0.8, 0.79, 0.77, 0.76, 0.74, 0.72, 0.7, 0.69, 0.67, 0.65, 0.63, 0.61, 0.58, 0.56, 0.54, 0.52, 0.49, 0.47, 0.45, 0.42, 0.4, 0.37, 0.35, 0.32, 0.29, 0.27, 0.24, 0.22, 0.19, 0.16, 0.14, 0.11, 0.08, 0.06, 0.03, 0.0, -0.02, -0.05, -0.07, -0.1, -0.12, -0.15, -0.17, -0.2, -0.22, -0.25, -0.27, -0.29, -0.31, -0.33, -0.35, -0.37, -0.39, -0.41, -0.43, -0.45, -0.46, -0.48, -0.49, -0.51, -0.52, -0.53, -0.54, -0.55, -0.56, -0.57, -0.58, -0.58, -0.59, -0.59, -0.6, -0.6, -0.6, -0.6, -0.6, -0.6, -0.6, -0.59, -0.59, -0.58, -0.57, -0.57, -0.56, -0.55, -0.54, -0.53, -0.51, -0.5, -0.49, -0.47, -0.46, -0.44, -0.42, -0.4, -0.38, -0.37, -0.35, -0.32, -0.3, -0.28, -0.26, -0.24, -0.21, -0.19, -0.17, -0.14, -0.12, -0.1, -0.07, -0.05, -0.02, 0.0, 0.03, 0.05, 0.08, 0.1, 0.13],
+    [-2.05, -2.05, -2.04, -2.03, -2.02, -2.01, -2.01, -2.0, -1.99, -1.98, -1.97, -1.95, -1.94, -1.93, -1.92, -1.9, -1.89, -1.87, -1.86, -1.84, -1.83, -1.81, -1.79, -1.77, -1.75, -1.73, -1.71, -1.69, -1.67, -1.65, -1.62, -1.6, -1.57, -1.55, -1.52, -1.5, -1.47, -1.44, -1.41, -1.39, -1.36, -1.33, -1.3, -1.26, -1.23, -1.2, -1.17, -1.14, -1.1, -1.07, -1.03, -1.0, -0.96, -0.93, -0.89, -0.86, -0.82, -0.78, -0.75, -0.71, -0.67, -0.63, -0.6, -0.56, -0.52, -0.48, -0.44, -0.4, -0.36, -0.33, -0.29, -0.25, -0.21, -0.17, -0.13, -0.09, -0.05, -0.01, 0.03, 0.06, 0.1, 0.14, 0.18, 0.22, 0.26, 0.3, 0.33, 0.37, 0.41, 0.45, 0.48, 0.52, 0.56, 0.6, 0.63, 0.67, 0.7, 0.74, 0.78, 0.81, 0.85, 0.88, 0.92, 0.95, 0.98, 1.02, 1.05, 1.09, 1.12, 1.15, 1.18, 1.22, 1.25, 1.28, 1.31, 1.34, 1.37, 1.4, 1.43, 1.46, 1.49, 1.52, 1.55, 1.58, 1.61, 1.63, 1.66, 1.69, 1.72, 1.74, 1.77, 1.79, 1.82, 1.84, 1.87, 1.89, 1.92, 1.94, 1.96, 1.99, 2.01, 2.03, 2.05, 2.07, 2.09, 2.11, 2.13, 2.15, 2.17, 2.19, 2.21, 2.22, 2.24, 2.26, 2.27, 2.29, 2.3, 2.32, 2.33, 2.34, 2.36, 2.37, 2.38, 2.39, 2.4, 2.41, 2.42, 2.43, 2.44, 2.45, 2.45, 2.46, 2.46, 2.47, 2.48, 2.48, 2.48, 2.49, 2.49, 2.49, 2.49, 2.49, 2.49, 2.49, 2.49, 2.49, 2.49, 2.49, 2.48, 2.48, 2.47, 2.47, 2.46, 2.46, 2.45, 2.44, 2.44, 2.43, 2.42, 2.41],
+    [-0.36, -0.36, -0.36, -0.36, -0.36, -0.36, -0.37, -0.37, -0.37, -0.37, -0.37, -0.37, -0.37, -0.37, -0.37, -0.37, -0.37, -0.37, -0.37, -0.37, -0.37, -0.37, -0.37, -0.37, -0.37, -0.36, -0.36, -0.36, -0.36, -0.36, -0.35, -0.35, -0.35, -0.35, -0.34, -0.34, -0.33, -0.33, -0.32, -0.32, -0.31, -0.31, -0.3, -0.29, -0.29, -0.28, -0.27, -0.26, -0.25, -0.25, -0.24, -0.23, -0.22, -0.21, -0.2, -0.19, -0.18, -0.17, -0.15, -0.14, -0.13, -0.12, -0.11, -0.09, -0.08, -0.07, -0.06, -0.04, -0.03, -0.02, -0.01, 0.01, 0.02, 0.03, 0.05, 0.06, 0.07, 0.09, 0.1, 0.11, 0.12, 0.14, 0.15, 0.16, 0.17, 0.19, 0.2, 0.21, 0.22, 0.23, 0.24, 0.26, 0.27, 0.28, 0.29, 0.3, 0.31, 0.32, 0.33, 0.34, 0.35, 0.35, 0.36, 0.37, 0.38, 0.39, 0.39, 0.4, 0.41, 0.42, 0.42, 0.43, 0.44, 0.44, 0.45, 0.45, 0.46, 0.46, 0.47, 0.47, 0.48, 0.48, 0.49, 0.49, 0.5, 0.5, 0.5, 0.51, 0.51, 0.52, 0.52, 0.52, 0.53, 0.53, 0.53, 0.53, 0.54, 0.54, 0.54, 0.55, 0.55, 0.55, 0.55, 0.56, 0.56, 0.56, 0.56, 0.57, 0.57, 0.57, 0.57, 0.57, 0.57, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.58, 0.57, 0.57, 0.57, 0.56, 0.56, 0.56, 0.55, 0.55, 0.55, 0.54, 0.54, 0.53, 0.53, 0.52, 0.51, 0.51, 0.5, 0.49, 0.49, 0.48, 0.47, 0.46, 0.46, 0.45, 0.44, 0.43, 0.42],
+    [0.27, 0.26, 0.24, 0.23, 0.22, 0.2, 0.19, 0.17, 0.15, 0.14, 0.12, 0.1, 0.08, 0.07, 0.05, 0.03, 0.01, -0.01, -0.03, -0.05, -0.07, -0.1, -0.12, -0.14, -0.16, -0.18, -0.21, -0.23, -0.25, -0.27, -0.3, -0.32, -0.34, -0.37, -0.39, -0.41, -0.44, -0.46, -0.48, -0.51, -0.53, -0.55, -0.57, -0.6, -0.62, -0.64, -0.66, -0.68, -0.7, -0.72, -0.74, -0.76, -0.78, -0.8, -0.82, -0.84, -0.85, -0.87, -0.89, -0.9, -0.92, -0.93, -0.95, -0.96, -0.98, -0.99, -1.0, -1.01, -1.02, -1.03, -1.04, -1.05, -1.06, -1.07, -1.08, -1.08, -1.09, -1.09, -1.1, -1.1, -1.11, -1.11, -1.11, -1.11, -1.11, -1.11, -1.11, -1.11, -1.11, -1.11, -1.11, -1.1, -1.1, -1.09, -1.09, -1.08, -1.08, -1.07, -1.06, -1.05, -1.04, -1.03, -1.02, -1.01, -1.0, -0.99, -0.98, -0.97, -0.95, -0.94, -0.92, -0.91, -0.89, -0.88, -0.86, -0.85, -0.83, -0.81, -0.79, -0.77, -0.76, -0.74, -0.72, -0.7, -0.67, -0.65, -0.63, -0.61, -0.59, -0.56, -0.54, -0.52, -0.49, -0.47, -0.44, -0.42, -0.39, -0.37, -0.34, -0.32, -0.29, -0.26, -0.24, -0.21, -0.18, -0.15, -0.12, -0.1, -0.07, -0.04, -0.01, 0.02, 0.05, 0.08, 0.11, 0.13, 0.16, 0.19, 0.22, 0.25, 0.28, 0.31, 0.34, 0.37, 0.4, 0.43, 0.46, 0.49, 0.51, 0.54, 0.57, 0.6, 0.63, 0.65, 0.68, 0.71, 0.74, 0.76, 0.79, 0.81, 0.84, 0.86, 0.89, 0.91, 0.94, 0.96, 0.98, 1.0, 1.02, 1.04, 1.06, 1.08, 1.1, 1.12, 1.14, 1.16, 1.17, 1.19, 1.2, 1.22],
+    [0.04, 0.05, 0.06, 0.06, 0.07, 0.08, 0.08, 0.09, 0.1, 0.1, 0.11, 0.12, 0.12, 0.13, 0.14, 0.15, 0.15, 0.16, 0.17, 0.17, 0.18, 0.19, 0.19, 0.2, 0.21, 0.22, 0.22, 0.23, 0.24, 0.25, 0.25, 0.26, 0.27, 0.28, 0.29, 0.29, 0.3, 0.31, 0.32, 0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.4, 0.41, 0.42, 0.43, 0.44, 0.45, 0.46, 0.47, 0.48, 0.49, 0.5, 0.51, 0.52, 0.53, 0.54, 0.56, 0.57, 0.58, 0.59, 0.6, 0.61, 0.62, 0.64, 0.65, 0.66, 0.67, 0.68, 0.7, 0.71, 0.72, 0.73, 0.74, 0.75, 0.77, 0.78, 0.79, 0.8, 0.81, 0.82, 0.84, 0.85, 0.86, 0.87, 0.88, 0.89, 0.9, 0.91, 0.92, 0.93, 0.94, 0.95, 0.97, 0.98, 0.98, 0.99, 1.0, 1.01, 1.02, 1.03, 1.04, 1.05, 1.06, 1.07, 1.08, 1.08, 1.09, 1.1, 1.11, 1.11, 1.12, 1.13, 1.13, 1.14, 1.15, 1.15, 1.16, 1.16, 1.17, 1.17, 1.18, 1.18, 1.19, 1.19, 1.2, 1.2, 1.2, 1.21, 1.21, 1.21, 1.22, 1.22, 1.22, 1.22, 1.22, 1.22, 1.22, 1.23, 1.23, 1.23, 1.23, 1.23, 1.23, 1.22, 1.22, 1.22, 1.22, 1.22, 1.22, 1.21, 1.21, 1.21, 1.2, 1.2, 1.2, 1.19, 1.19, 1.18, 1.18, 1.17, 1.17, 1.16, 1.16, 1.15, 1.15, 1.14, 1.13, 1.13, 1.12, 1.11, 1.1, 1.09, 1.09, 1.08, 1.07, 1.06, 1.05, 1.04, 1.03, 1.02, 1.01, 1.0, 0.99, 0.98, 0.97, 0.95, 0.94, 0.93, 0.92, 0.9, 0.89, 0.88, 0.86, 0.85, 0.84]
+  ];
+  const XS = FS[0].map((_, i) => i / (FS[0].length - 1));
+  const COLORS = ["#1f5c99", "#b07d12", "#2e7d32", "#c41230", "#5c5c5c"];
+  const NS = "http://www.w3.org/2000/svg";
+  const el = (tag, attrs, text) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (text !== undefined) e.textContent = text;
+    return e;
+  };
+  const put = (parent, tag, attrs, text) => parent.appendChild(el(tag, attrs, text));
+  const add = (tag, attrs, text) => put(svg, tag, attrs, text);
+  const LP = {x0: 86, x1: 404, y0: 40, y1: 214, xa: -3.5, xb: 3.5, ya: 0, yb: 0.55};
+  const RP = {x0: 594, x1: 1100, y0: 40, y1: 214, xa: 0, xb: 1, ya: -3, yb: 4.4};
+  const sx = (P, v) => P.x0 + (v - P.xa) / (P.xb - P.xa) * (P.x1 - P.x0);
+  const sy = (P, v) => P.y1 - (v - P.ya) / (P.yb - P.ya) * (P.y1 - P.y0);
+  const pts = (P, xy) => xy.map(([x, y]) => `${sx(P, x).toFixed(1)},${sy(P, y).toFixed(1)}`).join(" ");
+  const frame = (g, P, title, xlab, ylab, xt, yt, italic) => {
+    put(g, "rect", {x: P.x0, y: P.y0, width: P.x1 - P.x0, height: P.y1 - P.y0, fill: "none", stroke: "#bbb"});
+    put(g, "text", {x: (P.x0 + P.x1) / 2, y: P.y0 - 14, "text-anchor": "middle", "font-size": 21, "font-weight": 600, fill: "#1a1a1a"}, title);
+    xt.forEach(v => put(g, "text", {x: sx(P, v), y: P.y1 + 22, "text-anchor": "middle", "font-size": 18, fill: "#5c5c5c"}, String(v)));
+    yt.forEach(v => put(g, "text", {x: P.x0 - 10, y: sy(P, v) + 6, "text-anchor": "end", "font-size": 18, fill: "#5c5c5c"}, String(v)));
+    put(g, "text", {x: (P.x0 + P.x1) / 2, y: P.y1 + 48, "text-anchor": "middle", "font-size": 20, fill: "#1a1a1a",
+      "font-style": italic ? "italic" : "normal"}, xlab);
+    put(g, "text", {x: P.x0 - 56, y: (P.y0 + P.y1) / 2, "text-anchor": "middle", "font-size": 20, fill: "#1a1a1a",
+      transform: `rotate(-90 ${P.x0 - 56} ${(P.y0 + P.y1) / 2})`}, ylab);
+  };
+  const pdf = z => Math.exp(-z * z / 2) / Math.sqrt(2 * Math.PI);
+  const bell = (a, b) => Array.from({length: 301}, (_, i) => a + i * (b - a) / 300).map(z => [z, pdf(z)]);
+  // on arrival: the distribution of numbers, N(0, 1)
+  frame(svg, LP, "A distribution of numbers", "Value", "Probability density", [-2, 0, 2], [0, 0.2, 0.4], false);
+  add("polygon", {points: pts(LP, [[-3.5, 0], ...bell(-3.5, 3.5), [3.5, 0]]), fill: "#1f5c99", "fill-opacity": 0.12});
+  // click 2 grays the part of the bell within 2 std of the mean: the band on the right, at one x
+  const shade = add("polygon", {points: pts(LP, [[-2, 0], ...bell(-2, 2), [2, 0]]), fill: "#e3e3e3"});
+  const lmean = add("line", {x1: sx(LP, 0), x2: sx(LP, 0), y1: sy(LP, 0), y2: sy(LP, pdf(0)),
+    stroke: "#1a1a1a", "stroke-width": 2, "stroke-dasharray": "7 5"});
+  add("polyline", {points: pts(LP, bell(-3.5, 3.5)), fill: "none", stroke: "#1f5c99", "stroke-width": 3});
+  // click 1: the 15 values, one at a time, each tick falling onto the axis; the newest is red
+  const ticks = DRAWS.map(v => add("line", {x1: sx(LP, v), x2: sx(LP, v), y1: LP.y1, y2: LP.y1 - 26,
+    stroke: "#1a1a1a", "stroke-width": 2.5}));
+  const LEG = LP.y0 + 24;
+  const lkey = add("line", {x1: LP.x0 + 18, x2: LP.x0 + 18, y1: LEG - 16, y2: LEG + 4, stroke: "#1a1a1a", "stroke-width": 2.5});
+  const lcount = add("text", {x: LP.x0 + 32, y: LEG, "font-size": 18, fill: "#1a1a1a"});
+  // click 2: the same idea one level up, a distribution of functions
+  const arrow = add("polygon", {points: "420,116 468,116 468,101 502,127 468,153 468,138 420,138",
+    fill: "#d9d9d9", stroke: "#8c8c8c", "stroke-width": 1.5, "stroke-linejoin": "round"});
+  const right = add("g", {});
+  const band = put(right, "rect", {x: RP.x0, width: RP.x1 - RP.x0, fill: "#ebebeb"});
+  frame(right, RP, "A distribution of functions", "x", "f(x)", [0, 0.2, 0.4, 0.6, 0.8, 1], [-2, 0, 2], true);
+  const rmean = put(right, "line", {x1: RP.x0, x2: RP.x1, y1: sy(RP, 0), y2: sy(RP, 0),
+    stroke: "#1a1a1a", "stroke-width": 2, "stroke-dasharray": "7 5"});
+  const K = {x: RP.x0 + 14, y: RP.y0 + 24};
+  const rkey = put(right, "g", {});
+  put(rkey, "line", {x1: K.x, x2: K.x + 34, y1: K.y - 6, y2: K.y - 6, stroke: "#1a1a1a", "stroke-width": 2, "stroke-dasharray": "7 5"});
+  put(rkey, "text", {x: K.x + 42, y: K.y, "font-size": 18, fill: "#1a1a1a"}, "Mean");
+  put(rkey, "rect", {x: K.x + 106, y: K.y - 17, width: 34, height: 22, fill: "#ebebeb", stroke: "#cfcfcf"});
+  put(rkey, "text", {x: K.x + 148, y: K.y, "font-size": 18, fill: "#1a1a1a"}, "Mean ± 2 std");
+  // click 3: five functions, each traced left to right, one after another
+  const CP = FS.map(f => XS.map((x, i) => `${sx(RP, x).toFixed(1)},${sy(RP, f[i]).toFixed(1)}`));
+  const curves = FS.map((_, k) => put(right, "polyline", {fill: "none", stroke: COLORS[k], "stroke-width": 2.5,
+    "stroke-linejoin": "round", "stroke-linecap": "round"}));
+  const pens = FS.map((_, k) => put(right, "circle", {r: 5.5, fill: COLORS[k]}));
+  const skeys = FS.map((_, k) => put(right, "line", {x1: K.x + 274 + 8 * k, x2: K.x + 280 + 8 * k, y1: K.y - 6, y2: K.y - 6,
+    stroke: COLORS[k], "stroke-width": 4}));
+  const scount = put(right, "text", {x: K.x + 320, y: K.y, "font-size": 18, fill: "#1a1a1a"});
+  // timing, in ms: ticks land every GAP, falling for DROP; each function takes DRAW, the next STEP later
+  const GAP = 170, DROP = 300, STEP = 620, DRAW = 700;
+  const END = [0, (DRAWS.length - 1) * GAP + DROP + 250, 700, (FS.length - 1) * STEP + DRAW];
+  const ramp = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
+  const show = (e, o) => { e.setAttribute("opacity", o.toFixed(3)); e.setAttribute("visibility", o > 0 ? "visible" : "hidden"); };
+  const plural = (n, word) => `${n} sampled ${word}${n === 1 ? "" : "s"}`;
+  // step s is playing at t ms; the steps before it are complete and the ones after it hidden
+  const paint = (s, t) => {
+    const at = k => (k < s ? Infinity : k === s ? t : -Infinity);
+    const t1 = at(1), t2 = at(2), t3 = at(3);
+    let n = 0;
+    ticks.forEach((tk, i) => {
+      const p = ramp(t1, i * GAP, i * GAP + DROP);
+      const started = t1 >= i * GAP;
+      if (started) n++;
+      show(tk, started ? Math.min(1, 3 * p) : 0);
+      tk.setAttribute("transform", `translate(0 ${(-48 * (1 - p * p)).toFixed(1)})`);
+      const newest = started && Number.isFinite(t1) && (i === DRAWS.length - 1 || t1 < (i + 1) * GAP);
+      tk.setAttribute("stroke", newest ? "#c41230" : "#1a1a1a");
+    });
+    show(lkey, n ? 1 : 0);
+    show(lcount, n ? 1 : 0);
+    lcount.textContent = plural(n, "value");
+    show(arrow, ramp(t2, 0, 350));
+    show(right, ramp(t2, 100, 450));
+    show(shade, ramp(t2, 250, 600));
+    show(lmean, ramp(t2, 250, 600));
+    show(rmean, ramp(t2, 250, 500));
+    show(rkey, ramp(t2, 250, 600));
+    const g = ramp(t2, 250, 700), h = 2 * g * (2 - g);
+    band.setAttribute("y", sy(RP, h).toFixed(1));
+    band.setAttribute("height", (sy(RP, -h) - sy(RP, h)).toFixed(1));
+    let c = 0;
+    curves.forEach((cv, k) => {
+      const p = ramp(t3, k * STEP, k * STEP + DRAW);
+      const m = Math.max(2, Math.round(p * (XS.length - 1)) + 1);
+      if (t3 >= k * STEP) c++;
+      show(cv, t3 >= k * STEP ? 1 : 0);
+      cv.setAttribute("points", CP[k].slice(0, m).join(" "));
+      show(pens[k], p > 0 && p < 1 ? 1 : 0);
+      const [px, py] = CP[k][m - 1].split(",");
+      pens[k].setAttribute("cx", px);
+      pens[k].setAttribute("cy", py);
+      show(skeys[k], t3 >= k * STEP ? 1 : 0);
+    });
+    show(scount, c ? 1 : 0);
+    scount.textContent = plural(c, "function");
+  };
+  // the steps follow the deck's fragments: each click plays the next one, going back undoes it,
+  // and with no fragments (the static render, the PDF) or in the overview the build is complete
+  const steps = [...svg.parentNode.querySelectorAll(".gpi-step")];
+  const target = () => {
+    if (document.body.dataset.bespokeView === "overview" || !steps[0].hasAttribute("data-bespoke-marp-fragment")) return steps.length;
+    return steps.filter(e => e.getAttribute("data-bespoke-marp-fragment") === "active").length;
+  };
+  const still = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let step = -1, t0 = 0, raf = 0;
+  const finish = () => { cancelAnimationFrame(raf); paint(step, Infinity); };
+  const run = now => {
+    // stop once the slide is off screen: the presentation template changes slides with
+    // history.replaceState, which fires no hashchange, and hides the old one from checkVisibility
+    if (now - t0 >= END[step] || (svg.checkVisibility && !svg.checkVisibility())) { finish(); return; }
+    paint(step, now - t0);
+    raf = requestAnimationFrame(run);
+  };
+  const sync = () => {
+    const s = target();
+    if (s === step) return;
+    const play = step >= 0 && s === step + 1 && !still;
+    cancelAnimationFrame(raf);
+    step = s;
+    if (!play) { paint(step, Infinity); return; }
+    t0 = performance.now();
+    paint(step, 0);
+    raf = requestAnimationFrame(run);
+  };
+  const watch = new MutationObserver(sync);
+  steps.forEach(e => watch.observe(e, {attributes: true, attributeFilter: ["data-bespoke-marp-fragment"]}));
+  watch.observe(document.body, {attributes: true, attributeFilter: ["data-bespoke-view"]});
+  window.addEventListener("hashchange", finish);
+  sync();
+})();
+</script>
 
-<div class="definition">
+<div class="definition gpi-def" data-marpit-fragment="4">
 
 A **Gaussian process**: a probability distribution over functions, $f \sim \mathcal{GP}\big(m(x), k(x, x')\big)$, set by a **mean function** $m$ and a **kernel** $k$ (how similar two inputs are).
 
 </div>
 
+<span class="source"><a href="https://gaussianprocess.org/gpml/chapters/RW2.pdf">Rasmussen and Williams (2006)</a>, section 2.2</span>
+
 <!--
-The instructor's picture from the F25 GP slides: the same way we generalize data as a Gaussian
-distribution of numbers, we can generalize a function (a process model) as a distribution of
-functions. Parametric (a network): fix theta and fit f(x; theta). Nonparametric (a GP): a
-distribution over functions, and every prediction comes with an uncertainty.
+The picture from my F25 GP slides, built in four steps. It starts on a distribution of numbers,
+N(0, 1).
+First, fifteen draws land one at a time, each one a number; the newest is red. One, at -2.33,
+falls outside 2 std, where about 5% of draws should (4.55%).
+Second, the same idea one level up: the arrow, then a distribution of functions, its mean (dashed)
+and a band of 2 std. On the left the same range turns gray: at every x this GP's value is N(0, 1),
+the bell on the left, so the band is that gray range repeated at every x.
+Third, five draws, each a whole function, traced one after another. The gold one leaves the band
+at both ends: the band covers about 95% of the values at each x, so a whole curve can still cross.
+Fourth, the definition. How fast the curves wiggle is the kernel's length scale (0.3 here), two
+slides on. Formally (Rasmussen and Williams, Definition 2.1): any finite set of the function's
+values is jointly Gaussian. Parametric (a network): fix theta and fit f(x; theta). Nonparametric
+(a GP): a distribution over functions, and every prediction comes with an uncertainty.
+Going back a step undoes it; going forward again replays it.
 -->
 
 ---
@@ -1198,14 +1597,216 @@ distribution over functions, and every prediction comes with an uncertainty.
 
 $$ \text{posterior} = \frac{\text{likelihood} \times \text{prior}}{\text{marginal likelihood}} $$
 
-![w:900](figures/gp-posterior.png)
+<style>
+/* the GP prior to posterior slider */
+.gpp-widget { font-size: 22px; }
+.gpp-controls { display: flex; gap: 0.9em; align-items: center; justify-content: center; margin: 0 0 0.1em; }
+.gpp-controls input[type=range] { width: 460px; accent-color: #c41230; }
+.gpp-controls button { font: inherit; font-size: 20px; min-width: 5.4em; padding: 0.1em 0.6em; color: #c41230; background: #fff; border: 2px solid #c41230; border-radius: 6px; cursor: pointer; }
+.gpp-readout { text-align: center; color: #5c5c5c; margin-top: 0.1em; }
+.gpp-widget svg { display: block; margin: 0 auto; }
+</style>
+<div class="gpp-widget">
+<div class="gpp-controls">
+<button type="button" id="gpp-play">Play</button>
+<span>Prior</span>
+<input type="range" id="gpp-n" min="0" max="20" step="1" value="0">
+<span>20 points</span>
+</div>
+<svg id="gpp-svg" viewBox="0 0 1120 270" width="1120" height="270"></svg>
+<div class="gpp-readout" id="gpp-readout"></div>
+</div>
+
+<script>
+(() => {
+  const svg = document.getElementById("gpp-svg");
+  if (!svg || svg.dataset.ready) return;
+  svg.dataset.ready = "1";
+  // 20 noisy samples of f(u) = sin(u) + log(u) - exp(-0.1 u^2), in the order the slider adds them.
+  // SF2, ELL and SN2 (signal variance, length scale, noise variance) were fitted once on all 20 and
+  // are held fixed; the prior mean is 0. Printed by figures/make_figures.py widgets.
+  const PTS = [[5.362305, 0.827682], [9.529405, 2.122272], [1.869516, 1.005766], [9.51217, 2.265846],
+    [3.462399, 0.353964], [4.521601, 0.208663], [8.363175, 2.978582], [4.387392, 0.342977],
+    [5.72114, 1.194727], [0.761812, -0.503707], [7.658375, 3.225677], [5.612361, 0.94928],
+    [3.632451, 0.513487], [7.990073, 3.271543], [3.380351, 0.72719], [4.80823, 0.542153],
+    [1.773396, 0.770884], [4.329573, 0.219616], [2.432825, 1.003403], [2.991977, 0.847365]];
+  const SF2 = 4.252574, ELL = 2.141069, SN2 = 0.012645;
+  const f = u => Math.sin(u) + Math.log(u) - Math.exp(-0.1 * u * u);
+  const kern = (a, b) => SF2 * Math.exp(-((a - b) ** 2) / (2 * ELL * ELL));
+  const chol = A => {
+    const n = A.length, L = A.map(() => Array(n).fill(0));
+    for (let i = 0; i < n; i++)
+      for (let j = 0; j <= i; j++) {
+        let s = A[i][j];
+        for (let k = 0; k < j; k++) s -= L[i][k] * L[j][k];
+        L[i][j] = i === j ? Math.sqrt(s) : s / L[j][j];
+      }
+    return L;
+  };
+  const lower = (L, b) => {
+    const z = b.slice();
+    for (let i = 0; i < z.length; i++) { for (let k = 0; k < i; k++) z[i] -= L[i][k] * z[k]; z[i] /= L[i][i]; }
+    return z;
+  };
+  const upper = (L, z) => {
+    const w = z.slice();
+    for (let i = w.length - 1; i >= 0; i--) { for (let k = i + 1; k < w.length; k++) w[i] -= L[k][i] * w[k]; w[i] /= L[i][i]; }
+    return w;
+  };
+  // the figure's grid, np.linspace(0.5, 10, 400); the readout's RMSE and average band are taken on it
+  const UU = Array.from({length: 400}, (_, i) => 0.5 + i * 9.5 / 399);
+  const TRUE = UU.map(f);
+  const posterior = n => {
+    if (n === 0) return {mu: UU.map(() => 0), sd: UU.map(() => Math.sqrt(SF2))};
+    const X = PTS.slice(0, n).map(p => p[0]);
+    const L = chol(X.map((a, i) => X.map((b, j) => kern(a, b) + (i === j ? SN2 : 0))));
+    const alpha = upper(L, lower(L, PTS.slice(0, n).map(p => p[1])));
+    const mu = [], sd = [];
+    UU.forEach(x => {
+      const k = X.map(a => kern(a, x));
+      mu.push(k.reduce((s, v, j) => s + v * alpha[j], 0));
+      const v = lower(L, k);
+      sd.push(Math.sqrt(Math.max(SF2 - v.reduce((s, t) => s + t * t, 0), 0)));
+    });
+    return {mu, sd};
+  };
+  const S = Array.from({length: PTS.length + 1}, (_, n) => {
+    const p = posterior(n);
+    p.rmse = Math.sqrt(p.mu.reduce((s, m, i) => s + (m - TRUE[i]) ** 2, 0) / UU.length);
+    p.half = 2 * p.sd.reduce((s, v) => s + v, 0) / UU.length;
+    return p;
+  });
+  const NS = "http://www.w3.org/2000/svg";
+  const el = (tag, attrs, text) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (text !== undefined) e.textContent = text;
+    return e;
+  };
+  const add = (tag, attrs, text) => svg.appendChild(el(tag, attrs, text));
+  const P = {x0: 72, x1: 850, y0: 10, y1: 212, xa: 0.5, xb: 10, ya: -4.4, yb: 4.4};
+  const sx = v => P.x0 + (v - P.xa) / (P.xb - P.xa) * (P.x1 - P.x0);
+  const sy = v => P.y1 - (v - P.ya) / (P.yb - P.ya) * (P.y1 - P.y0);
+  const line = pts => {
+    // keep a polyline's box inside its plot: cut each segment where it leaves the frame
+    const lo = P.y0 - 4, hi = P.y1 + 4, out = [];
+    pts.forEach(([x, y], i) => {
+      if (i > 0) {
+        const [xp, yp] = pts[i - 1];
+        [lo, hi].map(b => [(b - yp) / (y - yp), b]).filter(([t]) => t > 0 && t < 1).sort((a, b) => a[0] - b[0])
+          .forEach(([t, b]) => out.push([xp + t * (x - xp), b]));
+      }
+      out.push([x, Math.max(lo, Math.min(hi, y))]);
+    });
+    return out.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+  };
+  add("clipPath", {id: "gpp-clip"}).appendChild(el("rect", {x: P.x0, y: P.y0, width: P.x1 - P.x0, height: P.y1 - P.y0}));
+  add("rect", {x: P.x0, y: P.y0, width: P.x1 - P.x0, height: P.y1 - P.y0, fill: "none", stroke: "#bbb"});
+  [2, 4, 6, 8, 10].forEach(v => add("text", {x: sx(v), y: P.y1 + 22, "text-anchor": "middle", "font-size": 18, fill: "#5c5c5c"}, String(v)));
+  [-4, -2, 0, 2, 4].forEach(v => add("text", {x: P.x0 - 10, y: sy(v) + 6, "text-anchor": "end", "font-size": 18, fill: "#5c5c5c"}, String(v)));
+  add("text", {x: (P.x0 + P.x1) / 2, y: P.y1 + 48, "text-anchor": "middle", "font-size": 20, "font-style": "italic", fill: "#1a1a1a"}, "u");
+  add("text", {x: P.x0 - 48, y: (P.y0 + P.y1) / 2, "text-anchor": "middle", "font-size": 20, fill: "#1a1a1a",
+    transform: `rotate(-90 ${P.x0 - 48} ${(P.y0 + P.y1) / 2})`}, "f(u)");
+  const clip = {"clip-path": "url(#gpp-clip)"};
+  const band = add("polygon", {...clip, fill: "#c41230", "fill-opacity": 0.15, stroke: "none"});
+  add("polyline", {...clip, points: line(UU.map((x, i) => [sx(x), sy(TRUE[i])])), fill: "none",
+    stroke: "#8c8c8c", "stroke-width": 2.5, "stroke-dasharray": "8 6"});
+  const mean = add("polyline", {...clip, fill: "none", stroke: "#c41230", "stroke-width": 3});
+  const dots = PTS.map(([x, y]) => add("circle", {cx: sx(x), cy: sy(y), r: 6, fill: "#1a1a1a"}));
+  const ring = add("circle", {r: 12, fill: "none", stroke: "#c41230", "stroke-width": 3});
+  // the legend, beside the plot so it never covers the band
+  const LX = 884, LY = [34, 72, 110, 148, 186];
+  add("line", {x1: LX, x2: LX + 40, y1: LY[0], y2: LY[0], stroke: "#8c8c8c", "stroke-width": 2.5, "stroke-dasharray": "8 6"});
+  add("line", {x1: LX, x2: LX + 40, y1: LY[1], y2: LY[1], stroke: "#c41230", "stroke-width": 3});
+  add("rect", {x: LX, y: LY[2] - 11, width: 40, height: 22, fill: "#c41230", "fill-opacity": 0.15});
+  add("circle", {cx: LX + 20, cy: LY[3], r: 6, fill: "#1a1a1a"});
+  add("circle", {cx: LX + 20, cy: LY[4], r: 6, fill: "#1a1a1a"});
+  add("circle", {cx: LX + 20, cy: LY[4], r: 12, fill: "none", stroke: "#c41230", "stroke-width": 3});
+  ["True function", "Mean", "Mean ± 2 std", "Observations", "Newest point"].forEach((t, i) =>
+    add("text", {x: LX + 54, y: LY[i] + 6, "font-size": 19, fill: "#1a1a1a"}, t));
+  const slider = document.getElementById("gpp-n");
+  const btn = document.getElementById("gpp-play");
+  const readout = document.getElementById("gpp-readout");
+  // each change of n glides from the curve on screen to the new posterior, unless motion is reduced
+  const DUR = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 320;
+  let cur = S[+slider.value], from = cur, goal = cur, t0 = 0, raf = 0;
+  const paint = () => {
+    const mid = [], up = [], lo = [];
+    UU.forEach((x, i) => {
+      const cx = sx(x), m = cur.mu[i], d = 2 * cur.sd[i];
+      mid.push([cx, sy(m)]);
+      up.push([cx, sy(m + d)]);
+      lo.push([cx, sy(m - d)]);
+    });
+    mean.setAttribute("points", line(mid));
+    band.setAttribute("points", line(up) + " " + line(lo.reverse()));
+  };
+  const glide = t => {
+    const a = DUR ? Math.max(0, Math.min(1, (t - t0) / DUR)) : 1, e = a * (2 - a);
+    cur = a < 1 ? {mu: from.mu.map((v, i) => v + (goal.mu[i] - v) * e), sd: from.sd.map((v, i) => v + (goal.sd[i] - v) * e)} : goal;
+    paint();
+    if (a < 1) raf = requestAnimationFrame(glide);
+  };
+  const show = n => {
+    dots.forEach((d, i) => d.setAttribute("visibility", i < n ? "visible" : "hidden"));
+    ring.setAttribute("visibility", n ? "visible" : "hidden");
+    if (n) { ring.setAttribute("cx", sx(PTS[n - 1][0])); ring.setAttribute("cy", sy(PTS[n - 1][1])); }
+    const s = S[n];
+    readout.textContent = `${n ? n + (n === 1 ? " point" : " points") : "Prior, no points"}: RMSE of the mean against` +
+      ` the true function ${s.rmse.toFixed(3)}, band half-width ${s.half.toFixed(2)} on average`;
+    cancelAnimationFrame(raf);
+    from = cur;
+    goal = s;
+    t0 = performance.now();
+    raf = requestAnimationFrame(glide);
+  };
+  let playing = false, timer = 0;
+  const setPlaying = p => {
+    playing = p;
+    btn.textContent = p ? "Pause" : "Play";
+    clearInterval(timer);
+    if (p) timer = setInterval(advance, 900);
+  };
+  const advance = () => {
+    // pause once the slide is off screen: the presentation template changes slides with
+    // history.replaceState, which fires no hashchange, and hides the old one from checkVisibility
+    if (svg.checkVisibility && !svg.checkVisibility()) { setPlaying(false); return; }
+    const n = Math.min(PTS.length, +slider.value + 1);
+    slider.value = n;
+    show(n);
+    if (n >= PTS.length) setPlaying(false);
+  };
+  btn.addEventListener("click", () => {
+    if (playing) setPlaying(false);
+    else {
+      // from the end, Play starts over at the prior; otherwise it adds the next point at once
+      if (+slider.value >= PTS.length) { slider.value = 0; show(0); } else advance();
+      if (+slider.value < PTS.length) setPlaying(true);
+    }
+    // blur after the click: a focused button keeps the arrow keys from the deck
+    btn.blur();
+  });
+  slider.addEventListener("keydown", e => e.stopPropagation());
+  slider.addEventListener("input", () => { setPlaying(false); show(+slider.value); });
+  slider.addEventListener("change", () => slider.blur());
+  window.addEventListener("hashchange", () => setPlaying(false));
+  paint();
+  show(+slider.value);
+})();
+</script>
 
 Each new point pulls the mean toward it and **shrinks the band** near it; far from the data the band stays wide
 
 <!--
-The instructor's animation, as four panels: f(u) = sin(u) + log(u) - exp(-0.1 u^2). Prior: every
-function the kernel allows. Bayesian inference conditions on the data. The prediction is a
-weighted average of the observed outputs, and the variance is what the data have not pinned down.
+Play or the slider adds the points one at a time. At 0 it is the prior, every function the
+kernel allows: mean 0 and a band of plus or minus 4.12 (2 std) everywhere. Each point is a noisy
+sample of f(u) = sin(u) + log(u) - exp(-0.1 u^2); the newest has a red ring. The band pinches at
+each point and stays wide in the gaps: average half-width 4.12, then 2.22 after 2 points, 0.80
+after 5 and 0.16 after 20. The RMSE of the mean falls unevenly: near 0.45 from 7 to 9 points,
+then 0.083 at 10, when point 10 (u = 0.76) fills the gap at the left edge. The kernel (signal
+std 2.06, length scale 2.14, noise std 0.112) was fitted once on all 20 points and held fixed,
+so only the data change. Bayesian inference conditions on the data: the mean is a weighted
+average of the observed outputs, and the variance is what the data have not pinned down.
 -->
 
 ---
@@ -1295,11 +1896,11 @@ $\boldsymbol{\theta} = \log(\sigma_f^2, \ell, \sigma_n^2)$: a few kernel hyperpa
 
 <!--
 Checked in the scikit-learn source (1.6 and 1.9): GaussianProcessRegressor calls
-scipy.optimize.minimize(method="L-BFGS-B", bounds=kernel.bounds), where theta and the bounds are
-log-transformed, default (1e-5, 1e5) for the length scale, the constant (signal variance) and the
-white-noise level; alpha is added to the diagonal and not optimized; restarts are drawn
+scipy.optimize.minimize(method="L-BFGS-B", bounds=kernel.bounds). Theta and the bounds are
+log-transformed, default (1e-5, 1e5) for the length scale, the constant (signal variance) and
+the white-noise level. alpha goes on the diagonal and is not optimized. Restarts are drawn
 log-uniformly inside the bounds. MLPRegressor(solver="lbfgs") calls the same routine without
-bounds, and adam/sgd apply none. GPflow: L-BFGS-B on softplus-transformed parameters. GPyTorch:
+bounds; adam and sgd apply none. GPflow: L-BFGS-B on softplus-transformed parameters. GPyTorch:
 Adam on raw parameters with a softplus positivity constraint.
 -->
 
@@ -1343,9 +1944,9 @@ Adam on raw parameters with a softplus positivity constraint.
 $K$ is the kernel's similarity matrix, noise included. Minimizing the sum picks the **simplest kernel that still explains the data**: Occam's razor, built in.
 
 <!--
-Click through. The marginal likelihood averages over every function the GP prior allows, so a
-very flexible kernel spreads its probability over many possible datasets and gives little to the
-one you measured: that is the log-determinant term. The instructor's F25 slide: "GP estimation
+The labels and their arrows come in one at a time. The marginal likelihood averages over every function the GP
+prior allows, so a flexible kernel spreads its probability over many possible datasets and gives
+little to the one measured: that is the log-determinant term. My F25 slide: "GP estimation
 balances data fit and complexity of the predicted model: Occam's razor is automatic".
 -->
 
@@ -1515,10 +2116,11 @@ The surfactant data, with the signal and noise variances fixed at their fitted v
 </script>
 
 <!--
-Start short: the mean spikes through every point and falls back to the average between them;
-complexity penalty large. Drag right: the sum falls to its minimum near l = 0.31 (the fitted
-value on all 16 points; the 0.235 two slides back is in standardized units, on 12 points). Keep going: the curve cannot reach the peak, the misfit explodes. Short l:
-the function may change between neighboring points. Long l: smooth over the whole range.
+Short l: the mean spikes through every point and falls back to the average between them;
+complexity penalty large. The function may change between neighboring points. The sum reaches
+its minimum near l = 0.31 (the fitted value on all 16 points; the 0.235 two slides back is in
+standardized units, on 12 points). Long l: smooth over the whole range; the curve cannot reach
+the peak and the misfit explodes.
 -->
 
 ---
@@ -1549,8 +2151,8 @@ Start from the training problem, and keep adding terms:
 <span class="source"><a href="https://doi.org/10.1016/j.jcp.2018.10.045">Raissi, Perdikaris and Karniadakis (2019)</a></span>
 
 <!--
-Click four times. F is any residual you know must be zero: a balance, a rate law, an ODE
-evaluated at collocation points z_j. One sentence, then move on.
+Four bullets, one at a time. F is any residual known to be zero: a balance, a rate law, an ODE
+evaluated at collocation points z_j. One sentence is enough.
 -->
 
 ---
@@ -1671,7 +2273,7 @@ rmse = -scores.mean()
 | Neural network (16 tanh) | 5.96 | 4.20 | 0.87 |
 | Gaussian process | 5.81 | 3.96 | 0.88 |
 
-Physics features: log(age), and the water/cement ratio, since strength falls with it (<a href="http://www2.cement.org/pdf_files/ls001.pdf">Abrams 1918</a>).
+Physics features: log(age), and the water/cement ratio
 
 ---
 
@@ -1729,9 +2331,10 @@ model is asked about a mix it has already seen. Lecture 8's split by run, withou
 <span class="source"><a href="https://hastie.su.domains/ElemStatLearn/download.html">Hastie, Tibshirani and Friedman, section 7.3, eq. 7.9</a></span>
 
 <!--
-ESL eq. 7.9: Err(x0) = noise + Bias^2 + Var. Noise: no model removes it. Bias: the average model's distance from the truth. Variance: how
-much the model moves when the training set changes. A straight line on concrete is the high-bias
-end; a tree with no depth limit is the high-variance end.
+ESL eq. 7.9: Err(x0) = noise + Bias^2 + Var. Noise: no model removes it. Bias: the average
+model's distance from the truth. Variance: how much the model moves when the training set
+changes. A straight line on concrete is the high-bias end; a tree with no depth limit is the
+high-variance end.
 -->
 
 ---
@@ -1748,10 +2351,10 @@ end; a tree with no depth limit is the high-variance end.
 
 <!--
 Training error falls to 0.95 and never to zero: nine settings (same mix, same age) were crushed
-more than once with different results, one from 22.9 to 55.9 MPa at 7 days. That is the noise
-term, made visible. GroupKFold validation stops improving at depth 9 (9.10) and wobbles 9.2 to
-9.6. "Looking only at the train score can be misleading!" Random folds keep rewarding depth
-because they reward memorizing.
+more than once with different results, one from 22.9 to 55.9 MPa at 7 days. Those replicates are
+the noise term. GroupKFold validation stops improving at depth 9 (9.10) and wobbles 9.2 to 9.6.
+"Looking only at the train score can be misleading!" Random folds keep rewarding depth because
+they reward memorizing.
 -->
 
 ---
@@ -1789,16 +2392,16 @@ because they reward memorizing.
 | Validation still falling at the right edge | Limited by data | More training samples | |
 
 <!--
-Read two things off each panel. The gap between the curves is the variance: the line's closes to
-0.3 MPa as the training set grows, so it no longer overfits, and more samples can buy at most that
-0.3. The level where the curves meet is bias plus noise. "High" needs a reference: gradient-boosted
-trees on the same features and the same grouped folds reach 6.1 MPa, better than the line on all
-five folds, so about 1.4 MPa of the line's 7.4 on validation is bias that more capacity removes; the
-rest includes the replicate noise from the last slide. That is underfitting. The same closed gap at
+Each panel shows two things. The gap between the curves is the variance: the line's closes to
+0.3 MPa as the training set grows, so it no longer overfits, and more samples can buy at most 0.3.
+The level where the curves meet is bias plus noise. "High" needs a reference: gradient-boosted
+trees on the same features and grouped folds reach 6.1 MPa, better than the line on all five
+folds. So about 1.4 MPa of the line's 7.4 on validation is bias that more capacity removes; the
+rest includes the replicate noise from the last slide. The line underfits. The same closed gap at
 a level nothing beats would be a good fit: stop and test once.
 The tree: 0.95 on its training samples, 9.4 on validation, a gap of 8.5: overfitting. Its
-validation curve is flat from about 400 samples on, so more samples of the same kind are not
-closing the gap, which is why the "limited by data" row has no example here.
+validation curve is flat from about 400 samples on, so more samples of the same kind do not close
+the gap; hence no example here for the "limited by data" row.
 The curves average ten random orderings of the training rows. learning_curve does not shuffle by
 default, and in file order the tree's curve showed a false late drop.
 -->
@@ -1858,9 +2461,9 @@ Run it after class, top to bottom. The first run downloads the data; the cross-v
 <a href="../../lectures/l09/l09-regression.html">Open the worked example</a>
 
 <!--
-Not run in class: the 20 minutes after the deck are for questions. Point at the notebook and say
-what it is for: the concrete workflow and the NARX forecasts from today's slides, one step per
-cell, on the real data. The first run downloads the concrete file (125 kB) and the fault-free TEP file (25 MB).
+Not run in class; the 20 minutes after the deck are for questions. The notebook: the concrete
+workflow and the NARX forecasts from today's slides, one step per cell, on the real data. The
+first run downloads the concrete file (125 kB) and the fault-free TEP file (25 MB).
 -->
 
 ---
@@ -1890,10 +2493,10 @@ p.recap-close { font-size: 0.8em; margin-top: 0.7em; text-align: center; }
 <p class="recap-close"><b>Start simple, and put what you know into the features:</b> a line with two physics features came within 0.3 MPa of a Gaussian process on grouped folds.</p>
 
 <!--
-Go round the four questions; each card's picture is the slide where the class saw the answer.
-They work for any model the students fit this semester, which is the reason to end on questions
-rather than a list. The habits under them: lock the test set and touch it once, scale the inputs
-and the target, set random_state.
+Each card's picture is the slide where the class saw the answer. The four questions hold for any
+model the students fit this semester, so the deck ends on them instead of a list. The habits
+under them: lock the test set and touch it once, scale the inputs and the target, set
+random_state.
 -->
 
 ---
