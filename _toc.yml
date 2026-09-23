@@ -96,10 +96,11 @@ parts:
 
 # Projects: hidden until their lecture. tools/release_lecture.py uncomments the
 # part header and the miniproject at Lecture 9, and the final project
-# ahead of the proposal deadline; see LECTURE_PROJECTS there.
-  - caption: Projects
-    chapters:
-      - file: course/miniproject
+# ahead of the proposal deadline; see LECTURE_PROJECTS there. The miniproject was
+# unpublished again on 09-23, until its structure is settled.
+#   - caption: Projects
+#     chapters:
+#       - file: course/miniproject
 #       - file: course/final-project
 
 # Optional material: hidden for now, to be reviewed and released later. The

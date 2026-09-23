@@ -9,7 +9,6 @@
 - **Practice** <a href="../../game/#/l09">Practice module for this session</a>
 - **Worked example** [`l09-regression.ipynb`](l09-regression.ipynb), to run after class: four model families on concrete strength, and NARX forecasts of reactor pressure
 - **Tools** scikit-learn for the models, the splits and the metrics
-- **Miniproject** released today, due Friday 10-09
 :::
 
 ## Why this matters
@@ -172,7 +171,7 @@ compared on it, and it carries the diagnostics of model capacity.
 ### The Tennessee Eastman process
 
 The simulated chemical plant of [Lecture 5](../l05/notes.md) and Lecture 8 ([Downs and Vogel,
-1993](https://doi.org/10.1016/0098-1354(93)80018-I)), in the miniproject's two data files from
+1993](https://doi.org/10.1016/0098-1354(93)80018-I)), in the two data files from
 [Rieth et al. (2017)](https://doi.org/10.7910/DVN/6C3JR1): fault-free runs, and faulty runs for
 faults 1 to 20, with 52 channels (41 measurements and 11 valve positions) sampled every three
 minutes. Its rows are three-minute samples of a plant, so, unlike the other three datasets, their order matters
@@ -183,7 +182,7 @@ and they are split by run, as in Lecture 8. Today it supplies Lecture 8's foreca
 :width: 100%
 
 Reactor pressure in a fault-free run and in a run of fault 1 (a step in the A/C feed ratio),
-from the miniproject's training files. The fault starts one hour in, as it does in every faulty
+from the training files. The fault starts one hour in, as it does in every faulty
 training run of Rieth et al. (2017).
 ```
 
@@ -231,8 +230,8 @@ B, etc.). **Regression** predicts continuous values (temperature, pressure, flow
 
 Most of the problems in chemical engineering will fall into the supervised learning/regression
 category. However, in process control, applications of reinforcement learning and
-classification (fault diagnosis, for example) are also common. The miniproject released today
-is the unsupervised case: detecting faults in a plant when nobody has labeled any faults.
+classification (fault diagnosis, for example) are also common. Detecting faults in a plant when
+nobody has labeled any faults is the unsupervised case.
 
 ### Some terminology
 
@@ -1794,7 +1793,7 @@ without fooling yourself with the winner's score? This session leaves that quest
 The notebook [`l09-regression.ipynb`](l09-regression.ipynb) is a worked example, and it is not run
 in class. Run it yourself after the session, top to bottom: it walks through the concrete workflow and
 the NARX forecasts from the slides, one step per cell, on the real data. It downloads the concrete data from UCI
-(125 kB) and the miniproject's fault-free Tennessee Eastman file (25 MB) on its first run, and the
+(125 kB) and the fault-free Tennessee Eastman file (25 MB) on its first run, and the
 cross-validation cell takes a minute or two. It follows the concrete sections of these notes
 first, then Lecture 8's NARX table:
 
@@ -1883,8 +1882,7 @@ underfitting and overfitting call for opposite actions.
 
 ## Assignment
 
-No assignment is released today. The [miniproject](../../course/miniproject.md) is released
-today and is due Friday 10-09.
+No assignment is released today.
 
 ## Practice module
 

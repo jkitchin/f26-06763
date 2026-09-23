@@ -1,8 +1,7 @@
 # L09 item bank, written against the rebuilt lectures/l09/notes.md (2026-09-22). Its four
 # classification items moved to game/content/l10.yml with the classification material. The
 # numbers come from lectures/l09/figures/make_figures.py. Faults 3, 9 and 15 of the
-# Tennessee Eastman plant never appear here: the miniproject checks that students find
-# them on their own.
+# Tennessee Eastman plant never appear here.
 
 schema: 1
 lecture: l09
