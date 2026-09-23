@@ -172,10 +172,10 @@ for what every family does outside its data.
 </div>
 <div>
 
-- **Surfactant**: a soap-like molecule; with salt, many join into long, tangled worms
+- **Surfactant**: a soap-like molecule; with salt, many join into long, tangled wormslike structres
 - **Zero-shear viscosity**: how thick the liquid is at rest, in the bottle or your hand
-- Salt is the knob: a little thickens shampoo, too much makes it runny again
-- In our data, viscosity climbs **about 400-fold** with salt, then falls
+- Salt is the "knob": a little thickens shampoo, too much makes it runny again
+- In this data, viscosity climbs **about 400-fold** with salt, then falls
 - 16 experiments: our **Gaussian process** case study
 
 </div>
@@ -490,7 +490,7 @@ The labels and their arrows come in one at a time.
 
 </div>
 
-No constraints: the parameters are free. Most training problems are unconstrained; the Gaussian process will add bounds.
+No constraints: the parameters are free. Most training problems ('classic ML') are unconstrained. Gaussian processes will have bounds.
 
 <!--
 The labels and their arrows come in one at a time. Same shape as the previous slide, now with the model's
