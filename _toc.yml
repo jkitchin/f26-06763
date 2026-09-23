@@ -40,9 +40,9 @@ parts:
       - file: lectures/l08/notes
         sections:
           - file: lectures/l08/l08-forecasting
-#       - file: lectures/l09/notes
-#         sections:
-#           - file: lectures/l09/l09-model-selection
+      - file: lectures/l09/notes
+        sections:
+          - file: lectures/l09/l09-model-selection
 #       - file: lectures/l10/notes
 #         sections:
 #           - file: lectures/l10/l10-tracking-search
@@ -86,7 +86,7 @@ parts:
       - file: course/assignments/a02
       - file: course/assignments/a03
       - file: course/assignments/a04
-#       - file: course/assignments/a05
+      - file: course/assignments/a05
 #       - file: course/assignments/a06
 #       - file: course/assignments/a08
 #       - file: course/assignments/a09
@@ -96,9 +96,9 @@ parts:
 # Projects: hidden until their lecture. tools/release_lecture.py uncomments the
 # part header and the miniproject at Lecture 9, and the final project
 # ahead of the proposal deadline; see LECTURE_PROJECTS there.
-#   - caption: Projects
-#     chapters:
-#       - file: course/miniproject
+  - caption: Projects
+    chapters:
+      - file: course/miniproject
 #       - file: course/final-project
 
 # Optional material: hidden for now, to be reviewed and released later. The

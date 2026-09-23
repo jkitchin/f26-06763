@@ -179,13 +179,13 @@
       "id": "l09",
       "date": "2026-09-23",
       "title": "The machine learning (ML) workflow II: Regression, classification",
-      "written": false,
+      "written": true,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
       "region": 2,
       "x": 8,
       "y": 1,
-      "notes": null
+      "notes": "../lectures/l09/notes.html"
     },
     {
       "session": "L10",
