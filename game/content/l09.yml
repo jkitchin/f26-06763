@@ -11,9 +11,11 @@ source_notes: lectures/l09/notes.md
 # Published with the L9 release (09-23).
 # Versions 1 to 3 were the pre-semester draft (power plant, airfoil, SECOM). No student
 # was ever served them, since the bank was never published; the rewrite is version 4.
+# Version 5 (09-23) keeps only click-to-answer items: the five that asked for a typed
+# prediction first (q04, q05, q11, q15, q21) are gone.
 status: published
-serve: 9
-pool_version: 4
+serve: 6
+pool_version: 5
 provenance:
   drafted_by: hand
   reviewed_by: none
@@ -102,68 +104,7 @@ items:
     verify: {mode: quote, needle: "the test set has become validation data", volatility: stable}
     tags: [test-once, workflow]
 
-  - id: l09-q04
-    kind: predict_measure
-    rung: 3
-    difficulty: 3
-    objectives: [l09-o2]
-    prompt: |
-      A GP on concrete scores 7.17 MPa RMSE under grouped cross-validation. It is then
-      fitted on all 835 training rows and scored once on 86 held-out mixes.
-
-      Before you look: what does the test score look like?
-    predict:
-      ask: "Higher, lower, or about the same as 7.17 MPa? Commit first."
-      common_prior: "About the same, since it is the same model on similar data."
-    options:
-      - "Lower, 5.39 MPa, and other random draws of the test mixes span 5.45 to 7.42 MPa"
-      - "Within 0.1 MPa of 7.17, because the model and the data are the same"
-      - "Much higher, because none of the test mixes was ever seen in training"
-      - "Undefined, because the GP needs the test targets to fit its kernel"
-    answer: "Lower, 5.39 MPa, and other random draws of the test mixes span 5.45 to 7.42 MPa"
-    evidence: |
-      A test set of a couple of hundred rows is one random draw, and its score moves
-      by a megapascal or two from draw to draw. The single test number carries its own
-      uncertainty; reporting it once does not make it exact.
-    source:
-      file: lectures/l09/notes.md
-      heading: "Choosing, then testing once"
-      quote: "86 mixes are one draw, and across ten other random draws of the test mixes the same GP scores between 5.45 and 7.42 MPa."
-    verify: {mode: quote, needle: "between 5.45 and 7.42 MPa", volatility: measured}
-    tags: [test-once, uncertainty]
-
   # --- model families ------------------------------------------------------------
-
-  - id: l09-q05
-    kind: predict_measure
-    rung: 2
-    difficulty: 2
-    objectives: [l09-o3]
-    prompt: |
-      A third-degree polynomial in temperature is fitted to 16 of the 21 NIST points
-      for water at 1000 kg/m3 between 0 and 100 C. Its training R-squared is 0.9999975.
-      NIST gives 517.7 MPa at 300 C.
-
-      Before you look: what does the polynomial predict at 300 C?
-    predict:
-      ask: "Close to 517.7, or not? Commit first."
-      common_prior: "Close to NIST, because the fit is essentially perfect."
-    options:
-      - "223 MPa: the polynomial has no physics in it, so it cannot extrapolate"
-      - "About 518 MPa, because an R-squared that close to 1 means the curve is right"
-      - "About 101 MPa, the value at the last training point, repeated"
-      - "Nothing: scikit-learn refuses to predict outside the training range"
-    answer: "223 MPa: the polynomial has no physics in it, so it cannot extrapolate"
-    evidence: |
-      The score only measures the model where the data is. Outside 0 to 100 C the
-      polynomial bends over, because nothing in it knows about water. Holding the last value
-      is what a decision tree does, not a polynomial.
-    source:
-      file: lectures/l09/notes.md
-      heading: "Linear regression and feature engineering"
-      quote: "and at 300 °C it predicts 223 MPa, where NIST gives 517.7."
-    verify: {mode: quote, needle: "it predicts 223 MPa", volatility: measured}
-    tags: [extrapolation, linear, feature-engineering]
 
   - id: l09-q06
     kind: mcq
@@ -218,37 +159,6 @@ items:
     tags: [gaussian-process, extrapolation, uncertainty]
 
   # --- cross-validation -----------------------------------------------------------
-
-  - id: l09-q11
-    kind: predict_measure
-    rung: 3
-    difficulty: 3
-    objectives: [l09-o5]
-    prompt: |
-      On concrete, a tree with no depth limit scores 6.92 MPa under a random KFold,
-      and a straight line with log(age) and the water/cement ratio scores 7.25. The
-      folds are then rebuilt so each mix sits in one fold only (GroupKFold).
-
-      Before you look: what happens to the ranking?
-    predict:
-      ask: "Does the tree stay ahead? Commit first."
-      common_prior: "The tree stays ahead; both models should lose about the same."
-    options:
-      - "The tree loses to the straight line by 2 MPa; the line barely moves"
-      - "Both get worse by the same amount, so the tree stays ahead"
-      - "Both improve, because whole mixes make cleaner folds"
-      - "The line gets much worse and the tree barely moves"
-    answer: "The tree loses to the straight line by 2 MPa; the line barely moves"
-    evidence: |
-      Random folds put the 28-day row of a mix in training and the 56-day row in
-      validation, and a deep tree memorizes the mix. A straight line cannot memorize
-      one, so it barely moves (7.25 to 7.43) while the tree goes to 9.42.
-    source:
-      file: lectures/l09/notes.md
-      heading: "Grouped rows: GroupKFold"
-      quote: "Under random folds the tree beats the engineered straight line; under folds of whole mixes it loses to it by 2 MPa"
-    verify: {mode: quote, needle: "it loses to it by 2 MPa", volatility: measured}
-    tags: [groupkfold, leakage, ranking]
 
   - id: l09-q13
     kind: mcq
@@ -307,37 +217,6 @@ items:
       quote: "So a GP's training is a small non-convex problem with few variables (the concrete GP has ten: a length scale for each of the eight inputs, a signal variance and a noise level)"
     verify: {mode: quote, needle: "a small non-convex problem with few variables", volatility: stable}
     tags: [gaussian-process, optimization, marginal-likelihood]
-
-  - id: l09-q15
-    kind: predict_measure
-    rung: 3
-    difficulty: 3
-    objectives: [l09-o4]
-    prompt: |
-      The same three-unit tanh network is trained ten times on the same data with L-BFGS,
-      changing only `random_state`, which sets the starting weights.
-
-      Before you look: what happens to the final training error?
-    predict:
-      ask: "Same answer ten times, or not? Commit first."
-      common_prior: "The same every time, since the data and the model are the same."
-    options:
-      - "It varies by a factor of 1.48, because the loss is non-convex and each start can stop in a different local minimum"
-      - "It is identical every time, because L-BFGS always finds the global minimum of a smooth loss"
-      - "It varies at random by a few percent, because L-BFGS adds noise to every gradient step"
-      - "It varies only when the network has more hidden units than there are training points"
-    answer: "It varies by a factor of 1.48, because the loss is non-convex and each start can stop in a different local minimum"
-    evidence: |
-      A least squares problem has one minimum and any start reaches it. A network's loss
-      has many, and L-BFGS stops at whichever one the starting weights lead to: six starts
-      ended near SSE 0.080 and four at 0.107 to 0.118. That is why every network is given
-      a random_state.
-    source:
-      file: lectures/l09/notes.md
-      heading: "Neural networks"
-      quote: "The final training error ranges from 0.0796 to 0.1177, a factor of 1.48, and the test $R^2$ from 0.920 to 0.950."
-    verify: {mode: quote, needle: "a factor of 1.48", volatility: measured}
-    tags: [neural-network, optimization, non-convex]
 
   - id: l09-q16
     kind: spot_the_defect
@@ -483,40 +362,6 @@ items:
       quote: "They are free: scikit-learn's `lbfgs` solver calls SciPy's L-BFGS-B routine with no bounds at all, which makes it plain L-BFGS, and Adam and SGD apply none either. A Gaussian process has no weights. Its decision variables are the handful of kernel hyperparameters, and in scikit-learn the bounds are real constraints"
     verify: {mode: quote, needle: "with no bounds at all", volatility: stable}
     tags: [gaussian-process, neural-network, optimization, bounds]
-
-  - id: l09-q21
-    kind: predict_measure
-    rung: 1
-    difficulty: 2
-    objectives: [l09-o3]
-    prompt: |
-      A Gaussian process, with its kernel held fixed, learns
-      f(u) = sin u + log u - exp(-0.1 u^2) on 0.5 to 10 from 2, then 5, then 20 noisy
-      observations.
-
-      Before you look: what happens to its band of plus or minus two standard deviations
-      as the points arrive?
-    predict:
-      ask: "Does the band shrink evenly, or not? Commit first."
-      common_prior: "It narrows by the same amount everywhere, since every point adds information."
-    options:
-      - "It pinches near each new point and stays wide where there are no points yet"
-      - "It narrows by the same amount everywhere, however far a new point is from the rest"
-      - "It keeps the same width throughout, because a fixed kernel fixes the uncertainty"
-      - "It widens near each new point, because every noisy observation adds uncertainty"
-    answer: "It pinches near each new point and stays wide where there are no points yet"
-    evidence: |
-      The prior allows every function the kernel permits, so the band starts wide
-      everywhere. Each observation pulls the mean toward it and shrinks the band near it;
-      far from every observation the uncertainty stays wide. After 20 points spread over
-      the range the band is narrow everywhere, which is also why a GP's band grows again
-      outside the data.
-    source:
-      file: lectures/l09/notes.md
-      heading: "Gaussian processes"
-      quote: "The posterior is again a Gaussian process, and each new observation pulls its mean toward the data and shrinks its uncertainty near that point, while far from the data the uncertainty stays wide."
-    verify: {mode: quote, needle: "shrinks its uncertainty near that point", volatility: stable}
-    tags: [gaussian-process, uncertainty, posterior]
 
   - id: l09-q22
     kind: mcq
