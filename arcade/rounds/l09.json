@@ -172,8 +172,8 @@
       "id": "l09-q13",
       "kind": "mcq",
       "lecture": "l09",
-      "context": "A learning curve for a linear model ends with training RMSE 7.16 MPa and\nvalidation RMSE 7.43 MPa, and the two curves have met. On the same folds, a model\nwith more capacity reaches 6.06 MPa. What is the diagnosis?",
-      "why": "The gap between the curves is the variance, and it has closed, so more samples\nwill not move either curve. The level where they meet is the bias, and a model with\nmore capacity does 1.4 MPa better on the same folds, so the line is too simple for\nthe relationship. Curves that meet are a good fit only when nothing beats their level.",
+      "context": "A learning curve for a linear model ends with training RMSE 7.16 MPa and\nvalidation RMSE 7.43 MPa, and the two curves have met. On the same folds, a model\nwith more capacity reaches a validation RMSE of 6.06 MPa. What is the diagnosis?",
+      "why": "The gap between the curves is the variance, and it has closed to 0.3 MPa, so more\nsamples can buy at most that much. Even then, validation would sit near 7.2 MPa,\nwhile a model with more capacity already reaches 6.06 on the same folds. The level\nwhere the curves meet is the bias, so the line is too simple for the relationship.\nCurves that meet are a good fit only when no other model does clearly better.",
       "objectives": [
         "l09-o5"
       ],

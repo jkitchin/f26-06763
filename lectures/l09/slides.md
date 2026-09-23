@@ -108,7 +108,7 @@ Lecture 8: a time series, where **order in time** decided everything. Today: mos
 3. **Regression**: linear, trees, neural networks, Gaussian processes, NARX
 4. **Cross-validation** and **model capacity**
 5. **Limitations**, and one question left open
-6. The notebook
+6. The **worked example**, to run after class
 
 </div>
 <div>
@@ -869,11 +869,11 @@ A **neural network** is layers of: multiply by **weights**, add **biases**, appl
 <div class="nn-ann">
 
 <svg class="nn-svg" viewBox="0 0 620 390" width="620" height="390">
-<circle class="lit lit1" cx="290" cy="70" r="35" fill="none" stroke="#1f5c99" stroke-width="7" stroke-opacity="0.32"/>
-<circle class="lit lit2" cx="290" cy="165" r="35" fill="none" stroke="#b07d12" stroke-width="7" stroke-opacity="0.32"/>
-<circle class="lit lit3" cx="290" cy="260" r="35" fill="none" stroke="#2e7d32" stroke-width="7" stroke-opacity="0.32"/>
+<circle class="lit lit1" cx="290" cy="70" r="33" fill="none" stroke="#1f5c99" stroke-width="4" stroke-opacity="0.45"/>
+<circle class="lit lit2" cx="290" cy="165" r="33" fill="none" stroke="#b07d12" stroke-width="4" stroke-opacity="0.45"/>
+<circle class="lit lit3" cx="290" cy="260" r="33" fill="none" stroke="#2e7d32" stroke-width="4" stroke-opacity="0.45"/>
 <rect class="lit lit4" x="500" y="199" width="60" height="28" rx="8" fill="#c41230" fill-opacity="0.16"/>
-<circle class="lit lit5" cx="530" cy="165" r="35" fill="none" stroke="#c41230" stroke-width="7" stroke-opacity="0.32"/>
+<circle class="lit lit5" cx="530" cy="165" r="33" fill="none" stroke="#c41230" stroke-width="4" stroke-opacity="0.45"/>
 <line x1="90" y1="165" x2="260" y2="70" stroke="#9a9a9a" stroke-width="2"/>
 <line x1="320" y1="70" x2="500" y2="165" stroke="#1f5c99" stroke-width="3.2"/>
 <line x1="90" y1="165" x2="260" y2="165" stroke="#9a9a9a" stroke-width="2"/>
@@ -894,16 +894,16 @@ A **neural network** is layers of: multiply by **weights**, add **biases**, appl
 <g font-family="'Times New Roman', Times, serif" fill="#1a1a1a">
 <text x="60" y="175" text-anchor="middle" font-size="30" font-style="italic">x</text>
 <text x="530" y="175" text-anchor="middle" font-size="30" font-style="italic">y</text>
-<text x="163" y="110" text-anchor="middle" font-size="24"><tspan font-style="italic">w</tspan><tspan font-size="14" dy="6">00</tspan></text>
-<text x="392" y="99" text-anchor="middle" font-size="24"><tspan font-style="italic">w</tspan><tspan font-size="14" dy="6">10</tspan></text>
-<text x="290" y="125" text-anchor="middle" font-size="21" fill="#5c5c5c">+<tspan font-style="italic">b</tspan><tspan font-size="13" dy="6">00</tspan></text>
-<text x="170" y="156" text-anchor="middle" font-size="24"><tspan font-style="italic">w</tspan><tspan font-size="14" dy="6">01</tspan></text>
-<text x="410" y="156" text-anchor="middle" font-size="24"><tspan font-style="italic">w</tspan><tspan font-size="14" dy="6">11</tspan></text>
-<text x="290" y="220" text-anchor="middle" font-size="21" fill="#5c5c5c">+<tspan font-style="italic">b</tspan><tspan font-size="13" dy="6">01</tspan></text>
-<text x="185" y="206" text-anchor="middle" font-size="24"><tspan font-style="italic">w</tspan><tspan font-size="14" dy="6">02</tspan></text>
-<text x="420" y="187" text-anchor="middle" font-size="24"><tspan font-style="italic">w</tspan><tspan font-size="14" dy="6">12</tspan></text>
-<text x="290" y="315" text-anchor="middle" font-size="21" fill="#5c5c5c">+<tspan font-style="italic">b</tspan><tspan font-size="13" dy="6">02</tspan></text>
-<text x="530" y="219" text-anchor="middle" font-size="21" fill="#5c5c5c">+<tspan font-style="italic">b</tspan><tspan font-size="13" dy="6">1</tspan></text>
+<text x="163" y="110" text-anchor="middle" font-size="24" fill="#1f5c99"><tspan font-style="italic">w</tspan><tspan font-size="14" dy="6">00</tspan></text>
+<text x="392" y="99" text-anchor="middle" font-size="24" fill="#1f5c99"><tspan font-style="italic">w</tspan><tspan font-size="14" dy="6">10</tspan></text>
+<text x="290" y="122" text-anchor="middle" font-size="21" fill="#1f5c99">+<tspan font-style="italic">b</tspan><tspan font-size="13" dy="6">00</tspan></text>
+<text x="170" y="156" text-anchor="middle" font-size="24" fill="#b07d12"><tspan font-style="italic">w</tspan><tspan font-size="14" dy="6">01</tspan></text>
+<text x="410" y="156" text-anchor="middle" font-size="24" fill="#b07d12"><tspan font-style="italic">w</tspan><tspan font-size="14" dy="6">11</tspan></text>
+<text x="290" y="217" text-anchor="middle" font-size="21" fill="#b07d12">+<tspan font-style="italic">b</tspan><tspan font-size="13" dy="6">01</tspan></text>
+<text x="185" y="206" text-anchor="middle" font-size="24" fill="#2e7d32"><tspan font-style="italic">w</tspan><tspan font-size="14" dy="6">02</tspan></text>
+<text x="420" y="187" text-anchor="middle" font-size="24" fill="#2e7d32"><tspan font-style="italic">w</tspan><tspan font-size="14" dy="6">12</tspan></text>
+<text x="290" y="312" text-anchor="middle" font-size="21" fill="#2e7d32">+<tspan font-style="italic">b</tspan><tspan font-size="13" dy="6">02</tspan></text>
+<text x="530" y="219" text-anchor="middle" font-size="21" fill="#c41230">+<tspan font-style="italic">b</tspan><tspan font-size="13" dy="6">1</tspan></text>
 </g>
 </svg>
 
@@ -1151,8 +1151,8 @@ $\min_{W,b} \sum_i \big(y_i - f(x_i;W,b)\big)^2$: non-convex, local minima, sens
 Ten starts: training sum of squared errors (SSE) **0.0796 to 0.1177**, test $R^2$ 0.920 to 0.950. Always set `random_state`.
 
 <!--
-Gradients by backpropagation. The concrete network's warning in the demo means the optimizer ran
-out of iterations (5,000) before it declared convergence.
+Gradients by backpropagation. The worked example silences a ConvergenceWarning from the concrete
+network: the optimizer ran out of iterations (5,000) before it declared convergence.
 -->
 
 ---
@@ -1764,19 +1764,19 @@ because they reward memorizing.
 
 </div>
 
-<style scoped>table { font-size: 0.56em; } table th, table td { padding: 5px 12px; } .cols-lc { grid-template-columns: 1.45fr 1fr; font-size: 0.74em; } .cols-lc p:has(> img:only-child) { margin: 0; } .cols-lc ul { margin: 0; }</style>
+<style scoped>table { font-size: 0.6em; } table th, table td { padding: 4px 12px; } .cols-lc { grid-template-columns: 1.45fr 1fr; font-size: 0.74em; } .cols-lc p:has(> img:only-child) { margin: 0; } .cols-lc ul { margin: 0; }</style>
 
 <div class="cols cols-lc">
 <div>
 
-![h:230](figures/concrete-learning.png)
+![h:250](figures/concrete-learning.png)
 
 </div>
 <div>
 
-- **Gap** is variance: the line's closes to 0.3 MPa, which is good news
-- **Level** is bias: the line meets at 7.2 MPa, and a more flexible model reaches 6.1
-- **The tree**: a gap of 8.5, still falling
+- **Gap** is variance: the line's gap closes to 0.3 MPa, so it no longer overfits
+- **Level** is bias plus noise: the line's validation ends at 7.4 MPa, more capacity reaches 6.1, so it underfits
+- **The tree**: a gap of 8.5 MPa that more samples are not closing, so it overfits
 
 </div>
 </div>
@@ -1786,18 +1786,21 @@ because they reward memorizing.
 | Gap closed, error still high | Underfitting (high bias) | More capacity, better features | The line (left) |
 | Gap closed, error low | A good fit | Stop, and test once | |
 | Big gap: training low, validation much higher | Overfitting (high variance) | Less capacity, regularization | The tree (right) |
-| Validation still falling at the right edge | Limited by data | More training samples | The tree (right) |
+| Validation still falling at the right edge | Limited by data | More training samples | |
 
 <!--
 Read two things off each panel. The gap between the curves is the variance: the line's closes to
-0.3 MPa as the training set grows, so it no longer overfits, and more samples will not move it.
-The level where the curves meet is the bias. "High" needs a reference: gradient-boosted trees on
-the same features and the same grouped folds reach 6.1 MPa, better than the line on all five
-folds, so the line's 7.2 is error it could lose. That is underfitting. The same closed gap at a low
-level would be a good fit: stop and test once.
-The tree: 0.95 on its training samples, 9.42 on validation, a gap of 8.5: overfitting. Its
-validation curve is still falling at the right edge, so more training samples would still help.
-The two diagnoses call for opposite actions.
+0.3 MPa as the training set grows, so it no longer overfits, and more samples can buy at most that
+0.3. The level where the curves meet is bias plus noise. "High" needs a reference: gradient-boosted
+trees on the same features and the same grouped folds reach 6.1 MPa, better than the line on all
+five folds, so about 1.4 MPa of the line's 7.4 on validation is bias that more capacity removes; the
+rest includes the replicate noise from the last slide. That is underfitting. The same closed gap at
+a level nothing beats would be a good fit: stop and test once.
+The tree: 0.95 on its training samples, 9.4 on validation, a gap of 8.5: overfitting. Its
+validation curve is flat from about 400 samples on, so more samples of the same kind are not
+closing the gap, which is why the "limited by data" row has no example here.
+The curves average ten random orderings of the training rows. learning_curve does not shuffle by
+default, and in file order the tree's curve showed a false late drop.
 -->
 
 ---
@@ -1868,7 +1871,7 @@ cell, on the real data. The first run downloads the concrete file (125 kB) and t
 .cards-recap { grid-template-columns: repeat(4, 1fr); }
 .cards-recap .card { font-size: 0.62em; }
 .cards-recap .card img { height: 118px; width: 100%; object-fit: contain; background: #fff; border-radius: 4px; }
-.cards-recap .card h4 { font-size: 1.3em; margin: 6px 0 4px; }
+.cards-recap .card h4 { font-size: 1.3em; margin: 6px 0 4px; min-height: 2.5em; }
 .cards-recap .card p { margin: 0 0 6px; }
 .cards-recap .card p.ev { color: #5c5c5c; }
 p.recap-lead { margin: 0 0 0.2em; }
@@ -1879,12 +1882,12 @@ p.recap-close { font-size: 0.8em; margin-top: 0.7em; text-align: center; }
 
 <div class="cards cards-recap">
 <div class="card"><img src="figures/water-hook.png"><h4>What does it know?</h4><p><b>Only its data.</b></p><p class="ev">The polynomial scored R<sup>2</sup> = 0.9999975 on the water data, and gave 223 MPa at 300 &deg;C, where NIST gives 517.7.</p></div>
-<div class="card"><img src="figures/opt-paths.png"><h4>What did training solve?</h4><p><b>An optimization problem, and the family picks it.</b></p><p class="ev">One minimum for a line, many for a network, a few bounded hyperparameters for a GP.</p></div>
+<div class="card"><img src="figures/opt-paths.png"><h4>What did training solve?</h4><p><b>An optimization problem, and the family picks it.</b></p><p class="ev">A line has one minimum and a network many; a GP tunes a few bounded hyperparameters.</p></div>
 <div class="card"><img src="figures/concrete-cv.png"><h4>What did the score measure?</h4><p><b>The question your split asked.</b></p><p class="ev">The tree beat the line on random folds and lost to it by 2 MPa on grouped folds.</p></div>
-<div class="card"><img src="figures/concrete-learning.png"><h4>What is holding it back?</h4><p><b>The learning curves tell you.</b></p><p class="ev">A gap is variance, a high level is bias, and they call for opposite fixes.</p></div>
+<div class="card"><img src="figures/concrete-learning.png"><h4>What is holding it back?</h4><p><b>A gap is variance, a high level is bias.</b></p><p class="ev">The tree kept a gap of 8.5&nbsp;MPa. The line closed its gap but ended 1.4&nbsp;MPa above a model with more capacity.</p></div>
 </div>
 
-<p class="recap-close"><b>Start simple, and put what you know into the features:</b> a line with two physics features came within 0.3 MPa of a Gaussian process.</p>
+<p class="recap-close"><b>Start simple, and put what you know into the features:</b> a line with two physics features came within 0.3 MPa of a Gaussian process on grouped folds.</p>
 
 <!--
 Go round the four questions; each card's picture is the slide where the class saw the answer.

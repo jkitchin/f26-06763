@@ -1611,12 +1611,13 @@ training samples, with the model held fixed.
 It answers a question that no single score can: would more data help?
 
 ```{figure} figures/concrete-learning.png
-:alt: Two panels of RMSE in MPa against the number of training samples, from 66 to 668. Left, linear regression with physics features: the black training curve stays near 7.2 to 7.7 and the red validation curve falls from 15.6 to 7.4, meeting it, with a bracket at the right edge labeled gap 0.3 and a dotted horizontal line at 6.1 labeled a more flexible model. Right, decision tree with no depth limit: the training curve stays near 1 and the validation curve falls from about 15.8 to 9.4, with an arrow labeled still falling on its last drop and a double arrow at the right edge labeled gap 8.5.
+:alt: Two panels of RMSE in MPa against the number of training samples, from 66 to 668. Left, linear regression with physics features: the black training curve rises from about 6.4 to 7.2 and the red validation curve falls from 8.1 to 7.4, closing on it, with a bracket at the right edge labeled gap 0.3 and a dotted horizontal line at 6.1 labeled more capacity. Right, decision tree with no depth limit: the training curve rises from about 0.2 to 0.95, and the validation curve falls from about 13.5 to 9.4 by 410 samples and then stays flat, with a double arrow at the right edge labeled gap 8.5.
 :width: 100%
 
 Learning curves on concrete with folds of whole mixes, for linear regression with physics features (left)
-and a tree with no depth limit (right). The dotted line is gradient-boosted trees given the same
-features and scored on the same folds, a model with more capacity than the line.
+and a tree with no depth limit (right). Each curve is the mean over ten random orderings of the
+training rows. The dotted line is gradient-boosted trees given the same features and scored on the
+same folds, a model with more capacity than the line.
 ```
 
 Read two things off each panel. The first is the gap between the two curves at the right edge.
@@ -1626,20 +1627,26 @@ noise that no model can remove.
 
 The engineered straight line has almost no gap. With 668 training samples its training RMSE is
 7.16 MPa and its validation RMSE 7.43, and the gap shrank to 0.3 MPa as the training set grew.
-That half of the reading is good news: the line no longer overfits, and more samples will not
-move either curve. Whether it is a good fit depends on the level, and calling a level high needs
+The line therefore no longer overfits, and more samples can close at most the 0.3 MPa that is
+left. Whether it is a good fit depends on the level, and calling a level high needs
 a reference. Gradient-boosted trees
 ([`HistGradientBoostingRegressor`](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.HistGradientBoostingRegressor.html)),
 given the same features and scored on the same grouped folds, reach 6.06 MPa. They beat the line
-on all five folds, by 0.7 to 2.0 MPa, so the line's 7.2 MPa includes error that a more flexible
-model removes. Curves that meet at a level another model can beat are the signature of
+on all five folds, by 0.7 to 2.0 MPa, so about 1.4 MPa of the line's 7.43 MPa validation error is
+error that a model with more capacity removes. Curves that meet at a level another model can beat are the signature of
 **underfitting**, or high bias: the model is too simple for the relationship, and more training
 samples will not help it. The actions are more capacity or better features.
 
 The tree has the opposite shape: 0.95 MPa on its training samples and 9.42 on validation, a gap
-of 8.5 MPa, which is **overfitting**, or high variance. Its validation curve is still falling at
-the right edge (from 13.4 to 9.4 MPa over the last three points), so more training samples would
-still help it, and so would less capacity.
+of 8.5 MPa, which is **overfitting**, or high variance. Its validation curve is flat near 9.4 MPa
+from about 400 samples on, so more samples of the same kind are not closing the gap. Capping the
+depth is the other lever, and the validation curve above shows it buys little here: the best
+depth, 9, reaches 9.10 MPa.
+
+Shuffle before you read a learning curve. By default `learning_curve` takes each smaller training
+set as the first rows of the fold in file order. On this file that ordering alone put a false
+3.5 MPa drop into the tree's curve near the right edge, which reads as "more data would help" when
+it would not.
 
 ```python
 from sklearn.model_selection import LearningCurveDisplay
@@ -1650,6 +1657,8 @@ LearningCurveDisplay.from_estimator(
     groups=mix_train,
     scoring="neg_root_mean_squared_error",
     negate_score=True,
+    shuffle=True,
+    random_state=0,
 )
 ```
 
@@ -1663,16 +1672,18 @@ LearningCurveDisplay.from_estimator(
 | Training and validation error both low, and close together | A good fit | Stop here, and test once | More tuning |
 
 The first and last rows have the same shape, two curves that meet, and they differ only in the
-level. So a closed gap alone does not tell you the model is good; it tells you more data will not
-change it. On concrete the engineered line sits in the first row, and the unlimited tree sits in
-the second and third at once. Read the curves before you change the model, because the two
+level. So a closed gap tells you only that more data will not lower the error; the level tells you
+whether the model is good. On concrete the engineered line sits in the first row, and the
+unlimited tree in the second. Read the curves before you change the model, because the two
 diagnoses call for opposite actions.
 
 ### Choosing, then testing once
 
-With the families compared on grouped folds, the GP is the one to test, since it has the lowest
-validation error (7.17 MPa). Fit it on all 835 training rows and score the 86 held-out mixes,
-once.
+Of the four families this session teaches, the GP has the lowest grouped validation error
+(7.17 MPa), so it is the one tested here. The boosted trees from the learning-curve section scored
+lower, 6.06 MPa, and beat the GP on all five folds, by 0.6 to 1.8 MPa; on a project of your own
+that score would make them the model to test. Fit the GP on all 835 training rows and score the 86
+held-out mixes, once.
 
 ```{figure} figures/concrete-parity.png
 :alt: Parity plot of predicted against measured concrete strength in MPa for 195 test rows from 86 held-out mixes. The points follow the dashed diagonal from about 5 to 80 MPa, each with a gray vertical bar of plus or minus two predicted standard deviations.
@@ -1795,14 +1806,10 @@ underfitting and overfitting call for opposite actions.
   (Fall 2025), lectures 6 to 10. The undergraduate version of this session, with the water, network and GP examples worked step by step; the notebooks and data are in [the course
   repository](https://github.com/victoraalves/06-325-Numerical-Methods-And-Machine-Learning-for-ChemE-Fall-2025).
 - Hastie, Tibshirani and Friedman, [*The Elements of Statistical
-  Learning*](https://hastie.su.domains/ElemStatLearn/download.html), chapter 7, "Model Assessment
-  and Selection". The standard reference for cross-validation and the bias-variance trade-off
-  (section 7.3 derives equation 7.9), free from the authors.
+  Learning*](https://hastie.su.domains/ElemStatLearn/download.html), chapter 7. Interesting material regarding cross-validation.
 - The scikit-learn User Guide, [cross-validation](https://scikit-learn.org/stable/modules/cross_validation.html).
-  A diagram for every splitter scikit-learn has, including the `KFold` and `GroupKFold` of this
-  session.
 - The scikit-learn User Guide, [metrics and scoring](https://scikit-learn.org/stable/modules/model_evaluation.html).
-  What each metric computes, and why the scorers are negated.
+  What each metric computes.
 - The scikit-learn User Guide, [linear models](https://scikit-learn.org/stable/modules/linear_model.html),
   [decision trees](https://scikit-learn.org/stable/modules/tree.html), [neural network
   models](https://scikit-learn.org/stable/modules/neural_networks_supervised.html) and [Gaussian
@@ -1810,7 +1817,7 @@ underfitting and overfitting call for opposite actions.
   each with its options and its practical tips.
 - The scikit-learn User Guide, [validation and learning
   curves](https://scikit-learn.org/stable/modules/learning_curve.html). `validation_curve` and
-  `LearningCurveDisplay`, with the bias-variance picture behind them.
+  `LearningCurveDisplay`.
 - Rasmussen and Williams, [*Gaussian Processes for Machine
   Learning*](https://gaussianprocess.org/gpml/) (MIT Press, 2006). The GP book, free online.
   Chapter 2 derives the predictive mean and variance used above.
@@ -1820,41 +1827,27 @@ underfitting and overfitting call for opposite actions.
 - David Duvenaud, [The Kernel Cookbook](https://www.cs.toronto.edu/~duvenaud/cookbook/). What
   functions drawn from each kernel look like, and how sums and products combine them.
 - 3Blue1Brown, [Neural networks](https://youtube.com/playlist?list=PLZHQObOWTQDNU6R1_67000Dx_ZCJB-3pi),
-  a video series with animations of what a network computes and how it trains; and Harrison
-  Kinsley and Daniel Kukieła's [neural network animations](https://nnfs.io/neural_network_animations).
+  a video series with animations of what a network computes and how it trains.
 - Liu and Nocedal (1989), [On the limited memory BFGS method for large scale
   optimization](https://doi.org/10.1007/BF01589116), *Mathematical Programming* 45, 503 to 528
   (paywalled; the [author copy](https://users.iems.northwestern.edu/~nocedal/PDFfiles/limited-memory.pdf)
-  is free). L-BFGS, the solver behind most small-data fits in this session.
-- Kingma and Ba (2015), [Adam: A Method for Stochastic Optimization](https://arxiv.org/abs/1412.6980),
-  ICLR. Algorithm 1 is the whole method, with the default settings in its caption.
+  is free). L-BFGS, the solver behind most small-data fits in this session. The math behind training of ML models.
+- Kingma and Ba (2015), [Adam: A Method for Stochastic Optimization](https://arxiv.org/abs/1412.6980)
 - Bottou, Curtis and Nocedal (2018), [Optimization Methods for Large-Scale Machine
   Learning](https://arxiv.org/abs/1606.04838), *SIAM Review* 60(2) (the arXiv copy is the authors').
   Stochastic and batch methods compared from the optimization side; section 3 defines both.
-- Baydin, Pearlmutter, Radul and Siskind (2018), [Automatic differentiation in machine learning: a
-  survey](https://jmlr.org/papers/v18/17-468.html), *JMLR* 18(153). Section 4.1 shows backpropagation
-  as a special case of reverse-mode automatic differentiation.
-- Wolpert (1996), [The lack of a priori distinctions between learning
-  algorithms](https://doi.org/10.1162/neco.1996.8.7.1341), *Neural Computation* 8(7), 1341 to 1390
-  (paywalled). The no free lunch theorem for supervised learning; Wolpert's [2020
+- The no free lunch theorem for supervised learning: Wolpert's [2020
   overview](https://arxiv.org/abs/2007.10928) of the theorems is free.
 
 - Yeh (1998), [Modeling of strength of high-performance concrete using artificial neural
   networks](https://doi.org/10.1016/S0008-8846(98)00165-3), *Cement and Concrete Research*
   28(12), 1797 to 1808 (paywalled). The origin of the concrete data, which is on
   [UCI](https://archive.ics.uci.edu/dataset/165/concrete+compressive+strength) under CC BY 4.0.
-- Abrams (1918), [Design of concrete mixtures](http://www2.cement.org/pdf_files/ls001.pdf),
-  Bulletin 1 of the Structural Materials Research Laboratory, Lewis Institute, Chicago (a copy
-  hosted by the Portland Cement Association). The water-ratio law behind the engineered feature.
-- Hyafil and Rivest (1976), [Constructing optimal binary decision trees is
-  NP-complete](https://doi.org/10.1016/0020-0190(76)90095-8), *Information Processing Letters*
-  5(1), 15 to 17 (paywalled). Why trees are grown greedily.
 - [SysIdentPy](https://sysidentpy.org), a Python library for system identification with NARMAX
-  models. It selects which lagged terms enter a polynomial NARX with the FROLS algorithm, and it
-  also wraps neural and scikit-learn models as NARX; its examples fit one experiment at a time.
+  models. It selects which lagged terms enter a polynomial NARX, and it
+  also wraps neural and scikit-learn models as NARX.
 - Downs and Vogel (1993), [A plant-wide industrial process control
-  problem](https://doi.org/10.1016/0098-1354(93)80018-I), *Computers and Chemical Engineering* 17(3),
-  245 to 255 (paywalled). The Tennessee Eastman process itself; the [original simulation
+  problem](https://doi.org/10.1016/0098-1354(93)80018-I), TEP original source, the [original simulation
   code](https://depts.washington.edu/control/LARRY/TE/download.html) is free and lists the 20
   disturbances in its header.
 - Rieth, Amsel, Tran and Cook (2017), [Additional Tennessee Eastman process simulation
@@ -1864,8 +1857,6 @@ underfitting and overfitting call for opposite actions.
   engineering](https://kitchingroup.cheme.cmu.edu/s24-06642/00-introduction/introduction.html)
   and Prof. Ulissi's [Numerical Methods and ML for ChE notes](https://ulissigroup.cheme.cmu.edu/F22-06-325/intro.html)
   (CC BY 4.0). Two CMU courses that cover the same models from different angles.
-- The scikit-learn [testimonials](https://scikit-learn.org/stable/testimonials/testimonials.html).
-  Is scikit-learn used in real applications? Yes, and this page lists who uses it and for what.
 
 ## Assignment
 

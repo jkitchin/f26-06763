@@ -1928,15 +1928,27 @@ def concrete_figures():
         groups=gtr,
         scoring="neg_root_mean_squared_error",
     )["test_score"]
+    gp_rmse = -cross_validate(
+        concrete_models()["Gaussian process"],
+        Xtr,
+        ytr,
+        cv=GroupKFold(5),
+        groups=gtr,
+        scoring="neg_root_mean_squared_error",
+    )["test_score"]
     print(f"  reference for the learning curve: gradient-boosted trees on the physics features,"
           f" GroupKFold RMSE {ref_rmse.mean():.2f} (fold std {ref_rmse.std():.2f}); the line is worse on"
           f" {(line_rmse > ref_rmse).sum()} of 5 folds, by {(line_rmse - ref_rmse).min():.2f} to"
-          f" {(line_rmse - ref_rmse).max():.2f} MPa")
-    # The panels carry the evidence (the gap, the reference, the slope at the right edge) and
-    # the table under the figure on the slide carries the diagnosis. Both readings are checked
-    # against the printed curves: the linear model's two curves are flat and 0.3 MPa apart from
-    # 410 training samples on, and they meet above the reference; the tree's gap is 8.5 MPa and
-    # its validation RMSE is still falling over the last three sizes.
+          f" {(line_rmse - ref_rmse).max():.2f} MPa; the GP is worse on {(gp_rmse > ref_rmse).sum()} of 5,"
+          f" by {(gp_rmse - ref_rmse).min():.2f} to {(gp_rmse - ref_rmse).max():.2f} MPa")
+    # The panels carry the evidence (the gap and the reference) and the table under the figure
+    # on the slide carries the diagnosis. learning_curve does not shuffle by default, so each
+    # smaller training set would be the first rows of the fold in file order; on this file that
+    # alone put a 3.5 MPa step into the tree's curve. So every curve is the mean over ten random
+    # orderings of the training rows. Both readings are checked against the printed curves: the
+    # line's two curves close to 0.3 MPa apart and meet above the reference; the tree's gap is
+    # 8.5 MPa and its validation RMSE is flat near 9.4 from about 400 samples on.
+    # Shown at h:250 on the slide, about 560 px wide.
     panels = [
         (PHYSICS, "Linear, physics features"),
         ("Decision tree", "Tree, no depth limit"),
@@ -1950,7 +1962,7 @@ def concrete_figures():
             gridspec_kw={"wspace": 0.08},
         )
         for ax, (name, title) in zip(axes, panels):
-            n, a_, b_ = learning_curve(
+            runs = [learning_curve(
                 concrete_models()[name],
                 Xtr,
                 ytr,
@@ -1958,8 +1970,12 @@ def concrete_figures():
                 cv=GroupKFold(5),
                 groups=gtr,
                 scoring="neg_root_mean_squared_error",
-            )
-            a_, b_ = -a_.mean(1), -b_.mean(1)
+                shuffle=True,
+                random_state=rs,
+            ) for rs in range(10)]
+            n = runs[0][0]
+            a_ = -np.mean([r[1].mean(1) for r in runs], axis=0)
+            b_ = -np.mean([r[2].mean(1) for r in runs], axis=0)
             print(f"  learning curve {name}: n {list(n)}\n    train {a_.round(2)}\n    valid {b_.round(2)}")
             ax.plot(
                 n,
@@ -1984,7 +2000,7 @@ def concrete_figures():
                 xy=(xg, b_[-1]),
                 xytext=(xg, a_[-1]),
                 arrowprops={
-                    "arrowstyle": "|-|, widthA=0.25, widthB=0.25" if gap < 2 else "<->",
+                    "arrowstyle": "|-|, widthA=0.5, widthB=0.5" if gap < 2 else "<->",
                     "color": MUTED,
                     "lw": 1.6,
                     "shrinkA": 0,
@@ -2006,21 +2022,6 @@ def concrete_figures():
                 xlim=(20, n[-1] + 60),
                 xticks=[200, 400, 600],
             )
-        # The tree's validation curve is still falling over its last three sizes.
-        axes[1].annotate(
-            "Still falling",
-            xy=(538, 11.7),
-            xytext=(330, 8.6),
-            ha="center",
-            va="center",
-            color=MUTED,
-            fontsize=16,
-            arrowprops={
-                "arrowstyle": "->",
-                "color": MUTED,
-                "lw": 1.4,
-            },
-        )
         axes[0].axhline(
             ref_rmse.mean(),
             color=MUTED,
@@ -2030,11 +2031,11 @@ def concrete_figures():
         axes[0].text(
             n[-1] + 20,
             ref_rmse.mean() - 0.35,
-            f"A more flexible model: {ref_rmse.mean():.1f}",
+            f"More capacity: {ref_rmse.mean():.1f}",
             ha="right",
             va="top",
             color=MUTED,
-            fontsize=15,
+            fontsize=16,
         )
         axes[0].set(
             ylabel="RMSE (MPa)",
