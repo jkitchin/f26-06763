@@ -19,9 +19,12 @@ every group runs. The groups, and what each writes:
     concrete    concrete-data, concrete-cv, concrete-depth, concrete-learning,
                 concrete-parity
     narx        narx-schematic (one row of Lecture 8's table, on a real run), narx-forecast
-    widgets     no figure: prints the constants the two interactive slides embed (the
-                ReLU network's weights and training points; the surfactant GP's
-                variances and data), so the deck's JavaScript can be checked against it
+    widgets     no figure: prints the constants the interactive slides embed (the four
+                optimizer paths of opt-paths.png; the ReLU network's weights and training
+                points; gp-idea's 15 values and five functions, which the Gaussian process
+                build draws one at a time; the surfactant GP's variances and data; the 20
+                points and the fixed kernel of the prior to posterior slider), so the deck's
+                JavaScript can be checked against it
 
 The classification figures (the moons, stratified k-fold and the Tennessee Eastman fault
 classifier) moved to Lecture 10 with that material, and lectures/l10/figures/make_figures.py
@@ -106,6 +109,7 @@ and one mini-batch of 4 rows for stochastic gradient descent.
 from __future__ import annotations
 
 import io
+import math
 import time
 import urllib.request
 import warnings
@@ -1588,9 +1592,12 @@ def extrapolation_figure(T, P):
         save(fig, "extrapolation.png")
 
 
-def optimizer_figure():
-    """Four optimizers on one two-parameter least-squares problem, from one starting point."""
-    print("\n=== Four optimizers on one fit: P = a + b (T / 20 C), mean squared error, water data ===")
+def optimizer_runs():
+    """Four optimizers on one two-parameter least-squares problem, from one starting point.
+
+    Nothing is printed here: optimizer_figure() prints the record and draws opt-paths.png,
+    and widget_numbers() prints what the deck's animated copy of that figure embeds.
+    """
     T, P = load_water()
     # T is divided by 20 C and not centered, so the intercept and the slope are correlated and
     # the loss valley is long and narrow, without being so narrow that gradient descent stalls.
@@ -1609,11 +1616,8 @@ def optimizer_figure():
         return 2 / len(Pb) * Xb.T @ (Xb @ w - Pb)
 
     loss_opt = loss(w_opt)
-    print(f"  Hessian eigenvalues {eig[0]:.4f} and {eig[1]:.4f}: condition number {eig[1] / eig[0]:.1f}")
-    print(f"  optimum a = {w_opt[0]:.3f} MPa, b = {w_opt[1]:.3f} MPa per 20 C, loss {loss_opt:.3f} MPa^2")
     w0, cap, tol = np.array([30.0, -10.0]), 2000, 1e-6
     sgd_step, batch, adam_lr = 0.5 / L, 4, 1.0
-    print(f"  start ({w0[0]:.0f}, {w0[1]:.0f}); cap {cap} iterations; target relative loss gap {tol:g}")
 
     paths = {}
     w = w0.copy()
@@ -1661,6 +1665,43 @@ def optimizer_figure():
         k = 0 if len(above) == 0 else above[-1] + 1
         return int(k) if k < len(gaps) else None
 
+    gaps, steps = {}, {}
+    for key in paths:
+        paths[key] = np.array(paths[key])
+        gaps[key] = np.array([loss(w) - loss_opt for w in paths[key]])
+        steps[key] = reached(gaps[key] / loss_opt)
+    return {
+        "X": X,
+        "P": P,
+        "eig": eig,
+        "L": L,
+        "w_opt": w_opt,
+        "loss_opt": loss_opt,
+        "w0": w0,
+        "cap": cap,
+        "tol": tol,
+        "sgd_step": sgd_step,
+        "batch": batch,
+        "adam": (adam_lr, b1, b2, eps),
+        "paths": paths,
+        "gaps": gaps,
+        "steps": steps,
+        "res": res,
+    }
+
+
+def optimizer_figure():
+    """opt-paths.png: the four runs of optimizer_runs() over the loss contours."""
+    print("\n=== Four optimizers on one fit: P = a + b (T / 20 C), mean squared error, water data ===")
+    r = optimizer_runs()
+    X, P, eig, L, res = r["X"], r["P"], r["eig"], r["L"], r["res"]
+    w_opt, loss_opt, w0, cap, tol = r["w_opt"], r["loss_opt"], r["w0"], r["cap"], r["tol"]
+    sgd_step, batch, (adam_lr, b1, b2, eps) = r["sgd_step"], r["batch"], r["adam"]
+    paths, gaps = r["paths"], r["gaps"]
+    print(f"  Hessian eigenvalues {eig[0]:.4f} and {eig[1]:.4f}: condition number {eig[1] / eig[0]:.1f}")
+    print(f"  optimum a = {w_opt[0]:.3f} MPa, b = {w_opt[1]:.3f} MPa per 20 C, loss {loss_opt:.3f} MPa^2")
+    print(f"  start ({w0[0]:.0f}, {w0[1]:.0f}); cap {cap} iterations; target relative loss gap {tol:g}")
+
     methods = [
         ("gd", "Gradient descent", BLUE),
         ("sgd", f"Stochastic gradient descent, batches of {batch}", GOLD),
@@ -1669,13 +1710,11 @@ def optimizer_figure():
     ]
     # The legend names what each run was: Adam here uses the full-batch gradient.
     legend_names = {"adam": "Adam, full batch"}
-    labels, gaps = {}, {}
+    labels = {}
     print(f"  steps: gradient descent 1/L = {1 / L:.4f}; SGD {sgd_step:.4f} (0.5/L, fixed, seed 0);"
           f" Adam learning rate {adam_lr:g}, beta1 {b1}, beta2 {b2}, eps {eps:g}")
     for key, name, _ in methods:
-        paths[key] = np.array(paths[key])
-        gaps[key] = np.array([loss(w) - loss_opt for w in paths[key]])
-        k = reached(gaps[key] / loss_opt)
+        k = r["steps"][key]
         n = len(paths[key]) - 1
         if k is None:
             last = gaps[key][-n // 4:] / loss_opt
@@ -2755,12 +2794,16 @@ def concrete_data_figure():
     df = load_concrete()
     ages = [1, 3, 7, 28, 90, 365]
     chosen = example_mixes(df)
+    # One ordinary test, circled and labeled so that "a gray dot" has a referent: the weakest
+    # 180-day test, alone above the empty lower right corner.
+    one = df[df.age_days == 180].nsmallest(1, "strength_mpa").iloc[0]
+    print(f"  the circled test: {one.age_days:g} days, {one.strength_mpa:.1f} MPa")
     print("  three example mixes (kg/m3: cement, slag, fly ash, water, superplasticizer, coarse, fine):")
     for g, _ in chosen:
         mix = g[MIX].iloc[0]
         print(f"    {', '.join(f'{v:g}' for v in mix)}; w/c {mix.water / mix.cement:.2f};"
               f" tested at {tested_at(g.age_days)} days: {', '.join(f'{v:.1f}' for v in g.strength_mpa)} MPa")
-    with plt.rc_context(fonts(14)):             # shown at w:560, and at w:540 later
+    with plt.rc_context(fonts(14)):             # shown at w:500, and at w:540 later
         fig, ax = plt.subplots(figsize=(6.2, 3.0))
         ax.scatter(
             df.age_days,
@@ -2769,6 +2812,29 @@ def concrete_data_figure():
             color="0.8",
             linewidths=0,
             zorder=1,
+        )
+        ax.scatter(
+            [one.age_days],
+            [one.strength_mpa],
+            s=60,
+            facecolors="none",
+            edgecolors=INK,
+            linewidths=1.2,
+            zorder=2,
+        )
+        ax.annotate(
+            "One test",
+            xy=(one.age_days, one.strength_mpa),
+            xytext=(300, 8),
+            ha="center",
+            va="center",
+            arrowprops=dict(
+                arrowstyle="-|>",
+                color=INK,
+                lw=1,
+                shrinkA=2,
+                shrinkB=5,
+            ),
         )
         for g, col in chosen:
             ax.plot(
@@ -2790,7 +2856,7 @@ def concrete_data_figure():
             yticks=[0, 40, 80],
         )
         ax.minorticks_off()
-        ax.set_title("Each dot is one specimen; a line follows one mix")
+        ax.set_title("Each gray dot is one test; each line is one mix")
         ax.legend(
             loc="upper center",
             bbox_to_anchor=(0.45, -0.25),
@@ -3056,9 +3122,9 @@ def narx_figures():
 
 
 # --------------------------------------------------------------------------------------
-# The numbers the two interactive slides embed. The deck's "why neural" and "length scale"
-# slides compute everything in the browser from these constants, so they are printed here
-# rather than typed by hand.
+# The numbers the interactive slides embed. The deck's "neurons firing", "length scale" and
+# "four optimizers on one problem" slides compute everything in the browser from these
+# constants, so they are printed here rather than typed by hand.
 RELU_SEED = 970  # no seed in 0..2999 puts all five kinks inside (0, 1); at most four do,
                  # in seeds 91, 970, 1551, 1686, 2503 and 2718, and 970 has the best test R2
 
@@ -3103,6 +3169,102 @@ def widget_numbers():
     print(f"  SF2 {k.k1.k1.constant_value:.6f}, SN2 {k.k2.noise_level:.6f}, mean log-zsv {yv.mean():.6f}")
     print(f"  fitted length scale {k.k1.k2.length_scale * x.std():.4f} (log concentration)")
     print("  DATA " + str([[round(float(a), 6), round(float(b), 6)] for a, b in zip(x, yv)]))
+
+    print("\n=== Slide widget: GP prior to posterior, one point at a time ===")
+    # The recipe of gp_intro_figures(), repeated: the same seed, the 20 points in the order the
+    # slider adds them, and the kernel fitted once on all 20 and then held fixed.
+    rng = np.random.default_rng(1)
+    u = rng.uniform(0.5, 10, 20)
+    yu = instructor_f(u) + rng.normal(0, 0.1, u.size)
+    fit = GaussianProcessRegressor(
+        kernel=ConstantKernel(1.0, (1e-2, 1e2)) * RBF(1.0, (1e-2, 1e2)) + WhiteKernel(1e-2, (1e-6, 1e0)),
+        n_restarts_optimizer=5,
+        random_state=0,
+    ).fit(u[:, None], yu)
+    sf2 = fit.kernel_.k1.k1.constant_value
+    ell = fit.kernel_.k1.k2.length_scale
+    sn2 = fit.kernel_.k2.noise_level
+    print(f"  {fit.kernel_}: SF2 {sf2:.6f}, ELL {ell:.6f}, SN2 {sn2:.6f}; prior mean 0")
+    print("  PTS " + str([[round(float(a), 6), round(float(b), 6)] for a, b in zip(u, yu)]))
+    # What the readout should say at every slider position, on the figure's 400 values of u,
+    # with a band of 2 std (the figure's panels are 0, 2, 5 and 20, with a 95% band).
+    uu = np.linspace(0.5, 10, 400)
+    for n in range(u.size + 1):
+        if n == 0:
+            mu, var = np.zeros_like(uu), np.full_like(uu, sf2)
+        else:
+            K = rbf(u[:n], u[:n], ell, sf2) + sn2 * np.eye(n)
+            ks = rbf(uu, u[:n], ell, sf2)
+            mu = ks @ np.linalg.solve(K, yu[:n])
+            var = sf2 - (ks * np.linalg.solve(K, ks.T).T).sum(1)
+        sd = np.sqrt(np.maximum(var, 0))
+        rmse = np.sqrt(np.mean((mu - instructor_f(uu)) ** 2))
+        print(f"    n = {n:2d}: RMSE of the mean against f {rmse:.3f};"
+              f" band half-width (2 std) {2 * sd.mean():.2f} on average")
+
+    print("\n=== Slide widget: the four optimizers of opt-paths.png, animated ===")
+    r = optimizer_runs()
+    X, paths, steps, cap = r["X"], r["paths"], r["steps"], r["cap"]
+
+    def flat(a):
+        """A list written the way the deck's JavaScript embeds it, with no spaces."""
+        return str(np.asarray(a).tolist()).replace(" ", "")
+
+    def still_from(p):
+        """The first iterate from which every later one is within 0.01 of the path's last."""
+        dist = np.linalg.norm(
+            p - p[-1],
+            axis=1,
+        )
+        return int(np.nonzero(dist >= 0.01)[0][-1]) + 1
+
+    # The loss is quadratic, loss(w) = loss_opt + (w - w_opt)' A (w - w_opt) with A = X'X / N,
+    # so the slide draws each contour as an exact ellipse from A.
+    A = X.T @ X / len(X)
+    print(f"  A {flat(np.round(A, 6))}, W_OPT {flat(np.round(r['w_opt'], 3))},"
+          f" LOSS_OPT {r['loss_opt']:.3f}, START {flat(r['w0'])}")
+    sgd_steps = "never" if steps["sgd"] is None else steps["sgd"]
+    print(f"  STEPS lbfgs {steps['lbfgs']}, gd {steps['gd']}, adam {steps['adam']},"
+          f" sgd {sgd_steps} (relative gap below {r['tol']:g} for good, cap {cap})")
+    # The three full-batch methods stop moving on screen long before the cap. Each is embedded
+    # up to the iterate from which it stays within 0.01 of its last point, a tenth of a pixel.
+    for key in ["lbfgs", "gd", "adam"]:
+        k = still_from(paths[key])
+        print(f"  {key.upper()} iterates 0 to {k} of {len(paths[key]) - 1}: {flat(np.round(paths[key][:k + 1], 2))}")
+    # SGD never settles, so it runs to the cap; past iteration 400 the slide's clock passes
+    # several iterations per frame, and every 4th iterate is embedded.
+    full, every = 400, 4
+    sgd = np.vstack([paths["sgd"][:full + 1], paths["sgd"][full + every::every]])
+    print(f"  SGD every iterate to {full}, then every {every}th to {cap}, {len(sgd)} points: {flat(np.round(sgd, 2))}")
+
+    print("\n=== Slide widget: a distribution of numbers, then of functions (gp-idea) ===")
+    # The recipe of gp_intro_figures(), repeated: the same seed, and the draws in the order the
+    # widget shows them (the 15 values one at a time, then the five functions one at a time).
+    rng = np.random.default_rng(0)
+    draws = rng.normal(size=15)
+    xs = np.linspace(0, 1, 200)
+    fs = rng.multivariate_normal(
+        np.zeros(xs.size),
+        rbf(xs, xs, 0.3),
+        size=5,
+        method="eigh",
+    )
+    out = np.abs(draws) > 2
+    print("  DRAWS " + str(np.round(draws, 6).tolist()))
+    print(f"  {out.sum()} of {draws.size} draws outside +/- 2 std: {np.round(draws[out], 2).tolist()};"
+          f" P(|z| > 2) = {math.erfc(math.sqrt(2)):.4f}")
+    # The widget plots the functions on the same 200 values of x, computed in JavaScript as i / 199.
+    for k, f in enumerate(fs):
+        print(f"  FS[{k}] " + str(np.round(f, 2).tolist()))
+    print(f"  functions span [{fs.min():.2f}, {fs.max():.2f}];"
+          f" rounding to 0.01 moves a value by at most {np.abs(np.round(fs, 2) - fs).max():.4f}")
+    # Where a sampled function leaves the band, as runs of x: a band of 2 std holds each value
+    # with probability 0.954, so a whole function can still cross it somewhere.
+    for k, f in enumerate(fs):
+        edges = np.flatnonzero(np.diff(np.r_[0, (np.abs(f) > 2).astype(int), 0]))
+        runs = [f"[{xs[a]:.2f}, {xs[b - 1]:.2f}]" for a, b in zip(edges[::2], edges[1::2])]
+        if runs:
+            print(f"    FS[{k}] outside +/- 2 std at x in " + " and ".join(runs))
 
 
 if __name__ == "__main__":

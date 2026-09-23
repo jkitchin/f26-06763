@@ -100,11 +100,18 @@ solution thick and elastic. The system here is the classic one, the surfactant c
 chloride with the salt sodium salicylate, from [Rehage and Hoffmann
 (1988)](https://doi.org/10.1021/j100327a031). The measured quantity is the **zero-shear viscosity**,
 the viscosity of the solution at rest: the plateau its viscosity curve reaches as the shear rate
-goes to zero. It sets how thick such a fluid is, which is why wormlike micelles are used as
-thickeners in personal care products, as hydraulic fracturing fluids, and as drag-reducing agents
-([Pathak and Hudson, 2006](https://tsapps.nist.gov/publication/get_pdf.cfm?pub_id=852597)). As the
-salt concentration rises, the viscosity climbs by a factor of about 400 to a sharp peak and falls
-again. The climb is the salt screening the charges of the surfactant heads, so that spherical
+goes to zero. It sets how thick such a fluid is, which is why wormlike micelles are used
+commercially as viscosity modifiers, as drag-reducing agents, and in enhanced oil recovery
+([Pathak and Hudson, 2006](https://tsapps.nist.gov/publication/get_pdf.cfm?pub_id=852597)). The
+same effect thickens shampoo. Formulators thicken a shampoo with ordinary salt, too much salt makes
+it runny again, and the plot of viscosity against added salt is called the salt curve
+([Romanowski, 2011](https://chemistscorner.com/why-does-salt-thicken-shampoos/); [Yavrukova et
+al., 2020](https://arxiv.org/abs/1911.09330), author's copy). The viscosity at rest is the one a
+user notices: a thin shampoo is perceived as watered down, and the same viscosity is tied to whether
+pearlescent pigment stays suspended over the shelf life ([Rheology
+Lab](https://www.rheologylab.com/articles/applications-of-rheology/ahead-of-the-salt-curve-unleashing-surfactant-rheology/)).
+As the salt concentration rises in the paper's system, the viscosity climbs steeply to a sharp peak
+and falls again. The climb is the salt screening the charges of the surfactant heads, so that spherical
 micelles grow into long worms; the fall past the peak is commonly attributed to the worms branching
 or shortening, and which of the two happens is still debated ([Ziserman et al.,
 2009](http://complexfluids.umd.edu/papers/60_2009.pdf)).
@@ -114,8 +121,11 @@ them as experimental data gathered by a design of experiments driven by Gaussian
 regression, to replicate the paper's viscosity curve, for a
 course in the Kitchin group ([06-681 course
 notes](https://kitchingroup.cheme.cmu.edu/s20-06681/08-nonlinear-sklearn/08-nonlinear-sklearn.html)),
-and the concentration axis is most likely the salt, in mmol/L, at a fixed surfactant concentration;
-the course notes label it salt concentration. Sixteen points is a small dataset, which is where a
+and those notes label the axis salt concentration and give no units for either axis. In the paper
+the surfactant is held fixed and the salt is varied ([Berret, 2004](https://arxiv.org/abs/cond-mat/0406681),
+figure 7, at 100 mmol/L of surfactant). The sixteen points reproduce the shape of that curve, a sharp
+peak, a dip, a smaller second peak and a fall, on a compressed scale: across them the viscosity climbs
+by a factor of about 400, where the paper's own curve spans about five decades. Sixteen points is a small dataset, which is where a
 Gaussian process is at its best, so this is the example for Gaussian process regression and for how
 a Gaussian process chooses its length scale.
 
@@ -128,14 +138,16 @@ The sixteen surfactant points, gathered to reproduce the viscosity curve of Reha
 
 ### Concrete compressive strength
 
-Concrete is the most used material in civil engineering, and the number that decides whether a mix
+Concrete is cement and water binding sand and gravel (the fine and coarse aggregate) into a
+rock-like mass ([NRMCA](https://www.nrmca.org/about-nrmca/about-concrete/)). It is the most used
+material in civil engineering, and the number that decides whether a mix
 is good enough is its **compressive strength**: the stress, in MPa, at which a cured concrete
 cylinder crushes in a testing machine (the test is ASTM C39). Design codes specify it at an age of
 28 days ([NRMCA](https://www.nrmca.org/wp-content/uploads/2021/01/35pr.pdf)), because concrete keeps
-gaining strength as it cures. One sample is one concrete mix tested at one age. The eight features are the amounts of seven ingredients in kg per cubic meter (cement, blast-furnace slag, fly ash, water, superplasticizer,
+gaining strength as it cures. One sample is one concrete mix tested at one age. A mix is a recipe: the kilograms of each ingredient in one cubic meter of concrete. The eight features are the amounts of seven ingredients in kg per cubic meter (cement, blast-furnace slag, fly ash, water, superplasticizer,
 coarse aggregate and fine aggregate) and the age in days. The target is the compressive strength
-in MPa, which is measured by crushing a specimen, so a model that predicts it from the recipe
-saves casting a specimen and waiting up to a year to crush it. The data is from [Yeh (1998)](https://doi.org/10.1016/S0008-8846(98)00165-3), a set of laboratory trial batches of high-performance concrete (concrete meeting performance and
+in MPa, which is measured by crushing cylinders cast from the mix, so a model that predicts it
+from the recipe saves casting cylinders and waiting up to a year to crush them. The data is from [Yeh (1998)](https://doi.org/10.1016/S0008-8846(98)00165-3), a set of laboratory trial batches of high-performance concrete (concrete meeting performance and
 uniformity requirements that ordinary ingredients and practice cannot always reach, in the
 [ACI's definition](https://www.concrete.org/publications/internationalconcreteabstractsportal.aspx?m=details&id=217))
 to which Yeh fitted neural networks, and it
@@ -144,15 +156,16 @@ Repository](https://archive.ics.uci.edu/dataset/165/concrete+compressive+strengt
 4.0: 1,030 rows, at ages from 1 to 365 days, with strengths from 2.3 to 82.6 MPa.
 
 ```{figure} figures/concrete-data.png
-:alt: Compressive strength in MPa against age in days on a log axis. Every test is a small gray dot. Three mixes are highlighted in color, each with its tests joined by a line: a strong mix tested at 3, 7, 28, 56 and 91 days rising from about 41 to 83 MPa, a middle mix tested from 7 to 365 days rising from about 30 to 41 MPa, and a weak mix tested at 3, 7, 28 and 90 days rising from about 8 to 22 MPa.
+:alt: Compressive strength in MPa against age in days on a log axis. Every test is a small gray dot. Three mixes are highlighted in color, each with its tests joined by a line: a strong mix tested at 3, 7, 28, 56 and 91 days rising from about 41 to 83 MPa, a middle mix tested from 7 to 365 days rising from about 30 to 41 MPa, and a weak mix tested at 3, 7, 28 and 90 days rising from about 8 to 22 MPa. One gray dot, a 180-day test at about 24 MPa, is circled and labeled One test.
 :width: 90%
 
-The concrete data from Yeh (1998). Each gray dot is one crushed specimen, one mix at one age; each
-colored line follows one mix as it ages, which matters for the section on cross-validation.
+The concrete data from Yeh (1998). Each gray dot is one test, one mix crushed at one age, and one
+of them is circled; each colored line follows one mix whose cylinders were crushed at several ages,
+which matters for the section on cross-validation.
 ```
 
-The 1,030 rows are not 1,030 independent experiments. They are 428 distinct mixes, because most
-mixes were crushed at several ages, and the section on cross-validation shows how much that
+The 1,030 rows are not 1,030 independent experiments. They are 428 distinct mixes, because 182 of
+the mixes were crushed at several ages, and the section on cross-validation shows how much that
 changes the answer. Concrete is the main regression example of the session: all four families are
 compared on it, and it carries the diagnostics of model capacity.
 
@@ -723,13 +736,23 @@ process puts a probability distribution over functions. Why learn four instead o
 Because there is no best one. The **no free lunch theorem** for supervised learning makes that
 precise. Loosely speaking, for any two learning algorithms there are "as many" problems on which
 the first has the lower error on data outside the training set as problems on which the second
-does ([Wolpert, 1996](https://doi.org/10.1162/neco.1996.8.7.1341)). The surprise is in the next
+does ([Wolpert, 1996](https://doi.org/10.1162/neco.1996.8.7.1341)). "As many" is shorthand for an
+average: weight every possible input-output relationship equally, and every algorithm's expected
+error on inputs outside the training set comes out the same. The surprise is in the next
 sentence of the abstract: this holds even when one algorithm is cross-validation and the other is
 "anti-cross-validation", which picks the model with the *largest* validation error. Averaged over
-every conceivable problem, nothing wins. Real problems are not every conceivable problem, though.
-A family wins when its assumptions (smoothness for a Gaussian process, boxes for a tree, the
-right features for a line) match the problem in front of you. So in practice the family is a
-choice made for each problem, by validation, and this session's own results show the ranking move. On concrete the tree
+every conceivable problem, nothing wins. That paper proves it for losses like zero-one, where a
+prediction is simply right or wrong. For squared error, the loss this session uses, the companion
+paper in the same issue does find a priori differences between algorithms
+([Wolpert, 1996](https://doi.org/10.1162/neco.1996.8.7.1391)). All of them come from where a
+method's guesses fall in the range of outputs, and on average the way a method uses its data adds
+nothing. Real problems are not every conceivable problem, though. A family wins when its
+assumptions (smoothness for a Gaussian process, boxes for a tree, the right features for a line)
+match the problem in front of you. So in practice the family is a choice made for each problem,
+by validation. That step goes beyond the theorem, since trusting validation rests on an implicit
+assumption about which problems arise, one Wolpert calls difficult to express mathematically and
+notes that nobody debates ([Wolpert, 2020](https://arxiv.org/abs/2007.10928)). This session's own
+results show the ranking move. On concrete the tree
 beats the linear model with physics features under one way of splitting the data and loses to it
 under another, and on Lecture 8's plant table a network and a Gaussian process tie a linear model.
 
