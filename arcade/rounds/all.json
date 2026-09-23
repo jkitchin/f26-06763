@@ -2173,47 +2173,6 @@
       ]
     },
     {
-      "id": "l09-q04",
-      "kind": "predict_measure",
-      "lecture": "l09",
-      "context": "A GP on concrete scores 7.17 MPa RMSE under grouped cross-validation. It is then\nfitted on all 835 training rows and scored once on 86 held-out mixes.\n\nBefore you look: what does the test score look like?",
-      "why": "A test set of a couple of hundred rows is one random draw, and its score moves\nby a megapascal or two from draw to draw. The single test number carries its own\nuncertainty; reporting it once does not make it exact.",
-      "objectives": [
-        "l09-o2"
-      ],
-      "tags": [
-        "test-once",
-        "uncertainty"
-      ],
-      "true": "Lower, 5.39 MPa, and other random draws of the test mixes span 5.45 to 7.42 MPa",
-      "false": [
-        "Within 0.1 MPa of 7.17, because the model and the data are the same",
-        "Much higher, because none of the test mixes was ever seen in training",
-        "Undefined, because the GP needs the test targets to fit its kernel"
-      ]
-    },
-    {
-      "id": "l09-q05",
-      "kind": "predict_measure",
-      "lecture": "l09",
-      "context": "A third-degree polynomial in temperature is fitted to 16 of the 21 NIST points\nfor water at 1000 kg/m3 between 0 and 100 C. Its training R-squared is 0.9999975.\nNIST gives 517.7 MPa at 300 C.\n\nBefore you look: what does the polynomial predict at 300 C?",
-      "why": "The score only measures the model where the data is. Outside 0 to 100 C the\npolynomial bends over, because nothing in it knows about water. Holding the last value\nis what a decision tree does, not a polynomial.",
-      "objectives": [
-        "l09-o3"
-      ],
-      "tags": [
-        "extrapolation",
-        "linear",
-        "feature-engineering"
-      ],
-      "true": "223 MPa: the polynomial has no physics in it, so it cannot extrapolate",
-      "false": [
-        "About 518 MPa, because an R-squared that close to 1 means the curve is right",
-        "About 101 MPa, the value at the last training point, repeated",
-        "Nothing: scikit-learn refuses to predict outside the training range"
-      ]
-    },
-    {
       "id": "l09-q06",
       "kind": "mcq",
       "lecture": "l09",
@@ -2255,27 +2214,6 @@
       ]
     },
     {
-      "id": "l09-q11",
-      "kind": "predict_measure",
-      "lecture": "l09",
-      "context": "On concrete, a tree with no depth limit scores 6.92 MPa under a random KFold,\nand a straight line with log(age) and the water/cement ratio scores 7.25. The\nfolds are then rebuilt so each mix sits in one fold only (GroupKFold).\n\nBefore you look: what happens to the ranking?",
-      "why": "Random folds put the 28-day row of a mix in training and the 56-day row in\nvalidation, and a deep tree memorizes the mix. A straight line cannot memorize\none, so it barely moves (7.25 to 7.43) while the tree goes to 9.42.",
-      "objectives": [
-        "l09-o5"
-      ],
-      "tags": [
-        "groupkfold",
-        "leakage",
-        "ranking"
-      ],
-      "true": "The tree loses to the straight line by 2 MPa; the line barely moves",
-      "false": [
-        "Both get worse by the same amount, so the tree stays ahead",
-        "Both improve, because whole mixes make cleaner folds",
-        "The line gets much worse and the tree barely moves"
-      ]
-    },
-    {
       "id": "l09-q13",
       "kind": "mcq",
       "lecture": "l09",
@@ -2314,27 +2252,6 @@
         "One weight per training point, by gradient descent on the squared error",
         "The predicted mean at every training point, by least squares",
         "Nothing: a GP is nonparametric, so fit only stores the training rows"
-      ]
-    },
-    {
-      "id": "l09-q15",
-      "kind": "predict_measure",
-      "lecture": "l09",
-      "context": "The same three-unit tanh network is trained ten times on the same data with L-BFGS,\nchanging only `random_state`, which sets the starting weights.\n\nBefore you look: what happens to the final training error?",
-      "why": "A least squares problem has one minimum and any start reaches it. A network's loss\nhas many, and L-BFGS stops at whichever one the starting weights lead to: six starts\nended near SSE 0.080 and four at 0.107 to 0.118. That is why every network is given\na random_state.",
-      "objectives": [
-        "l09-o4"
-      ],
-      "tags": [
-        "neural-network",
-        "optimization",
-        "non-convex"
-      ],
-      "true": "It varies by a factor of 1.48, because the loss is non-convex and each start can stop in a different local minimum",
-      "false": [
-        "It is identical every time, because L-BFGS always finds the global minimum of a smooth loss",
-        "It varies at random by a few percent, because L-BFGS adds noise to every gradient step",
-        "It varies only when the network has more hidden units than there are training points"
       ]
     },
     {
@@ -2443,27 +2360,6 @@
         "Both are bounded: every network weight and every GP hyperparameter must stay between 1e-5 and 1e5 throughout training",
         "The network's weights are bounded so that they stay positive; the GP's hyperparameters are free",
         "Neither is bounded; the B in L-BFGS-B only changes how the routine stores its past steps"
-      ]
-    },
-    {
-      "id": "l09-q21",
-      "kind": "predict_measure",
-      "lecture": "l09",
-      "context": "A Gaussian process, with its kernel held fixed, learns\nf(u) = sin u + log u - exp(-0.1 u^2) on 0.5 to 10 from 2, then 5, then 20 noisy\nobservations.\n\nBefore you look: what happens to its band of plus or minus two standard deviations\nas the points arrive?",
-      "why": "The prior allows every function the kernel permits, so the band starts wide\neverywhere. Each observation pulls the mean toward it and shrinks the band near it;\nfar from every observation the uncertainty stays wide. After 20 points spread over\nthe range the band is narrow everywhere, which is also why a GP's band grows again\noutside the data.",
-      "objectives": [
-        "l09-o3"
-      ],
-      "tags": [
-        "gaussian-process",
-        "uncertainty",
-        "posterior"
-      ],
-      "true": "It pinches near each new point and stays wide where there are no points yet",
-      "false": [
-        "It narrows by the same amount everywhere, however far a new point is from the rest",
-        "It keeps the same width throughout, because a fixed kernel fixes the uncertainty",
-        "It widens near each new point, because every noisy observation adds uncertainty"
       ]
     },
     {
