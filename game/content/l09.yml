@@ -1,188 +1,169 @@
-# L09 item bank, drafted from the harvest of lectures/l09/notes.md and reviewed
-# against the five rules in game/README.md.
+# L09 item bank, written against the rebuilt lectures/l09/notes.md (2026-09-22). Its four
+# classification items moved to game/content/l10.yml with the classification material. The
+# numbers come from lectures/l09/figures/make_figures.py. Faults 3, 9 and 15 of the
+# Tennessee Eastman plant never appear here: the miniproject checks that students find
+# them on their own.
 
 schema: 1
 lecture: l09
-title: "Train, validate, select: baselines, cross-validation, metrics"
+title: "The machine learning workflow II: regression"
 source_notes: lectures/l09/notes.md
-status: unwritten
-serve: 6
-pool_version: 3
+# Published with the L9 release (09-23).
+# Versions 1 to 3 were the pre-semester draft (power plant, airfoil, SECOM). No student
+# was ever served them, since the bank was never published; the rewrite is version 4.
+status: published
+serve: 9
+pool_version: 4
 provenance:
   drafted_by: hand
-  reviewed_by: jkitchin
-  reviewed_at: 2026-08-08
+  reviewed_by: none
+  reviewed_at: 2026-09-22
 
 items:
 
-  # --- baselines ----------------------------------------------------------
+  # --- framing ---------------------------------------------------------------
 
   - id: l09-q01
-    kind: predict_measure
+    kind: mcq
     rung: 1
-    difficulty: 2
-    objectives: [l09-o2]
+    difficulty: 1
+    objectives: [l09-o1]
     prompt: |
-      A combined-cycle power plant, predicting electrical output. The random
-      forest in this study reaches 3.36 MW RMSE.
-
-      Before you look: how much of the distance between "no model at all" and
-      that random forest is closed by a straight line on **ambient temperature
-      alone**?
-    predict:
-      ask: "Write a percentage down before revealing."
-      common_prior: "Maybe a third. It is one variable and a linear fit."
+      The concrete dataset has 1,030 rows: seven ingredient amounts, the age in
+      days, and the compressive strength in MPa. What is one sample?
     options:
-      - "About 30%, which is why the ensemble is worth its complexity and why the study reaches for one at all"
-      - "About 85%, leaving the other three ambient channels and the forest to split the rest"
-      - "About 50%, so the forest roughly doubles what a single-variable line achieves and clearly earns its complexity"
-      - "Almost none; the relationship is too nonlinear for a line"
-    answer: "About 85%, leaving the other three ambient channels and the forest to split the rest"
+      - "One concrete mix tested at one age"
+      - "One concrete mix, across every age it was tested at"
+      - "One ingredient amount in one mix"
+      - "One strength value, with its units"
+    answer: "One concrete mix tested at one age"
     evidence: |
-      Predicting the mean costs 17.07 MW, the target's own standard deviation.
-      One thermodynamic variable and a straight line close 85% of the entire gap.
-      All four ambient channels take you to 91%, and the random forest closes the
-      remaining 9%. The forest is not wrong to use, but a report that quotes only
-      "3.36 MW RMSE" has hidden the fact that most of the achievement belongs to
-      a line somebody could have fitted in an afternoon.
+      A sample is one row, and each row is one mix crushed at one age. The same mix
+      crushed at 7 and at 28 days is two samples, which is why the rows are not all
+      independent experiments.
     source:
       file: lectures/l09/notes.md
-      heading: "Baselines that have to be beaten"
-      quote: "a straight line close **85% of the entire gap**"
-    verify: {mode: quote, needle: "85% of the entire gap", volatility: measured}
-    tags: [baselines, reporting]
+      heading: "Concrete compressive strength"
+      quote: "One sample is one concrete mix tested at one age."
+    verify: {mode: quote, needle: "one sample is one concrete mix tested at one age", volatility: stable}
+    tags: [terminology, concrete]
 
   - id: l09-q02
-    kind: claim_vs_source
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l09-o1]
+    prompt: |
+      In Lecture 8, shuffling the rows before splitting let a forecaster read the
+      future. On the water and surfactant data, shuffling the rows before splitting
+      is allowed. What changed?
+    options:
+      - "The rows are separate experiments, so their order in the file means nothing"
+      - "The water and surfactant data are small, so leakage is too small to matter"
+      - "Regression models cannot use the order of the rows"
+      - "The target is measured at the same time as the features, so it cannot leak"
+    answer: "The rows are separate experiments, so their order in the file means nothing"
+    evidence: |
+      A time series has an order that decides what counts as the future. A table of
+      separate experiments does not. The catch is that separate rows are not always
+      separate experiments: the 1,030 concrete rows are 428 mixes, which is why the
+      concrete test set and folds are split by mix with GroupKFold.
+    source:
+      file: lectures/l09/notes.md
+      heading: "What changes from Lecture 8"
+      quote: "the order they sit in the file means nothing, and shuffling them before splitting is allowed."
+    verify: {mode: quote, needle: "the order they sit in the file means nothing", volatility: stable}
+    tags: [framing, splitting]
+  # --- the workflow ------------------------------------------------------------
+
+  - id: l09-q03
+    kind: spot_the_defect
     rung: 2
     difficulty: 2
     objectives: [l09-o2]
     prompt: |
-      A colleague reports: "our random forest achieves 3.36 MW RMSE on the plant
-      data." The number is correct.
-
-      What is wrong with the report?
+      A student fits a network, scores it on the test set, adds four hidden units
+      because the score looked low, and scores it on the test set again. They report
+      the second test score. What is wrong?
     options:
-      - "Nothing; RMSE on held-out data is exactly the right thing to quote, and adding baselines to the report would only pad it"
-      - "It is a fact about nothing until it sits on a ladder, because most of the gap is closed by a one-variable linear fit and the number alone hides that"
-      - "RMSE is the wrong metric for power output; MAPE is scale-free"
-      - "The value should be reported with a confidence interval instead"
-    answer: "It is a fact about nothing until it sits on a ladder, because most of the gap is closed by a one-variable linear fit and the number alone hides that"
+      - "The test set has become validation data, so its score no longer estimates new data"
+      - "Nothing; the test set was only used to check the model, never to fit it"
+      - "The network needed a larger training set, not more hidden units"
+      - "Test scores should be averaged over both attempts before reporting"
+    answer: "The test set has become validation data, so its score no longer estimates new data"
     evidence: |
-      Report results as a ladder, not as a single number: predict-the-mean, then
-      the one-variable line, then the full linear model, then the model you are
-      proposing. Each rung says what the next one bought. A single number cannot
-      be argued with because it cannot be compared with anything, which is
-      exactly why it gets quoted.
+      Changing the model because of a test score lets information from the test rows
+      into the choice. After that the test set is doing the validation set's job, and
+      the number it gives is optimistic. The test set is touched once.
     source:
       file: lectures/l09/notes.md
-      heading: "Baselines that have to be beaten"
-      quote: "is a fact about nothing"
-    verify: {mode: quote, needle: "fact about nothing", volatility: stable}
-    tags: [baselines, reporting]
-
-  # --- cross-validation ----------------------------------------------------
-
-  - id: l09-q03
-    kind: rank
-    rung: 1
-    difficulty: 3
-    objectives: [l09-o3]
-    prompt: |
-      Airfoil self-noise data, where 1,503 rows collapse into 106 wind-tunnel
-      configurations. Four models scored under random `KFold` and under
-      `GroupKFold` on configuration.
-
-      Rank the models by how much the random split flatters them, most inflated
-      first.
-    predict:
-      ask: "Commit to an ordering before revealing."
-      common_prior: "All four inflate about equally; it is the same split."
-    options:
-      - "random forest, then k-NN, then linear and predict-the-mean tied at no inflation"
-      - "predict-the-mean, then linear, then k-NN, then random forest, since simpler models are more sensitive to the split"
-      - "linear, then random forest, then k-NN, then predict-the-mean"
-      - "k-NN, then random forest, then linear, then predict-the-mean"
-    answer: "random forest, then k-NN, then linear and predict-the-mean tied at no inflation"
-    evidence: |
-      Inflation factors are 1.52x for the random forest, 1.28x for k-NN, and
-      exactly 1.00x for both the linear model and predict-the-mean. The pattern
-      is the point: the more a model can memorize a neighborhood, the more a
-      random split rewards it for recognizing rows it has already seen. A linear
-      model has nowhere to put that memory, so it is honest by construction and
-      tells you nothing about whether your split is right.
-    source:
-      file: lectures/l09/notes.md
-      heading: "Measuring what the choice is worth"
-      quote: "| random forest | 1.76 dB | 2.69 dB | **1.52×** |"
-    verify: {mode: ordering, needle: "1.52", volatility: measured}
-    tags: [cross-validation, leakage]
+      heading: "Training, validation and test sets"
+      quote: "once you have looked at a test score and changed something because of it, the test set has become validation data."
+    verify: {mode: quote, needle: "the test set has become validation data", volatility: stable}
+    tags: [test-once, workflow]
 
   - id: l09-q04
-    kind: direction
+    kind: predict_measure
+    rung: 3
+    difficulty: 3
+    objectives: [l09-o2]
+    prompt: |
+      A GP on concrete scores 7.17 MPa RMSE under grouped cross-validation. It is then
+      fitted on all 835 training rows and scored once on 86 held-out mixes.
+
+      Before you look: what does the test score look like?
+    predict:
+      ask: "Higher, lower, or about the same as 7.17 MPa? Commit first."
+      common_prior: "About the same, since it is the same model on similar data."
+    options:
+      - "Lower, 5.39 MPa, and other random draws of the test mixes span 5.45 to 7.42 MPa"
+      - "Within 0.1 MPa of 7.17, because the model and the data are the same"
+      - "Much higher, because none of the test mixes was ever seen in training"
+      - "Undefined, because the GP needs the test targets to fit its kernel"
+    answer: "Lower, 5.39 MPa, and other random draws of the test mixes span 5.45 to 7.42 MPa"
+    evidence: |
+      A test set of a couple of hundred rows is one random draw, and its score moves
+      by a megapascal or two from draw to draw. The single test number carries its own
+      uncertainty; reporting it once does not make it exact.
+    source:
+      file: lectures/l09/notes.md
+      heading: "Choosing, then testing once"
+      quote: "86 mixes are one draw, and across ten other random draws of the test mixes the same GP scores between 5.45 and 7.42 MPa."
+    verify: {mode: quote, needle: "between 5.45 and 7.42 MPa", volatility: measured}
+    tags: [test-once, uncertainty]
+
+  # --- model families ------------------------------------------------------------
+
+  - id: l09-q05
+    kind: predict_measure
     rung: 2
     difficulty: 2
     objectives: [l09-o3]
     prompt: |
-      You cross-validate a random forest on grouped experimental data with plain
-      random `KFold` instead of `GroupKFold`.
+      A third-degree polynomial in temperature is fitted to 16 of the 21 NIST points
+      for water at 1000 kg/m3 between 0 and 100 C. Its training R-squared is 0.9999975.
+      NIST gives 517.7 MPa at 300 C.
 
-      Which way does the reported error move, and does it matter?
+      Before you look: what does the polynomial predict at 300 C?
+    predict:
+      ask: "Close to 517.7, or not? Commit first."
+      common_prior: "Close to NIST, because the fit is essentially perfect."
     options:
-      - "It reads too low, by about half again on this data, and that is the number a paper would print"
-      - "It reads too high, so the result is conservative and safe to publish, which is why random splits are the cautious default"
-      - "It is unbiased; the split only affects the variance of the estimate"
-      - "It reads too low, but by so little that the choice is a formality"
-    answer: "It reads too low, by about half again on this data, and that is the number a paper would print"
+      - "223 MPa: the polynomial has no physics in it, so it cannot extrapolate"
+      - "About 518 MPa, because an R-squared that close to 1 means the curve is right"
+      - "About 101 MPa, the value at the last training point, repeated"
+      - "Nothing: scikit-learn refuses to predict outside the training range"
+    answer: "223 MPa: the polynomial has no physics in it, so it cannot extrapolate"
     evidence: |
-      1.76 dB under random k-fold against 2.69 dB when whole runs are held out.
-      Same data, same model, same code, and the published number would be 52% too
-      low. Nothing errors, nothing warns, and the mistake is invisible in the
-      output. The scheme has to match the structure the data actually has, which
-      means asking what a *new* observation will look like in production: a new
-      row from a run you have seen, or a new run entirely.
+      The score only measures the model where the data is. Outside 0 to 100 C the
+      polynomial bends over, because nothing in it knows about water. Holding the last value
+      is what a decision tree does, not a polynomial.
     source:
       file: lectures/l09/notes.md
-      heading: "Measuring what the choice is worth"
-      quote: "the number a paper would print is **52% too low**"
-    verify: {mode: ordering, needle: "52% too low", volatility: measured}
-    tags: [cross-validation, leakage]
-
-  # --- leakage -------------------------------------------------------------
-
-  - id: l09-q05
-    kind: spot_the_defect
-    rung: 3
-    difficulty: 3
-    objectives: [l09-o3]
-    prompt: |
-      ```python
-      # 5,000 candidate columns, 50 observations
-      keep = top_k_by_correlation(X, y, k=100)   # screen once, on everything
-      score = cross_val_score(KNeighborsClassifier(1), X[keep], y, cv=10)
-      ```
-      This reports a 0.9% error rate. What is wrong, and what does the honest
-      number turn out to be?
-    options:
-      - "Nothing structural; k=1 is simply too small for 50 observations, and raising k would regularize the classifier and bring the error back to something believable"
-      - "The screen sees the labels of every fold before the split, so the folds are not held out at all. Refit the screen inside each fold and the error is 47.5%, a coin flip"
-      - "The 10-fold split is too coarse for 50 observations; leave-one-out would fix it"
-      - "The correlation screen should be replaced by a model-based selector"
-    answer: "The screen sees the labels of every fold before the split, so the folds are not held out at all. Refit the screen inside each fold and the error is 47.5%, a coin flip"
-    evidence: |
-      With 5,000 candidates and 50 observations, some columns correlate with the
-      labels by chance. Choosing them using all the labels bakes that accident
-      into every fold, and the cross-validation then measures how well the model
-      recognizes noise it was already shown. 0.9% against 47.5% is not a subtle
-      bias, it is the difference between a publishable result and nothing at all.
-      Anything fitted to data, including a feature screen, belongs inside the
-      loop.
-    source:
-      file: lectures/l09/notes.md
-      heading: "The extreme case, and why it is in the reading"
-      quote: "and you get **47.5%**, which is the coin flip it is"
-    verify: {mode: quote, needle: "47.5%", volatility: stable}
-    tags: [leakage, cross-validation]
+      heading: "Linear regression and feature engineering"
+      quote: "and at 300 °C it predicts 223 MPa, where NIST gives 517.7."
+    verify: {mode: quote, needle: "it predicts 223 MPa", volatility: measured}
+    tags: [extrapolation, linear, feature-engineering]
 
   - id: l09-q06
     kind: mcq
@@ -190,214 +171,376 @@ items:
     difficulty: 2
     objectives: [l09-o3]
     prompt: |
-      Which of these fitting steps is safe to do once, on the whole dataset,
-      before cross-validating?
+      A tanh network is trained on two inputs, x1 between 0 and 1 and x2 between 0 and
+      1,000,000, with no scaling. It scores R-squared = -0.006 on test data. Why?
     options:
-      - "Scaling features with a `StandardScaler`, since the mean and variance of the inputs say nothing about the labels"
-      - "Screening columns by their correlation with the label"
-      - "Imputing missing values with the column mean"
-      - "None of them; anything fitted to data belongs inside the loop"
-    answer: "None of them; anything fitted to data belongs inside the loop"
+      - "Every tanh unit saturates, so the gradients vanish and it predicts the training mean"
+      - "A network cannot combine two inputs measured in different units, so it gives up on both of them"
+      - "The x2 input is irrelevant to y, so the network ignores it and underfits x1"
+      - "The weights diverge on the huge x2 values, so the predictions grow without bound"
+    answer: "Every tanh unit saturates, so the gradients vanish and it predicts the training mean"
     evidence: |
-      Each of the three learns something from rows that are about to be treated
-      as unseen. The scaler learns the mean and variance, the screen learns which
-      columns correlate, the imputer learns the mean. On this session's power
-      data the scaling version of the mistake is worth 0.0015 MW, which is
-      nothing, and the feature-screening version is worth the entire result. The
-      size of the damage depends on how much the step learns, which is why the
-      rule is about the mechanism and not about the measured harm.
+      With x2 in the millions, every unit's weighted sum is huge, so tanh sits at plus or
+      minus 1 on every training row and its gradient vanishes. The network can then fit
+      only a constant, the training mean, which is why R-squared lands just below zero
+      rather than far below it. Standardizing both inputs puts them on equal footing, and
+      the same network reaches 0.9999.
     source:
       file: lectures/l09/notes.md
-      heading: "The leakage catalog, from the modeling side"
-      quote: "The largest effect across four models is **0.0015 MW**"
-    verify: {mode: quote, needle: "0.0015 MW", volatility: measured}
-    tags: [leakage, pipelines]
-
-  # --- metrics -------------------------------------------------------------
-
+      heading: "Neural networks"
+      quote: "the gradients through a saturated tanh vanish, and the network can only fit a constant, the training mean."
+    verify: {mode: quote, needle: "the network can only fit a constant, the training mean", volatility: stable}
+    tags: [neural-network, scaling]
   - id: l09-q07
-    kind: predict_measure
-    rung: 1
-    difficulty: 2
-    objectives: [l09-o1]
-    prompt: |
-      Remaining-useful-life predictions on jet engines. RMSE and MAE both report
-      the error as exactly 15 cycles.
-
-      Before you look: what does MAPE report on the same predictions?
-    predict:
-      ask: "Higher or lower than you would expect from a 15-cycle error, and why?"
-      common_prior: "Something small, since MAPE is just the error as a percentage."
-    options:
-      - "About 15%, since MAPE is the same set of errors expressed relatively rather than in absolute cycles"
-      - "39.5%, because engines close to failure have tiny true values and one of them contributes 214% on its own"
-      - "Undefined, because MAPE cannot be computed for regression"
-      - "About 5%, because most engines have long remaining lives"
-    answer: "39.5%, because engines close to failure have tiny true values and one of them contributes 214% on its own"
-    evidence: |
-      MAPE divides by the truth, so it explodes exactly where the truth is small,
-      which for remaining-useful-life is exactly the engines you care about most.
-      A scale-free metric sounds like the safe default and is the wrong one here.
-      The general habit: know which region of the target a metric punishes, and
-      check that it is not the region the engineering decision lives in.
-    source:
-      file: lectures/l09/notes.md
-      heading: "MAPE, and why it explodes"
-      quote: "MAPE reports **39.5%**"
-    verify: {mode: quote, needle: "39.5%", volatility: measured}
-    tags: [metrics]
-
-  - id: l09-q08
-    kind: locus_of_control
-    rung: 3
-    difficulty: 3
-    objectives: [l09-o1]
-    prompt: |
-      Wafer fault detection, 6.6% failure rate. Your classifier reports an ROC
-      AUC of 0.72, comfortably above a coin flip, and the curve looks reassuring.
-      Average precision on the same predictions is 0.18.
-
-      Which number should drive the decision, and why do they disagree?
-    options:
-      - "AUC, because it is threshold-independent and therefore the more robust summary of a detector's ranking quality"
-      - "Average precision, because ROC's false-positive rate is diluted by the large negative class, while precision is not"
-      - "Neither; with 6.6% positives, accuracy is the only interpretable number"
-      - "They cannot disagree by this much on the same predictions, so one of the two has been computed on the wrong column"
-    answer: "Average precision, because ROC's false-positive rate is diluted by the large negative class, while precision is not"
-    evidence: |
-      With a 6.6% base rate the negatives dominate, so a false-positive rate
-      computed against them stays small even when most of your alarms are wrong.
-      Average precision of 0.18 against a base rate of 0.066 is the honest
-      statement of what an operator will experience. The operational question is
-      how many wafers get inspected per real fault: 10 at 81% recall. That trade
-      is the actual decision, and no single scalar makes it for you.
-    source:
-      file: lectures/l09/notes.md
-      heading: "Fault detection, and the arithmetic of alarms"
-      quote: "average precision of **0.18** against a base rate of 0.066"
-    verify: {mode: quote, needle: "0.18", volatility: measured}
-    tags: [metrics, imbalance]
-
-  - id: l09-q09
-    kind: claim_vs_source
-    rung: 2
-    difficulty: 3
-    objectives: [l09-o1]
-    prompt: |
-      Texas City, 2005. A frequently repeated version of the story is that the
-      operators ignored their alarms.
-
-      What did the investigation actually establish about the alarm load?
-    options:
-      - "The alarm system had failed and produced no annunciations at all"
-      - "In eleven minutes the two operators had to recognize, acknowledge and act on 275 alarms"
-      - "The operators had disabled the alarms to reduce nuisance trips, which is why none of them was acted on in time"
-      - "Alarms were annunciated correctly and at a manageable rate"
-    answer: "In eleven minutes the two operators had to recognize, acknowledge and act on 275 alarms"
-    evidence: |
-      The number is the point, and it changes what the failure was. A system that
-      issues 275 alarms in eleven minutes has not given two people information,
-      it has given them noise, and no amount of attentiveness fixes that. This is
-      the imbalanced-classifier arithmetic with people at the other end: a
-      detector tuned for recall without regard to precision produces exactly this
-      load, and the design defect is upstream of anybody's diligence.
-    source:
-      file: lectures/l09/notes.md
-      heading: "Case study: 275 alarms in 11 minutes"
-      quote: "acknowledge and act on **275 alarms**"
-    verify: {mode: quote, needle: "275 alarms", volatility: stable}
-    tags: [metrics, imbalance, case-study]
-
-  # --- diagnosis -----------------------------------------------------------
-
-  - id: l09-q10
-    kind: spot_the_defect
-    rung: 2
-    difficulty: 2
-    objectives: [l09-o2]
-    prompt: |
-      An unlimited-depth decision tree achieves exactly 0.000 MW RMSE on the
-      training data and 4.64 MW on validation.
-
-      What has happened, and what is the right response?
-    options:
-      - "The model has found the true relationship, so deploy it and monitor for drift rather than deliberately making it worse"
-      - "Every leaf holds a single sample, so the tree has memorized the training set. The response is less capacity, more regularization, or more data"
-      - "The validation set is corrupted, since zero training error cannot occur otherwise"
-      - "The target has been leaked into a feature; find and remove it"
-    answer: "Every leaf holds a single sample, so the tree has memorized the training set. The response is less capacity, more regularization, or more data"
-    evidence: |
-      Zero training error is not a triumph, it is a confession. The useful part
-      is that high variance and high bias call for opposite actions: an
-      underfitting model needs more capacity, this one needs less. A learning
-      curve tells you which you have, and it is the cheapest diagnostic in the
-      session and the one most likely to be skipped.
-    source:
-      file: lectures/l09/notes.md
-      heading: "Bias, variance, and reading a learning curve"
-      quote: "achieves exactly **0.000 MW** on training data"
-    verify: {mode: quote, needle: "0.000 MW", volatility: stable}
-    tags: [bias-variance, diagnosis]
-
-  - id: l09-q11
     kind: mcq
     rung: 3
     difficulty: 3
-    objectives: [l09-o2]
+    objectives: [l09-o3]
     prompt: |
-      Selecting on validation and then reporting that same validation score
-      biases the result. Measured on this session's data, at how many rows does
-      that optimism fall inside the fold noise?
+      A GP fitted on the 21 water points between 0 and 100 C is asked about 300 C,
+      where NIST gives 517.7 MPa. What does its plus-or-minus-two-standard-deviation
+      band do there?
     options:
-      - "It never does; the bias is a property of selecting on a score, so it does not shrink with more observations"
-      - "By a few hundred rows it is comparable to the noise, and on the full 9,568 rows it is −0.003 MW"
-      - "Only above about 100,000 rows, which is why small studies are unpublishable"
-      - "At around 80 rows, which is why small pilot studies are safe"
-    answer: "By a few hundred rows it is comparable to the noise, and on the full 9,568 rows it is −0.003 MW"
+      - "It grows to about 232 MPa either side and still misses the NIST value"
+      - "It grows wide enough that the NIST value falls inside it"
+      - "It stays as narrow as it is inside the data, since the kernel is smooth"
+      - "It shrinks to zero, because the mean returns to the training average"
+    answer: "It grows to about 232 MPa either side and still misses the NIST value"
     evidence: |
-      At 80 rows the winning configuration's validation score is 0.19 MW better
-      than it deserves, roughly four times the fold noise. By 320 rows the bias
-      has fallen inside the noise band, and on all 9,568 rows it is −0.003 MW.
-      So the effect is real and it is a small-sample effect. The fix does not
-      change with n: hold out a test set, compute the number on it once, and
-      report that. Selection optimism is why "the best validation score" is not
-      an estimate of anything.
+      A GP's uncertainty grows with distance from the data, under the kernel's
+      assumption about smoothness. It knows nothing about physics the data never
+      showed it, so a wide band can still miss the truth.
     source:
       file: lectures/l09/notes.md
-      heading: "4. Selecting on the test set"
-      quote: "**0.19 MW better than it deserves**"
-    verify: {mode: quote, needle: "0.19 MW", volatility: measured}
-    tags: [selection, reporting]
+      heading: "Limitations"
+      quote: "and its uncertainty band grows, to plus or minus 232 MPa. The band still misses the truth."
+    verify: {mode: quote, needle: "The band still misses the truth", volatility: measured}
+    tags: [gaussian-process, extrapolation, uncertainty]
 
-  # --- notebook ------------------------------------------------------------
+  # --- cross-validation -----------------------------------------------------------
 
-  - id: l09-q12
-    kind: notebook_run
-    rung: 4
+  - id: l09-q11
+    kind: predict_measure
+    rung: 3
+    difficulty: 3
+    objectives: [l09-o5]
+    prompt: |
+      On concrete, a tree with no depth limit scores 6.92 MPa under a random KFold,
+      and a straight line with log(age) and the water/cement ratio scores 7.25. The
+      folds are then rebuilt so each mix sits in one fold only (GroupKFold).
+
+      Before you look: what happens to the ranking?
+    predict:
+      ask: "Does the tree stay ahead? Commit first."
+      common_prior: "The tree stays ahead; both models should lose about the same."
+    options:
+      - "The tree loses to the straight line by 2 MPa; the line barely moves"
+      - "Both get worse by the same amount, so the tree stays ahead"
+      - "Both improve, because whole mixes make cleaner folds"
+      - "The line gets much worse and the tree barely moves"
+    answer: "The tree loses to the straight line by 2 MPa; the line barely moves"
+    evidence: |
+      Random folds put the 28-day row of a mix in training and the 56-day row in
+      validation, and a deep tree memorizes the mix. A straight line cannot memorize
+      one, so it barely moves (7.25 to 7.43) while the tree goes to 9.42.
+    source:
+      file: lectures/l09/notes.md
+      heading: "Grouped rows: GroupKFold"
+      quote: "Under random folds the tree beats the engineered straight line; under folds of whole mixes it loses to it by 2 MPa"
+    verify: {mode: quote, needle: "it loses to it by 2 MPa", volatility: measured}
+    tags: [groupkfold, leakage, ranking]
+
+  - id: l09-q13
+    kind: mcq
+    rung: 3
+    difficulty: 2
+    objectives: [l09-o5]
+    prompt: |
+      A learning curve for a linear model ends with training RMSE 7.16 MPa and
+      validation RMSE 7.43 MPa, and the two curves have met. On the same folds, a model
+      with more capacity reaches 6.06 MPa. What is the diagnosis?
+    options:
+      - "Underfitting: it needs more capacity or better features, not more samples"
+      - "Overfitting: it needs regularization or a smaller model to close the gap"
+      - "A good fit: the curves have met, so stop tuning and test it once on the test set"
+      - "A leak: training and validation errors should never be as close as that"
+    answer: "Underfitting: it needs more capacity or better features, not more samples"
+    evidence: |
+      The gap between the curves is the variance, and it has closed, so more samples
+      will not move either curve. The level where they meet is the bias, and a model with
+      more capacity does 1.4 MPa better on the same folds, so the line is too simple for
+      the relationship. Curves that meet are a good fit only when nothing beats their level.
+    source:
+      file: lectures/l09/notes.md
+      heading: "Learning curves: error against data"
+      quote: "Curves that meet at a level another model can beat are the signature of **underfitting**, or high bias: the model is too simple for the relationship, and more training samples will not help it."
+    verify: {mode: quote, needle: "more training samples will not help it", volatility: stable}
+    tags: [learning-curve, underfitting]
+
+  # --- training as optimization ------------------------------------------------------
+
+  - id: l09-q14
+    kind: mcq
+    rung: 2
+    difficulty: 3
+    objectives: [l09-o4]
+    prompt: |
+      A GaussianProcessRegressor is fitted on 835 concrete rows. What does its `.fit`
+      optimize?
+    options:
+      - "The kernel hyperparameters, by maximizing the log marginal likelihood"
+      - "One weight per training point, by gradient descent on the squared error"
+      - "The predicted mean at every training point, by least squares"
+      - "Nothing: a GP is nonparametric, so fit only stores the training rows"
+    answer: "The kernel hyperparameters, by maximizing the log marginal likelihood"
+    evidence: |
+      Given the hyperparameters, the GP's predicted mean and variance are closed-form
+      linear algebra, a solve with K + noise. What is optimized is the handful of kernel
+      hyperparameters (ten for the concrete GP), and each evaluation of the objective
+      factorizes an N by N matrix, which is where the O(N^3) cost comes from.
+      scikit-learn solves it with L-BFGS-B on the logarithms of the hyperparameters,
+      inside the kernel's bounds, from several starting points.
+    source:
+      file: lectures/l09/notes.md
+      heading: "Gaussian processes"
+      quote: "So a GP's training is a small non-convex problem with few variables (the concrete GP has ten: a length scale for each of the eight inputs, a signal variance and a noise level)"
+    verify: {mode: quote, needle: "a small non-convex problem with few variables", volatility: stable}
+    tags: [gaussian-process, optimization, marginal-likelihood]
+
+  - id: l09-q15
+    kind: predict_measure
+    rung: 3
+    difficulty: 3
+    objectives: [l09-o4]
+    prompt: |
+      The same three-unit tanh network is trained ten times on the same data with L-BFGS,
+      changing only `random_state`, which sets the starting weights.
+
+      Before you look: what happens to the final training error?
+    predict:
+      ask: "Same answer ten times, or not? Commit first."
+      common_prior: "The same every time, since the data and the model are the same."
+    options:
+      - "It varies by a factor of 1.48, because the loss is non-convex and each start can stop in a different local minimum"
+      - "It is identical every time, because L-BFGS always finds the global minimum of a smooth loss"
+      - "It varies at random by a few percent, because L-BFGS adds noise to every gradient step"
+      - "It varies only when the network has more hidden units than there are training points"
+    answer: "It varies by a factor of 1.48, because the loss is non-convex and each start can stop in a different local minimum"
+    evidence: |
+      A least squares problem has one minimum and any start reaches it. A network's loss
+      has many, and L-BFGS stops at whichever one the starting weights lead to: six starts
+      ended near SSE 0.080 and four at 0.107 to 0.118. That is why every network is given
+      a random_state.
+    source:
+      file: lectures/l09/notes.md
+      heading: "Neural networks"
+      quote: "The final training error ranges from 0.0796 to 0.1177, a factor of 1.48, and the test $R^2$ from 0.920 to 0.950."
+    verify: {mode: quote, needle: "a factor of 1.48", volatility: measured}
+    tags: [neural-network, optimization, non-convex]
+
+  - id: l09-q16
+    kind: spot_the_defect
+    rung: 2
     difficulty: 2
     objectives: [l09-o3]
     prompt: |
-      Open [`l09-model-selection.ipynb`](../lectures/l09/l09-model-selection.ipynb)
-      and run the cross-validation comparison on the airfoil data.
-
-      Compare the random-`KFold` and `GroupKFold` scores for the random forest.
-      Which way do they differ, and roughly by how much?
+      An NN-NARX forecasts reactor pressure (about 2,705 kPa, standard deviation 7.7 kPa)
+      30 minutes ahead. The inputs go through a StandardScaler. Its test RMSE is 7.57 kPa,
+      exactly the score of predicting the mean. What is the most likely defect?
     options:
-      - "GroupKFold is lower, by roughly half"
-      - "GroupKFold is higher, by roughly half again"
-      - "They agree to within the fold noise"
-      - "GroupKFold is higher, by more than five times"
-    answer: "GroupKFold is higher, by roughly half again"
+      - "The target was not scaled, so the network stopped at the mean"
+      - "Ten lags are too few for a forecast 30 minutes ahead"
+      - "The inputs should not have been standardized for a time series"
+      - "A network cannot use lag features, only a linear model can"
+    answer: "The target was not scaled, so the network stopped at the mean"
     evidence: |
-      1.76 dB against 2.69 dB, an inflation of 1.52x. The question asks for the
-      direction and the rough size rather than the values, because your exact
-      numbers depend on the scikit-learn version: 1.8 and 1.9 assign groups to
-      folds by different rules with the same signature and the same
-      `shuffle=False`, which is documented in this course's own figure scripts as
-      having silently changed published numbers.
+      The network has to produce numbers near 2,705 from weights that start near zero.
+      Wrapping it in TransformedTargetRegressor with a StandardScaler scales the target as
+      well, and the same network then scores 4.73 kPa, tied with the ridge ARX. It is
+      Lecture 7's deviation variables, applied to the target.
     source:
       file: lectures/l09/notes.md
-      heading: "Measuring what the choice is worth"
-      quote: "| random forest | 1.76 dB | 2.69 dB | **1.52×** |"
-    verify: {mode: ordering, needle: "2.69 dB", volatility: measured}
-    tags: [cross-validation, notebook]
+      heading: "Back to Lecture 8: NARX with a network and a GP"
+      quote: "`TransformedTargetRegressor` with a `StandardScaler` fixes it, and the GP's `normalize_y=True` does the same job."
+    verify: {mode: quote, needle: "TransformedTargetRegressor with a StandardScaler fixes it", volatility: stable}
+    tags: [narx, scaling, neural-network]
+
+  # --- capacity ------------------------------------------------------------------------
+
+  - id: l09-q17
+    kind: direction
+    rung: 2
+    difficulty: 2
+    objectives: [l09-o5]
+    prompt: |
+      You give a model more capacity: a deeper tree, more hidden units, a smaller penalty.
+      What typically happens to its bias and its variance?
+    options:
+      - "Bias goes down and variance goes up"
+      - "Bias goes up and variance goes down"
+      - "Both go down, which is why larger models win"
+      - "Both go up, which is why larger models overfit"
+    answer: "Bias goes down and variance goes up"
+    evidence: |
+      More capacity lets the model follow the truth more closely (lower bias) and also
+      follow the particular training rows more closely (higher variance). The noise term
+      does not move at all. Validation error is lowest at the capacity where the falling
+      bias and the rising variance balance.
+    source:
+      file: lectures/l09/notes.md
+      heading: "Bias and variance"
+      quote: "The **bias-variance trade-off** is that adding capacity lowers a model's bias (its systematic error) and raises its variance (its sensitivity to the particular training rows)"
+    verify: {mode: quote, needle: "adding capacity lowers a model's bias", volatility: stable}
+    tags: [bias-variance, capacity]
+
+  # --- optimizers, Gaussian processes and NARX ------------------------------------------
+
+  - id: l09-q18
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l09-o4]
+    prompt: |
+      Gradient descent, stochastic gradient descent (SGD), Adam and L-BFGS are all
+      variants of one update, `theta_new = theta - eta * H * g`, where g is the gradient
+      of the loss and H is a matrix that shapes the step. What separates SGD from
+      L-BFGS in that update?
+    options:
+      - "SGD takes g from a random mini-batch and uses the identity for H; L-BFGS uses all the rows and an inverse-Hessian estimate"
+      - "SGD shapes the step with an inverse-Hessian estimate built from recent steps; L-BFGS uses the identity and a random mini-batch"
+      - "Both use the gradient over all the rows and the identity for H; SGD simply takes a smaller step length eta"
+      - "SGD computes no gradient at all: it tries random steps and keeps the ones that happen to lower the loss"
+    answer: "SGD takes g from a random mini-batch and uses the identity for H; L-BFGS uses all the rows and an inverse-Hessian estimate"
+    evidence: |
+      The methods differ in two choices: which rows the gradient comes from, and what H
+      is. SGD uses the gradient of a small random mini-batch, a noisy estimate of the full
+      one, and no step shaping, so each step is cheap. L-BFGS uses the exact gradient over
+      all the rows and builds an estimate of the inverse Hessian from its last few steps.
+      On the straight-line fit to the water data that took it 6 iterations, against 305
+      for gradient descent.
+    source:
+      file: lectures/l09/notes.md
+      heading: "How an optimizer moves"
+      quote: "The methods differ in two choices: which rows the gradient is computed from, and what $H_k$ is."
+    verify: {mode: quote, needle: "which rows the gradient is computed from", volatility: stable}
+    tags: [optimization, optimizer, sgd, lbfgs]
+
+  - id: l09-q19
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l09-o4]
+    prompt: |
+      The three-unit network, fitted on 96 rows, is trained with L-BFGS. The NN-NARX,
+      fitted on 144,300 rows, is trained with Adam, a stochastic method. Why is L-BFGS
+      the method of choice for the small problem and not for the large one?
+    options:
+      - "Every L-BFGS iteration needs the gradient over all the rows, which is cheap on 96 rows and costly on 144,300"
+      - "L-BFGS stores the full Hessian matrix, so it runs out of memory once a network has more than a few hundred weights"
+      - "L-BFGS converges only on convex losses, and a larger network's loss is not convex while a small network's is"
+      - "L-BFGS adds random noise to every step, which averages out over a few rows but not over many thousands"
+    answer: "Every L-BFGS iteration needs the gradient over all the rows, which is cheap on 96 rows and costly on 144,300"
+    evidence: |
+      L-BFGS needs few iterations on a smooth problem, but each one uses the exact gradient
+      over the whole dataset, and its curvature estimate assumes that gradient is exact. On
+      small and medium data a full gradient is cheap. On a large table a stochastic method
+      such as SGD or Adam takes thousands of cheap mini-batch steps in the time one full
+      gradient would take. L-BFGS keeps only the last few steps, not a full Hessian, and the
+      three-unit network's loss is itself non-convex.
+    source:
+      file: lectures/l09/notes.md
+      heading: "How an optimizer moves"
+      quote: "Its cost is that every iteration needs the gradient over all the rows, and its curvature estimate assumes that gradient is exact. So it is the method of choice for small and medium datasets, where a full gradient is cheap"
+    verify: {mode: quote, needle: "every iteration needs the gradient over all the rows", volatility: stable}
+    tags: [optimization, optimizer, lbfgs, adam, sgd]
+
+  - id: l09-q20
+    kind: mcq
+    rung: 2
+    difficulty: 3
+    objectives: [l09-o4]
+    prompt: |
+      In scikit-learn, `MLPRegressor(solver="lbfgs")` and `GaussianProcessRegressor`
+      both hand their training problem to the same SciPy routine, L-BFGS-B. How do the
+      two problems differ?
+    options:
+      - "The GP works on the logs of a few kernel hyperparameters, inside bounds; the network's weights are unbounded"
+      - "Both are bounded: every network weight and every GP hyperparameter must stay between 1e-5 and 1e5 throughout training"
+      - "The network's weights are bounded so that they stay positive; the GP's hyperparameters are free"
+      - "Neither is bounded; the B in L-BFGS-B only changes how the routine stores its past steps"
+    answer: "The GP works on the logs of a few kernel hyperparameters, inside bounds; the network's weights are unbounded"
+    evidence: |
+      The network's lbfgs solver calls L-BFGS-B with no bounds at all, which makes it plain
+      L-BFGS, and Adam and SGD apply none either, so a weight can take any value. A GP has
+      no weights. Its decision variables are a handful of kernel hyperparameters, worked on
+      as logarithms because length scales and variances live on a log scale. Every kernel
+      carries bounds on them (10^-5 to 10^5 for the RBF length scale by default), and
+      L-BFGS-B, the version of L-BFGS that handles bounds, enforces them.
+    source:
+      file: lectures/l09/notes.md
+      heading: "Gaussian processes"
+      quote: "They are free: scikit-learn's `lbfgs` solver calls SciPy's L-BFGS-B routine with no bounds at all, which makes it plain L-BFGS, and Adam and SGD apply none either. A Gaussian process has no weights. Its decision variables are the handful of kernel hyperparameters, and in scikit-learn the bounds are real constraints"
+    verify: {mode: quote, needle: "with no bounds at all", volatility: stable}
+    tags: [gaussian-process, neural-network, optimization, bounds]
+
+  - id: l09-q21
+    kind: predict_measure
+    rung: 1
+    difficulty: 2
+    objectives: [l09-o3]
+    prompt: |
+      A Gaussian process, with its kernel held fixed, learns
+      f(u) = sin u + log u - exp(-0.1 u^2) on 0.5 to 10 from 2, then 5, then 20 noisy
+      observations.
+
+      Before you look: what happens to its band of plus or minus two standard deviations
+      as the points arrive?
+    predict:
+      ask: "Does the band shrink evenly, or not? Commit first."
+      common_prior: "It narrows by the same amount everywhere, since every point adds information."
+    options:
+      - "It pinches near each new point and stays wide where there are no points yet"
+      - "It narrows by the same amount everywhere, however far a new point is from the rest"
+      - "It keeps the same width throughout, because a fixed kernel fixes the uncertainty"
+      - "It widens near each new point, because every noisy observation adds uncertainty"
+    answer: "It pinches near each new point and stays wide where there are no points yet"
+    evidence: |
+      The prior allows every function the kernel permits, so the band starts wide
+      everywhere. Each observation pulls the mean toward it and shrinks the band near it;
+      far from every observation the uncertainty stays wide. After 20 points spread over
+      the range the band is narrow everywhere, which is also why a GP's band grows again
+      outside the data.
+    source:
+      file: lectures/l09/notes.md
+      heading: "Gaussian processes"
+      quote: "The posterior is again a Gaussian process, and each new observation pulls its mean toward the data and shrinks its uncertainty near that point, while far from the data the uncertainty stays wide."
+    verify: {mode: quote, needle: "shrinks its uncertainty near that point", volatility: stable}
+    tags: [gaussian-process, uncertainty, posterior]
+
+  - id: l09-q22
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l09-o3]
+    prompt: |
+      Lecture 8's forecaster predicts reactor pressure 30 minutes ahead from its last ten
+      measured values, y(t), y(t-3), ..., y(t-27), and the eleven valve positions now, and
+      Lecture 8 fitted it with ridge. Keep the same table and the same columns, and fit an
+      MLPRegressor instead. What is the model now?
+    options:
+      - "A NARX model: the same lagged columns, with a network as the nonlinear f"
+      - "Still an ARX model, since the name describes the lagged columns and not the function fitted to them"
+      - "A recurrent network, since it now feeds its own forecasts back in as inputs"
+      - "Not a valid model, since a network needs rows that are separate experiments"
+    answer: "A NARX model: the same lagged columns, with a network as the nonlinear f"
+    evidence: |
+      ARX and NARX share the table; they differ in f. With a linear f, as in Lecture 8's
+      ridge fit, the model is an ARX; with a network or a GP it is a nonlinear ARX. The
+      inputs are measured past pressures, so no forecast is fed back, and nothing in the
+      four families needs the rows to be separate experiments.
+    source:
+      file: lectures/l09/notes.md
+      heading: "Back to Lecture 8: NARX with a network and a GP"
+      quote: "When $f$ is linear, as in Lecture 8's ridge fit, this is an ARX model; when $f$ is a network or a GP, it is a NARX model, a nonlinear ARX."
+    verify: {mode: quote, needle: "it is a NARX model, a nonlinear ARX", volatility: stable}
+    tags: [narx, arx, neural-network]

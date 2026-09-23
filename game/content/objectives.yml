@@ -26,19 +26,33 @@
 - id: l09-o1
   lecture: l09
   text: >-
-    Translate an engineering question into a learning task with an appropriate loss and
-    reporting metric.
+    Frame an engineering question as regression or classification, and name its samples,
+    features and target.
 
 - id: l09-o2
   lecture: l09
   text: >-
-    Build and beat baselines; know when a "sophisticated" model is not actually earning its
-    complexity.
+    Split data into training, validation and test sets, and explain why the test set is used
+    only once.
 
 - id: l09-o3
   lecture: l09
   text: >-
-    Choose the correct cross-validation scheme for the data's structure.
+    Fit and compare linear, decision tree, neural network and Gaussian process models through
+    scikit-learn's common `fit` and `predict` interface, on a table of experiments and on a NARX
+    table.
+
+- id: l09-o4
+  lecture: l09
+  text: >-
+    Write the training of a linear model, a neural network and a Gaussian process as an
+    optimization problem, and say what each one optimizes.
+
+- id: l09-o5
+  lecture: l09
+  text: >-
+    Use k-fold and grouped cross-validation, validation curves and learning curves to diagnose
+    underfitting and overfitting and to choose between models.
 
 - id: l11-o1
   lecture: l11
@@ -284,20 +298,38 @@
   text: >-
     Use forecast residuals as a simple anomaly detector, setting the threshold on normal data and reporting false alarms and detection delay.
 
-# L10, published notes and no bank yet (game/content/l10.yml, status: unwritten).
-# Registered so whoever writes that bank maps onto objectives that already exist.
+# L10. The classification objectives (o1 to o3) have items in game/content/l10.yml; the
+# tracking and search objectives (o4 to o6) have none yet.
 
 - id: l10-o1
   lecture: l10
   text: >-
-    Instrument a training script so every run is logged, comparable, and reproducible.
+    Fit and compare logistic regression, decision tree, neural network and Gaussian process
+    classifiers, and say what each one minimizes.
 
 - id: l10-o2
   lecture: l10
   text: >-
-    Run grid, random, and Bayesian hyperparameter search and interpret the results honestly.
+    Choose metrics that match the cost of an error, including precision and recall when one class
+    is rare.
 
 - id: l10-o3
+  lecture: l10
+  text: >-
+    Use stratified k-fold when one class is rare, and test a classifier on classes it was not
+    trained on.
+
+- id: l10-o4
+  lecture: l10
+  text: >-
+    Instrument a training script so every run is logged, comparable, and reproducible.
+
+- id: l10-o5
+  lecture: l10
+  text: >-
+    Run grid, random, and Bayesian hyperparameter search and interpret the results honestly.
+
+- id: l10-o6
   lecture: l10
   text: >-
     Register a selected model with its metrics, params, and data lineage.

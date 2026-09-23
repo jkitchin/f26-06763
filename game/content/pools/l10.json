@@ -4,6 +4,137 @@
     "1": {
       "items": {},
       "serve": 0
+    },
+    "2": {
+      "items": {
+        "l10-q01": {
+          "answer": "A straight line, because the prediction flips exactly where w^T x + b = 0",
+          "options": [
+            "A straight line, because the prediction flips exactly where w^T x + b = 0",
+            "An S-shaped curve, because the logistic function is S-shaped",
+            "A circle around the class-1 points, because the probability peaks there",
+            "Any shape, given enough training points"
+          ]
+        },
+        "l10-q02": {
+          "answer": "0.32",
+          "options": [
+            "0.32",
+            "0.20",
+            "0.50",
+            "0.80"
+          ]
+        },
+        "l10-q03": {
+          "answer": "The output becomes a softmax, and the loss becomes the cross-entropy",
+          "options": [
+            "The output becomes a softmax, and the loss becomes the cross-entropy",
+            "The hidden layers switch from tanh to ReLU, and the loss stays the squared error",
+            "The output stays linear, and a threshold at 0.5 is applied after training",
+            "Nothing changes in training; only the metric changes, from RMSE to accuracy"
+          ]
+        },
+        "l10-q04": {
+          "answer": "The labels follow a Bernoulli likelihood, so the posterior over the latent function is no longer Gaussian",
+          "options": [
+            "The labels follow a Bernoulli likelihood, so the posterior over the latent function is no longer Gaussian",
+            "Classification data is always too large for the O(N^3) solve, so it subsamples",
+            "The kernel cannot be evaluated on categorical targets, so it is replaced by a linear one",
+            "The marginal likelihood of the labels has no hyperparameters left to optimize"
+          ]
+        },
+        "l10-q05": {
+          "answer": "The neural network with five ReLU units",
+          "options": [
+            "The neural network with five ReLU units",
+            "Logistic regression",
+            "The depth-3 decision tree",
+            "The Gaussian process classifier"
+          ]
+        },
+        "l10-q06": {
+          "answer": "The flow swings to both sides of normal, and a straight boundary can cut off only one side",
+          "options": [
+            "The flow swings to both sides of normal, and a straight boundary can cut off only one side",
+            "Logistic regression needs scaled inputs, and the 52 channels were left unscaled",
+            "The fault is too rare in the training data for a linear model to notice",
+            "A tree has more parameters, so it can memorize the faulty training runs"
+          ]
+        },
+        "l10-q07": {
+          "answer": "85.4%, while finding no fault at all",
+          "options": [
+            "85.4%, while finding no fault at all",
+            "14.6%, the fraction of samples that are faulty",
+            "50%, since it is no better than a coin",
+            "0%, since it never makes a correct detection"
+          ]
+        },
+        "l10-q08": {
+          "answer": "Precision",
+          "options": [
+            "Precision",
+            "Recall",
+            "Accuracy",
+            "The false-alarm rate"
+          ]
+        },
+        "l10-q09": {
+          "answer": "False negative (FN)",
+          "options": [
+            "False negative (FN)",
+            "False positive (FP)",
+            "True negative (TN)",
+            "True positive (TP)"
+          ]
+        },
+        "l10-q10": {
+          "answer": "Neither metric uses the true negatives, the normal samples left alone",
+          "options": [
+            "Neither metric uses the true negatives, the normal samples left alone",
+            "Both metrics divide by the total number of samples, so extra normal samples cancel out",
+            "scikit-learn drops normal samples before computing them",
+            "It can: more normal samples always raise precision"
+          ]
+        },
+        "l10-q11": {
+          "answer": "Recall, accepting more false alarms",
+          "options": [
+            "Recall, accepting more false alarms",
+            "Precision, accepting more missed faults",
+            "Accuracy, since it counts both kinds of error",
+            "Neither: report F1 and leave the trade-off to the operators"
+          ]
+        },
+        "l10-q12": {
+          "answer": "Some fold gets no faulty sample, and recall on it is undefined",
+          "options": [
+            "Some fold gets no faulty sample, and recall on it is undefined",
+            "Every fold gets exactly one faulty sample, since 5 divides 50",
+            "The folds stay balanced, because shuffling spreads the classes out",
+            "KFold refuses to run when a class has fewer samples than folds"
+          ]
+        },
+        "l10-q13": {
+          "answer": "It ranges from 0.001 on one fault to 0.92 on another",
+          "options": [
+            "It ranges from 0.001 on one fault to 0.92 on another",
+            "It stays near 0.96, since a fault is a fault",
+            "It drops evenly to about 0.5 on all eight",
+            "It is exactly zero on all eight, since the classes were never seen"
+          ]
+        },
+        "l10-q14": {
+          "answer": "0",
+          "options": [
+            "0",
+            "0.5",
+            "0.854, its accuracy",
+            "0.427, the mean of its accuracy and its recall"
+          ]
+        }
+      },
+      "serve": 7
     }
   }
 }

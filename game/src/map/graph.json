@@ -69,16 +69,37 @@
     },
     {
       "from": "l09",
+      "to": "l05",
+      "weight": 1,
+      "where": "The simulated chemical plant of [Lecture 5](../l05/notes.md) and Lecture 8 ([Downs and Vogel,",
+      "origin": "link"
+    },
+    {
+      "from": "l09",
       "to": "l07",
-      "weight": 4,
-      "where": "[Lecture 7](../l07/notes.md)'s C-MAPSS fleet. Take a model with a flat, perfectly uniform 15-cycle",
+      "weight": 3,
+      "where": "regressors of [Lecture 7](../l07/notes.md). A transform that is fitted to data, such as",
+      "origin": "link"
+    },
+    {
+      "from": "l09",
+      "to": "l08",
+      "weight": 2,
+      "where": "[Lecture 8](../l08/notes.md) did this for a time series: the rows were minutes of one plant,",
       "origin": "link"
     },
     {
       "from": "l10",
       "to": "l02",
-      "weight": 1,
+      "weight": 2,
       "where": "That list is specific, and it ties this session back to the rest of the course. Log the **hyperparameters** and the **metrics** (per fold, not just the average,",
+      "origin": "link"
+    },
+    {
+      "from": "l10",
+      "to": "l05",
+      "weight": 1,
+      "where": "Lecture 9 used the simulated plant of [Lecture 5](../l05/notes.md) and Lecture 8 ([Downs and",
       "origin": "link"
     },
     {
@@ -91,15 +112,15 @@
     {
       "from": "l10",
       "to": "l08",
-      "weight": 2,
-      "where": "That list is specific, and it ties this session back to the rest of the course. Log the **hyperparameters** and the **metrics** (per fold, not just the average,",
+      "weight": 1,
+      "where": "The power-plant result is the caution: TPE beat random by 0.009 MW, a difference smaller than the fold noise. Bayesian optimization earns its complexity on expe",
       "origin": "link"
     },
     {
       "from": "l10",
       "to": "l09",
       "weight": 2,
-      "where": "[Lecture 9](../l09/notes.md) built the workflow that produces those runs: baselines, cross-validation, metrics, and the discipline of touching the test set once",
+      "where": "of that, because a supervised classifier can only recognize the classes it was shown. This session carries [Lecture 9](../l09/notes.md)'s four model families ov",
       "origin": "link"
     },
     {
@@ -282,10 +303,10 @@
     "l02": 1,
     "l03": 4,
     "l04": 3,
-    "l05": 3,
+    "l05": 5,
     "l06": 0,
     "l07": 6,
-    "l08": 2,
+    "l08": 3,
     "l09": 4,
     "l10": 0,
     "l11": 3,
@@ -301,13 +322,13 @@
   },
   "in_weight": {
     "l01": 1,
-    "l02": 1,
+    "l02": 2,
     "l03": 6,
     "l04": 4,
-    "l05": 5,
+    "l05": 7,
     "l06": 0,
-    "l07": 9,
-    "l08": 4,
+    "l07": 8,
+    "l08": 5,
     "l09": 9,
     "l10": 0,
     "l11": 4,
@@ -330,8 +351,8 @@
     "l06": 1,
     "l07": 1,
     "l08": 1,
-    "l09": 1,
-    "l10": 4,
+    "l09": 3,
+    "l10": 5,
     "l11": 2,
     "l12": 3,
     "l13": 4,

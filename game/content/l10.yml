@@ -1,13 +1,394 @@
+# L10 item bank. The classification items moved here from the L09 bank on 2026-09-22, with
+# the classification material itself, and the rest are written against the classification
+# half of lectures/l10/notes.md. The tracking and search half has no items yet. Numbers come
+# from lectures/l10/figures/make_figures.py. Faults 3, 9 and 15 of the Tennessee Eastman plant
+# never appear here: the miniproject checks that students find them on their own.
+
 schema: 1
 lecture: l10
-title: "Experiment tracking and hyperparameter search"
+title: "The machine learning workflow III: classification, experiment tracking and hyperparameter search"
 source_notes: lectures/l10/notes.md
-# The notes are published, the item bank is not written yet. See
-# game/content/l06.yml for why this stub exists rather than nothing.
+# Held until release: tools/release_lecture.py flips this to published.
 status: unwritten
-serve: 0
-pool_version: 1
+serve: 7
+pool_version: 2
 provenance:
-  drafted_by: none
+  drafted_by: hand
   reviewed_by: none
-items: []
+  reviewed_at: 2026-09-22
+
+items:
+
+  # --- the families, for classification -------------------------------------------
+
+  - id: l10-q01
+    kind: mcq
+    rung: 1
+    difficulty: 1
+    objectives: [l10-o1]
+    prompt: |
+      Logistic regression predicts class 1 when sigma(w^T x + b) > 0.5. On two inputs,
+      what shape is its decision boundary?
+    options:
+      - "A straight line, because the prediction flips exactly where w^T x + b = 0"
+      - "An S-shaped curve, because the logistic function is S-shaped"
+      - "A circle around the class-1 points, because the probability peaks there"
+      - "Any shape, given enough training points"
+    answer: "A straight line, because the prediction flips exactly where w^T x + b = 0"
+    evidence: |
+      The probability is above 0.5 exactly when w^T x + b > 0, so the boundary is the set
+      w^T x + b = 0: a straight line in two dimensions and a flat plane in more. The S shape
+      is the probability along the direction w, not the boundary.
+    source:
+      file: lectures/l10/notes.md
+      heading: "Logistic regression"
+      quote: "So its **decision boundary**, the line between the two predicted classes, is a straight line in two dimensions and a flat plane in more."
+    verify: {mode: quote, needle: "is a straight line in two dimensions and a flat plane in more", volatility: stable}
+    tags: [logistic-regression, decision-boundary]
+
+  - id: l10-q02
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l10-o1]
+    prompt: |
+      A leaf of a classification tree holds 5 samples: 4 normal and 1 faulty. What is its
+      Gini impurity, G = 1 - sum of p_k squared?
+    options:
+      - "0.32"
+      - "0.20"
+      - "0.50"
+      - "0.80"
+    answer: "0.32"
+    evidence: |
+      The class fractions are 0.8 and 0.2, so G = 1 - (0.64 + 0.04) = 0.32. It would be 0
+      for a pure leaf. 0.20 is the fraction of the minority class, and 0.80 is the fraction
+      of the majority, neither of which is the impurity.
+    source:
+      file: lectures/l10/notes.md
+      heading: "Decision trees for classification"
+      quote: "$G = 1 - (0.8^2 + 0.2^2) = 1 - (0.64 + 0.04) = 0.32$"
+    verify: {mode: quote, needle: "0.32", volatility: stable}
+    tags: [decision-tree, gini]
+
+  - id: l10-q03
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l10-o1]
+    prompt: |
+      Lecture 9's regression network had a linear output and was trained on the squared
+      error. What changes when the same network is used to classify?
+    options:
+      - "The output becomes a softmax, and the loss becomes the cross-entropy"
+      - "The hidden layers switch from tanh to ReLU, and the loss stays the squared error"
+      - "The output stays linear, and a threshold at 0.5 is applied after training"
+      - "Nothing changes in training; only the metric changes, from RMSE to accuracy"
+    answer: "The output becomes a softmax, and the loss becomes the cross-entropy"
+    evidence: |
+      A classification network outputs probabilities over the classes, which is what the
+      softmax produces, and it is trained to put high probability on the correct class,
+      which is what the cross-entropy measures. The hidden layers can stay as they were.
+    source:
+      file: lectures/l10/notes.md
+      heading: "Neural networks for classification"
+      quote: "So a regression network has a linear output and a squared-error loss, and a classification network has a softmax output and a cross-entropy loss."
+    verify: {mode: quote, needle: "a classification network has a softmax output and a cross-entropy loss", volatility: stable}
+    tags: [neural-network, softmax, cross-entropy]
+
+  - id: l10-q04
+    kind: mcq
+    rung: 3
+    difficulty: 3
+    objectives: [l10-o1]
+    prompt: |
+      A Gaussian process regressor's posterior is Gaussian and exact. Why does
+      scikit-learn's GaussianProcessClassifier have to approximate?
+    options:
+      - "The labels follow a Bernoulli likelihood, so the posterior over the latent function is no longer Gaussian"
+      - "Classification data is always too large for the O(N^3) solve, so it subsamples"
+      - "The kernel cannot be evaluated on categorical targets, so it is replaced by a linear one"
+      - "The marginal likelihood of the labels has no hyperparameters left to optimize"
+    answer: "The labels follow a Bernoulli likelihood, so the posterior over the latent function is no longer Gaussian"
+    evidence: |
+      The classifier puts a GP prior on a latent function and passes it through a link to
+      get a probability. With 0/1 labels the likelihood is Bernoulli, the posterior over
+      the latent function stops being Gaussian, and scikit-learn replaces it with a
+      Gaussian (the Laplace approximation).
+    source:
+      file: lectures/l10/notes.md
+      heading: "What each family minimizes, regression against classification"
+      quote: "so scikit-learn approximates that posterior with a Gaussian (the Laplace approximation)"
+    verify: {mode: quote, needle: "the Laplace approximation", volatility: stable}
+    tags: [gaussian-process, classification, laplace]
+
+  - id: l10-q05
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l10-o1]
+    prompt: |
+      Four classifiers are trained on the same 210 moons points. Which one draws a
+      boundary made of a few slanted straight pieces, at angles other than horizontal
+      and vertical, that bends around the moons?
+    options:
+      - "The neural network with five ReLU units"
+      - "Logistic regression"
+      - "The depth-3 decision tree"
+      - "The Gaussian process classifier"
+    answer: "The neural network with five ReLU units"
+    evidence: |
+      A ReLU network is piecewise linear, with a kink wherever a unit switches on, so its
+      boundary is a few straight pieces at any angle (test accuracy 0.933). Logistic
+      regression draws one straight line (0.867), the tree draws rectangles whose edges
+      are all horizontal or vertical, because each split tests one input (0.911), and the
+      GP draws a smooth curve (0.967).
+    source:
+      file: lectures/l10/notes.md
+      heading: "Decision regions on the moons data"
+      quote: "The network with five ReLU units bends the boundary out of a few straight pieces and scores 0.933."
+    verify: {mode: quote, needle: "bends the boundary out of a few straight pieces", volatility: measured}
+    tags: [moons, decision-boundary, relu]
+
+  - id: l10-q06
+    kind: mcq
+    rung: 3
+    difficulty: 3
+    objectives: [l10-o1]
+    prompt: |
+      On Tennessee Eastman fault 14 (a sticking reactor cooling water valve), a
+      logistic regression catches 0% of the faulty samples and a depth-8 tree catches
+      99.7%. The flow's mean barely moves under the fault. Why does the line miss?
+    options:
+      - "The flow swings to both sides of normal, and a straight boundary can cut off only one side"
+      - "Logistic regression needs scaled inputs, and the 52 channels were left unscaled"
+      - "The fault is too rare in the training data for a linear model to notice"
+      - "A tree has more parameters, so it can memorize the faulty training runs"
+    answer: "The flow swings to both sides of normal, and a straight boundary can cut off only one side"
+    evidence: |
+      The standard deviation of xmv_10 grows from 0.54 to 7.44 while its mean stays
+      put, and 45% of faulty samples fall on each side of the normal band. The tree's
+      first two splits make a band around normal; a line would need the classes on
+      opposite sides of a plane.
+    source:
+      file: lectures/l10/notes.md
+      heading: "A fault a straight line cannot see"
+      quote: "A straight boundary can only cut off one side, and because the mean did not move, the best line cuts off neither."
+    verify: {mode: quote, needle: "the best line cuts off neither", volatility: stable}
+    tags: [classification, decision-boundary, tep]
+
+  # --- metrics --------------------------------------------------------------------
+
+  - id: l10-q07
+    kind: predict_measure
+    rung: 2
+    difficulty: 2
+    objectives: [l10-o2]
+    prompt: |
+      A Tennessee Eastman test set has 59,000 samples, 14.6% of them faulty. A
+      "classifier" answers "normal" for every sample.
+
+      Before you look: what accuracy does it score?
+    predict:
+      ask: "Write a number down before revealing."
+      common_prior: "Something poor, since it never detects anything."
+    options:
+      - "85.4%, while finding no fault at all"
+      - "14.6%, the fraction of samples that are faulty"
+      - "50%, since it is no better than a coin"
+      - "0%, since it never makes a correct detection"
+    answer: "85.4%, while finding no fault at all"
+    evidence: |
+      Accuracy counts every correct normal answer too, and 85.4% of the samples are
+      normal. Its recall is zero. When one class is rare, accuracy rewards a detector
+      that never raises an alarm.
+    source:
+      file: lectures/l10/notes.md
+      heading: "Classification metrics"
+      quote: "A \"classifier\" that always answers \"normal\" scores **85.4% accuracy**, and never finds a single fault."
+    verify: {mode: quote, needle: "85.4% accuracy", volatility: measured}
+    tags: [accuracy, imbalance, baseline]
+
+  - id: l10-q08
+    kind: mcq
+    rung: 1
+    difficulty: 1
+    objectives: [l10-o2]
+    prompt: |
+      A detector raises 100 alarms and 90 of them turn out to be real faults. Which
+      metric is 0.9?
+    options:
+      - "Precision"
+      - "Recall"
+      - "Accuracy"
+      - "The false-alarm rate"
+    answer: "Precision"
+    evidence: |
+      Precision is TP / (TP + FP): of the alarms raised, the fraction that were real.
+      Recall asks the other question, of the real faults, the fraction caught, and it
+      needs the number of faults that raised no alarm.
+    source:
+      file: lectures/l10/notes.md
+      heading: "Classification metrics"
+      quote: "**Precision** is TP / (TP + FP): of the alarms raised, the fraction that were real."
+    verify: {mode: quote, needle: "of the alarms raised, the fraction that were real", volatility: stable}
+    tags: [precision, recall, confusion-matrix]
+
+  - id: l10-q09
+    kind: mcq
+    rung: 1
+    difficulty: 1
+    objectives: [l10-o2]
+    prompt: |
+      With "faulty" as the positive class, a faulty sample that the detector labels
+      normal lands in which cell of the confusion matrix?
+    options:
+      - "False negative (FN)"
+      - "False positive (FP)"
+      - "True negative (TN)"
+      - "True positive (TP)"
+    answer: "False negative (FN)"
+    evidence: |
+      The prediction was negative (normal) and it was wrong, so it is a false negative: a
+      fault that was missed. A false positive is the opposite mistake, a false alarm on a
+      normal sample. Recall is TP / (TP + FN), so every missed fault lowers it.
+    source:
+      file: lectures/l10/notes.md
+      heading: "Classification metrics"
+      quote: "a **false negative** (FN) is a fault that was missed"
+    verify: {mode: quote, needle: "is a fault that was missed", volatility: stable}
+    tags: [confusion-matrix, recall]
+
+  - id: l10-q10
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l10-o2]
+    prompt: |
+      Why can a fault detector not make its precision or recall look better by scoring
+      it on many more normal samples?
+    options:
+      - "Neither metric uses the true negatives, the normal samples left alone"
+      - "Both metrics divide by the total number of samples, so extra normal samples cancel out"
+      - "scikit-learn drops normal samples before computing them"
+      - "It can: more normal samples always raise precision"
+    answer: "Neither metric uses the true negatives, the normal samples left alone"
+    evidence: |
+      Precision is TP / (TP + FP) and recall is TP / (TP + FN). The true negatives appear
+      in neither, which is exactly why they expose a detector that accuracy, which does
+      count the true negatives, cannot.
+    source:
+      file: lectures/l10/notes.md
+      heading: "Classification metrics"
+      quote: "Neither uses TN, which is why a detector cannot look good on them by piling up normal samples."
+    verify: {mode: quote, needle: "Neither uses TN", volatility: stable}
+    tags: [precision, recall, imbalance]
+
+  - id: l10-q11
+    kind: mcq
+    rung: 3
+    difficulty: 2
+    objectives: [l10-o2]
+    prompt: |
+      A missed fault on a reactor can mean a runaway reaction or a damaged catalyst, and
+      a false alarm costs an operator's inspection. Which metric should the detector be
+      pushed on?
+    options:
+      - "Recall, accepting more false alarms"
+      - "Precision, accepting more missed faults"
+      - "Accuracy, since it counts both kinds of error"
+      - "Neither: report F1 and leave the trade-off to the operators"
+    answer: "Recall, accepting more false alarms"
+    evidence: |
+      When a missed fault is the expensive error, recall is the metric that counts it, and
+      raising recall usually costs precision, so more alarms follow. When false alarms cost
+      the operators' trust, the choice flips. Accuracy hides both on imbalanced data.
+    source:
+      file: lectures/l10/notes.md
+      heading: "Classification metrics"
+      quote: "When a missed fault is expensive (a runaway reaction, a damaged catalyst), push recall and accept more alarms."
+    verify: {mode: quote, needle: "push recall and accept more alarms", volatility: stable}
+    tags: [recall, precision, cost-of-error]
+
+  # --- folds and unseen classes ---------------------------------------------------
+
+  - id: l10-q12
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l10-o3]
+    prompt: |
+      A dataset has 50 samples, 5 of them faulty. You run a shuffled five-fold KFold
+      without stratification. What is likely to happen?
+    options:
+      - "Some fold gets no faulty sample, and recall on it is undefined"
+      - "Every fold gets exactly one faulty sample, since 5 divides 50"
+      - "The folds stay balanced, because shuffling spreads the classes out"
+      - "KFold refuses to run when a class has fewer samples than folds"
+    answer: "Some fold gets no faulty sample, and recall on it is undefined"
+    evidence: |
+      Each fold draws 10 of the 50 samples at random, and in 95% of shuffles at least
+      one fold draws no faulty sample. StratifiedKFold builds each fold with the
+      dataset's class fractions, so each gets exactly one.
+    source:
+      file: lectures/l10/notes.md
+      heading: "Stratified k-fold"
+      quote: "a shuffled five-fold split leaves at least one fold with no faulty sample in 95% of shuffles, and the recall on that fold is undefined."
+    verify: {mode: quote, needle: "no faulty sample in 95% of shuffles", volatility: measured}
+    tags: [stratifiedkfold, imbalance]
+
+  - id: l10-q13
+    kind: predict_measure
+    rung: 3
+    difficulty: 3
+    objectives: [l10-o3]
+    prompt: |
+      A neural network trained on nine Tennessee Eastman faults catches 96% of their
+      faulty samples on held-out runs. It is then shown eight faults it was never
+      trained on.
+
+      Before you look: what does its recall on those eight do?
+    predict:
+      ask: "Commit to a guess before revealing."
+      common_prior: "A little lower, since faults look alike."
+    options:
+      - "It ranges from 0.001 on one fault to 0.92 on another"
+      - "It stays near 0.96, since a fault is a fault"
+      - "It drops evenly to about 0.5 on all eight"
+      - "It is exactly zero on all eight, since the classes were never seen"
+    answer: "It ranges from 0.001 on one fault to 0.92 on another"
+    evidence: |
+      A supervised classifier answers "does this look like a fault I have seen?". Some new
+      faults happen to look like trained ones and are caught; others do not and are
+      missed almost entirely, and nothing about the classifier says in advance which.
+    source:
+      file: lectures/l10/notes.md
+      heading: "A classifier only knows the faults it was trained on"
+      quote: "Its recall on the new faults ranges from 0.001 on fault 19 to 0.92 on fault 18"
+    verify: {mode: quote, needle: "ranges from 0.001 on fault 19 to 0.92 on fault 18", volatility: measured}
+    tags: [unseen-classes, recall, tep]
+
+  - id: l10-q14
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l10-o2]
+    prompt: |
+      The baseline that always answers "normal" has precision and recall of zero. What
+      is its F1 score?
+    options:
+      - "0"
+      - "0.5"
+      - "0.854, its accuracy"
+      - "0.427, the mean of its accuracy and its recall"
+    answer: "0"
+    evidence: |
+      From the counts, F1 = 2 TP / (2 TP + FP + FN). The baseline has TP = 0 and FN = 8,640,
+      so its F1 is 0 with no convention needed, even though its precision is 0/0 (it raises
+      no alarms), which scikit-learn reports as 0. F1 is zero whenever precision or recall is.
+    source:
+      file: lectures/l10/notes.md
+      heading: "Classification metrics"
+      quote: "and it is zero when either of them is"
+    verify: {mode: quote, needle: "it is zero when either of them is", volatility: stable}
+    tags: [f1, baseline]

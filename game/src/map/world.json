@@ -178,20 +178,20 @@
       "session": "L9",
       "id": "l09",
       "date": "2026-09-23",
-      "title": "The machine learning (ML) workflow II: Regression, classification",
-      "written": false,
+      "title": "The machine learning (ML) workflow II: Regression",
+      "written": true,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
       "region": 2,
       "x": 8,
       "y": 1,
-      "notes": null
+      "notes": "../lectures/l09/notes.html"
     },
     {
       "session": "L10",
       "id": "l10",
       "date": "2026-09-28",
-      "title": "Experiment tracking and hyperparameter search/tuning",
+      "title": "The machine learning (ML) workflow III: Classification, experiment tracking and hyperparameter search/tuning",
       "written": false,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
@@ -408,11 +408,27 @@
     },
     {
       "from": "l09",
+      "to": "l05",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "The simulated chemical plant of [Lecture 5](../l05/notes.md) and Lecture 8 ([Downs and Vogel,"
+    },
+    {
+      "from": "l09",
       "to": "l07",
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "[Lecture 7](../l07/notes.md)'s C-MAPSS fleet. Take a model with a flat, perfectly uniform 15-cycle"
+      "where": "regressors of [Lecture 7](../l07/notes.md). A transform that is fitted to data, such as"
+    },
+    {
+      "from": "l09",
+      "to": "l08",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "[Lecture 8](../l08/notes.md) did this for a time series: the rows were minutes of one plant,"
     },
     {
       "from": "l10",
@@ -421,6 +437,14 @@
       "relation": null,
       "why": null,
       "where": "That list is specific, and it ties this session back to the rest of the course. Log the **hyperparameters** and the **metrics** (per fold, not just the average,"
+    },
+    {
+      "from": "l10",
+      "to": "l05",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "Lecture 9 used the simulated plant of [Lecture 5](../l05/notes.md) and Lecture 8 ([Downs and"
     },
     {
       "from": "l10",
@@ -436,7 +460,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "That list is specific, and it ties this session back to the rest of the course. Log the **hyperparameters** and the **metrics** (per fold, not just the average,"
+      "where": "The power-plant result is the caution: TPE beat random by 0.009 MW, a difference smaller than the fold noise. Bayesian optimization earns its complexity on expe"
     },
     {
       "from": "l10",
@@ -444,7 +468,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "[Lecture 9](../l09/notes.md) built the workflow that produces those runs: baselines, cross-validation, metrics, and the discipline of touching the test set once"
+      "where": "of that, because a supervised classifier can only recognize the classes it was shown. This session carries [Lecture 9](../l09/notes.md)'s four model families ov"
     },
     {
       "from": "l11",

@@ -1,0 +1,384 @@
+{
+  "lecture": "l09",
+  "title": "The machine learning workflow II: regression",
+  "pool_version": 4,
+  "source_notes": "lectures/l09/notes.md",
+  "generated_by": "tools/arcade_rounds.py",
+  "items": [
+    {
+      "id": "l09-q01",
+      "kind": "mcq",
+      "lecture": "l09",
+      "context": "The concrete dataset has 1,030 rows: seven ingredient amounts, the age in\ndays, and the compressive strength in MPa. What is one sample?",
+      "why": "A sample is one row, and each row is one mix crushed at one age. The same mix\ncrushed at 7 and at 28 days is two samples, which is why the rows are not all\nindependent experiments.",
+      "objectives": [
+        "l09-o1"
+      ],
+      "tags": [
+        "terminology",
+        "concrete"
+      ],
+      "true": "One concrete mix tested at one age",
+      "false": [
+        "One concrete mix, across every age it was tested at",
+        "One ingredient amount in one mix",
+        "One strength value, with its units"
+      ]
+    },
+    {
+      "id": "l09-q02",
+      "kind": "mcq",
+      "lecture": "l09",
+      "context": "In Lecture 8, shuffling the rows before splitting let a forecaster read the\nfuture. On the water and surfactant data, shuffling the rows before splitting\nis allowed. What changed?",
+      "why": "A time series has an order that decides what counts as the future. A table of\nseparate experiments does not. The catch is that separate rows are not always\nseparate experiments: the 1,030 concrete rows are 428 mixes, which is why the\nconcrete test set and folds are split by mix with GroupKFold.",
+      "objectives": [
+        "l09-o1"
+      ],
+      "tags": [
+        "framing",
+        "splitting"
+      ],
+      "true": "The rows are separate experiments, so their order in the file means nothing",
+      "false": [
+        "The water and surfactant data are small, so leakage is too small to matter",
+        "Regression models cannot use the order of the rows",
+        "The target is measured at the same time as the features, so it cannot leak"
+      ]
+    },
+    {
+      "id": "l09-q03",
+      "kind": "spot_the_defect",
+      "lecture": "l09",
+      "context": "A student fits a network, scores it on the test set, adds four hidden units\nbecause the score looked low, and scores it on the test set again. They report\nthe second test score. What is wrong?",
+      "why": "Changing the model because of a test score lets information from the test rows\ninto the choice. After that the test set is doing the validation set's job, and\nthe number it gives is optimistic. The test set is touched once.",
+      "objectives": [
+        "l09-o2"
+      ],
+      "tags": [
+        "test-once",
+        "workflow"
+      ],
+      "true": "The test set has become validation data, so its score no longer estimates new data",
+      "false": [
+        "Nothing; the test set was only used to check the model, never to fit it",
+        "The network needed a larger training set, not more hidden units",
+        "Test scores should be averaged over both attempts before reporting"
+      ]
+    },
+    {
+      "id": "l09-q04",
+      "kind": "predict_measure",
+      "lecture": "l09",
+      "context": "A GP on concrete scores 7.17 MPa RMSE under grouped cross-validation. It is then\nfitted on all 835 training rows and scored once on 86 held-out mixes.\n\nBefore you look: what does the test score look like?",
+      "why": "A test set of a couple of hundred rows is one random draw, and its score moves\nby a megapascal or two from draw to draw. The single test number carries its own\nuncertainty; reporting it once does not make it exact.",
+      "objectives": [
+        "l09-o2"
+      ],
+      "tags": [
+        "test-once",
+        "uncertainty"
+      ],
+      "true": "Lower, 5.39 MPa, and other random draws of the test mixes span 5.45 to 7.42 MPa",
+      "false": [
+        "Within 0.1 MPa of 7.17, because the model and the data are the same",
+        "Much higher, because none of the test mixes was ever seen in training",
+        "Undefined, because the GP needs the test targets to fit its kernel"
+      ]
+    },
+    {
+      "id": "l09-q05",
+      "kind": "predict_measure",
+      "lecture": "l09",
+      "context": "A third-degree polynomial in temperature is fitted to 16 of the 21 NIST points\nfor water at 1000 kg/m3 between 0 and 100 C. Its training R-squared is 0.9999975.\nNIST gives 517.7 MPa at 300 C.\n\nBefore you look: what does the polynomial predict at 300 C?",
+      "why": "The score only measures the model where the data is. Outside 0 to 100 C the\npolynomial bends over, because nothing in it knows about water. Holding the last value\nis what a decision tree does, not a polynomial.",
+      "objectives": [
+        "l09-o3"
+      ],
+      "tags": [
+        "extrapolation",
+        "linear",
+        "feature-engineering"
+      ],
+      "true": "223 MPa: the polynomial has no physics in it, so it cannot extrapolate",
+      "false": [
+        "About 518 MPa, because an R-squared that close to 1 means the curve is right",
+        "About 101 MPa, the value at the last training point, repeated",
+        "Nothing: scikit-learn refuses to predict outside the training range"
+      ]
+    },
+    {
+      "id": "l09-q06",
+      "kind": "mcq",
+      "lecture": "l09",
+      "context": "A tanh network is trained on two inputs, x1 between 0 and 1 and x2 between 0 and\n1,000,000, with no scaling. It scores R-squared = -0.006 on test data. Why?",
+      "why": "With x2 in the millions, every unit's weighted sum is huge, so tanh sits at plus or\nminus 1 on every training row and its gradient vanishes. The network can then fit\nonly a constant, the training mean, which is why R-squared lands just below zero\nrather than far below it. Standardizing both inputs puts them on equal footing, and\nthe same network reaches 0.9999.",
+      "objectives": [
+        "l09-o3"
+      ],
+      "tags": [
+        "neural-network",
+        "scaling"
+      ],
+      "true": "Every tanh unit saturates, so the gradients vanish and it predicts the training mean",
+      "false": [
+        "A network cannot combine two inputs measured in different units, so it gives up on both of them",
+        "The x2 input is irrelevant to y, so the network ignores it and underfits x1",
+        "The weights diverge on the huge x2 values, so the predictions grow without bound"
+      ]
+    },
+    {
+      "id": "l09-q07",
+      "kind": "mcq",
+      "lecture": "l09",
+      "context": "A GP fitted on the 21 water points between 0 and 100 C is asked about 300 C,\nwhere NIST gives 517.7 MPa. What does its plus-or-minus-two-standard-deviation\nband do there?",
+      "why": "A GP's uncertainty grows with distance from the data, under the kernel's\nassumption about smoothness. It knows nothing about physics the data never\nshowed it, so a wide band can still miss the truth.",
+      "objectives": [
+        "l09-o3"
+      ],
+      "tags": [
+        "gaussian-process",
+        "extrapolation",
+        "uncertainty"
+      ],
+      "true": "It grows to about 232 MPa either side and still misses the NIST value",
+      "false": [
+        "It grows wide enough that the NIST value falls inside it",
+        "It stays as narrow as it is inside the data, since the kernel is smooth",
+        "It shrinks to zero, because the mean returns to the training average"
+      ]
+    },
+    {
+      "id": "l09-q11",
+      "kind": "predict_measure",
+      "lecture": "l09",
+      "context": "On concrete, a tree with no depth limit scores 6.92 MPa under a random KFold,\nand a straight line with log(age) and the water/cement ratio scores 7.25. The\nfolds are then rebuilt so each mix sits in one fold only (GroupKFold).\n\nBefore you look: what happens to the ranking?",
+      "why": "Random folds put the 28-day row of a mix in training and the 56-day row in\nvalidation, and a deep tree memorizes the mix. A straight line cannot memorize\none, so it barely moves (7.25 to 7.43) while the tree goes to 9.42.",
+      "objectives": [
+        "l09-o5"
+      ],
+      "tags": [
+        "groupkfold",
+        "leakage",
+        "ranking"
+      ],
+      "true": "The tree loses to the straight line by 2 MPa; the line barely moves",
+      "false": [
+        "Both get worse by the same amount, so the tree stays ahead",
+        "Both improve, because whole mixes make cleaner folds",
+        "The line gets much worse and the tree barely moves"
+      ]
+    },
+    {
+      "id": "l09-q13",
+      "kind": "mcq",
+      "lecture": "l09",
+      "context": "A learning curve for a linear model ends with training RMSE 7.16 MPa and\nvalidation RMSE 7.43 MPa, and the two curves have met. On the same folds, a model\nwith more capacity reaches 6.06 MPa. What is the diagnosis?",
+      "why": "The gap between the curves is the variance, and it has closed, so more samples\nwill not move either curve. The level where they meet is the bias, and a model with\nmore capacity does 1.4 MPa better on the same folds, so the line is too simple for\nthe relationship. Curves that meet are a good fit only when nothing beats their level.",
+      "objectives": [
+        "l09-o5"
+      ],
+      "tags": [
+        "learning-curve",
+        "underfitting"
+      ],
+      "true": "Underfitting: it needs more capacity or better features, not more samples",
+      "false": [
+        "Overfitting: it needs regularization or a smaller model to close the gap",
+        "A good fit: the curves have met, so stop tuning and test it once on the test set",
+        "A leak: training and validation errors should never be as close as that"
+      ]
+    },
+    {
+      "id": "l09-q14",
+      "kind": "mcq",
+      "lecture": "l09",
+      "context": "A GaussianProcessRegressor is fitted on 835 concrete rows. What does its `.fit`\noptimize?",
+      "why": "Given the hyperparameters, the GP's predicted mean and variance are closed-form\nlinear algebra, a solve with K + noise. What is optimized is the handful of kernel\nhyperparameters (ten for the concrete GP), and each evaluation of the objective\nfactorizes an N by N matrix, which is where the O(N^3) cost comes from.\nscikit-learn solves it with L-BFGS-B on the logarithms of the hyperparameters,\ninside the kernel's bounds, from several starting points.",
+      "objectives": [
+        "l09-o4"
+      ],
+      "tags": [
+        "gaussian-process",
+        "optimization",
+        "marginal-likelihood"
+      ],
+      "true": "The kernel hyperparameters, by maximizing the log marginal likelihood",
+      "false": [
+        "One weight per training point, by gradient descent on the squared error",
+        "The predicted mean at every training point, by least squares",
+        "Nothing: a GP is nonparametric, so fit only stores the training rows"
+      ]
+    },
+    {
+      "id": "l09-q15",
+      "kind": "predict_measure",
+      "lecture": "l09",
+      "context": "The same three-unit tanh network is trained ten times on the same data with L-BFGS,\nchanging only `random_state`, which sets the starting weights.\n\nBefore you look: what happens to the final training error?",
+      "why": "A least squares problem has one minimum and any start reaches it. A network's loss\nhas many, and L-BFGS stops at whichever one the starting weights lead to: six starts\nended near SSE 0.080 and four at 0.107 to 0.118. That is why every network is given\na random_state.",
+      "objectives": [
+        "l09-o4"
+      ],
+      "tags": [
+        "neural-network",
+        "optimization",
+        "non-convex"
+      ],
+      "true": "It varies by a factor of 1.48, because the loss is non-convex and each start can stop in a different local minimum",
+      "false": [
+        "It is identical every time, because L-BFGS always finds the global minimum of a smooth loss",
+        "It varies at random by a few percent, because L-BFGS adds noise to every gradient step",
+        "It varies only when the network has more hidden units than there are training points"
+      ]
+    },
+    {
+      "id": "l09-q16",
+      "kind": "spot_the_defect",
+      "lecture": "l09",
+      "context": "An NN-NARX forecasts reactor pressure (about 2,705 kPa, standard deviation 7.7 kPa)\n30 minutes ahead. The inputs go through a StandardScaler. Its test RMSE is 7.57 kPa,\nexactly the score of predicting the mean. What is the most likely defect?",
+      "why": "The network has to produce numbers near 2,705 from weights that start near zero.\nWrapping it in TransformedTargetRegressor with a StandardScaler scales the target as\nwell, and the same network then scores 4.73 kPa, tied with the ridge ARX. It is\nLecture 7's deviation variables, applied to the target.",
+      "objectives": [
+        "l09-o3"
+      ],
+      "tags": [
+        "narx",
+        "scaling",
+        "neural-network"
+      ],
+      "true": "The target was not scaled, so the network stopped at the mean",
+      "false": [
+        "Ten lags are too few for a forecast 30 minutes ahead",
+        "The inputs should not have been standardized for a time series",
+        "A network cannot use lag features, only a linear model can"
+      ]
+    },
+    {
+      "id": "l09-q17",
+      "kind": "direction",
+      "lecture": "l09",
+      "context": "You give a model more capacity: a deeper tree, more hidden units, a smaller penalty.\nWhat typically happens to its bias and its variance?",
+      "why": "More capacity lets the model follow the truth more closely (lower bias) and also\nfollow the particular training rows more closely (higher variance). The noise term\ndoes not move at all. Validation error is lowest at the capacity where the falling\nbias and the rising variance balance.",
+      "objectives": [
+        "l09-o5"
+      ],
+      "tags": [
+        "bias-variance",
+        "capacity"
+      ],
+      "true": "Bias goes down and variance goes up",
+      "false": [
+        "Bias goes up and variance goes down",
+        "Both go down, which is why larger models win",
+        "Both go up, which is why larger models overfit"
+      ]
+    },
+    {
+      "id": "l09-q18",
+      "kind": "mcq",
+      "lecture": "l09",
+      "context": "Gradient descent, stochastic gradient descent (SGD), Adam and L-BFGS are all\nvariants of one update, `theta_new = theta - eta * H * g`, where g is the gradient\nof the loss and H is a matrix that shapes the step. What separates SGD from\nL-BFGS in that update?",
+      "why": "The methods differ in two choices: which rows the gradient comes from, and what H\nis. SGD uses the gradient of a small random mini-batch, a noisy estimate of the full\none, and no step shaping, so each step is cheap. L-BFGS uses the exact gradient over\nall the rows and builds an estimate of the inverse Hessian from its last few steps.\nOn the straight-line fit to the water data that took it 6 iterations, against 305\nfor gradient descent.",
+      "objectives": [
+        "l09-o4"
+      ],
+      "tags": [
+        "optimization",
+        "optimizer",
+        "sgd",
+        "lbfgs"
+      ],
+      "true": "SGD takes g from a random mini-batch and uses the identity for H; L-BFGS uses all the rows and an inverse-Hessian estimate",
+      "false": [
+        "SGD shapes the step with an inverse-Hessian estimate built from recent steps; L-BFGS uses the identity and a random mini-batch",
+        "Both use the gradient over all the rows and the identity for H; SGD simply takes a smaller step length eta",
+        "SGD computes no gradient at all: it tries random steps and keeps the ones that happen to lower the loss"
+      ]
+    },
+    {
+      "id": "l09-q19",
+      "kind": "mcq",
+      "lecture": "l09",
+      "context": "The three-unit network, fitted on 96 rows, is trained with L-BFGS. The NN-NARX,\nfitted on 144,300 rows, is trained with Adam, a stochastic method. Why is L-BFGS\nthe method of choice for the small problem and not for the large one?",
+      "why": "L-BFGS needs few iterations on a smooth problem, but each one uses the exact gradient\nover the whole dataset, and its curvature estimate assumes that gradient is exact. On\nsmall and medium data a full gradient is cheap. On a large table a stochastic method\nsuch as SGD or Adam takes thousands of cheap mini-batch steps in the time one full\ngradient would take. L-BFGS keeps only the last few steps, not a full Hessian, and the\nthree-unit network's loss is itself non-convex.",
+      "objectives": [
+        "l09-o4"
+      ],
+      "tags": [
+        "optimization",
+        "optimizer",
+        "lbfgs",
+        "adam",
+        "sgd"
+      ],
+      "true": "Every L-BFGS iteration needs the gradient over all the rows, which is cheap on 96 rows and costly on 144,300",
+      "false": [
+        "L-BFGS stores the full Hessian matrix, so it runs out of memory once a network has more than a few hundred weights",
+        "L-BFGS converges only on convex losses, and a larger network's loss is not convex while a small network's is",
+        "L-BFGS adds random noise to every step, which averages out over a few rows but not over many thousands"
+      ]
+    },
+    {
+      "id": "l09-q20",
+      "kind": "mcq",
+      "lecture": "l09",
+      "context": "In scikit-learn, `MLPRegressor(solver=\"lbfgs\")` and `GaussianProcessRegressor`\nboth hand their training problem to the same SciPy routine, L-BFGS-B. How do the\ntwo problems differ?",
+      "why": "The network's lbfgs solver calls L-BFGS-B with no bounds at all, which makes it plain\nL-BFGS, and Adam and SGD apply none either, so a weight can take any value. A GP has\nno weights. Its decision variables are a handful of kernel hyperparameters, worked on\nas logarithms because length scales and variances live on a log scale. Every kernel\ncarries bounds on them (10^-5 to 10^5 for the RBF length scale by default), and\nL-BFGS-B, the version of L-BFGS that handles bounds, enforces them.",
+      "objectives": [
+        "l09-o4"
+      ],
+      "tags": [
+        "gaussian-process",
+        "neural-network",
+        "optimization",
+        "bounds"
+      ],
+      "true": "The GP works on the logs of a few kernel hyperparameters, inside bounds; the network's weights are unbounded",
+      "false": [
+        "Both are bounded: every network weight and every GP hyperparameter must stay between 1e-5 and 1e5 throughout training",
+        "The network's weights are bounded so that they stay positive; the GP's hyperparameters are free",
+        "Neither is bounded; the B in L-BFGS-B only changes how the routine stores its past steps"
+      ]
+    },
+    {
+      "id": "l09-q21",
+      "kind": "predict_measure",
+      "lecture": "l09",
+      "context": "A Gaussian process, with its kernel held fixed, learns\nf(u) = sin u + log u - exp(-0.1 u^2) on 0.5 to 10 from 2, then 5, then 20 noisy\nobservations.\n\nBefore you look: what happens to its band of plus or minus two standard deviations\nas the points arrive?",
+      "why": "The prior allows every function the kernel permits, so the band starts wide\neverywhere. Each observation pulls the mean toward it and shrinks the band near it;\nfar from every observation the uncertainty stays wide. After 20 points spread over\nthe range the band is narrow everywhere, which is also why a GP's band grows again\noutside the data.",
+      "objectives": [
+        "l09-o3"
+      ],
+      "tags": [
+        "gaussian-process",
+        "uncertainty",
+        "posterior"
+      ],
+      "true": "It pinches near each new point and stays wide where there are no points yet",
+      "false": [
+        "It narrows by the same amount everywhere, however far a new point is from the rest",
+        "It keeps the same width throughout, because a fixed kernel fixes the uncertainty",
+        "It widens near each new point, because every noisy observation adds uncertainty"
+      ]
+    },
+    {
+      "id": "l09-q22",
+      "kind": "mcq",
+      "lecture": "l09",
+      "context": "Lecture 8's forecaster predicts reactor pressure 30 minutes ahead from its last ten\nmeasured values, y(t), y(t-3), ..., y(t-27), and the eleven valve positions now, and\nLecture 8 fitted it with ridge. Keep the same table and the same columns, and fit an\nMLPRegressor instead. What is the model now?",
+      "why": "ARX and NARX share the table; they differ in f. With a linear f, as in Lecture 8's\nridge fit, the model is an ARX; with a network or a GP it is a nonlinear ARX. The\ninputs are measured past pressures, so no forecast is fed back, and nothing in the\nfour families needs the rows to be separate experiments.",
+      "objectives": [
+        "l09-o3"
+      ],
+      "tags": [
+        "narx",
+        "arx",
+        "neural-network"
+      ],
+      "true": "A NARX model: the same lagged columns, with a network as the nonlinear f",
+      "false": [
+        "Still an ARX model, since the name describes the lagged columns and not the function fitted to them",
+        "A recurrent network, since it now feeds its own forecasts back in as inputs",
+        "Not a valid model, since a network needs rows that are separate experiments"
+      ]
+    }
+  ]
+}

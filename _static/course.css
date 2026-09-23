@@ -1,0 +1,29 @@
+/* Course additions to the book theme. Jupyter Book 1 includes every .css file in
+ * the root _static/ folder automatically.
+ *
+ * Trivia box, the notes' counterpart of div.trivia in themes/course.css. Use it for
+ * a fact worth a sentence that is not part of the argument (a prize, a person, a
+ * piece of history), so the green definition boxes stay reserved for key terms:
+ *
+ *   :::{admonition} Trivia: a short title
+ *   :class: trivia
+ *   One or two sentences.
+ *   :::
+ */
+:root {
+  --course-violet: #7a3db8;
+  --course-violet-bg: rgba(122, 61, 184, 0.1);
+}
+
+div.admonition.trivia {
+  border-color: var(--course-violet);
+}
+
+div.admonition.trivia > .admonition-title {
+  background-color: var(--course-violet-bg);
+}
+
+div.admonition.trivia > .admonition-title::after {
+  color: var(--course-violet);
+  content: "\f005"; /* Font Awesome star, already loaded by the theme */
+}
