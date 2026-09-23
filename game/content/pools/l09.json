@@ -339,6 +339,173 @@
         }
       },
       "serve": 6
+    },
+    "4": {
+      "items": {
+        "l09-q01": {
+          "answer": "One concrete mix tested at one age",
+          "options": [
+            "One concrete mix tested at one age",
+            "One concrete mix, across every age it was tested at",
+            "One ingredient amount in one mix",
+            "One strength value, with its units"
+          ]
+        },
+        "l09-q02": {
+          "answer": "The rows are separate experiments, so their order in the file means nothing",
+          "options": [
+            "The rows are separate experiments, so their order in the file means nothing",
+            "The water and surfactant data are small, so leakage is too small to matter",
+            "Regression models cannot use the order of the rows",
+            "The target is measured at the same time as the features, so it cannot leak"
+          ]
+        },
+        "l09-q03": {
+          "answer": "The test set has become validation data, so its score no longer estimates new data",
+          "options": [
+            "The test set has become validation data, so its score no longer estimates new data",
+            "Nothing; the test set was only used to check the model, never to fit it",
+            "The network needed a larger training set, not more hidden units",
+            "Test scores should be averaged over both attempts before reporting"
+          ]
+        },
+        "l09-q04": {
+          "answer": "Lower, 5.39 MPa, and other random draws of the test mixes span 5.45 to 7.42 MPa",
+          "options": [
+            "Lower, 5.39 MPa, and other random draws of the test mixes span 5.45 to 7.42 MPa",
+            "Within 0.1 MPa of 7.17, because the model and the data are the same",
+            "Much higher, because none of the test mixes was ever seen in training",
+            "Undefined, because the GP needs the test targets to fit its kernel"
+          ]
+        },
+        "l09-q05": {
+          "answer": "223 MPa: the polynomial has no physics in it, so it cannot extrapolate",
+          "options": [
+            "223 MPa: the polynomial has no physics in it, so it cannot extrapolate",
+            "About 518 MPa, because an R-squared that close to 1 means the curve is right",
+            "About 101 MPa, the value at the last training point, repeated",
+            "Nothing: scikit-learn refuses to predict outside the training range"
+          ]
+        },
+        "l09-q06": {
+          "answer": "Every tanh unit saturates, so the gradients vanish and it predicts the training mean",
+          "options": [
+            "Every tanh unit saturates, so the gradients vanish and it predicts the training mean",
+            "A network cannot combine two inputs measured in different units, so it gives up on both of them",
+            "The x2 input is irrelevant to y, so the network ignores it and underfits x1",
+            "The weights diverge on the huge x2 values, so the predictions grow without bound"
+          ]
+        },
+        "l09-q07": {
+          "answer": "It grows to about 232 MPa either side and still misses the NIST value",
+          "options": [
+            "It grows to about 232 MPa either side and still misses the NIST value",
+            "It grows wide enough that the NIST value falls inside it",
+            "It stays as narrow as it is inside the data, since the kernel is smooth",
+            "It shrinks to zero, because the mean returns to the training average"
+          ]
+        },
+        "l09-q11": {
+          "answer": "The tree loses to the straight line by 2 MPa; the line barely moves",
+          "options": [
+            "The tree loses to the straight line by 2 MPa; the line barely moves",
+            "Both get worse by the same amount, so the tree stays ahead",
+            "Both improve, because whole mixes make cleaner folds",
+            "The line gets much worse and the tree barely moves"
+          ]
+        },
+        "l09-q13": {
+          "answer": "Underfitting: it needs more capacity or better features, not more samples",
+          "options": [
+            "Underfitting: it needs more capacity or better features, not more samples",
+            "Overfitting: it needs regularization or a smaller model to close the gap",
+            "A good fit: the curves have met, so stop tuning and test it once on the test set",
+            "A leak: training and validation errors should never be as close as that"
+          ]
+        },
+        "l09-q14": {
+          "answer": "The kernel hyperparameters, by maximizing the log marginal likelihood",
+          "options": [
+            "The kernel hyperparameters, by maximizing the log marginal likelihood",
+            "One weight per training point, by gradient descent on the squared error",
+            "The predicted mean at every training point, by least squares",
+            "Nothing: a GP is nonparametric, so fit only stores the training rows"
+          ]
+        },
+        "l09-q15": {
+          "answer": "It varies by a factor of 1.48, because the loss is non-convex and each start can stop in a different local minimum",
+          "options": [
+            "It varies by a factor of 1.48, because the loss is non-convex and each start can stop in a different local minimum",
+            "It is identical every time, because L-BFGS always finds the global minimum of a smooth loss",
+            "It varies at random by a few percent, because L-BFGS adds noise to every gradient step",
+            "It varies only when the network has more hidden units than there are training points"
+          ]
+        },
+        "l09-q16": {
+          "answer": "The target was not scaled, so the network stopped at the mean",
+          "options": [
+            "The target was not scaled, so the network stopped at the mean",
+            "Ten lags are too few for a forecast 30 minutes ahead",
+            "The inputs should not have been standardized for a time series",
+            "A network cannot use lag features, only a linear model can"
+          ]
+        },
+        "l09-q17": {
+          "answer": "Bias goes down and variance goes up",
+          "options": [
+            "Bias goes down and variance goes up",
+            "Bias goes up and variance goes down",
+            "Both go down, which is why larger models win",
+            "Both go up, which is why larger models overfit"
+          ]
+        },
+        "l09-q18": {
+          "answer": "SGD takes g from a random mini-batch and uses the identity for H; L-BFGS uses all the rows and an inverse-Hessian estimate",
+          "options": [
+            "SGD takes g from a random mini-batch and uses the identity for H; L-BFGS uses all the rows and an inverse-Hessian estimate",
+            "SGD shapes the step with an inverse-Hessian estimate built from recent steps; L-BFGS uses the identity and a random mini-batch",
+            "Both use the gradient over all the rows and the identity for H; SGD simply takes a smaller step length eta",
+            "SGD computes no gradient at all: it tries random steps and keeps the ones that happen to lower the loss"
+          ]
+        },
+        "l09-q19": {
+          "answer": "Every L-BFGS iteration needs the gradient over all the rows, which is cheap on 96 rows and costly on 144,300",
+          "options": [
+            "Every L-BFGS iteration needs the gradient over all the rows, which is cheap on 96 rows and costly on 144,300",
+            "L-BFGS stores the full Hessian matrix, so it runs out of memory once a network has more than a few hundred weights",
+            "L-BFGS converges only on convex losses, and a larger network's loss is not convex while a small network's is",
+            "L-BFGS adds random noise to every step, which averages out over a few rows but not over many thousands"
+          ]
+        },
+        "l09-q20": {
+          "answer": "The GP works on the logs of a few kernel hyperparameters, inside bounds; the network's weights are unbounded",
+          "options": [
+            "The GP works on the logs of a few kernel hyperparameters, inside bounds; the network's weights are unbounded",
+            "Both are bounded: every network weight and every GP hyperparameter must stay between 1e-5 and 1e5 throughout training",
+            "The network's weights are bounded so that they stay positive; the GP's hyperparameters are free",
+            "Neither is bounded; the B in L-BFGS-B only changes how the routine stores its past steps"
+          ]
+        },
+        "l09-q21": {
+          "answer": "It pinches near each new point and stays wide where there are no points yet",
+          "options": [
+            "It pinches near each new point and stays wide where there are no points yet",
+            "It narrows by the same amount everywhere, however far a new point is from the rest",
+            "It keeps the same width throughout, because a fixed kernel fixes the uncertainty",
+            "It widens near each new point, because every noisy observation adds uncertainty"
+          ]
+        },
+        "l09-q22": {
+          "answer": "A NARX model: the same lagged columns, with a network as the nonlinear f",
+          "options": [
+            "A NARX model: the same lagged columns, with a network as the nonlinear f",
+            "Still an ARX model, since the name describes the lagged columns and not the function fitted to them",
+            "A recurrent network, since it now feeds its own forecasts back in as inputs",
+            "Not a valid model, since a network needs rows that are separate experiments"
+          ]
+        }
+      },
+      "serve": 9
     }
   }
 }

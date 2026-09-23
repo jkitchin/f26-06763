@@ -12,8 +12,8 @@
 | Lecture 6: 09-14-2026 (Monday)                     | Streaming data and data validation                                                         |
 | Lecture 7: 09-16-2026 (Wednesday)                  | Features for time-series models                                                            |
 | Lecture 8: 09-21-2026 (Monday)                     | The machine learning (ML) workflow I: Time series                                          |
-| Lecture 9: 09-23-2026 (Wednesday)                  | The machine learning (ML) workflow II: Regression, classification                          |
-| Lecture 10: 09-28-2026 (Monday)                    | Experiment tracking and hyperparameter search/tuning                                       |
+| Lecture 9: 09-23-2026 (Wednesday)                  | The machine learning (ML) workflow II: Regression                                          |
+| Lecture 10: 09-28-2026 (Monday)                    | The machine learning (ML) workflow III: Classification, experiment tracking and hyperparameter search/tuning                         |
 | Lecture 11: 09-30-2026 (Wednesday)                 | ML with PyTorch/JAX                                                                        |
 | Lecture 12: 10-05-2026 (Monday)                    | ML architectures for engineering data                                                      |
 | Lecture 13: 10-07-2026 (Wednesday)                 | Surrogates, physics-informed models, and uncertainty quantification                        |

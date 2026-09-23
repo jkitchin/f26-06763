@@ -42,11 +42,12 @@ TOC = REPO / "_toc.yml"
 
 #: Which assignment is released with which lecture, from course/schedule.md's
 #: "Assignment N released" markers. A4 moved from L7 to L8 when L8 became the ML
-#: workflow session: A4 asks for an ML model, and L7 fits without ever scoring. The miniproject launches at L9 and
+#: workflow session: A4 asks for an ML model, and L7 fits without ever scoring. A5 moved
+#: from L9 to L10 (2026-09-22): it asks for tracking and a search, which are L10's. The miniproject launches at L9 and
 #: lives in the Projects part, so it is not listed here. A lecture with no entry
 #: releases no assignment.
 LECTURE_ASSIGNMENTS = {
-    1: ["a01"], 4: ["a02"], 6: ["a03"], 8: ["a04"], 9: ["a05"],
+    1: ["a01"], 4: ["a02"], 6: ["a03"], 8: ["a04"], 10: ["a05"],
     11: ["a06"], 15: ["a08"], 17: ["a09"], 19: ["a10"], 21: ["a11"],
 }
 
@@ -61,7 +62,11 @@ LECTURE_PROJECTS = {
 
 
 def toc_release(nn: str, apply: bool) -> str:
-    """Uncomment lecture lNN's three lines (notes, sections:, notebook) in _toc.yml."""
+    """Uncomment lecture lNN's lines in _toc.yml: notes, sections:, and every notebook under it.
+
+    Most lectures have one notebook, so three lines. L10 has two (classification, and tracking
+    and search), so the block runs to the last consecutive commented line that belongs to it.
+    """
     lines = TOC.read_text(encoding="utf-8").split("\n")
     start = None
     for i, line in enumerate(lines):
@@ -74,9 +79,15 @@ def toc_release(nn: str, apply: bool) -> str:
                 return "already released"
         return "not found in _toc.yml"
     if apply:
-        for j in (start, start + 1, start + 2):
-            if j < len(lines) and lines[j].lstrip().startswith("#"):
-                lines[j] = lines[j].replace("# ", "", 1)
+        block = [start]
+        j = start + 1
+        while j < len(lines) and re.match(
+            rf"^#\s+(sections:|-\s*file:\s*lectures/l{nn}/(?!notes\b))", lines[j]
+        ):
+            block.append(j)
+            j += 1
+        for j in block:
+            lines[j] = lines[j].replace("# ", "", 1)
         TOC.write_text("\n".join(lines), encoding="utf-8")
     return "released"
 

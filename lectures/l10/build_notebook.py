@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Generate lectures/l10/l10-tracking-search.ipynb.
 
-The L10 demo takes the Week-5 power-plant model from an ad-hoc search to a
-tracked, reproducible, registered artifact:
+The L10 demo takes a gradient-boosting model of the UCI Combined Cycle Power Plant
+data (CCPP, this session's search dataset) from an ad-hoc search to a tracked,
+reproducible, registered artifact:
 
   1. Load CCPP and lock a test split (touched once, at the very end).
   2. Run an Optuna study over gradient-boosting hyperparameters, logging every
@@ -51,15 +52,16 @@ cells = [
     md("# L10 demo: a hyperparameter search, tracked and registered\n",
        "\n",
        "We predict the Combined Cycle Power Plant's net output (MW) from four ambient\n",
-       "measurements, the same set as L9. The model is not the point. The point is that the\n",
-       "search that finds a good model is a machine for generating hundreds of runs, and\n",
-       "without a record of them you cannot say which run produced your number or reproduce it.\n",
+       "measurements, the dataset this session searches on. The model is not the point. The\n",
+       "point is that the search that finds a good model is a machine for generating hundreds of\n",
+       "runs, and without a record of them you cannot say which run produced your number or\n",
+       "reproduce it.\n",
        "\n",
        "So we log every trial to **MLflow**, search with **Optuna**, register the winner, and\n",
        "report a single honest test score at the end.\n",
        "\n",
        "> Data: [UCI Combined Cycle Power Plant](https://archive.ics.uci.edu/dataset/294/combined+cycle+power+plant),\n",
-       "> 9,568 hourly records, carried over from L9."),
+       "> 9,568 hourly records."),
 
     md("## 1. Load CCPP and lock a test split\n",
        "\n",
@@ -88,7 +90,12 @@ cells = [
          "FEATURES, TARGET, SEED = ['AT', 'V', 'AP', 'RH'], 'PE', 0\n",
          "df = pd.read_excel(xlsx, 'Sheet1')\n",
          "X, y = df[FEATURES].to_numpy(), df[TARGET].to_numpy()\n",
-         "X_tr, X_test, y_tr, y_test = train_test_split(X, y, test_size=0.2, random_state=SEED)\n",
+         "X_tr, X_test, y_tr, y_test = train_test_split(\n",
+         "    X,\n",
+         "    y,\n",
+         "    test_size=0.2,\n",
+         "    random_state=SEED,\n",
+         ")\n",
          "print(f'{len(X):,} rows; train {len(X_tr):,}, locked test {len(X_test):,}')"),
 
     md("## 2. Search, with every trial tracked\n",
@@ -109,7 +116,11 @@ cells = [
          "optuna.logging.set_verbosity(optuna.logging.WARNING)\n",
          "mlflow.set_tracking_uri('sqlite:///mlflow.db')\n",
          "mlflow.set_experiment('ccpp-search')\n",
-         "cv = KFold(n_splits=3, shuffle=True, random_state=SEED)\n",
+         "cv = KFold(\n",
+         "    n_splits=3,\n",
+         "    shuffle=True,\n",
+         "    random_state=SEED,\n",
+         ")\n",
          "\n",
          "\n",
          "def objective(trial):\n",
@@ -120,9 +131,18 @@ cells = [
          "        l2_regularization=trial.suggest_float('l2_regularization', 1e-6, 10.0, log=True),\n",
          "        min_samples_leaf=trial.suggest_int('min_samples_leaf', 5, 60),\n",
          "    )\n",
-         "    model = HistGradientBoostingRegressor(random_state=SEED, **params)\n",
-         "    rmse = -cross_val_score(model, X_tr, y_tr, cv=cv, n_jobs=-1,\n",
-         "                            scoring='neg_root_mean_squared_error').mean()\n",
+         "    model = HistGradientBoostingRegressor(\n",
+         "        random_state=SEED,\n",
+         "        **params,\n",
+         "    )\n",
+         "    rmse = -cross_val_score(\n",
+         "        model,\n",
+         "        X_tr,\n",
+         "        y_tr,\n",
+         "        cv=cv,\n",
+         "        n_jobs=-1,\n",
+         "        scoring='neg_root_mean_squared_error',\n",
+         "    ).mean()\n",
          "    with mlflow.start_run(nested=True):\n",
          "        mlflow.log_params(params)\n",
          "        mlflow.log_metric('val_rmse', rmse)\n",
@@ -130,8 +150,10 @@ cells = [
          "\n",
          "\n",
          "with mlflow.start_run(run_name='optuna-study') as parent:\n",
-         "    study = optuna.create_study(direction='minimize',\n",
-         "                                sampler=optuna.samplers.TPESampler(seed=SEED))\n",
+         "    study = optuna.create_study(\n",
+         "        direction='minimize',\n",
+         "        sampler=optuna.samplers.TPESampler(seed=SEED),\n",
+         "    )\n",
          "    study.optimize(objective, n_trials=25)\n",
          "    mlflow.log_metric('best_val_rmse', study.best_value)\n",
          "print(f'best validation RMSE {study.best_value:.3f} MW after {len(study.trials)} trials')"),
@@ -142,8 +164,10 @@ cells = [
        "`mlflow ui` (or `mlflow server`) and sort; here we pull the same table with\n",
        "`search_runs` and show the best few. Nothing about the search is hidden."),
 
-    code("runs = mlflow.search_runs(experiment_names=['ccpp-search'],\n",
-         "                          order_by=['metrics.val_rmse ASC'])\n",
+    code("runs = mlflow.search_runs(\n",
+         "    experiment_names=['ccpp-search'],\n",
+         "    order_by=['metrics.val_rmse ASC'],\n",
+         ")\n",
          "cols = ['metrics.val_rmse', 'params.learning_rate', 'params.max_leaf_nodes',\n",
          "        'params.max_iter']\n",
          "print(runs[runs['metrics.val_rmse'].notna()][cols].head(5).to_string(index=False))"),
@@ -168,14 +192,21 @@ cells = [
     code("import hashlib\n",
          "\n",
          "data_md5 = hashlib.md5(xlsx.read_bytes()).hexdigest()\n",
-         "winner = HistGradientBoostingRegressor(random_state=SEED, **study.best_params).fit(X_tr, y_tr)\n",
+         "winner = HistGradientBoostingRegressor(\n",
+         "    random_state=SEED,\n",
+         "    **study.best_params,\n",
+         ").fit(X_tr, y_tr)\n",
          "\n",
          "with mlflow.start_run(run_name='winner'):\n",
          "    mlflow.log_params(study.best_params)\n",
          "    mlflow.log_param('data_md5', data_md5)\n",
          "    mlflow.log_param('seed', SEED)\n",
          "    mlflow.log_metric('val_rmse', study.best_value)\n",
-         "    mlflow.sklearn.log_model(winner, name='model', registered_model_name='ccpp-hgb')\n",
+         "    mlflow.sklearn.log_model(\n",
+         "        winner,\n",
+         "        name='model',\n",
+         "        registered_model_name='ccpp-hgb',\n",
+         "    )\n",
          "print('registered ccpp-hgb with data_md5', data_md5[:12], '...')"),
 
     md("## 5. Load it back by URI, and score the test set once\n",
@@ -185,7 +216,7 @@ cells = [
        "report this test number, not the best validation score, because the search optimized the\n",
        "validation score. On this large, easy dataset the two land close together, and any small\n",
        "difference here is mostly the winner training on more data than the cross-validation\n",
-       "folds rather than selection bias, which the module measured as negligible at full size.\n",
+       "folds rather than selection bias, which figures/make_figures.py measures as negligible at full size (-0.003 MW on all 9,568 rows).\n",
        "On small data the validation score would instead be optimistically low, which is the\n",
        "reason to report the test at all."),
 
@@ -232,6 +263,9 @@ nb = {
     "nbformat_minor": 5,
 }
 
-OUT.parent.mkdir(parents=True, exist_ok=True)
+OUT.parent.mkdir(
+    parents=True,
+    exist_ok=True,
+)
 OUT.write_text(json.dumps(nb, indent=1) + "\n")
 print(f"wrote {OUT} ({len(cells)} cells)")

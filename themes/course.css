@@ -222,6 +222,34 @@ section.definition strong {
   color: var(--green);
 }
 
+/* --- Trivia box ----------------------------------------------------- */
+/* Mirrors the violet trivia admonitions in the notes (_static/course.css): a
+ * fact worth a sentence that is not part of the argument, such as a prize or a
+ * piece of history. Keeps the green box for key terms.
+ *   <div class="trivia"> ... </div>   (blank lines inside, like div.definition)
+ */
+:root {
+  --violet: #7a3db8;
+  --violet-bg: #f3ecfa;
+}
+
+div.trivia {
+  background: var(--violet-bg);
+  border-left: 6px solid var(--violet);
+  border-radius: 0 6px 6px 0;
+  padding: 0.5em 0.85em;
+  margin: 0.5em 0;
+}
+
+div.trivia p {
+  margin: 0.15em 0;
+  font-style: normal;
+}
+
+div.trivia strong {
+  color: var(--violet);
+}
+
 /* --- Clicker ----------------------------------------------------------- */
 /* A live multiple-choice question. The phone is a bare A/B/C/D pad, so the
  * options only ever appear here, on the projector.
