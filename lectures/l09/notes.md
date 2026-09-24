@@ -21,7 +21,7 @@
 ```
 
 Machine learning (ML) is the field of building models that learn patterns from data. In our
-case (chemical engineering), instead of explicitly programming rules of physics/nature, we
+case (engineering), instead of explicitly programming rules of physics/nature, we
 train algorithms to generalize from examples/experimental data. We use it to make predictions
 on unseen data, to discover patterns in complex systems, and to aid scientific discovery and
 engineering applications. And sometimes the models that come from first principles can't fully
@@ -33,7 +33,7 @@ and their order in time decided what counted as the future. Most of today's rows
 Each row is one experiment on its own: a concrete mix crushed at one age, water held at one
 temperature, a surfactant solution at one concentration. A model fitted to such a table is often
 a **surrogate**, a cheap function that stands in for an expensive simulation or a destructive
-test. The same kind of table shows up well outside chemical engineering: a wafer that passes or
+test. The same kind of table shows up well outside engineering: a wafer that passes or
 fails inspection, a diagnosis from a patient's lab values, the price of a house from its size and
 location.
 
@@ -165,7 +165,7 @@ which matters for the section on cross-validation.
 
 The 1,030 rows are not 1,030 independent experiments. They are 428 distinct mixes, because 182 of
 the mixes were crushed at several ages, and the section on cross-validation shows how much that
-changes the answer. Concrete is the main regression example of the session: all four families are
+changes the answer. Concrete is the main regression example of the session: all four model families are
 compared on it, and it carries the diagnostics of model capacity.
 
 ### The Tennessee Eastman process
@@ -200,13 +200,13 @@ different scales.
 ```{index} unsupervised learning
 ```
 
-Machine learning splits into three families, by what the data comes with.
+Machine learning splits into three types, by what the data comes with.
 
 ```{figure} figures/ml-types.png
 :alt: Schematic. Machine learning branches into supervised learning (model training with labelled data), unsupervised learning (model training with unlabelled data) and reinforcement learning (the model takes actions in the environment, then receives state updates and feedback). Supervised learning branches into classification, drawn as two circled groups of points, and regression, drawn as points along a dashed line. Unsupervised learning leads to clustering, drawn as three groups separated by dashed lines. Reinforcement learning is a loop between an environment and a model agent through action, state and feedback.
 :width: 90%
 
-The three families of machine learning. From [Peng, Jury, Dönnes and Ciurtin
+The three classes/types of machine learning. From [Peng, Jury, Dönnes and Ciurtin
 (2021)](https://doi.org/10.3389/fphar.2021.720694), *Frontiers in Pharmacology* 12:720694,
 CC BY 4.0.
 ```
@@ -216,7 +216,7 @@ with **labels** (target outputs). Predicting new values of measurements from pre
 data and inputs in a chemical plant is supervised learning, and so is everything else in this
 session. **Unsupervised learning** works on data that has **no labels**. The goal is to find
 hidden structure, and the examples are clustering and dimensionality reduction. **Reinforcement
-learning** is the third family: the model takes actions in an environment, receives state
+learning** is the third type: the model takes actions in an environment, receives state
 updates and feedback, and learns which actions pay off.
 
 Within supervised learning there are two kinds of task, set by the type of the target.
@@ -228,7 +228,7 @@ Within supervised learning there are two kinds of task, set by the type of the t
 B, etc.). **Regression** predicts continuous values (temperature, pressure, flow rates, etc.).
 :::
 
-Most of the problems in chemical engineering will fall into the supervised learning/regression
+Most of the problems in engineering will fall into the supervised learning/regression
 category. However, in process control, applications of reinforcement learning and
 classification (fault diagnosis, for example) are also common. Detecting faults in a plant when
 nobody has labeled any faults is the unsupervised case.
@@ -390,7 +390,7 @@ training, `.fit` solves a different optimization problem. We use scikit-learn to
 models because it is one of the most popular ML packages in Python, it has quite an extensive
 library of ML models, it has really thorough documentation with examples, and it has a
 consistent syntax among algorithms. Because every model is created, fitted and used the same
-way, swapping one family for another is a one-line change. The loop below trains four
+way, swapping one model for another is a one-line change. The loop below trains four
 **separate** models on the same training rows and scores each on the same validation rows, so
 they can be compared. Nothing is averaged or combined, so each score belongs to one model; combining
 models into one prediction is a different technique, called an ensemble.
@@ -464,9 +464,7 @@ Compared with the reactor problem, the roles are reversed. The decision variable
 parameters $\theta$, the data $(x_i, y_i)$ are fixed constants, the objective is the loss (here the sum of squared errors), and there are usually no constraints:
 the parameters are free (the Gaussian process will add bounds).
 Once $\theta$ is fixed, the trained model $f(x;\theta)$ is a surrogate, and it can go back into an
-engineering optimization problem as a constraint, with $x$ as the decision variables again. The
-linear model decision trees and OMLT, in the section on decision trees, are built for exactly
-this.
+engineering optimization problem as a constraint, with $x$ as the decision variables again. 
 
 ### How an optimizer moves
 
@@ -530,7 +528,7 @@ explains the need for.
 
 The figure below runs all four on one small problem: a straight line fitted to the water data.
 The loss is a quadratic bowl, but a long and narrow one, because the intercept and the slope trade
-off against each other; the condition number of its Hessian is 37.7. Gradient descent takes 305
+off against each other. Gradient descent takes 305
 iterations. L-BFGS learns the shape of the valley from its first few steps and finishes in 6.
 Stochastic gradient descent, with four rows per step and a fixed step length, reaches the valley
 floor quickly and then keeps bouncing, because every mini-batch points in a slightly different
@@ -554,7 +552,7 @@ process, scikit-learn differentiates the log marginal likelihood analytically.
 
 ## Regression models
 
-The four families below are the ones you will reach for most on a table of engineering data.
+The four model families below are the ones you will most likely reach on a table of engineering data.
 Each is shown first on a small example with one input, where you can see what it does, and each
 ends with what its training solves. Then the linear model, the network and the GP are measured on Lecture 8's plant table, and all four
 on concrete, at the end of the section.
@@ -612,8 +610,7 @@ where NIST gives 517.7. Within the data range, it is a reasonable estimation.
 On the concrete data the same idea earns more. A linear regression on the eight raw columns
 scores 10.6 MPa of root mean squared error in five-fold cross-validation, against 16.8 MPa for
 predicting the mean (the RMSE was defined in the workflow section, and cross-validation has a section of its own below). Two features built from
-what concrete engineers already know, which the rest of these notes call the **physics
-features**, bring it to 7.25 MPa. The first is the logarithm of the age, because
+what concrete engineers already know, bring it to 7.25 MPa. The first is the logarithm of the age, because
 concrete gains strength fast in its first days and slowly after: the mean strength in this file
 is 19.0 MPa at 3 days, 26.1 at 7, 36.7 at 28, 40.5 at 90 and 43.6 at 365. The second is the
 water-to-cement ratio. [Abrams (1918)](http://www2.cement.org/pdf_files/ls001.pdf) plotted the
@@ -710,26 +707,24 @@ inside a `Pipeline` to handle it.
 
 **What its training solves.** The $\alpha$ term added to the training problem is a penalty in the
 sense of penalty methods.
-Instead of a hard constraint such as $\sum a_i^2 \le c$, it adds the size of the coefficients to
-the objective with a weight $\alpha$. For ridge the two forms are the same problem: "There is a
-one-to-one correspondence between the parameters $\lambda$ in (3.41) and $t$ in (3.42)", in
-Hastie, Tibshirani and Friedman's notation (section 3.4.1). The lasso is the same idea with
+Instead of a hard constraint, it adds the size of the coefficients to
+the objective with a weight $\alpha$. The lasso is the same idea with
 absolute values, and in neural networks the squared penalty is called weight decay; it is the
 `alpha` of `MLPRegressor`. Ridge stays a convex quadratic, solved in one linear solve. The lasso's
 absolute values keep the problem convex but not smooth, which is why scikit-learn solves it
-iteratively, by coordinate descent. And the penalty need not be on the coefficients. It can be
+iteratively. And the penalty need not be on the coefficients. It can be
 the residual of a law the model must obey, a mass balance or a differential equation evaluated at
 chosen points, $\lambda \sum_j \lVert \mathcal{F}[f](z_j) \rVert^2$, added to the same training
 problem; that is the idea behind physics-informed training ([Raissi, Perdikaris and Karniadakis,
-2019](https://doi.org/10.1016/j.jcp.2018.10.045)).
+2019](https://doi.org/10.1016/j.jcp.2018.10.045)). We will see this later in this course.
 
-### Four families, and why more than one
+### Four model families, and why more than one
 
 ```{index} no free lunch theorem
 ```
 
 A linear model bends only the way its features let it, and someone has to choose those features.
-The three families after it learn the shape from the data, each in a different way: a tree cuts
+The three model families after it learn the shape from the data, each in a different way: a tree cuts
 the input space into boxes, a neural network builds its own nonlinear features, and a Gaussian
 process puts a probability distribution over functions. Why learn four instead of the best one?
 Because there is no best one. The **no free lunch theorem** for supervised learning makes that
@@ -740,14 +735,11 @@ average: weight every possible input-output relationship equally, and every algo
 error on inputs outside the training set comes out the same. The surprise is in the next
 sentence of the abstract: this holds even when one algorithm is cross-validation and the other is
 "anti-cross-validation", which picks the model with the *largest* validation error. Averaged over
-every conceivable problem, nothing wins. That paper proves it for losses like zero-one, where a
-prediction is simply right or wrong. For squared error, the loss this session uses, the companion
-paper in the same issue does find a priori differences between algorithms
-([Wolpert, 1996](https://doi.org/10.1162/neco.1996.8.7.1391)). All of them come from where a
-method's guesses fall in the range of outputs, and on average the way a method uses its data adds
-nothing. Real problems are not every conceivable problem, though. A family wins when its
+every conceivable problem, nothing wins. More details on the paper ([Wolpert, 1996](https://doi.org/10.1162/neco.1996.8.7.1391)).
+
+A certain type of ML model wins when its
 assumptions (smoothness for a Gaussian process, boxes for a tree, the right features for a line)
-match the problem in front of you. So in practice the family is a choice made for each problem,
+match the problem in front of you. So in practice the model is a choice made for each problem,
 by validation. That step goes beyond the theorem, since trusting validation rests on an implicit
 assumption about which problems arise, one Wolpert calls difficult to express mathematically and
 notes that nobody debates ([Wolpert, 2020](https://arxiv.org/abs/2007.10928)). This session's own
@@ -820,17 +812,15 @@ networks into [Pyomo](https://www.pyomo.org) optimization models.
 
 **What its training solves.** A decision tree is not a continuous optimization at all. Finding
 the best tree is a combinatorial problem, and building an optimal binary decision tree is
-NP-complete ([Hyafil and Rivest, 1976](https://doi.org/10.1016/0020-0190(76)90095-8)). So the
-algorithm is greedy: at each node it tries every (feature, threshold) pair, keeps the one that
-lowers the squared error the most, and never revisits it. There is no gradient and no starting
-point, which is why the solvers of the optimization section do not apply to trees.
+nontrivial ([Hyafil and Rivest, 1976](https://doi.org/10.1016/0020-0190(76)90095-8)). There is no gradient and no starting
+point, which is why the solvers of the optimization section do not directly apply to trees.
 
 ### Neural networks
 
 ```{index} neural network
 ```
 
-In chemical engineering we often face nonlinear models (reaction kinetics, transport,
+In engineering we often face nonlinear models (reaction kinetics, transport,
 thermodynamics), and linear and polynomial regression are limited in flexibility. Neural
 networks (NNs) emerged in the 1940s and 1950s, inspired by biological neurons, were revived in
 the 1980s, and became dominant in the 2010s with deep learning applications. Today we use them
@@ -1016,9 +1006,7 @@ The final training error ranges from 0.0796 to 0.1177, a factor of 1.48, and the
 0.920 to 0.950. Six starts ended within 2% of each other, near 0.080, and four stopped at 0.107
 to 0.118. This is why
 every network in this session is given a `random_state`: without it, a rerun lands in a different
-minimum and prints a different number. It is also what the warning in the demo means when the
-concrete network stops at its 5,000-iteration limit: the optimizer ran out of iterations before
-it declared convergence.
+minimum and prints a different number.
 
 **Scaling!** Consider a dataset with two features on very different scales, $x_1 \in [0,1]$ and
 $x_2 \in [0, 10^6]$, and a target $y = 0.7\sin(2\pi x_1) + 0.3\,x_2/10^6$. Both features matter
@@ -1042,7 +1030,7 @@ nearly the same value for every sample.
 
 To sum up: a neural network is nonlinear regression with weights, biases and activations.
 Training adjusts the weights and biases to minimize a loss, and with enough units a network can
-approximate any continuous function. Its strengths are flexibility and power. Its weaknesses are
+approximate any (hopefully) continuous function. Its strengths are flexibility and power. Its weaknesses are
 many parameters, sensitivity to scaling and initialization, and less interpretability. Most
 important: **neural networks are just math, not magic.**
 
@@ -1223,10 +1211,8 @@ $$-\log p(\mathbf{y}\,|\,X,\theta) = \underbrace{\tfrac{1}{2}\mathbf{y}^\top(K_\
 This automatically balances the fit to the data (the first term) against the model's complexity
 (the log-determinant term); $N$ is the number of points, and the constant does not change the
 optimum. In plain terms: the misfit is small when the kernel explains the
-measurements well. The complexity penalty charges for flexibility. A kernel with a very short
-length scale could explain almost any dataset, so it spreads its probability over all of them and
-gives little to the one you measured; the log determinant is where it pays for that. Minimizing
-the sum picks the simplest model that still explains the data, which is Occam's razor written as
+measurements well. The complexity penalty charges for flexibility. Minimizing
+the sum of these picks the simplest model that still explains the data, which is [Occam's razor](https://mlg.eng.cam.ac.uk/zoubin/papers/occam.pdf) somewhat represented as
 an objective.
 
 The length scale is the hyperparameter that trades the two terms most visibly. It sets how far
@@ -1259,13 +1245,12 @@ hyperparameters, the predicted mean and variance are the linear algebra from the
 solve with $K + \sigma_n^2 I$. So a GP's training is a small non-convex problem with few
 variables (the concrete GP has ten: a length scale for each of the eight inputs, a signal
 variance and a noise level). Every evaluation of its objective, though, factorizes an
-$N \times N$ matrix, at a cost of $\mathcal{O}(N^3)$. The same cost limits the GP-NARX below to 1,000
-of Lecture 8's 144,300 rows. The problem is non-convex too, which is why `n_restarts_optimizer` starts the optimizer
+$N \times N$ matrix, at a cost of $\mathcal{O}(N^3)$ (a very computationally expensive operation). The same cost limits the GP-NARX below with respect to the number of data points used. The problem is non-convex too, which is why `n_restarts_optimizer` starts the optimizer
 from several points and keeps the best.
 
 ### What each model optimizes
 
-With all four families introduced, here is what each `.fit` solves, side by side.
+With all four model families introduced, here is what each `.fit` solves, side by side.
 
 | Model | Decision variables | Objective | Kind of problem | How it is solved |
 |---|---|---|---|---|
@@ -1281,7 +1266,7 @@ one minimum, and least squares finds it in one linear solve from any starting po
 
 ### Back to Lecture 8: NARX with a network and a GP
 
-Nothing in the four families needs the rows to be separate experiments. [Lecture
+Nothing in the four models needs the rows to be separate experiments. [Lecture
 7](../l07/notes.md) built a NARX table, where each row holds past values of a channel and of its
 inputs and the target is a later value, and Lecture 8 fitted a linear model to it as a direct
 forecaster. Hand the same table to a network or a GP and you have an **NN-NARX** or a
@@ -1345,8 +1330,8 @@ Two things come out of the table. First, scale the target as well as the inputs.
 pressure sits near 2,705 kPa with a standard deviation of 7.7 kPa, so an unscaled network has to
 produce 2,705 from weights that start near zero, and this one stopped at the mean: 7.57 kPa,
 exactly the score of predicting the mean. `TransformedTargetRegressor` with a `StandardScaler`
-fixes it, and the GP's `normalize_y=True` does the same job. It is Lecture 7's deviation
-variables, applied to the target.
+fixes it, and the GP's `normalize_y=True` does the same job. It is a similar idea to Lecture 7's deviation
+variables.
 
 Second, the nonlinear models tie the linear one. Held at its operating point the plant behaves
 close to linearly (Lecture 7 fitted this loop as a first-order process), so a network and a GP
@@ -1362,9 +1347,9 @@ Thirty-minute forecasts of reactor pressure on a test run, from the linear ARX, 
 the GP-NARX, with the GP's band.
 ```
 
-### The four families on concrete
+### The four model families on the concrete strength dataset
 
-Now the main example. Here are the four families on the 835 training rows of the concrete data,
+Now the main example. Here are the four models on the 835 training rows of the concrete data,
 scored by five-fold cross-validation with the rows assigned to the folds at random. The folds are
 the subject of the next section. The neural network has 16 tanh units, and the GP has one RBF
 length scale per input plus a white-noise term; both see standardized inputs.
@@ -1525,7 +1510,7 @@ tells you how much your models were memorizing.
 ```{index} model capacity, bias-variance trade-off, validation curve, learning curve, overfitting
 ```
 
-Every family in this session has a knob that sets how flexible it is: the degree of the
+Every model in this session has a "knob" that sets how flexible it is: the degree of the
 polynomial, the depth of a tree, the number of hidden units, the penalty $\alpha$, the length
 scale of a kernel. This section is about turning that knob, and about the two curves that tell
 you which way to turn it.
@@ -1650,25 +1635,25 @@ noise that no model can remove.
 The engineered straight line has almost no gap. With 668 training samples its training RMSE is
 7.16 MPa and its validation RMSE 7.43, and the gap shrank to 0.3 MPa as the training set grew.
 The line therefore no longer overfits, and more samples can close at most the 0.3 MPa that is
-left. Whether it is a good fit depends on the level, and calling a level high needs
-a reference. Gradient-boosted trees
-([`HistGradientBoostingRegressor`](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.HistGradientBoostingRegressor.html)),
-given the same features and scored on the same grouped folds, reach 6.06 MPa. They beat the line
-on all five folds, by 0.7 to 2.0 MPa, so about 1.4 MPa of the line's 7.43 MPa validation error is
-error that a model with more capacity removes. Curves that meet at a level another model can beat are the signature of
+left. 
+
+Curves that meet at a level another model can beat are the signature of
 **underfitting**, or high bias: the model is too simple for the relationship, and more training
 samples will not help it. The actions are more capacity or better features.
 
-The tree has the opposite shape: 0.95 MPa on its training samples and 9.42 on validation, a gap
+The tree model has the opposite shape: 0.95 MPa on its training samples and 9.42 on validation, a gap
 of 8.5 MPa, which is **overfitting**, or high variance. Its validation curve is flat near 9.4 MPa
 from about 400 samples on, so more samples of the same kind are not closing the gap. Capping the
 depth is the other lever, and the validation curve above shows it buys little here: the best
 depth, 9, reaches 9.10 MPa.
 
-Shuffle before you read a learning curve. By default `learning_curve` takes each smaller training
-set as the first rows of the fold in file order. On this file that ordering alone put a false
-3.5 MPa drop into the tree's curve near the right edge, which reads as "more data would help" when
-it would not.
+Shuffle the rows before you draw a learning curve. To build each smaller training set,
+`learning_curve` takes the first rows of the fold in the order they appear in the file, unless you
+pass `shuffle=True`. The concrete file is not in random order, so those first rows are not a fair
+sample of the rest. Without shuffling, the tree's validation error dropped by 3.5 MPa near the
+right edge only because a new block of rows entered the training set, and the curve seemed to say
+that more data would help. With the rows shuffled, the same curve is flat from about 400 samples
+on.
 
 ```python
 from sklearn.model_selection import LearningCurveDisplay
@@ -1701,10 +1686,9 @@ diagnoses call for opposite actions.
 
 ### Choosing, then testing once
 
-Of the four families this session teaches, the GP has the lowest grouped validation error
-(7.17 MPa), so it is the one tested here. The boosted trees from the learning-curve section scored
-lower, 6.06 MPa, and beat the GP on all five folds, by 0.6 to 1.8 MPa; on a project of your own
-that score would make them the model to test. Fit the GP on all 835 training rows and score the 86
+Of the four model families this session teaches, the GP has the lowest grouped validation error
+(7.17 MPa), so it is the one tested here. The boosted trees from the learning-curve section scored a bit lower (6.06 MPa) and beat the GP on all five folds. On a project of your own
+that score would make them the model to test. Since we are not looking into boosted trees, we won't expand the discussion here. Instead, we fit the GP on all 835 training rows and score the 86
 held-out mixes, once.
 
 ```{figure} figures/concrete-parity.png
@@ -1717,9 +1701,8 @@ predicted standard deviations.
 
 The test RMSE is 5.39 MPa, the MAE 3.72 and $R^2 = 0.889$. That is lower than the 7.17 the folds
 predicted, and the difference is sampling noise: 86 mixes are one draw, and across ten other
-random draws of the test mixes the same GP scores between 5.45 and 7.42 MPa. A test number
-carries its own uncertainty, and a test set of a couple of hundred rows can move by a megapascal
-or two. The GP also reports a standard deviation for each prediction, 5.2 MPa on average, and
+random draws of the test mixes the same GP scores between 5.45 and 7.42 MPa. **A test number carries its own uncertainty**, and a test set of a couple of hundred rows can move by a megapascal
+or two in our case here. The GP also reports a standard deviation for each prediction, 5.2 MPa on average, and
 95.4% of the test points fall within two of them.
 
 ## Limitations
@@ -1727,18 +1710,18 @@ or two. The GP also reports a standard deviation for each prediction, 5.2 MPa on
 ```{index} pair: failure mode; extrapolating outside the training data
 ```
 
-Every model in this session is fitted to the region its data covers, and each family fails in
+Every model in this session is fitted to the region its data covers, and each model fails in
 its own way outside it.
 
 ```{figure} figures/extrapolation.png
 :alt: Four panels of pressure against temperature from minus 50 to 300 C, each with the 21 water points between 0 and 100 C, a gray band over that range, and the dashed NIST curve rising almost straight to 518 MPa at 300 C. The third-degree polynomial rises to about 265 MPa near 230 C and bends down to 192. The decision tree is flat at 101 MPa above 100 C and at 0.4 below 0 C. The neural network levels off near 148 MPa. The Gaussian process mean rises to about 250 and turns down to 162 at 300 C, with a wide band that contains the NIST curve up to about 240 C and falls below it after that.
 :width: 100%
 
-Four families fitted on the same 21 water points between 0 and 100 °C, then asked about −50 to
+Four models fitted on the same 21 water points between 0 and 100 °C, then asked about −50 to
 300 °C. The dashed line is NIST, which none of them saw beyond 100 °C.
 ```
 
-We fit all four families on the 21 water points between 0 and 100 °C and ask them about 300 °C,
+We fit all four models on the 21 water points between 0 and 100 °C and ask them about 300 °C,
 where NIST gives 517.7 MPa. The third-degree polynomial bends over and answers 192 MPa (not the 223 MPa of the opening,
 because this one is fitted on all 21 points rather than 16). The tree cannot
 predict anything outside the range of its training targets, so it stays flat at its last leaf,
@@ -1748,17 +1731,15 @@ band grows, to plus or minus 232 MPa. The band still misses the truth. A GP's un
 describes how far a point is from the data, under the kernel's assumption about smoothness; it
 says nothing about physics the data never showed it.
 
-The table in the section on the four families sums up these four behaviors.
-
 ### Where scikit-learn stops
 
 The Gaussian process also shows where this session's tools stop. The NN-NARX trained on all
 144,300 rows of Lecture 8's table in about 2 seconds. The GP-NARX got 1,000 of them and took about
 half a minute; with 4,000 rows it took about 6 minutes and improved to 4.72 kPa, which the ridge
 ARX on the same 4,000 rows matched. All 144,300 rows would need a 144,300 by 144,300 kernel
-matrix, 167 GB in double precision, before a single solve.
+matrix, roughly 167 GB in space, **before a single solve.**
 
-scikit-learn is built for data that fits in the memory of one machine. It runs on the CPU, and
+scikit-learn is built for data that fits in the memory of one PC/machine. It runs on the CPU, and
 its models are a fixed catalog: its networks do train with Adam on mini-batches, but you cannot
 write a model of your own and have its gradients computed for you. Data at plant scale, and models
 with millions of parameters, need the stochastic rows of the optimization section's table run on
@@ -1768,11 +1749,9 @@ them unchanged.
 
 ### But wait, we didn't discuss the hyperparameters?
 
-Look back at the choices this session made by hand: 16 hidden units, a tree with no depth limit,
-the ridge $\alpha$ of 1 in the ARX, the kernel's form (one RBF length scale per input), and the
-depth-2 water tree.
-None of them was fitted. In the language of the optimization section, they are not decision
-variables of the training problem; they are fixed before it is solved. Choosing them well is an
+Look back at the choices this session made by hand: 16 hidden units, a tree with no depth limit, the kernel's forms of the GP section, and the decision tree hyperparameter.
+None of them was fitted, or determined systematically. In the language of the optimization section, they are not decision
+variables of the training problem. Instead, they are fixed before it is solved. Choosing them well is an
 optimization problem too, one level up:
 
 $$
@@ -1788,7 +1767,7 @@ and the validation data now does double duty, since the best of many validation 
 optimistic number. How do you search over $\lambda$ without training thousands of models, and
 without fooling yourself with the winner's score? This session leaves that question open.
 
-## In-class demo
+## Worked example
 
 The notebook [`l09-regression.ipynb`](l09-regression.ipynb) is a worked example, and it is not run
 in class. Run it yourself after the session, top to bottom: it walks through the concrete workflow and
@@ -1809,17 +1788,14 @@ first, then Lecture 8's NARX table:
 Every supervised model in scikit-learn is created, fitted and scored the same way, so what decides
 the result is the split, the features and the metric. The concrete data showed the split at work.
 With rows assigned to folds at random, a decision tree beat a straight line given two physics
-features; with whole mixes held out, the tree lost to that line by 2 MPa, and the line came within
-0.3 MPa of a Gaussian process. Under every family is an optimization problem: least squares for a
-line, a greedy search for a tree, a non-convex problem over weights and biases for a network, and a
-bounded problem over a few kernel hyperparameters for a Gaussian process, with the iterative ones
-solved by L-BFGS when a full gradient is cheap and by stochastic methods such as Adam when it is
-not. No family wins everywhere, which is why the session compared four of them, on a table of
-experiments and on Lecture 8's plant table, and why validation, not preference, chooses between
-them. None of the four can be trusted outside the data it was fitted to: at 300 °C every one of
-them missed the water pressure, and the Gaussian process's band missed with it. Reading the
-validation and learning curves before changing a model tells you which way to change it, because
-underfitting and overfitting call for opposite actions.
+features; with whole mixes held out, the tree lost to that line by just 2 MPa, and the line came within
+0.3 MPa of a Gaussian process. 
+
+Under every model is an optimization problem: least squares for a line, a greedy search for a tree, a non-convex problem over weights and biases for a network, and a bounded problem over a few kernel hyperparameters for a Gaussian process, with the iterative ones solved by L-BFGS when a full gradient is cheap and by stochastic methods such as Adam when it is not. 
+
+No model wins everywhere, which is why the session compared four of them, on a table of experiments and on Lecture 8's plant table, and why validation, not preference, chooses between them. 
+
+None of the four can be trusted outside the data it was fitted to: at 300 °C every one of them missed the water pressure, and the Gaussian process's band missed with it. Reading the validation and learning curves before changing a model tells you which way to change it, because underfitting and overfitting call for opposite actions.
 
 ## Resources
 
@@ -1835,7 +1811,7 @@ underfitting and overfitting call for opposite actions.
 - The scikit-learn User Guide, [linear models](https://scikit-learn.org/stable/modules/linear_model.html),
   [decision trees](https://scikit-learn.org/stable/modules/tree.html), [neural network
   models](https://scikit-learn.org/stable/modules/neural_networks_supervised.html) and [Gaussian
-  processes](https://scikit-learn.org/stable/modules/gaussian_process.html). The four families,
+  processes](https://scikit-learn.org/stable/modules/gaussian_process.html). The four models,
   each with its options and its practical tips.
 - The scikit-learn User Guide, [validation and learning
   curves](https://scikit-learn.org/stable/modules/learning_curve.html). `validation_curve` and
