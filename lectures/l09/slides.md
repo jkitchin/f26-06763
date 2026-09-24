@@ -174,8 +174,7 @@ for what every family does outside its data.
 - **Surfactant**: a soap-like molecule; with salt, many join into long, tangled worms
 - **Zero-shear viscosity**: how thick the liquid is at rest, in the bottle or your hand
 - Salt is the knob: a little thickens shampoo, too much makes it runny again
-- In our data, viscosity climbs **about 400-fold** with salt, then falls
-- 16 experiments: our **Gaussian process** case study
+- In our data, viscosity peaks with salt addition, then falls
 
 </div>
 </div>
