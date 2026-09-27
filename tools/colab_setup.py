@@ -72,13 +72,20 @@ NOTES = {
 
 IMPORT_RE = re.compile(r"^\s*(?:import|from)\s+([\w.]+)", re.M)
 
+# Packages that are never imported by name but that a call loads behind the
+# scenes. pandas reads a legacy .xls through xlrd, so the concrete notebooks
+# (L9 onward) pass every import probe and then fail inside read_excel.
+IMPLICIT = {"read_excel": "xlrd"}
+
 
 def requirements(nb: dict) -> dict[str, str]:
     """The notebook's third-party imports, as {module to probe: pip name}."""
     modules = set()
     for cell in nb["cells"]:
         if cell["cell_type"] == "code":
-            modules.update(IMPORT_RE.findall("".join(cell["source"])))
+            src = "".join(cell["source"])
+            modules.update(IMPORT_RE.findall(src))
+            modules.update(mod for call, mod in IMPLICIT.items() if call in src)
 
     keys = set()
     for module in modules:

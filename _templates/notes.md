@@ -83,14 +83,13 @@ here, where students will actually read them. Keep instructor-only observations 
 class management in `course/modules/`, which is not published.
 :::
 
-## Where this pushes back
+## Limitations and trade-offs
 
 The limits section. Wherever the tool or method has real trade-offs, examine them: what it is
 bad at, the failure modes and surprises a practitioner will hit, and when to reach for
 something else instead. This is expected, not optional, wherever it applies, and it usually
 sets up the next session. Be honest enough to turn the critique on the approach the notes just
-recommended. `lectures/l03/notes.md`, "Where the relational model pushes back," is the worked
-model. Delete this section only if the subject genuinely has no meaningful trade-offs, and say
+recommended. `lectures/l03/notes.md` is the worked model for content; keep the heading plain. Delete this section only if the subject genuinely has no meaningful trade-offs, and say
 so in a line.
 
 ## In-class demo

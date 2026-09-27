@@ -133,8 +133,8 @@
     {
       "from": "l11",
       "to": "l09",
-      "weight": 3,
-      "where": "[Lecture 9](../l09/notes.md), which is why this session comes after it and not before.",
+      "weight": 4,
+      "where": "the model. This session is where you finally write the model. [Lecture 9](../l09/notes.md) wrote",
       "origin": "link"
     },
     {
@@ -329,7 +329,7 @@
     "l06": 0,
     "l07": 8,
     "l08": 5,
-    "l09": 9,
+    "l09": 10,
     "l10": 0,
     "l11": 4,
     "l12": 0,
