@@ -147,6 +147,34 @@ An MLP would learn each position's edge detector separately, from far more data.
 
 ---
 
+## CNNs for fields and images, a question
+
+<div class="clicker" data-tag="l12-conv-size" data-seconds="45" data-answer="B" data-hint="Parameter sharing, last slide: do the kernel weights depend on how many positions they slide over?" data-why="B. The layer is 16 kernels of 3 x 3 = 144 weights, reused at every position, so a bigger field just gives bigger output maps. A Flatten plus Linear head after it is what would break." data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker-main">
+
+**A conv layer with 16 kernels of 3 × 3 (one input channel) was trained on 64 × 64 temperature fields. You pass it a 256 × 256 field. What happens?**
+
+<ol class="clicker-opts">
+<li>An error: the input size must match training</li>
+<li>It runs, with the same 144 weights, and returns bigger maps</li>
+<li>It runs, but needs 16 times as many weights</li>
+<li>It runs only after pooling the field down to 64 × 64</li>
+</ol>
+
+</div>
+<aside class="clicker-panel">
+<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
+<div class="clicker-url">clicker.f26-06763.workers.dev</div>
+<button class="clicker-start">Start voting</button>
+<div class="clicker-timer">45</div>
+<div class="clicker-count">no votes yet</div>
+</aside>
+</div>
+
+<!-- Expect A from MLP intuition. The engineering payoff: train on small, cheap simulation crops and apply to the full domain. The caveat in the why is real; a fully convolutional net is what keeps this property end to end. -->
+
+---
+
 <!-- _class: section -->
 
 # Sequence models for sensor data
@@ -196,6 +224,34 @@ A sensor time series is a 1D grid, time, with a channel per sensor.
 <div class="cw compact" data-widget="gradient-flow" data-source="l12"><img src="figures/widget-gradient-flow.png" alt="Gradient size at each cycle of the window, shrinking or growing with the per-step factor"></div>
 
 <!-- Factor 0.8: cycle 1 gets ~1e-3. 1.3: explodes; tick clip. Clipping fixes explosion, nothing fixes vanishing; the GRU gate does. -->
+
+---
+
+## Sequence models, a question
+
+<div class="clicker" data-tag="l12-vanishing" data-seconds="45" data-answer="C" data-hint="The widget readout: clipping rescales a gradient that is too large. What happens to one that is already tiny? Then look back at what an RNN carries between steps." data-why="C. A gate lets the state, and so the gradient, pass through a step nearly unchanged instead of being multiplied by 0.8 each time. Clipping only shrinks large gradients, and a larger rate scales every cycle equally, so cycle 1 still gets 1e-3 of cycle 30." data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker-main">
+
+**Per-step factor 0.8 over a 30-cycle window: cycle 1 gets about 1e-3 of the gradient cycle 30 gets. Which change addresses that?**
+
+<ol class="clicker-opts">
+<li>Gradient clipping at norm 1</li>
+<li>A larger learning rate</li>
+<li>A gated recurrent unit (GRU or LSTM)</li>
+<li>Training for more epochs</li>
+</ol>
+
+</div>
+<aside class="clicker-panel">
+<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
+<div class="clicker-url">clicker.f26-06763.workers.dev</div>
+<button class="clicker-start">Start voting</button>
+<div class="clicker-timer">45</div>
+<div class="clicker-count">no votes yet</div>
+</aside>
+</div>
+
+<!-- 0.8^29 = 1.5e-3. B is the interesting wrong answer: it makes the cycle-1 gradient bigger in absolute terms but leaves the ratio alone, so early cycles still have no say relative to late ones. -->
 
 ---
 
@@ -272,6 +328,34 @@ $$ s_{ij} = \frac{q_i \cdot k_j}{\sqrt{d}}, \qquad \alpha_{ij} = \mathrm{softmax
 - without it, attention + averaging is blind to order: a window is a bag of readings
 - "we must inject some information about the relative or absolute position" (Vaswani)
 - sinusoidal or learned: "nearly identical results"; ours is a learned 30 × 32 table
+
+---
+
+## Attention and transformers, a question
+
+<div class="clicker" data-tag="l12-shuffle" data-seconds="45" data-answer="A" data-hint="Last slide: without a positional encoding, what does attention followed by averaging see a window as?" data-why="A. With no positions, shuffling the tokens shuffles the outputs the same way, and the mean over cycles does not care about order. The next slide measures it: 17.87 on every fold, recorded or shuffled." data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker-main">
+
+**A transformer with no positional encoding, mean-pooled over the window. You shuffle the 30 cycles of every test window. Test RMSE?**
+
+<ol class="clicker-opts">
+<li>Exactly unchanged</li>
+<li>Slightly worse</li>
+<li>Much worse</li>
+<li>Better, by chance</li>
+</ol>
+
+</div>
+<aside class="clicker-panel">
+<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
+<div class="clicker-url">clicker.f26-06763.workers.dev</div>
+<button class="clicker-start">Start voting</button>
+<div class="clicker-timer">45</div>
+<div class="clicker-count">no votes yet</div>
+</aside>
+</div>
+
+<!-- The self-attention widget two slides back shows this with the shuffle toggle. The table on the next slide is the reveal. Ask whoever said B what would have to change for it to be exactly equal. -->
 
 ---
 
@@ -407,6 +491,34 @@ $$ g \leftarrow g \cdot \min\left(1, c / \lVert g \rVert\right) $$
 
 ---
 
+## Training a deep net well, a question
+
+<div class="clicker" data-tag="l12-clip" data-seconds="45" data-answer="B" data-hint="The formula scales the whole vector by one factor. What is the norm of (3, 4)?" data-why="B. The norm is 5, so the whole gradient is multiplied by 1/5: (0.6, 0.8). Direction is kept and the length is capped at 1. Clipping each component to 1, answer A, is clip_grad_value_, which changes the direction." data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker-main">
+
+**`clip_grad_norm_` with c = 1, and the gradient is g = (3, 4). What is g after clipping?**
+
+<ol class="clicker-opts">
+<li>(1, 1)</li>
+<li>(0.6, 0.8)</li>
+<li>(0.43, 0.57)</li>
+<li>(0.75, 1)</li>
+</ol>
+
+</div>
+<aside class="clicker-panel">
+<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
+<div class="clicker-url">clicker.f26-06763.workers.dev</div>
+<button class="clicker-start">Start voting</button>
+<div class="clicker-timer">45</div>
+<div class="clicker-count">no votes yet</div>
+</aside>
+</div>
+
+<!-- A is the common one and it is a real PyTorch function, clip_grad_value_, which is why it is worth separating the two out loud. C divides by 3 + 4 and D by the largest component: both keep the direction but use the wrong norm. -->
+
+---
+
 ## Training a deep net well, gradient clipping at a wall
 
 <div class="cw compact" data-widget="clipping" data-source="l12"><img src="figures/widget-clipping.png" alt="A one-parameter loss with a steep wall: the unclipped step jumps far past the minimum, the clipped run walks down"></div>
@@ -525,6 +637,22 @@ The grouping by engine is what keeps the comparison honest instead of flattering
 
 ---
 
+## Standings
+
+Nicknames only. Everyone who skipped one still counted in every bar you saw.
+
+<div class="clicker-leaderboard"
+     data-read="https://clicker.f26-06763.workers.dev"
+     data-top="8"
+     data-hours="6"
+     data-title="Standings"></div>
+
+<!--
+Skip this slide if no clicker questions were run.
+-->
+
+---
+
 ## Next
 
 **Reading** PyTorch CNN/LSTM tutorials; Goodfellow ch. 9-10; Grinsztajn et al.
@@ -533,3 +661,4 @@ Full notes, with all sources: `lectures/l12/notes.md`
 
 <script src="l12-widget-data.js"></script>
 <script src="widgets.js"></script>
+<script src="clicker-slide.js"></script>
