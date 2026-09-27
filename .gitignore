@@ -71,3 +71,9 @@ lectures/*/clicker-slide.js
 
 # reference materials
 attic/
+
+# Interactive figures: a deck loads widgets.js and its lecture's data file from
+# beside itself, and CI copies both in from _static/. Authoring a deck locally
+# needs them there too, so symlink them and let git ignore the symlinks.
+lectures/*/widgets.js
+lectures/*/*-widget-data.js

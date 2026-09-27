@@ -488,6 +488,11 @@ jobs:
             # the path resolves in production; a deck without a clicker slide just
             # never loads it.
             cp clicker/clicker-slide.js "$out/"
+            # The interactive figures work the same way: widgets.js and each
+            # lecture's generated *-widget-data.js live once in _static/, where
+            # the book loads them, and a deck references them as relative
+            # <script src>, so they are copied in beside every deck.
+            cp _static/*.js "$out/"
             # The QR travels with it. One code serves the whole course, so it
             # lives once in clicker/figures/ and is copied in rather than
             # duplicated into every lecture's figures/ where 22 copies would
