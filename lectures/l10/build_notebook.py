@@ -144,6 +144,23 @@ cells = [
          "mlflow.set_experiment('concrete-search')\n",
          "optuna.logging.set_verbosity(optuna.logging.WARNING)"),
 
+    md("**Open the MLflow UI now**, so you can watch the search fill it in. In a terminal, from\n",
+       "this notebook's folder:\n",
+       "\n",
+       "```\n",
+       "mlflow ui --backend-store-uri sqlite:///mlflow.db\n",
+       "```\n",
+       "\n",
+       "Start it in this folder: a UI started anywhere else opens an empty `mlflow.db` there and\n",
+       "shows nothing. Then open http://127.0.0.1:5000 and click the `concrete-search` experiment.\n",
+       "It is empty\n",
+       "for now. Each trial in section 4 appears as a child run under the parent run as soon as it\n",
+       "finishes (refresh the page), and section 5 adds the registered model under **Models**.\n",
+       "\n",
+       "If the UI crashes with `cannot import name 'Traversable'`, your MLflow is too old for\n",
+       "Python 3.14: run `pip install -U mlflow` (3.16 works). On Colab there is no terminal for\n",
+       "the UI; `mlflow.search_runs()` lists the same runs as a table."),
+
     md("## 3. One trial, one nested run\n",
        "\n",
        "`objective` is what Optuna calls once per trial. It draws a tree depth and a leaf size\n",
@@ -245,15 +262,10 @@ cells = [
 
     md("## Try it\n",
        "\n",
-       "Open the tracking UI from this folder and look for the `concrete-search` experiment:\n",
-       "\n",
-       "```\n",
-       "mlflow ui --backend-store-uri sqlite:///mlflow.db\n",
-       "```\n",
-       "\n",
-       "Sort its child runs by `val_rmse` and see which of the two hyperparameters moves the\n",
-       "score. Then raise `n_trials` in section 4 from 20 to 50, Restart and Run All, and see the\n",
-       "parent run gain more child runs."),
+       "In the MLflow UI you opened in section 2, sort the child runs of `concrete-search` by\n",
+       "`val_rmse` and see which of the two hyperparameters moves the score. Then raise `n_trials`\n",
+       "in section 4 from 20 to 50, Restart and Run All, and watch the new parent run gain more\n",
+       "child runs."),
 ]
 
 # The Colab bootstrap cell, injected from the notebook's own imports so this

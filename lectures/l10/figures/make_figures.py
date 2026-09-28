@@ -15,11 +15,13 @@ what each writes:
                     same mean and a wider spread, and the histogram with the tree's two
                     cuts drawn on it), confusion-explained (the 52-channel classifier's test
                     confusion matrix, drawn as a labeled 2x2 grid with every acronym spelled
-                    out), tep-unseen, classifier-shapes plus its four single-panel twins
-                    (decision regions of four model families on one small synthetic
-                    dataset, so a student sees what "a straight line" versus "boxes" versus
-                    "a smooth curve" actually looks like; the network there uses tanh units,
-                    whose boundary bends smoothly).
+                    out), tep-unseen, classifier-shapes (decision regions of four model
+                    families on one small synthetic dataset, so a student sees what "a
+                    straight line" versus "boxes" versus "a smooth curve" actually looks
+                    like; the network there uses tanh units, whose boundary bends smoothly),
+                    and the anim-*.png frames the deck's model-family cards play: each
+                    model at six stages of training.
+    shapes          classifier-shapes and the anim-*.png frames alone, without the TEP data.
     search          grid_vs_random.png (rebuilt so the score curve underneath the points is
                     visible, not just the points), optuna_search.png (Optuna TPE against
                     random search, now tuning Lecture 9's decision tree on concrete instead
@@ -635,18 +637,96 @@ def classifier_shapes_figure():
         fig.tight_layout()
         save(fig, "classifier-shapes.png")
 
-    singles = [
-        ("classifier-shape-logistic.png", "Logistic regression: a straight line"),
-        ("classifier-shape-tree.png", "Decision tree: boxes"),
-        ("classifier-shape-network.png", "Neural network: a smooth curve"),
-        ("classifier-shape-gp.png", "Gaussian process: smooth probabilities"),
-    ]
-    with plt.rc_context(fonts(17)):             # shown at w:560, one per build slide
-        for fname, name in singles:
-            fig, ax = plt.subplots(figsize=(5.4, 4.7))
-            _decision_region(ax, fitted[name], X, y, name)
-            fig.tight_layout()
-            save(fig, fname)
+    classifier_training_frames(X, y)
+
+
+def _region_frame(proba, X, y, shown, fname):
+    """One animation frame: P(class 1) over the plane and the points in `shown`, no title.
+
+    Every frame shares the axis limits of the whole dataset, so the frames line up when the
+    deck swaps one for the next.
+    """
+    lo0, hi0 = X[:, 0].min() - 0.6, X[:, 0].max() + 0.6
+    lo1, hi1 = X[:, 1].min() - 0.6, X[:, 1].max() + 0.6
+    xx, yy = np.meshgrid(np.linspace(lo0, hi0, 200), np.linspace(lo1, hi1, 200))
+    zz = proba(np.c_[xx.ravel(), yy.ravel()]).reshape(xx.shape)
+    fig, ax = plt.subplots(figsize=(4.0, 3.4))
+    ax.imshow(zz, extent=(lo0, hi0, lo1, hi1), origin="lower", cmap="RdBu_r", vmin=0, vmax=1,
+              aspect="auto", interpolation="bilinear")
+    Xs, ys = X[shown], y[shown]
+    ax.scatter(Xs[ys == 0, 0], Xs[ys == 0, 1], s=18, color=BLUE, edgecolor="white", linewidth=0.5, zorder=3)
+    ax.scatter(Xs[ys == 1, 0], Xs[ys == 1, 1], s=18, color=CMU_RED, edgecolor="white", linewidth=0.5, zorder=3)
+    ax.set(xticks=[], yticks=[], xlim=(lo0, hi0), ylim=(lo1, hi1))
+    fig.tight_layout(pad=0.2)
+    save(fig, fname)
+
+
+def classifier_training_frames(X, y):
+    """Frames for the deck's four model-family cards: each model learning its boundary.
+
+    Every frame is a real fit at a real stage of training, on the same seeded data as
+    classifier-shapes.png, and the last frame of each is the fully trained model:
+      logistic regression  gradient descent on scikit-learn's own objective
+                           (0.5 |w|^2 + C * sum of log losses, C = 1), from w = 0
+      decision tree        depth 0 (no split, the class shares) to depth 3
+      neural network       the same lbfgs network stopped after 1, 3, 10, 30, 100
+                           iterations, then trained to convergence
+      Gaussian process     fit on the first 4, 8, 16, 32, 75 and 150 points of a
+                           class-balanced shuffle, with only those points drawn
+    The labels printed here are the ones the deck shows under each frame.
+    """
+    print("\n=== Classifier training frames: four model families learning, for the deck ===")
+    everyone = np.arange(len(y))
+
+    # logistic regression: plain gradient descent on the objective LogisticRegression minimizes
+    scaler = StandardScaler().fit(X)
+    Z, t, C, lr = scaler.transform(X), 2 * y - 1, 1.0, 0.004
+    w, b, step = np.zeros(2), 0.0, 0
+    stages = [0, 1, 3, 10, 40, 3000]
+    for k, target in enumerate(stages):
+        while step < target:
+            s_ = 1 / (1 + np.exp(t * (Z @ w + b)))          # sigma(-margin)
+            w, b = w - lr * (w - C * (Z * (t * s_)[:, None]).sum(0)), b - lr * (-C * (t * s_).sum())
+            step += 1
+        ww, bb = w.copy(), b
+        _region_frame(lambda P, ww=ww, bb=bb: 1 / (1 + np.exp(-(scaler.transform(P) @ ww + bb))),
+                      X, y, everyone, f"anim-logistic-{k}.png")
+    ref = LogisticRegression().fit(Z, y)
+    print(f"  logistic regression: after {stages[-1]} steps w = {np.round(w, 3)}, b = {b:.3f};"
+          f" scikit-learn's fit w = {np.round(ref.coef_[0], 3)}, b = {ref.intercept_[0]:.3f}")
+    print("  logistic labels: " + " | ".join(["Before training"] + [f"Step {n}" for n in stages[1:]]))
+
+    # decision tree: one depth at a time
+    tree_models = [DummyClassifier(strategy="prior")] + [
+        DecisionTreeClassifier(max_depth=d, random_state=0) for d in (1, 2, 3)]
+    for k, m in enumerate(tree_models):
+        m.fit(X, y)
+        _region_frame(lambda P, m=m: m.predict_proba(P)[:, 1], X, y, everyone, f"anim-tree-{k}.png")
+    print("  tree labels: No split yet | Depth 1 | Depth 2 | Depth 3")
+
+    # neural network: the same network stopped early, then trained to convergence
+    iters, done = [1, 3, 10, 30, 100, 5000], None
+    for k, n_it in enumerate(iters):
+        m = make_pipeline(StandardScaler(),
+                          MLPClassifier(hidden_layer_sizes=(8,), activation="tanh", alpha=0.3,
+                                        solver="lbfgs", max_iter=n_it, random_state=0)).fit(X, y)
+        done = m[-1].n_iter_
+        _region_frame(lambda P, m=m: m.predict_proba(P)[:, 1], X, y, everyone, f"anim-network-{k}.png")
+    print(f"  network: converged after {done} lbfgs iterations")
+    print("  network labels: " + " | ".join([f"{n} iteration" + ("s" if n > 1 else "") for n in iters[:-1]]
+                                            + [f"Trained ({done} iterations)"]))
+
+    # Gaussian process: the data arrive a few points at a time
+    rng = np.random.default_rng(SEED)
+    i0, i1 = rng.permutation(np.flatnonzero(y == 0)), rng.permutation(np.flatnonzero(y == 1))
+    order = np.ravel(np.column_stack([i0, i1]))
+    sizes = [4, 8, 16, 32, 75, 150]
+    for k, n in enumerate(sizes):
+        idx = order[:n]
+        m = make_pipeline(StandardScaler(),
+                          GaussianProcessClassifier(1.0 * RBF(1.0), random_state=0)).fit(X[idx], y[idx])
+        _region_frame(lambda P, m=m: m.predict_proba(P)[:, 1], X, y, idx, f"anim-gp-{k}.png")
+    print("  gp labels: " + " | ".join(f"{n} points" for n in sizes))
 
 
 def classification_figures():
@@ -1013,13 +1093,17 @@ def fetch_optuna_logo():
 if __name__ == "__main__":
     import sys
 
-    groups = {"classification", "search", "widgets", "recap", "logo"}
+    groups = {"classification", "shapes", "search", "widgets", "recap", "logo"}
     want = set(sys.argv[1:]) or groups
     unknown = want - groups
     if unknown:
         sys.exit(f"unknown group(s) {sorted(unknown)}; the groups are {sorted(groups)}")
     if "classification" in want:
         classification_figures()
+    elif "shapes" in want:                      # the model-shapes figure and its deck frames only
+        with warnings.catch_warnings(), plt.rc_context(CLASSIFICATION_STYLE):
+            warnings.simplefilter("ignore")
+            classifier_shapes_figure()
     if "search" in want:
         with plt.rc_context(QUANT_STYLE):
             search_figures()
