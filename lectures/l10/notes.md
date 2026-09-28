@@ -545,7 +545,7 @@ down.
   saw.
 - [`l10-tracking-search.ipynb`](l10-tracking-search.ipynb): a 20-trial Optuna search for the
   decision tree on the concrete strength dataset, one MLflow child run per trial, and the winner registered and scored once.
-  Open `mlflow ui` afterward to see the runs.
+  Open `mlflow ui` at the start (section 2) and watch the runs appear.
 
 ## Summary
 
