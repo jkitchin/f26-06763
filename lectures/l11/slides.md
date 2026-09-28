@@ -2,7 +2,7 @@
 marp: true
 theme: course
 paginate: true
-header: "06-763 / L11"
+header: "06-763 · L11"
 footer: "Systems and Toolchains for AI Engineers"
 ---
 
@@ -10,7 +10,7 @@ footer: "Systems and Toolchains for AI Engineers"
 
 # Lecture 11: Tensors, autodiff, training loops, GPUs
 
-## Week 6, Machine learning & deep learning
+## Week 6, Machine learning and deep learning
 
 **Systems and Toolchains for AI Engineers**
 
@@ -18,150 +18,20 @@ footer: "Systems and Toolchains for AI Engineers"
 
 ## Roadmap
 
-1. Tensors, and the dtype that will bite you
-2. Automatic differentiation, demystified
-3. The anatomy of a training loop
-4. Devices, and what an accelerator actually buys
-5. Does the net beat the tree?
-6. Three ways a first training loop dies
-7. Live demo: a gradient by hand, a loop by hand
+1. Automatic differentiation, the idea under every framework
+2. PyTorch and JAX, two designs for the same mathematics
+3. Tensors: shapes, dtypes, indices, and a first story
+4. Models that looked fine: two more stories
+5. The training loop, and what Adam's knobs do
+6. Accelerators, and when they lose
 
-<!-- 110 min. Budget roughly 10 / 22 / 15 / 15 / 15 / 10 / 20 demo.
-     Dataset: UCI Concrete Compressive Strength, 1,030 mixes, 8 inputs, MPa out.
-     If running long, cut the JAX contrast slides, not the pathologies. -->
-
----
-
-<!-- _class: section -->
-
-# Why this matters
-
----
-
-## Why this matters
-
-Today you finally write the model.
-
-A training loop is ~15 lines
-and about six ways to go silently wrong.
-
-**You have met this failure mode before.**
-
-A leaky scaler does not raise.
-A grouped split does not raise.
-
-A missing `zero_grad()` does not raise either.
-
----
-
-## Why this matters, what it costs, measured today
-
-| run | validation RMSE |
-|---|---|
-| the loop, correct | **6.0 MPa** |
-| the same loop, one line removed | **17.8 MPa** |
-| predicting the training mean | 19.2 MPa |
-
-One line → **11% of the available improvement.**
-
-**The uncomfortable property.**
-
-Every other tool in this course rejects bad input.
-A database refuses a malformed query.
-A schema check fails loudly.
-
-`loss.backward()` will differentiate **whatever
-graph you built**, including the accidental one.
-
----
-
-<!-- _class: section -->
-
-# Tensors and dtype
-
----
-
-## Tensors and dtype
-
-<div class="definition">
-
-**Tensor**: an n-dimensional array with a dtype and a device, which is the unit every framework operation consumes and returns.
-
-</div>
-
-**Which device** it lives on.
-**What was done to it**, so it can be differentiated.
-
-And it has a `dtype` NumPy would not have chosen.
-
----
-
-## Tensors and dtype, the batch dimension comes first
-
-`(N, features)` for an MLP
-`(N, channels, H, W)` for a 2D conv
-`(N, channels, time)` for a sensor window
-
-Not a law: a **convention**, so a batch is one
-contiguous slab you can ship to a device.
-
-**Read a shape error as a sentence.**
-
-```
-mat1 and mat2 shapes cannot be multiplied
-(64x8 and 64x1)
-```
-
-Batch is 64. Features are 8. Something
-downstream wanted a different orientation.
-
-<!-- The (N,1) vs (N,) broadcast into (N,N) is the single most common cause of
-     a loss that will not go down. Ask who has hit it. -->
-
----
-
-## Tensors and dtype, now the trap
-
-```python
-torch.tensor(3.14).dtype            # torch.float32
-torch.tensor(np.float64(3.14)).dtype  # torch.float64
-```
-
-NumPy defaults to float64.
-PyTorch defaults to float32.
-
-**This is not hypothetical.**
-
-Today's autodiff figure was drafted to show
-"torch and JAX both match the analytic gradient."
-
-JAX matched at **4.4 × 10⁻¹⁶**.
-PyTorch disagreed at **7.5 × 10⁻⁸**.
-
-For an hour that looked like a real difference
-between the two libraries.
-
----
-
-## Tensors and dtype, it was two Python floats
-
-`1.234` and a bare `rng.normal()`, both stored
-as float32 by `torch.tensor`.
-
-Relative error: **1.25 × 10⁻⁷**.
-float32 epsilon: **1.19 × 10⁻⁷**.
-
-Fix the two scalars → PyTorch matches at 1.7 × 10⁻¹⁸.
-
-**Why nothing warned you.**
-
-float32 **promotes** to float64 on contact.
-
-So every dtype *downstream* of the mistake
-reads `float64` and looks correct.
-
-Checking `.dtype` afterwards would not have
-found it. Checking it at the boundary would.
+<!--
+90 minutes of deck, then 20 of notebook and questions.
+Budget: AD 12, PyTorch/JAX 18, tensors 14, stories 18, loop + Adam 15, devices 8, recap 5.
+Four clicker questions: slides marked "a question". Each takes about 3 minutes with the re-vote.
+Dataset all session: UCI concrete compressive strength, 1,030 rows, 8 inputs, MPa out.
+If running long, cut the Adam-steps slide and the side-by-side table, never a story.
+-->
 
 ---
 
@@ -173,574 +43,746 @@ found it. Checking it at the boundary would.
 
 ## Automatic differentiation
 
+- Training needs $\partial L / \partial \theta$ for **every** parameter, every step
+- Millions of parameters, one scalar loss
+- Three ways to get a derivative:
+  - Symbolic algebra: exact, but expressions blow up
+  - Finite differences: 2 evaluations **per parameter**, and approximate
+  - Automatic differentiation: exact, about **2 forward passes total**
+
 <div class="definition">
 
-**Automatic differentiation**: recording each operation on a tape, then replaying it backwards to get exact gradients without hand-deriving anything.
+**Automatic differentiation**: the chain rule applied to each elementary operation a program actually executed.
 
 </div>
 
-$$z = Wx + b, \quad a = \tanh(z)$$
-$$\hat{y} = v \cdot a + c, \quad L = (\hat{y} - y)^2$$
-
-Four parameter blocks. One example. One scalar loss.
+<!-- Open with the scale problem. The answer is the chain rule, done by bookkeeping. -->
 
 ---
 
-## Automatic differentiation, the chain rule, in four lines
+## Automatic differentiation, a network small enough to do by hand
 
-$$\frac{\partial L}{\partial \hat{y}} = 2(\hat{y}-y)$$
-$$\frac{\partial L}{\partial v} = \frac{\partial L}{\partial \hat{y}}\, a
-\qquad
-\frac{\partial L}{\partial z} = \left(\frac{\partial L}{\partial \hat{y}} v\right) \odot (1-a^2)$$
-$$\frac{\partial L}{\partial W} = \frac{\partial L}{\partial z}\, x^{\top}$$
+$$
+z = Wx + b, \quad a = \tanh(z), \quad \hat{y} = v \cdot a + c, \quad L = (\hat{y} - y)^2
+$$
 
-**Each step reuses the one before it.**
+One hidden layer. Data: input $x$, target $y$. Parameters: $W, b, v, c$. Loss: squared error.
+Chain rule, one step at a time, each reusing the last:
 
----
+$$
+\frac{\partial L}{\partial \hat{y}} = 2(\hat{y} - y), \quad
+\frac{\partial L}{\partial a} = \frac{\partial L}{\partial \hat{y}}\, v, \quad
+\frac{\partial L}{\partial z} = \frac{\partial L}{\partial a} \odot (1 - a^2), \quad
+\frac{\partial L}{\partial W} = \frac{\partial L}{\partial z}\, x^{\top}
+$$
 
-## Automatic differentiation, that reuse *is* reverse-mode autodiff
+$1 - a^2$ is the derivative of $\tanh$, and it needs $a$ from the forward pass
 
-Forward pass: compute and **remember** each intermediate.
-
-Backward pass: walk the recorded operations in
-reverse, multiplying by each local derivative.
-
-The loss is a scalar, so **one** backward walk
-gives every parameter's derivative.
-
-[Goodfellow et al., *Deep Learning*, §6.5](https://www.deeplearningbook.org/contents/mlp.html)
-
-**The alternative: just perturb it.**
-
-Two forward passes per parameter.
-And it is not exact: you are trading
-**truncation** against **round-off**.
-
-Too big a step, bad approximation.
-Too small, catastrophic cancellation.
+<!-- Write these on the board if there is one. Point out that 1 - a^2 needs a, the stored forward value. -->
 
 ---
 
-## Automatic differentiation, four ways to get the same gradient
+## Automatic differentiation, the graph
 
-![w:1080](figures/autodiff-vs-fd.png)
+![h:520](figures/ad-graph.png)
 
-<!-- Ask them to predict where the finite-difference V bottoms out before
-     revealing. Almost nobody says 1e-12; most say "machine precision". -->
-
----
-
-## Automatic differentiation, the numbers
-
-| method | error vs analytic |
-|---|---|
-| PyTorch autograd (float64) | **1.7 × 10⁻¹⁸** |
-| `jax.grad` (x64 on) | **4.4 × 10⁻¹⁶** |
-| torch vs jax, to each other | 4.4 × 10⁻¹⁶ |
-| best central difference | 1.4 × 10⁻¹² at *h* = 3 × 10⁻⁷ |
-
-And you only know that *h* was best because
-the exact answer was available.
+<!--
+Walk the red arrows right to left from dL/dL = 1: gradient arriving from the right, times the factor on the edge. Two things to say:
+1. One backward walk gives every parameter's gradient, because the loss is a scalar.
+2. The backward pass needs a and x from the forward pass. That is why training uses more memory than inference.
+-->
 
 ---
 
-## Automatic differentiation, two designs, same mathematics
+## Automatic differentiation, reverse and forward mode
 
-**PyTorch records a tape.** Operations on tensors with
-`requires_grad` are appended to a graph.
+| | reverse mode | forward mode |
+|---|---|---|
+| direction | output back to inputs | inputs forward to outputs |
+| one pass gives | gradient of **one output** w.r.t. all inputs | derivative of all outputs along **one input** |
+| wins when | many parameters, one loss | few inputs, many outputs |
+| JAX | `jax.vjp`, `jax.grad`, `jacrev` | `jax.jvp`, `jacfwd` |
+| PyTorch | `loss.backward()`, `torch.func.vjp` | `torch.func.jvp` |
 
-**JAX transforms functions.** `jax.grad(f)` returns a
-*new function* that computes the gradient.
+Training is reverse mode. A 3-variable simulator with 1,000 outputs is forward mode.
 
-**PyTorch: mutable, accumulating.**
+<!-- In deep learning, reverse mode is called backpropagation. Baydin et al. 2018 has the history: https://arxiv.org/abs/1502.05767 -->
+
+---
+
+## Automatic differentiation, against finite differences
+
+![h:320](figures/autodiff-vs-fd.png)
+
+- Best finite difference over 40 steps: 1.4 × 10⁻¹², and the best step is unknowable in advance
+- It also costs 2 evaluations per parameter: **use it only to spot-check autodiff**
+
+<!--
+The V: truncation error on the right, round-off on the left. You only know where the bottom is
+because the exact answer was available. PyTorch 1.7e-18, JAX 4.4e-16 (x64). Leave the red "careless" line for now; it is the first story.
+-->
+
+---
+
+<!-- _class: section -->
+
+# PyTorch and JAX
+
+---
+
+## PyTorch and JAX, two designs
+
+| | PyTorch | JAX |
+|---|---|---|
+| idea | **record** what the code did to tensors | **transform** the function you wrote |
+| gradient | `loss.backward()` fills `.grad` | `jax.grad(f)` returns a new function |
+| state | inside the module and optimizer | values you pass in and get back |
+| arrays | mutable | immutable |
+
+Same numbers either way: the two agree to 4.4 × 10⁻¹⁶, float64 epsilon.
+
+Docs: [autograd mechanics](https://docs.pytorch.org/docs/stable/notes/autograd.html), [JAX key concepts](https://docs.jax.dev/en/latest/key-concepts.html)
+
+<!-- The rest of this section is the consequence of the first row. -->
+
+---
+
+## PyTorch and JAX, the PyTorch tape
+
+![h:430](figures/pytorch-tape.png)
+
+Read off a real `loss.grad_fn`. Rebuilt from scratch on every call: **define-by-run**.
+
+<!--
+Left: seven nodes in the order the forward pass made them, and what each saved.
+Right: the graph backward() walks. Point at AccumulateGrad at the bottom: += into .grad.
+x and y get no nodes because nobody asked for their gradient.
+-->
+
+---
+
+## PyTorch and JAX, `.grad` accumulates
 
 ```python
 loss = loss_fn(model(x), y)
-optimizer.zero_grad()   # because .grad += is the semantics
-loss.backward()         # walks the tape, ADDS into every .grad
-optimizer.step()
+loss.backward()                  # AccumulateGrad: W.grad += dL/dW
 ```
+
+- The leaves of the tape **add** into `.grad`; they do not overwrite it
+- Deliberate: split a big batch into micro-batches, `backward()` each, step once
+- The cost: every loop must clear it, `optimizer.zero_grad()`
+
+<div class="definition">
+
+**Gradient accumulation**: summing gradients from several backward passes before one optimizer step.
+
+</div>
 
 ---
 
-## Automatic differentiation, JAX: functional, nothing to zero
+## PyTorch and JAX, a question
+
+<div class="clicker" data-tag="l11-accumulate" data-seconds="45" data-answer="C" data-hint="Look at what the leaves of the tape do to .grad on the previous slide: add, or overwrite?" data-why="C. AccumulateGrad adds into .grad, so the second call adds the same gradient again. The demo measures the ratio at exactly 2.0." data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker-main">
+
+**You call `loss.backward()` twice on the same loss (with `retain_graph=True`), with no `zero_grad()` in between. What is `W.grad` now?**
+
+<ol class="clicker-opts">
+<li>The same gradient as after one call</li>
+<li>Zero, the second call cancels the first</li>
+<li>Exactly twice the gradient</li>
+<li>An error: a gradient can only be computed once</li>
+</ol>
+
+</div>
+<aside class="clicker-panel">
+<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
+<div class="clicker-url">clicker.f26-06763.workers.dev</div>
+<button class="clicker-start">Start voting</button>
+<div class="clicker-timer">45</div>
+<div class="clicker-count">no votes yet</div>
+</aside>
+</div>
+
+<!-- retain_graph is there so D is wrong for the right reason. Without it the second call errors because the saved tensors were freed, which is a good aside if someone asks. -->
+
+---
+
+## PyTorch and JAX, why switch the tape off
+
+The tape keeps **every intermediate** until `backward()` uses it. No `backward()`, no release.
+
+```python
+total = 0
+for x, y in val_loader:
+    loss = loss_fn(model(x), y)
+    total += loss          # keeps this batch's whole graph alive
+```
+
+| 1,024-unit MLP, 50 validation batches | memory held |
+|---|---|
+| `total += loss` | **478 MB**, growing ~10 MB per batch |
+| `total += loss.item()` | 8 MB (the last batch's graph) |
+| inside `torch.no_grad()` | 0 MB |
+
+<!-- Measured on this laptop's MPS GPU, torch 2.7. One forward pass at batch 8,192 holds 67 MB with the tape, 0.03 MB without. The session's 64-unit model holds 0.8 MB, which is why nobody notices on a small problem: this is the out-of-memory crash halfway through an epoch on a real one. -->
+
+---
+
+## PyTorch and JAX, when to switch the tape off
+
+| scenario | why | how |
+|---|---|---|
+| validation, test, serving | no gradient coming; the graph is pure memory | `with torch.no_grad():` |
+| a hand-written update | `W -= lr * W.grad` **raises**: in-place on a leaf | inside `no_grad()`, as `optimizer.step()` does |
+| part of the model frozen | pretrained layers, a target that must not move | `p.requires_grad_(False)`, `.detach()` |
+
+`torch.inference_mode()` is a stricter, slightly faster `no_grad()` for serving.
+
+<!-- The in-place error text: "a leaf Variable that requires grad is being used in an in-place operation." If it were allowed, the update itself would be recorded as part of the model. -->
+
+---
+
+## PyTorch and JAX, switching the tape off
+
+```python
+model.eval()                 # dropout off, batch norm uses running statistics
+with torch.no_grad():        # record nothing
+    total = sum(loss_fn(model(x), y).item() for x, y in val_loader)
+model.train()                # back to training behavior
+```
+
+- `eval()` and `no_grad()` are **different switches**: layers versus the tape. Evaluation needs both
+- Forget `eval()`: a validation score another script cannot reproduce
+- JAX: nothing is recorded outside `jax.grad`, and arrays are immutable, so only freezing needs code: `jax.lax.stop_gradient(x)`
+
+<!-- Students conflate these two constantly. no_grad is about the tape; eval is about layer behavior. -->
+
+---
+
+## PyTorch and JAX, a JAX gradient is a function
 
 ```python
 def loss(params, x, y):
     a = jnp.tanh(params["W"] @ x + params["b"])
     return (params["v"] @ a + params["c"] - y) ** 2
 
-grads = jax.grad(loss)(params, x, y)
+grads = jax.grad(loss)(params, x, y)   # same structure as params
 ```
 
-No tape. No mutable `.grad`. **Nothing to forget.**
+- No tape, no `.grad`, **nothing to zero**
+- `jax.grad(jax.grad(f))` differentiates twice; `jax.jit` compiles it through [XLA](https://openxla.org/xla)
 
-[The JAX Autodiff Cookbook](https://docs.jax.dev/en/latest/notebooks/autodiff_cookbook.html)
-
----
-
-## Automatic differentiation, so *why* does PyTorch accumulate?
-
-Not an oversight.
-
-Accumulation is what lets you split a batch too
-big for memory into micro-batches, call
-`backward()` on each, and step once on the sum.
-
-The API optimizes for that. The common case
-pays one extra line.
-
-**`zero_grad()` is the line everyone omits once.**
-
-Gradient at step *k* becomes the **sum** of steps 1…*k*.
-The effective step size grows through the epoch.
-
-It does not crash. It **wanders**, so it looks
-like a hyperparameter problem.
+<!-- Same network as the graph slide. grads is a dict with W, b, v, c. -->
 
 ---
 
-## Automatic differentiation, two more pieces of the API
+## PyTorch and JAX, the jaxpr
 
-`torch.no_grad()`: stop recording the tape.
-Wrap every evaluation pass in it.
-
-`model.eval()`: **a different thing.** It switches
-dropout and batch-norm to inference behavior.
-
-Confusing them is a classic source of a
-validation score another script cannot reproduce.
-
-[A gentle introduction to torch.autograd](https://docs.pytorch.org/tutorials/beginner/blitz/autograd_tutorial.html)
-
----
-
-<!-- _class: section -->
-
-# Anatomy of a training loop
-
----
-
-## Anatomy of a training loop
-
-<div class="definition">
-
-**Training loop**: forward pass, loss, backward pass, optimizer step, and zeroing the gradient accumulator before the next iteration.
-
-</div>
-
-**`Dataset`**: `__len__` and `__getitem__`
-**`DataLoader`**: batching, shuffling, `num_workers`
-**`nn.Module`**: parameters and `forward`
-**optimizer**: turns `.grad` into an update
-
-For a table in memory you can skip the first two.
-[Datasets & DataLoaders](https://docs.pytorch.org/tutorials/beginner/basics/data_tutorial.html)
-
----
-
-## Anatomy of a training loop, five lines
-
-```python
-for xb, yb in loader:
-    xb, yb = xb.to(device), yb.to(device)
-    loss = loss_fn(model(xb), yb)   # forward
-    optimizer.zero_grad()           # clear
-    loss.backward()                 # backward
-    optimizer.step()                # update
+```text
+g = dot_general a e      # W @ x
+h = add g b              # + b
+i = tanh h
+j = dot_general d i      # v · a
+k = add j c
+l = sub k f              # - y
+m = integer_pow[y=2] l
 ```
 
----
+- `jax.make_jaxpr(loss)` prints this: **7 equations**, the same 7 nodes as PyTorch's tape
+- `jax.grad` rewrites it into a **16-equation** program: forward and backward together
 
-## Anatomy of a training loop, losses and optimizers
-
-`MSELoss`: large errors hurt quadratically
-`L1Loss`: they do not
-`CrossEntropyLoss`: wants **logits**, applies softmax itself
-
-**SGD + momentum**: classical, still standard for vision
-**Adam / AdamW**: adapts a per-parameter step size
-
-<!-- The CrossEntropyLoss detail produces a lot of quietly mistrained
-     classifiers. Say it twice. -->
+Docs: [Understanding jaxprs](https://docs.jax.dev/en/latest/jaxpr.html)
 
 ---
 
-## Anatomy of a training loop, JAX writes the same loop inside out
+## PyTorch and JAX, limits of tracing
 
-```python
-def predict_one(params, x):        # no batch dimension at all
-    return params["v"] @ jnp.tanh(params["W"] @ x
-                                  + params["b"]) + params["c"]
+- JAX calls your function once with placeholders and writes down one path
+- A Python `if` on an array's **value** cannot be traced: use `jax.lax.cond`
+- A data-dependent loop: `jax.lax.while_loop`
+- The function must be **pure**: a `print` or list append runs once, at trace time
+- Arrays are immutable: `x[0] = 1.0` is a `TypeError`, use `x = x.at[0].set(1.0)`
 
-predict_batch = jax.vmap(predict_one, in_axes=(None, 0))
-```
-
-`vmap` names what the batch dimension **is**:
-an axis you are mapping over, not a model property.
+PyTorch pays none of this. Define-by-run means any Python works.
 
 ---
 
-## Anatomy of a training loop, and it agrees with the loop it replaces
+## PyTorch and JAX, `vmap` and `jit`
 
-`vmap` vs an explicit Python loop over 256 examples:
+`vmap`: write it for **one** example, map the batch axis. Agrees with a Python loop over 256 examples to **2.2 × 10⁻¹⁵**.
 
-# 2.2 × 10⁻¹⁵
-
-Faster, too: one batched kernel instead of 256 small ones.
-
----
-
-## Anatomy of a training loop, `jax.jit` is not a free lunch
-
-| workload | eager | jit | |
+| `jit` on | eager | jit | |
 |---|---|---|---|
 | one 512×512 matmul + `tanh` | 2.8 ms | 3.6 ms | **0.8×** |
 | elementwise chain, 2M floats | 16.8 ms | 14.6 ms | 1.2× |
 | 10-step `lax.fori_loop` | 83.3 ms | 30.3 ms | **2.8×** |
 
-Compiling one big BLAS call makes it **slower**.
-Fusion pays when there are many small ops.
+Compilation pays where there are many small operations to fuse.
 
-<!-- An earlier draft of these notes claimed a flat 3x. That was a badly timed
-     benchmark. Own it out loud; it is the same lesson as the dtype bug. -->
+<!-- A single matmul is already one BLAS call; jit only adds dispatch. Wall-clock on a laptop: a rerun gave 1.2x and 4.3x for the ends. Trust the order. -->
+
+---
+
+## PyTorch and JAX, side by side
+
+| | PyTorch | JAX |
+|---|---|---|
+| default float | float32 | float32 |
+| float64 | on request (`dtype=`, `set_default_dtype`); not on Apple MPS | only with `jax_enable_x64`; else truncated |
+| batch | leading dimension in every module | `vmap` over a per-example function |
+| compile | `torch.compile`, optional | `jax.jit`, the normal path |
+| transforms | `torch.func.grad`, `vmap`, `jvp` | `grad`, `vmap`, `jvp`, native |
+| randomness | global, `torch.manual_seed` | explicit keys, `jax.random.split` |
+| optimizers | `torch.optim` | [optax](https://optax.readthedocs.io/en/latest/) |
+
+The gap is now mostly defaults: PyTorch starts eager and opts in; JAX starts functional.
 
 ---
 
 <!-- _class: section -->
 
-# Devices and accelerators
+# Tensors, shapes and dtypes
 
 ---
 
-## Devices and accelerators
+## Tensors, what a tensor is
 
 <div class="definition">
 
-**Device**: where a tensor lives. Moving between CPU and GPU is an explicit copy, and it costs more than the arithmetic on small models.
+**Tensor**: an n-dimensional array with a shape, a dtype and a device, which in PyTorch can also record the operations applied to it.
 
 </div>
 
-`model.to(device)`, `x.to(device)`: same device, or an error
-Anything you print or plot needs `.cpu()`
-Doing that **inside** the loop serializes everything
-
-Timing without `synchronize()` measures how fast
-you **queued** the work.
+- Batch first: `(N, features)`, `(N, channels, time)`
+- Broadcasting follows NumPy: trailing dimensions line up, size 1 stretches
+- Broadcasting raises no error when shapes are compatible, even when the result is not what you meant
 
 ---
 
-## Devices and accelerators, the thing to internalize
+## Tensors, a question
 
-# A GPU is a throughput device
-# with a fixed cost per launch.
+<div class="clicker" data-tag="l11-shape" data-seconds="45" data-answer="C" data-hint="Line up the trailing dimensions: 1 against 64. What does a size-1 dimension do under broadcasting?" data-why="C. (64, 1) against (64,) broadcasts to (64, 64): every prediction minus every target. The mean of that is minimized by predicting the batch mean." data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker-main">
 
-It does not make operations faster.
-It makes **wide** operations cheaper per element.
+**The model returns predictions shaped `(64, 1)`. The targets are `(64,)`. What shape is `pred - target`?**
+
+<ol class="clicker-opts">
+<li><code>(64, 1)</code></li>
+<li><code>(64,)</code></li>
+<li><code>(64, 64)</code></li>
+<li>An error: the shapes do not match</li>
+</ol>
+
+</div>
+<aside class="clicker-panel">
+<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
+<div class="clicker-url">clicker.f26-06763.workers.dev</div>
+<button class="clicker-start">Start voting</button>
+<div class="clicker-timer">45</div>
+<div class="clicker-count">no votes yet</div>
+</aside>
+</div>
+
+<!-- The broadcasting rule is on the previous slide. Expect a lot of D. This is the bug behind a model in the notebook that learned a constant: nn.MSELoss on these shapes averages every prediction minus every target. -->
+
 
 ---
 
-## Devices and accelerators, so where is the crossover?
+## Tensors, reading a shape error
 
-![w:1050](figures/device-crossover.png)
+```python
+model = nn.Sequential(nn.Linear(8, 64), nn.ReLU(), nn.Linear(64, 1))
+model[2](x)    # x: 32 mixes x 8 features, but the first layer was skipped
+```
 
-<!-- Ask them to guess where the lines cross before revealing. Most say
-     "the GPU is always faster". -->
+`mat1 and mat2 shapes cannot be multiplied (32x8 and 64x1)`
 
----
-
-## Devices and accelerators, today's model on the accelerator
-
-| | ms/epoch |
+| piece | what it is |
 |---|---|
-| CPU | **8.6** |
-| GPU (Apple MPS) | **21.1** |
+| `mat1`, 32x8 | **your input**: 32 rows, 8 features |
+| `mat2`, 64x1 | **the layer's weight**, transposed: it expects 64 features |
+| the rule | inner dimensions must agree, and 8 ≠ 64 |
 
-**2.5× slower** for moving to the accelerator.
-The crossover sits between 64 and 256 hidden units.
+Fix the model, not the input: a skipped layer, or a stale `in_features`.
 
-**An honest caveat about these numbers.**
-
-Apple MPS on a laptop, because that is what
-generated these figures. A datacenter CUDA card
-(what Assignment 6 gives you) reaches 10 to 50× on a big model.
-
-What transfers is the **shape**, not the magnitude:
-every accelerator has a per-launch cost, so
-every accelerator has a crossover.
+<!-- nn.Linear(64, 1) stores weight (1, 64) and computes x @ W.T, which is why mat2 reads 64x1. Batch 32 on purpose: with a batch of 64 the two 64s read alike and the message is much harder to parse. The tempting wrong fix is x.reshape(...) until it runs. -->
 
 ---
 
-## Devices and accelerators, which gives the practical rule
+## Tensors, default dtypes disagree
 
-Debug on **CPU**, tiny subset, few epochs.
-Then launch the real run on the GPU.
+| call | dtype |
+|---|---|
+| `np.array(3.14)` | float64 |
+| `torch.tensor(3.14)` | **float32** |
+| `torch.tensor(np.float64(3.14))` | float64 |
+| `jnp.asarray(np.ones(3))`, x64 off (the default) | **float32**, no warning |
 
-For a model this size the CPU is not a fallback.
-It is the correct choice.
+- Mixing float32 with float64 gives float64, so **every dtype downstream reads float64**
+- JAX: `jax.config.update("jax_enable_x64", True)` before any array exists
 
-[Bourke, *Learn PyTorch for Deep Learning*](https://www.learnpytorch.io/)
+---
 
-**Mixed precision, in one slide.**
+## Tensors, JAX will not raise
 
-`torch.autocast` runs the arithmetic in fp16/bf16
-while keeping fp32 weights. Halves memory,
-often doubles throughput on tensor cores.
+- Out-of-bounds read **clamps**: `jnp.arange(3.0)[10]` returns `2.0`
+- Out-of-bounds write `.at[10].set(v)` is **silently dropped**
+- Raising from compiled accelerator code is expensive, so JAX does not
 
-`GradScaler` exists because fp16 has a narrow
-exponent and small gradients **underflow to zero**.
+Read before writing any JAX: [the Sharp Bits](https://docs.jax.dev/en/latest/notebooks/Common_Gotchas_in_JAX.html)
 
-Reach for it when a model does not fit. Not before.
+---
+
+## Story 1, the gradient that disagreed
+
+A story: code that ran, a number that looked fine, then the cause. Three today.
+
+**How it looked**
+
+- Autodiff checked against a hand-derived gradient, in float64
+- JAX agrees to **4.4 × 10⁻¹⁶**
+- PyTorch disagrees at **7.5 × 10⁻⁸**
+- Every `tensor.dtype` printed: `float64`
+- Conclusion drafted: "PyTorch's autograd is less precise"
+
+<!-- This happened while the notes were being written. The figure was going to say "both match to machine precision". -->
+
+---
+
+## Story 1, a question
+
+<div class="clicker" data-tag="l11-dtype" data-seconds="45" data-answer="B" data-hint="The default-dtypes slide: what does torch.tensor do with a bare Python float, and what does promotion do to the dtypes you print afterwards?" data-why="B. Two Python floats became float32 tensors. Promotion made everything downstream float64, so every printed dtype looked right. The error, 1.25e-7, is float32 epsilon." data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker-main">
+
+**PyTorch is off by 7.5e-8, JAX by 4.4e-16, and every dtype prints float64. Most likely cause?**
+
+<ol class="clicker-opts">
+<li>PyTorch's autograd is less careful numerically than JAX's</li>
+<li>A value entered as float32 somewhere, and promotion hid it</li>
+<li>The hand-derived gradient was copied wrong</li>
+<li>Non-deterministic GPU kernels</li>
+</ol>
+
+</div>
+<aside class="clicker-panel">
+<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
+<div class="clicker-url">clicker.f26-06763.workers.dev</div>
+<button class="clicker-start">Start voting</button>
+<div class="clicker-timer">45</div>
+<div class="clicker-count">no votes yet</div>
+</aside>
+</div>
+
+<!-- D is ruled out: it ran on the CPU. C is ruled out because JAX matched the same reference. -->
+
+---
+
+## Story 1, debugged
+
+- Two scalars were Python floats: `1.234`, and a bare `rng.normal()`
+- `torch.tensor` stored both as **float32**
+- The fingerprint: relative error **1.25 × 10⁻⁷**, float32 epsilon to two figures
+- Fixed, `dtype=torch.float64` on both: **1.7 × 10⁻¹⁸**
+
+**Check dtypes where data enters, not after.** An error near 10⁻⁷ means float32.
+
+<!-- The red line on the finite-difference figure is this bug. Checking tensor.dtype at the end would never have found it. -->
 
 ---
 
 <!-- _class: section -->
 
-# Does the net beat the tree?
+# Models that looked fine
 
 ---
 
-## Does the net beat the tree?
+## Models that looked fine, the setup
 
-**UCI Concrete Compressive Strength**, Yeh 1998.
-1,030 mixes → cement, slag, fly ash, water,
-superplasticizer, 2 aggregates, age → MPa.
+**Predict concrete strength** from the mix and its age: 1,030 rows, 8 inputs, a crush test that takes weeks
 
-Predict a **28-day destructive test** from the recipe.
-Exactly the trade a surrogate exists to make.
-
-[UCI 165](https://archive.ics.uci.edu/dataset/165/concrete+compressive+strength), [Yeh 1998](https://doi.org/10.1016/S0008-8846(98)00165-3)
-
----
-
-## Does the net beat the tree?, first: are these rows exchangeable?
-
-Group by the **seven mix components**, ignoring age.
-
-1,030 rows → **428 distinct mixes**.
-182 mixes tested at more than one age.
-Those cover **76% of all rows.**
-
-Plus **25 exact duplicate rows.**
-
-**You have seen this shape before.**
-
-The same batch of concrete appears at
-3, 7, 28 and 90 days as separate rows.
-
-A random k-fold asks the model to predict a
-curing curve **it has already seen most of**.
-
-That is Lecture 9's wind-tunnel frequency sweep,
-in a different material.
-
----
-
-## Does the net beat the tree?, how much scatter is even there?
-
-8 settings have the same mix and age measured twice:
-differences of 0.89, 1.28, 1.48, 1.68, 1.97, 2.86, 3.44, 6.60 MPa.
-
-Repeatability ≈ **2.2 MPa**, on **8 degrees of freedom**.
-
-An order of magnitude, not a number. But enough
-to know a model claiming 2 MPa is claiming to beat
-the test's own reproducibility.
-
----
-
-## Does the net beat the tree?, the comparison, run honestly
-
-![w:1100](figures/dl-vs-trees.png)
-
-<!-- 5 seeds x 5 folds = 25 measurements per bar. Ask them to predict the
-     right-hand panel before revealing it. -->
-
----
-
-## Does the net beat the tree?, random k-fold: the tree wins
-
-| model | RMSE |
+| any real model must beat | a working MLP gets |
 |---|---|
-| gradient boosting | **4.46** |
-| MLP (PyTorch) | 4.88 |
+| **17.9 MPa**: predict the training mean for every row | **5.5 MPa** |
 
-Gap **+0.41 ± 0.09** MPa. Over four standard errors.
-This is the result everyone expects.
+- 428 mixes; **76%** of rows belong to a mix tested at more than one age
+- Each story, like story 1: the code as written, the number, why it looked fine, the cause, the fix
 
-**GroupKFold by mix: they tie.**
+<!-- Keep 17.9 in view: it is the number every broken model gets compared with. The mix structure is what story 2 turns on. Numbers: fold 0 of a GroupKFold by mix (Lecture 9). -->
 
-| model | RMSE |
+---
+
+## Story 2, the tree that won
+
+```python
+folds = KFold(5, shuffle=True, random_state=0).split(X)
+for seed in range(5):
+    for tr, va in folds:
+        tree = HistGradientBoostingRegressor(random_state=seed).fit(X[tr], y[tr])
+        net  = train(X[tr], y[tr], X[va], y[va], seed=seed)
+```
+
+- Gradient boosting **4.44 MPa**, MLP **4.87**: the tree wins by 0.43 ± 0.09, nearly five standard errors
+- Five seeds, five folds, matches the received wisdom. **Where is the bug?**
+
+<!-- Give them a minute. The answer is the first line, and nothing in the output points at it. -->
+
+---
+
+## Story 2, debugged
+
+- Under `KFold`, **75%** of validation rows share a **mix** with training: the same concrete at another age
+- `GroupKFold` by mix: tree **6.25**, MLP **6.48**, a **tie**; the leak was worth 1.81 MPa to the tree, 1.61 to the net
+
+![h:280](figures/dl-vs-trees.png)
+
+<!--
+Nothing about either model changed, only the split.
+Part of "trees beat nets on small tabular data" was, here, a statement about the split.
+A single-seed version of this showed the MLP winning. Five seeds: a tie.
+-->
+
+---
+
+## Story 2, what about the leaky scaler?
+
+The textbook leak: `StandardScaler` fitted on all rows before splitting (Lecture 7)
+
+| scaler fitted on | RMSE, 3 seeds × 5 folds |
 |---|---|
-| gradient boosting | **5.73** |
-| MLP (PyTorch) | 5.81 |
+| training rows only | 6.27 MPa |
+| all rows (leaky) | 6.23 MPa |
+| difference | −0.04 ± 0.06 |
 
-Gap **+0.09 ± 0.10** MPa.
-Smaller than its own standard error.
+- Eight means and eight standard deviations barely move. Still a bug
+- **The leak that changed the conclusion was the split**
+- Grinsztajn et al., [45 datasets](https://arxiv.org/abs/2207.08815): trees do lead on tabular data. Check the split before crediting the model family
 
----
-
-## Does the net beat the tree?, what changed, and why
-
-Both got worse. The **tree got worse faster**:
-it gained 1.27 MPa from the leak, the MLP 0.94.
-
-Gradient boosting is better at exploiting a
-near-duplicate row than a small MLP is.
-
-# Part of "trees beat nets" was
-# a statement about the split.
+<!-- I expected the scaler to be the story. Measured, it is noise here. Say that honestly. -->
 
 ---
 
-## Does the net beat the tree?, do not over-read this
+## Story 3, the noisy run
 
-One dataset, 1,030 rows, is not a refutation.
+```python
+for xb, yb in loader:
+    loss = loss_fn(model(xb), yb)
+    loss.backward()
+    opt.step()
+```
 
-[Grinsztajn, Oyallon & Varoquaux](https://arxiv.org/abs/2207.08815) benchmarked
-**45 datasets**, 20,000 compute hours of search
-per learner: trees remain state of the art
-on medium-sized tabular data.
+- No NaN, no exception; validation RMSE wanders between 10 and 17 MPa, under the 17.9 baseline
+- Reads as "noisy, lower the learning rate". **Where is the bug?**
 
-The narrower claim is the useful one: **check
-it is not a split artefact first.**
+<!-- Four lines. The missing one is opt.zero_grad(). The clicker earlier was the same fact. -->
 
-**And one seed is not a result.**
+---
 
-The first version of this comparison ran one seed
-and showed the **MLP winning** under the honest split.
+## Story 3, debugged
 
-Five seeds show a tie.
+![h:340](figures/training-pathologies.png)
 
-Initialization, batch order, dropout: the seed
-spread here is as large as the model-family gap.
+No `opt.zero_grad()`: `.grad` sums every past step, so each update follows the sum of all past gradients. Ends at **23.2 MPa**, worse than the mean. Fixed: **5.5**.
+
+<!--
+Left panel. Where it ends depends on where you stop; several epochs earlier it sat near 12.
+The notebook prints the size of .grad step by step with and without zeroing.
+Middle and right panels come back in the loop section.
+-->
+
+---
+
+## Models that looked fine, what caught each
+
+| story | looked like | caught by |
+|---|---|---|
+| dtype | a library difference | an exact reference, 10⁻⁷ fingerprint |
+| leaky split | trees beat nets | a split grouped by mix |
+| no `zero_grad` | a noisy learning rate | reading the loop |
+| target shape `(N,)` | a weak first model | the mean baseline, prediction spread |
+| raw inputs + Adam | a respectable model | the input scales, or trying SGD |
+
+None raised an error. All four models, rerun and taken apart: <a href="../../lectures/l11/l11-four-models.html">`l11-four-models.ipynb`</a>
+
+<!-- The last two rows are in the notebook only: target shape 17.7 -> 5.5 MPa with predictions spread 0.26 MPa and 1,560 warnings; Adam on raw inputs 8.3 -> 5.5, SGD on the same inputs NaN in the first epoch. -->
 
 ---
 
 <!-- _class: section -->
 
-# Three ways a training loop dies
+# The training loop
 
 ---
 
-## Three ways a training loop dies
+## The training loop, PyTorch
+
+```python
+for epoch in range(n_epochs):
+    model.train()
+    for xb, yb in loader:
+        xb, yb = xb.to(device), yb.to(device)
+        loss = loss_fn(model(xb), yb)   # forward
+        optimizer.zero_grad()           # clear the accumulator
+        loss.backward()                 # backward
+        optimizer.step()                # update
+```
+
+- One optimizer step per mini-batch; an **epoch** is one pass over the rows
+- Four objects: `DataLoader`, `nn.Module`, loss function, optimizer. Story 3 was one missing line here
+
+---
+
+## The training loop, JAX and optax
+
+```python
+@jax.jit
+def step(params, opt_state, xb, yb):
+    loss, grads = jax.value_and_grad(loss_fn)(params, xb, yb)
+    updates, opt_state = optimizer.update(grads, opt_state, params)
+    return optax.apply_updates(params, updates), opt_state, loss
+```
+
+- No `zero_grad`, no `.to(device)`: state goes in and comes out
+- Same network, same fold, 5 seeds: PyTorch **5.70 ± 0.29**, JAX **5.66 ± 0.24** MPa
+
+---
+
+## The training loop, Adam
+
+$$
+m_t = \beta_1 m_{t-1} + (1-\beta_1) g_t, \qquad v_t = \beta_2 v_{t-1} + (1-\beta_2) g_t^2
+$$
+$$
+\theta_t = \theta_{t-1} - \eta\, \frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon}, \qquad \hat{m}_t = \frac{m_t}{1-\beta_1^t},\ \hat{v}_t = \frac{v_t}{1-\beta_2^t}
+$$
 
 <div class="definition">
 
-**Exploding and vanishing gradients**: updates so large the loss becomes NaN, or so small the parameters never move.
+**Adam**: momentum on the gradient, divided by a running root-mean-square of the gradient, so each parameter gets its own step size.
 
 </div>
 
-![w:1120](figures/training-pathologies.png)
-
-<!-- Same architecture, same fold, one thing changed at a time. -->
+$g_t$ gradient, $\eta$ learning rate, $m_t$ and $v_t$ running averages (this $v$ is Adam's, not the network's). [Kingma and Ba, 2015](https://arxiv.org/abs/1412.6980)
 
 ---
 
-## Three ways a training loop dies, 1. Forgetting `zero_grad()`
+## The training loop, what Adam's knobs do
 
-17.8 MPa against 6.0, where predicting the
-training mean scores **19.2**.
+![h:340](figures/adam-paths.png)
 
-The broken run keeps ~**11%** of what the
-working one earned.
+Narrow bowl, 40× steeper in $\theta_2$. Adam's first step is $\eta$ in **both** coordinates; SGD's are 0.18 and 2.7.
 
-And it **oscillates** rather than diverging,
-so it reads as a tuning problem.
-
-**2. The learning rate.**
-
-With plain SGD:
-
-- 0.001: too small, 13.2 MPa and still descending
-- 0.01, 0.1: both fine, about 7.6
-- 1.0: diverges to 33.7
-- **2.0: NaN from the first epoch**
-
-Total failure, not gradual. Nothing to diagnose.
+<!--
+Left: SGD zig-zags, momentum curls, Adam walks diagonally. This per-coordinate rescaling is why Adam survived raw inputs in the notebook's fourth model (8.3 MPa, where SGD gave NaN), and why it hid the bug.
+Middle: beta1 = 0.99 overshoots, loss 5.3 after 100 steps vs 0.0011.
+Right: lr = 0.01 is still 1.6 away after 300 steps.
+Rotate the bowl 45 degrees and Adam's loss goes from 0.0011 to 1.1: it rescales axes, it cannot unrotate.
+-->
 
 ---
 
-## Three ways a training loop dies, but the boundary is fuzzy
+## The training loop, $\beta_2$ and $\epsilon$
 
-At **lr = 1.0**, across six seed-and-loop
-combinations: `nan` in three, and divergence
-to 90 or 170 MPa in the others.
+![h:360](figures/adam-steps.png)
 
-A learning rate is not "stable". It is stable
-**for this initialization**.
+Gradient drops 100× at step 200: with $\beta_2 = 0.999$ the step collapses about 60× for hundreds of steps. Large $\epsilon$ turns Adam back into SGD.
 
-<!-- Which is the reproducibility argument again, arriving from a new direction.
-     A single surviving run is not evidence. -->
-
-**3. Unscaled inputs.**
-
-Cement is in the hundreds of kg/m³.
-Superplasticizer is in single digits.
-
-**SGD** gives `nan` inside the first epoch.
-**Adam** does not diverge at all: 9.7 MPa
-instead of 6.0.
+<!-- Bias correction: without it the first step is about 3.2 times the learning rate. Cut this slide if short on time. -->
 
 ---
 
-## Three ways a training loop dies, read that again
+## The training loop, defaults that differ
 
-Adam's per-parameter step size **absorbs** the bug.
+| | `torch.optim` | `optax` |
+|---|---|---|
+| Adam learning rate | 1e-3 | **required** |
+| $\beta_1$, $\beta_2$, $\epsilon$ | 0.9, 0.999, 1e-8 | 0.9, 0.999, 1e-8 |
+| AdamW weight decay | **0.01** | **0.0001** |
 
-You get a model that works, is nearly twice as
-bad as it should be, and says nothing is wrong.
+- AdamW decays the weights outside the adaptive scaling ([Loshchilov and Hutter](https://arxiv.org/abs/1711.05101))
+- Port with defaults and the regularization changes **100×**, silently
 
-# Forgiveness is not always a kindness.
+---
+
+## The training loop, the learning rate
+
+SGD on the same fold, 120 epochs:
+
+| lr | 0.001 | 0.01 | 0.1 | 1.0 | 2.0 |
+|---|---|---|---|---|---|
+| RMSE, MPa | 11.9 | 6.4 | 5.1 | 91 | `nan` from epoch 1 |
+
+- At **lr = 1.0**, six seeds: `nan` in two, 91 to 1,235 MPa in the other four
+- Stable is a property of *this initialization*. One surviving run proves little
 
 ---
 
 <!-- _class: section -->
 
-# Where this pushes back
+# Accelerators
 
 ---
 
-## Where this pushes back
+## Accelerators, the rules
 
-The tree trains in under a second, has no learning
-rate, no scaling requirement, no device to place,
-and **ties** the network.
-
-Learn PyTorch because it is the only option once
-the input has structure a tree cannot exploit.
-
-**Autodiff is exact, not free, not universal.**
-
-Reverse mode **stores every forward intermediate**,
-so memory scales with graph depth (hence checkpointing).
-
-And it needs differentiability: `argmax`, a hard
-threshold, a sampling step have zero or undefined
-gradient, and nothing warns you.
+- PyTorch: `model.to(device)`, `x.to(device)`; mismatch is a loud error, the good case
+- JAX: arrays go to the default device; `jax.devices()` shows it
+- `.cpu()` or `print` inside the loop forces a sync and serializes everything
+- GPU calls return when **queued**: time with `torch.cuda.synchronize()` or `x.block_until_ready()`
+- A GPU has a **fixed cost per kernel launch**; it pays only with enough arithmetic behind each launch
 
 ---
 
-## Where this pushes back, JAX and PyTorch are not interchangeable
+## Accelerators, a question
 
-PyTorch: pretrained models, deployment tooling,
-the volume of examples. Assignment 6 assumes it.
+<div class="clicker" data-tag="l11-gpu" data-seconds="45" data-answer="D" data-hint="Last slide: a fixed cost per kernel launch. How much arithmetic does a 64-unit MLP on 1,030 rows put behind each launch?" data-why="D. 8.6 ms per epoch on the CPU, 21.1 ms on the GPU. The launch overhead is larger than the arithmetic for a model this small." data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker-main">
 
-JAX: when the thing you differentiate is **not a net**,
-a simulator, an ODE solve, a physical model.
-`jax.grad(jax.grad(f))` is a one-liner.
+**Today's MLP (two hidden layers of 64, 1,030 rows) moves from the laptop CPU to its GPU. Time per epoch?**
 
-Cost: purity, `lax.cond`, immutable arrays,
-float32 by default. [Read Sharp Bits first.](https://docs.jax.dev/en/latest/notebooks/Common_Gotchas_in_JAX.html)
+<ol class="clicker-opts">
+<li>About 10× faster</li>
+<li>About 3× faster</li>
+<li>About the same</li>
+<li>About 2.5× slower</li>
+</ol>
 
-**And the GPU is a tool, not a virtue.**
+</div>
+<aside class="clicker-panel">
+<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
+<div class="clicker-url">clicker.f26-06763.workers.dev</div>
+<button class="clicker-start">Start voting</button>
+<div class="clicker-timer">45</div>
+<div class="clicker-count">no votes yet</div>
+</aside>
+</div>
 
-A model that runs 2.5× slower on the accelerator
-is not an unusual case.
+---
 
-It is the normal case for tabular engineering data.
+## Accelerators, the crossover
 
-**Measure before you migrate.**
+![h:400](figures/device-crossover.png)
+
+Today's model: **8.6 ms per epoch on the CPU, 21.1 ms on the GPU**. The GPU wins past a few hundred hidden units.
+
+<!--
+Apple MPS on a laptop. A datacenter CUDA card moves the crossover and raises the plateau; it does not remove the fixed cost.
+Minimum over repeated trials, because interference only ever makes a timing slower.
+Debug on CPU with a tiny subset, then launch the real run on the GPU.
+-->
+
+---
+
+## Trade-offs
+
+| | PyTorch | JAX |
+|---|---|---|
+| strongest at | standard architectures, pretrained models, deployment | differentiating simulators, ODE solves, physical models |
+| composes | eager code, plus `torch.func` and `torch.compile` | `vmap(grad(f))`, `jax.hessian`, one line each |
+| costs you | hidden state: `.grad`, `train()`/`eval()`, global seed | purity, `lax.cond`, tracing and recompiles |
+| fails quietly with | missing `zero_grad`, float32 from a Python float | float32 by default, clamped indices |
+
+And on 1,030 rows of concrete, gradient boosting ties the MLP in under a second, with no learning rate.
 
 ---
 
@@ -750,49 +792,44 @@ It is the normal case for tabular engineering data.
 
 ## `l11-tensors-autograd.ipynb`
 
-The gradient by hand, the loop by hand,
-and three deliberate breakages.
+A gradient by hand, checked against `backward()` and `jax.grad`. A loop by hand, broken three ways. The same loop on the GPU. Net against tree, under both splits.
 
----
-
-## What to watch
-
-- Hand gradient vs `backward()` vs `jax.grad` vs finite differences
-- The mix groups: **76% of rows** share a mix with another row
-- `zero_grad()` removed: **6.0 → 17.8 MPa**, against a 19.2 do-nothing baseline
-- Adam on raw inputs: no crash, just 9.7 instead of 6.0
-- The same code on GPU: same answer, **2.5× slower**
-- MLP vs tree under both splits
-
-**Come with a prediction:** net or tree on 1,030 rows,
-and does your answer change if the split changes?
+<!-- The last 20 minutes, notebook then questions. Ask for a prediction before the net-vs-tree cell prints. -->
 
 ---
 
 ## Recap
 
-- A tensor knows its device and its history; its default dtype is not NumPy's
-- Reverse-mode autodiff: every gradient for ~2 forward passes, **exactly**
-- PyTorch accumulates into a mutable `.grad`; that is *why* `zero_grad()` exists
-- JAX transforms pure functions, so there is nothing to forget
-- A GPU has a fixed cost per launch, so today's model is **2.5× slower** on one
-- Honest split → net and tree **tie**; leaky split → the tree "wins"
+- Reverse-mode AD: every gradient, exactly, for about two forward passes
+- PyTorch **records** a tape and accumulates into `.grad`; JAX **transforms** pure functions
+- Default float32 in both; check dtypes where data enters
+- Three stories, no errors raised; each was caught by a comparison: an exact reference, a grouped split, a correct loop
+- Adam gives each parameter its own step size; it tolerates unscaled inputs, and so hides them
+- The GPU is 2.5× slower on today's model; measure before you migrate
 
 ---
 
-## Three things measurement changed today
+## Standings
 
-- "Both frameworks match to machine precision" was **false** until two Python floats were fixed
-- "Trees beat nets on tabular data" became **a tie** when the split was fixed
-- "`jax.jit` gives 3×" was a badly timed benchmark; on one matmul it gives **0.8×**
+Nicknames only. Everyone who skipped one still counted in every bar you saw.
 
-Every one of those was a draft claim a run corrected.
+<div class="clicker-leaderboard"
+     data-read="https://clicker.f26-06763.workers.dev"
+     data-top="8"
+     data-hours="6"
+     data-title="Standings"></div>
+
+<!--
+Skip this slide if no clicker questions were run.
+-->
 
 ---
 
-## Next
+## Before you go
 
-**Assignment 6**, out today, due ~1 week, Assignment 5 due now
-**Reading** [PyTorch: Learn the Basics](https://docs.pytorch.org/tutorials/beginner/basics/intro.html), [autograd tutorial](https://docs.pytorch.org/tutorials/beginner/blitz/autograd_tutorial.html), [Grinsztajn et al. 2022](https://arxiv.org/abs/2207.08815)
+**Practice module** for this session, for participation credit
+**Reading** [PyTorch: Learn the Basics](https://docs.pytorch.org/tutorials/beginner/basics/intro.html), [JAX Sharp Bits](https://docs.jax.dev/en/latest/notebooks/Common_Gotchas_in_JAX.html), [Grinsztajn et al. 2022](https://arxiv.org/abs/2207.08815)
 
 Full notes, with all sources: `lectures/l11/notes.md`
+
+<script src="clicker-slide.js"></script>

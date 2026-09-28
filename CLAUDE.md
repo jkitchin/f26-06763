@@ -144,8 +144,9 @@ frontmatter `title:` and expect it to render.
 4. A limitations or trade-offs section, where appropriate. Not every session needs one, but
    wherever the notes introduce or compare a technology, a candid pros-and-cons discussion
    belongs here: what the tool or method is bad at, its failure modes and surprises, and when
-   to reach for something else. When it applies it usually sets up the next arc. L3's "Where
-   the relational model pushes back" is the worked model.
+   to reach for something else. Give it a plain heading such as `## Limitations and
+   trade-offs`; avoid figurative titles like "Where this pushes back". L3's limitations
+   section is the worked model for content.
 5. `## In-class demo`, short orientation, pointing at `demo.ipynb`.
 6. `## Summary`, a paragraph, not bullets, closing the session on its own terms.
    **Do not point forward to later sessions.** The course is released one lecture
@@ -660,6 +661,9 @@ important takeaway instead of adding anything. The tells that make it up:
 - **Contrast through understatement.** An understated negation where a concrete word is
   sharper: "not catastrophic" instead of "small", "not uncommon" instead of "frequent". Name
   the thing.
+- **Figurative headings and idioms.** "Where this pushes back", "demystified", "the dtype that
+  will bite you", "in a new costume", "at full speed". Say the plain thing: "Limitations and
+  trade-offs", "Tensors, shapes, and dtypes". The course voice is simple and direct.
 - **Artificial emphasis.** "And that is the point", "and that distinction matters", which
   inflate an ordinary statement into a small revelation.
 

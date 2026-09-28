@@ -1,22 +1,23 @@
 #!/usr/bin/env python3
 """Generate lectures/l10/l10-classification.ipynb.
 
-The classification demo, which moved here from Lecture 9 with that material. Three steps:
+The live classification demo. One dataset, one classifier, six short steps:
 
-  1. the moons (make_moons): logistic regression, a depth-3 tree, a network of five ReLU
-     units and a Gaussian process classifier, and their decision regions
-  2. Tennessee Eastman (the miniproject's two files, split by run): a baseline that always
-     says normal, logistic regression, a tree and a network, scored by accuracy,
-     precision, recall and F1, and the network's confusion matrix with the faulty class
-     first
-  3. the same network on eight faults it never saw
+  1. load the miniproject's two Tennessee Eastman (TEP) files
+  2. build the train and test tables by run, exactly as figures/make_figures.py does
+  3. fit the 52-channel classifier (a small neural network)
+  4. read its confusion matrix, precision and recall at the default threshold
+  5. move the threshold and watch precision trade against recall
+  6. check its recall on eight faults it never trained on
 
 Design notes:
-  - Same data, splits, models and seeds as figures/make_figures.py, and as the Lecture 9
-    notebook these cells came from, so the notebook reproduces the numbers in the notes
-    (moons test accuracy 0.867, 0.911, 0.933 and 0.967; TEP recall 0.803 for logistic
-    regression, 0.855 for the tree and 0.961 for the network; recall on the unseen
-    faults from 0.001 to 0.924).
+  - One classifier, not four. The four model families from Lecture 9 are discussed as a
+    table in the notes and the slides; this notebook fits only the neural network, so a
+    student watching it live sees one thing done well rather than four things done fast.
+  - Same data, split, model and seeds as figures/make_figures.py, so the notebook
+    reproduces the numbers in the notes and the deck (training rows 172,500 at 12.5%
+    faulty; test rows 59,000 at 14.6% faulty; accuracy 0.994, precision 0.998, recall
+    0.961; recall on the unseen faults from 0.001 to 0.924).
   - Faults 3, 9 and 15 never appear. The miniproject's evidence script checks that
     students find those three for themselves.
   - The two plant files download once, 45 MB, into data/ next to the notebook, which
@@ -59,219 +60,150 @@ def code(text):
 
 cells = [
     md("""
-# L10 demo: classification with scikit-learn
+# L10 demo: is the plant faulty?
 
-Classification predicts a category instead of a number. Every model here is used the same way
-as the regression models of Lecture 9: `model.fit(X_train, y_train)`, then `model.predict(X)`.
+A classifier works like the regression models of Lecture 9: `model.fit(X_train, y_train)`,
+then `model.predict(X)`. It predicts a category instead of a number. This notebook fits one
+classifier on the Tennessee Eastman process (TEP), a simulated chemical plant.
 
-1. **The moons.** Four classifiers on two features, so you can see each one's decision regions.
-2. **Tennessee Eastman.** Each snapshot of the plant is normal or faulty, and four classifiers
-   are scored with accuracy, precision, recall and F1.
-3. **Faults it never saw.** The best of those classifiers meets eight faults that were not in
-   its training data.
+1. **Build the tables.** Load the plant data and split it by run, the way Lecture 8 and
+   Lecture 9 both did.
+2. **Fit and read.** One classifier, a confusion matrix, and what happens when you slide
+   the decision threshold.
+3. **Faults it never saw.** How it does on faults that were not in its training data.
 """),
 
     code("""
 import urllib.request
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import pyarrow    # noqa: F401  pandas needs it to read the Parquet files
 
-from sklearn.datasets import make_moons
-from sklearn.model_selection import train_test_split
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.dummy import DummyClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
 from sklearn.neural_network import MLPClassifier
-from sklearn.gaussian_process import GaussianProcessClassifier
-from sklearn.gaussian_process.kernels import RBF
-from sklearn.metrics import (accuracy_score, precision_score, recall_score, f1_score,
-                             confusion_matrix)
-
-DATA = Path("data"); DATA.mkdir(exist_ok=True)
-"""),
-
-    md("""
-## 1. The moons
-
-The moons are a synthetic dataset from scikit-learn's `make_moons`: two interleaving
-half-circles, one for each class, with Gaussian noise added to every point. There are 300
-points, of which 210 train the models and 90 test them. The data have two features, so the
-whole plane can be colored by each model's prediction, and no straight line separates the two
-classes.
-"""),
-
-    code("""
-Xm, ym = make_moons(
-    n_samples=300,
-    noise=0.25,
-    random_state=0,
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    confusion_matrix,
 )
-Xm_tr, Xm_te, ym_tr, ym_te = train_test_split(
-    Xm, ym,
-    test_size=0.3,
-    random_state=42,
-)
-print(f"Training points: {len(ym_tr)}, test points: {len(ym_te)}")
-print(f"Class 0: {(ym == 0).sum()} points, class 1: {(ym == 1).sum()} points")
+
+DATA = Path("data")
+DATA.mkdir(exist_ok=True)
 """),
 
     md("""
-Four classifiers, one from each family, each fitted on the same 210 points and scored on the
-other 90. The shading is each model's predicted probability of class 1.
-"""),
+## 1. Load the two plant files
 
-    code("""
-classifiers = {
-    "Logistic regression": LogisticRegression(),
-    "Decision tree (depth 3)": DecisionTreeClassifier(
-        max_depth=3,
-        random_state=0,
-    ),
-    "Neural network (5 ReLU)": MLPClassifier(
-        hidden_layer_sizes=(5,),
-        activation="relu",
-        solver="lbfgs",
-        max_iter=2000,
-        random_state=0,
-    ),
-    "Gaussian process": GaussianProcessClassifier(
-        kernel=RBF(1.0),
-        random_state=0,
-        max_iter_predict=200,
-    ),
-}
-
-xx, yy = np.meshgrid(np.linspace(-2, 3.2, 300), np.linspace(-1.7, 2.1, 300))
-fig, axes = plt.subplots(
-    1, 4,
-    figsize=(15, 3.8),
-    sharey=True,
-)
-for ax, (name, clf) in zip(axes, classifiers.items()):
-    clf.fit(Xm_tr, ym_tr)
-    accuracy = accuracy_score(ym_te, clf.predict(Xm_te))
-    print(f"{name:24s} test accuracy {accuracy:.3f}")
-    zz = clf.predict_proba(np.c_[xx.ravel(), yy.ravel()])[:, 1].reshape(xx.shape)
-    ax.contourf(
-        xx, yy, zz,
-        levels=11,
-        alpha=0.45,
-    )
-    ax.scatter(
-        Xm[:, 0], Xm[:, 1],
-        c=ym,
-        edgecolor="k",
-        s=14,
-    )
-    ax.set_title(f"{name}\\nTest accuracy {accuracy:.3f}")
-plt.tight_layout()
-"""),
-
-    md("""
-**What to look for.** Logistic regression can only draw a straight line. The tree cuts the
-plane into rectangles, and the network bends its boundary out of a few straight pieces. The
-Gaussian process draws a smooth curve, and its probability fades toward 0.5 away from the data.
-"""),
-
-    md("""
-## 2. Tennessee Eastman: normal or faulty?
-
-The miniproject's two files hold fault-free runs of the plant and runs with faults 1 to 20, where
-each fault starts after sample 20. A sample is **faulty** if it comes from a fault run after the
-fault started. The first time, the two files download 45 MB into `data/`.
+The two files hold fault-free runs of the plant and runs with faults 1 to 20, sampled every
+three minutes. Each fault run starts fault-free and switches the fault on after
+sample 20. The first time, the two files download 45 MB into `data/`.
 """),
 
     code("""
 HOST = "https://kitchin-services.cheme.cmu.edu/f26-06763/data/"
-for f in ["tep_fault_free_training.parquet", "tep_faulty_training_runs01-20.parquet"]:
-    if not (DATA / f).exists():
-        urllib.request.urlretrieve(HOST + f, DATA / f)
+for name in ["tep_fault_free_training.parquet", "tep_faulty_training_runs01-20.parquet"]:
+    if not (DATA / name).exists():
+        urllib.request.urlretrieve(HOST + name, DATA / name)
+
 fault_free = pd.read_parquet(DATA / "tep_fault_free_training.parquet")
 faulty = pd.read_parquet(DATA / "tep_faulty_training_runs01-20.parquet")
+print(f"Fault-free rows: {len(fault_free):,}   faulty rows: {len(faulty):,}")
 """),
 
     md("""
-The rows are split by run, as in Lecture 8, so no run appears on both sides. The classifiers
-train on fault-free runs 1 to 300 and on runs 1 to 5 of nine faults. They are tested on
-fault-free runs 401 to 500 and on runs 11 and 12 of the same nine faults.
+## 2. Build the train and test tables, by run
+
+A sample is **faulty** once it comes from a fault run after sample 20. The rows are split by
+run, as in Lecture 8 and Lecture 9, so no run appears on both sides: training uses fault-free
+runs 1 to 300 and runs 1 to 5 of nine faults, testing uses fault-free runs 401 to 500 and runs
+11 and 12 of the same nine faults. Every one of the plant's 52 channels goes in.
 """),
 
     code("""
 CHANNELS = [f"xmeas_{i}" for i in range(1, 42)] + [f"xmv_{i}" for i in range(1, 12)]
-SEEN = [1, 2, 4, 5, 6, 7, 8, 12, 13]           # the faults the classifier learns
+SEEN = [1, 2, 4, 5, 6, 7, 8, 12, 13]      # the faults this classifier trains on
 
-def plant_table(normal_runs, faults, fault_runs):
-    \"\"\"52 channels and a 0/1 label, from whole runs only.\"\"\"
-    d = pd.concat([fault_free[fault_free.simulationRun.isin(normal_runs)],
-                   faulty[faulty.faultNumber.isin(faults) & faulty.simulationRun.isin(fault_runs)]])
+def tep_table(normal_runs, faults, fault_runs):
+    \"\"\"52 channels and a 0/1 label, built from whole runs only.\"\"\"
+    d = pd.concat(
+        [
+            fault_free[fault_free.simulationRun.isin(normal_runs)],
+            faulty[faulty.faultNumber.isin(faults) & faulty.simulationRun.isin(fault_runs)],
+        ],
+        ignore_index=True,
+    )
     label = ((d.faultNumber > 0) & (d["sample"] > 20)).astype(int).to_numpy()
     return d[CHANNELS].to_numpy(), label
 
-Xp_tr, yp_tr = plant_table(range(1, 301), SEEN, range(1, 6))       # train on these runs
-Xp_te, yp_te = plant_table(range(401, 501), SEEN, range(11, 13))   # test on other runs
-print(f"Train: {len(yp_tr):,} samples, {yp_tr.mean():.1%} faulty")
-print(f"Test:  {len(yp_te):,} samples, {yp_te.mean():.1%} faulty")
+X_train, y_train = tep_table(range(1, 301), SEEN, range(1, 6))
+X_test, y_test = tep_table(range(401, 501), SEEN, range(11, 13))
+print(f"Train: {len(y_train):,} rows, {y_train.mean():.1%} faulty")
+print(f"Test:  {len(y_test):,} rows, {y_test.mean():.1%} faulty")
+print(f"A classifier that always said 'normal' would score {1 - y_test.mean():.1%}"
+      " accuracy and 0 recall.")
 """),
 
     md("""
-There are four classifiers. The first is a baseline that always answers "normal", so it never
-raises an alarm. Compare its accuracy with its recall.
+## 3. Fit one classifier
+
+- `StandardScaler` rescales each channel to mean 0 and standard deviation 1.
+- `MLPClassifier` is a small neural network: one hidden layer of 32 ReLU (rectified linear
+  unit) units.
+- `make_pipeline` chains the two, so the scaling is learned from the training rows only.
+- `early_stopping=True` sets aside 10% of the training rows and stops training when the score
+  on them stops improving.
+
+The classifier sees all 52 channels at once. It never sees the fault number, only whether the
+sample is faulty.
 """),
 
     code("""
-plant_models = {
-    "Baseline: always normal": DummyClassifier(strategy="most_frequent"),
-    "Logistic regression": make_pipeline(StandardScaler(), LogisticRegression(max_iter=2000)),
-    "Decision tree": DecisionTreeClassifier(
-        max_depth=8,
+model = make_pipeline(
+    StandardScaler(),
+    MLPClassifier(
+        hidden_layer_sizes=(32,),
+        max_iter=300,
+        early_stopping=True,
         random_state=0,
     ),
-    "Neural network": make_pipeline(
-        StandardScaler(),
-        MLPClassifier(
-            hidden_layer_sizes=(32,),
-            max_iter=300,
-            early_stopping=True,
-            random_state=0,
-        ),
-    ),
-}
-rows = {}
-for name, clf in plant_models.items():
-    p = clf.fit(Xp_tr, yp_tr).predict(Xp_te)
-    rows[name] = {
-        "accuracy": accuracy_score(yp_te, p),
-        "precision": precision_score(yp_te, p, zero_division=0),
-        "recall": recall_score(yp_te, p),
-        "F1": f1_score(yp_te, p),
-    }
-pd.DataFrame(rows).T.round(3)
+).fit(X_train, y_train)
+print(f"Stopped after {model[-1].n_iter_} passes over the training data.")
 """),
 
     md("""
-The confusion matrix counts the test samples by their actual class (the rows) and their
-predicted class (the columns). With `labels=[1, 0]` the faulty class comes first, so the top row
-holds the true positives and the false negatives. Precision, recall and F1 all come from these
-four numbers.
+## 4. Confusion matrix, precision and recall
+
+The confusion matrix counts test rows by their actual class (the rows) and their predicted
+class (the columns). Four counts fall out of it:
+
+- **TP (true positive)**: actually faulty, predicted faulty.
+- **FN (false negative)**: actually faulty, predicted normal. A missed fault.
+- **FP (false positive)**: actually normal, predicted faulty. A false alarm.
+- **TN (true negative)**: actually normal, predicted normal.
+
+With `labels=[1, 0]` the faulty class comes first, so the top row of the matrix holds TP
+and FN. Precision and recall come from these four counts:
+
+- **Precision** = TP / (TP + FP): the share of the alarms that were real faults.
+- **Recall** = TP / (TP + FN): the share of the real faults that were caught.
 """),
 
     code("""
+pred = model.predict(X_test)
 cm = confusion_matrix(
-    yp_te,
-    plant_models["Neural network"].predict(Xp_te),
+    y_test,
+    pred,
     labels=[1, 0],
 )
 (tp, fn), (fp, tn) = cm
-precision, recall = tp / (tp + fp), tp / (tp + fn)
-print(f"Precision TP / (TP + FP) = {precision:.3f}")
-print(f"Recall    TP / (TP + FN) = {recall:.3f}")
-print(f"F1        2PR / (P + R)  = {2 * precision * recall / (precision + recall):.3f}")
+
+print(f"Accuracy  {accuracy_score(y_test, pred):.3f}")
+print(f"Precision {precision_score(y_test, pred):.3f}   TP / (TP + FP)")
+print(f"Recall    {recall_score(y_test, pred):.3f}   TP / (TP + FN)")
+
 pd.DataFrame(
     cm,
     index=["Actually faulty", "Actually normal"],
@@ -280,30 +212,53 @@ pd.DataFrame(
 """),
 
     md("""
-## 3. Faults it never saw
+## 5. Moving the threshold
 
-The network learned faults 1, 2, 4, 5, 6, 7, 8, 12 and 13. Here it is on eight faults that were
-not in its training data, again on runs 11 and 12 after each fault starts.
+`predict` returns the class it thinks each row belongs to, faulty or normal, using a 0.5
+cutoff on the predicted probability. `predict_proba` returns the probability of each class
+instead, so you can choose your own cutoff; its column 1 is the probability of a fault.
+Move the cutoff down and more faults get caught, with more false alarms. Move it up and the
+reverse happens.
 """),
 
     code("""
-nn = plant_models["Neural network"]
-print(f"Faults it learned: recall {nn.predict(Xp_te[yp_te == 1]).mean():.3f}")
-for f in [10, 11, 14, 16, 17, 18, 19, 20]:
-    run = faulty[(faulty.faultNumber == f) & faulty.simulationRun.isin(range(11, 13))
-                 & (faulty["sample"] > 20)]
-    print(f"Fault {f:2d}: recall {nn.predict(run[CHANNELS].to_numpy()).mean():.3f}")
+proba = model.predict_proba(X_test)[:, 1]
+
+for t in [0.1, 0.5, 0.9]:
+    call = (proba >= t).astype(int)
+    tp = int(((call == 1) & (y_test == 1)).sum())
+    fp = int(((call == 1) & (y_test == 0)).sum())
+    fn = int(((call == 0) & (y_test == 1)).sum())
+    precision = tp / (tp + fp) if (tp + fp) else 0.0
+    recall = tp / (tp + fn) if (tp + fn) else 0.0
+    print(f"threshold {t:.1f}   precision {precision:.3f}   recall {recall:.3f}")
 """),
 
     md("""
-**What happened.** On the faults it knows, the network catches 96% of the faulty samples. On new
-faults it catches anything from almost nothing to most of them, and nothing about the classifier
-tells you which in advance. A supervised model answers the question "does this look like a fault
-I have seen?". The miniproject asks the other question, "does this still look like normal
-operation?", with detectors trained on the fault-free runs only.
+## 6. Faults it never saw
 
-**Try it.** In step 2, train on fault 14 alone (`SEEN = [14]`) and compare the logistic
-regression with the tree. Why does the straight line miss it? A histogram of `xmv_10` shows why.
+The classifier learned faults 1, 2, 4, 5, 6, 7, 8, 12 and 13. Here it meets eight faults that
+were never in its training data, on runs 11 and 12 again, after each fault starts.
+"""),
+
+    code("""
+UNSEEN = [10, 11, 14, 16, 17, 18, 19, 20]   # never trained on
+
+print(f"Faults it learned:  recall {model.predict(X_test[y_test == 1]).mean():.3f}")
+for fault in UNSEEN:
+    run = faulty[(faulty.faultNumber == fault) & faulty.simulationRun.isin(range(11, 13))
+                & (faulty["sample"] > 20)]
+    print(f"Fault {fault:2d} (never seen): recall {model.predict(run[CHANNELS].to_numpy()).mean():.3f}")
+"""),
+
+    md("""
+**What happened.** On the faults it learned, the classifier catches 96% of the faulty
+samples. On faults it never trained on, recall goes from almost nothing (fault 19) to most of
+them (fault 18), and nothing in the classifier tells you in advance which. It only answers
+"does this look like a fault I have seen?"
+
+**Try it.** In step 5, add `0.99` to the threshold list. Precision is already at 1.000 by
+0.9, so watch recall alone keep falling as the bar rises further.
 """),
 ]
 

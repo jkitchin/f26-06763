@@ -1,0 +1,235 @@
+{
+  "lecture": "l11",
+  "title": "Deep learning with PyTorch: tensors, autodiff, training loops, GPUs",
+  "pool_version": 4,
+  "source_notes": "lectures/l11/notes.md",
+  "generated_by": "tools/arcade_rounds.py",
+  "items": [
+    {
+      "id": "l11-q01",
+      "kind": "spot_the_defect",
+      "lecture": "l11",
+      "context": "A hand-derived gradient and PyTorch's `autograd` disagree by 7.5e-8, which\nis eight orders of magnitude worse than it should be. JAX agrees to 4.4e-16\non the same problem. Every `tensor.dtype` you print reads `float64`.\n\nWhat is wrong?",
+      "why": "`torch.tensor(3.14)` gives float32; NumPy defaults to float64 and PyTorch to\nfloat32. The relative error was 1.25e-7, float32 epsilon to two figures,\nwhich is how the bug was identified as a dtype problem rather than a\ndifference between the libraries. Declare both scalars float64 and PyTorch\nmatches to 1.7e-18. Checking `tensor.dtype` after the fact would not have\nfound this. Checking it at the boundary would.",
+      "objectives": [
+        "l11-o5",
+        "l11-o3"
+      ],
+      "tags": [
+        "dtype",
+        "autodiff",
+        "silent-failure"
+      ],
+      "true": "Two Python floats entered as float32, and float32 promotes to float64 on contact, so every dtype downstream reads float64 and looks fine",
+      "false": [
+        "PyTorch's autograd is less numerically careful than JAX's, so use JAX when you need gradient accuracy",
+        "`requires_grad=True` silently downcasts, so set `torch.set_default_dtype(torch.float64)` before building any tensor",
+        "The analytic derivative was miscopied; a discrepancy this size is almost always the reference, not the framework"
+      ]
+    },
+    {
+      "id": "l11-q02",
+      "kind": "predict_measure",
+      "lecture": "l11",
+      "context": "A small MLP on tabular concrete data, trained on a laptop. You move it to\nthe GPU.\n\nBefore you look: what happens to the time per epoch?",
+      "why": "For this model the accelerator is slower, and it only starts winning past\nroughly 256 hidden units. Kernel launch and transfer overhead dominate when\nthe arithmetic per step is small, and a tabular MLP has very little\narithmetic per step. The crossover, not the speedup, is the lesson: measure\nwhere your model sits on it before you pay for a GPU.",
+      "objectives": [
+        "l11-o6"
+      ],
+      "tags": [
+        "devices",
+        "performance"
+      ],
+      "true": "Two and a half times slower: 8.6 ms per epoch on the CPU against 21.1 ms on the GPU",
+      "false": [
+        "Roughly 3x faster, which is the usual return on moving a small model to an accelerator",
+        "About the same, since the model is too small for the device to matter either way",
+        "Around 10x faster once the data is resident on the device and transfers stop dominating"
+      ]
+    },
+    {
+      "id": "l11-q03",
+      "kind": "rank",
+      "lecture": "l11",
+      "context": "Three JAX workloads, timed eager and under `jit`. Rank them by how much\n`jit` helps, most helped first.\n\n**A.** one 512x512 matmul plus `tanh`\n**B.** a chain of elementwise ops on 2M floats\n**C.** a 10-step iterative update via `lax.fori_loop`",
+      "why": "`jit` pays where there is structure to fuse and control flow to unroll. A\nsingle large matmul is already one library call, so compilation adds\ndispatch overhead and nothing else, and it comes out slower. The iterative\nupdate is where it earns 2.8x, because the loop itself becomes part of the\ncompiled program. \"Compile it\" is not a free optimization, it is a bet\nabout the shape of the work.",
+      "objectives": [
+        "l11-o2"
+      ],
+      "tags": [
+        "jax",
+        "jit",
+        "performance"
+      ],
+      "true": "C (2.8x), then B (1.2x), then A, which is actually 0.8x, meaning slower",
+      "false": [
+        "A (2.8x), then C (1.2x), then B at 0.8x, since matmuls benefit most from fusion",
+        "B (2.8x), then A (1.2x), then C at 0.8x, since elementwise chains fuse best",
+        "All three land between 1.2x and 2.8x; compilation never makes a workload slower"
+      ]
+    },
+    {
+      "id": "l11-q04",
+      "kind": "direction",
+      "lecture": "l11",
+      "context": "The concrete dataset has 428 distinct mixes, and the multi-age mixes\naccount for 76% of all rows: the same batch appears at 3, 7, 28 and 90 days.\n\nYou split rows at random for validation. What does that do to a comparison\nbetween gradient boosting and an MLP?",
+      "why": "On a random k-fold gradient boosting beats the MLP by 0.43 +/- 0.09 MPa. Under\na mix-grouped split the gap falls to 0.23 +/- 0.18 MPa, a tie. The tree's\nadvantage here is substantially its greater ability to exploit a leaky\nsplit. A single-seed run of the same comparison showed the MLP winning, and\nfive seeds show a tie, which is the other half of the lesson: do not report\nsingle-seed deep-learning results.",
+      "objectives": [
+        "l11-o5"
+      ],
+      "tags": [
+        "leakage",
+        "comparison"
+      ],
+      "true": "It flatters whichever model can better exploit the leak, and the tree's advantage over the net largely disappears once whole mixes are held out",
+      "false": [
+        "Nothing much; with over a thousand rows a random split is representative enough for a model comparison",
+        "It penalizes the tree, because trees are more sensitive to the duplicate rows a random split creates",
+        "It inflates both equally, so the comparison between them is still fair even though the absolute numbers are wrong"
+      ]
+    },
+    {
+      "id": "l11-q05",
+      "kind": "predict_measure",
+      "lecture": "l11",
+      "context": "The module's claim is that unnormalized inputs cause NaNs. You train the\nsame unnormalized data twice, once with SGD and once with Adam.\n\nBefore you look: what does Adam do?",
+      "why": "With SGD the NaNs arrive immediately. Adam's per-parameter scaling absorbs\nthe problem and hides a scaling bug as mediocrity rather than as a crash,\nwhich is worse: a crash gets investigated, a model that is merely not very\ngood gets shipped. The general shape is the one this course keeps\nreturning to, that the dangerous failure is the one that does not raise.",
+      "objectives": [
+        "l11-o4"
+      ],
+      "tags": [
+        "training",
+        "optimizers",
+        "silent-failure"
+      ],
+      "true": "It does not diverge at all; it trains to 8.3 MPa instead of 5.5, a model that works and is merely bad",
+      "false": [
+        "NaN too, though it takes more epochs because the moment estimates delay the divergence",
+        "It converges normally, since adaptive methods are scale-invariant by construction",
+        "It diverges to a large finite value rather than NaN, which is easy to spot in the loss curve"
+      ]
+    },
+    {
+      "id": "l11-q06",
+      "kind": "mcq",
+      "lecture": "l11",
+      "context": "Sweeping the SGD learning rate on this model: about 5.1 MPa at `lr = 0.1`,\n91 MPa at `lr = 1.0` with seed 0, and NaN from the first epoch at `lr = 2.0`.\n\nWhat is special about `lr = 1.0`?",
+      "why": "At `lr = 1.0` the result varies across seed-and-loop combinations, which is\nthe honest version of the \"too high a learning rate diverges\" lesson. There\nis not a clean threshold with safety below and failure above; there is a\nband where whether you get away with it is luck. A hyperparameter chosen\nfrom one run in that band is a hyperparameter you have not chosen.",
+      "objectives": [
+        "l11-o4"
+      ],
+      "tags": [
+        "training",
+        "hyperparameters",
+        "reproducibility"
+      ],
+      "true": "The outcome there depends on the seed, so a single run tells you nothing about whether the setting is safe",
+      "false": [
+        "It is the largest stable value, so it is the right choice for fastest convergence",
+        "It is exactly the edge of stability, which can be computed in advance from the loss curvature",
+        "Nothing; it is simply an intermediate point between the working value and divergence"
+      ]
+    },
+    {
+      "id": "l11-q07",
+      "kind": "mcq",
+      "lecture": "l11",
+      "context": "You want to check a gradient. Autodiff gives 1.7e-18 against the analytic\nanswer; the best central difference over forty step sizes manages 1.4e-12.\n\nWhy can finite differences not do better, however carefully you choose the\nstep?",
+      "why": "The two error terms move in opposite directions with h, so there is a best\nstep and a corresponding error floor, and the floor is many orders of\nmagnitude above machine precision. Autodiff is not a better approximation\nof the derivative, it is the derivative, computed by the chain rule on the\noperations you actually performed. That is why it lands at 1.7e-18 and a\ndifference quotient cannot.",
+      "objectives": [
+        "l11-o1"
+      ],
+      "tags": [
+        "autodiff",
+        "numerics"
+      ],
+      "true": "Because truncation error falls with the step while rounding error rises, so the total is minimized at a floor rather than driven to zero",
+      "false": [
+        "Because the step size is chosen by trial and error, and forty candidates is too coarse a sweep to find the optimum",
+        "Because central differences are only second-order accurate, and a higher-order stencil would reach machine precision",
+        "Because floating point subtraction is not associative, so the result depends on evaluation order"
+      ]
+    },
+    {
+      "id": "l11-q09",
+      "kind": "locus_of_control",
+      "lecture": "l11",
+      "context": "Your training loss decreases far more slowly than it should, nothing\nraises, and the shapes are all correct. A colleague suggests lowering the\nlearning rate.\n\nWhat should you check first, and why?",
+      "why": "Every other candidate is a tuning question; this one is a defect, and it\npresents identically. The line everyone forgets once is the one whose\nomission is silent, so it is worth ruling out before spending an afternoon\non hyperparameters. This is the same shape as the dtype trap earlier in the\nsession: a real bug wearing the costume of a bad setting.",
+      "objectives": [
+        "l11-o4",
+        "l11-o2"
+      ],
+      "tags": [
+        "training",
+        "debugging"
+      ],
+      "true": "Whether `opt.zero_grad()` is being called, because gradients accumulate by default and its absence never raises",
+      "false": [
+        "The learning rate, since a slow, smooth decrease is the classic signature of a step size that is too small",
+        "The batch size, since small batches produce noisy gradients that slow convergence",
+        "The initialization, since poor scaling of the first layer will stall learning without any error"
+      ]
+    },
+    {
+      "id": "l11-q10",
+      "kind": "claim_vs_source",
+      "lecture": "l11",
+      "context": "\"Deep learning beats trees on tabular data now.\" Someone cites Grinsztajn\nand Varoquaux's benchmark.\n\nWhat does that work actually report?",
+      "why": "45 datasets and 20,000 compute hours, and the finding runs the other way\nfrom the slogan. Worth pairing with this session's own measurement, where a\ntree's apparent advantage over an MLP largely evaporated once the grouped\nsplit removed the leak. Both point at the same discipline: the honest\ncomparison is the one with the right split and more than one seed, and it\nis usually less exciting than either camp's headline.",
+      "objectives": [
+        "l11-o5"
+      ],
+      "tags": [
+        "comparison",
+        "literature"
+      ],
+      "true": "That tree-based models remain ahead on typical tabular data, across 45 datasets and a large compute budget",
+      "false": [
+        "That deep learning wins once the dataset passes roughly ten thousand rows",
+        "That the two are indistinguishable once hyperparameters are tuned equally for both",
+        "That the comparison is undecidable, because no standard tabular benchmark suite exists"
+      ]
+    },
+    {
+      "id": "l11-q11",
+      "kind": "mcq",
+      "lecture": "l11",
+      "context": "Replacing an explicit Python loop over 256 examples with a vectorized\nformulation agrees to 2.2e-15 and is also faster.\n\nWhat is the 2.2e-15 telling you?",
+      "why": "2.2e-15 is float64 epsilon territory: the two orderings of the same\narithmetic differ only by rounding. That is the check worth running\nwhenever you vectorize, because vectorizing is a rewrite, and a rewrite\nthat changes the answer is a bug rather than an optimization. Confirm the\nagreement first, then keep the speed.",
+      "objectives": [
+        "l11-o2"
+      ],
+      "tags": [
+        "vectorization",
+        "numerics"
+      ],
+      "true": "That the two are the same computation to float64 rounding, so the speedup costs no accuracy",
+      "false": [
+        "That the vectorized version is slightly wrong, and the difference is the approximation error it introduces",
+        "That the loop version accumulates error over 256 iterations, and vectorizing removes it",
+        "That the comparison is inconclusive at this precision and should be repeated in float32"
+      ]
+    },
+    {
+      "id": "l11-q12",
+      "kind": "notebook_run",
+      "lecture": "l11",
+      "context": "Open [`l11-tensors-autograd.ipynb`](../lectures/l11/l11-tensors-autograd.ipynb)\nand run the device comparison for the small tabular MLP.\n\nWhich device wins on your machine, and what does the result tell you about\nwhen to reach for an accelerator?",
+      "why": "On the machine these notes were measured on, the CPU ran 8.6 ms per epoch\nagainst the GPU's 21.1 ms, and the accelerator only started winning past\nabout 256 hidden units. Your absolute numbers will differ, which is exactly\nwhy the question asks for the shape rather than the values: the crossover\nexists on every machine, and where it sits is something you measure rather\nthan assume.",
+      "objectives": [
+        "l11-o6"
+      ],
+      "tags": [
+        "devices",
+        "notebook"
+      ],
+      "true": "Whichever you have; the point is the crossover, not which device won",
+      "false": [
+        "The GPU, by a wide margin, which is why accelerators are the default for training",
+        "The CPU always, because PyTorch's GPU path is not optimized for tabular data",
+        "Neither reliably; device timings are too noisy on a laptop to support any conclusion"
+      ]
+    }
+  ]
+}

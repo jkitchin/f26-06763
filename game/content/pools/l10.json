@@ -135,6 +135,182 @@
         }
       },
       "serve": 7
+    },
+    "4": {
+      "items": {
+        "l10-q01": {
+          "answer": "Predict a probability for each class, a number between 0 and 1",
+          "options": [
+            "Predict a probability for each class, a number between 0 and 1",
+            "Predict the class directly, then estimate how probable that guess is",
+            "Fit a straight line through the training data and round its output",
+            "Compare the new sample against every training sample and vote"
+          ]
+        },
+        "l10-q02": {
+          "answer": "43.4% open, where w x + b equals zero",
+          "options": [
+            "43.4% open, where w x + b equals zero",
+            "50.0% open, the midpoint of the probability scale",
+            "41.0% open, the valve's typical position during normal operation",
+            "314.1% open, the value of b read directly"
+          ]
+        },
+        "l10-q03": {
+          "answer": "Its samples fall on both sides of the normal band, and one straight cut can only split off one side",
+          "options": [
+            "Its samples fall on both sides of the normal band, and one straight cut can only split off one side",
+            "Fault 14 never appears in the training runs, so no model could learn to catch it",
+            "The valve channel carries no information about fault 14, so only a tree can use it",
+            "A decision tree always beats logistic regression, on every channel and every fault"
+          ]
+        },
+        "l10-q04": {
+          "answer": "When the model gives the true class a high probability",
+          "options": [
+            "When the model gives the true class a high probability",
+            "When the model's predicted probability is always exactly 0.5",
+            "When the model predicts the same class for every sample",
+            "When the weighted sum w x + b is exactly zero for every sample"
+          ]
+        },
+        "l10-q05": {
+          "answer": "0.32",
+          "options": [
+            "0.32",
+            "0.68",
+            "0.50",
+            "0.20"
+          ]
+        },
+        "l10-q06": {
+          "answer": "They are positive and add up to 1",
+          "options": [
+            "They are positive and add up to 1",
+            "They are rounded to the nearest class label",
+            "Only the single largest score survives; the rest become zero",
+            "They are centered at zero, some positive and some negative"
+          ]
+        },
+        "l10-q07": {
+          "answer": "Its kernel matrix for that many samples would need 238 GB",
+          "options": [
+            "Its kernel matrix for that many samples would need 238 GB",
+            "It would overfit, since it has one parameter per training sample",
+            "Its link function only works with a single input channel",
+            "It needs the labels of the test runs during training"
+          ]
+        },
+        "l10-q08": {
+          "answer": "Zero, since it never predicts a fault at all",
+          "options": [
+            "Zero, since it never predicts a fault at all",
+            "85.4%, the same as its accuracy",
+            "14.6%, the fraction of samples that are actually faulty",
+            "Undefined, since it never raises a false alarm"
+          ]
+        },
+        "l10-q09": {
+          "answer": "Precision 0.998, recall 0.961, from 8,300 correct alarms and 8,300 of 8,640 faults caught",
+          "options": [
+            "Precision 0.998, recall 0.961, from 8,300 correct alarms and 8,300 of 8,640 faults caught",
+            "Precision 0.961, recall 0.998, from swapping which count divides which total",
+            "Precision 0.998, recall 0.998, since both counts share the same numerator of 8,300",
+            "Precision 0.961, recall 0.961, since precision and recall must always agree"
+          ]
+        },
+        "l10-q10": {
+          "answer": "predict returns a class using a 0.5 threshold; predict_proba returns each class's probability",
+          "options": [
+            "predict returns a class using a 0.5 threshold; predict_proba returns each class's probability",
+            "predict returns a probability; predict_proba returns a class using a 0.5 threshold",
+            "predict only works with two classes; predict_proba works with any number of classes",
+            "predict needs labeled training data; predict_proba needs no labels at all"
+          ]
+        },
+        "l10-q11": {
+          "answer": "Recall rises toward 0.977 and precision falls toward 0.697",
+          "options": [
+            "Recall rises toward 0.977 and precision falls toward 0.697",
+            "Recall falls toward 0.697 and precision rises toward 0.977",
+            "Both rise, since a lower threshold flags more faults without adding false alarms",
+            "Neither changes; the threshold only relabels samples, not the rates"
+          ]
+        },
+        "l10-q12": {
+          "answer": "From the relative cost of a missed fault against the cost of a false alarm",
+          "options": [
+            "From the relative cost of a missed fault against the cost of a false alarm",
+            "Always at 0.5, since that is what scikit-learn uses by default",
+            "At whichever threshold gives the highest accuracy",
+            "At whichever threshold makes precision and recall exactly equal"
+          ]
+        },
+        "l10-q13": {
+          "answer": "It ranges from 0.924 on one fault down to 0.001 on another",
+          "options": [
+            "It ranges from 0.924 on one fault down to 0.001 on another",
+            "It stays close to its trained recall of 0.961 on every one of them",
+            "It is exactly zero on all eight, since none of them were in training",
+            "It settles near 0.5 on all eight, since the network is only guessing"
+          ]
+        },
+        "l10-q14": {
+          "answer": "Recognition that it only knows the faults it was trained on, and a test against a fault it never saw",
+          "options": [
+            "Recognition that it only knows the faults it was trained on, and a test against a fault it never saw",
+            "A comparison against the accuracy of a baseline that always predicts normal",
+            "A second network trained on the same nine faults with a different random seed",
+            "More training samples drawn from the same nine faults it already knows"
+          ]
+        },
+        "l10-q15": {
+          "answer": "Usually only a few hyperparameters matter, and random search tries more distinct values of those",
+          "options": [
+            "Usually only a few hyperparameters matter, and random search tries more distinct values of those",
+            "Random search always evaluates fewer total configurations, leaving a larger budget per trial",
+            "A grid cannot represent an integer-valued hyperparameter such as a tree's maximum depth",
+            "Random search is guaranteed to eventually find the single best configuration"
+          ]
+        },
+        "l10-q16": {
+          "answer": "TPE's first guided trial, trial 11, already scored 8.90 MPa; random search took 38 trials to reach 9.00 MPa",
+          "options": [
+            "TPE's first guided trial, trial 11, already scored 8.90 MPa; random search took 38 trials to reach 9.00 MPa",
+            "TPE's first guided trial matched random search exactly, both reaching 8.90 MPa at trial 11",
+            "TPE needed 38 trials to reach 8.90 MPa, the same count random search needed for 9.00 MPa",
+            "Random search reached 8.90 MPa before TPE did, since TPE's early trials are random too"
+          ]
+        },
+        "l10-q17": {
+          "answer": "A name and version they can load later, without needing to remember which trial won",
+          "options": [
+            "A name and version they can load later, without needing to remember which trial won",
+            "A live connection that keeps retraining the model as new data arrives",
+            "A guarantee that this model will outperform every future search",
+            "A bundled copy of every losing trial's hyperparameters alongside the winner's"
+          ]
+        },
+        "l10-q18": {
+          "answer": "The search chose its winner by that number; the registered winner's test score, 7.41 MPa, is the one to report",
+          "options": [
+            "The search chose its winner by that number; the registered winner's test score, 7.41 MPa, is the one to report",
+            "Nothing is wrong; grouped cross-validation already accounts for the search, so 8.90 MPa is unbiased",
+            "The number should have come from a grid search instead of from TPE",
+            "Forty trials is too few for TPE to have found a trustworthy best score"
+          ]
+        },
+        "l10-q19": {
+          "answer": "False positive (FP): a false alarm",
+          "options": [
+            "False positive (FP): a false alarm",
+            "False negative (FN): a missed fault",
+            "True positive (TP): a fault caught",
+            "True negative (TN): a normal sample left alone"
+          ]
+        }
+      },
+      "serve": 9
     }
   }
 }

@@ -57,17 +57,37 @@
 - id: l11-o1
   lecture: l11
   text: >-
-    Build fluency with tensors, shapes/broadcasting, and device placement.
+    Explain what a backward pass computes by applying the chain rule to a small network,
+    and why reverse mode suits a scalar loss better than finite differences.
 
 - id: l11-o2
   lecture: l11
   text: >-
-    Explain and implement a training loop and the role of `autograd` and the optimizer.
+    Contrast how PyTorch (a recorded tape that accumulates into `.grad`) and JAX
+    (transformations of pure functions) compute the same gradient, and use that to
+    explain `zero_grad()`, `no_grad()` and immutable arrays.
 
 - id: l11-o3
   lecture: l11
   text: >-
-    Use GPUs correctly and diagnose the common failure modes.
+    Work with tensor shapes, broadcasting, dtypes and devices, and read a shape error.
+
+- id: l11-o4
+  lecture: l11
+  text: >-
+    Write a training loop in PyTorch and in JAX, and say what each of Adam's
+    hyperparameters does.
+
+- id: l11-o5
+  lecture: l11
+  text: >-
+    Diagnose a training failure that raises no error by comparing against an exact
+    reference, the predict-the-mean baseline, or a grouped split.
+
+- id: l11-o6
+  lecture: l11
+  text: >-
+    Measure whether an accelerator helps before moving a model onto one.
 
 - id: l19-o1
   lecture: l19
@@ -298,41 +318,39 @@
   text: >-
     Use forecast residuals as a simple anomaly detector, setting the threshold on normal data and reporting false alarms and detection delay.
 
-# L10. The classification objectives (o1 to o3) have items in game/content/l10.yml; the
-# tracking and search objectives (o4 to o6) have none yet.
+# L10 objectives, lifted verbatim from the six bullets in lectures/l10/notes.md.
 
 - id: l10-o1
   lecture: l10
   text: >-
-    Fit and compare logistic regression, decision tree, neural network and Gaussian process
-    classifiers, and say what each one minimizes.
+    Explain what a classifier predicts (a class, from a probability and a threshold), and read a
+    logistic regression's decision boundary on one plant signal.
 
 - id: l10-o2
   lecture: l10
   text: >-
-    Choose metrics that match the cost of an error, including precision and recall when one class
-    is rare.
+    Say what each of the four model families minimizes when it classifies.
 
 - id: l10-o3
   lecture: l10
   text: >-
-    Use stratified k-fold when one class is rare, and test a classifier on classes it was not
-    trained on.
+    Build a confusion matrix, and compute accuracy, precision and recall from it.
 
 - id: l10-o4
   lecture: l10
   text: >-
-    Instrument a training script so every run is logged, comparable, and reproducible.
+    Move the decision threshold to trade missed faults against false alarms.
 
 - id: l10-o5
   lecture: l10
   text: >-
-    Run grid, random, and Bayesian hyperparameter search and interpret the results honestly.
+    Explain why a classifier cannot recognize faults it was never trained on.
 
 - id: l10-o6
   lecture: l10
   text: >-
-    Register a selected model with its metrics, params, and data lineage.
+    Run a hyperparameter search with Optuna, record every trial in MLflow, and register the best
+    model.
 
 # L12, published notes and no bank yet (game/content/l12.yml, status: unwritten).
 # Registered so whoever writes that bank maps onto objectives that already exist.

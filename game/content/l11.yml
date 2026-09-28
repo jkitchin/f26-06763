@@ -2,9 +2,9 @@ schema: 1
 lecture: l11
 title: "Deep learning with PyTorch: tensors, autodiff, training loops, GPUs"
 source_notes: lectures/l11/notes.md
-status: unwritten
+status: published
 serve: 6
-pool_version: 3
+pool_version: 4
 provenance:
   drafted_by: hand
   reviewed_by: jkitchin
@@ -16,7 +16,7 @@ items:
     kind: spot_the_defect
     rung: 3
     difficulty: 3
-    objectives: [l11-o1]
+    objectives: [l11-o5, l11-o3]
     prompt: |
       A hand-derived gradient and PyTorch's `autograd` disagree by 7.5e-8, which
       is eight orders of magnitude worse than it should be. JAX agrees to 4.4e-16
@@ -51,7 +51,7 @@ items:
     kind: predict_measure
     rung: 1
     difficulty: 2
-    objectives: [l11-o3]
+    objectives: [l11-o6]
     prompt: |
       A small MLP on tabular concrete data, trained on a laptop. You move it to
       the GPU.
@@ -74,7 +74,7 @@ items:
       where your model sits on it before you pay for a GPU.
     source:
       file: lectures/l11/notes.md
-      heading: "Devices, and what an accelerator actually buys"
+      heading: "Devices, and when a GPU helps"
       quote: "**8.6 ms per epoch on the CPU and 21.1 ms on the GPU**"
     verify:
       mode: ordering
@@ -86,7 +86,7 @@ items:
     kind: rank
     rung: 2
     difficulty: 3
-    objectives: [l11-o3]
+    objectives: [l11-o2]
     prompt: |
       Three JAX workloads, timed eager and under `jit`. Rank them by how much
       `jit` helps, most helped first.
@@ -112,7 +112,7 @@ items:
       about the shape of the work.
     source:
       file: lectures/l11/notes.md
-      heading: "JAX writes the same loop inside out"
+      heading: "JAX batches with vmap and compiles with jit"
       quote: "| one 512×512 matmul plus `tanh` | 2.8 ms | 3.6 ms | **0.8×** |"
     verify: {mode: ordering, needle: "0.8", volatility: measured}
     tags: [jax, jit, performance]
@@ -121,7 +121,7 @@ items:
     kind: direction
     rung: 2
     difficulty: 3
-    objectives: [l11-o2]
+    objectives: [l11-o5]
     prompt: |
       The concrete dataset has 428 distinct mixes, and the multi-age mixes
       account for 76% of all rows: the same batch appears at 3, 7, 28 and 90 days.
@@ -135,8 +135,8 @@ items:
       - "It inflates both equally, so the comparison between them is still fair even though the absolute numbers are wrong"
     answer: "It flatters whichever model can better exploit the leak, and the tree's advantage over the net largely disappears once whole mixes are held out"
     evidence: |
-      On a random k-fold gradient boosting beats the MLP by 0.51 MPa. Under a
-      mix-grouped split the gap collapses to 0.13 +/- 0.18 MPa, a tie. The tree's
+      On a random k-fold gradient boosting beats the MLP by 0.43 +/- 0.09 MPa. Under
+      a mix-grouped split the gap falls to 0.23 +/- 0.18 MPa, a tie. The tree's
       advantage here is substantially its greater ability to exploit a leaky
       split. A single-seed run of the same comparison showed the MLP winning, and
       five seeds show a tie, which is the other half of the lesson: do not report
@@ -156,7 +156,7 @@ items:
     kind: predict_measure
     rung: 1
     difficulty: 2
-    objectives: [l11-o2]
+    objectives: [l11-o4]
     prompt: |
       The module's claim is that unnormalized inputs cause NaNs. You train the
       same unnormalized data twice, once with SGD and once with Adam.
@@ -167,10 +167,10 @@ items:
       common_prior: "NaN as well, a bit later. Bad scaling is bad scaling."
     options:
       - "NaN too, though it takes more epochs because the moment estimates delay the divergence"
-      - "It does not diverge at all; it trains to 9.7 MPa instead of 6.0, a model that works and is merely bad"
+      - "It does not diverge at all; it trains to 8.3 MPa instead of 5.5, a model that works and is merely bad"
       - "It converges normally, since adaptive methods are scale-invariant by construction"
       - "It diverges to a large finite value rather than NaN, which is easy to spot in the loss curve"
-    answer: "It does not diverge at all; it trains to 9.7 MPa instead of 6.0, a model that works and is merely bad"
+    answer: "It does not diverge at all; it trains to 8.3 MPa instead of 5.5, a model that works and is merely bad"
     evidence: |
       With SGD the NaNs arrive immediately. Adam's per-parameter scaling absorbs
       the problem and hides a scaling bug as mediocrity rather than as a crash,
@@ -179,11 +179,11 @@ items:
       returning to, that the dangerous failure is the one that does not raise.
     source:
       file: lectures/l11/notes.md
-      heading: "Three ways a first training loop dies"
-      quote: "it trains to 9.7 MPa instead of 6.0"
+      heading: "Adam on raw inputs"
+      quote: "it trains to 8.3 MPa instead of 5.5"
     verify:
       mode: quote
-      needle: "9.7 MPa instead of 6.0"
+      needle: "8.3 MPa instead of 5.5"
       volatility: measured
       cross_check: lectures/l11/figures/make_figures.py
     tags: [training, optimizers, silent-failure]
@@ -192,10 +192,10 @@ items:
     kind: mcq
     rung: 2
     difficulty: 2
-    objectives: [l11-o2]
+    objectives: [l11-o4]
     prompt: |
-      Sweeping the SGD learning rate on this model: about 7.6 MPa at the working
-      value, 33.7 at `lr = 1.0`, and NaN from the first epoch at `lr = 2.0`.
+      Sweeping the SGD learning rate on this model: about 5.1 MPa at `lr = 0.1`,
+      91 MPa at `lr = 1.0` with seed 0, and NaN from the first epoch at `lr = 2.0`.
 
       What is special about `lr = 1.0`?
     options:
@@ -212,7 +212,7 @@ items:
       from one run in that band is a hyperparameter you have not chosen.
     source:
       file: lectures/l11/notes.md
-      heading: "Three ways a first training loop dies"
+      heading: "The learning rate"
       quote: "At **lr = 1.0** the outcome depends on the seed"
     verify: {mode: quote, needle: "the outcome depends on the seed", volatility: measured}
     tags: [training, hyperparameters, reproducibility]
@@ -243,7 +243,7 @@ items:
       difference quotient cannot.
     source:
       file: lectures/l11/notes.md
-      heading: "Automatic differentiation, demystified"
+      heading: "Automatic differentiation"
       quote: "The best central difference, over forty step sizes, manages **1.4 × 10⁻¹²**"
     verify: {mode: quote, needle: "1.4 × 10⁻¹²", volatility: measured}
     tags: [autodiff, numerics]
@@ -252,7 +252,7 @@ items:
     kind: mechanism_recall
     rung: 5
     difficulty: 3
-    objectives: [l11-o2]
+    objectives: [l11-o4]
     prompt: |
       Close the notes. Write out the five steps of a PyTorch training loop from
       memory, in order, and say what each one is for. Stop when you stall, and
@@ -292,7 +292,7 @@ items:
     kind: locus_of_control
     rung: 3
     difficulty: 2
-    objectives: [l11-o2]
+    objectives: [l11-o4, l11-o2]
     prompt: |
       Your training loss decreases far more slowly than it should, nothing
       raises, and the shapes are all correct. A colleague suggests lowering the
@@ -313,7 +313,7 @@ items:
       session: a real bug wearing the costume of a bad setting.
     source:
       file: lectures/l11/notes.md
-      heading: "Three ways a first training loop dies"
+      heading: "Four models that looked fine"
       quote: "pair: failure mode; forgetting zero_grad"
     verify: {mode: quote, needle: "zero_grad", volatility: stable}
     tags: [training, debugging]
@@ -322,7 +322,7 @@ items:
     kind: claim_vs_source
     rung: 2
     difficulty: 2
-    objectives: [l11-o1]
+    objectives: [l11-o5]
     prompt: |
       "Deep learning beats trees on tabular data now." Someone cites Grinsztajn
       and Varoquaux's benchmark.
@@ -343,7 +343,7 @@ items:
       is usually less exciting than either camp's headline.
     source:
       file: lectures/l11/notes.md
-      heading: "The comparison, run honestly"
+      heading: "The tree that won on a leaky split"
       quote: "benchmarked **45 datasets**"
     verify: {mode: quote, needle: "45 datasets", volatility: stable}
     tags: [comparison, literature]
@@ -352,7 +352,7 @@ items:
     kind: mcq
     rung: 3
     difficulty: 3
-    objectives: [l11-o1]
+    objectives: [l11-o2]
     prompt: |
       Replacing an explicit Python loop over 256 examples with a vectorized
       formulation agrees to 2.2e-15 and is also faster.
@@ -372,7 +372,7 @@ items:
       agreement first, then keep the speed.
     source:
       file: lectures/l11/notes.md
-      heading: "JAX writes the same loop inside out"
+      heading: "JAX batches with vmap and compiles with jit"
       quote: "the same 256 examples to **2.2 × 10⁻¹⁵**"
     verify: {mode: quote, needle: "2.2 × 10⁻¹⁵", volatility: measured}
     tags: [vectorization, numerics]
@@ -381,7 +381,7 @@ items:
     kind: notebook_run
     rung: 4
     difficulty: 2
-    objectives: [l11-o3]
+    objectives: [l11-o6]
     prompt: |
       Open [`l11-tensors-autograd.ipynb`](../lectures/l11/l11-tensors-autograd.ipynb)
       and run the device comparison for the small tabular MLP.
@@ -403,7 +403,7 @@ items:
       than assume.
     source:
       file: lectures/l11/notes.md
-      heading: "Devices, and what an accelerator actually buys"
+      heading: "Devices, and when a GPU helps"
       quote: "**8.6 ms per epoch on the CPU and 21.1 ms on the GPU**"
     verify: {mode: ordering, needle: "21.1 ms on the GPU", volatility: measured}
     tags: [devices, notebook]

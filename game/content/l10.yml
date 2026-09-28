@@ -1,25 +1,25 @@
-# L10 item bank. The classification items moved here from the L09 bank on 2026-09-22, with
-# the classification material itself, and the rest are written against the classification
-# half of lectures/l10/notes.md. The tracking and search half has no items yet. Numbers come
-# from lectures/l10/figures/make_figures.py. Faults 3, 9 and 15 of the Tennessee Eastman plant
-# never appear here: the miniproject checks that students find them on their own.
+# L10 item bank for classification on the Tennessee Eastman plant (probability and threshold,
+# logistic regression's decision boundary, the four model families, the confusion matrix,
+# precision and recall, and unseen faults) and an Optuna search tracked in MLflow on the
+# concrete strength dataset. Version 4 replaces version 3: the notes were rewritten and none
+# of the old quotes still matched, so every item here is new.
 
 schema: 1
 lecture: l10
 title: "The machine learning workflow III: classification, experiment tracking and hyperparameter search"
 source_notes: lectures/l10/notes.md
 # Held until release: tools/release_lecture.py flips this to published.
-status: unwritten
-serve: 7
-pool_version: 2
+status: published
+serve: 9
+pool_version: 4
 provenance:
   drafted_by: hand
   reviewed_by: none
-  reviewed_at: 2026-09-22
+  reviewed_at: 2026-09-27
 
 items:
 
-  # --- the families, for classification -------------------------------------------
+  # --- o1: a class from a probability and a threshold; the logistic decision boundary ---------
 
   - id: l10-q01
     kind: mcq
@@ -27,24 +27,24 @@ items:
     difficulty: 1
     objectives: [l10-o1]
     prompt: |
-      Logistic regression predicts class 1 when sigma(w^T x + b) > 0.5. On two inputs,
-      what shape is its decision boundary?
+      Most classifiers predict a category in two steps. What is the first step?
     options:
-      - "A straight line, because the prediction flips exactly where w^T x + b = 0"
-      - "An S-shaped curve, because the logistic function is S-shaped"
-      - "A circle around the class-1 points, because the probability peaks there"
-      - "Any shape, given enough training points"
-    answer: "A straight line, because the prediction flips exactly where w^T x + b = 0"
+      - "Predict a probability for each class, a number between 0 and 1"
+      - "Predict the class directly, then estimate how probable that guess is"
+      - "Fit a straight line through the training data and round its output"
+      - "Compare the new sample against every training sample and vote"
+    answer: "Predict a probability for each class, a number between 0 and 1"
     evidence: |
-      The probability is above 0.5 exactly when w^T x + b > 0, so the boundary is the set
-      w^T x + b = 0: a straight line in two dimensions and a flat plane in more. The S shape
-      is the probability along the direction w, not the boundary.
+      A classifier does not jump straight to a class label. It first scores how likely each
+      class is, a number between 0 and 1, and only afterward turns that number into a decision
+      with a threshold.
     source:
       file: lectures/l10/notes.md
-      heading: "Logistic regression"
-      quote: "So its **decision boundary**, the line between the two predicted classes, is a straight line in two dimensions and a flat plane in more."
-    verify: {mode: quote, needle: "is a straight line in two dimensions and a flat plane in more", volatility: stable}
-    tags: [logistic-regression, decision-boundary]
+      heading: "Classification"
+      quote: |
+        Predict a **probability** for each class, a number between 0 and 1.
+    verify: {mode: quote, needle: "predict a probability for each class", volatility: stable}
+    tags: [classification, probability]
 
   - id: l10-q02
     kind: mcq
@@ -52,24 +52,26 @@ items:
     difficulty: 2
     objectives: [l10-o1]
     prompt: |
-      A leaf of a classification tree holds 5 samples: 4 normal and 1 faulty. What is its
-      Gini impurity, G = 1 - sum of p_k squared?
+      Logistic regression is fitted on the plant's reactor cooling water valve channel, giving
+      w = 7.24 per percent open and b = -314.1. Where does its decision boundary sit?
     options:
-      - "0.32"
-      - "0.20"
-      - "0.50"
-      - "0.80"
-    answer: "0.32"
+      - "43.4% open, where w x + b equals zero"
+      - "50.0% open, the midpoint of the probability scale"
+      - "41.0% open, the valve's typical position during normal operation"
+      - "314.1% open, the value of b read directly"
+    answer: "43.4% open, where w x + b equals zero"
     evidence: |
-      The class fractions are 0.8 and 0.2, so G = 1 - (0.64 + 0.04) = 0.32. It would be 0
-      for a pure leaf. 0.20 is the fraction of the minority class, and 0.80 is the fraction
-      of the majority, neither of which is the impurity.
+      The boundary sits where the straight-line score w x + b equals zero, so x = -b / w.
+      Dividing 314.1 by 7.24 gives 43.4, so the boundary is at 43.4% open, not at the raw value
+      of b or at a round number like 50%.
     source:
       file: lectures/l10/notes.md
-      heading: "Decision trees for classification"
-      quote: "$G = 1 - (0.8^2 + 0.2^2) = 1 - (0.64 + 0.04) = 0.32$"
-    verify: {mode: quote, needle: "0.32", volatility: stable}
-    tags: [decision-tree, gini]
+      heading: "Logistic regression on one channel"
+      quote: |
+        Training finds $w$ and $b$. Here $w = 7.24$ per % open and $b = -314.1$, so the boundary is
+        at $314.1 / 7.24 = 43.4\%$ open.
+    verify: {mode: quote, needle: "314.1 / 7.24 = 43.4", volatility: measured}
+    tags: [logistic-regression, decision-boundary, tep]
 
   - id: l10-q03
     kind: mcq
@@ -77,318 +79,467 @@ items:
     difficulty: 2
     objectives: [l10-o1]
     prompt: |
-      Lecture 9's regression network had a linear output and was trained on the squared
-      error. What changes when the same network is used to classify?
+      A logistic regression trained on one plant channel catches 0% of fault 14, while a
+      decision tree using two cuts on that same channel catches most of it. Why does the
+      straight cut fail here?
     options:
-      - "The output becomes a softmax, and the loss becomes the cross-entropy"
-      - "The hidden layers switch from tanh to ReLU, and the loss stays the squared error"
-      - "The output stays linear, and a threshold at 0.5 is applied after training"
-      - "Nothing changes in training; only the metric changes, from RMSE to accuracy"
-    answer: "The output becomes a softmax, and the loss becomes the cross-entropy"
+      - "Its samples fall on both sides of the normal band, and one straight cut can only split off one side"
+      - "Fault 14 never appears in the training runs, so no model could learn to catch it"
+      - "The valve channel carries no information about fault 14, so only a tree can use it"
+      - "A decision tree always beats logistic regression, on every channel and every fault"
+    answer: "Its samples fall on both sides of the normal band, and one straight cut can only split off one side"
     evidence: |
-      A classification network outputs probabilities over the classes, which is what the
-      softmax produces, and it is trained to put high probability on the correct class,
-      which is what the cross-entropy measures. The hidden layers can stay as they were.
+      Fault 14 leaves the valve's average unchanged but widens its swings, so roughly half the
+      fault samples sit above the normal band and half below it. A single straight cut can only
+      exclude one side, so whichever half it flags as normal lets the other half through, while a
+      tree's two cuts can bracket the normal band from both sides at once.
     source:
       file: lectures/l10/notes.md
-      heading: "Neural networks for classification"
-      quote: "So a regression network has a linear output and a squared-error loss, and a classification network has a softmax output and a cross-entropy loss."
-    verify: {mode: quote, needle: "a classification network has a softmax output and a cross-entropy loss", volatility: stable}
-    tags: [neural-network, softmax, cross-entropy]
+      heading: "When one cut is not enough: fault 14"
+      quote: |
+        A logistic regression draws **one** straight cut. No single cut separates a narrow band from
+        values on both sides of it: it catches **0%** of the fault 14 samples.
+    verify: {mode: quote, needle: "it catches 0% of the fault 14 samples", volatility: measured}
+    tags: [logistic-regression, decision-tree, tep]
+
+  # --- o2: what each of the four model families minimizes --------------------------------------
 
   - id: l10-q04
     kind: mcq
-    rung: 3
-    difficulty: 3
-    objectives: [l10-o1]
+    rung: 1
+    difficulty: 1
+    objectives: [l10-o2]
     prompt: |
-      A Gaussian process regressor's posterior is Gaussian and exact. Why does
-      scikit-learn's GaussianProcessClassifier have to approximate?
+      Logistic regression is trained by minimizing the log loss, also called cross-entropy.
+      When is that loss small?
     options:
-      - "The labels follow a Bernoulli likelihood, so the posterior over the latent function is no longer Gaussian"
-      - "Classification data is always too large for the O(N^3) solve, so it subsamples"
-      - "The kernel cannot be evaluated on categorical targets, so it is replaced by a linear one"
-      - "The marginal likelihood of the labels has no hyperparameters left to optimize"
-    answer: "The labels follow a Bernoulli likelihood, so the posterior over the latent function is no longer Gaussian"
+      - "When the model gives the true class a high probability"
+      - "When the model's predicted probability is always exactly 0.5"
+      - "When the model predicts the same class for every sample"
+      - "When the weighted sum w x + b is exactly zero for every sample"
+    answer: "When the model gives the true class a high probability"
     evidence: |
-      The classifier puts a GP prior on a latent function and passes it through a link to
-      get a probability. With 0/1 labels the likelihood is Bernoulli, the posterior over
-      the latent function stops being Gaussian, and scikit-learn replaces it with a
-      Gaussian (the Laplace approximation).
+      Log loss penalizes a confident wrong guess heavily and rewards a confident correct one, so
+      it comes out small only when the model assigns high probability to whichever class a
+      sample truly belongs to.
     source:
       file: lectures/l10/notes.md
-      heading: "What each family minimizes, regression against classification"
-      quote: "so scikit-learn approximates that posterior with a Gaussian (the Laplace approximation)"
-    verify: {mode: quote, needle: "the Laplace approximation", volatility: stable}
-    tags: [gaussian-process, classification, laplace]
+      heading: "Four model families as classifiers"
+      quote: |
+        The loss is small when the model gives the true class a high probability.
+    verify: {mode: quote, needle: "the model gives the true class a high probability", volatility: stable}
+    tags: [log-loss, cross-entropy]
 
   - id: l10-q05
     kind: mcq
     rung: 2
     difficulty: 2
-    objectives: [l10-o1]
+    objectives: [l10-o2]
     prompt: |
-      Four classifiers are trained on the same 210 moons points. Which one draws a
-      boundary made of a few slanted straight pieces, at angles other than horizontal
-      and vertical, that bends around the moons?
+      A decision tree box holds 4 normal samples and 1 faulty sample. What is its Gini impurity?
     options:
-      - "The neural network with five ReLU units"
-      - "Logistic regression"
-      - "The depth-3 decision tree"
-      - "The Gaussian process classifier"
-    answer: "The neural network with five ReLU units"
+      - "0.32"
+      - "0.68"
+      - "0.50"
+      - "0.20"
+    answer: "0.32"
     evidence: |
-      A ReLU network is piecewise linear, with a kink wherever a unit switches on, so its
-      boundary is a few straight pieces at any angle (test accuracy 0.933). Logistic
-      regression draws one straight line (0.867), the tree draws rectangles whose edges
-      are all horizontal or vertical, because each split tests one input (0.911), and the
-      GP draws a smooth curve (0.967).
+      Gini impurity is 1 minus the sum of each class's squared share. With 4 of 5 samples normal
+      (0.8) and 1 of 5 faulty (0.2), impurity is 1 minus (0.8 squared plus 0.2 squared), which is
+      1 minus 0.68, or 0.32. It is 0 only when a box holds one class alone.
     source:
       file: lectures/l10/notes.md
-      heading: "Decision regions on the moons data"
-      quote: "The network with five ReLU units bends the boundary out of a few straight pieces and scores 0.933."
-    verify: {mode: quote, needle: "bends the boundary out of a few straight pieces", volatility: measured}
-    tags: [moons, decision-boundary, relu]
+      heading: "Four model families as classifiers"
+      quote: |
+        Example: a box with 4 normal samples and 1 faulty one has
+        $G = 1 - (0.8^2 + 0.2^2) = 0.32$.
+    verify: {mode: quote, needle: "0.8^2 + 0.2^2) = 0.32", volatility: stable}
+    tags: [gini-impurity, decision-tree]
 
   - id: l10-q06
     kind: mcq
-    rung: 3
-    difficulty: 3
-    objectives: [l10-o1]
-    prompt: |
-      On Tennessee Eastman fault 14 (a sticking reactor cooling water valve), a
-      logistic regression catches 0% of the faulty samples and a depth-8 tree catches
-      99.7%. The flow's mean barely moves under the fault. Why does the line miss?
-    options:
-      - "The flow swings to both sides of normal, and a straight boundary can cut off only one side"
-      - "Logistic regression needs scaled inputs, and the 52 channels were left unscaled"
-      - "The fault is too rare in the training data for a linear model to notice"
-      - "A tree has more parameters, so it can memorize the faulty training runs"
-    answer: "The flow swings to both sides of normal, and a straight boundary can cut off only one side"
-    evidence: |
-      The standard deviation of xmv_10 grows from 0.54 to 7.44 while its mean stays
-      put, and 45% of faulty samples fall on each side of the normal band. The tree's
-      first two splits make a band around normal; a line would need the classes on
-      opposite sides of a plane.
-    source:
-      file: lectures/l10/notes.md
-      heading: "A fault a straight line cannot see"
-      quote: "A straight boundary can only cut off one side, and because the mean did not move, the best line cuts off neither."
-    verify: {mode: quote, needle: "the best line cuts off neither", volatility: stable}
-    tags: [classification, decision-boundary, tep]
-
-  # --- metrics --------------------------------------------------------------------
-
-  - id: l10-q07
-    kind: predict_measure
-    rung: 2
+    rung: 1
     difficulty: 2
     objectives: [l10-o2]
     prompt: |
-      A Tennessee Eastman test set has 59,000 samples, 14.6% of them faulty. A
-      "classifier" answers "normal" for every sample.
-
-      Before you look: what accuracy does it score?
-    predict:
-      ask: "Write a number down before revealing."
-      common_prior: "Something poor, since it never detects anything."
+      A neural network's last layer produces one score per class. What does the softmax that
+      follows guarantee about the numbers it outputs?
     options:
-      - "85.4%, while finding no fault at all"
-      - "14.6%, the fraction of samples that are faulty"
-      - "50%, since it is no better than a coin"
-      - "0%, since it never makes a correct detection"
-    answer: "85.4%, while finding no fault at all"
+      - "They are positive and add up to 1"
+      - "They are rounded to the nearest class label"
+      - "Only the single largest score survives; the rest become zero"
+      - "They are centered at zero, some positive and some negative"
+    answer: "They are positive and add up to 1"
     evidence: |
-      Accuracy counts every correct normal answer too, and 85.4% of the samples are
-      normal. Its recall is zero. When one class is rare, accuracy rewards a detector
-      that never raises an alarm.
+      Softmax exponentiates each class score and divides by the sum of all the exponentials,
+      which forces every output to be positive while the whole set sums to 1, so the outputs
+      behave like a probability distribution over the classes.
     source:
       file: lectures/l10/notes.md
-      heading: "Classification metrics"
-      quote: "A \"classifier\" that always answers \"normal\" scores **85.4% accuracy**, and never finds a single fault."
-    verify: {mode: quote, needle: "85.4% accuracy", volatility: measured}
-    tags: [accuracy, imbalance, baseline]
+      heading: "Four model families as classifiers"
+      quote: |
+        The probabilities are positive and add up to 1.
+    verify: {mode: quote, needle: "positive and add up to 1", volatility: stable}
+    tags: [softmax, neural-network]
+
+  - id: l10-q07
+    kind: mcq
+    rung: 2
+    difficulty: 3
+    objectives: [l10-o2]
+    prompt: |
+      A Gaussian process classifier turns a smooth random function into a probability through a
+      link function. Why is it not run on the plant's full 172,500-sample training set?
+    options:
+      - "Its kernel matrix for that many samples would need 238 GB"
+      - "It would overfit, since it has one parameter per training sample"
+      - "Its link function only works with a single input channel"
+      - "It needs the labels of the test runs during training"
+    answer: "Its kernel matrix for that many samples would need 238 GB"
+    evidence: |
+      A Gaussian process needs a kernel matrix with one row and one column per training sample,
+      and the memory that takes grows with the square of the sample count, which is why
+      172,500 plant samples would need 238 GB just to hold the matrix.
+    source:
+      file: lectures/l10/notes.md
+      heading: "Four model families as classifiers"
+      quote: |
+        On the plant it is too big to run: its kernel matrix for 172,500 samples would need 238 GB.
+    verify: {mode: quote, needle: "its kernel matrix for 172,500 samples would need 238 gb", volatility: measured}
+    tags: [gaussian-process, tep]
+
+  # --- o3: the confusion matrix, accuracy, precision and recall --------------------------------
 
   - id: l10-q08
     kind: mcq
     rung: 1
     difficulty: 1
-    objectives: [l10-o2]
+    objectives: [l10-o3]
     prompt: |
-      A detector raises 100 alarms and 90 of them turn out to be real faults. Which
-      metric is 0.9?
+      A baseline detector always predicts "normal" and scores 85.4% accuracy on the plant's
+      test data. What is its recall?
     options:
-      - "Precision"
-      - "Recall"
-      - "Accuracy"
-      - "The false-alarm rate"
-    answer: "Precision"
+      - "Zero, since it never predicts a fault at all"
+      - "85.4%, the same as its accuracy"
+      - "14.6%, the fraction of samples that are actually faulty"
+      - "Undefined, since it never raises a false alarm"
+    answer: "Zero, since it never predicts a fault at all"
     evidence: |
-      Precision is TP / (TP + FP): of the alarms raised, the fraction that were real.
-      Recall asks the other question, of the real faults, the fraction caught, and it
-      needs the number of faults that raised no alarm.
+      Recall counts what fraction of the real faults a model caught. A detector that never
+      predicts fault has zero true positives, so its recall is zero no matter how respectable
+      its accuracy looks.
     source:
       file: lectures/l10/notes.md
-      heading: "Classification metrics"
-      quote: "**Precision** is TP / (TP + FP): of the alarms raised, the fraction that were real."
-    verify: {mode: quote, needle: "of the alarms raised, the fraction that were real", volatility: stable}
-    tags: [precision, recall, confusion-matrix]
+      heading: "Accuracy, precision and recall"
+      quote: |
+        **Always normal** never predicts a fault, so TP = 0 and recall is 0.
+    verify: {mode: quote, needle: "tp = 0 and recall is 0", volatility: stable}
+    tags: [confusion-matrix, recall, baseline]
 
   - id: l10-q09
     kind: mcq
-    rung: 1
-    difficulty: 1
-    objectives: [l10-o2]
+    rung: 2
+    difficulty: 3
+    objectives: [l10-o3]
     prompt: |
-      With "faulty" as the positive class, a faulty sample that the detector labels
-      normal lands in which cell of the confusion matrix?
+      Of the network's 8,313 alarms, 8,300 were real faults, and it caught 8,300 of the 8,640
+      real faults in the test data. What are its precision and recall?
     options:
-      - "False negative (FN)"
-      - "False positive (FP)"
-      - "True negative (TN)"
-      - "True positive (TP)"
-    answer: "False negative (FN)"
+      - "Precision 0.998, recall 0.961, from 8,300 correct alarms and 8,300 of 8,640 faults caught"
+      - "Precision 0.961, recall 0.998, from swapping which count divides which total"
+      - "Precision 0.998, recall 0.998, since both counts share the same numerator of 8,300"
+      - "Precision 0.961, recall 0.961, since precision and recall must always agree"
+    answer: "Precision 0.998, recall 0.961, from 8,300 correct alarms and 8,300 of 8,640 faults caught"
     evidence: |
-      The prediction was negative (normal) and it was wrong, so it is a false negative: a
-      fault that was missed. A false positive is the opposite mistake, a false alarm on a
-      normal sample. Recall is TP / (TP + FN), so every missed fault lowers it.
+      Precision divides the correct alarms by all the alarms raised, 8,300 over 8,313, which is
+      0.998. Recall divides the faults caught by all the faults that exist, 8,300 over 8,640,
+      which is 0.961. The two denominators differ, so there is no reason for the two fractions
+      to come out equal.
     source:
       file: lectures/l10/notes.md
-      heading: "Classification metrics"
-      quote: "a **false negative** (FN) is a fault that was missed"
-    verify: {mode: quote, needle: "is a fault that was missed", volatility: stable}
-    tags: [confusion-matrix, recall]
+      heading: "Accuracy, precision and recall"
+      quote: |
+        The **neural network**: of its 8,313 alarms, 8,300 were real (precision 0.998); of the 8,640
+        real fault samples, it caught 8,300 (recall 0.961).
+    verify: {mode: quote, needle: "of its 8,313 alarms, 8,300 were real (precision 0.998)", volatility: measured}
+    tags: [precision, recall, tep]
+
+  - id: l10-q19
+    kind: mcq
+    rung: 1
+    difficulty: 1
+    objectives: [l10-o3]
+    prompt: |
+      The plant's classifier calls a sample a fault, but the sample was in fact normal. Which box
+      of the confusion matrix does that sample land in?
+    options:
+      - "False positive (FP): a false alarm"
+      - "False negative (FN): a missed fault"
+      - "True positive (TP): a fault caught"
+      - "True negative (TN): a normal sample left alone"
+    answer: "False positive (FP): a false alarm"
+    evidence: |
+      "Positive" is what the model said, a fault, and "false" says it was wrong. So a normal
+      sample the model called a fault is a false positive, a false alarm. A false negative is
+      the other mistake: a fault the model called normal.
+    source:
+      file: lectures/l10/notes.md
+      heading: "The confusion matrix"
+      quote: |
+        **False positive (FP):** a false alarm, a normal sample the model called a fault.
+    verify: {mode: quote, needle: "a false alarm, a normal sample the model called a fault", volatility: stable}
+    tags: [confusion-matrix, tep]
+
+  # --- o4: moving the decision threshold --------------------------------------------------------
 
   - id: l10-q10
     kind: mcq
-    rung: 2
-    difficulty: 2
-    objectives: [l10-o2]
+    rung: 1
+    difficulty: 1
+    objectives: [l10-o4]
     prompt: |
-      Why can a fault detector not make its precision or recall look better by scoring
-      it on many more normal samples?
+      A scikit-learn classifier offers both a predict method and a predict_proba method for the
+      same sample. What is the difference?
     options:
-      - "Neither metric uses the true negatives, the normal samples left alone"
-      - "Both metrics divide by the total number of samples, so extra normal samples cancel out"
-      - "scikit-learn drops normal samples before computing them"
-      - "It can: more normal samples always raise precision"
-    answer: "Neither metric uses the true negatives, the normal samples left alone"
+      - "predict returns a class using a 0.5 threshold; predict_proba returns each class's probability"
+      - "predict returns a probability; predict_proba returns a class using a 0.5 threshold"
+      - "predict only works with two classes; predict_proba works with any number of classes"
+      - "predict needs labeled training data; predict_proba needs no labels at all"
+    answer: "predict returns a class using a 0.5 threshold; predict_proba returns each class's probability"
     evidence: |
-      Precision is TP / (TP + FP) and recall is TP / (TP + FN). The true negatives appear
-      in neither, which is exactly why they expose a detector that accuracy, which does
-      count the true negatives, cannot.
+      predict is the class decision itself, reached by comparing the probability to 0.5 by
+      default. predict_proba hands back the probability underneath that decision, which is what
+      lets you choose a different threshold instead of accepting the default.
     source:
       file: lectures/l10/notes.md
-      heading: "Classification metrics"
-      quote: "Neither uses TN, which is why a detector cannot look good on them by piling up normal samples."
-    verify: {mode: quote, needle: "Neither uses TN", volatility: stable}
-    tags: [precision, recall, imbalance]
+      heading: "Moving the threshold"
+      quote: |
+        `predict(X)` returns the **class** of each sample, using a threshold of 0.5.
+    verify: {mode: quote, needle: "returns the class of each sample, using a threshold of 0.5", volatility: stable}
+    tags: [threshold, scikit-learn]
 
   - id: l10-q11
-    kind: mcq
-    rung: 3
+    kind: direction
+    rung: 2
     difficulty: 2
-    objectives: [l10-o2]
+    objectives: [l10-o4]
     prompt: |
-      A missed fault on a reactor can mean a runaway reaction or a damaged catalyst, and
-      a false alarm costs an operator's inspection. Which metric should the detector be
-      pushed on?
+      The plant's neural network classifier has its threshold lowered from 0.50 to 0.01. What
+      happens to its recall and its precision?
     options:
-      - "Recall, accepting more false alarms"
-      - "Precision, accepting more missed faults"
-      - "Accuracy, since it counts both kinds of error"
-      - "Neither: report F1 and leave the trade-off to the operators"
-    answer: "Recall, accepting more false alarms"
+      - "Recall rises toward 0.977 and precision falls toward 0.697"
+      - "Recall falls toward 0.697 and precision rises toward 0.977"
+      - "Both rise, since a lower threshold flags more faults without adding false alarms"
+      - "Neither changes; the threshold only relabels samples, not the rates"
+    answer: "Recall rises toward 0.977 and precision falls toward 0.697"
     evidence: |
-      When a missed fault is the expensive error, recall is the metric that counts it, and
-      raising recall usually costs precision, so more alarms follow. When false alarms cost
-      the operators' trust, the choice flips. Accuracy hides both on imbalanced data.
+      A lower threshold flags more samples as faulty, so it catches more of the real faults,
+      raising recall, while also raising more false alarms, lowering precision. There is no
+      threshold that improves both at once.
     source:
       file: lectures/l10/notes.md
-      heading: "Classification metrics"
-      quote: "When a missed fault is expensive (a runaway reaction, a damaged catalyst), push recall and accept more alarms."
-    verify: {mode: quote, needle: "push recall and accept more alarms", volatility: stable}
-    tags: [recall, precision, cost-of-error]
-
-  # --- folds and unseen classes ---------------------------------------------------
+      heading: "Moving the threshold"
+      quote: |
+        Lower the threshold and the model raises more alarms: it catches more faults (recall up) and
+        makes more false alarms (precision down).
+    verify: {mode: quote, needle: "it catches more faults (recall up)", volatility: stable}
+    tags: [threshold, precision, recall]
 
   - id: l10-q12
     kind: mcq
     rung: 2
     difficulty: 2
-    objectives: [l10-o3]
+    objectives: [l10-o4]
     prompt: |
-      A dataset has 50 samples, 5 of them faulty. You run a shuffled five-fold KFold
-      without stratification. What is likely to happen?
+      Different thresholds trade recall against precision by different amounts. How should a
+      team pick which threshold to use?
     options:
-      - "Some fold gets no faulty sample, and recall on it is undefined"
-      - "Every fold gets exactly one faulty sample, since 5 divides 50"
-      - "The folds stay balanced, because shuffling spreads the classes out"
-      - "KFold refuses to run when a class has fewer samples than folds"
-    answer: "Some fold gets no faulty sample, and recall on it is undefined"
+      - "From the relative cost of a missed fault against the cost of a false alarm"
+      - "Always at 0.5, since that is what scikit-learn uses by default"
+      - "At whichever threshold gives the highest accuracy"
+      - "At whichever threshold makes precision and recall exactly equal"
+    answer: "From the relative cost of a missed fault against the cost of a false alarm"
     evidence: |
-      Each fold draws 10 of the 50 samples at random, and in 95% of shuffles at least
-      one fold draws no faulty sample. StratifiedKFold builds each fold with the
-      dataset's class fractions, so each gets exactly one.
+      No single threshold is best in general, since lowering it always trades fewer missed
+      faults for more false alarms. The right choice depends on what each kind of mistake
+      actually costs in the plant, not on a fixed rule or a single summary score.
     source:
       file: lectures/l10/notes.md
-      heading: "Stratified k-fold"
-      quote: "a shuffled five-fold split leaves at least one fold with no faulty sample in 95% of shuffles, and the recall on that fold is undefined."
-    verify: {mode: quote, needle: "no faulty sample in 95% of shuffles", volatility: measured}
-    tags: [stratifiedkfold, imbalance]
+      heading: "Moving the threshold"
+      quote: |
+        There is no best threshold in general. **Choose it from the cost of a missed fault against the
+        cost of a false alarm.**
+    verify: {mode: quote, needle: "the cost of a missed fault against the cost of a false alarm", volatility: stable}
+    tags: [threshold, cost-tradeoff]
+
+  # --- o5: a classifier only recognizes the faults it was trained on ---------------------------
 
   - id: l10-q13
-    kind: predict_measure
-    rung: 3
-    difficulty: 3
-    objectives: [l10-o3]
-    prompt: |
-      A neural network trained on nine Tennessee Eastman faults catches 96% of their
-      faulty samples on held-out runs. It is then shown eight faults it was never
-      trained on.
-
-      Before you look: what does its recall on those eight do?
-    predict:
-      ask: "Commit to a guess before revealing."
-      common_prior: "A little lower, since faults look alike."
-    options:
-      - "It ranges from 0.001 on one fault to 0.92 on another"
-      - "It stays near 0.96, since a fault is a fault"
-      - "It drops evenly to about 0.5 on all eight"
-      - "It is exactly zero on all eight, since the classes were never seen"
-    answer: "It ranges from 0.001 on one fault to 0.92 on another"
-    evidence: |
-      A supervised classifier answers "does this look like a fault I have seen?". Some new
-      faults happen to look like trained ones and are caught; others do not and are
-      missed almost entirely, and nothing about the classifier says in advance which.
-    source:
-      file: lectures/l10/notes.md
-      heading: "A classifier only knows the faults it was trained on"
-      quote: "Its recall on the new faults ranges from 0.001 on fault 19 to 0.92 on fault 18"
-    verify: {mode: quote, needle: "ranges from 0.001 on fault 19 to 0.92 on fault 18", volatility: measured}
-    tags: [unseen-classes, recall, tep]
-
-  - id: l10-q14
     kind: mcq
     rung: 2
     difficulty: 2
-    objectives: [l10-o2]
+    objectives: [l10-o5]
     prompt: |
-      The baseline that always answers "normal" has precision and recall of zero. What
-      is its F1 score?
+      A network trained on nine plant faults is then tested on eight faults it never saw during
+      training. What happens to its recall across those eight?
     options:
-      - "0"
-      - "0.5"
-      - "0.854, its accuracy"
-      - "0.427, the mean of its accuracy and its recall"
-    answer: "0"
+      - "It ranges from 0.924 on one fault down to 0.001 on another"
+      - "It stays close to its trained recall of 0.961 on every one of them"
+      - "It is exactly zero on all eight, since none of them were in training"
+      - "It settles near 0.5 on all eight, since the network is only guessing"
+    answer: "It ranges from 0.924 on one fault down to 0.001 on another"
     evidence: |
-      From the counts, F1 = 2 TP / (2 TP + FP + FN). The baseline has TP = 0 and FN = 8,640,
-      so its F1 is 0 with no convention needed, even though its precision is 0/0 (it raises
-      no alarms), which scikit-learn reports as 0. F1 is zero whenever precision or recall is.
+      Some unseen faults happen to resemble a trained fault closely enough that the network
+      still catches most of them, while others resemble nothing it has seen and are almost
+      entirely missed. Nothing in its training scores predicts in advance which end a new fault
+      will land on.
     source:
       file: lectures/l10/notes.md
-      heading: "Classification metrics"
-      quote: "and it is zero when either of them is"
-    verify: {mode: quote, needle: "it is zero when either of them is", volatility: stable}
-    tags: [f1, baseline]
+      heading: "A classifier only knows the faults it was shown"
+      quote: |
+        Recall ranges from 0.924 (fault 18) down to 0.001 (fault 19).
+    verify: {mode: quote, needle: "ranges from 0.924 (fault 18) down to 0.001 (fault 19)", volatility: measured}
+    tags: [unseen-faults, recall, tep]
+
+  - id: l10-q14
+    kind: spot_the_defect
+    rung: 3
+    difficulty: 2
+    objectives: [l10-o5]
+    prompt: |
+      A team reports their network's 96.1% recall on the nine faults it was trained on as proof
+      it will catch whatever fault the plant develops next. What is missing from that claim?
+    options:
+      - "Recognition that it only knows the faults it was trained on, and a test against a fault it never saw"
+      - "A comparison against the accuracy of a baseline that always predicts normal"
+      - "A second network trained on the same nine faults with a different random seed"
+      - "More training samples drawn from the same nine faults it already knows"
+    answer: "Recognition that it only knows the faults it was trained on, and a test against a fault it never saw"
+    evidence: |
+      A recall measured on the faults a network was trained on says nothing about a fault it has
+      never seen, since a supervised classifier can only recognize the classes it was trained on.
+      The only way to find out how it handles a genuinely new fault is to hold one out on purpose
+      and test against it.
+    source:
+      file: lectures/l10/notes.md
+      heading: "A classifier only knows the faults it was shown"
+      quote: |
+        **A supervised classifier (Lecture 8) can only recognize the classes it was trained on.**
+    verify: {mode: quote, needle: "can only recognize the classes it was trained on", volatility: stable}
+    tags: [unseen-faults, practitioner]
+
+  # --- o6: an Optuna search tracked in MLflow ---------------------------------------------------
+
+  - id: l10-q15
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l10-o6]
+    prompt: |
+      Bergstra and Bengio (2012) argue that random search beats a grid search at the same trial
+      budget. What is their reasoning?
+    options:
+      - "Usually only a few hyperparameters matter, and random search tries more distinct values of those"
+      - "Random search always evaluates fewer total configurations, leaving a larger budget per trial"
+      - "A grid cannot represent an integer-valued hyperparameter such as a tree's maximum depth"
+      - "Random search is guaranteed to eventually find the single best configuration"
+    answer: "Usually only a few hyperparameters matter, and random search tries more distinct values of those"
+    evidence: |
+      A grid spends equal effort on every hyperparameter, including ones that barely affect the
+      score, so most of its trials repeat values of something that does not matter much. Random
+      search, at the same budget, samples many distinct values along every axis, so it explores
+      whichever one matters more thoroughly without needing to know which one that is in advance.
+    source:
+      file: lectures/l10/notes.md
+      heading: "Grid search and random search"
+      quote: |
+        Usually only a few hyperparameters matter much. With the same number of trials, random search
+        tries more different values of the ones that matter
+    verify: {mode: quote, needle: "random search tries more different values of the ones that matter", volatility: stable}
+    tags: [grid-search, random-search]
+
+  - id: l10-q16
+    kind: mcq
+    rung: 2
+    difficulty: 3
+    objectives: [l10-o6]
+    prompt: |
+      Optuna's default sampler, TPE, uses past trials to guide future ones. In the search on the
+      concrete strength dataset, how did its first guided trial compare with random search?
+    options:
+      - "TPE's first guided trial, trial 11, already scored 8.90 MPa; random search took 38 trials to reach 9.00 MPa"
+      - "TPE's first guided trial matched random search exactly, both reaching 8.90 MPa at trial 11"
+      - "TPE needed 38 trials to reach 8.90 MPa, the same count random search needed for 9.00 MPa"
+      - "Random search reached 8.90 MPa before TPE did, since TPE's early trials are random too"
+    answer: "TPE's first guided trial, trial 11, already scored 8.90 MPa; random search took 38 trials to reach 9.00 MPa"
+    evidence: |
+      TPE builds a model of which hyperparameter values look promising from the trials run so
+      far, so once it has a handful of trials to learn from, it can aim its very next guess
+      there instead of guessing blindly. Random search has no such model, so it keeps guessing
+      uniformly and takes far longer to reach a similarly good score.
+    source:
+      file: lectures/l10/notes.md
+      heading: "Tree-structured Parzen Estimator (TPE)"
+      quote: |
+        Random search ignores the past; TPE learns from it. In this search, TPE's first guided trial
+        (trial 11) already scores 8.90 MPa. Random search needs 38 trials to reach 9.00 MPa.
+    verify: {mode: quote, needle: "tpe's first guided trial", volatility: measured}
+    tags: [tpe, optuna]
+
+  - id: l10-q17
+    kind: mcq
+    rung: 1
+    difficulty: 1
+    objectives: [l10-o6]
+    prompt: |
+      An Optuna study finishes, and its winning configuration is refit and registered in
+      MLflow's model registry. What does that registry give a teammate that the winning trial's
+      own child run does not?
+    options:
+      - "A name and version they can load later, without needing to remember which trial won"
+      - "A live connection that keeps retraining the model as new data arrives"
+      - "A guarantee that this model will outperform every future search"
+      - "A bundled copy of every losing trial's hyperparameters alongside the winner's"
+    answer: "A name and version they can load later, without needing to remember which trial won"
+    evidence: |
+      A child run is tied to the one trial that produced it, one among possibly dozens, so
+      finding the winner later means remembering which run it was. The registry instead gives
+      the winning model its own name and version, loadable by anyone later with no memory of the
+      search required.
+    source:
+      file: lectures/l10/notes.md
+      heading: "Optuna inside MLflow"
+      quote: |
+        The best model is refit on all the training rows and **registered** in the MLflow **model
+        registry**, with a name and a version anyone can load later.
+    verify: {mode: quote, needle: "with a name and a version anyone can load later", volatility: stable}
+    tags: [mlflow, model-registry, optuna]
+
+  - id: l10-q18
+    kind: spot_the_defect
+    rung: 3
+    difficulty: 2
+    objectives: [l10-o6]
+    prompt: |
+      A team's Optuna search on the concrete strength dataset finds a best validation RMSE of
+      8.90 MPa over many trials, and reports that number as their model's expected performance
+      on new data. What is wrong?
+    options:
+      - "The search chose its winner by that number; the registered winner's test score, 7.41 MPa, is the one to report"
+      - "Nothing is wrong; grouped cross-validation already accounts for the search, so 8.90 MPa is unbiased"
+      - "The number should have come from a grid search instead of from TPE"
+      - "Forty trials is too few for TPE to have found a trustworthy best score"
+    answer: "The search chose its winner by that number; the registered winner's test score, 7.41 MPa, is the one to report"
+    evidence: |
+      The validation score comes from the same rows the search used to pick a winner, so it is
+      the number the search was tuned against, not an honest estimate of new data. Scoring the
+      registered winner once on mixes that never took part in the search is what gives the
+      number to report.
+    source:
+      file: lectures/l10/notes.md
+      heading: "The result on the concrete strength dataset"
+      quote: |
+        Its winner, registered and loaded back, scores 7.41 MPa on the held-out test mixes. **This is
+        the number to report.**
+    verify: {mode: quote, needle: "scores 7.41 mpa on the held-out test mixes", volatility: measured}
+    tags: [test-once, optuna, concrete-strength]

@@ -1,6 +1,6 @@
 # Miniproject: Detecting faults in a chemical plant without examples of faults
 
-**Released:** Lecture 9 (2026-09-23) · **Due:** Friday 2026-10-09 · **Teams:** 4, working in pairs in the first week · **Points:** 15 (10 from the evidence script, 5 for the report) · **Weight:** 20 % of the course grade
+**Released:** Lecture 10 (2026-09-28) · **Due:** Friday 2026-10-09 · **Teams:** 4, working in pairs in the first week · **Points:** 15 (10 from the evidence script, 5 for the report) · **Weight:** 20 % of the course grade
 
 ## Overview
 
