@@ -334,7 +334,7 @@
 - id: l10-o3
   lecture: l10
   text: >-
-    Build a confusion matrix, and compute accuracy, precision and recall from it.
+    Understand a confusion matrix, and the concepts of accuracy, precision and recall from it.
 
 - id: l10-o4
   lecture: l10
@@ -344,7 +344,7 @@
 - id: l10-o5
   lecture: l10
   text: >-
-    Explain why a classifier cannot recognize faults it was never trained on.
+    Explain why a classifier can miss faults it was never trained on.
 
 - id: l10-o6
   lecture: l10

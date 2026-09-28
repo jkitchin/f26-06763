@@ -2674,7 +2674,7 @@
       "kind": "spot_the_defect",
       "lecture": "l10",
       "context": "A team reports their network's 96.1% recall on the nine faults it was trained on as proof\nit will catch whatever fault the plant develops next. What is missing from that claim?",
-      "why": "A recall measured on the faults a network was trained on says nothing about a fault it has\nnever seen, since a supervised classifier can only recognize the classes it was trained on.\nThe only way to find out how it handles a genuinely new fault is to hold one out on purpose\nand test against it.",
+      "why": "A recall measured on the faults a network was trained on says little about a fault it has\nnever seen: a supervised classifier only catches a new fault if it looks like the ones it\nwas trained on. Here recall on eight new faults ran from 0.924 down to 0.001. The only way\nto find out is to hold a fault out on purpose and test against it.",
       "objectives": [
         "l10-o5"
       ],
@@ -2682,7 +2682,7 @@
         "unseen-faults",
         "practitioner"
       ],
-      "true": "Recognition that it only knows the faults it was trained on, and a test against a fault it never saw",
+      "true": "Recognition that it only catches new faults that look like its training faults, and a test against a fault it never saw",
       "false": [
         "A comparison against the accuracy of a baseline that always predicts normal",
         "A second network trained on the same nine faults with a different random seed",
