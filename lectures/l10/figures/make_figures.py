@@ -317,8 +317,8 @@ def tep_fault4_signal_figure(ff, fa):
           f" fault {fault} {channel} {v1.min():.2f} to {v1.max():.2f}% open")
     lo = min(v0.min(), v1.min(), mu - 3 * sd) - 0.6
     hi = max(v0.max(), v1.max(), mu + 3 * sd) + 1.8
-    with plt.rc_context(fonts(14)):             # shown at w:900, legend included
-        fig, ax = plt.subplots(figsize=(7.6, 3.5))
+    with plt.rc_context(fonts(14)):             # shown at w:600 beside the flowsheet
+        fig, ax = plt.subplots(figsize=(7.6, 4.4))
         ax.axhspan(mu - 3 * sd, mu + 3 * sd, color=BLUE, alpha=0.14, zorder=0,
                   label="Normal range")
         ax.plot(t0, v0, color="0.55", lw=1.2, label="Normal run", zorder=2)
@@ -332,7 +332,7 @@ def tep_fault4_signal_figure(ff, fa):
                    color=INK, fontsize=13, va="top")
         ax.set(xlabel="Time (hours)", ylabel="Reactor cooling water valve,\nxmv_10 (% open)",
               xlim=(0, 25), ylim=(lo, hi))
-        ax.legend(loc="center left", bbox_to_anchor=(1.01, 0.5), handlelength=1.4)
+        ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.24), ncol=3, handlelength=1.4)
         fig.tight_layout()
         save(fig, "tep-fault4-signal.png")
 
@@ -535,27 +535,25 @@ def tep_fault14_figure(ff, fa):
     # Right half: the normal samples and the fault 14 samples on two rows with a shared
     # x axis and a linear scale each, so the narrow normal band and the wide fault spread
     # are both visible without a log axis. The band between the tree's two cuts is shaded.
-    with plt.rc_context(fonts(15)):             # shown at w:1150
-        fig = plt.figure(figsize=(13.2, 4.8))
-        gs = fig.add_gridspec(2, 2, width_ratios=[1.1, 1], hspace=0.28, wspace=0.16)
-        left = fig.add_subplot(gs[:, 0])
-        top_r = fig.add_subplot(gs[0, 1])
-        bot_r = fig.add_subplot(gs[1, 1], sharex=top_r)
-
-        left.plot(t1, v1t, color=CMU_RED, lw=1.0, label="Fault 14 run", zorder=2)
-        left.plot(t0, v0t, color="0.35", lw=1.7, label="Normal run", zorder=3)
-        left.axvline(onset_hr, color=INK, ls="--", lw=1.1)
+    def draw_trace(ax, legend_below=False):
+        ax.plot(t1, v1t, color=CMU_RED, lw=1.0, label="Fault 14 run", zorder=2)
+        ax.plot(t0, v0t, color="0.35", lw=1.7, label="Normal run", zorder=3)
+        ax.axvline(onset_hr, color=INK, ls="--", lw=1.1)
         top = max(v0t.max(), v1t.max())
         bot = min(v0t.min(), v1t.min())
-        left.text(onset_hr + 0.4, top + 0.6, "Fault 14 starts", color=INK, va="bottom", fontsize=14)
+        ax.text(onset_hr + 0.4, top + 0.6, "Fault 14 starts", color=INK, va="bottom", fontsize=14)
         k = int(np.argmin(np.abs(t1 - 20)))
-        left.annotate("Same average,\nmuch bigger swings", xy=(t1[k], v1t[k]),
-                     xytext=(onset_hr + 6.5, top + 2.6),
-                     arrowprops=dict(arrowstyle="->", color=INK, lw=1.3), fontsize=14, color=INK)
-        left.set(xlabel="Time (hours)", ylabel="Reactor cooling water valve,\nxmv_10 (% open)",
-                xlim=(0, 25), ylim=(bot - 1, top + 6.5))
-        left.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=2, handlelength=1.3)
+        ax.annotate("Same average,\nmuch bigger swings", xy=(t1[k], v1t[k]),
+                    xytext=(onset_hr + 6.5, top + 2.6),
+                    arrowprops=dict(arrowstyle="->", color=INK, lw=1.3), fontsize=14, color=INK)
+        ax.set(xlabel="Time (hours)", ylabel="Reactor cooling water valve,\nxmv_10 (% open)",
+               xlim=(0, 25), ylim=(bot - 1, top + 6.5))
+        if legend_below:
+            ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.24), ncol=2, handlelength=1.3)
+        else:
+            ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=2, handlelength=1.3)
 
+    def draw_cuts(top_r, bot_r):
         bins = np.linspace(26, 57, 94)
         rows = [(top_r, v_n, "0.5", "Normal runs: a narrow band"),
                 (bot_r, v_f, CMU_RED, "Fault 14 runs: spread out on both sides")]
@@ -570,18 +568,91 @@ def tep_fault14_figure(ff, fa):
             ax.set_title(label, loc="left", fontsize=15, pad=4)
         top_r.tick_params(labelbottom=False)
         top_r.annotate(f"A tree's two cuts:\n{lo_cut:.1f}% and {hi_cut:.1f}%",
-                      xy=(hi_cut, top_r.get_ylim()[1] * 0.62), xytext=(hi_cut + 3.2, top_r.get_ylim()[1] * 0.5),
-                      arrowprops=dict(arrowstyle="->", color=INK, lw=1.3), fontsize=14, color=INK, va="center")
+                       xy=(hi_cut, top_r.get_ylim()[1] * 0.62), xytext=(hi_cut + 3.2, top_r.get_ylim()[1] * 0.5),
+                       arrowprops=dict(arrowstyle="->", color=INK, lw=1.3), fontsize=14, color=INK, va="center")
         y_arrow = bot_r.get_ylim()[1] * 0.72
         bot_r.annotate("", xy=(29.5, y_arrow), xytext=(lo_cut - 0.4, y_arrow),
-                      arrowprops=dict(arrowstyle="->", color=INK, lw=1.6))
+                       arrowprops=dict(arrowstyle="->", color=INK, lw=1.6))
         bot_r.annotate("", xy=(53.5, y_arrow), xytext=(hi_cut + 0.4, y_arrow),
-                      arrowprops=dict(arrowstyle="->", color=INK, lw=1.6))
+                       arrowprops=dict(arrowstyle="->", color=INK, lw=1.6))
         bot_r.text(48.4, y_arrow * 1.05, "Flagged as fault", ha="center", va="bottom", fontsize=14, color=INK)
         bot_r.text(34.0, y_arrow * 1.05, "Flagged as fault", ha="center", va="bottom", fontsize=14, color=INK)
         bot_r.set(xlabel="Reactor cooling water valve, xmv_10 (% open)", xlim=(26, 57))
+
+    # The notes: both halves side by side.
+    with plt.rc_context(fonts(15)):
+        fig = plt.figure(figsize=(13.2, 4.8))
+        gs = fig.add_gridspec(2, 2, width_ratios=[1.1, 1], hspace=0.28, wspace=0.16)
+        draw_trace(fig.add_subplot(gs[:, 0]))
+        top_r = fig.add_subplot(gs[0, 1])
+        draw_cuts(top_r, fig.add_subplot(gs[1, 1], sharex=top_r))
         fig.subplots_adjust(left=0.08, right=0.99, bottom=0.14, top=0.88)
         save(fig, "tep-fault14.png")
+
+    # The deck: fault 14 takes two slides, the trace beside the flowsheet, then the two cuts.
+    with plt.rc_context(fonts(14)):             # shown at w:600 beside the flowsheet
+        fig, ax = plt.subplots(figsize=(7.6, 4.4))
+        draw_trace(ax, legend_below=True)
+        fig.tight_layout()
+        save(fig, "tep-fault14-trace.png")
+    with plt.rc_context(fonts(15)):             # shown at w:900
+        fig = plt.figure(figsize=(9.0, 4.6))
+        gs = fig.add_gridspec(2, 1, hspace=0.32)
+        top_r = fig.add_subplot(gs[0])
+        draw_cuts(top_r, fig.add_subplot(gs[1], sharex=top_r))
+        fig.subplots_adjust(left=0.03, right=0.98, bottom=0.14, top=0.93)
+        save(fig, "tep-fault14-cuts.png")
+
+
+def tep_flowsheet_figures():
+    """Where faults 4 and 14 act on the plant: the course's own P&ID, marked up.
+
+    The base drawing is Lecture 5's tep-screenshot.png, read in place as Lecture 7 does
+    (P&ID from Lyu, Botcha, Kulkarni, Pagaria, Alves, Sunshine and Kitchin 2026). It is
+    cropped to the process units, with the analysers left out, and the labels sit in a
+    white margin on the right so they cover none of the drawing. Both faults act on the
+    reactor's cooling water loop:
+      fault 4   a step in the temperature of the cooling water entering the reactor; the
+                reactor temperature controller (TC 10) answers by opening the reactor
+                cooling water valve, xmv_10
+      fault 14  that same valve sticks
+    Coordinates are pixels of tep-screenshot.png (1908 x 1160), read off the drawing by
+    hand, so they move if that PNG is ever regenerated.
+    """
+    print("\n=== TEP flowsheet: where faults 4 and 14 act ===")
+    raw = HERE.parent.parent / "l05" / "figures" / "tep-screenshot.png"
+    if not raw.exists():
+        print("skipped the flowsheet figures (L5's tep-screenshot.png not found)")
+        return
+    img = plt.imread(raw)
+    x0, x1, y0, y1 = 290, 1395, 105, 945           # the process units, analysers left out
+    crop = img[y0:y1, x0:x1]
+    margin = 470                                    # white space on the right for the labels
+    h, w = crop.shape[0], crop.shape[1] + margin
+    valve, cw_in = (879 - x0, 641 - y0), (812 - x0, 834 - y0)
+
+    def figure(labels, name):
+        fig = plt.figure(figsize=(w / 100, h / 100), dpi=100)
+        ax = fig.add_axes([0, 0, 1, 1])
+        ax.imshow(crop, extent=(0, crop.shape[1], crop.shape[0], 0))
+        ax.set(xlim=(0, w), ylim=(h, 0))
+        ax.set_axis_off()
+        for xy, text_xy, text, color in labels:
+            ax.add_patch(plt.Circle(xy, 38, fill=False, ec=color, lw=5, zorder=4))
+            ax.annotate(text, xy=xy, xytext=text_xy, fontsize=30, color="white", weight="bold",
+                        ha="left", va="center", zorder=5,
+                        bbox=dict(boxstyle="round,pad=0.4", fc=color, ec="none"),
+                        arrowprops=dict(arrowstyle="-|>", color=color, lw=4, shrinkA=4, shrinkB=40,
+                                        mutation_scale=30, connectionstyle="arc3,rad=-0.1"))
+        fig.savefig(HERE / name, dpi=100)
+        plt.close(fig)
+        print(f"  wrote {name}")
+
+    figure([(valve, (crop.shape[1] + 30, 360), "xmv_10:\nthe valve\nopens further", BLUE),
+            (cw_in, (crop.shape[1] + 30, 680), "Fault 4:\nthe cooling\nwater gets\nwarmer", CMU_RED)],
+           "tep-flowsheet-fault4.png")
+    figure([(valve, (crop.shape[1] + 30, 470), "Fault 14:\nthis valve,\nxmv_10,\nsticks", CMU_RED)],
+           "tep-flowsheet-fault14.png")
 
 
 def _classifier_shape_dataset(seed=SEED, n=150):
@@ -738,6 +809,7 @@ def classification_figures():
         tep_fault4_signal_figure(ff, fa)
         tep_logistic_figure(ff, fa)
         tep_fault14_figure(ff, fa)
+        tep_flowsheet_figures()
         tep_figures(ff, fa)
         classifier_shapes_figure()
 
@@ -1093,14 +1165,16 @@ def fetch_optuna_logo():
 if __name__ == "__main__":
     import sys
 
-    groups = {"classification", "shapes", "search", "widgets", "recap", "logo"}
+    groups = {"classification", "shapes", "flowsheet", "search", "widgets", "recap", "logo"}
     want = set(sys.argv[1:]) or groups
     unknown = want - groups
     if unknown:
         sys.exit(f"unknown group(s) {sorted(unknown)}; the groups are {sorted(groups)}")
     if "classification" in want:
         classification_figures()
-    elif "shapes" in want:                      # the model-shapes figure and its deck frames only
+    elif "flowsheet" in want:                   # the marked-up P&ID only, no TEP data needed
+        tep_flowsheet_figures()
+    if "shapes" in want and "classification" not in want:   # the model-shapes figure and its frames
         with warnings.catch_warnings(), plt.rc_context(CLASSIFICATION_STYLE):
             warnings.simplefilter("ignore")
             classifier_shapes_figure()

@@ -245,6 +245,8 @@ threshold turns it into a class.
 .plant-grid p { margin: 0; }
 section p.plant-lead { font-size: 0.8em; margin: 0 0 0.2em; }
 section p.plant-note { font-size: 0.7em; text-align: center; margin: 0.1em 0 0; }
+.plant-row { display: grid; grid-template-columns: 1fr 1.07fr; gap: 0.6em; align-items: center; margin-top: 0.2em; }
+.plant-row img { width: 100%; display: block; }
 </style>
 
 <p class="plant-lead">The Tennessee Eastman process (TEP), the simulated plant from Lecture 5 on. The question: <b>is the plant faulty right now?</b></p>
@@ -261,9 +263,12 @@ section p.plant-note { font-size: 0.7em; text-align: center; margin: 0.1em 0 0; 
 
 </div>
 
-![w:740](figures/tep-fault4-signal.png)
+<div class="plant-row">
+<img src="figures/tep-fault4-signal.png" alt="">
+<img src="figures/tep-flowsheet-fault4.png" alt="">
+</div>
 
-<p class="plant-note">Fault 4: the cooling water entering the reactor gets warmer, so the controller opens the cooling water valve, <code>xmv_10</code>, further.</p>
+<p class="plant-note">Fault 4: the cooling water entering the reactor gets warmer, so the controller opens the cooling water valve, <code>xmv_10</code>, further. <span class="source">P&amp;ID: <a href="https://chemrxiv.org/doi/abs/10.26434/chemrxiv.10001628/v1">Lyu et al. (2026)</a></span></p>
 
 <!--
 One channel and one fault first: the valve sits near 41% open in normal runs and near 45%
@@ -365,13 +370,33 @@ fault 4 runs 44.9%, and they barely overlap. The one mistake is a single false a
 
 ## Classification, fault 14
 
-<p class="plant-lead"><b>Fault 14</b>: the same valve <b>sticks</b>. It swings far open and far closed, around the same average.</p>
-
 <style scoped>
-section p.plant-lead { font-size: 0.8em; margin: 0 0 0.2em; }
+section p.plant-lead { font-size: 0.8em; margin: 0 0 0.3em; }
+.plant-row { display: grid; grid-template-columns: 1fr 1.07fr; gap: 0.6em; align-items: center; margin-top: 0.2em; }
+.plant-row img { width: 100%; display: block; }
 </style>
 
-![w:1080](figures/tep-fault14.png)
+<p class="plant-lead"><b>Fault 14</b>: the same valve <b>sticks</b>. The controller pushes, the valve jumps too far, the controller pushes back: big swings around the same average.</p>
+
+<div class="plant-row">
+<img src="figures/tep-fault14-trace.png" alt="">
+<img src="figures/tep-flowsheet-fault14.png" alt="">
+</div>
+
+<span class="source">P&amp;ID: <a href="https://chemrxiv.org/doi/abs/10.26434/chemrxiv.10001628/v1">Lyu et al. (2026)</a></span>
+
+<!--
+Stiction: friction holds the valve until the push breaks it free, then it overshoots, and the
+loop settles into an oscillation. The controller still holds the reactor temperature on
+average, so the mean stays near 41% open. xmv_10 is the command to the valve, so these swings
+are the controller fighting the stuck valve.
+-->
+
+---
+
+## Classification, fault 14, one cut or two
+
+![w:820](figures/tep-fault14-cuts.png)
 
 <div class="readbox" data-marpit-fragment>
 
@@ -380,8 +405,8 @@ The fault samples fall on **both sides** of the normal band. One straight cut ca
 </div>
 
 <!--
-Left panel: same average, much bigger swings. Right panel: the normal samples sit in a narrow
-band, the fault 14 samples spread from about 29% to 54%. A tree of depth 8 catches 99.7%.
+The normal samples sit in a narrow band, the fault 14 samples spread from about 29% to 54%.
+A tree of depth 8 catches 99.7%.
 -->
 
 ---
