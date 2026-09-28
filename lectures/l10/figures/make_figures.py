@@ -1,99 +1,110 @@
 #!/usr/bin/env python3
 """Generate the L10 figures, and print every number the notes and the deck quote.
 
-Run from this directory. With no argument both groups run; name a group to run only it:
-    /opt/anaconda3/envs/sys_tools/bin/python make_figures.py
+Run from this directory:
     uv run --no-project --with numpy --with pandas --with xlrd --with pyarrow \
-        --with scikit-learn --with matplotlib --with scipy python make_figures.py classification
-    uv run --no-project --with numpy --with pandas --with openpyxl --with scikit-learn \
-        --with matplotlib --with optuna python make_figures.py search
+        --with scikit-learn --with matplotlib --with scipy --with optuna --with mlflow \
+        python make_figures.py
 
-The groups, and what each writes:
-    search          grid_vs_random, optuna_search (experiment tracking and hyperparameter
-                    search, on the UCI Combined Cycle Power Plant data), then prints the
-                    selection-bias measurement; needs optuna
-    classification  tep-data, moons-data, card-moons, logistic-moons, moons-regions,
-                    cv-stratified, tep-confusion, tep-unseen, tep-fault14 (the
-                    classification material, which moved here from Lecture 9)
+Name groups to regenerate only those; with no names, every group runs. The groups, and
+what each writes:
+    classification  tep-data (the L9 recap figure, reactor pressure under fault 1),
+                    tep-fault4-signal (fault 4 as a raw time trace, before any classifier),
+                    tep-logistic (the gentle first classifier: logistic regression on one
+                    channel), tep-fault14 (rebuilt as two panels: a time trace showing the
+                    same mean and a wider spread, and the histogram with the tree's two
+                    cuts drawn on it), confusion-explained (the 52-channel classifier's test
+                    confusion matrix, drawn as a labeled 2x2 grid with every acronym spelled
+                    out), tep-unseen, classifier-shapes plus its four single-panel twins
+                    (decision regions of four model families on one small synthetic
+                    dataset, so a student sees what "a straight line" versus "boxes" versus
+                    "a smooth curve" actually looks like; the network there uses tanh units,
+                    whose boundary bends smoothly).
+    search          grid_vs_random.png (rebuilt so the score curve underneath the points is
+                    visible, not just the points), optuna_search.png (Optuna TPE against
+                    random search, now tuning Lecture 9's decision tree on concrete instead
+                    of a gradient-boosted model) and tpe-explained.png (how TPE splits good
+                    and bad trials to choose where to look next); needs optuna and scipy.
+    widgets         no figure: prints the constants the interactive slides embed (the TEP
+                    threshold sweep, the grid and random search points and the score curve
+                    under them, and both Optuna trial tables), so the deck's JavaScript can
+                    be checked against it.
+    logo            downloads optuna-logo.png from Optuna's own GitHub repository (MIT
+                    licensed), unchanged, for the search slides; needs network access.
+    recap           copies five PNGs from lectures/l09/figures/, unchanged, for the L9 recap
+                    that opens this session.
 
-The printed block is the record. The classification group takes about 20 seconds and the
-search group about a minute.
+The printed block is the record. Classification takes under a minute; search (two Optuna
+studies of 40 trials each) takes one to two minutes.
 
-THE SEARCH FIGURES
-------------------
-L10 is MLflow tracking plus hyperparameter search. Two figures, computed on the
-UCI Combined Cycle Power Plant data (CCPP), this session's search dataset:
+WHAT MOVED, AND WHY
+--------------------
+Classification is one dataset: the Tennessee Eastman process (TEP), normal against faulty.
+The moons dataset, its dataset card and its straight-line logistic fit are gone from the TEP
+story; what remains of "one dataset, four model shapes" is classifier-shapes.png, a small
+synthetic 2D set with a curved true boundary, used only to show what a straight line, a set
+of boxes, a smooth network curve and a smooth Gaussian-process curve look like side by side,
+with no accuracy numbers attached to that comparison.
 
-    grid_vs_random.png   why random search beats grid when few dimensions
-                         matter (Bergstra and Bengio 2012), redrawn as original
-                         artwork rather than copied.
-    optuna_search.png    a real Optuna study: TPE versus random sampling, best
-                         validation RMSE so far against trial number.
+Tree ensembles (random forests, gradient boosting) are removed from this lecture entirely,
+along with the winner's-curse measurement: both used to live on concrete. What remains on
+concrete is the hyperparameter search, now tuning Lecture 9's own decision tree
+(`DecisionTreeRegressor`) rather than a gradient-boosted model the room has not met, scored
+the same way L9 scored everything: `GroupShuffleSplit(n_splits=1, test_size=0.2,
+random_state=42)` on the 428 mix groups gives the same 835 training rows and 195 test rows
+(342 and 86 mixes) that L9's script used, and `GroupKFold(5)` on those 835 rows is the
+search's CV.
 
-The selection-bias lesson (that the best validation score is an optimistic
-estimate) is printed rather than plotted. selection_bias() measures it as nested CV
-minus the best inner-CV score of a 36-candidate grid (ridge on polynomial features),
-against training-set size, and ccpp_fold_noise() prices the fold-to-fold noise from
-the workbook's five shuffled sheets (5x2 CV of a linear model, +/-0.051 MW). On this
-large, easy dataset the effect is tiny except at small sizes: +0.19 MW at n=80, inside
-the fold noise from n=320, and -0.003 MW on all 9,568 rows, so a figure at full size
-would show nothing and mislead. The notes cite those printed numbers. Lecture 9's
-script computed them before its rewrite dropped CCPP; they moved here with the same
-grid, sizes, repeats and seeds, and reproduce the values that script printed.
+Faults 3, 9 and 15 are deliberately absent from every figure, table and print: the
+miniproject's evidence script checks that students find them. The classifier trains on
+faults 1, 2, 4, 5, 6, 7, 8, 12 and 13 (SEEN) and is tested on the other eight (UNSEEN).
 
-The committed PNGs and the Optuna bests the notes quote (random 3.335, TPE 3.326 MW)
-come from the sys_tools env (scikit-learn 1.9.0, matplotlib 3.11.1), which redraws both
-PNGs byte for byte. The uv line above resolved scikit-learn 1.6.1 and matplotlib 3.10.6
-on 2026-09-22, which moves the Optuna bests to 3.339 and 3.329 MW and changes the PNG
-bytes; the selection-bias numbers are the same under both.
+THE GENTLE INTRODUCTION (tep-fault4-signal.png, tep-logistic.png)
+-------------------------------------------------------------------
+Before the 52-channel classifier, one channel: fault 4 (a reactor cooling water inlet
+temperature step) shifts the mean of xmv_10 (the reactor cooling water valve) cleanly, from
+41.1 to 44.9% open, with its spread almost unchanged (std 0.54 against 0.53). tep-fault4-
+signal.png draws that shift as a raw time trace, so a student sees the channel move before
+any model touches it; tep-logistic.png then fits a 1-D logistic regression to that one
+number and draws the S-curve and the threshold. Fault 14 is the deliberate counter-example a
+few slides later, on the very same channel: it does not move the mean of xmv_10 at all, only
+its spread (0.54 to 7.44), so the same kind of straight decision boundary catches none of it
+and a two-cut tree catches most of it. One channel, two fault signatures: a boundary that
+works perfectly on one fault can be blind to another.
 
-CCPP is fetched once and cached under .cache/ (gitignored); do not commit it.
+SEARCH (optuna_search.png, tpe-explained.png)
+------------------------------------------------
+`grid_vs_random.png` is rebuilt synthetic artwork (Bergstra and Bengio's picture: nine
+trials each, only one hyperparameter matters), now drawn with the fabricated validation-
+score curve underneath the points so the bump, and which tried point is best, are visible
+at a glance. `optuna_search.png` is a real Optuna study on concrete:
+`DecisionTreeRegressor(random_state=0)` over `max_depth` (2 to 20) and `min_samples_leaf`
+(1 to 50), scored by `GroupKFold(5)` CV RMSE on the 835 training rows, 40 trials,
+`TPESampler(seed=0)` against `RandomSampler(seed=0)`. `tpe-explained.png` takes the TPE
+study's first 20 trials, splits them the way Optuna's TPESampler does (the best 10% by RMSE
+are "good", the rest "bad"), and draws each group's smoothed histogram over
+`min_samples_leaf`, the hyperparameter that separates the two groups most clearly, so a
+student sees the idea TPE uses to pick where to look next.
 
-THE CLASSIFICATION FIGURES
---------------------------
-These moved from Lecture 9 with the classification material, and they are drawn here with
-the same data, splits, seeds, models, sizes and fonts that lectures/l09/figures/make_figures.py
-used for them, so every number they print is the number Lecture 9's record printed.
-tep-data.png is the one figure the two scripts share: Lecture 9 introduces the Tennessee
-Eastman data with it too, and each lecture's figures live in its own folder.
-
-Where the material comes from. The moons, the Gini impurity example and the Gaussian process
-classifier follow Victor Alves's F25 06-325 lecture 9
-(https://github.com/victoraalves/06-325-Numerical-Methods-And-Machine-Learning-for-ChemE-Fall-2025);
-logistic regression is added beside his three classifiers. The Tennessee Eastman data are the
-miniproject's two files, from Rieth et al. (2017), https://doi.org/10.7910/DVN/6C3JR1, CC0,
-25 MB and 20 MB from the course data host, cached in .cache/ (gitignored).
-
-Faults 3, 9 and 15 are deliberately absent from every figure: the miniproject's evidence
-script checks that students find them. The classifier learns faults 1, 2, 4, 5, 6, 7, 8, 12
-and 13 (SEEN), and tep-unseen.png tests it on the other eight (UNSEEN).
-
-A FINDING THAT SHAPED THE SESSION
----------------------------------
-On TEP, fault 14 (sticking reactor cooling water valve) keeps the mean of xmv_10 and widens
-its spread fourteen-fold, so a linear classifier catches none of it and a two-cut tree
-catches most of it.
-
-WHEN A TEP FAULT STARTS
------------------------
-Rieth et al. sample every 3 minutes, 500 samples (25 hours) per training run, and their
-dataset description says the faults are introduced 1 hour into the faulty training runs.
-The data agree: faulty run r of every fault is identical to fault-free run r, channel for
-channel, through sample 20 (1.0 hours) at least. Fault 1, the one tep-data.png plots, first
-differs at sample 21 in all twenty runs. tep_onset() finds the first differing sample for
-each run, and time is plotted as sample x 3 minutes, so the fault line sits at 1.0 hours. A
-sample is labelled faulty when it comes from a fault run after sample 20.
+DATA (cached, never committed)
+-------------------------------
+TEP: the miniproject's two files (Rieth et al. 2017, CC0), fetched once into `.cache/` here
+or, if `lectures/l09/figures/.cache/` already holds them (L9 fetches the same files), read
+from there instead. Concrete: the UCI Concrete Compressive Strength workbook (Yeh 1998, CC BY
+4.0), read from `lectures/l09/figures/.cache/Concrete_Data.xls` if present, else downloaded.
+`cached()` checks both directories before fetching anything over the network.
 
 FIGURE SHAPES
 -------------
-Every classification figure lands on a 1280x720 MARP slide, sized with its fonts so that its
-smallest text lands at 16 px or more at the width the deck shows it (the comment on each
-rc_context gives that width, and fonts() gives the arithmetic). card-moons.png is saved at
-exactly 3.4 x 2.3 inches with fixed margins and no axes, like Lecture 9's dataset cards.
+Every figure lands on a 1280x720 MARP slide, sized with its fonts so that its smallest text
+lands at 16 px or more at the width the deck shows it (the comment on each rc_context is a
+working estimate of that width, to be checked against the finished deck with
+`tools/check_slides.py`).
 """
 from __future__ import annotations
 
 import io
+import shutil
 import urllib.request
 import warnings
 import zipfile
@@ -102,49 +113,41 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
+from scipy.stats import gaussian_kde
 from sklearn.datasets import make_moons
 from sklearn.dummy import DummyClassifier
-from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn.gaussian_process.kernels import RBF
-from sklearn.linear_model import LinearRegression, LogisticRegression, Ridge
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (accuracy_score, confusion_matrix, f1_score,
                              precision_score, recall_score)
-from sklearn.model_selection import (GridSearchCV, KFold, StratifiedKFold,
-                                     cross_val_score, train_test_split)
+from sklearn.model_selection import GroupKFold, GroupShuffleSplit, cross_val_score
 from sklearn.neural_network import MLPClassifier
-from sklearn.pipeline import Pipeline, make_pipeline
-from sklearn.preprocessing import PolynomialFeatures, StandardScaler
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
 warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 HERE = Path(__file__).parent
 CACHE = HERE / ".cache"
-URL = "https://archive.ics.uci.edu/static/public/294/combined+cycle+power+plant.zip"
-MEMBER = "CCPP/Folds5x2_pp.xlsx"
-FEATURES = ["AT", "V", "AP", "RH"]
-TARGET = "PE"
-SEED = 0
+L09_CACHE = HERE.parent.parent / "l09" / "figures" / ".cache"
+L09_FIGURES = HERE.parent.parent / "l09" / "figures"
 
 CMU_RED = "#c41230"
 INK = "#1a1a1a"
 MUTED = "#5c5c5c"
-RULE = "#d8d8d8"
 BLUE = "#1f5c99"
-GREEN = "#1a7f37"
+GOLD = "#b07d12"
+GREEN = "#2e7d32"
+SEED = 0
 
 # Each group draws under its own style, applied on top of Matplotlib's defaults with
 # plt.rc_context, so the two never leak into each other.
-SEARCH_STYLE = {
-    "font.size": 13, "axes.labelsize": 13, "axes.titlesize": 15,
-    "axes.spines.top": False, "axes.spines.right": False,
-    "axes.edgecolor": MUTED, "text.color": INK, "axes.labelcolor": INK,
-    "xtick.color": MUTED, "ytick.color": MUTED,
-    "figure.dpi": 160, "savefig.bbox": "tight",
-}
 CLASSIFICATION_STYLE = {                          # Lecture 9's, unchanged
     "font.size": 12,
     "axes.labelsize": 12,
@@ -160,219 +163,15 @@ CLASSIFICATION_STYLE = {                          # Lecture 9's, unchanged
     "savefig.dpi": 150,
     "savefig.bbox": "tight",
 }
+QUANT_STYLE = {                                   # search, on concrete
+    "font.size": 13, "axes.labelsize": 13, "axes.titlesize": 15,
+    "axes.spines.top": False, "axes.spines.right": False,
+    "axes.edgecolor": MUTED, "text.color": INK, "axes.labelcolor": INK,
+    "xtick.color": MUTED, "ytick.color": MUTED,
+    "figure.dpi": 160, "savefig.bbox": "tight",
+}
 
 
-def load_ccpp():
-    """Fetch (once) and parse CCPP Sheet1, this session's search dataset."""
-    CACHE.mkdir(exist_ok=True)
-    xlsx = CACHE / "Folds5x2_pp.xlsx"
-    if not xlsx.exists():
-        print("downloading", URL)
-        with urllib.request.urlopen(URL) as r:
-            archive = zipfile.ZipFile(io.BytesIO(r.read()))
-        xlsx.write_bytes(archive.read(MEMBER))
-    df = pd.read_excel(xlsx, "Sheet1")
-    return df[FEATURES].to_numpy(), df[TARGET].to_numpy()
-
-
-def fig_grid_vs_random() -> None:
-    """Grid versus random over two hyperparameters, one of which matters.
-
-    The classic Bergstra and Bengio picture: nine trials each. Grid tries three
-    distinct values of the important parameter; random tries nine. Redrawn.
-    """
-    rng = np.random.default_rng(SEED)
-    fig, axes = plt.subplots(1, 2, figsize=(10, 5.2))
-
-    def importance(x):  # a smooth "important parameter" response, for the margins
-        return np.exp(-((x - 0.7) ** 2) / 0.05)
-
-    for ax, mode in zip(axes, ["grid", "random"]):
-        if mode == "grid":
-            g = np.linspace(0.1, 0.9, 3)
-            xs, ys = np.meshgrid(g, g)
-            xs, ys = xs.ravel(), ys.ravel()
-        else:
-            xs, ys = rng.uniform(0.05, 0.95, 9), rng.uniform(0.05, 0.95, 9)
-        ax.scatter(xs, ys, s=90, color=CMU_RED, zorder=3, edgecolor="white")
-        # marginal on the "important" (x) axis: the response curve and the tried values
-        gx = np.linspace(0, 1, 200)
-        ax.plot(gx, 0.02 + 0.12 * importance(gx), color=MUTED, lw=1.5, alpha=0.7)
-        for x in xs:
-            ax.plot([x, x], [0, 0.02 + 0.12 * importance(x)], color=BLUE, lw=1, alpha=0.6)
-        ax.set_xlim(0, 1)
-        ax.set_ylim(0, 1)
-        ax.set_xlabel("important hyperparameter")
-        ax.set_ylabel("unimportant hyperparameter")
-        n_distinct = len(np.unique(np.round(xs, 6)))
-        ax.set_title(f"{mode}: {n_distinct} distinct values tried\n"
-                     "on the important axis", fontsize=12.5)
-        ax.set_xticks([])
-        ax.set_yticks([])
-    fig.suptitle("Nine trials each: random covers the axis that matters", fontsize=15, y=1.0)
-    fig.savefig(HERE / "grid_vs_random.png")
-    plt.close(fig)
-    print("wrote grid_vs_random.png  (grid 3 distinct x-values, random 9)")
-
-
-def _objective(trial, X, y):
-    params = dict(
-        learning_rate=trial.suggest_float("learning_rate", 0.01, 0.5, log=True),
-        max_leaf_nodes=trial.suggest_int("max_leaf_nodes", 8, 128, log=True),
-        max_iter=trial.suggest_int("max_iter", 50, 250),
-        l2_regularization=trial.suggest_float("l2_regularization", 1e-6, 10.0, log=True),
-        min_samples_leaf=trial.suggest_int("min_samples_leaf", 5, 60),
-    )
-    model = HistGradientBoostingRegressor(random_state=SEED, **params)
-    cv = KFold(n_splits=3, shuffle=True, random_state=SEED)
-    rmse = -cross_val_score(model, X, y, cv=cv, n_jobs=-1,
-                            scoring="neg_root_mean_squared_error").mean()
-    return rmse
-
-
-def fig_optuna_search(Xtr, ytr) -> dict:
-    """A real Optuna study: TPE versus random, best-so-far validation RMSE."""
-    # Imported here, so that the classification group runs without optuna installed.
-    import optuna
-    optuna.logging.set_verbosity(optuna.logging.WARNING)
-
-    n_trials = 30
-    curves = {}
-    for name, sampler in [("random", optuna.samplers.RandomSampler(seed=SEED)),
-                          ("TPE", optuna.samplers.TPESampler(seed=SEED))]:
-        study = optuna.create_study(direction="minimize", sampler=sampler)
-        study.optimize(lambda t: _objective(t, Xtr, ytr), n_trials=n_trials)
-        vals = [t.value for t in study.trials]
-        curves[name] = np.minimum.accumulate(vals)
-
-    fig, ax = plt.subplots(figsize=(7.2, 4.6))
-    ax.plot(range(1, n_trials + 1), curves["random"], color=BLUE, lw=2,
-            marker="o", ms=3, label="random search")
-    ax.plot(range(1, n_trials + 1), curves["TPE"], color=CMU_RED, lw=2,
-            marker="o", ms=3, label="Optuna TPE")
-    ax.set_xlabel("trial")
-    ax.set_ylabel("best validation RMSE so far, MW")
-    ax.set_title("Hyperparameter search on CCPP: TPE versus random", pad=10)
-    ax.legend(frameon=False)
-    fig.savefig(HERE / "optuna_search.png")
-    plt.close(fig)
-    best = {k: float(v[-1]) for k, v in curves.items()}
-    print(f"wrote optuna_search.png  (best RMSE: random {best['random']:.3f}, "
-          f"TPE {best['TPE']:.3f} MW over {n_trials} trials)")
-    return best
-
-
-def ccpp_fold_noise() -> float:
-    """The fold-to-fold noise of CCPP: the spread of a linear model's 5x2 CV test RMSE.
-
-    The UCI workbook holds the same 9,568 rows on five sheets, each shuffled differently, so
-    that a 5x2 CV test can be run. Two unshuffled folds per sheet give ten test RMSEs, and
-    their standard deviation is the yardstick a selection-bias estimate has to clear.
-    """
-    xlsx = CACHE / "Folds5x2_pp.xlsx"
-    if not xlsx.exists():
-        load_ccpp()                                # fetches the workbook into .cache/
-    book = pd.ExcelFile(xlsx)
-    scores = []
-    for name in book.sheet_names:
-        frame = pd.read_excel(book, name)
-        folds = cross_val_score(
-            LinearRegression(),
-            frame[FEATURES],
-            frame[TARGET],
-            cv=KFold(n_splits=2, shuffle=False),
-            scoring="neg_root_mean_squared_error",
-        )
-        scores.extend(-folds)
-    scores = np.array(scores)
-    print(f"  fold-to-fold noise: 5x2 CV of a linear model over the {len(book.sheet_names)} sheets, "
-          f"{scores.mean():.4f} +/- {scores.std():.4f} MW ({len(scores)} fold RMSEs)")
-    return float(scores.std())
-
-
-def selection_bias(X, y) -> dict:
-    """How much the best validation score flatters itself, against training-set size.
-
-    Print only, no figure. Non-nested: run a grid search on n rows and report its best
-    inner-CV RMSE, which is the number a search hands you. Nested: wrap the whole search in
-    an outer 5-fold CV, so each outer fold's winner is chosen without seeing that fold, which
-    is the honest estimate. Both sides train on 4/5 of the rows they are given, so the gap is
-    selection bias alone, without the confound of a final refit on more data. The candidates
-    are ridge on polynomial features, 3 degrees x 12 alphas = 36, and each size is averaged
-    over repeated random subsamples of the rows.
-    """
-    print("\n=== Selection bias: the best validation score against the honest one ===")
-    score = "neg_root_mean_squared_error"
-    pipe = Pipeline([
-        ("poly", PolynomialFeatures(2)),
-        ("sc", StandardScaler()),
-        ("m", Ridge()),
-    ])
-    grid = {
-        "poly__degree": [1, 2, 3],
-        "m__alpha": np.logspace(-3, 4, 12),
-    }
-    n_candidates = len(grid["poly__degree"]) * len(grid["m__alpha"])
-    noise = ccpp_fold_noise()
-
-    sizes = [80, 160, 320, 640, 1280, 2560, 5120, len(X)]
-    bias = []
-    for n in sizes:
-        reps = 12 if n <= 640 else (6 if n <= 2560 else 3)
-        non_nested, nested = [], []
-        for rep in range(reps):
-            rng = np.random.default_rng(1000 + rep)
-            idx = rng.choice(len(X), n, replace=False)
-            search = GridSearchCV(
-                pipe,
-                grid,
-                scoring=score,
-                n_jobs=-1,
-                cv=KFold(n_splits=5, shuffle=True, random_state=rep),
-            )
-            search.fit(X[idx], y[idx])
-            non_nested.append(-search.best_score_)
-            outer = cross_val_score(
-                search,
-                X[idx],
-                y[idx],
-                scoring=score,
-                n_jobs=-1,
-                cv=KFold(n_splits=5, shuffle=True, random_state=100 + rep),
-            )
-            nested.append(-outer.mean())
-        bias.append(np.mean(nested) - np.mean(non_nested))
-        where = "inside" if abs(bias[-1]) < noise else "outside"
-        print(f"  n={n:5d}  best validation {np.mean(non_nested):7.4f}  "
-              f"nested {np.mean(nested):7.4f}  optimism {bias[-1]:+.4f} MW  "
-              f"({abs(bias[-1]) / noise:.2f}x the noise, {where}; {reps} repeats)")
-
-    crossing = next((n for n, b in zip(sizes, bias) if abs(b) < noise), None)
-    print(f"  over {n_candidates} candidates: {bias[0]:+.3f} MW at n={sizes[0]} "
-          f"({bias[0] / noise:.1f}x the fold noise of {noise:.4f} MW); "
-          f"first inside the noise at n={crossing}; {bias[-1]:+.3f} MW on all {len(X):,} rows")
-    return {
-        "sizes": sizes,
-        "bias": bias,
-        "noise": noise,
-        "n_candidates": n_candidates,
-        "crossing": crossing,
-    }
-
-
-def search_figures():
-    """The search group: the two search figures, then the selection-bias measurement."""
-    X, y = load_ccpp()
-    print(f"loaded CCPP: {X.shape[0]} rows, {X.shape[1]} features -> PE (MW)")
-    Xtr, _, ytr, _ = train_test_split(X, y, test_size=0.2, random_state=SEED)
-    fig_grid_vs_random()
-    fig_optuna_search(Xtr, ytr)
-    selection_bias(X, y)
-
-
-# --------------------------------------------------------------------------------------
-# Classification: helpers and data
-# --------------------------------------------------------------------------------------
 def fonts(size):
     """rcParams for plt.rc_context that set every text in a figure to `size` pt.
 
@@ -396,19 +195,30 @@ def save(fig, name):
     print(f"  wrote {name}")
 
 
+def cached(local):
+    """A file already fetched by this script or by Lecture 9's, in either .cache/."""
+    for d in (CACHE, L09_CACHE):
+        p = d / local
+        if p.exists():
+            return p
+    return None
+
+
 def fetch(url, local):
+    path = cached(local)
+    if path is not None:
+        return path
     CACHE.mkdir(exist_ok=True)
+    print(f"  downloading {url}")
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     path = CACHE / local
-    if not path.exists():
-        print(f"  downloading {url}")
-        req = urllib.request.Request(
-            url,
-            headers={"User-Agent": "Mozilla/5.0"},
-        )
-        path.write_bytes(urllib.request.urlopen(req).read())
+    path.write_bytes(urllib.request.urlopen(req).read())
     return path
 
 
+# --------------------------------------------------------------------------------------
+# The Tennessee Eastman data
+# --------------------------------------------------------------------------------------
 TEP_HOST = "https://kitchin-services.cheme.cmu.edu/f26-06763/data/"
 CH = [f"xmeas_{i}" for i in range(1, 42)] + [f"xmv_{i}" for i in range(1, 12)]
 SEEN = [1, 2, 4, 5, 6, 7, 8, 12, 13]           # never 3, 9 or 15 (see the docstring)
@@ -424,29 +234,6 @@ def load_tep():
     return ff, fa
 
 
-def moons_data():
-    """The 300 moons and the 70/30 split every moons figure uses."""
-    X, y = make_moons(
-        n_samples=300,
-        noise=0.25,
-        random_state=0,
-    )
-    split = train_test_split(
-        X,
-        y,
-        test_size=0.3,
-        random_state=42,
-    )
-    return X, y, *split
-
-
-# Class colours for the moons: the two ends of the viridis map moons-regions.png shades with.
-MOON_COLOURS = [plt.cm.viridis(0.0), plt.cm.viridis(1.0)]
-
-
-# --------------------------------------------------------------------------------------
-# The Tennessee Eastman data, introduced (the same figure Lecture 9 draws)
-# --------------------------------------------------------------------------------------
 def tep_onset(ff, fa, fault, runs):
     """First sample at which faulty run r of `fault` differs from fault-free run r.
 
@@ -464,20 +251,25 @@ def tep_onset(ff, fa, fault, runs):
     return firsts
 
 
-def tep_trace(frame):
-    """Hours and reactor pressure for one run, with sample k at k x 3 minutes."""
+def tep_trace(frame, channel="xmeas_7"):
+    """Hours and one channel for one run, with sample k at k x 3 minutes."""
     frame = frame.sort_values("sample")
-    return frame["sample"].to_numpy() * 3 / 60, frame["xmeas_7"].to_numpy()
+    return frame["sample"].to_numpy() * 3 / 60, frame[channel].to_numpy()
+
+
+def tep_table(ff, fa, normal_runs, faults, fault_runs):
+    d = pd.concat([ff[ff.simulationRun.isin(normal_runs)],
+                   fa[fa.faultNumber.isin(faults) & fa.simulationRun.isin(fault_runs)]],
+                  ignore_index=True)
+    y = ((d.faultNumber > 0) & (d["sample"] > 20)).astype(int).to_numpy()
+    return d, d[CH].to_numpy(), y
 
 
 def tep_data_figure(ff, fa):
-    print("\n=== The Tennessee Eastman data, drawn ===")
+    print("\n=== The Tennessee Eastman data, drawn (same figure as Lecture 9) ===")
     firsts = tep_onset(ff, fa, TEP_FAULT, range(1, 21))
     print(f"  TEP fault {TEP_FAULT}, runs 1-20: each identical to the fault-free run of the same number through"
           f" sample {min(firsts) - 1} and first different at sample {sorted(set(firsts))}")
-    others = sorted({s for f in SEEN for s in tep_onset(ff, fa, f, range(1, 4))})
-    print(f"  every fault in SEEN, runs 1-3: identical through sample 20 at least, first differences at samples"
-          f" {others} (a slow fault takes longer to reach the 52 channels)")
     onset = (min(firsts) - 1) * 3 / 60
     print(f"  so the fault starts after sample {min(firsts) - 1}, at {onset:.2f} hours (samples every 3 minutes)")
     t0, p0 = tep_trace(ff[ff.simulationRun == TEP_RUN])
@@ -486,427 +278,174 @@ def tep_data_figure(ff, fa):
           f" fault {TEP_FAULT} pressure {p1.min():.0f} to {p1.max():.0f} kPa")
     with plt.rc_context(fonts(14)):             # shown at w:700
         fig, ax = plt.subplots(figsize=(7.7, 2.75))
-        ax.plot(
-            t0,
-            p0,
-            color="0.55",
-            lw=1.1,
-            label=f"Fault-free run {TEP_RUN}",
-        )
-        ax.plot(
-            t1,
-            p1,
-            color=CMU_RED,
-            lw=1.3,
-            label=f"Fault {TEP_FAULT}, run {TEP_RUN} (A/C feed ratio step)",
-        )
-        ax.axvline(
-            onset,
-            color=INK,
-            ls="--",
-            lw=1.1,
-        )
-        ax.text(
-            onset + 0.3,
-            2585,
-            f"Fault {TEP_FAULT} starts at {onset:.0f} hour",
-            color=INK,
-            va="bottom",
-        )
-        ax.set(
-            xlabel="Time (hours)",
-            ylabel="Reactor pressure,\nxmeas_7 (kPa)",
-            xlim=(0, 25),
-            ylim=(2580, 2850),
-            yticks=[2600, 2700, 2800],
-        )
-        ax.legend(
-            loc="upper right",
-            handlelength=1.5,
-            borderaxespad=0.2,
-        )
+        ax.plot(t0, p0, color="0.55", lw=1.1, label=f"Fault-free run {TEP_RUN}")
+        ax.plot(t1, p1, color=CMU_RED, lw=1.3,
+               label=f"Fault {TEP_FAULT}, run {TEP_RUN} (A/C feed ratio step)")
+        ax.axvline(onset, color=INK, ls="--", lw=1.1)
+        ax.text(onset + 0.3, 2585, f"Fault {TEP_FAULT} starts at {onset:.0f} hour", color=INK, va="bottom")
+        ax.set(xlabel="Time (hours)", ylabel="Reactor pressure,\nxmeas_7 (kPa)",
+              xlim=(0, 25), ylim=(2580, 2850), yticks=[2600, 2700, 2800])
+        ax.legend(loc="upper right", handlelength=1.5, borderaxespad=0.2)
         save(fig, "tep-data.png")
 
 
-# --------------------------------------------------------------------------------------
-# The moons (Victor's F25 lecture 9, plus logistic regression)
-# --------------------------------------------------------------------------------------
-def bare_card(name, draw):
-    """A thumbnail with no axes, ticks or labels, 3.4 x 2.3 inches like Lecture 9's cards.
+def tep_fault4_signal_figure(ff, fa):
+    """Fault 4, drawn as a raw time trace, before any classifier touches it.
 
-    The moons card is shown 96 px tall beside a line of text, where tick labels would be too
-    small to read, so it carries only the points.
+    Same fault, same channel (xmv_10, the reactor cooling water valve) as
+    tep_logistic_figure, so a student sees the shift itself before a fitted probability
+    curve stands in for it. The normal band (mean +/- 3 std) comes from the same 300
+    fault-free training runs tep_logistic_figure fits its classifier on, so the two
+    figures' numbers agree.
     """
-    with plt.rc_context({"savefig.bbox": "standard"}):
-        fig = plt.figure(figsize=(3.4, 2.3))
-        ax = fig.add_axes([0.03, 0.04, 0.94, 0.92])
-        draw(ax)
-        ax.axis("off")
-        save(fig, name)
+    print("\n=== Fault 4, one channel over time (xmv_10, before any classifier) ===")
+    fault, channel, run = 4, "xmv_10", TEP_RUN
+    _, Xtr_full, ytr = tep_table(ff, fa, range(1, 301), [fault], range(1, 6))
+    j = CH.index(channel)
+    xtr = Xtr_full[:, j]
+    mu, sd = float(xtr[ytr == 0].mean()), float(xtr[ytr == 0].std())
+    print(f"  normal mean {mu:.2f}% open (std {sd:.2f});"
+          f" fault {fault} mean {xtr[ytr == 1].mean():.2f}% open (std {xtr[ytr == 1].std():.2f})")
+    firsts = tep_onset(ff, fa, fault, [run])
+    onset = (firsts[0] - 1) * 3 / 60
+    print(f"  fault {fault} starts at sample {firsts[0]}, {onset:.2f} hours")
+    t0, v0 = tep_trace(ff[ff.simulationRun == run], channel)
+    t1, v1 = tep_trace(fa[(fa.faultNumber == fault) & (fa.simulationRun == run)], channel)
+    print(f"  run {run}: fault-free {channel} {v0.min():.2f} to {v0.max():.2f}% open;"
+          f" fault {fault} {channel} {v1.min():.2f} to {v1.max():.2f}% open")
+    lo = min(v0.min(), v1.min(), mu - 3 * sd) - 0.6
+    hi = max(v0.max(), v1.max(), mu + 3 * sd) + 1.8
+    with plt.rc_context(fonts(14)):             # shown at w:900, legend included
+        fig, ax = plt.subplots(figsize=(7.6, 3.5))
+        ax.axhspan(mu - 3 * sd, mu + 3 * sd, color=BLUE, alpha=0.14, zorder=0,
+                  label="Normal range")
+        ax.plot(t0, v0, color="0.55", lw=1.2, label="Normal run", zorder=2)
+        ax.plot(t1, v1, color=CMU_RED, lw=1.4, label=f"Fault {fault} run", zorder=2)
+        ax.axvline(onset, color=INK, ls="--", lw=1.2, zorder=1)
+        ax.text(onset + 0.4, hi - 0.3, f"Fault {fault} starts", color=INK, va="top", fontsize=13)
+        k = int(np.argmin(np.abs(t1 - 15)))
+        ax.annotate(f"The valve opens further:\nabout {mu:.0f}% to {xtr[ytr == 1].mean():.0f}% open",
+                   xy=(t1[k], v1[k]), xytext=(6.5, hi - 1.4),
+                   arrowprops=dict(arrowstyle="->", color=INK, lw=1.4),
+                   color=INK, fontsize=13, va="top")
+        ax.set(xlabel="Time (hours)", ylabel="Reactor cooling water valve,\nxmv_10 (% open)",
+              xlim=(0, 25), ylim=(lo, hi))
+        ax.legend(loc="center left", bbox_to_anchor=(1.01, 0.5), handlelength=1.4)
+        fig.tight_layout()
+        save(fig, "tep-fault4-signal.png")
 
 
-def moons_data_figure():
-    """The moons before any model: 300 points, two classes, and their dataset card."""
-    print("\n=== The moons, drawn ===")
-    X, y, *_ = moons_data()
-    print(f"  {len(y)} points, {int((y == 0).sum())} of class 0 and {int((y == 1).sum())} of class 1")
-    fig, ax = plt.subplots(figsize=(6, 3.8))
-    for c in (0, 1):
-        ax.scatter(
-            X[y == c, 0],
-            X[y == c, 1],
-            s=18,
-            color=MOON_COLOURS[c],
-            edgecolor="k",
-            linewidths=0.4,
-            label=f"Class {c}",
-        )
-    ax.set(
-        xlabel="x1",
-        ylabel="x2",
-    )
-    ax.legend(loc="lower left")
-    save(fig, "moons-data.png")
+def tep_logistic_figure(ff, fa):
+    """A gentle first classifier: logistic regression on one channel, one fault.
 
-    def moons_card(ax):
-        for c in (0, 1):
-            ax.scatter(
-                X[y == c, 0],
-                X[y == c, 1],
-                s=16,
-                color=MOON_COLOURS[c],
-                linewidths=0,
-            )
+    Fault 4 and fault 14 share a channel (xmv_10, the reactor cooling water valve) but tell
+    opposite stories: fault 4 moves its mean cleanly and leaves its spread alone, so a
+    straight boundary separates the classes perfectly; fault 14 (tep_fault14_figure, drawn
+    next) does the reverse. Neither fault is 3, 9 or 15.
+    """
+    print("\n=== Logistic regression on one channel: the gentle introduction ===")
+    fault, channel = 4, "xmv_10"        # reactor cooling water inlet temperature step
+    _, Xtr_full, ytr = tep_table(ff, fa, range(1, 301), [fault], range(1, 6))
+    _, Xte_full, yte = tep_table(ff, fa, range(401, 501), [fault], range(11, 13))
+    j = CH.index(channel)
+    xtr, xte = Xtr_full[:, [j]], Xte_full[:, [j]]
+    m = LogisticRegression(max_iter=2000).fit(xtr, ytr)
+    w, b = float(m.coef_[0, 0]), float(m.intercept_[0])
+    boundary = -b / w
+    acc = accuracy_score(yte, m.predict(xte))
+    print(f"  fault {fault}, channel {channel}: w {w:.4f}, b {b:.4f}, boundary at"
+          f" {channel} = {boundary:.2f}% open, test accuracy {acc:.3f}")
+    print(f"  normal mean {xtr[ytr == 0].mean():.2f}% (std {xtr[ytr == 0].std():.2f});"
+          f" fault mean {xtr[ytr == 1].mean():.2f}% (std {xtr[ytr == 1].std():.2f})")
 
-    print("  dataset card, 3.4 x 2.3 in")
-    bare_card("card-moons.png", moons_card)
+    with plt.rc_context(fonts(14)):             # shown at w:760
+        fig, ax = plt.subplots(figsize=(7.6, 3.2))
+        lo, hi = float(xtr.min()) - 0.5, float(xtr.max()) + 0.5
+        zz = np.linspace(lo, hi, 300)
+        pp = 1 / (1 + np.exp(-(w * zz + b)))
+        ax.plot(zz, pp, color=BLUE, lw=2.4, zorder=3, label="Fitted probability")
+        ax.axhline(0.5, color=MUTED, ls="--", lw=1)
+        ax.axvline(boundary, color=INK, ls="--", lw=1)
+        ax.plot(xtr[ytr == 0, 0], np.full(int((ytr == 0).sum()), -0.05), "|",
+               color=MUTED, ms=9, mew=1.2, label="Normal (train)")
+        ax.plot(xtr[ytr == 1, 0], np.full(int((ytr == 1).sum()), 1.05), "|",
+               color=CMU_RED, ms=9, mew=1.2, label="Fault 4 (train)")
+        # The label sits right of the boundary and below the 0.5 line, where the curve has
+        # already risen past it, and the legend sits in the empty upper left.
+        ax.text(boundary + 0.2, 0.28, f"Boundary\n{boundary:.1f}% open", color=INK, fontsize=12, va="center")
+        ax.set(xlabel="Reactor cooling water valve, xmv_10 (% open)", ylabel="P(fault)",
+              ylim=(-0.14, 1.14), xlim=(lo, hi))
+        ax.legend(loc="upper left", fontsize=11, handlelength=1.3, borderaxespad=0.3)
+        save(fig, "tep-logistic.png")
 
 
-def logistic_moons_figure():
-    """The logistic function, and the straight boundary it draws on the moons."""
-    print("\n=== Logistic regression on the moons ===")
-    X, y, Xtr, Xte, ytr, yte = moons_data()
-    m = LogisticRegression().fit(Xtr, ytr)
-    acc = accuracy_score(yte, m.predict(Xte))
-    print(f"  logistic regression: test accuracy {acc:.3f}; w {m.coef_[0].round(3)}, b {m.intercept_[0]:.3f}")
-    fig, (a, b) = plt.subplots(
-        1,
-        2,
-        figsize=(11, 3.9),
-        gridspec_kw={"width_ratios": [1, 1.25]},
-    )
-    z = np.linspace(-6, 6, 300)
-    guide = {
-        "color": MUTED,
-        "ls": "--",
-        "lw": 1,
+def tep_models():
+    return {
+        "Baseline: always normal": DummyClassifier(strategy="most_frequent"),
+        "Logistic regression": make_pipeline(StandardScaler(), LogisticRegression(max_iter=2000)),
+        "Decision tree": DecisionTreeClassifier(max_depth=8, random_state=0),
+        "Neural network": make_pipeline(
+            StandardScaler(),
+            MLPClassifier(hidden_layer_sizes=(32,), max_iter=300, early_stopping=True, random_state=0),
+        ),
     }
-    a.axhline(0.5, **guide)
-    a.axvline(0, **guide)
-    a.plot(
-        z,
-        1 / (1 + np.exp(-z)),
-        color=BLUE,
-        lw=2.4,
-    )
-    a.text(
-        1.3,
-        0.6,
-        "Predict class 1\nwhen p > 0.5",
-        fontsize=11,
-        color=INK,
-        va="center",
-        linespacing=1.3,
-    )
-    a.text(
-        5.8,
-        0.1,
-        "$z = w^T x + b$",
-        fontsize=13,
-        color=INK,
-        ha="right",
-        va="center",
-    )
-    a.set(
-        xlabel="z",
-        ylabel="p = $\\sigma(z)$",
-        ylim=(-0.03, 1.03),
-        title="Logistic function $\\sigma(z) = 1 / (1 + e^{-z})$",
-    )
-    xx, yy = np.meshgrid(
-        np.linspace(X[:, 0].min() - 0.5, X[:, 0].max() + 0.5, 300),
-        np.linspace(X[:, 1].min() - 0.5, X[:, 1].max() + 0.5, 300),
-    )
-    zz = m.predict_proba(np.c_[xx.ravel(), yy.ravel()])[:, 1].reshape(xx.shape)
-    cs = b.contourf(
-        xx,
-        yy,
-        zz,
-        levels=np.linspace(0, 1, 11),
-        cmap="viridis",
-        alpha=0.45,
-    )
-    b.contour(
-        xx,
-        yy,
-        zz,
-        levels=[0.5],
-        colors="k",
-        linewidths=1.2,
-    )
-    b.scatter(
-        X[:, 0],
-        X[:, 1],
-        c=y,
-        edgecolor="k",
-        s=14,
-        cmap="viridis",
-        linewidths=0.5,
-    )
-    cb = fig.colorbar(
-        cs,
-        ax=b,
-        pad=0.02,
-        ticks=[0, 0.5, 1],
-    )
-    cb.set_label("Probability of class 1")
-    b.set(
-        xlabel="x1",
-        ylabel="x2",
-        title=f"Logistic regression, test accuracy {acc:.3f}",
-    )
-    save(fig, "logistic-moons.png")
 
 
-def moons_figure():
-    print("\n=== Moons (Victor's F25 lecture 9, plus logistic regression) ===")
-    X, y, Xtr, Xte, ytr, yte = moons_data()
-    models = [
-        ("Logistic regression", LogisticRegression()),
-        ("Decision tree (depth 3)", DecisionTreeClassifier(
-            max_depth=3,
-            random_state=0,
-        )),
-        ("Neural network (5 ReLU)", MLPClassifier(
-            hidden_layer_sizes=(5,),
-            activation="relu",
-            solver="lbfgs",
-            max_iter=2000,
-            random_state=0,
-        )),
-        ("Gaussian process (RBF)", GaussianProcessClassifier(
-            kernel=RBF(1.0),
-            random_state=0,
-            max_iter_predict=200,
-        )),
+def fit_tep_classifier(ff, fa):
+    """The 52-channel classifier (the neural network of tep_models()), fit fresh."""
+    _, Xtr, ytr = tep_table(ff, fa, range(1, 301), SEEN, range(1, 6))
+    _, Xte, yte = tep_table(ff, fa, range(401, 501), SEEN, range(11, 13))
+    model = tep_models()["Neural network"].fit(Xtr, ytr)
+    return model, Xte, yte
+
+
+def confusion_explained_figure(cm):
+    """The 52-channel classifier's test confusion matrix, every cell named and counted.
+
+    `cm` is `confusion_matrix(y_true, y_pred, labels=[1, 0]).ravel()`-shaped: TP, FN, FP,
+    TN in that order. Green for the two correct cells, red for the two errors, and every
+    cell carries its full name, its acronym and a plain description, not just a number.
+    """
+    print("\n=== Confusion matrix, explained (52-channel classifier, test set) ===")
+    tp, fn, fp, tn = (int(v) for v in cm.ravel())
+    print(f"  TP {tp}  FN {fn}  FP {fp}  TN {tn}")
+    # rows: 0 = actually faulty (drawn on top), 1 = actually normal (drawn on bottom)
+    grid = [
+        [("True positive (TP)", "fault caught", tp, GREEN), ("False negative (FN)", "fault missed", fn, CMU_RED)],
+        [("False positive (FP)", "false alarm", fp, CMU_RED), ("True negative (TN)", "normal, left alone", tn, GREEN)],
     ]
-    xx, yy = np.meshgrid(np.linspace(X[:, 0].min() - 0.5, X[:, 0].max() + 0.5, 300),
-                         np.linspace(X[:, 1].min() - 0.5, X[:, 1].max() + 0.5, 300))
-    grid = np.c_[xx.ravel(), yy.ravel()]
-    with plt.rc_context(fonts(13)):             # shown at w:1120
-        fig, axes = plt.subplots(
-            1,
-            4,
-            figsize=(13, 3.25),
-            sharey=True,
-            gridspec_kw={"wspace": 0.1},
-        )
-        for ax, (name, m) in zip(axes, models):
-            m.fit(Xtr, ytr)
-            acc = accuracy_score(yte, m.predict(Xte))
-            print(f"  {name:26s} test accuracy {acc:.3f}")
-            zz = m.predict_proba(grid)[:, 1].reshape(xx.shape)
-            ax.contourf(
-                xx,
-                yy,
-                zz,
-                levels=np.linspace(0, 1, 11),
-                cmap="viridis",
-                alpha=0.45,
-            )
-            ax.contour(
-                xx,
-                yy,
-                zz,
-                levels=[0.5],
-                colors="k",
-                linewidths=1,
-            )
-            ax.scatter(
-                X[:, 0],
-                X[:, 1],
-                c=y,
-                edgecolor="k",
-                s=14,
-                cmap="viridis",
-            )
-            ax.set(
-                title=f"{name}\nTest accuracy {acc:.3f}",
-                xlabel="x1",
-                xticks=[-1, 0, 1, 2],
-            )
-        axes[0].set_ylabel("x2")
-        save(fig, "moons-regions.png")
-
-
-def gini_example():
-    """The worked Gini impurity example: a node of 5 samples, 4 of one class and 1 of the other."""
-    print("\n=== Gini impurity, worked ===")
-    counts = np.array([4, 1])
-    p = counts / counts.sum()
-    print(f"  a node with {counts[0]} blue and {counts[1]} red: p = {p.round(2).tolist()},"
-          f" G = 1 - ({p[0]:.1f}^2 + {p[1]:.1f}^2) = {1 - np.sum(p**2):.2f}; a pure node has G = 0")
-
-
-# --------------------------------------------------------------------------------------
-# Stratified k-fold: a rare class and five folds
-# --------------------------------------------------------------------------------------
-def cv_stratified_figure():
-    print("\n=== Stratified k-fold, drawn ===")
-    y = np.r_[np.ones(5), np.zeros(45)].astype(int)
-
-    def kfold(seed):
-        return KFold(
-            5,
-            shuffle=True,
-            random_state=seed,
-        )
-
-    stratified = StratifiedKFold(
-        5,
-        shuffle=True,
-        random_state=0,
-    )
-    hit = sum(min(y[te].sum() for _, te in kfold(s).split(np.zeros(50))) == 0
-              for s in range(10000))
-    print(f"  50 samples, 5 positive: KFold leaves some fold with no positive in {hit / 100:.1f}% of 10,000 shuffles;"
-          f" StratifiedKFold puts {[int(y[te].sum()) for _, te in stratified.split(np.zeros(50), y)]} in the folds")
-
-    # Drawn: the first KFold seed that leaves exactly one fold with no faulty sample, so the
-    # title can name that fold, against StratifiedKFold.
-    def per_fold(seed):
-        return [int(y[te].sum()) for _, te in kfold(seed).split(np.zeros(50))]
-
-    seed = next(s for s in range(10000) if per_fold(s).count(0) == 1)
-    empty = per_fold(seed).index(0) + 1
-    print(f"  drawn: KFold(random_state={seed}) puts {per_fold(seed)} faulty samples in the folds (fold {empty} has none)")
-    splitters = [
-        (
-            kfold(seed),
-            {},
-            f"KFold: fold {empty} has no faulty sample",
-        ),
-        (
-            stratified,
-            {"y": y},
-            "StratifiedKFold: 1 faulty per fold",
-        ),
-    ]
-    with plt.rc_context(fonts(13)):             # shown at w:680
-        fig, axes = plt.subplots(
-            1,
-            2,
-            figsize=(8.2, 2.45),
-            sharey=True,
-            gridspec_kw={"wspace": 0.12},
-        )
-        for ax, (cv, kw, title) in zip(axes, splitters):
-            for i, (_, te) in enumerate(cv.split(np.zeros(50), **kw)):
-                ax.scatter(
-                    np.arange(len(te)),
-                    [i] * len(te),
-                    marker="s",
-                    s=60,
-                    c=[CMU_RED if y[j] else "0.85" for j in te],
-                    linewidths=0,
-                )
-                n = int(y[te].sum())
-                ax.text(
-                    len(te) - 0.3,
-                    i,
-                    f"{n} faulty",
-                    va="center",
-                    color=CMU_RED if n == 0 else MUTED,
-                )
-            ax.set(
-                title=title,
-                xlim=(-0.7, len(te) + 3.0),
-                xticks=[],
-                yticks=range(5),
-                yticklabels=[f"Fold {i + 1}" for i in range(5)],
-            )
-            ax.spines["bottom"].set_visible(False)
-            ax.spines["left"].set_visible(False)
-            ax.tick_params(
-                axis="y",
-                length=0,
-            )
-        axes[0].set_ylim(4.6, -0.6)
-        for colour, label in [(CMU_RED, "Faulty"), ("0.85", "Normal")]:
-            axes[0].scatter(
-                [],
-                [],
-                marker="s",
-                s=80,
-                color=colour,
-                label=label,
-            )
-        fig.legend(
-            loc="lower center",
-            ncol=2,
-            bbox_to_anchor=(0.5, 0.97),
-        )
-        fig.text(
-            0.5,
-            0.08,
-            "Each row is one fold's 10 validation samples",
-            ha="center",
-            va="top",
-        )
-        save(fig, "cv-stratified.png")
-
-
-# --------------------------------------------------------------------------------------
-# Tennessee Eastman: a supervised fault classifier
-# --------------------------------------------------------------------------------------
-def tep_table(ff, fa, normal_runs, faults, fault_runs):
-    d = pd.concat([ff[ff.simulationRun.isin(normal_runs)],
-                   fa[fa.faultNumber.isin(faults) & fa.simulationRun.isin(fault_runs)]], ignore_index=True)
-    y = ((d.faultNumber > 0) & (d["sample"] > 20)).astype(int).to_numpy()
-    return d, d[CH].to_numpy(), y
+    with plt.rc_context(fonts(15)):             # shown at w:640
+        fig, ax = plt.subplots(figsize=(7.4, 4.6))
+        for r in range(2):
+            y0 = 1 - r    # row 0 (faulty) occupies [1, 2], row 1 (normal) occupies [0, 1]
+            for c in range(2):
+                name, meaning, count, color = grid[r][c]
+                ax.add_patch(plt.Rectangle((c, y0), 1, 1, facecolor=color, alpha=0.16,
+                                           edgecolor=color, linewidth=1.8))
+                ax.text(c + 0.5, y0 + 0.66, name, ha="center", va="center",
+                       fontsize=14.5, fontweight="bold", color=INK)
+                ax.text(c + 0.5, y0 + 0.44, meaning, ha="center", va="center",
+                       fontsize=12.5, color=INK)
+                ax.text(c + 0.5, y0 + 0.20, f"{count:,}", ha="center", va="center",
+                       fontsize=18, fontweight="bold", color=INK)
+        ax.set_xlim(0, 2)
+        ax.set_ylim(0, 2)
+        ax.set_xticks([0.5, 1.5], ["Predicted fault", "Predicted normal"])
+        ax.set_yticks([0.5, 1.5], ["Actually normal", "Actually faulty"])
+        ax.tick_params(length=0, labelsize=13)
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+        save(fig, "confusion-explained.png")
 
 
 def tep_figures(ff, fa):
-    print("\n=== Tennessee Eastman, normal against faulty ===")
+    print("\n=== Tennessee Eastman, normal against faulty (the 52-channel classifier) ===")
     _, Xtr, ytr = tep_table(ff, fa, range(1, 301), SEEN, range(1, 6))
     _, Xte, yte = tep_table(ff, fa, range(401, 501), SEEN, range(11, 13))
     print(f"  training rows {len(ytr)} ({ytr.mean():.1%} faulty); test rows {len(yte)} ({yte.mean():.1%} faulty)")
-    shuffled = KFold(
-        5,
-        shuffle=True,
-        random_state=0,
-    )
-    fr = [ytr[te].mean() for _, te in shuffled.split(Xtr)]
-    print(f"  plain shuffled KFold on the training table: faulty fraction per fold {np.round(fr, 3)}")
-    print(f"  a GP classifier on all {len(ytr)} training rows: a {len(ytr)} x {len(ytr)} kernel matrix,"
-          f" {len(ytr) ** 2 * 8 / 1e9:.0f} GB in double precision")
-    models = {
-        "Baseline: always normal": DummyClassifier(strategy="most_frequent"),
-        "Logistic regression": make_pipeline(StandardScaler(), LogisticRegression(max_iter=2000)),
-        "Decision tree": DecisionTreeClassifier(
-            max_depth=8,
-            random_state=0,
-        ),
-        "Neural network": make_pipeline(
-            StandardScaler(),
-            MLPClassifier(
-                hidden_layer_sizes=(32,),
-                max_iter=300,
-                early_stopping=True,
-                random_state=0,
-            ),
-        ),
-    }
+    print(f"  a GP classifier on all {len(ytr)} training rows would need a {len(ytr)} x {len(ytr)}"
+          f" kernel matrix, {len(ytr) ** 2 * 8 / 1e9:.0f} GB in double precision")
+    models = tep_models()
     cms = {}
     for name, m in models.items():
         p = m.fit(Xtr, ytr).predict(Xte)
@@ -919,46 +458,7 @@ def tep_figures(ff, fa):
     print(f"  neural network: {fp} false alarms on {tn + fp} normal test samples, {days:.1f} days of normal"
           f" operation at 480 samples a day, so one false alarm every {days / fp:.1f} days")
 
-    cells = [["TP", "FN"], ["FP", "TN"]]          # rows actually faulty, normal; columns predicted
-    panels = [
-        ("Baseline: always normal", "Baseline: always normal"),
-        ("Neural network", "Neural network (32 ReLU units)"),
-    ]
-    with plt.rc_context(fonts(14)):             # shown at w:760
-        fig, axes = plt.subplots(
-            1,
-            2,
-            figsize=(8.4, 3.1),
-            sharey=True,
-            gridspec_kw={"wspace": 0.1},
-        )
-        for ax, (name, title) in zip(axes, panels):
-            cm = cms[name]
-            ax.imshow(
-                cm,
-                cmap="Blues",
-                vmin=0,
-                vmax=cm.sum() * 0.25,
-                aspect="auto",
-            )
-            for (r, c), v in np.ndenumerate(cm):
-                ax.text(
-                    c,
-                    r,
-                    f"{cells[r][c]}\n{v:,}",
-                    ha="center",
-                    va="center",
-                    fontsize=15,
-                    linespacing=1.3,
-                    color="white" if v > cm.sum() * 0.2 else INK,
-                )
-            ax.set_xticks([0, 1], ["Predicted\nfaulty", "Predicted\nnormal"])
-            ax.set_yticks([0, 1], ["Actually\nfaulty", "Actually\nnormal"])
-            ax.set_title(title)
-            ax.tick_params(length=0)
-            for spine in ax.spines.values():
-                spine.set_visible(False)
-        save(fig, "tep-confusion.png")
+    confusion_explained_figure(cms["Neural network"])
 
     rec = {"Faults it learned\n(test runs 11-12)": models["Neural network"].predict(Xte[yte == 1]).mean()}
     print("  recall of the same neural network on faults it never saw (runs 11-12, after the fault starts):")
@@ -966,28 +466,31 @@ def tep_figures(ff, fa):
         a = fa[(fa.faultNumber == f) & fa.simulationRun.isin(range(11, 13)) & (fa["sample"] > 20)]
         rec[f"Fault {f}"] = models["Neural network"].predict(a[CH].to_numpy()).mean()
         print(f"    fault {f:2d}: {rec[f'Fault {f}']:.3f}")
-    with plt.rc_context(fonts(13)):             # shown at w:900
-        fig, ax = plt.subplots(figsize=(11, 3.8))
+    with plt.rc_context(fonts(16)):             # shown at w:720 on the slide
+        fig, ax = plt.subplots(figsize=(9.6, 4.4))
         keys = list(rec)
-        # The first bar gets a wider slot, for its two-line label.
         xs = np.r_[0, np.arange(1, len(keys)) + 0.6]
         ax.bar(xs, [rec[k] for k in keys], color=[BLUE] + ["0.6"] * len(UNSEEN))
         for x, k in zip(xs, keys):
-            ax.text(x, rec[k] + 0.03, f"{rec[k]:.3f}", ha="center")
-        ax.set_xticks(xs, keys)
-        ax.tick_params(
-            axis="x",
-            length=0,
-        )
-        ax.set(
-            ylabel="Recall",
-            ylim=(0, 1.12),
-            yticks=[0, 0.5, 1],
-            title="The same classifier, on faults it was trained on and faults it never saw",
-        )
+            ax.text(x, rec[k] + 0.03, f"{rec[k]:.3f}", ha="center", fontsize=14)
+        labels = ["Faults it\nlearned"] + [k.replace("Fault ", "Fault\n") for k in keys[1:]]
+        ax.set_xticks(xs, labels)
+        ax.tick_params(axis="x", length=0)
+        ax.set(ylabel="Recall", ylim=(0, 1.12), yticks=[0, 0.5, 1])
+        ax.text((xs[1] + xs[-1]) / 2, 1.08, "Eight faults it never saw", ha="center", color=MUTED)
+        fig.tight_layout()
         save(fig, "tep-unseen.png")
 
-    print("\n  fault 14, one fault at a time (normal runs 1-300 + fault 14 runs 1-10; test runs 401-500 + 11-20):")
+
+def tep_fault14_figure(ff, fa):
+    """Fault 14: same mean, bigger spread. A straight boundary cannot see it; a tree can.
+
+    Left panel: xmv_10 over time for one normal run and one fault 14 run, so a student sees
+    the wider swings directly. Right panel: the two populations' histograms, with the depth-
+    2 tree's two cuts drawn on top and a note on why one straight cut (logistic regression)
+    cannot separate a band that has fault on both sides of it.
+    """
+    print("\n=== Fault 14: a straight boundary cannot see a change in spread ===")
     trn = ff[ff.simulationRun <= 300]
     a = fa[fa.faultNumber == 14]
     A_tr, A_te = a[a.simulationRun <= 10], a[(a.simulationRun > 10) & (a["sample"] > 20)]
@@ -995,104 +498,534 @@ def tep_figures(ff, fa):
     y14 = np.r_[np.zeros(len(trn)), (A_tr["sample"] > 20).to_numpy()]
     nrm = ff[ff.simulationRun > 400]
     lr = make_pipeline(StandardScaler(), LogisticRegression(max_iter=2000)).fit(X14, y14)
-    print(f"    logistic regression recall {lr.predict(A_te[CH].to_numpy()).mean():.3f}")
+    lr_recall = float(lr.predict(A_te[CH].to_numpy()).mean())
+    print(f"    logistic regression recall {lr_recall:.3f}")
     cuts = None
+    tree_recall = {}
     for d in [1, 2, 8]:
-        t = DecisionTreeClassifier(
-            max_depth=d,
-            random_state=0,
-        ).fit(X14, y14)
-        print(f"    tree depth {d}: recall {t.predict(A_te[CH].to_numpy()).mean():.3f},"
+        t = DecisionTreeClassifier(max_depth=d, random_state=0).fit(X14, y14)
+        rec = float(t.predict(A_te[CH].to_numpy()).mean())
+        tree_recall[d] = rec
+        print(f"    tree depth {d}: recall {rec:.3f},"
               f" false alarms on normal runs {t.predict(nrm[CH].to_numpy()).mean():.4f}")
         if d == 2:
             tr_ = t.tree_
             cuts = sorted({tr_.threshold[i] for i in range(tr_.node_count)
-                           if tr_.feature[i] == CH.index("xmv_10")})
+                          if tr_.feature[i] == CH.index("xmv_10")})
             print(f"    depth-2 tree splits xmv_10 at {[round(c, 2) for c in cuts]}")
     v_n, v_f = nrm["xmv_10"], A_te["xmv_10"]
-    lo, hi = v_n.mean() - 3 * v_n.std(), v_n.mean() + 3 * v_n.std()
+    lo_band, hi_band = v_n.mean() - 3 * v_n.std(), v_n.mean() + 3 * v_n.std()
     print(f"    xmv_10 normal mean {v_n.mean():.2f} std {v_n.std():.2f}; fault 14 mean {v_f.mean():.2f} std {v_f.std():.2f};"
-          f" {np.mean(v_f < lo):.1%} below and {np.mean(v_f > hi):.1%} above the normal +/- 3 std band")
-    with plt.rc_context(fonts(13)):             # shown at about w:620, beside the bullets
-        fig, ax = plt.subplots(figsize=(6.5, 3.1))
-        bins = np.linspace(20, 62, 120)
-        ax.hist(
-            v_n,
-            bins=bins,
-            density=True,
-            color="0.6",
-            alpha=0.8,
-            label="Normal (runs 401-500)",
-        )
-        ax.hist(
-            v_f,
-            bins=bins,
-            density=True,
-            color=CMU_RED,
-            alpha=0.55,
-            label="Fault 14 (runs 11-20)",
-        )
-        for c in cuts:
-            ax.axvline(
-                c,
-                color=INK,
-                ls="--",
-                lw=1.2,
-            )
-        ax.text(
-            cuts[1] + 0.5,
-            0.3,
-            "The tree's two cuts",
-            va="bottom",
-        )
-        ax.set(
-            xlabel="xmv_10, reactor cooling water flow (%)",
-            ylabel="Density",
-            yscale="log",
-            xlim=(25, 58),
-            ylim=(3e-5, 1.5),
-            yticks=[1e-4, 1e-2, 1],
-        )
-        ax.minorticks_off()
-        fig.legend(
-            loc="lower center",
-            ncol=2,
-            bbox_to_anchor=(0.55, 0.88),
-            handlelength=1.4,
-            columnspacing=1.2,
-        )
+          f" {np.mean(v_f < lo_band):.1%} below and {np.mean(v_f > hi_band):.1%} above the normal +/- 3 std band")
+
+    lo_cut, hi_cut = cuts
+    rule = lambda v: (v < lo_cut) | (v > hi_cut)
+    print(f"    the two cuts alone (flag xmv_10 below {lo_cut:.2f} or above {hi_cut:.2f}):"
+          f" recall {rule(v_f).mean():.3f}, false alarms on normal runs {rule(v_n).mean():.4f}")
+
+    onset14 = tep_onset(ff, fa, 14, [1])[0]
+    onset_hr = (onset14 - 1) * 3 / 60
+    t0, v0t = tep_trace(ff[ff.simulationRun == 1], "xmv_10")
+    t1, v1t = tep_trace(fa[(fa.faultNumber == 14) & (fa.simulationRun == 1)], "xmv_10")
+    print(f"    run 1 (drawn in the left panel): fault-free xmv_10 {v0t.min():.2f} to {v0t.max():.2f}%;"
+          f" fault 14 {v1t.min():.2f} to {v1t.max():.2f}%")
+
+    # Right half: the normal samples and the fault 14 samples on two rows with a shared
+    # x axis and a linear scale each, so the narrow normal band and the wide fault spread
+    # are both visible without a log axis. The band between the tree's two cuts is shaded.
+    with plt.rc_context(fonts(15)):             # shown at w:1150
+        fig = plt.figure(figsize=(13.2, 4.8))
+        gs = fig.add_gridspec(2, 2, width_ratios=[1.1, 1], hspace=0.28, wspace=0.16)
+        left = fig.add_subplot(gs[:, 0])
+        top_r = fig.add_subplot(gs[0, 1])
+        bot_r = fig.add_subplot(gs[1, 1], sharex=top_r)
+
+        left.plot(t1, v1t, color=CMU_RED, lw=1.0, label="Fault 14 run", zorder=2)
+        left.plot(t0, v0t, color="0.35", lw=1.7, label="Normal run", zorder=3)
+        left.axvline(onset_hr, color=INK, ls="--", lw=1.1)
+        top = max(v0t.max(), v1t.max())
+        bot = min(v0t.min(), v1t.min())
+        left.text(onset_hr + 0.4, top + 0.6, "Fault 14 starts", color=INK, va="bottom", fontsize=14)
+        k = int(np.argmin(np.abs(t1 - 20)))
+        left.annotate("Same average,\nmuch bigger swings", xy=(t1[k], v1t[k]),
+                     xytext=(onset_hr + 6.5, top + 2.6),
+                     arrowprops=dict(arrowstyle="->", color=INK, lw=1.3), fontsize=14, color=INK)
+        left.set(xlabel="Time (hours)", ylabel="Reactor cooling water valve,\nxmv_10 (% open)",
+                xlim=(0, 25), ylim=(bot - 1, top + 6.5))
+        left.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=2, handlelength=1.3)
+
+        bins = np.linspace(26, 57, 94)
+        rows = [(top_r, v_n, "0.5", "Normal runs: a narrow band"),
+                (bot_r, v_f, CMU_RED, "Fault 14 runs: spread out on both sides")]
+        for ax, v, color, label in rows:
+            ax.axvspan(lo_cut, hi_cut, color=BLUE, alpha=0.13, zorder=0)
+            counts, _, _ = ax.hist(v, bins=bins, color=color, alpha=0.85, zorder=2)
+            for c in cuts:
+                ax.axvline(c, color=INK, ls="--", lw=1.3, zorder=3)
+            ax.set_ylim(0, counts.max() * 1.55)
+            ax.set_yticks([])
+            ax.spines["left"].set_visible(False)
+            ax.set_title(label, loc="left", fontsize=15, pad=4)
+        top_r.tick_params(labelbottom=False)
+        top_r.annotate(f"A tree's two cuts:\n{lo_cut:.1f}% and {hi_cut:.1f}%",
+                      xy=(hi_cut, top_r.get_ylim()[1] * 0.62), xytext=(hi_cut + 3.2, top_r.get_ylim()[1] * 0.5),
+                      arrowprops=dict(arrowstyle="->", color=INK, lw=1.3), fontsize=14, color=INK, va="center")
+        y_arrow = bot_r.get_ylim()[1] * 0.72
+        bot_r.annotate("", xy=(29.5, y_arrow), xytext=(lo_cut - 0.4, y_arrow),
+                      arrowprops=dict(arrowstyle="->", color=INK, lw=1.6))
+        bot_r.annotate("", xy=(53.5, y_arrow), xytext=(hi_cut + 0.4, y_arrow),
+                      arrowprops=dict(arrowstyle="->", color=INK, lw=1.6))
+        bot_r.text(48.4, y_arrow * 1.05, "Flagged as fault", ha="center", va="bottom", fontsize=14, color=INK)
+        bot_r.text(34.0, y_arrow * 1.05, "Flagged as fault", ha="center", va="bottom", fontsize=14, color=INK)
+        bot_r.set(xlabel="Reactor cooling water valve, xmv_10 (% open)", xlim=(26, 57))
+        fig.subplots_adjust(left=0.08, right=0.99, bottom=0.14, top=0.88)
         save(fig, "tep-fault14.png")
 
 
-def classification_figures():
-    """The classification group, drawn under Lecture 9's style with every warning silenced.
+def _classifier_shape_dataset(seed=SEED, n=150):
+    """One small synthetic 2D two-class set with a curved true boundary, seeded."""
+    X, y = make_moons(n_samples=n, noise=0.25, random_state=seed)
+    return X, y
 
-    The silenced warnings are convergence notices from the moons network and the TEP
-    classifiers; Lecture 9's script silenced them the same way.
+
+def _decision_region(ax, model, X, y, title):
+    """Shade a model's predicted P(class 1) over the plane and scatter the training points."""
+    lo0, hi0 = X[:, 0].min() - 0.6, X[:, 0].max() + 0.6
+    lo1, hi1 = X[:, 1].min() - 0.6, X[:, 1].max() + 0.6
+    xx, yy = np.meshgrid(np.linspace(lo0, hi0, 250), np.linspace(lo1, hi1, 250))
+    zz = model.predict_proba(np.c_[xx.ravel(), yy.ravel()])[:, 1].reshape(xx.shape)
+    ax.contourf(xx, yy, zz, levels=np.linspace(0, 1, 21), cmap="RdBu_r", vmin=0, vmax=1)
+    ax.scatter(X[y == 0, 0], X[y == 0, 1], s=20, color=BLUE, edgecolor="white", linewidth=0.5, zorder=3)
+    ax.scatter(X[y == 1, 0], X[y == 1, 1], s=20, color=CMU_RED, edgecolor="white", linewidth=0.5, zorder=3)
+    ax.set(title=title, xticks=[], yticks=[], xlim=(lo0, hi0), ylim=(lo1, hi1))
+
+
+def classifier_shapes_figure():
+    """Four model families, one dataset: what a decision boundary can look like.
+
+    No accuracy numbers are drawn on the panels; the point is the shape of the boundary,
+    not which family scores highest on 150 synthetic points.
     """
+    print("\n=== Classifier shapes: one dataset, four model families ===")
+    X, y = _classifier_shape_dataset()
+    print(f"  {len(y)} points, {y.mean():.1%} class 1")
+    models = {
+        "Logistic regression: a straight line":
+            make_pipeline(StandardScaler(), LogisticRegression()),
+        "Decision tree: boxes":
+            DecisionTreeClassifier(max_depth=3, random_state=0),
+        # tanh units, not ReLU: a ReLU network's boundary is made of straight pieces, which
+        # on 150 points looks jagged; tanh units bend it smoothly
+        "Neural network: a smooth curve":
+            make_pipeline(StandardScaler(),
+                         MLPClassifier(hidden_layer_sizes=(8,), activation="tanh", alpha=0.3,
+                                      solver="lbfgs", max_iter=5000, random_state=0)),
+        "Gaussian process: smooth probabilities":
+            make_pipeline(StandardScaler(),
+                         GaussianProcessClassifier(1.0 * RBF(1.0), random_state=0)),
+    }
+    fitted = {name: m.fit(X, y) for name, m in models.items()}
+    for name, m in fitted.items():
+        print(f"  {name}: training accuracy {m.score(X, y):.3f} (not drawn on the panel)")
+
+    with plt.rc_context(fonts(14)):             # shown at w:1180
+        fig, axes = plt.subplots(1, 4, figsize=(15.6, 4.0))
+        for ax, (name, m) in zip(axes, fitted.items()):
+            _decision_region(ax, m, X, y, name)
+        fig.tight_layout()
+        save(fig, "classifier-shapes.png")
+
+    singles = [
+        ("classifier-shape-logistic.png", "Logistic regression: a straight line"),
+        ("classifier-shape-tree.png", "Decision tree: boxes"),
+        ("classifier-shape-network.png", "Neural network: a smooth curve"),
+        ("classifier-shape-gp.png", "Gaussian process: smooth probabilities"),
+    ]
+    with plt.rc_context(fonts(17)):             # shown at w:560, one per build slide
+        for fname, name in singles:
+            fig, ax = plt.subplots(figsize=(5.4, 4.7))
+            _decision_region(ax, fitted[name], X, y, name)
+            fig.tight_layout()
+            save(fig, fname)
+
+
+def classification_figures():
+    """The classification group: TEP throughout, plus the model-shapes comparison."""
     with warnings.catch_warnings(), plt.rc_context(CLASSIFICATION_STYLE):
         warnings.simplefilter("ignore")
         ff, fa = load_tep()
         tep_data_figure(ff, fa)
-        moons_data_figure()
-        logistic_moons_figure()
-        moons_figure()
-        gini_example()
-        cv_stratified_figure()
+        tep_fault4_signal_figure(ff, fa)
+        tep_logistic_figure(ff, fa)
+        tep_fault14_figure(ff, fa)
         tep_figures(ff, fa)
+        classifier_shapes_figure()
+
+
+# --------------------------------------------------------------------------------------
+# Concrete: the shared split for the search group (L9's grouped data, unchanged recipe)
+# --------------------------------------------------------------------------------------
+COLUMNS = ["cement", "slag", "fly_ash", "water", "superplasticizer",
+          "coarse_agg", "fine_agg", "age_days", "strength_mpa"]
+FEATURES, MIX = COLUMNS[:8], COLUMNS[:7]
+UCI_CONCRETE = ("https://archive.ics.uci.edu/static/public/165/"
+               "concrete+compressive+strength.zip")
+
+
+def load_concrete():
+    path = cached("Concrete_Data.xls")
+    if path is None:
+        CACHE.mkdir(exist_ok=True)
+        print(f"  downloading {UCI_CONCRETE}")
+        z = zipfile.ZipFile(io.BytesIO(urllib.request.urlopen(UCI_CONCRETE).read()))
+        path = CACHE / "Concrete_Data.xls"
+        path.write_bytes(z.read("Concrete_Data.xls"))
+    df = pd.read_excel(path)
+    df.columns = COLUMNS
+    return df
+
+
+def concrete_split():
+    """L9's grouped test split, unchanged: 835 training rows (342 mixes), 195 test (86 mixes)."""
+    df = load_concrete()
+    X, y = df[FEATURES].to_numpy(), df.strength_mpa.to_numpy()
+    groups = df.groupby(MIX).ngroup().to_numpy()
+    tr, te = next(GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42).split(X, y, groups))
+    return X, y, groups, X[tr], y[tr], groups[tr], X[te], y[te]
+
+
+# --------------------------------------------------------------------------------------
+# Search: grid versus random (synthetic, with the score curve drawn in), then a real
+# Optuna study on concrete's decision tree, and how TPE picks its next trial
+# --------------------------------------------------------------------------------------
+def grid_random_points(seed=SEED):
+    """The nine grid points and nine random points fig_grid_vs_random() draws."""
+    rng = np.random.default_rng(seed)
+    g = np.linspace(0.1, 0.9, 3)
+    gx, gy = np.meshgrid(g, g)
+    gx, gy = gx.ravel(), gy.ravel()
+    rx, ry = rng.uniform(0.05, 0.95, 9), rng.uniform(0.05, 0.95, 9)
+    return (gx, gy), (rx, ry)
+
+
+def hp_score(x, peak=0.7, width=0.12, amp=0.35, base=0.55):
+    """The fabricated 'validation score' curve grid_vs_random.png draws underneath its
+    points: higher is better, one bump, peak at `peak`. Made up for the picture; the shape
+    (not the exact values) is what a real hyperparameter response often looks like.
+    """
+    x = np.asarray(x, dtype=float)
+    return base + amp * np.exp(-((x - peak) ** 2) / (2 * width ** 2))
+
+
+def fig_grid_vs_random():
+    """Grid versus random over two hyperparameters, one of which matters.
+
+    Top row: the nine points each strategy tried, in the plane of both hyperparameters.
+    Bottom row: the fabricated validation-score curve over the important one alone, with
+    every tried value marked and the best tried value highlighted, so a student can read
+    off why random search finds a better setting from the same nine trials.
+    """
+    print("\n=== Grid versus random search, with the score curve underneath the points ===")
+    (gx, gy), (rx, ry) = grid_random_points()
+    print(f"  grid: distinct x-values {sorted(set(np.round(gx, 3).tolist()))}")
+    print(f"  random: x-values {np.round(np.sort(rx), 3).tolist()}")
+    print(f"  score curve: hp_score(x) = {0.55} + {0.35} * exp(-((x - {0.7})^2) / (2 * {0.12}^2)),"
+          f" peak at x = 0.70, score {hp_score(0.7):.3f}")
+
+    xs_curve = np.linspace(0, 1, 300)
+    cols = [("grid", gx, gy, "Grid: 3 different values of the important one"),
+           ("random", rx, ry, "Random: 9 different values")]
+    with plt.rc_context(fonts(14)):             # shown at w:900
+        fig, axes = plt.subplots(2, 2, figsize=(9.6, 6.6),
+                                 gridspec_kw={"height_ratios": [1, 1.1], "hspace": 0.5, "wspace": 0.3})
+        for col, (mode, xs, ys, title) in enumerate(cols):
+            top, bot = axes[0, col], axes[1, col]
+            top.scatter(xs, ys, s=85, color=CMU_RED, zorder=3, edgecolor="white")
+            top.set(xlim=(0, 1), ylim=(0, 1), xticks=[], yticks=[])
+            top.set_xlabel("Important hyperparameter", fontsize=11.5)
+            if col == 0:
+                top.set_ylabel("Unimportant\nhyperparameter", fontsize=11.5)
+            top.set_title(title, fontsize=13)
+
+            bot.plot(xs_curve, hp_score(xs_curve), color=MUTED, lw=2.2, label="Validation score")
+            tried = hp_score(xs)
+            bot.scatter(xs, tried, s=60, color=BLUE, zorder=3, label="Tried")
+            best_i = int(np.argmax(tried))
+            bot.scatter([xs[best_i]], [tried[best_i]], s=170, facecolor="none",
+                       edgecolor=GOLD, linewidth=2.6, zorder=4, label="Best tried")
+            bot.set(xlim=(0, 1), ylim=(0.5, 0.95))
+            bot.set_xlabel("Important hyperparameter", fontsize=11.5)
+            if col == 0:
+                bot.set_ylabel("Validation score\n(higher is better)", fontsize=11.5)
+            bot.legend(loc="upper left", fontsize=9.5, frameon=False, handlelength=1.2)
+            print(f"  {mode}: best tried x={xs[best_i]:.2f}, score {tried[best_i]:.3f}")
+        save(fig, "grid_vs_random.png")
+
+
+SEARCH_SPACE = dict(max_depth=(2, 20), min_samples_leaf=(1, 50))
+
+
+def _tree_objective(trial, X, y, groups):
+    """GroupKFold(5) CV RMSE of a DecisionTreeRegressor, Lecture 9's own model family."""
+    params = dict(
+        max_depth=trial.suggest_int("max_depth", *SEARCH_SPACE["max_depth"]),
+        min_samples_leaf=trial.suggest_int("min_samples_leaf", *SEARCH_SPACE["min_samples_leaf"]),
+    )
+    model = DecisionTreeRegressor(random_state=0, **params)
+    rmse = -cross_val_score(model, X, y, groups=groups, cv=GroupKFold(5),
+                            scoring="neg_root_mean_squared_error").mean()
+    return rmse
+
+
+_OPTUNA_CACHE = {}     # in-process only: both samplers are seeded, so a second call in the
+                       # same run (e.g. search then widgets) would just repeat the same
+                       # work. A fresh process (running "widgets" alone) still recomputes
+                       # from scratch, which is the point: nothing here is cached to disk,
+                       # so nothing can go stale.
+
+
+def optuna_study(Xtr, ytr, gtr, n_trials=40):
+    """TPE against random search, both seeded, tuning a DecisionTreeRegressor on concrete."""
+    if n_trials in _OPTUNA_CACHE:
+        return _OPTUNA_CACHE[n_trials]
+    import optuna
+    optuna.logging.set_verbosity(optuna.logging.WARNING)
+    curves, tables = {}, {}
+    for name, sampler in [("random", optuna.samplers.RandomSampler(seed=SEED)),
+                         ("TPE", optuna.samplers.TPESampler(seed=SEED))]:
+        study = optuna.create_study(direction="minimize", sampler=sampler)
+        study.optimize(lambda t: _tree_objective(t, Xtr, ytr, gtr), n_trials=n_trials)
+        vals = [t.value for t in study.trials]
+        curves[name] = np.minimum.accumulate(vals)
+        tables[name] = [(t.number, dict(t.params), float(t.value)) for t in study.trials]
+    _OPTUNA_CACHE[n_trials] = (curves, tables)
+    return curves, tables
+
+
+def fig_optuna_search(Xtr, ytr, gtr):
+    print("\n=== Hyperparameter search on concrete: Lecture 9's decision tree, tuned ===")
+    curves, tables = optuna_study(Xtr, ytr, gtr, n_trials=40)
+    n_trials = len(curves["random"])
+    fig, ax = plt.subplots(figsize=(7.8, 4.9))
+    # both samplers draw their first 10 trials at random with the same seed, so those 10 are
+    # the same trials; TPE only starts using the past at trial 11
+    ax.axvspan(0.5, 10.5, color=MUTED, alpha=0.10, zorder=0)
+    ax.text(5.5, 8.68, "Trials 1 to 10:\nthe same random start", ha="center", va="bottom",
+            fontsize=11, color=MUTED)
+    for name, color in [("random", GOLD), ("TPE", CMU_RED)]:
+        vals = [v for _, _, v in tables[name]]
+        ax.scatter(range(1, n_trials + 1), vals, color=color, s=20, alpha=0.55, zorder=2)
+        ax.step(range(1, n_trials + 1), curves[name], where="post", color=color, lw=2.4, zorder=3)
+    handles = [
+        Line2D([0], [0], color=GOLD, lw=2.4, label="Random search"),
+        Line2D([0], [0], color=CMU_RED, lw=2.4, label="TPE"),
+        Line2D([0], [0], marker="o", color=MUTED, lw=0, label="Dot: one trial"),
+        Line2D([0], [0], color=MUTED, lw=2.4, label="Line: best so far"),
+    ]
+    ax.legend(handles=handles, frameon=False, loc="upper right", fontsize=11)
+    ax.set(xlabel="Trial", ylabel="Validation RMSE (MPa)", ylim=(8.6, 13.5),
+          title="Tuning Lecture 9's decision tree on the concrete strength dataset")
+    save(fig, "optuna_search.png")
+
+    for name in ["random", "TPE"]:
+        vals = [v for _, _, v in tables[name]]
+        best_i = int(np.argmin(vals))
+        best_num, best_params, best_val = tables[name][best_i]
+        print(f"  {name} trials (number, params, RMSE):")
+        for number, params, value in tables[name]:
+            print(f"    {number:2d}  {params}  {value:.4f}")
+        print(f"  {name} best: trial {best_num}, {best_params}, RMSE {best_val:.4f} MPa")
+    print("  compare with Lecture 9 on the same data: a tree with no depth limit scored"
+          " 9.42 MPa GroupKFold RMSE; the best depth chosen by eye (9) scored 9.10 MPa")
+    return curves, tables
+
+
+def tpe_explained_figure(tables):
+    """How TPE picks its next trial, from the TPE study's first 20 trials.
+
+    Optuna's TPESampler calls the best 10% of the trials so far "good" (its default_gamma,
+    ceil(0.1 n) trials, at most 25) and the rest "bad", smooths where each group's values
+    fall (a Parzen estimator is a smoothed histogram), and tries next where the good curve
+    is high and the bad one low. The figure draws that over min_samples_leaf, the
+    hyperparameter that separates the two groups most clearly in this study. The smoothing
+    is a plain Gaussian kernel of fixed width, simpler than Optuna's own, so the figure
+    shows the idea and not Optuna's exact internal numbers.
+    """
+    print("\n=== TPE explained: good trials against bad trials, over min_samples_leaf ===")
+    trials = tables["TPE"][:20]
+    leaves = np.array([p["min_samples_leaf"] for _, p, _ in trials], dtype=float)
+    vals = np.array([v for _, _, v in trials])
+    order = np.argsort(vals)
+    n_good = min(int(np.ceil(0.1 * len(vals))), 25)          # Optuna's default_gamma
+    good, bad = leaves[order[:n_good]], leaves[order[n_good:]]
+    print(f"  first {len(vals)} TPE trials: {n_good} good (the best 10%), {len(bad)} bad")
+    print(f"  good min_samples_leaf values: {sorted(good.astype(int).tolist())}"
+          f" (RMSE {', '.join(f'{v:.4f}' for v in np.sort(vals)[:n_good])} MPa)")
+    print(f"  bad min_samples_leaf values: {sorted(bad.astype(int).tolist())}")
+
+    xs = np.linspace(1, 50, 491)
+    width = 3.0                                    # leaves; the kernel's standard deviation
+
+    def parzen(points):
+        z = (xs[:, None] - points[None, :]) / width
+        return np.exp(-0.5 * z ** 2).sum(axis=1) / (len(points) * width * np.sqrt(2 * np.pi))
+
+    g, b = parzen(good), parzen(bad)
+    ratio = g / b
+    peak = float(xs[np.argmax(ratio)])
+    window = xs[ratio >= 0.5 * ratio.max()]
+    print(f"  good/bad ratio peaks at min_samples_leaf = {peak:.1f};"
+          f" at least half its peak from {window.min():.1f} to {window.max():.1f}")
+    nxt = tables["TPE"][20]
+    print(f"  the study's next trial, number {nxt[0]}: {nxt[1]}, RMSE {nxt[2]:.4f} MPa")
+
+    with plt.rc_context(fonts(14)):             # shown at w:720
+        fig, ax = plt.subplots(figsize=(7.8, 4.3))
+        top = max(g.max(), b.max())
+        ax.axvspan(window.min(), window.max(), color=GOLD, alpha=0.2, zorder=0)
+        ax.fill_between(xs, g, color=BLUE, alpha=0.25, zorder=1)
+        ax.fill_between(xs, b, color=MUTED, alpha=0.25, zorder=1)
+        ax.plot(xs, g, color=BLUE, lw=2.4, zorder=2,
+                label=f"Good trials: the best 10% ({n_good} of {len(vals)})")
+        ax.plot(xs, b, color=MUTED, lw=2.4, zorder=2, label=f"Bad trials: the other {len(bad)}")
+        # each trial as a dot under the axis, one row per group; a value tried twice stacks
+        def dots(points, y0, color):
+            seen = {}
+            for v in points:
+                k = seen.get(v, 0)
+                seen[v] = k + 1
+                ax.scatter([v], [y0 - k * 0.06 * top], s=60, color=color, zorder=3, clip_on=False)
+        dots(good, -0.07 * top, BLUE)
+        dots(bad, -0.22 * top, MUTED)
+        ax.annotate("Try next here:\ngood is common, bad is rare",
+                   xy=(window.max(), 0.8 * top), xytext=(window.max() + 6, 0.8 * top),
+                   arrowprops=dict(arrowstyle="->", color=INK, lw=1.4),
+                   fontsize=14, color=INK, va="center")
+        ax.set(xlabel="min_samples_leaf (one dot per trial)", xlim=(0, 50),
+               ylim=(-0.33 * top, top * 1.35), yticks=[])
+        ax.spines["left"].set_visible(False)
+        ax.axhline(0, color=MUTED, lw=0.8)
+        ax.legend(loc="upper right", frameon=False)
+        fig.tight_layout()
+        save(fig, "tpe-explained.png")
+
+
+def search_figures():
+    print("\n=== Hyperparameter search on concrete ===")
+    X, y, groups, Xtr, ytr, gtr, Xte, yte = concrete_split()
+    print(f"  {len(Xtr)} training rows for GroupKFold(5); {len(Xte)} held-out test rows")
+    fig_grid_vs_random()
+    curves, tables = fig_optuna_search(Xtr, ytr, gtr)
+    tpe_explained_figure(tables)
+
+
+# --------------------------------------------------------------------------------------
+# Widgets: every constant the slide widgets embed, printed for a JS author to paste
+# --------------------------------------------------------------------------------------
+def widget_numbers():
+    print("\n=== Slide widget: TEP threshold sweep (52-channel classifier) ===")
+    ff, fa = load_tep()
+    with warnings.catch_warnings(), plt.rc_context(CLASSIFICATION_STYLE):
+        warnings.simplefilter("ignore")
+        model, Xte, yte = fit_tep_classifier(ff, fa)
+    proba = model.predict_proba(Xte)[:, 1]
+    print(f"  {len(yte)} test rows, {yte.mean():.1%} faulty")
+    for t in np.round(np.arange(0.01, 1.00, 0.01), 2):
+        pred = (proba >= t).astype(int)
+        tp = int(((pred == 1) & (yte == 1)).sum())
+        fp = int(((pred == 1) & (yte == 0)).sum())
+        fn = int(((pred == 0) & (yte == 1)).sum())
+        tn = int(((pred == 0) & (yte == 0)).sum())
+        prec = tp / (tp + fp) if (tp + fp) else 0.0
+        rec = tp / (tp + fn) if (tp + fn) else 0.0
+        print(f"    t={t:.2f}  TP {tp:6d} FP {fp:6d} FN {fn:5d} TN {tn:6d}  precision {prec:.3f}  recall {rec:.3f}")
+
+    print("\n=== Slide widget: grid versus random search points and score curve ===")
+    (gx, gy), (rx, ry) = grid_random_points()
+    print("  GRID_X " + str(np.round(gx, 4).tolist()))
+    print("  GRID_Y " + str(np.round(gy, 4).tolist()))
+    print("  RANDOM_X " + str(np.round(rx, 4).tolist()))
+    print("  RANDOM_Y " + str(np.round(ry, 4).tolist()))
+    print("  SCORE_PEAK 0.7  SCORE_WIDTH 0.12  SCORE_AMP 0.35  SCORE_BASE 0.55")
+    xs_widget = np.linspace(0, 1, 101)
+    print("  SCORE_CURVE_X " + str(np.round(xs_widget, 3).tolist()))
+    print("  SCORE_CURVE_Y " + str(np.round(hp_score(xs_widget), 4).tolist()))
+
+    print("\n=== Slide widget: Optuna replay, two trial tables ===")
+    X, y, groups, Xtr, ytr, gtr, Xte, yte = concrete_split()
+    curves, tables = optuna_study(Xtr, ytr, gtr, n_trials=40)
+    for name in ["random", "TPE"]:
+        print(f"  {name.upper()} trials (number, params, RMSE):")
+        for number, params, value in tables[name]:
+            print(f"    {number:2d}  {params}  {value:.4f}")
+        print(f"  {name.upper()}_BEST_SO_FAR " + str(np.round(curves[name], 4).tolist()))
+
+
+# --------------------------------------------------------------------------------------
+# Recap: the last slide of Lecture 9, reused unchanged for the opening recap
+# --------------------------------------------------------------------------------------
+RECAP_FILES = ["water-hook.png", "opt-paths.png", "concrete-cv.png",
+              "concrete-learning.png", "concrete-depth.png"]
+
+
+def recap_figures():
+    """Copy five PNGs from Lecture 9, unchanged: this session documents where they come from.
+
+    They are generated by lectures/l09/figures/make_figures.py (the water, optim and concrete
+    groups); L10 does not regenerate them, only reuses them for the opening recap.
+    """
+    print("\n=== Recap figures, copied from Lecture 9 (lectures/l09/figures/make_figures.py) ===")
+    for name in RECAP_FILES:
+        src = L09_FIGURES / name
+        if not src.exists():
+            raise SystemExit(f"missing {src}; run lectures/l09/figures/make_figures.py first")
+        shutil.copy(src, HERE / name)
+        print(f"  copied {name} from lectures/l09/figures/")
+
+
+# --------------------------------------------------------------------------------------
+# Logo: the official Optuna wordmark, fetched from its own GitHub repository rather than
+# redrawn, because it is the project's own mark rather than a chart of someone else's
+# result (the "generate, do not copy" rule in CLAUDE.md section 5b is about the latter).
+# --------------------------------------------------------------------------------------
+OPTUNA_LOGO_URL = "https://raw.githubusercontent.com/optuna/optuna/master/docs/image/optuna-logo.png"
+OPTUNA_LOGO_SOURCE = "https://github.com/optuna/optuna/blob/master/docs/image/optuna-logo.png"
+OPTUNA_LOGO_LICENSE = "MIT License (github.com/optuna/optuna, LICENSE file at the repository root)"
+
+
+def fetch_optuna_logo():
+    """Download Optuna's own logo into lectures/l10/figures/, unchanged.
+
+    Source: {OPTUNA_LOGO_SOURCE}. License: {OPTUNA_LOGO_LICENSE}. Re-downloaded every run
+    rather than cached, since the file is small and this keeps the deck honest about where
+    it came from if the upstream logo ever changes.
+    """
+    print("\n=== Logo: Optuna's own wordmark, from its GitHub repository ===")
+    print(f"  source {OPTUNA_LOGO_SOURCE}")
+    print(f"  license {OPTUNA_LOGO_LICENSE}")
+    req = urllib.request.Request(OPTUNA_LOGO_URL, headers={"User-Agent": "Mozilla/5.0"})
+    data = urllib.request.urlopen(req).read()
+    path = HERE / "optuna-logo.png"
+    path.write_bytes(data)
+    print(f"  wrote {path.name} ({len(data)} bytes)")
 
 
 if __name__ == "__main__":
     import sys
 
-    # `python make_figures.py classification` regenerates only that group.
-    groups = {"search", "classification"}
+    groups = {"classification", "search", "widgets", "recap", "logo"}
     want = set(sys.argv[1:]) or groups
     unknown = want - groups
     if unknown:
         sys.exit(f"unknown group(s) {sorted(unknown)}; the groups are {sorted(groups)}")
-    if "search" in want:
-        with plt.rc_context(SEARCH_STYLE):
-            search_figures()
     if "classification" in want:
         classification_figures()
+    if "search" in want:
+        with plt.rc_context(QUANT_STYLE):
+            search_figures()
+    if "widgets" in want:
+        widget_numbers()
+    if "recap" in want:
+        recap_figures()
+    if "logo" in want:
+        fetch_optuna_logo()

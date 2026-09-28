@@ -432,11 +432,19 @@
     },
     {
       "from": "l10",
+      "to": "l01",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "- **MLflow** (Lectures [1](../l01/notes.md) and [2](../l02/notes.md)) records runs: the"
+    },
+    {
+      "from": "l10",
       "to": "l02",
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "That list is specific, and it ties this session back to the rest of the course. Log the **hyperparameters** and the **metrics** (per fold, not just the average,"
+      "where": "- **MLflow** (Lectures [1](../l01/notes.md) and [2](../l02/notes.md)) records runs: the"
     },
     {
       "from": "l10",
@@ -444,15 +452,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "Lecture 9 used the simulated plant of [Lecture 5](../l05/notes.md) and Lecture 8 ([Downs and"
-    },
-    {
-      "from": "l10",
-      "to": "l07",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "The power-plant result is the caution: TPE beat random by 0.009 MW, a difference smaller than the fold noise. Bayesian optimization earns its complexity on expe"
+      "where": "[Lecture 5](../l05/notes.md). This time we ask a yes-or-no question."
     },
     {
       "from": "l10",
@@ -460,7 +460,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "The power-plant result is the caution: TPE beat random by 0.009 MW, a difference smaller than the fold noise. Bayesian optimization earns its complexity on expe"
+      "where": "- **Split by whole run**, as in [Lectures 8](../l08/notes.md) and [9](../l09/notes.md), so no run is on"
     },
     {
       "from": "l10",
@@ -468,7 +468,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "of that, because a supervised classifier can only recognize the classes it was shown. This session carries [Lecture 9](../l09/notes.md)'s four model families ov"
+      "where": "- **Regression** ([Lecture 9](../l09/notes.md)) predicts a **number**: a pressure, a viscosity, a"
     },
     {
       "from": "l11",
@@ -484,7 +484,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "[Lecture 9](../l09/notes.md), which is why this session comes after it and not before."
+      "where": "the model. This session is where you finally write the model. [Lecture 9](../l09/notes.md) wrote"
     },
     {
       "from": "l12",
