@@ -9,7 +9,7 @@ lecture: l10
 title: "The machine learning workflow III: classification, experiment tracking and hyperparameter search"
 source_notes: lectures/l10/notes.md
 # Held until release: tools/release_lecture.py flips this to published.
-status: unwritten
+status: published
 serve: 9
 pool_version: 4
 provenance:

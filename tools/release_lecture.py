@@ -43,21 +43,21 @@ TOC = REPO / "_toc.yml"
 #: Which assignment is released with which lecture, from course/schedule.md's
 #: "Assignment N released" markers. A4 moved from L7 to L8 when L8 became the ML
 #: workflow session: A4 asks for an ML model, and L7 fits without ever scoring. A5 moved
-#: from L9 to L10 (2026-09-22): it asks for tracking and a search, which are L10's. The miniproject launches at L9 and
+#: from L9 to L10 (2026-09-22): it asks for tracking and a search, which are L10's. The miniproject launches at L10 and
 #: lives in the Projects part, so it is not listed here. A lecture with no entry
 #: releases no assignment.
 LECTURE_ASSIGNMENTS = {
-    1: ["a01"], 4: ["a02"], 6: ["a03"], 8: ["a04"], 10: ["a05"],
-    11: ["a06"], 15: ["a08"], 17: ["a09"], 19: ["a10"], 21: ["a11"],
+    1: ["a01"], 4: ["a02"], 6: ["a03"], 8: ["a04"],   # a05: not released at L10; date open
+    15: ["a08"], 17: ["a09"], 19: ["a10"], 21: ["a11"],   # a06: not released at L11; date open
 }
 
 #: Which project page (course/<slug>.md) is released with which lecture. The
-#: mini-project launches at L9 (issue #134), ahead of fall break. The final project is released at L17, right
+#: mini-project launches at L10 (moved from L9 on 2026-09-27), ahead of fall break. The final project is released at L17, right
 #: after the mini-project ends and a week ahead of the proposal deadline at L19;
 #: there is no schedule marker for it, so this date is a deliberate choice and
 #: the one line to change if it should move.
 LECTURE_PROJECTS = {
-    9: ["miniproject"], 17: ["final-project"],
+    10: ["miniproject"], 17: ["final-project"],
 }
 
 

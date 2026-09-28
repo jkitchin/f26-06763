@@ -9,7 +9,6 @@
 - **Practice** <a href="../../game/#/l11">Practice module for this session</a>
 - **Demo** [`l11-tensors-autograd.ipynb`](l11-tensors-autograd.ipynb), a gradient by hand, a loop by hand, and three ways to break it
 - **Stories** [`l11-four-models.ipynb`](l11-four-models.ipynb), the four models that looked fine, rerun so you can dig into each
-- **Assignment 5** due, Assignment 6 released this session
 :::
 
 ## Why this matters

@@ -192,26 +192,26 @@
       "id": "l10",
       "date": "2026-09-28",
       "title": "The machine learning (ML) workflow III: Classification, experiment tracking and hyperparameter search/tuning",
-      "written": false,
+      "written": true,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
       "region": 2,
       "x": 7,
       "y": 2,
-      "notes": null
+      "notes": "../lectures/l10/notes.html"
     },
     {
       "session": "L11",
       "id": "l11",
       "date": "2026-09-30",
       "title": "ML with PyTorch/JAX",
-      "written": false,
+      "written": true,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
       "region": 2,
       "x": 8,
       "y": 2,
-      "notes": null
+      "notes": "../lectures/l11/notes.html"
     },
     {
       "session": "L12",
