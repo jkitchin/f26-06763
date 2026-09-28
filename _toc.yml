@@ -43,10 +43,10 @@ parts:
       - file: lectures/l09/notes
         sections:
           - file: lectures/l09/l09-regression
-#       - file: lectures/l10/notes
-#         sections:
-#           - file: lectures/l10/l10-classification
-#           - file: lectures/l10/l10-tracking-search
+      - file: lectures/l10/notes
+        sections:
+          - file: lectures/l10/l10-classification
+          - file: lectures/l10/l10-tracking-search
 #       - file: lectures/l11/notes
 #         sections:
 #           - file: lectures/l11/l11-tensors-autograd
@@ -87,7 +87,7 @@ parts:
       - file: course/assignments/a02
       - file: course/assignments/a03
       - file: course/assignments/a04
-#       - file: course/assignments/a05
+      - file: course/assignments/a05
 #       - file: course/assignments/a06
 #       - file: course/assignments/a08
 #       - file: course/assignments/a09
