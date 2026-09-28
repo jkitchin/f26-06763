@@ -24,11 +24,20 @@
  *      student answered a different question than the one they were credited
  *      for, producing a sitting spanning two derivations that the verifier then
  *      flags as tampered against honest work.
+ *
+ *   4. THE PDF RE-DERIVED FROM TODAY'S BANK. Summary.tsx derived the served
+ *      list from the bank at download time and kept only the answers in it.
+ *      L7 went from pool v6 to v7 hours after release, and students who had
+ *      opened it under v6 uploaded PDFs carrying one or two of their five
+ *      answers. The section "a PDF issued after the bank moves" is that case.
  */
 
 import assert from 'node:assert/strict'
+import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { evidenceOf } from '../src/evidence/sitting.ts'
 import {
-  completedFor, levelFor, openSessionFor, resumeAt, sessionsOf,
+  completedFor, latestCompleted, levelFor, openSessionFor, resumeAt, sessionsOf,
   type Event, type LogEntry, type PlannedItem, type SessionOpened,
 } from '../src/store/log.ts'
 import { derive, type PoolItem } from '../src/seed.ts'
@@ -109,6 +118,85 @@ check(completedFor.length === 2, 'completedFor takes (log, lecture) and nothing 
   `arity ${completedFor.length}`)
 check(openSessionFor.length === 2, 'openSessionFor takes (log, lecture) and nothing else',
   `arity ${openSessionFor.length}`)
+
+check(evidenceOf.length === 1, 'evidenceOf takes the sitting and nothing else',
+  `arity ${evidenceOf.length}`)
+
+// --- a PDF issued after the bank moves ------------------------------------
+//
+// The L7 case. Open under v6 with twelve items, answer all five, and then the
+// bank loses an item and becomes v7 before the student downloads. The PDF must
+// carry all five answers and say v6, because v6 is what they were served.
+{
+  const L = 'l07'
+  const pool12 = Object.fromEntries(
+    Array.from({ length: 12 }, (_, i) => [`${L}-q${String(i + 1).padStart(2, '0')}`,
+      { options: ['a', 'b', 'c', 'd'] } as PoolItem]),
+  )
+  // A student whose v6 draw does not include the item about to be deleted,
+  // chosen by search so the fixture cannot quietly test nothing.
+  const DELETED = `${L}-q08`
+  let who = ''
+  let plan: PlannedItem[] = []
+  for (let n = 0; n < 500 && !who; n++) {
+    const p = derive(`s${n}`, L, pool12, 6, 5)
+    if (!p.some((x) => x.id === DELETED)) {
+      who = `s${n}`
+      plan = p.map((x) => ({ id: x.id, variant: x.variant, opts: x.option_order }))
+    }
+  }
+  const session = `${who}/${L}/1000`
+  const log: Event[] = [
+    { t: 'opened', session, lecture: L, andrewId: who, plan, attempt: 1,
+      content: { pool_version: 6, serve: 5 }, at: 1000 },
+    ...plan.map((p, i) => ({ ...answer(session, p, 1001 + i), lecture: L })),
+  ]
+
+  // The bank moves on. Nothing below is allowed to see it; it exists only to
+  // show that the old code path really would have produced a different draw.
+  const pool11 = Object.fromEntries(Object.entries(pool12).filter(([id]) => id !== DELETED))
+  const today = derive(who, L, pool11, 7, 5)
+  const overlap = today.filter((t) => plan.some((p) => p.id === t.id)).length
+  check(overlap < 5, 'the v7 bank really does derive a different draw',
+    `${overlap} of 5 in common, which is what the old PDF would have carried`)
+
+  const sitting = latestCompleted(log, L)
+  const ev = sitting ? evidenceOf(sitting) : null
+  check(ev !== null && ev.items.length === 5, 'the PDF carries all five answers',
+    String(ev?.items.length))
+  check(ev !== null && ev.poolVersion === 6 && ev.serve === 5,
+    'and names the pool it was served from, not today\'s', `v${ev?.poolVersion}`)
+  check(ev !== null && ev.served.map((s) => s.id).join() === plan.map((p) => p.id).join(),
+    'and its served list is the recorded plan, in order')
+  check(ev !== null && ev.items.map((i) => i.id).join() === plan.map((p) => p.id).join(),
+    'with the answers in planned order, so the verifier compares like with like')
+  check(ev !== null && ev.andrewId === who, 'under the Andrew ID frozen at open')
+}
+
+// --- nothing but SessionRoute may derive ----------------------------------
+//
+// The arity guards above stop a bank from being passed to the log functions.
+// They cannot stop a component from calling derive() itself with today's bank,
+// which is exactly what Summary.tsx did. The plan is derived once, when a
+// sitting opens, and everything after that reads it back from the log; so the
+// only file in src/ allowed to call derive is the one that opens sittings.
+{
+  const SRC = fileURLToPath(new URL('../src/', import.meta.url))
+  const ALLOWED = new Set(['ui/SessionRoute.tsx', 'seed.ts'])
+  const walk = (dir: string): string[] =>
+    readdirSync(dir).flatMap((f) => {
+      const full = `${dir}${f}`
+      return statSync(full).isDirectory() ? walk(`${full}/`) : [full]
+    })
+  const offenders = walk(SRC)
+    .filter((f) => /\.(ts|tsx)$/.test(f))
+    .map((f) => f.slice(SRC.length))
+    .filter((rel) => !ALLOWED.has(rel))
+    .filter((rel) => /\bderive\s*\(/.test(
+      readFileSync(`${SRC}${rel}`, 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, ''),
+    ))
+  check(offenders.length === 0, 'only SessionRoute calls derive()', offenders.join(', '))
+}
 
 // --- resume is by id, not by count ----------------------------------------
 

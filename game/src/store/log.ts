@@ -68,8 +68,10 @@ export interface SessionOpened {
    */
   attempt: number
   /**
-   * Diagnostic only. Never read by any derivation: if you find yourself
-   * consulting `content.serve` to decide something, the bug is back.
+   * The pool this plan was drawn from. Never used to decide completeness or
+   * to re-derive anything in the app; its one reader is `evidenceOf`, which
+   * copies it onto the PDF so the verifier re-derives against the archived
+   * snapshot of *this* version rather than whatever the bank says today.
    */
   content: { pool_version: number; serve: number }
   at: number

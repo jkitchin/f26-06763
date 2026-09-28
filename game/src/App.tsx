@@ -87,7 +87,6 @@ export function App() {
       <Summary
         bank={target}
         log={log}
-        andrewId={andrewId}
         displayName={displayName}
         onHome={() => go({ name: 'home' })}
       />

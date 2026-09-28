@@ -21,6 +21,9 @@ import { derive } from '../src/seed.ts'
 import { parseBank, poolOf } from '../src/content/load.ts'
 import { buildAttestation, type ItemRecord } from '../src/evidence/payload.ts'
 import { buildPdf, filenameFor } from '../src/evidence/pdf.ts'
+import { evidenceOf } from '../src/evidence/sitting.ts'
+import { latestCompleted, type Event, type PlannedItem } from '../src/store/log.ts'
+import type { PoolItem } from '../src/seed.ts'
 
 const OUT = fileURLToPath(new URL('./samples/', import.meta.url))
 mkdirSync(OUT, { recursive: true })
@@ -271,6 +274,112 @@ await session(JK, { label: 'copied', overrideId: 'valves' })
     Buffer.from(doc.output('arraybuffer')),
   )
   console.log(`  fabricated-${filenameFor(LECTURE, 'sfake')}`)
+}
+
+// 5. PDFs downloaded after the bank moved on. This is the L7 incident, replayed
+//    against the real L7 archive: the bank was released at pool v6 and bumped to
+//    v7 (one item deleted) three hours later. A student who opened the module
+//    under v6 and downloaded afterwards used to get a PDF re-derived from v7,
+//    which kept only the one or two answers the two draws had in common.
+//
+//    These go through `evidenceOf`, the same function Summary.tsx calls, from a
+//    log shaped the way SessionRoute writes it. They land in samples/bumped/ and
+//    CI verifies them against the live l07.yml, which is now at a later version,
+//    so the verifier has to find v6 in game/content/pools/ to pass them.
+//
+//    Two students: one whose v6 draw avoided the deleted item and answered all
+//    five, and one whose draw included it, so it was withdrawn mid-sitting and
+//    the PDF honestly carries four.
+{
+  const BUMPED = `${OUT}bumped/`
+  mkdirSync(BUMPED, { recursive: true })
+  const L = 'l07'
+  const OLD_V = 6
+  const archive = JSON.parse(readFileSync(
+    fileURLToPath(new URL(`../content/pools/${L}.json`, import.meta.url)), 'utf8',
+  )).versions[String(OLD_V)] as {
+    serve: number
+    items: Record<string, { options?: string[]; answer?: string; variants?: PoolItem['variants'] }>
+  }
+  const live = parseBank(
+    readFileSync(fileURLToPath(new URL(`../content/${L}.yml`, import.meta.url)), 'utf8'),
+  )
+  const liveIds = new Set(live.items.map((i) => i.id))
+  const gone = Object.keys(archive.items).filter((id) => !liveIds.has(id))
+  if (live.pool_version === OLD_V || !gone.length) {
+    throw new Error(`fixture assumes ${L} v${OLD_V} is archived and has since lost an item`)
+  }
+  const oldPool: Record<string, PoolItem> = Object.fromEntries(
+    Object.entries(archive.items).map(([id, it]) => [id, { options: it.options ?? [], variants: it.variants }]),
+  )
+
+  // Deterministic ids, found by search rather than hardcoded, so the fixture
+  // survives a change to the derivation without silently testing nothing.
+  const planFor = (id: string): PlannedItem[] =>
+    derive(id, L, oldPool, OLD_V, archive.serve, 1)
+      .map((x) => ({ id: x.id, variant: x.variant, opts: x.option_order }))
+  const pick = (hasGone: boolean) => {
+    for (let n = 0; n < 1000; n++) {
+      const id = `stu${n}`
+      if (planFor(id).some((p) => gone.includes(p.id)) === hasGone) return id
+    }
+    throw new Error('no fixture student found')
+  }
+
+  const cases = [
+    { andrewId: pick(false), name: 'Pat Full', label: 'bumped' },
+    { andrewId: pick(true), name: 'Sam Withdrawn', label: 'bumped-withdrawn' },
+  ]
+  for (const c of cases) {
+    const plan = planFor(c.andrewId)
+    const session = `${c.andrewId}/${L}/1000`
+    const log: Event[] = [{
+      t: 'opened', session, lecture: L, andrewId: c.andrewId, plan, attempt: 1,
+      content: { pool_version: OLD_V, serve: archive.serve }, at: 1000,
+    }]
+    plan.forEach((p, i) => {
+      if (gone.includes(p.id)) {
+        log.push({ t: 'withdrawn', session, itemId: p.id, at: 2000 + i })
+        return
+      }
+      const item = archive.items[p.id]!
+      const correct = (item.options ?? []).findIndex((o) => o === item.answer)
+      log.push({
+        session, lecture: L, itemId: p.id, variant: p.variant, opts: p.opts,
+        chosen: correct >= 0 ? [`opt${correct}`] : [], tries: 1, firstMs: 8000,
+        totalMs: 20000, firstOk: correct >= 0, revealed: false, at: 2000 + i,
+      })
+    })
+
+    const sitting = latestCompleted(log, L)
+    if (!sitting) throw new Error(`${c.label}: the sitting did not complete`)
+    const ev = evidenceOf(sitting)
+    const expected = plan.filter((p) => !gone.includes(p.id)).length
+    if (ev.items.length !== expected || ev.poolVersion !== OLD_V) {
+      throw new Error(`${c.label}: evidence carries ${ev.items.length} items at v${ev.poolVersion}, `
+        + `expected ${expected} at v${OLD_V}`)
+    }
+
+    const attestation = buildAttestation({
+      andrewId: ev.andrewId, name: c.name, lecture: L,
+      poolVersion: ev.poolVersion, serve: ev.serve, attempt: ev.attempt,
+      appVersion: '0.1.0', buildCommit: '0'.repeat(40), contentSha256: 'f'.repeat(64),
+      startedAt: '2026-09-16T15:40:00Z', finishedAt: '2026-09-16T19:05:00Z',
+      elapsedMs: 100000, activeMs: 100000, tzOffsetMin: -240, resumes: 0,
+      served: ev.served, items: ev.items,
+    })
+    const labels: Record<string, { prompt: string; chosen: string }> = {}
+    for (const rec of ev.items) labels[rec.id] = { prompt: rec.id, chosen: 'answer' }
+    const doc = await buildPdf({
+      attestation, name: c.name, andrewId: ev.andrewId, lecture: L,
+      lectureTitle: live.title, attempt: ev.attempt,
+      finishedAtLocal: '2026-09-16 15:05 EDT', elapsedMs: 100000, activeMs: 100000,
+      resumes: 0, items: ev.items, labels,
+    })
+    const name = `${c.label}-${filenameFor(L, ev.andrewId)}`
+    writeFileSync(`${BUMPED}${name}`, Buffer.from(doc.output('arraybuffer')))
+    console.log(`  bumped/${name}  (${ev.items.length} of ${plan.length} items, pool v${OLD_V})`)
+  }
 }
 
 console.log(`\nwrote to ${OUT}`)

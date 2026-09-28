@@ -934,6 +934,13 @@ error accused the student. Both are fixed by recording what was served at the ti
 `SessionOpened` event in the log, and a snapshot in `game/content/pools/`. If you find
 yourself reading today's bank to decide something that happened earlier, stop.
 
+It came back a third time in `Summary.tsx`, which re-derived the served list from today's
+bank when building the PDF and kept only the answers in it. L7 was bumped from pool v6 to
+v7 three hours after release, and students who had opened it under v6 uploaded PDFs
+carrying one or two of their five answers. The PDF is now built by
+`game/src/evidence/sitting.ts` from the `opened` event alone, and `persistence.ts` fails if
+any file in `game/src/` other than `SessionRoute.tsx` calls `derive()`.
+
 **Map edges are content.** `tools/graph.py` extracts corridors from markdown cross-links,
 which covers L1 to L15; the back half cites earlier sessions only in prose, so those edges
 are hand-written in `game/content/map-edges.yml` with the sentence that justifies each. The
