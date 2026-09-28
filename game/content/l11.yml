@@ -2,7 +2,7 @@ schema: 1
 lecture: l11
 title: "Deep learning with PyTorch: tensors, autodiff, training loops, GPUs"
 source_notes: lectures/l11/notes.md
-status: unwritten
+status: published
 serve: 6
 pool_version: 4
 provenance:

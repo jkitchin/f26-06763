@@ -2382,6 +2382,620 @@
         "A recurrent network, since it now feeds its own forecasts back in as inputs",
         "Not a valid model, since a network needs rows that are separate experiments"
       ]
+    },
+    {
+      "id": "l10-q01",
+      "kind": "mcq",
+      "lecture": "l10",
+      "context": "Most classifiers predict a category in two steps. What is the first step?",
+      "why": "A classifier does not jump straight to a class label. It first scores how likely each\nclass is, a number between 0 and 1, and only afterward turns that number into a decision\nwith a threshold.",
+      "objectives": [
+        "l10-o1"
+      ],
+      "tags": [
+        "classification",
+        "probability"
+      ],
+      "true": "Predict a probability for each class, a number between 0 and 1",
+      "false": [
+        "Predict the class directly, then estimate how probable that guess is",
+        "Fit a straight line through the training data and round its output",
+        "Compare the new sample against every training sample and vote"
+      ]
+    },
+    {
+      "id": "l10-q02",
+      "kind": "mcq",
+      "lecture": "l10",
+      "context": "Logistic regression is fitted on the plant's reactor cooling water valve channel, giving\nw = 7.24 per percent open and b = -314.1. Where does its decision boundary sit?",
+      "why": "The boundary sits where the straight-line score w x + b equals zero, so x = -b / w.\nDividing 314.1 by 7.24 gives 43.4, so the boundary is at 43.4% open, not at the raw value\nof b or at a round number like 50%.",
+      "objectives": [
+        "l10-o1"
+      ],
+      "tags": [
+        "logistic-regression",
+        "decision-boundary",
+        "tep"
+      ],
+      "true": "43.4% open, where w x + b equals zero",
+      "false": [
+        "50.0% open, the midpoint of the probability scale",
+        "41.0% open, the valve's typical position during normal operation",
+        "314.1% open, the value of b read directly"
+      ]
+    },
+    {
+      "id": "l10-q03",
+      "kind": "mcq",
+      "lecture": "l10",
+      "context": "A logistic regression trained on one plant channel catches 0% of fault 14, while a\ndecision tree using two cuts on that same channel catches most of it. Why does the\nstraight cut fail here?",
+      "why": "Fault 14 leaves the valve's average unchanged but widens its swings, so roughly half the\nfault samples sit above the normal band and half below it. A single straight cut can only\nexclude one side, so whichever half it flags as normal lets the other half through, while a\ntree's two cuts can bracket the normal band from both sides at once.",
+      "objectives": [
+        "l10-o1"
+      ],
+      "tags": [
+        "logistic-regression",
+        "decision-tree",
+        "tep"
+      ],
+      "true": "Its samples fall on both sides of the normal band, and one straight cut can only split off one side",
+      "false": [
+        "Fault 14 never appears in the training runs, so no model could learn to catch it",
+        "The valve channel carries no information about fault 14, so only a tree can use it",
+        "A decision tree always beats logistic regression, on every channel and every fault"
+      ]
+    },
+    {
+      "id": "l10-q04",
+      "kind": "mcq",
+      "lecture": "l10",
+      "context": "Logistic regression is trained by minimizing the log loss, also called cross-entropy.\nWhen is that loss small?",
+      "why": "Log loss penalizes a confident wrong guess heavily and rewards a confident correct one, so\nit comes out small only when the model assigns high probability to whichever class a\nsample truly belongs to.",
+      "objectives": [
+        "l10-o2"
+      ],
+      "tags": [
+        "log-loss",
+        "cross-entropy"
+      ],
+      "true": "When the model gives the true class a high probability",
+      "false": [
+        "When the model's predicted probability is always exactly 0.5",
+        "When the model predicts the same class for every sample",
+        "When the weighted sum w x + b is exactly zero for every sample"
+      ]
+    },
+    {
+      "id": "l10-q05",
+      "kind": "mcq",
+      "lecture": "l10",
+      "context": "A decision tree box holds 4 normal samples and 1 faulty sample. What is its Gini impurity?",
+      "why": "Gini impurity is 1 minus the sum of each class's squared share. With 4 of 5 samples normal\n(0.8) and 1 of 5 faulty (0.2), impurity is 1 minus (0.8 squared plus 0.2 squared), which is\n1 minus 0.68, or 0.32. It is 0 only when a box holds one class alone.",
+      "objectives": [
+        "l10-o2"
+      ],
+      "tags": [
+        "gini-impurity",
+        "decision-tree"
+      ],
+      "true": "0.32",
+      "false": [
+        "0.68",
+        "0.50",
+        "0.20"
+      ]
+    },
+    {
+      "id": "l10-q06",
+      "kind": "mcq",
+      "lecture": "l10",
+      "context": "A neural network's last layer produces one score per class. What does the softmax that\nfollows guarantee about the numbers it outputs?",
+      "why": "Softmax exponentiates each class score and divides by the sum of all the exponentials,\nwhich forces every output to be positive while the whole set sums to 1, so the outputs\nbehave like a probability distribution over the classes.",
+      "objectives": [
+        "l10-o2"
+      ],
+      "tags": [
+        "softmax",
+        "neural-network"
+      ],
+      "true": "They are positive and add up to 1",
+      "false": [
+        "They are rounded to the nearest class label",
+        "Only the single largest score survives; the rest become zero",
+        "They are centered at zero, some positive and some negative"
+      ]
+    },
+    {
+      "id": "l10-q07",
+      "kind": "mcq",
+      "lecture": "l10",
+      "context": "A Gaussian process classifier turns a smooth random function into a probability through a\nlink function. Why is it not run on the plant's full 172,500-sample training set?",
+      "why": "A Gaussian process needs a kernel matrix with one row and one column per training sample,\nand the memory that takes grows with the square of the sample count, which is why\n172,500 plant samples would need 238 GB just to hold the matrix.",
+      "objectives": [
+        "l10-o2"
+      ],
+      "tags": [
+        "gaussian-process",
+        "tep"
+      ],
+      "true": "Its kernel matrix for that many samples would need 238 GB",
+      "false": [
+        "It would overfit, since it has one parameter per training sample",
+        "Its link function only works with a single input channel",
+        "It needs the labels of the test runs during training"
+      ]
+    },
+    {
+      "id": "l10-q08",
+      "kind": "mcq",
+      "lecture": "l10",
+      "context": "A baseline detector always predicts \"normal\" and scores 85.4% accuracy on the plant's\ntest data. What is its recall?",
+      "why": "Recall counts what fraction of the real faults a model caught. A detector that never\npredicts fault has zero true positives, so its recall is zero no matter how respectable\nits accuracy looks.",
+      "objectives": [
+        "l10-o3"
+      ],
+      "tags": [
+        "confusion-matrix",
+        "recall",
+        "baseline"
+      ],
+      "true": "Zero, since it never predicts a fault at all",
+      "false": [
+        "85.4%, the same as its accuracy",
+        "14.6%, the fraction of samples that are actually faulty",
+        "Undefined, since it never raises a false alarm"
+      ]
+    },
+    {
+      "id": "l10-q09",
+      "kind": "mcq",
+      "lecture": "l10",
+      "context": "Of the network's 8,313 alarms, 8,300 were real faults, and it caught 8,300 of the 8,640\nreal faults in the test data. What are its precision and recall?",
+      "why": "Precision divides the correct alarms by all the alarms raised, 8,300 over 8,313, which is\n0.998. Recall divides the faults caught by all the faults that exist, 8,300 over 8,640,\nwhich is 0.961. The two denominators differ, so there is no reason for the two fractions\nto come out equal.",
+      "objectives": [
+        "l10-o3"
+      ],
+      "tags": [
+        "precision",
+        "recall",
+        "tep"
+      ],
+      "true": "Precision 0.998, recall 0.961, from 8,300 correct alarms and 8,300 of 8,640 faults caught",
+      "false": [
+        "Precision 0.961, recall 0.998, from swapping which count divides which total",
+        "Precision 0.998, recall 0.998, since both counts share the same numerator of 8,300",
+        "Precision 0.961, recall 0.961, since precision and recall must always agree"
+      ]
+    },
+    {
+      "id": "l10-q19",
+      "kind": "mcq",
+      "lecture": "l10",
+      "context": "The plant's classifier calls a sample a fault, but the sample was in fact normal. Which box\nof the confusion matrix does that sample land in?",
+      "why": "\"Positive\" is what the model said, a fault, and \"false\" says it was wrong. So a normal\nsample the model called a fault is a false positive, a false alarm. A false negative is\nthe other mistake: a fault the model called normal.",
+      "objectives": [
+        "l10-o3"
+      ],
+      "tags": [
+        "confusion-matrix",
+        "tep"
+      ],
+      "true": "False positive (FP): a false alarm",
+      "false": [
+        "False negative (FN): a missed fault",
+        "True positive (TP): a fault caught",
+        "True negative (TN): a normal sample left alone"
+      ]
+    },
+    {
+      "id": "l10-q10",
+      "kind": "mcq",
+      "lecture": "l10",
+      "context": "A scikit-learn classifier offers both a predict method and a predict_proba method for the\nsame sample. What is the difference?",
+      "why": "predict is the class decision itself, reached by comparing the probability to 0.5 by\ndefault. predict_proba hands back the probability underneath that decision, which is what\nlets you choose a different threshold instead of accepting the default.",
+      "objectives": [
+        "l10-o4"
+      ],
+      "tags": [
+        "threshold",
+        "scikit-learn"
+      ],
+      "true": "predict returns a class using a 0.5 threshold; predict_proba returns each class's probability",
+      "false": [
+        "predict returns a probability; predict_proba returns a class using a 0.5 threshold",
+        "predict only works with two classes; predict_proba works with any number of classes",
+        "predict needs labeled training data; predict_proba needs no labels at all"
+      ]
+    },
+    {
+      "id": "l10-q11",
+      "kind": "direction",
+      "lecture": "l10",
+      "context": "The plant's neural network classifier has its threshold lowered from 0.50 to 0.01. What\nhappens to its recall and its precision?",
+      "why": "A lower threshold flags more samples as faulty, so it catches more of the real faults,\nraising recall, while also raising more false alarms, lowering precision. There is no\nthreshold that improves both at once.",
+      "objectives": [
+        "l10-o4"
+      ],
+      "tags": [
+        "threshold",
+        "precision",
+        "recall"
+      ],
+      "true": "Recall rises toward 0.977 and precision falls toward 0.697",
+      "false": [
+        "Recall falls toward 0.697 and precision rises toward 0.977",
+        "Both rise, since a lower threshold flags more faults without adding false alarms",
+        "Neither changes; the threshold only relabels samples, not the rates"
+      ]
+    },
+    {
+      "id": "l10-q12",
+      "kind": "mcq",
+      "lecture": "l10",
+      "context": "Different thresholds trade recall against precision by different amounts. How should a\nteam pick which threshold to use?",
+      "why": "No single threshold is best in general, since lowering it always trades fewer missed\nfaults for more false alarms. The right choice depends on what each kind of mistake\nactually costs in the plant, not on a fixed rule or a single summary score.",
+      "objectives": [
+        "l10-o4"
+      ],
+      "tags": [
+        "threshold",
+        "cost-tradeoff"
+      ],
+      "true": "From the relative cost of a missed fault against the cost of a false alarm",
+      "false": [
+        "Always at 0.5, since that is what scikit-learn uses by default",
+        "At whichever threshold gives the highest accuracy",
+        "At whichever threshold makes precision and recall exactly equal"
+      ]
+    },
+    {
+      "id": "l10-q13",
+      "kind": "mcq",
+      "lecture": "l10",
+      "context": "A network trained on nine plant faults is then tested on eight faults it never saw during\ntraining. What happens to its recall across those eight?",
+      "why": "Some unseen faults happen to resemble a trained fault closely enough that the network\nstill catches most of them, while others resemble nothing it has seen and are almost\nentirely missed. Nothing in its training scores predicts in advance which end a new fault\nwill land on.",
+      "objectives": [
+        "l10-o5"
+      ],
+      "tags": [
+        "unseen-faults",
+        "recall",
+        "tep"
+      ],
+      "true": "It ranges from 0.924 on one fault down to 0.001 on another",
+      "false": [
+        "It stays close to its trained recall of 0.961 on every one of them",
+        "It is exactly zero on all eight, since none of them were in training",
+        "It settles near 0.5 on all eight, since the network is only guessing"
+      ]
+    },
+    {
+      "id": "l10-q14",
+      "kind": "spot_the_defect",
+      "lecture": "l10",
+      "context": "A team reports their network's 96.1% recall on the nine faults it was trained on as proof\nit will catch whatever fault the plant develops next. What is missing from that claim?",
+      "why": "A recall measured on the faults a network was trained on says nothing about a fault it has\nnever seen, since a supervised classifier can only recognize the classes it was trained on.\nThe only way to find out how it handles a genuinely new fault is to hold one out on purpose\nand test against it.",
+      "objectives": [
+        "l10-o5"
+      ],
+      "tags": [
+        "unseen-faults",
+        "practitioner"
+      ],
+      "true": "Recognition that it only knows the faults it was trained on, and a test against a fault it never saw",
+      "false": [
+        "A comparison against the accuracy of a baseline that always predicts normal",
+        "A second network trained on the same nine faults with a different random seed",
+        "More training samples drawn from the same nine faults it already knows"
+      ]
+    },
+    {
+      "id": "l10-q15",
+      "kind": "mcq",
+      "lecture": "l10",
+      "context": "Bergstra and Bengio (2012) argue that random search beats a grid search at the same trial\nbudget. What is their reasoning?",
+      "why": "A grid spends equal effort on every hyperparameter, including ones that barely affect the\nscore, so most of its trials repeat values of something that does not matter much. Random\nsearch, at the same budget, samples many distinct values along every axis, so it explores\nwhichever one matters more thoroughly without needing to know which one that is in advance.",
+      "objectives": [
+        "l10-o6"
+      ],
+      "tags": [
+        "grid-search",
+        "random-search"
+      ],
+      "true": "Usually only a few hyperparameters matter, and random search tries more distinct values of those",
+      "false": [
+        "Random search always evaluates fewer total configurations, leaving a larger budget per trial",
+        "A grid cannot represent an integer-valued hyperparameter such as a tree's maximum depth",
+        "Random search is guaranteed to eventually find the single best configuration"
+      ]
+    },
+    {
+      "id": "l10-q16",
+      "kind": "mcq",
+      "lecture": "l10",
+      "context": "Optuna's default sampler, TPE, uses past trials to guide future ones. In the search on the\nconcrete strength dataset, how did its first guided trial compare with random search?",
+      "why": "TPE builds a model of which hyperparameter values look promising from the trials run so\nfar, so once it has a handful of trials to learn from, it can aim its very next guess\nthere instead of guessing blindly. Random search has no such model, so it keeps guessing\nuniformly and takes far longer to reach a similarly good score.",
+      "objectives": [
+        "l10-o6"
+      ],
+      "tags": [
+        "tpe",
+        "optuna"
+      ],
+      "true": "TPE's first guided trial, trial 11, already scored 8.90 MPa; random search took 38 trials to reach 9.00 MPa",
+      "false": [
+        "TPE's first guided trial matched random search exactly, both reaching 8.90 MPa at trial 11",
+        "TPE needed 38 trials to reach 8.90 MPa, the same count random search needed for 9.00 MPa",
+        "Random search reached 8.90 MPa before TPE did, since TPE's early trials are random too"
+      ]
+    },
+    {
+      "id": "l10-q17",
+      "kind": "mcq",
+      "lecture": "l10",
+      "context": "An Optuna study finishes, and its winning configuration is refit and registered in\nMLflow's model registry. What does that registry give a teammate that the winning trial's\nown child run does not?",
+      "why": "A child run is tied to the one trial that produced it, one among possibly dozens, so\nfinding the winner later means remembering which run it was. The registry instead gives\nthe winning model its own name and version, loadable by anyone later with no memory of the\nsearch required.",
+      "objectives": [
+        "l10-o6"
+      ],
+      "tags": [
+        "mlflow",
+        "model-registry",
+        "optuna"
+      ],
+      "true": "A name and version they can load later, without needing to remember which trial won",
+      "false": [
+        "A live connection that keeps retraining the model as new data arrives",
+        "A guarantee that this model will outperform every future search",
+        "A bundled copy of every losing trial's hyperparameters alongside the winner's"
+      ]
+    },
+    {
+      "id": "l10-q18",
+      "kind": "spot_the_defect",
+      "lecture": "l10",
+      "context": "A team's Optuna search on the concrete strength dataset finds a best validation RMSE of\n8.90 MPa over many trials, and reports that number as their model's expected performance\non new data. What is wrong?",
+      "why": "The validation score comes from the same rows the search used to pick a winner, so it is\nthe number the search was tuned against, not an honest estimate of new data. Scoring the\nregistered winner once on mixes that never took part in the search is what gives the\nnumber to report.",
+      "objectives": [
+        "l10-o6"
+      ],
+      "tags": [
+        "test-once",
+        "optuna",
+        "concrete-strength"
+      ],
+      "true": "The search chose its winner by that number; the registered winner's test score, 7.41 MPa, is the one to report",
+      "false": [
+        "Nothing is wrong; grouped cross-validation already accounts for the search, so 8.90 MPa is unbiased",
+        "The number should have come from a grid search instead of from TPE",
+        "Forty trials is too few for TPE to have found a trustworthy best score"
+      ]
+    },
+    {
+      "id": "l11-q01",
+      "kind": "spot_the_defect",
+      "lecture": "l11",
+      "context": "A hand-derived gradient and PyTorch's `autograd` disagree by 7.5e-8, which\nis eight orders of magnitude worse than it should be. JAX agrees to 4.4e-16\non the same problem. Every `tensor.dtype` you print reads `float64`.\n\nWhat is wrong?",
+      "why": "`torch.tensor(3.14)` gives float32; NumPy defaults to float64 and PyTorch to\nfloat32. The relative error was 1.25e-7, float32 epsilon to two figures,\nwhich is how the bug was identified as a dtype problem rather than a\ndifference between the libraries. Declare both scalars float64 and PyTorch\nmatches to 1.7e-18. Checking `tensor.dtype` after the fact would not have\nfound this. Checking it at the boundary would.",
+      "objectives": [
+        "l11-o5",
+        "l11-o3"
+      ],
+      "tags": [
+        "dtype",
+        "autodiff",
+        "silent-failure"
+      ],
+      "true": "Two Python floats entered as float32, and float32 promotes to float64 on contact, so every dtype downstream reads float64 and looks fine",
+      "false": [
+        "PyTorch's autograd is less numerically careful than JAX's, so use JAX when you need gradient accuracy",
+        "`requires_grad=True` silently downcasts, so set `torch.set_default_dtype(torch.float64)` before building any tensor",
+        "The analytic derivative was miscopied; a discrepancy this size is almost always the reference, not the framework"
+      ]
+    },
+    {
+      "id": "l11-q02",
+      "kind": "predict_measure",
+      "lecture": "l11",
+      "context": "A small MLP on tabular concrete data, trained on a laptop. You move it to\nthe GPU.\n\nBefore you look: what happens to the time per epoch?",
+      "why": "For this model the accelerator is slower, and it only starts winning past\nroughly 256 hidden units. Kernel launch and transfer overhead dominate when\nthe arithmetic per step is small, and a tabular MLP has very little\narithmetic per step. The crossover, not the speedup, is the lesson: measure\nwhere your model sits on it before you pay for a GPU.",
+      "objectives": [
+        "l11-o6"
+      ],
+      "tags": [
+        "devices",
+        "performance"
+      ],
+      "true": "Two and a half times slower: 8.6 ms per epoch on the CPU against 21.1 ms on the GPU",
+      "false": [
+        "Roughly 3x faster, which is the usual return on moving a small model to an accelerator",
+        "About the same, since the model is too small for the device to matter either way",
+        "Around 10x faster once the data is resident on the device and transfers stop dominating"
+      ]
+    },
+    {
+      "id": "l11-q03",
+      "kind": "rank",
+      "lecture": "l11",
+      "context": "Three JAX workloads, timed eager and under `jit`. Rank them by how much\n`jit` helps, most helped first.\n\n**A.** one 512x512 matmul plus `tanh`\n**B.** a chain of elementwise ops on 2M floats\n**C.** a 10-step iterative update via `lax.fori_loop`",
+      "why": "`jit` pays where there is structure to fuse and control flow to unroll. A\nsingle large matmul is already one library call, so compilation adds\ndispatch overhead and nothing else, and it comes out slower. The iterative\nupdate is where it earns 2.8x, because the loop itself becomes part of the\ncompiled program. \"Compile it\" is not a free optimization, it is a bet\nabout the shape of the work.",
+      "objectives": [
+        "l11-o2"
+      ],
+      "tags": [
+        "jax",
+        "jit",
+        "performance"
+      ],
+      "true": "C (2.8x), then B (1.2x), then A, which is actually 0.8x, meaning slower",
+      "false": [
+        "A (2.8x), then C (1.2x), then B at 0.8x, since matmuls benefit most from fusion",
+        "B (2.8x), then A (1.2x), then C at 0.8x, since elementwise chains fuse best",
+        "All three land between 1.2x and 2.8x; compilation never makes a workload slower"
+      ]
+    },
+    {
+      "id": "l11-q04",
+      "kind": "direction",
+      "lecture": "l11",
+      "context": "The concrete dataset has 428 distinct mixes, and the multi-age mixes\naccount for 76% of all rows: the same batch appears at 3, 7, 28 and 90 days.\n\nYou split rows at random for validation. What does that do to a comparison\nbetween gradient boosting and an MLP?",
+      "why": "On a random k-fold gradient boosting beats the MLP by 0.43 +/- 0.09 MPa. Under\na mix-grouped split the gap falls to 0.23 +/- 0.18 MPa, a tie. The tree's\nadvantage here is substantially its greater ability to exploit a leaky\nsplit. A single-seed run of the same comparison showed the MLP winning, and\nfive seeds show a tie, which is the other half of the lesson: do not report\nsingle-seed deep-learning results.",
+      "objectives": [
+        "l11-o5"
+      ],
+      "tags": [
+        "leakage",
+        "comparison"
+      ],
+      "true": "It flatters whichever model can better exploit the leak, and the tree's advantage over the net largely disappears once whole mixes are held out",
+      "false": [
+        "Nothing much; with over a thousand rows a random split is representative enough for a model comparison",
+        "It penalizes the tree, because trees are more sensitive to the duplicate rows a random split creates",
+        "It inflates both equally, so the comparison between them is still fair even though the absolute numbers are wrong"
+      ]
+    },
+    {
+      "id": "l11-q05",
+      "kind": "predict_measure",
+      "lecture": "l11",
+      "context": "The module's claim is that unnormalized inputs cause NaNs. You train the\nsame unnormalized data twice, once with SGD and once with Adam.\n\nBefore you look: what does Adam do?",
+      "why": "With SGD the NaNs arrive immediately. Adam's per-parameter scaling absorbs\nthe problem and hides a scaling bug as mediocrity rather than as a crash,\nwhich is worse: a crash gets investigated, a model that is merely not very\ngood gets shipped. The general shape is the one this course keeps\nreturning to, that the dangerous failure is the one that does not raise.",
+      "objectives": [
+        "l11-o4"
+      ],
+      "tags": [
+        "training",
+        "optimizers",
+        "silent-failure"
+      ],
+      "true": "It does not diverge at all; it trains to 8.3 MPa instead of 5.5, a model that works and is merely bad",
+      "false": [
+        "NaN too, though it takes more epochs because the moment estimates delay the divergence",
+        "It converges normally, since adaptive methods are scale-invariant by construction",
+        "It diverges to a large finite value rather than NaN, which is easy to spot in the loss curve"
+      ]
+    },
+    {
+      "id": "l11-q06",
+      "kind": "mcq",
+      "lecture": "l11",
+      "context": "Sweeping the SGD learning rate on this model: about 5.1 MPa at `lr = 0.1`,\n91 MPa at `lr = 1.0` with seed 0, and NaN from the first epoch at `lr = 2.0`.\n\nWhat is special about `lr = 1.0`?",
+      "why": "At `lr = 1.0` the result varies across seed-and-loop combinations, which is\nthe honest version of the \"too high a learning rate diverges\" lesson. There\nis not a clean threshold with safety below and failure above; there is a\nband where whether you get away with it is luck. A hyperparameter chosen\nfrom one run in that band is a hyperparameter you have not chosen.",
+      "objectives": [
+        "l11-o4"
+      ],
+      "tags": [
+        "training",
+        "hyperparameters",
+        "reproducibility"
+      ],
+      "true": "The outcome there depends on the seed, so a single run tells you nothing about whether the setting is safe",
+      "false": [
+        "It is the largest stable value, so it is the right choice for fastest convergence",
+        "It is exactly the edge of stability, which can be computed in advance from the loss curvature",
+        "Nothing; it is simply an intermediate point between the working value and divergence"
+      ]
+    },
+    {
+      "id": "l11-q07",
+      "kind": "mcq",
+      "lecture": "l11",
+      "context": "You want to check a gradient. Autodiff gives 1.7e-18 against the analytic\nanswer; the best central difference over forty step sizes manages 1.4e-12.\n\nWhy can finite differences not do better, however carefully you choose the\nstep?",
+      "why": "The two error terms move in opposite directions with h, so there is a best\nstep and a corresponding error floor, and the floor is many orders of\nmagnitude above machine precision. Autodiff is not a better approximation\nof the derivative, it is the derivative, computed by the chain rule on the\noperations you actually performed. That is why it lands at 1.7e-18 and a\ndifference quotient cannot.",
+      "objectives": [
+        "l11-o1"
+      ],
+      "tags": [
+        "autodiff",
+        "numerics"
+      ],
+      "true": "Because truncation error falls with the step while rounding error rises, so the total is minimized at a floor rather than driven to zero",
+      "false": [
+        "Because the step size is chosen by trial and error, and forty candidates is too coarse a sweep to find the optimum",
+        "Because central differences are only second-order accurate, and a higher-order stencil would reach machine precision",
+        "Because floating point subtraction is not associative, so the result depends on evaluation order"
+      ]
+    },
+    {
+      "id": "l11-q09",
+      "kind": "locus_of_control",
+      "lecture": "l11",
+      "context": "Your training loss decreases far more slowly than it should, nothing\nraises, and the shapes are all correct. A colleague suggests lowering the\nlearning rate.\n\nWhat should you check first, and why?",
+      "why": "Every other candidate is a tuning question; this one is a defect, and it\npresents identically. The line everyone forgets once is the one whose\nomission is silent, so it is worth ruling out before spending an afternoon\non hyperparameters. This is the same shape as the dtype trap earlier in the\nsession: a real bug wearing the costume of a bad setting.",
+      "objectives": [
+        "l11-o4",
+        "l11-o2"
+      ],
+      "tags": [
+        "training",
+        "debugging"
+      ],
+      "true": "Whether `opt.zero_grad()` is being called, because gradients accumulate by default and its absence never raises",
+      "false": [
+        "The learning rate, since a slow, smooth decrease is the classic signature of a step size that is too small",
+        "The batch size, since small batches produce noisy gradients that slow convergence",
+        "The initialization, since poor scaling of the first layer will stall learning without any error"
+      ]
+    },
+    {
+      "id": "l11-q10",
+      "kind": "claim_vs_source",
+      "lecture": "l11",
+      "context": "\"Deep learning beats trees on tabular data now.\" Someone cites Grinsztajn\nand Varoquaux's benchmark.\n\nWhat does that work actually report?",
+      "why": "45 datasets and 20,000 compute hours, and the finding runs the other way\nfrom the slogan. Worth pairing with this session's own measurement, where a\ntree's apparent advantage over an MLP largely evaporated once the grouped\nsplit removed the leak. Both point at the same discipline: the honest\ncomparison is the one with the right split and more than one seed, and it\nis usually less exciting than either camp's headline.",
+      "objectives": [
+        "l11-o5"
+      ],
+      "tags": [
+        "comparison",
+        "literature"
+      ],
+      "true": "That tree-based models remain ahead on typical tabular data, across 45 datasets and a large compute budget",
+      "false": [
+        "That deep learning wins once the dataset passes roughly ten thousand rows",
+        "That the two are indistinguishable once hyperparameters are tuned equally for both",
+        "That the comparison is undecidable, because no standard tabular benchmark suite exists"
+      ]
+    },
+    {
+      "id": "l11-q11",
+      "kind": "mcq",
+      "lecture": "l11",
+      "context": "Replacing an explicit Python loop over 256 examples with a vectorized\nformulation agrees to 2.2e-15 and is also faster.\n\nWhat is the 2.2e-15 telling you?",
+      "why": "2.2e-15 is float64 epsilon territory: the two orderings of the same\narithmetic differ only by rounding. That is the check worth running\nwhenever you vectorize, because vectorizing is a rewrite, and a rewrite\nthat changes the answer is a bug rather than an optimization. Confirm the\nagreement first, then keep the speed.",
+      "objectives": [
+        "l11-o2"
+      ],
+      "tags": [
+        "vectorization",
+        "numerics"
+      ],
+      "true": "That the two are the same computation to float64 rounding, so the speedup costs no accuracy",
+      "false": [
+        "That the vectorized version is slightly wrong, and the difference is the approximation error it introduces",
+        "That the loop version accumulates error over 256 iterations, and vectorizing removes it",
+        "That the comparison is inconclusive at this precision and should be repeated in float32"
+      ]
+    },
+    {
+      "id": "l11-q12",
+      "kind": "notebook_run",
+      "lecture": "l11",
+      "context": "Open [`l11-tensors-autograd.ipynb`](../lectures/l11/l11-tensors-autograd.ipynb)\nand run the device comparison for the small tabular MLP.\n\nWhich device wins on your machine, and what does the result tell you about\nwhen to reach for an accelerator?",
+      "why": "On the machine these notes were measured on, the CPU ran 8.6 ms per epoch\nagainst the GPU's 21.1 ms, and the accelerator only started winning past\nabout 256 hidden units. Your absolute numbers will differ, which is exactly\nwhy the question asks for the shape rather than the values: the crossover\nexists on every machine, and where it sits is something you measure rather\nthan assume.",
+      "objectives": [
+        "l11-o6"
+      ],
+      "tags": [
+        "devices",
+        "notebook"
+      ],
+      "true": "Whichever you have; the point is the crossover, not which device won",
+      "false": [
+        "The GPU, by a wide margin, which is why accelerators are the default for training",
+        "The CPU always, because PyTorch's GPU path is not optimized for tabular data",
+        "Neither reliably; device timings are too noisy on a laptop to support any conclusion"
+      ]
     }
   ]
 }
