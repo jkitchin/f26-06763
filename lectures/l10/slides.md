@@ -475,15 +475,15 @@ $$
 \text{accuracy} = \frac{\text{correct predictions}}{\text{all predictions}}
 $$
 
-* A "detector" that always answers **normal**, on the 59,000 test samples:
+* Imagine a "detector" that answers **normal** for every sample, whatever the data. On the 59,000 test samples:
 
 <div class="accbar" data-marpit-fragment>
 <div class="acc-n" style="width: 85.4%">85.4% of the samples are normal: the detector is right on all of them</div>
 <div class="acc-f" style="width: 14.6%">14.6% faulty:<br>all missed</div>
 </div>
 
-* Accuracy **85.4%**, and it never catches a fault
-* So count each **kind** of mistake separately
+* Accuracy **85.4%**, yet it never catches a single fault
+* So we need metrics that tell the two mistakes apart: **missed faults** and **false alarms**
 
 <!--
 A plant runs normally most of the time, so answering "normal" is right most of the time.
@@ -501,8 +501,11 @@ A **confusion matrix** counts, for every sample, what really happened against wh
 </div>
 
 <style scoped>
+section p.cm-note { font-size: 0.66em; margin: 0 0 0.2em; color: #5c5c5c; }
 .cm-wrap { display: grid; grid-template-columns: 600px 1fr; gap: 1.4em; align-items: center; margin-top: 0.3em; }
 </style>
+
+<p class="cm-note">The numbers: a neural network on all 52 channels, trained on normal runs and nine faults, tested on the 59,000 test samples (any of the nine faults counts as a fault), threshold 0.5.</p>
 
 <div class="cm-wrap">
 
@@ -628,7 +631,7 @@ misses one fault sample in five; the network misses one in twenty-five.
 
 ## Measuring a classifier, the threshold
 
-<p class="thr-note"><code>predict(X)</code> gives the class, with a threshold of 0.5. <code>predict_proba(X)</code> gives the probability, so you choose the threshold.</p>
+<p class="thr-note">The slider moves the threshold on the network's probability of fault, to show what each choice costs. In scikit-learn, <code>model.predict(X)</code> gives the class (threshold 0.5); <code>model.predict_proba(X)</code> gives the probability, so you pick the threshold.</p>
 
 <style scoped>
 /* prefixed to this slide only, in the L9 widget conventions (reg-widget, optw-widget):
@@ -777,7 +780,7 @@ section p.thr-note { font-size: 0.72em; margin: 0.1em 0 0.25em; text-align: cent
 })();
 </script>
 
-<p class="thr-note">The slider moves only the threshold. The classifier and the 59,000 test samples stay the same.</p>
+<p class="thr-note"><b>Threshold ↓</b>: more alarms, recall ↑, precision ↓. <b>Threshold ↑</b>: fewer alarms, precision ↑, recall ↓.</p>
 
 <!--
 At 0.01, 8,438 of the 8,640 faults are caught, with 3,664 false alarms. At 0.99 there are no
@@ -803,14 +806,14 @@ classifier already separates the two classes well.
 <div class="readbox">
 
 * The network trained on **nine** faults, and meets **eight new** ones here
-* Each bar: the share of that fault's samples it flagged, its recall
-* **Fault 18**: 92% caught
-* **Fault 19**: 0.1% caught, it passes as normal
+* Each bar: the share of that fault's samples it flagged as a fault, its recall
+* **Fault 18**: 92% caught, it looks like the faults it learned
+* **Fault 19**: 0.1% caught, it looks normal to the network
 
 </div>
 </div>
 
-<p class="takeaway" data-marpit-fragment>A classifier only knows the faults it was shown.</p>
+<p class="takeaway" data-marpit-fragment>A classifier only catches new faults that look like the ones it was shown.</p>
 
 <!--
 The blue bar is the nine faults it trained on, 0.961. Nothing in the classifier says in advance
@@ -904,7 +907,7 @@ Two jobs: Optuna decides what to try next, MLflow writes down what happened.
 
 ## Tracking and search, grid versus random
 
-<p class="grs-note">Two hyperparameters and nine trials for each search. Only the horizontal one changes the score.</p>
+<p class="grs-note">Two hyperparameters, nine trials for each search. <b>Only the x-axis hyperparameter matters in this example.</b></p>
 
 <style>
 /* grid versus random search: nine trials each, same budget, Bergstra and Bengio's picture,
@@ -1059,7 +1062,8 @@ section p.grs-note { font-size: 0.72em; margin: 0.1em 0; text-align: center; }
 })();
 </script>
 
-<p class="grs-note">The bump: the validation score against the important hyperparameter, made up for the picture. Its peak is the best setting. Grid tries 3 values of it and random tries 9, so random lands closer to the peak.</p>
+<p class="grs-note">The bump (made up for the picture): the validation score against the x-axis hyperparameter. Its peak is the best setting.</p>
+<p class="grs-note"><b>Takeaway: same 9 trials, but random search tries 9 values of what matters and grid only 3, so random gets closer to the best.</b></p>
 <span class="source"><a href="https://www.jmlr.org/papers/v13/bergstra12a.html">Bergstra and Bengio (2012)</a>, JMLR 13</span>
 
 <!--
@@ -1074,7 +1078,7 @@ that axis better.
 
 <div class="definition">
 
-**TPE** stands for Tree-structured Parzen Estimator. It is Optuna's default search strategy: the rule it uses to pick the next trial to run.
+**TPE** (Tree-structured Parzen Estimator): Optuna's default rule for picking the next trial.
 
 </div>
 
@@ -1082,7 +1086,7 @@ that axis better.
 .tpe-wrap { display: flex; gap: 1.6em; align-items: center; margin-top: 0.3em; }
 .tpe-steps { flex: 0 0 auto; width: 390px; font-size: 22px; }
 .tpe-steps ul { margin: 0; padding-left: 1.1em; }
-.tpe-steps li { margin: 0.7em 0; }
+.tpe-steps li { margin: 0.45em 0; }
 .tpe-fig { flex: 1 1 auto; text-align: center; }
 .tpe-fig img { width: 600px; }
 </style>
@@ -1090,9 +1094,10 @@ that axis better.
 <div class="tpe-wrap">
 <div class="tpe-steps">
 
-* Split the trials so far: the best 10% are **good**, the rest are **bad**
-* See where each group's values fall, with a smoothed histogram for each: a **Parzen estimator**
-* Try next where good trials are common and bad ones are rare
+* The best 10% of the trials so far are **good**, the rest **bad**
+* A smoothed histogram of each group: a **Parzen estimator**
+* Try next where good is common and bad is rare
+* **Why TPE:** it spends trials where the good results are; random search spends them anywhere
 
 </div>
 <div class="tpe-fig">
@@ -1190,6 +1195,8 @@ section p.opr-note { font-size: 0.74em; margin: 0.15em 0; text-align: center; }
     add("circle", {cx: LX + 15, cy: y, r: 4, fill: color, "fill-opacity": 0.6});
     add("text", {x: LX + 38, y: y + 6, "font-size": 16, fill: INK}, label);
   });
+  add("line", {x1: LX, x2: LX + 30, y1: P.y0 + 52, y2: P.y0 + 52, stroke: "#2e7d32", "stroke-width": 2, "stroke-dasharray": "3 4"});
+  add("text", {x: LX + 38, y: P.y0 + 58, "font-size": 16, fill: INK}, "Lecture 9's two trees");
   const dots = (table, color) => table.map((t, i) => add("circle", {cx: sx(i), cy: sy(t.rmse), r: 4, fill: color, "fill-opacity": 0.55, visibility: "hidden"}));
   const randomDots = dots(RANDOM, GOLD), tpeDots = dots(TPE, RED);
   const randomLine = add("polyline", {fill: "none", stroke: GOLD, "stroke-width": 3});
@@ -1261,6 +1268,7 @@ A search trains a model once per trial. MLflow keeps every one of them, in one p
 
 <style>
 /* the MLflow run hierarchy for a search: experiment, parent run, child runs, registry */
+section p.mlf-note { font-size: 0.72em; margin: 0.2em 0; }
 .mlf-diagram { position: relative; width: 1120px; height: 310px; margin: 0.3em auto 0.5em; font-size: 19px; }
 .mlf-box {
   position: absolute; margin: 0; border-radius: 10px; display: flex; flex-direction: column;
@@ -1305,7 +1313,7 @@ A search trains a model once per trial. MLflow keeps every one of them, in one p
 <div class="mlf-box mlf-registry" data-marpit-fragment="7">Model registry<span class="mlf-sub">the best settings, refit and saved by name</span></div>
 </div>
 
-The registry holds the model to use, with a name and a version anyone can load.
+<p class="mlf-note">Each child run is one trial: a new <code>max_depth</code> and <code>min_samples_leaf</code>, and the validation RMSE they give. The data, the folds and the model stay the same. The registry holds the model to use, with a name and a version anyone can load.</p>
 <span class="source"><a href="https://mlflow.org/docs/latest/ml/traditional-ml/tutorials/hyperparameter-tuning/notebooks/hyperparameter-tuning-with-child-runs/">MLflow, hyperparameter tuning with child runs</a></span>
 
 <!--
@@ -1535,7 +1543,7 @@ p.recap-close { font-size: 0.8em; margin-top: 0.7em; text-align: center; }
 <div class="cards cards-recap">
 <div class="card"><img src="figures/tep-logistic.png"><h4>What turns a number into a category?</h4><p><b>A threshold on a probability.</b></p><p class="ev">Fault 4's boundary sits at 43.4% open; fault 14 needs more than one straight cut.</p></div>
 <div class="card"><img src="figures/confusion-explained.png"><h4>How do you judge a detector?</h4><p><b>Its confusion matrix, not accuracy alone.</b></p><p class="ev">The baseline scores 85.4% accuracy and 0 recall; precision and recall expose it.</p></div>
-<div class="card"><img src="figures/tep-unseen.png"><h4>What can a classifier recognize?</h4><p><b>Only the faults it was shown.</b></p><p class="ev">Two faults it never saw: fault 18 was caught 92% of the time, fault 19 only 0.1%.</p></div>
+<div class="card"><img src="figures/tep-unseen.png"><h4>What can a classifier recognize?</h4><p><b>New faults only if they look like the ones it was shown.</b></p><p class="ev">Two faults it never saw: fault 18 was caught 92% of the time, fault 19 only 0.1%.</p></div>
 <div class="card"><img src="figures/optuna_search.png"><h4>How do you trust a search?</h4><p><b>Track every trial, test the winner once.</b></p><p class="ev">TPE reached 8.90 MPa at trial 11, random search 9.00 at trial 38. The test set gave 7.41.</p></div>
 </div>
 

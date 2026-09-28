@@ -31,9 +31,9 @@ By the end of this session you should be able to:
 - Explain what a classifier predicts (a class, from a probability and a threshold), and read a
   logistic regression's decision boundary on one plant signal.
 - Say what each of the four model families minimizes when it classifies.
-- Build a confusion matrix, and compute accuracy, precision and recall from it.
+- Understand a confusion matrix, and the concepts of accuracy, precision and recall from it.
 - Move the decision threshold to trade missed faults against false alarms.
-- Explain why a classifier cannot recognize faults it was never trained on.
+- Explain why a classifier can miss faults it was never trained on.
 - Run a hyperparameter search with Optuna, record every trial in MLflow, and register the best
   model.
 
@@ -200,9 +200,12 @@ loss: a probability instead of a number, and log loss or impurity instead of the
 ### Why accuracy is not enough
 
 - **Accuracy** is the fraction of correct predictions.
-- The "always normal" detector is right on 85.4% of the test samples, because 85.4% of them are
-  normal. It never catches a fault.
-- We need to count each **kind** of mistake separately.
+- Imagine a "detector" that answers **normal** for every sample, whatever the data says. It is
+  always right on the normal samples and always wrong on the faulty ones.
+- On the test samples it scores 85.4% accuracy, because 85.4% of them are normal, and it never
+  catches a fault.
+- So we need metrics that tell the two kinds of mistake apart: a **missed fault** and a **false
+  alarm**.
 
 ### The confusion matrix
 
@@ -222,11 +225,19 @@ We call "fault" the **positive** class. Each sample lands in one of four boxes:
 - **False positive (FP):** a false alarm, a normal sample the model called a fault.
 - **True negative (TN):** a normal sample the model left alone.
 
+The numbers below come from one classifier:
+
+- A neural network (one of Lecture 9's four families) that sees all 52 channels.
+- Trained on normal runs 1 to 300 and runs 1 to 5 of the nine training faults.
+- Tested on the 59,000 test samples. A sample counts as a **fault** if it comes from any of the
+  nine faults after the fault starts.
+- Threshold 0.5.
+
 ```{figure} figures/confusion-explained.png
 :alt: A two by two grid. Rows are what really happened, actually faulty and actually normal; columns are what the model said, predicted fault and predicted normal. The green diagonal cells are true positives, 8,300 faults caught, and true negatives, 50,347 normal samples left alone. The red off-diagonal cells are false negatives, 340 faults missed, and false positives, 13 false alarms.
 :width: 80%
 
-The confusion matrix of the 52-channel classifier on the 59,000 test samples.
+The confusion matrix of the neural network on the 59,000 test samples.
 ```
 
 - The **diagonal** (TP and TN) is what the model got right.
@@ -295,16 +306,18 @@ makes more false alarms (precision down).
 | 0.90 | 8,176 | 0 | 1.000 | 0.946 |
 | 0.99 | 7,917 | 0 | 1.000 | 0.916 |
 
+- Threshold ↓: more alarms. Recall ↑ (fewer missed faults), precision ↓ (more false alarms).
+- Threshold ↑: fewer alarms. Precision ↑ (fewer false alarms), recall ↓ (more missed faults).
 - There is no best threshold in general. **Choose it from the cost of a missed fault against the
   cost of a false alarm.**
 
-### A classifier only knows the faults it was shown
+### Faults the classifier never saw
 
 ```{index} pair: failure mode; a class missing from the training data
 ```
 
 - The network was trained on nine faults. Now test it on eight faults it never saw.
-- It learned what those nine faults look like, and nothing else.
+- It learned what those nine faults do to the 52 channels.
 
 ```{figure} figures/tep-unseen.png
 :alt: Bar chart of recall. A blue bar for the nine faults the network learned, at 0.961, then gray bars for eight faults it never saw. Fault 18 is caught 92% of the time, faults 17 and 14 about 70%, and faults 10, 11, 20, 16 and 19 much less, down to 0.1% for fault 19.
@@ -313,9 +326,13 @@ makes more false alarms (precision down).
 Recall of the same network on eight faults it was never trained on.
 ```
 
+- Each bar is that fault's recall: the share of its samples the network flagged as a fault (a
+  probability of fault of at least 0.5).
 - Recall ranges from 0.924 (fault 18) down to 0.001 (fault 19).
-- **A supervised classifier (Lecture 8) can only recognize the classes it was trained on.** A
-  new kind of fault can pass as normal.
+- A new fault is caught when it looks, to the network, like the training faults. Fault 19's
+  samples look normal to it, so they pass as normal.
+- **A supervised classifier (Lecture 8) only catches new faults that look like the ones it was
+  trained on.**
 
 ## Tracking and search
 
@@ -380,6 +397,8 @@ How to read the figure:
   one does not change the score.
 - Grid search tests only **3** values of the important hyperparameter; random search tests
   **9**, so one of them lands closer to the peak.
+- **Takeaway:** with the same number of trials, random search gets closer to the best setting,
+  because it tries more values of the hyperparameters that matter.
 
 ### Tree-structured Parzen Estimator (TPE)
 
@@ -415,6 +434,9 @@ smoothed histogram of one group's trials.
   tries next near 9: its trials 21 to 26 use leaf sizes from 8 to 13.
 - Random search ignores the past; TPE learns from it. In this search, TPE's first guided trial
   (trial 11) already scores 8.90 MPa. Random search needs 38 trials to reach 9.00 MPa.
+- **Why use it:** TPE spends the trials where the good results are; random search keeps spending
+  them anywhere. The risk is the opposite one: TPE can settle on one region too early, which is
+  why it starts with 10 random trials.
 
 ### Optuna inside MLflow
 
@@ -422,7 +444,8 @@ smoothed histogram of one group's trials.
 ```
 
 - One MLflow **parent run** holds the whole search.
-- Each Optuna trial is a **child run** under it, with its hyperparameters and its score.
+- Each Optuna trial is a **child run** under it: a new `max_depth` and `min_samples_leaf`, and
+  the validation RMSE they give. The data, the folds and the model stay the same.
 - The best model is refit on all the training rows and **registered** in the MLflow **model
   registry**, with a name and a version anyone can load later.
 
@@ -506,8 +529,8 @@ down.
 
 - **Precision and recall depend on the threshold.** A single number hides the trade-off; report
   the threshold with them.
-- **A supervised classifier needs labeled examples of every class.** It cannot flag a fault it
-  was never shown.
+- **A supervised classifier needs labeled examples of every kind of fault.** It can miss a new
+  fault that looks like none of the ones it was shown.
 - **The four families draw different shapes.** A straight-line model cannot catch a fault that
   widens a signal without moving its average.
 - **A search is only as good as its objective.** Optuna minimizes whatever validation score you
@@ -522,7 +545,7 @@ down.
   saw.
 - [`l10-tracking-search.ipynb`](l10-tracking-search.ipynb): a 20-trial Optuna search for the
   decision tree on the concrete strength dataset, one MLflow child run per trial, and the winner registered and scored once.
-  Open `mlflow ui` afterward to see the runs.
+  Open `mlflow ui` at the start (section 2) and watch the runs appear.
 
 ## Summary
 
@@ -532,7 +555,7 @@ down.
 - **Accuracy** hides the kind of mistake. The **confusion matrix** counts the four outcomes (TP,
   FN, FP, TN); **precision** and **recall** come from it.
 - **The threshold** trades missed faults against false alarms.
-- **A classifier only knows the faults it was shown.**
+- **A classifier only catches new faults that look like the ones it was shown.**
 - **Optuna** searches the hyperparameters, **TPE** uses the past trials to pick the next one, and
   **MLflow** records every trial and registers the winner. Test it once.
 

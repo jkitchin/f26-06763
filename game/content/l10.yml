@@ -11,7 +11,7 @@ source_notes: lectures/l10/notes.md
 # Held until release: tools/release_lecture.py flips this to published.
 status: published
 serve: 9
-pool_version: 4
+pool_version: 5
 provenance:
   drafted_by: hand
   reviewed_by: none
@@ -395,7 +395,7 @@ items:
       will land on.
     source:
       file: lectures/l10/notes.md
-      heading: "A classifier only knows the faults it was shown"
+      heading: "Faults the classifier never saw"
       quote: |
         Recall ranges from 0.924 (fault 18) down to 0.001 (fault 19).
     verify: {mode: quote, needle: "ranges from 0.924 (fault 18) down to 0.001 (fault 19)", volatility: measured}
@@ -410,22 +410,23 @@ items:
       A team reports their network's 96.1% recall on the nine faults it was trained on as proof
       it will catch whatever fault the plant develops next. What is missing from that claim?
     options:
-      - "Recognition that it only knows the faults it was trained on, and a test against a fault it never saw"
+      - "Recognition that it only catches new faults that look like its training faults, and a test against a fault it never saw"
       - "A comparison against the accuracy of a baseline that always predicts normal"
       - "A second network trained on the same nine faults with a different random seed"
       - "More training samples drawn from the same nine faults it already knows"
-    answer: "Recognition that it only knows the faults it was trained on, and a test against a fault it never saw"
+    answer: "Recognition that it only catches new faults that look like its training faults, and a test against a fault it never saw"
     evidence: |
-      A recall measured on the faults a network was trained on says nothing about a fault it has
-      never seen, since a supervised classifier can only recognize the classes it was trained on.
-      The only way to find out how it handles a genuinely new fault is to hold one out on purpose
-      and test against it.
+      A recall measured on the faults a network was trained on says little about a fault it has
+      never seen: a supervised classifier only catches a new fault if it looks like the ones it
+      was trained on. Here recall on eight new faults ran from 0.924 down to 0.001. The only way
+      to find out is to hold a fault out on purpose and test against it.
     source:
       file: lectures/l10/notes.md
-      heading: "A classifier only knows the faults it was shown"
+      heading: "Faults the classifier never saw"
       quote: |
-        **A supervised classifier (Lecture 8) can only recognize the classes it was trained on.**
-    verify: {mode: quote, needle: "can only recognize the classes it was trained on", volatility: stable}
+        **A supervised classifier (Lecture 8) only catches new faults that look like the ones it was
+        trained on.**
+    verify: {mode: quote, needle: "only catches new faults that look like the ones it was", volatility: stable}
     tags: [unseen-faults, practitioner]
 
   # --- o6: an Optuna search tracked in MLflow ---------------------------------------------------
