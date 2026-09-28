@@ -567,12 +567,20 @@ def resolve_bank(live: dict, payload: dict) -> tuple[dict | None, str]:
     return arch, f"archived v{served_v}"
 
 
-def check_derivation(res: Result, ex: Extract, pool: dict, pool_version: int) -> None:
+def check_derivation(
+    res: Result, ex: Extract, pool: dict, pool_version: int, live_ids: "set[str] | None" = None,
+) -> None:
     """The strongest layer, and it needs no secret.
 
     Re-derive the item set from the Andrew ID in the payload. A classmate's PDF
     re-issued under a different id carries the wrong items, and this catches it
     even if the MAC key has been extracted.
+
+    `live_ids` is the item ids in the bank as it stands today. A served item that
+    is missing from the PDF *and* gone from the live bank was withdrawn while the
+    student was mid-sitting: the app records it as settled without an answer, so
+    the PDF honestly omits it. That is a note, never a problem. A missing item
+    that is still in the bank is an incomplete sitting and stays MISM.
     """
     p = ex.payload or {}
     module = p.get("module", {})
@@ -596,8 +604,20 @@ def check_derivation(res: Result, ex: Extract, pool: dict, pool_version: int) ->
     got = [(i["id"], i.get("v", "-"), tuple(i.get("opts", []))) for i in p.get("items", [])]
     want = [(s["id"], s["variant"], tuple(s["option_order"])) for s in served]
 
+    withdrawn = set()
+    if live_ids is not None:
+        got_ids = {g[0] for g in got}
+        withdrawn = {w[0] for w in want if w[0] not in got_ids and w[0] not in live_ids}
+    kept = [w for w in want if w[0] not in withdrawn]
+
     if got == want:
         res.checks["drv"] = "ok"
+    elif withdrawn and got == kept:
+        res.checks["drv"] = "ok"
+        res.notes.append(
+            f"{len(withdrawn)} served item(s) were withdrawn from the bank mid-sitting "
+            f"({', '.join(sorted(withdrawn))}); not answerable, not scored"
+        )
     else:
         res.checks["drv"] = "MISM"
         got_ids = {g[0] for g in got}
@@ -787,7 +807,8 @@ def verify_one(path: Path, bank: dict, mac_key: str) -> Result:
             i["id"]: {"options": i.get("options") or [], "variants": i.get("variants")}
             for i in against.get("items", [])
         }
-        check_derivation(res, ex, pool, against.get("pool_version", 1))
+        check_derivation(res, ex, pool, against.get("pool_version", 1),
+                         {i["id"] for i in bank.get("items", [])})
         check_answers(res, ex, against)
 
     res.verdict = "REVIEW" if res.problems else "PASS"

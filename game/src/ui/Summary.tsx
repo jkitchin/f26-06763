@@ -9,9 +9,8 @@
 
 import { useState } from 'react'
 import type { Bank } from '../content/load.ts'
-import { poolOf } from '../content/load.ts'
-import { derive } from '../seed.ts'
-import { buildAttestation, type ItemRecord } from '../evidence/payload.ts'
+import { buildAttestation } from '../evidence/payload.ts'
+import { evidenceOf } from '../evidence/sitting.ts'
 import { buildPdf, filenameFor } from '../evidence/pdf.ts'
 import {
   WRONG_PENALTY, attemptOf, itemScore, latestCompleted, sittingScore, type Event,
@@ -24,12 +23,11 @@ const BUILD_COMMIT: string = import.meta.env?.VITE_BUILD_COMMIT ?? '0'.repeat(40
 interface Props {
   bank: Bank
   log: Event[]
-  andrewId: string
   displayName: string
   onHome: () => void
 }
 
-export function Summary({ bank, log, andrewId, displayName, onHome }: Props) {
+export function Summary({ bank, log, displayName, onHome }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
   const session = latestCompleted(log, bank.lecture)
@@ -49,41 +47,19 @@ export function Summary({ bank, log, andrewId, displayName, onHome }: Props) {
 
   async function download() {
     try {
-      // The attempt comes from the sitting's opened event, never from today's
-      // log. Recomputing it here would count sittings finished *after* this one
-      // and re-derive to a set of items this student was never served, which is
-      // the "judge past work by present content" bug in its purest form.
-      const attempt = attemptOf(session!)
-      const served = derive(
-        andrewId, bank.lecture, poolOf(bank), bank.pool_version, bank.serve, attempt,
-      )
-
-      // Order the log entries by the served order rather than by time, so the
-      // payload's item list and the re-derived list line up positionally and
-      // the verifier compares like with like.
-      const entryFor = new Map(session!.entries.map((e) => [e.itemId, e]))
-      const items: ItemRecord[] = served.flatMap((s) => {
-        const e = entryFor.get(s.id)
-        if (!e) return []
-        return [{
-          id: e.itemId,
-          v: e.variant,
-          opts: e.opts,
-          ans: e.chosen,
-          first_ms: e.firstMs,
-          total_ms: e.totalMs,
-          tries: e.tries,
-          first_ok: e.firstOk,
-          revealed: e.revealed,
-        }]
-      })
+      // Everything that identifies the draw comes from the sitting's `opened`
+      // event, never from `bank`. Re-deriving here from today's bank is what
+      // cut the L7 PDFs down to one question: see evidence/sitting.ts.
+      const {
+        andrewId: servedTo, served, items, poolVersion, serve, attempt,
+      } = evidenceOf(session!)
 
       const attestation = buildAttestation({
-        andrewId,
+        andrewId: servedTo,
         name: displayName,
         lecture: bank.lecture,
-        poolVersion: bank.pool_version,
-        serve: bank.serve,
+        poolVersion,
+        serve,
         attempt,
         appVersion: APP_VERSION,
         buildCommit: BUILD_COMMIT,
@@ -103,7 +79,7 @@ export function Summary({ bank, log, andrewId, displayName, onHome }: Props) {
         const item = byId[rec.id]
         const idx = rec.ans[0] ? Number(rec.ans[0].slice(3)) : -1
         labels[rec.id] = {
-          prompt: (item?.prompt ?? '').split('\n')[0] ?? rec.id,
+          prompt: (item?.prompt ?? '').split('\n')[0] || rec.id,
           chosen: (item?.options?.[idx] ?? '(written answer)').slice(0, 70),
         }
       }
@@ -111,7 +87,7 @@ export function Summary({ bank, log, andrewId, displayName, onHome }: Props) {
       const doc = await buildPdf({
         attestation,
         name: displayName,
-        andrewId,
+        andrewId: servedTo,
         lecture: bank.lecture,
         lectureTitle: bank.title,
         attempt,
@@ -122,7 +98,7 @@ export function Summary({ bank, log, andrewId, displayName, onHome }: Props) {
         items,
         labels,
       })
-      doc.save(filenameFor(bank.lecture, andrewId))
+      doc.save(filenameFor(bank.lecture, servedTo))
       setError(null)
     } catch (err) {
       setError(String(err))

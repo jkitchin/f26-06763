@@ -173,6 +173,29 @@ jobs:
           print('evidence chain OK: honest work passes, retakes verify, forgeries do not')
           PY
 
+          # PDFs downloaded after the bank moved on, replaying the L7 incident:
+          # opened under the archived v6, verified against the live l07.yml.
+          # The PDF used to be re-derived from today's bank and carried one or
+          # two of five answers. Both must pass with every answer they had, and
+          # the withdrawn item must be a note, never a problem.
+          python tools/verify_evidence.py game/tests/samples/bumped/ \
+            --pool game/content/l07.yml | tee /tmp/verify-bumped.txt
+          python - <<'PY'
+          import re, sys
+          text = open('/tmp/verify-bumped.txt').read()
+          fails = []
+          if '1 PASS, 1 PASS*' not in text:
+              fails.append('bumped-pool PDFs did not come back 1 PASS, 1 PASS*')
+          done = sorted(int(m) for m in re.findall(r'\bl07\s+(\d+)\s', text))
+          if done != [4, 5]:
+              fails.append(f'bumped-pool PDFs carry {done} answers, expected [4, 5]')
+          if 'withdrawn from the bank mid-sitting' not in text:
+              fails.append('the withdrawn item was not reported as a note')
+          for f in fails:
+              print(f'::error::{f}')
+          sys.exit(1 if fails else 0)
+          PY
+
       - name: Run the game's logic tests
         # These existed and ran nowhere. Plain node scripts under
         # --experimental-strip-types, no browser and no build, about a second
