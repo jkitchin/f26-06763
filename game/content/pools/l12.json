@@ -4,6 +4,119 @@
     "1": {
       "items": {},
       "serve": 0
+    },
+    "2": {
+      "items": {
+        "l12-q01": {
+          "answer": "9 for the convolution against 2,304 for the dense layer, because the same kernel is reused at every position",
+          "options": [
+            "Both need 2,304, because every output must still see every input; the convolution only reorders the arithmetic",
+            "9 for the convolution against 2,304 for the dense layer, because the same kernel is reused at every position",
+            "36 for the convolution, one per output position, against 2,304, because each position learns its own kernel",
+            "9 against 64, since a dense layer needs one weight per input and a convolution one per kernel cell"
+          ]
+        },
+        "l12-q02": {
+          "answer": "13 cycles, because each layer adds 4 cycles beyond the first",
+          "options": [
+            "5 cycles, because stacking layers does not widen what one kernel sees",
+            "15 cycles, because each layer adds its full kernel width of 5",
+            "13 cycles, because each layer adds 4 cycles beyond the first",
+            "30 cycles, because same padding lets every output see the whole window"
+          ]
+        },
+        "l12-q03": {
+          "answer": "Clipping only shrinks large gradients; the early cycles get vanishing ones, which a gated cell such as a GRU fixes",
+          "options": [
+            "Clipping only shrinks large gradients; the early cycles get vanishing ones, which a gated cell such as a GRU fixes",
+            "The threshold is too high; clipping at 0.1 instead would rescale the early-cycle gradients up to a size the optimizer can actually use",
+            "Clipping belongs after `optimizer.step()`, so as written it runs too late to affect the update",
+            "Nothing; clipping is the standard remedy for recurrent networks and is enough on its own"
+          ]
+        },
+        "l12-q04": {
+          "answer": "Past 59 cycles, worse than predicting the training mean for every window",
+          "options": [
+            "Roughly unchanged, since the GRU sees exactly the same 30 readings either way",
+            "A cycle or two worse, about what the positional transformer loses",
+            "Slightly better, since reversal puts the most degraded readings first",
+            "Past 59 cycles, worse than predicting the training mean for every window"
+          ]
+        },
+        "l12-q05": {
+          "answer": "A, then B, then C, then D",
+          "options": [
+            "C, then B, then D, then A",
+            "A, then B, then C, then D",
+            "B, then C, then A, then D",
+            "D, then B, then A, then C"
+          ]
+        },
+        "l12-q06": {
+          "answer": "Something close to a nonlinear function of window averages, the summaries boosting already gets",
+          "options": [
+            "A sharp lookup of the few cycles nearest failure, which the linear head then extrapolates to a RUL",
+            "Something close to a nonlinear function of window averages, the summaries boosting already gets",
+            "Nothing useful; uniform attention means the layers never trained",
+            "A learned recurrence, since stacked attention layers recover sequential order on their own"
+          ]
+        },
+        "l12-q07": {
+          "answer": "That one-layer linear models beat every transformer on nine datasets, often by a large margin",
+          "options": [
+            "That the transformers still won, but only on the longest forecast horizons and the largest datasets",
+            "That one-layer linear models beat every transformer on nine datasets, often by a large margin",
+            "That the transformers and linear models tied once all of them were tuned equally",
+            "That the benchmark datasets leaked the forecast horizon into the input window"
+          ]
+        },
+        "l12-q08": {
+          "answer": "It is unchanged to two decimals, because the cosine rate had barely decayed by the epochs early stopping kept",
+          "options": [
+            "It rises clearly, because the decaying cosine rate is what let the GRU settle into the bottom of the minimum",
+            "It falls clearly, because a constant rate keeps exploring after cosine would have frozen",
+            "It is unchanged to two decimals, because the cosine rate had barely decayed by the epochs early stopping kept",
+            "It becomes erratic across seeds, because a constant rate never reduces the minibatch noise near the minimum"
+          ]
+        },
+        "l12-q09": {
+          "answer": "L2 regularization, with the number of steps playing the role of the reciprocal of the penalty",
+          "options": [
+            "Dropout, with the number of steps setting the drop probability",
+            "L2 regularization, with the number of steps playing the role of the reciprocal of the penalty",
+            "Gradient clipping, since both cap how far the weights can move",
+            "A learning-rate schedule, since stopping amounts to setting the rate to zero from that step onward"
+          ]
+        },
+        "l12-q10": {
+          "answer": "Acting only during the first epoch, while the weights are random, and doing nothing afterwards",
+          "options": [
+            "Acting on every batch, which is why the GRU trains stably at all",
+            "Acting only during the first epoch, while the weights are random, and doing nothing afterwards",
+            "Slowing training throughout, since any threshold shrinks every step a little",
+            "Nothing measurable here, but the logged norms show the threshold should be lowered to about 0.12"
+          ]
+        },
+        "l12-q11": {
+          "answer": "The loose weight shrinks far more: it keeps about a third, the firm one most of its value",
+          "options": [
+            "Both shrink by the same fraction, since the penalty coefficient is the same for every weight",
+            "The firm weight shrinks more, since the larger weight carries the larger squared penalty",
+            "The loose weight shrinks far more: it keeps about a third, the firm one most of its value",
+            "Neither moves, since weight decay only changes the path, not the optimum"
+          ]
+        },
+        "l12-q12": {
+          "answer": "The transformer without positions scores the same on all three views, and the GRU degrades most",
+          "options": [
+            "Every network gets somewhat worse on reversed windows, and by roughly the same amount",
+            "The transformer without positions scores the same on all three views, and the GRU degrades most",
+            "The positional transformer degrades most, since attention compares every pair of cycles and is the most order-sensitive",
+            "No network changes, since each one averages over the window before predicting"
+          ]
+        }
+      },
+      "serve": 6
     }
   }
 }

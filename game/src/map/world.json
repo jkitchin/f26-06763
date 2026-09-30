@@ -504,6 +504,14 @@
     },
     {
       "from": "l12",
+      "to": "l09",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "**Weight decay** penalizes large weights by adding $\\tfrac{1}{2}\\lambda \\lVert w \\rVert^2$ to the loss, the same penalty ridge regression uses in [Lecture 9](.."
+    },
+    {
+      "from": "l12",
       "to": "l11",
       "origin": "link",
       "relation": null,
