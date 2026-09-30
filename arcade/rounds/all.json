@@ -2996,6 +2996,258 @@
         "The CPU always, because PyTorch's GPU path is not optimized for tabular data",
         "Neither reliably; device timings are too noisy on a laptop to support any conclusion"
       ]
+    },
+    {
+      "id": "l12-q01",
+      "kind": "mcq",
+      "lecture": "l12",
+      "context": "An 8 by 8 temperature field goes through one 3 by 3 convolution with no\npadding, giving a 6 by 6 feature map. A colleague proposes a dense layer\nfrom the same 64 inputs to the same 36 outputs instead, since \"it can learn\nanything the convolution can.\"\n\nHow many weights does each need, and why does the difference matter for a\nstress or temperature field?",
+      "why": "Parameter sharing: one set of nine weights slides over every position, so an\nedge detector learned in one corner works in all of them. The dense layer\nhas 64 x 36 = 2,304 weights and has to learn each position's detector\nseparately, from far more data. The dense layer can represent the\nconvolution, but it would need the data to discover a symmetry the\nconvolution builds in.",
+      "objectives": [
+        "l12-o1"
+      ],
+      "tags": [
+        "cnn",
+        "parameter-sharing"
+      ],
+      "true": "9 for the convolution against 2,304 for the dense layer, because the same kernel is reused at every position",
+      "false": [
+        "Both need 2,304, because every output must still see every input; the convolution only reorders the arithmetic",
+        "36 for the convolution, one per output position, against 2,304, because each position learns its own kernel",
+        "9 against 64, since a dense layer needs one weight per input and a convolution one per kernel cell"
+      ]
+    },
+    {
+      "id": "l12-q02",
+      "kind": "mcq",
+      "lecture": "l12",
+      "context": "A 1D-CNN reads 30-cycle sensor windows through three stacked convolution\nlayers, each with a width-5 kernel and \"same\" padding, stride 1, no\ndilation.\n\nHow many cycles of the window can influence one output of the third layer?",
+      "why": "Each layer adds k - 1 = 4 cycles of reach, so three layers give\n1 + 3 x 4 = 13, less than half the window. Padding keeps the output length\nbut adds no reach; near the window's edge some of those 13 inputs are\npadding zeros. Dilating the layers by 1, 2 and 4 widens the reach to 29\ncycles with the same number of weights.",
+      "objectives": [
+        "l12-o2"
+      ],
+      "tags": [
+        "cnn",
+        "receptive-field",
+        "time-series"
+      ],
+      "true": "13 cycles, because each layer adds 4 cycles beyond the first",
+      "false": [
+        "5 cycles, because stacking layers does not widen what one kernel sees",
+        "15 cycles, because each layer adds its full kernel width of 5",
+        "30 cycles, because same padding lets every output see the whole window"
+      ]
+    },
+    {
+      "id": "l12-q03",
+      "kind": "spot_the_defect",
+      "lecture": "l12",
+      "context": "A plain RNN on 30-cycle windows learns almost nothing from the early cycles\nof each window. A teammate's fix is to add\n`torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)` to the training\nloop and retrain.\n\nWhat is wrong with the fix?",
+      "why": "Backpropagation through the recurrence multiplies by roughly the same factor\nat each step, so the signal reaching cycle 1 is that factor to the 29th\npower. Below 1 it vanishes, and clipping only ever shrinks a gradient. The\nGRU's state path multiplies by (1 - z), which training can hold near 1, so\nthe gradient can pass through many steps intact.",
+      "objectives": [
+        "l12-o2",
+        "l12-o3"
+      ],
+      "tags": [
+        "rnn",
+        "vanishing-gradient",
+        "clipping"
+      ],
+      "true": "Clipping only shrinks large gradients; the early cycles get vanishing ones, which a gated cell such as a GRU fixes",
+      "false": [
+        "The threshold is too high; clipping at 0.1 instead would rescale the early-cycle gradients up to a size the optimizer can actually use",
+        "Clipping belongs after `optimizer.step()`, so as written it runs too late to affect the update",
+        "Nothing; clipping is the standard remedy for recurrent networks and is enough on its own"
+      ]
+    },
+    {
+      "id": "l12-q04",
+      "kind": "predict_measure",
+      "lecture": "l12",
+      "context": "A GRU trained on FD001 windows scores about 14 cycles of RUL RMSE on\nheld-out engines. You score it again on the same windows with the 30\ncycles reversed in time.\n\nBefore you look: what happens to its error?",
+      "why": "The GRU scored 13.91 recorded and 59.32 reversed, averaged over five\nengine-grouped folds. Its state has only ever seen degradation run forward,\nso a reversed window looks like an engine getting healthier. The recurrent\nprior assumes the input is a trajectory, and on this data the assumption is\ncorrect, which is why the GRU scores well recorded and collapses reversed.",
+      "objectives": [
+        "l12-o1"
+      ],
+      "tags": [
+        "rnn",
+        "inductive-bias",
+        "order"
+      ],
+      "true": "Past 59 cycles, worse than predicting the training mean for every window",
+      "false": [
+        "Roughly unchanged, since the GRU sees exactly the same 30 readings either way",
+        "A cycle or two worse, about what the positional transformer loses",
+        "Slightly better, since reversal puts the most degraded readings first"
+      ]
+    },
+    {
+      "id": "l12-q05",
+      "kind": "rank",
+      "lecture": "l12",
+      "context": "Four models on FD001 30-cycle windows, scored by RUL RMSE over five\nengine-grouped folds and five seeds:\n\n**A.** gradient-boosted trees on window summaries\n**B.** a GRU\n**C.** a transformer with a learned positional encoding\n**D.** a 1D-CNN\n\nRank them best (lowest RMSE) first.",
+      "why": "Boosted trees 13.29, GRU 14.03, transformer 16.39, 1D-CNN 17.77. The\ntransformer trails the GRU because it assumes the least: order has to be\nlearned from a position table and any cycle may matter to any other, and\nabout 70 training engines per fold is little data to learn that from. Its\nbest validation epoch is typically the sixth, against the GRU's sixteenth.",
+      "objectives": [
+        "l12-o1"
+      ],
+      "tags": [
+        "transformer",
+        "comparison",
+        "inductive-bias"
+      ],
+      "true": "A, then B, then C, then D",
+      "false": [
+        "C, then B, then D, then A",
+        "B, then C, then A, then D",
+        "D, then B, then A, then C"
+      ]
+    },
+    {
+      "id": "l12-q06",
+      "kind": "mcq",
+      "lecture": "l12",
+      "context": "You read the attention weights out of the trained FD001 transformer. In the\nfirst layer every row's entropy is at least 99% of the maximum, and the model\naverages its outputs over the 30 cycles before the prediction head.\n\nWhat is the model computing, to a first approximation?",
+      "why": "Near-uniform weights make each output close to the window mean of the\nvalues, and the mean over cycles afterwards keeps it there. The second layer\nis slightly sharper, putting 28% of the last row on the last five cycles\nagainst 17% uniform. Head-averaging can hide a sharper head, so this is a\nstatement about the average; it still means a story about \"the model\nattends to the failure precursor\" needs checking before anyone tells it.",
+      "objectives": [
+        "l12-o1"
+      ],
+      "tags": [
+        "transformer",
+        "attention",
+        "interpretation"
+      ],
+      "true": "Something close to a nonlinear function of window averages, the summaries boosting already gets",
+      "false": [
+        "A sharp lookup of the few cycles nearest failure, which the linear head then extrapolates to a RUL",
+        "Nothing useful; uniform attention means the layers never trained",
+        "A learned recurrence, since stacked attention layers recover sequential order on their own"
+      ]
+    },
+    {
+      "id": "l12-q07",
+      "kind": "claim_vs_source",
+      "lecture": "l12",
+      "context": "\"Transformers are state of the art for long-horizon time-series\nforecasting.\" Someone cites the Informer and Autoformer line of work.\n\nWhat did Zeng and colleagues (AAAI 2023) report when they revisited those\nbenchmarks?",
+      "why": "LTSF-Linear \"surprisingly outperforms existing sophisticated\nTransformer-based LTSF models in all cases, and often by a large margin.\"\nTwo explanations: self-attention is permutation-invariant and loses\ntemporal information, and the earlier baselines forecast iteratively while\nthe transformers predicted the whole horizon at once, so a direct linear\nmodel was missing from the comparison.",
+      "objectives": [
+        "l12-o1"
+      ],
+      "tags": [
+        "transformer",
+        "baselines",
+        "literature"
+      ],
+      "true": "That one-layer linear models beat every transformer on nine datasets, often by a large margin",
+      "false": [
+        "That the transformers still won, but only on the longest forecast horizons and the largest datasets",
+        "That the transformers and linear models tied once all of them were tuned equally",
+        "That the benchmark datasets leaked the forecast horizon into the input window"
+      ]
+    },
+    {
+      "id": "l12-q08",
+      "kind": "direction",
+      "lecture": "l12",
+      "context": "A GRU is trained with Adam, early stopping at patience 10, and\n`CosineAnnealingLR(opt, T_max=60)` for a 60-epoch budget. The kept epoch\nlands between 9 and 17. You rerun with a constant learning rate and nothing\nelse changed.\n\nWhat happens to the best validation RMSE?",
+      "why": "13.04 against 13.04, and four of five seeds stopped on the same epoch under\nboth schedules. At epoch 17 the cosine rate is still 83% of its starting\nvalue, so the schedule does most of its decaying during epochs early\nstopping throws away. Pairing a schedule with early stopping means checking\nthe learning rate at the epoch you actually keep.",
+      "objectives": [
+        "l12-o3"
+      ],
+      "tags": [
+        "training",
+        "lr-schedule",
+        "early-stopping"
+      ],
+      "true": "It is unchanged to two decimals, because the cosine rate had barely decayed by the epochs early stopping kept",
+      "false": [
+        "It rises clearly, because the decaying cosine rate is what let the GRU settle into the bottom of the minimum",
+        "It falls clearly, because a constant rate keeps exploring after cosine would have frozen",
+        "It becomes erratic across seeds, because a constant rate never reduces the minibatch noise near the minimum"
+      ]
+    },
+    {
+      "id": "l12-q09",
+      "kind": "mcq",
+      "lecture": "l12",
+      "context": "Early stopping is usually described as a way to save compute. Goodfellow,\nBengio and Courville (section 7.8) show it is also a regularizer.\n\nFor a linear model with quadratic loss trained by gradient descent from\nsmall weights, what is it equivalent to?",
+      "why": "Starting from small weights, gradient descent moves them outward over time,\nso stopping after fewer steps keeps them smaller, much as a stronger L2\npenalty would. Training longer is like regularizing less. The same book's\nAlgorithm 7.1 is the patience rule the lecture uses.",
+      "objectives": [
+        "l12-o3"
+      ],
+      "tags": [
+        "training",
+        "early-stopping",
+        "regularization"
+      ],
+      "true": "L2 regularization, with the number of steps playing the role of the reciprocal of the penalty",
+      "false": [
+        "Dropout, with the number of steps setting the drop probability",
+        "Gradient clipping, since both cap how far the weights can move",
+        "A learning-rate schedule, since stopping amounts to setting the rate to zero from that step onward"
+      ]
+    },
+    {
+      "id": "l12-q10",
+      "kind": "mcq",
+      "lecture": "l12",
+      "context": "The lecture's GRU clips gradients at norm 1.0 and logs the pre-clip norm.\nAfter the first epoch the median batch norm is about 0.12, and the largest\nbatch in any epoch never exceeds 0.54.\n\nWhat is clipping doing in this run?",
+      "why": "Only the first epoch had batches above 1.0, about a quarter of them. Clipping\nrescales a gradient only when its norm exceeds the threshold, so it is\ninsurance here. Setting the threshold at the median norm would clip half of\nall steps and act as a second learning rate. `clip_grad_norm_` returns the\npre-clip norm, so logging whether the threshold is ever reached costs\nnothing.",
+      "objectives": [
+        "l12-o3"
+      ],
+      "tags": [
+        "training",
+        "clipping"
+      ],
+      "true": "Acting only during the first epoch, while the weights are random, and doing nothing afterwards",
+      "false": [
+        "Acting on every batch, which is why the GRU trains stably at all",
+        "Slowing training throughout, since any threshold shrinks every step a little",
+        "Nothing measurable here, but the logged norms show the threshold should be lowered to about 0.12"
+      ]
+    },
+    {
+      "id": "l12-q11",
+      "kind": "direction",
+      "lecture": "l12",
+      "context": "A two-weight loss pins one weight down firmly (high curvature) and the\nother only loosely (low curvature). Without a penalty the optimum is\n(2.40, 1.60). You add weight decay.\n\nHow does the penalty move the two weights?",
+      "why": "With lambda = 0.5 the optimum moves to (2.06, 0.53): the firm weight keeps\n86% and the loose one 33%. Weight decay rescales the optimum along each\nHessian eigenvector by lambda_i / (lambda_i + alpha), so it removes the parts\nof the fit the data barely supports, which are the parts most likely to be\nfitting noise.",
+      "objectives": [
+        "l12-o3"
+      ],
+      "tags": [
+        "training",
+        "weight-decay",
+        "regularization"
+      ],
+      "true": "The loose weight shrinks far more: it keeps about a third, the firm one most of its value",
+      "false": [
+        "Both shrink by the same fraction, since the penalty coefficient is the same for every weight",
+        "The firm weight shrinks more, since the larger weight carries the larger squared penalty",
+        "Neither moves, since weight decay only changes the path, not the optimum"
+      ]
+    },
+    {
+      "id": "l12-q12",
+      "kind": "notebook_run",
+      "lecture": "l12",
+      "context": "Open [`l12-cnn-rul.ipynb`](../lectures/l12/l12-cnn-rul.ipynb), run it top\nto bottom, and look at the order test in section 6, which scores each\nnetwork on its windows recorded, reversed, and shuffled.\n\nWhich pattern should you see, whatever your exact numbers?",
+      "why": "Without a positional encoding, attention followed by a mean over cycles\ntreats the window as a set, so reversing or shuffling it changes nothing, to\nthe last digit. The positional transformer uses order but leans on it\nlightly; the GRU, whose computation is a walk along the cycles, is hurt\nmost. The notes' five-fold version of the table shows the same pattern:\n17.87 on every view without positions, against 13.91 recorded and 59.32\nreversed for the GRU.",
+      "objectives": [
+        "l12-o2",
+        "l12-o1"
+      ],
+      "tags": [
+        "transformer",
+        "positional-encoding",
+        "notebook"
+      ],
+      "true": "The transformer without positions scores the same on all three views, and the GRU degrades most",
+      "false": [
+        "Every network gets somewhat worse on reversed windows, and by roughly the same amount",
+        "The positional transformer degrades most, since attention compares every pair of cycles and is the most order-sensitive",
+        "No network changes, since each one averages over the window before predicting"
+      ]
     }
   ]
 }

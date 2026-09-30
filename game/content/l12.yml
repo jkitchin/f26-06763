@@ -2,7 +2,7 @@ schema: 1
 lecture: l12
 title: "Architectures for engineering data: MLP, CNN, and sequence models"
 source_notes: lectures/l12/notes.md
-status: unwritten
+status: published
 serve: 6
 pool_version: 2
 provenance:

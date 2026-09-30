@@ -218,13 +218,13 @@
       "id": "l12",
       "date": "2026-10-05",
       "title": "ML architectures for engineering data",
-      "written": false,
+      "written": true,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
       "region": 2,
       "x": 7,
       "y": 3,
-      "notes": null
+      "notes": "../lectures/l12/notes.html"
     },
     {
       "session": "L13",
