@@ -13,7 +13,7 @@
 
 ## Why this matters
 
-[Lecture 11](../l11/notes.md) built the machinery: tensors, autograd, a training loop, and a multilayer perceptron on tabular concrete data. It also delivered an uncomfortable result, that the MLP did not beat a gradient-boosted tree. This session is about the missing idea that a bare MLP throws away, which is **structure**.
+[Lecture 11](../l11/notes.md) built the machinery: tensors, autograd, a training loop, and a multilayer perceptron on tabular concrete data. It also delivered an occasionally awkward result, that the MLP did not beat a gradient-boosted tree. This session is about the missing idea that a bare MLP throws away, which is **structure**.
 
 An MLP treats its input as a flat vector of numbers with no relationships among them. That is the right picture for tabular data, where the columns are genuinely different quantities. It is the wrong picture for a great deal of engineering data, where the input has a shape the model should exploit. A temperature field from a simulation is a grid, and a pixel's neighbors matter. A vibration trace is a sequence, and a reading's recent past matters. Flatten either into a vector and you have told the model to relearn, from scratch and from limited data, a structure you already knew for free.
 
