@@ -8,7 +8,6 @@
 - **Slides** <a href="../../slides/l12/">Deck for this session</a>
 - **Practice** <a href="../../game/#/l12">Practice module for this session</a>
 - **Demo** [`l12-cnn-rul.ipynb`](l12-cnn-rul.ipynb), a 1D-CNN for turbofan remaining-useful-life, against a tabular baseline
-- **Assignment 6**, released at Lecture 11; this session's architectures are what it asks you to build
 :::
 
 ## Why this matters
@@ -351,9 +350,6 @@ The one idea of this session is to match the architecture to the structure of th
 - [Loshchilov and Hutter, "Decoupled Weight Decay Regularization" (arXiv:1711.05101)](https://arxiv.org/abs/1711.05101). Why `weight_decay` in Adam is not true weight decay, and the AdamW fix.
 - [NASA C-MAPSS turbofan dataset](https://ntrs.nasa.gov/citations/20090029214). Saxena et al. (2008) methodology; the FD001 subset is from the NASA Prognostics data repository, as in Lecture 8.
 
-## Assignment
-
-Assignment 6, "Train a PyTorch model on an engineering dataset," was released at [Lecture 11](../l11/notes.md) and is due about a week later. It asks you to build, train, and honestly evaluate a deep model (an MLP, a CNN, or a sequence model) on a real engineering dataset, using a GPU, with MLflow tracking and a comparison against a strong classical baseline. This session's architectures and training recipe are what it is built on. This is a pointer, not the rubric.
 
 ## Practice module
 
