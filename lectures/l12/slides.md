@@ -203,55 +203,24 @@ A sensor time series is a 1D grid, time, with a channel per sensor.
 
 ---
 
-## Sequence models, the receptive field
-
-<div class="cw compact" data-widget="receptive" data-source="l12"><img src="figures/widget-receptive.png" alt="Which input cycles one output of a three-layer CNN can see"></div>
-
-<!-- 3 layers x k=5 = 13 cycles. Last output: 7 real cycles, 6 padding zeros. Toggle dilation: 29 cycles, same weights. -->
-
----
 
 ## Sequence models, recurrence
 
+<style scoped>
+.definition { margin: 0 0 0.2em; }
+p { font-size: 0.85em; }
+.cw.compact svg { max-height: 280px; }
+</style>
+
+<div class="definition">
+
+**GRU** (gated recurrent unit): carries a state along the window and learns a gate $z$ that decides, at each cycle, how much state to keep and how much to overwrite with the new input.
+
+</div>
+
 <div class="cw compact" data-widget="recurrence" data-source="l12"><img src="figures/widget-recurrence.png" alt="A leaky state unit stepping along a 30-cycle window"></div>
 
-<!-- Play at z=0.2, then drag z to 1 and to 0.05. Memory ~ 1/z. A GRU learns z per step from the input. -->
-
----
-
-## Sequence models, gradients through time
-
-<div class="cw compact" data-widget="gradient-flow" data-source="l12"><img src="figures/widget-gradient-flow.png" alt="Gradient size at each cycle of the window, shrinking or growing with the per-step factor"></div>
-
-<!-- Factor 0.8: cycle 1 gets ~1e-3. 1.3: explodes; tick clip. Clipping fixes explosion, nothing fixes vanishing; the GRU gate does. -->
-
----
-
-## Sequence models, a question
-
-<div class="clicker" data-tag="l12-vanishing" data-seconds="45" data-answer="C" data-hint="The widget readout: clipping rescales a gradient that is too large. What happens to one that is already tiny? Then look back at what an RNN carries between steps." data-why="C. A gate lets the state, and so the gradient, pass through a step nearly unchanged instead of being multiplied by 0.8 each time. Clipping only shrinks large gradients, and a larger rate scales every cycle equally, so cycle 1 still gets 1e-3 of cycle 30." data-read="https://clicker.f26-06763.workers.dev">
-<div class="clicker-main">
-
-**Per-step factor 0.8 over a 30-cycle window: cycle 1 gets about 1e-3 of the gradient cycle 30 gets. Which change addresses that?**
-
-<ol class="clicker-opts">
-<li>Gradient clipping at norm 1</li>
-<li>A larger learning rate</li>
-<li>A gated recurrent unit (GRU or LSTM)</li>
-<li>Training for more epochs</li>
-</ol>
-
-</div>
-<aside class="clicker-panel">
-<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
-<div class="clicker-url">clicker.f26-06763.workers.dev</div>
-<button class="clicker-start">Start voting</button>
-<div class="clicker-timer">45</div>
-<div class="clicker-count">no votes yet</div>
-</aside>
-</div>
-
-<!-- 0.8^29 = 1.5e-3. B is the interesting wrong answer: it makes the cycle-1 gradient bigger in absolute terms but leaves the ratio alone, so early cycles still have no say relative to late ones. -->
+<!-- Widget holds z fixed: h_t = (1-z) h_{t-1} + z x_t. Play at z=0.2, then drag z to 1 and to 0.05. Memory ~ 1/z. A GRU learns z per step from the input. -->
 
 ---
 
@@ -310,6 +279,13 @@ $$ s_{ij} = \frac{q_i \cdot k_j}{\sqrt{d}}, \qquad \alpha_{ij} = \mathrm{softmax
 ---
 
 ## Attention and transformers, by hand
+
+<style scoped>
+p { font-size: 0.8em; margin: 0 0 0.2em; }
+.cw.compact svg { max-height: 300px; }
+</style>
+
+Read down: scores, weights (dashed = uniform 0.1), output. **See:** the weights come from the data and shift with the query; with no positions, a shuffle leaves the pooled summary unchanged.
 
 <div class="cw compact" data-widget="self-attention" data-source="l12"><img src="figures/widget-self-attention.png" alt="Ten sensor cycles as tokens, with the attention scores, softmax weights and output for one query cycle"></div>
 
@@ -662,3 +638,50 @@ Full notes, with all sources: `lectures/l12/notes.md`
 <script src="l12-widget-data.js"></script>
 <script src="widgets.js"></script>
 <script src="clicker-slide.js"></script>
+
+
+
+
+## Sequence models, the receptive field
+
+<div class="cw compact" data-widget="receptive" data-source="l12"><img src="figures/widget-receptive.png" alt="Which input cycles one output of a three-layer CNN can see"></div>
+
+<!-- 3 layers x k=5 = 13 cycles. Last output: 7 real cycles, 6 padding zeros. Toggle dilation: 29 cycles, same weights. -->
+
+---
+
+## Sequence models, gradients through time
+
+<div class="cw compact" data-widget="gradient-flow" data-source="l12"><img src="figures/widget-gradient-flow.png" alt="Gradient size at each cycle of the window, shrinking or growing with the per-step factor"></div>
+
+<!-- Factor 0.8: cycle 1 gets ~1e-3. 1.3: explodes; tick clip. Clipping fixes explosion, nothing fixes vanishing; the GRU gate does. -->
+
+---
+
+## Sequence models, a question
+
+<div class="clicker" data-tag="l12-vanishing" data-seconds="45" data-answer="C" data-hint="The widget readout: clipping rescales a gradient that is too large. What happens to one that is already tiny? Then look back at what an RNN carries between steps." data-why="C. A gate lets the state, and so the gradient, pass through a step nearly unchanged instead of being multiplied by 0.8 each time. Clipping only shrinks large gradients, and a larger rate scales every cycle equally, so cycle 1 still gets 1e-3 of cycle 30." data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker-main">
+
+**Per-step factor 0.8 over a 30-cycle window: cycle 1 gets about 1e-3 of the gradient cycle 30 gets. Which change addresses that?**
+
+<ol class="clicker-opts">
+<li>Gradient clipping at norm 1</li>
+<li>A larger learning rate</li>
+<li>A gated recurrent unit (GRU or LSTM)</li>
+<li>Training for more epochs</li>
+</ol>
+
+</div>
+<aside class="clicker-panel">
+<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
+<div class="clicker-url">clicker.f26-06763.workers.dev</div>
+<button class="clicker-start">Start voting</button>
+<div class="clicker-timer">45</div>
+<div class="clicker-count">no votes yet</div>
+</aside>
+</div>
+
+<!-- 0.8^29 = 1.5e-3. B is the interesting wrong answer: it makes the cycle-1 gradient bigger in absolute terms but leaves the ratio alone, so early cycles still have no say relative to late ones. -->
+
+---
