@@ -3248,6 +3248,377 @@
         "The positional transformer degrades most, since attention compares every pair of cycles and is the most order-sensitive",
         "No network changes, since each one averages over the window before predicting"
       ]
+    },
+    {
+      "id": "l13-q01",
+      "kind": "mcq",
+      "lecture": "l13",
+      "context": "A PINN's loss has two terms. What does the second one measure?",
+      "why": "The first term fits the data. The second plugs the network's output and its derivatives\ninto the equation of motion and squares what is left over, the residual. A function that\nobeys the equation exactly makes it zero.",
+      "objectives": [
+        "l13-o1"
+      ],
+      "tags": [
+        "pinn",
+        "loss",
+        "residual"
+      ],
+      "true": "The residual of the governing equation, zero for a function that obeys it exactly",
+      "false": [
+        "The error against measurements taken after the training window",
+        "The size of the network's weights, to keep it from overfitting",
+        "The difference between the PINN and a plain network trained on the same data"
+      ]
+    },
+    {
+      "id": "l13-q02",
+      "kind": "mcq",
+      "lecture": "l13",
+      "context": "Where does the spring-mass PINN evaluate its physics term?",
+      "why": "The physics term needs no measurements, only the equation, so it can be evaluated\nanywhere. Spreading the collocation points over the whole interval is what lets the\nequation guide the network after the data run out.",
+      "objectives": [
+        "l13-o1"
+      ],
+      "tags": [
+        "pinn",
+        "collocation-point"
+      ],
+      "true": "At 40 collocation points spread over the whole second, including where there is no data",
+      "false": [
+        "Only at the 10 measured time points, where the answer is known",
+        "Only after the last measurement, where the data cannot help",
+        "At every training step's random batch of measurements"
+      ]
+    },
+    {
+      "id": "l13-q03",
+      "kind": "direction",
+      "lecture": "l13",
+      "context": "You raise λ, the weight on the PINN's physics term, and retrain. What happens?",
+      "why": "The physics is a penalty, so λ sets the exchange rate between the two terms. Making the\nresidual more expensive shrinks it at some cost in data fit, but a penalty never forces it\nto exactly zero.",
+      "objectives": [
+        "l13-o1"
+      ],
+      "tags": [
+        "pinn",
+        "soft-constraint",
+        "lambda"
+      ],
+      "true": "The residual shrinks, and the fit to the data gets a little worse",
+      "false": [
+        "The residual becomes exactly zero",
+        "Both the residual and the fit to the data improve",
+        "Nothing, since λ only rescales the whole loss"
+      ]
+    },
+    {
+      "id": "l13-q04",
+      "kind": "mcq",
+      "lecture": "l13",
+      "context": "After training, the PINN's residual is 0.7 N at its 40 collocation points. What is it over\nthe whole second?",
+      "why": "The optimizer only sees the residual at the collocation points, so that is where it is\npushed down. Between them nothing penalizes it, and over the whole second the root mean\nsquare is 5.3 N.",
+      "objectives": [
+        "l13-o1"
+      ],
+      "tags": [
+        "pinn",
+        "residual",
+        "collocation-point"
+      ],
+      "true": "Larger: 5.3 N, because the physics is penalized only where it is evaluated",
+      "false": [
+        "Also about 0.7 N, because the network is smooth between the points",
+        "Exactly zero, because the collocation points cover the interval",
+        "Smaller, because the residual averages out between the points"
+      ]
+    },
+    {
+      "id": "l13-q05",
+      "kind": "mcq",
+      "lecture": "l13",
+      "context": "Both networks fit the 10 spring-mass measurements from the first 0.36 s. After the data run\nout, which one is right?",
+      "why": "With nothing after 0.36 s, the plain network drifts to a flat line (RMSE 0.54 m). The PINN\nfollows the oscillation (RMSE 0.001 m), because the equation tells it what happens next.",
+      "objectives": [
+        "l13-o2"
+      ],
+      "tags": [
+        "pinn",
+        "extrapolation"
+      ],
+      "true": "The PINN; the plain network is wrong by about half a meter",
+      "false": [
+        "Both, since they fit the same 10 points",
+        "The plain network, since no residual term compromises its fit",
+        "Neither, since no model can say anything past its data"
+      ]
+    },
+    {
+      "id": "l13-q06",
+      "kind": "mcq",
+      "lecture": "l13",
+      "context": "The PINN needs the second derivative of the network with respect to time. How does the JAX\ncode get it?",
+      "why": "jax.grad returns the derivative of a scalar function. Applied to the network's output as a\nfunction of t, and then again, it gives the exact second derivative. jax.vmap only\nevaluates that derivative at many points at once.",
+      "objectives": [
+        "l13-o2"
+      ],
+      "tags": [
+        "jax",
+        "automatic-differentiation",
+        "pinn"
+      ],
+      "true": "By applying jax.grad twice, differentiating with respect to the input t",
+      "false": [
+        "By finite differences between neighbouring collocation points",
+        "With jax.vmap, which returns the derivative at every point at once",
+        "With a second network trained to predict the acceleration"
+      ]
+    },
+    {
+      "id": "l13-q07",
+      "kind": "mcq",
+      "lecture": "l13",
+      "context": "A recurrent network and a neural ODE are both trained on the same spring-mass data. What\ndoes the neural ODE learn that the recurrent network does not?",
+      "why": "A recurrent network learns a time-discrete realization of the dynamics, tied to its step\nΔt. A neural ODE learns f itself, the arrows on the phase plane, and the solver turns those\ninto a trajectory at whatever times you ask for.",
+      "objectives": [
+        "l13-o3"
+      ],
+      "tags": [
+        "neural-ode",
+        "vector-field",
+        "recurrent-network"
+      ],
+      "true": "The right-hand side f, the vector field, which holds for any starting state and any sampling times",
+      "false": [
+        "The jump from one sample to the next, for one fixed step size",
+        "One trajectory x(t), for this release of the mass",
+        "The step sizes the ODE solver should take"
+      ]
+    },
+    {
+      "id": "l13-q08",
+      "kind": "direction",
+      "lecture": "l13",
+      "context": "You halve the time step of the recurrent update. What happens to its largest error against\nthe exact solution of the ODE?",
+      "why": "Forward Euler's error is proportional to the step size, so halving Δt halves it. On the\nspring-mass the largest error went from 0.106 to 0.049 to 0.024 m as Δt halved from\n0.0025 s.",
+      "objectives": [
+        "l13-o3"
+      ],
+      "tags": [
+        "euler",
+        "convergence",
+        "neural-ode"
+      ],
+      "true": "It roughly halves, because forward Euler is first order",
+      "false": [
+        "It drops to about a quarter",
+        "It stays the same, because the network has not changed",
+        "It doubles, because twice as many steps accumulate error"
+      ]
+    },
+    {
+      "id": "l13-q09",
+      "kind": "mcq",
+      "lecture": "l13",
+      "context": "Start from the residual update h_(k+1) = h_k + Δt f(h_k; θ), with f a neural network.\nWhat do you get as Δt goes to zero?",
+      "why": "Dividing by Δt turns the left side into a difference quotient, which becomes a derivative\nin the limit. The recurrent network was a forward Euler discretization of that ODE all\nalong.",
+      "objectives": [
+        "l13-o3"
+      ],
+      "tags": [
+        "neural-ode",
+        "recurrent-network"
+      ],
+      "true": "A neural ODE, dh/dt = f(h, t, θ), of which the recurrent network is the Euler discretization",
+      "false": [
+        "A PINN, because the residual of the update goes to zero",
+        "A DAE, because the update becomes an algebraic equation",
+        "The same recurrent network, run for more steps"
+      ]
+    },
+    {
+      "id": "l13-q10",
+      "kind": "mcq",
+      "lecture": "l13",
+      "context": "In the tank manifold, two tanks must keep equal levels, x0 = x1. Which equation gives the\nflow y2 into tank x1?",
+      "why": "The constraint x0 = x1 holds at every instant, and y2 is the algebraic variable that makes\nit hold. No equation states it directly, which is what makes the model a DAE rather than\nan ODE.",
+      "objectives": [
+        "l13-o4"
+      ],
+      "tags": [
+        "dae",
+        "algebraic-variable"
+      ],
+      "true": "None: y2 is whatever keeps the two levels equal",
+      "false": [
+        "A valve equation relating y2 to the pressure drop",
+        "The pump equation, since the pump drives every flow",
+        "A neural network trained on measured flows"
+      ]
+    },
+    {
+      "id": "l13-q11",
+      "kind": "mcq",
+      "lecture": "l13",
+      "context": "A batch reactor's temperature must stay below a limit at every instant. A PINN-style model\nputs that limit in its loss as a penalty. Why is that not enough?",
+      "why": "A penalty trades the constraint against the data fit, so it can leave a small violation,\nand it only acts where it is evaluated. A safety limit is a path constraint: it must hold\nat every instant, which needs it enforced, not penalized.",
+      "objectives": [
+        "l13-o4"
+      ],
+      "tags": [
+        "hard-constraint",
+        "path-constraint",
+        "practitioner"
+      ],
+      "true": "A penalty makes violations small, not zero; the limit has to hold at every instant, as a path constraint",
+      "false": [
+        "A penalty cannot be differentiated, so the optimizer ignores it",
+        "Penalties only work for equality constraints",
+        "Temperature limits can only be held by a controller, never by a model"
+      ]
+    },
+    {
+      "id": "l13-q12",
+      "kind": "mcq",
+      "lecture": "l13",
+      "context": "In the simultaneous approach, when are the model equations satisfied?",
+      "why": "The states at every time point are unknowns of one optimization problem, and the model is\na set of equality constraints on them. Intermediate iterates can break those constraints;\nthe converged solution satisfies them.",
+      "objectives": [
+        "l13-o5"
+      ],
+      "tags": [
+        "simultaneous-approach",
+        "collocation"
+      ],
+      "true": "Only when the solver converges",
+      "false": [
+        "At every iterate, since each iterate is a simulation",
+        "Only at the measured time points",
+        "Never exactly; they are penalized like a PINN's residual"
+      ]
+    },
+    {
+      "id": "l13-q13",
+      "kind": "mcq",
+      "lecture": "l13",
+      "context": "At iteration 0 the simultaneous fit of the spring-mass has a sum of squared errors of 0.00.\nWhy is it not finished?",
+      "why": "The states start as an interpolation of the data, so the misfit is zero, but the largest\nviolation of the collocation equations is 7.7. The solver then repairs the physics, ending\nwith a defect of 2.5e-15.",
+      "objectives": [
+        "l13-o5"
+      ],
+      "tags": [
+        "simultaneous-approach",
+        "infeasible-path"
+      ],
+      "true": "Its states sit on the data but break the model equations",
+      "false": [
+        "It has not computed a gradient yet",
+        "The data are noisy, so a perfect fit is suspect",
+        "Interior-point solvers always run a fixed number of iterations"
+      ]
+    },
+    {
+      "id": "l13-q14",
+      "kind": "spot_the_defect",
+      "lecture": "l13",
+      "context": "A team estimates the damping and stiffness of a lightly damped oscillator by single\nshooting, starting from k = 150 N/m, and reports μ = 0.29 N·s/m and k = 419 N/m as the\nsystem's values. What did they miss?",
+      "why": "A simulated oscillation slightly out of phase with the data misfits everywhere, so the loss\nhas many local minima. The sequential run stopped in one (sum of squared errors 5.23); the\nsimultaneous run reached the true values within noise (0.036).",
+      "objectives": [
+        "l13-o5"
+      ],
+      "tags": [
+        "sequential-approach",
+        "local-minimum",
+        "practitioner"
+      ],
+      "true": "Single shooting can stop in a local minimum on oscillating data; the simultaneous approach from the same start found μ = 0.99, k = 402",
+      "false": [
+        "BFGS needed more iterations to reach the true values",
+        "With noisy data, the damping cannot be estimated at all",
+        "Single shooting cannot estimate two parameters at once"
+      ]
+    },
+    {
+      "id": "l13-q15",
+      "kind": "mcq",
+      "lecture": "l13",
+      "context": "On a new batch, the bioreactor's neural ODE drives the substrate to −0.41 g/L. What does\nSiNDAE's neural DAE prediction do differently?",
+      "why": "In prediction the network equation gets slack variables whose sum is penalized. The solver\nkeeps the network's growth rate wherever it can, and overrules it only where S would\notherwise go negative.",
+      "objectives": [
+        "l13-o6"
+      ],
+      "tags": [
+        "neural-dae",
+        "sindae",
+        "constraint"
+      ],
+      "true": "Solves the same model as an NLP with S ≥ 0, moving the growth rate off the network's value only where a constraint would break",
+      "false": [
+        "Retrains the network on the new batch before predicting",
+        "Clips the substrate at zero after integrating",
+        "Integrates with a smaller time step"
+      ]
+    },
+    {
+      "id": "l13-q16",
+      "kind": "spot_the_defect",
+      "lecture": "l13",
+      "context": "A report says: \"The neural DAE never lets the substrate go negative, so it must be more\naccurate than the neural ODE on every state.\" What is wrong with the claim?",
+      "why": "The constraint stops the prediction from being impossible; it does not make the learned\ngrowth rate correct. On the new batch the neural DAE never goes below zero, yet its\nsubstrate error against the true model (RMSE 0.29 g/L) is larger than the neural ODE's\n(0.20 g/L).",
+      "objectives": [
+        "l13-o6"
+      ],
+      "tags": [
+        "neural-dae",
+        "accuracy",
+        "practitioner"
+      ],
+      "true": "Feasible is not accurate: the neural DAE's substrate error is 0.29 g/L, the neural ODE's 0.20 g/L",
+      "false": [
+        "Nothing: a constraint that holds makes every predicted state more accurate",
+        "The neural DAE cannot predict substrate, only biomass",
+        "The neural DAE's substrate does go negative, only less than the neural ODE's"
+      ]
+    },
+    {
+      "id": "l13-q17",
+      "kind": "mcq",
+      "lecture": "l13",
+      "context": "A projection layer enforces a mass balance A y = b on a network's output. How well does the\noutput satisfy it?",
+      "why": "The layer replaces the raw output by the closest point on the constraint, a fixed linear\ncorrection with no trainable weights. Every output it returns satisfies A y = b, whatever\nthe network upstream does.",
+      "objectives": [
+        "l13-o7"
+      ],
+      "tags": [
+        "projection-layer",
+        "hard-constraint"
+      ],
+      "true": "To machine precision, in training and in use",
+      "false": [
+        "Approximately, with the error set by a penalty weight like a PINN's λ",
+        "Only on the training data",
+        "Only after the network has been trained to convergence"
+      ]
+    },
+    {
+      "id": "l13-q18",
+      "kind": "mcq",
+      "lecture": "l13",
+      "context": "A neural DAE and a projection layer both enforce a constraint exactly. Where does each one\ndo it?",
+      "why": "A neural DAE writes the constraints into the optimization problem the solver satisfies. A\nprojection layer is part of the network itself, so every output it returns already obeys\nthe constraint.",
+      "objectives": [
+        "l13-o7"
+      ],
+      "tags": [
+        "neural-dae",
+        "projection-layer",
+        "comparison"
+      ],
+      "true": "The neural DAE in the solver; the projection layer in the network, on every forward pass",
+      "false": [
+        "Both in the loss, with a large penalty weight",
+        "The neural DAE in the network; the projection layer in the solver",
+        "Both after training, by clipping the outputs"
+      ]
     }
   ]
 }
