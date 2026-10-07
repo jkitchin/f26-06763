@@ -1364,6 +1364,803 @@
     draw();
   };
 
+  // ------------------------------------------------------------------ L13
+
+  var RED = '#c41230';
+
+  // A clip region for one plot, so a curve that leaves its axes is cut at the
+  // frame instead of running over the rest of the figure. draw() clears the
+  // SVG each time, so each call makes a fresh, uniquely named clipPath.
+  var CLIPN = 0;
+  function clipTo(svg, x, y, w, h) {
+    var id = 'cwclip' + (++CLIPN);
+    var cp = el('clipPath', { id: id }, el('defs', {}, svg));
+    el('rect', { x: x, y: y, width: w, height: h }, cp);
+    return 'url(#' + id + ')';
+  }
+
+  function spring(parent, x, y0, y1, color) {
+    var n = 10, pts = [[x, y0]], seg = (y1 - y0 - 8) / n;
+    for (var i = 0; i < n; i++) pts.push([x + (i % 2 ? -7 : 7), y0 + 4 + seg * (i + 0.5)]);
+    pts.push([x, y1]);
+    polyline(parent, pts.map(function (p) { return p[0]; }), pts.map(function (p) { return p[1]; }),
+      { stroke: color, 'stroke-width': 1.6 });
+  }
+
+  /* Estimating the damping and stiffness of a spring-mass from noisy data, from
+   * one poor starting guess, two ways. Every iterate of each solver was recorded
+   * by lectures/l13/figures/make_figures.py. Single shooting simulates at every
+   * iterate; collocation starts on the data with the ODE broken and repairs it. */
+  WIDGETS['seq-sim'] = function (root, data) {
+    var d = data.seqsim, S = d.seq, M = d.sim, n = Math.max(S.length, M.length);
+    var W = 720, H = 330, T0 = 30, B = 220;
+    html('div', { class: 'cw-title' }, root, 'Sequential and simultaneous, iteration by iteration');
+    var svg = svgRoot(root, W, H, 'Iterates of single shooting and of the simultaneous approach on the same estimation problem');
+    var controls = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'Lightly damped spring-mass (true μ = 1 N·s/m, k = 400 N/m), 51 measurements over 2 s with noise SD 0.03 m, both ' +
+      'started from μ = 2, k = 150. Sequential: Runge-Kutta simulation inside BFGS. Simultaneous: trapezoidal collocation ' +
+      'on 200 steps, solved by the POUNCE interior-point solver. Data error: sum of squared errors (SSE) against the ' +
+      'measurements. Equation error: how far the model equations are from holding, the largest violation.');
+    var panels = [
+      { x0: 44, x1: 352, name: 'Sequential (single shooting)', color: 'var(--cw-accent2)', frames: S, dots: false },
+      { x0: 404, x1: 712, name: 'Simultaneous (collocation)', color: 'var(--cw-accent)', frames: M, dots: true }
+    ];
+    var sy = scale(-1.15, 1.15, B, T0);
+    function bar(x0, y, w, frac, color, label, value) {
+      text(svg, x0, y - 3, label, { 'font-size': 11, opacity: 0.8 });
+      el('rect', { x: x0 + 92, y: y - 12, width: w, height: 11, fill: 'currentColor', 'fill-opacity': 0.08 }, svg);
+      el('rect', { x: x0 + 92, y: y - 12, width: Math.max(1, w * Math.min(1, Math.max(0, frac))), height: 11, fill: color }, svg);
+      text(svg, x0 + 98 + w, y - 3, value, { 'font-size': 11 });
+    }
+    var p = player(controls, n, draw, 260);
+
+    function draw(i) {
+      clear(svg);
+      var line = [];
+      panels.forEach(function (pn) {
+        var k = Math.min(i, pn.frames.length - 1), fr = pn.frames[k], done = k === pn.frames.length - 1;
+        var sx = scale(0, d.T, pn.x0, pn.x1);
+        var clip = clipTo(svg, pn.x0 - 4, T0, pn.x1 - pn.x0 + 8, B - T0);
+        text(svg, (pn.x0 + pn.x1) / 2, 14, pn.name, { 'text-anchor': 'middle', 'font-size': 13, 'font-weight': 600, style: 'fill:' + pn.color });
+        text(svg, (pn.x0 + pn.x1) / 2, 28, 'iteration ' + k + (done ? ' (final)' : ''), { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.75 });
+        el('line', { x1: pn.x0, x2: pn.x1, y1: sy(0), y2: sy(0), stroke: 'currentColor', 'stroke-opacity': 0.15 }, svg);
+        d.t_obs.forEach(function (v, j) { el('circle', { cx: sx(v), cy: sy(d.x_obs[j]), r: 2.4, fill: 'currentColor', 'fill-opacity': 0.75 }, svg); });
+        polyline(svg, d.t.map(sx), fr.x.map(sy), { stroke: pn.color, 'stroke-width': 2, 'clip-path': clip });
+        if (pn.dots) fr.x.forEach(function (v, j) { el('circle', { cx: sx(d.t[j]), cy: sy(v), r: 1.6, fill: pn.color, 'clip-path': clip }, svg); });
+        [0, 1, 2].forEach(function (v) { text(svg, sx(v), B + 14, String(v), { 'text-anchor': 'middle', 'font-size': 10, opacity: 0.7 }); });
+        text(svg, (pn.x0 + pn.x1) / 2, B + 27, 'time (s)', { 'text-anchor': 'middle', 'font-size': 10, opacity: 0.7 });
+        // Fit to the data, on a log scale from 0.01 to 20.
+        var fitFrac = (Math.log10(Math.max(fr.sse, 0.01)) + 2) / (Math.log10(20) + 2);
+        bar(pn.x0, B + 52, 150, fitFrac, pn.color, 'data error', fr.sse.toFixed(2));
+        if (pn.dots) {
+          var defFrac = (Math.log10(Math.max(fr.defect, 1e-16)) + 16) / 17;
+          bar(pn.x0, B + 74, 150, defFrac, RED, 'equation error', sci(fr.defect));
+        } else {
+          text(svg, pn.x0, B + 71, 'equation error  0 at every iterate: each one is a full simulation', { 'font-size': 11, opacity: 0.8 });
+        }
+        text(svg, pn.x0, B + 96, 'μ = ' + fr.mu.toFixed(2) + ' N·s/m,  k = ' + fr.k.toFixed(0) + ' N/m', { 'font-size': 11 });
+        line.push(pn.name.split(' (')[0] + ' iteration ' + k + ': μ = ' + fr.mu.toFixed(2) + ', k = ' + fr.k.toFixed(0) +
+          ', data error (SSE) = ' + fr.sse.toFixed(2) + (pn.dots ? ', equation error = ' + sci(fr.defect) : '') + (done ? ' (final)' : ''));
+      });
+      readout.textContent = line.join('.  ') + '.  True values: μ = 1, k = 400.';
+    }
+    p.set(0);
+  };
+
+  /* A projection layer on a split: the two outlet flows must add up to the inlet
+   * flow. Drag the raw network output; the layer returns the closest point on
+   * the line. No data. */
+  WIDGETS.projection = function (root) {
+    var F = 10, raw = [6.6, 6.0];
+    var PRESETS = [[6.6, 6.0], [2.0, 4.0], [9.0, 4.5], [3.0, 9.5], [5.0, 5.0]], pi = 0;
+    var W = 720, H = 320, L = 40, S0 = 290;
+    html('div', { class: 'cw-title' }, root, 'A projection layer moves the raw output to the nearest point that obeys the balance');
+    var svg = svgRoot(root, W, H, 'Orthogonal projection of a raw network output onto a mass-balance line');
+    var controls = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'A splitter with inlet flow F = 10: the outlet flows must satisfy y1 + y2 = 10, that is A y = b with A = [1 1] and b = 10. ' +
+      'Drag the orange point, or press Step. The correction is the same matrix times the violation, so it is one fixed linear layer.');
+    var step = html('button', { type: 'button' }, controls, 'Step');
+    step.onclick = function () { pi = (pi + 1) % PRESETS.length; raw = PRESETS[pi].slice(); draw(); };
+    var sx = scale(0, 12, L, L + S0 - 20), sy = scale(0, 12, S0, 10);
+    var dragging = false;
+    function toData(evt) {
+      var pt = svg.createSVGPoint();
+      pt.x = evt.clientX; pt.y = evt.clientY;
+      var q = pt.matrixTransform(svg.getScreenCTM().inverse());
+      return [Math.max(0, Math.min(12, (q.x - L) / (S0 - 20) * 12)), Math.max(0, Math.min(12, (S0 - q.y) / (S0 - 10) * 12))];
+    }
+    svg.addEventListener('pointerdown', function (e) { dragging = true; raw = toData(e); draw(); });
+    svg.addEventListener('pointermove', function (e) { if (dragging) { raw = toData(e); draw(); } });
+    window.addEventListener('pointerup', function () { dragging = false; });
+
+    function draw() {
+      clear(svg);
+      [0, 2, 4, 6, 8, 10, 12].forEach(function (v) {
+        el('line', { x1: sx(v), x2: sx(v), y1: sy(0), y2: sy(12), stroke: 'currentColor', 'stroke-opacity': 0.06 }, svg);
+        el('line', { x1: sx(0), x2: sx(12), y1: sy(v), y2: sy(v), stroke: 'currentColor', 'stroke-opacity': 0.06 }, svg);
+        text(svg, sx(v), sy(0) + 14, String(v), { 'text-anchor': 'middle', 'font-size': 10, opacity: 0.7 });
+        text(svg, sx(0) - 6, sy(v) + 4, String(v), { 'text-anchor': 'end', 'font-size': 10, opacity: 0.7 });
+      });
+      text(svg, sx(6), sy(0) + 28, 'outlet flow y1', { 'text-anchor': 'middle', 'font-size': 11 });
+      text(svg, 10, sy(6), 'y2', { 'font-size': 11 });
+      el('line', { x1: sx(0), y1: sy(F), x2: sx(F), y2: sy(0), stroke: 'var(--cw-green)', 'stroke-width': 3 }, svg);
+      text(svg, sx(0.3), sy(11.1), 'y1 + y2 = 10', { 'font-size': 12, style: 'fill:' + 'var(--cw-green)' });
+      var viol = raw[0] + raw[1] - F, proj = [raw[0] - viol / 2, raw[1] - viol / 2];
+      el('line', { x1: sx(raw[0]), y1: sy(raw[1]), x2: sx(proj[0]), y2: sy(proj[1]), stroke: 'currentColor', 'stroke-width': 1.6, 'stroke-dasharray': '5 3' }, svg);
+      el('circle', { cx: sx(proj[0]), cy: sy(proj[1]), r: 8, fill: 'var(--cw-accent)' }, svg);
+      el('circle', { cx: sx(raw[0]), cy: sy(raw[1]), r: 9, fill: 'var(--cw-accent2)', class: 'hot' }, svg);
+      var x0 = 360, rows = [
+        ['raw output ỹ', '(' + raw[0].toFixed(2) + ', ' + raw[1].toFixed(2) + ')', 'var(--cw-accent2)'],
+        ['violation Aỹ − b', (raw[0] + raw[1]).toFixed(2) + ' − 10 = ' + viol.toFixed(2), RED],
+        ['correction Aᵀ(AAᵀ)⁻¹(Aỹ − b)', '(1, 1) × ' + viol.toFixed(2) + ' / 2', 'currentColor'],
+        ['projected y', '(' + proj[0].toFixed(2) + ', ' + proj[1].toFixed(2) + ')', 'var(--cw-accent)'],
+        ['check: y1 + y2', (proj[0] + proj[1]).toFixed(2), 'var(--cw-green)']
+      ];
+      text(svg, x0, 40, 'y = ỹ − Aᵀ(AAᵀ)⁻¹(Aỹ − b)', { 'font-size': 15, 'font-weight': 600 });
+      rows.forEach(function (r, j) {
+        text(svg, x0, 82 + 40 * j, r[0], { 'font-size': 12, opacity: 0.8 });
+        text(svg, x0, 99 + 40 * j, r[1], { 'font-size': 14, style: 'fill:' + r[2], 'font-weight': 600 });
+      });
+      readout.textContent = 'Raw output (' + raw[0].toFixed(2) + ', ' + raw[1].toFixed(2) + ') breaks the balance by ' +
+        viol.toFixed(2) + '. The layer subtracts half of that from each flow, giving (' + proj[0].toFixed(2) + ', ' +
+        proj[1].toFixed(2) + '), which adds up to ' + (proj[0] + proj[1]).toFixed(2) + '.';
+    }
+    draw();
+  };
+
+  // A Play/Pause + Step + scrubber trio like player(), but the position is a
+  // real number moved by requestAnimationFrame, so a figure can interpolate
+  // between its recorded frames instead of jumping from one to the next.
+  function smoothPlayer(controls, n, onChange, secPerStep, onState) {
+    var pos = 0, raf = null, target = null, lastT = null;
+    var play = html('button', { type: 'button' }, controls, 'Play');
+    var step = html('button', { type: 'button' }, controls, 'Step');
+    var lab = html('label', {}, controls);
+    var range = html('input', { type: 'range', min: 0, max: n - 1, step: 'any', value: 0, 'aria-label': 'position' }, lab);
+    function set(p) { pos = Math.max(0, Math.min(n - 1, p)); range.value = pos; onChange(pos); }
+    function stop() {
+      if (raf) cancelAnimationFrame(raf);
+      raf = null; target = null; play.textContent = 'Play';
+      if (onState) onState(false);
+    }
+    function tick(now) {
+      if (lastT === null) lastT = now;
+      var dp = (now - lastT) / 1000 / secPerStep;
+      lastT = now;
+      var goal = target === null ? n - 1 : target;
+      set(Math.min(goal, pos + dp));
+      if (pos >= goal) { stop(); return; }
+      raf = requestAnimationFrame(tick);
+    }
+    function run(goal) { if (raf) cancelAnimationFrame(raf); target = goal; lastT = null; raf = requestAnimationFrame(tick); }
+    play.onclick = function () {
+      if (raf && target === null) return stop();
+      if (pos >= n - 1) set(0);
+      play.textContent = 'Pause';
+      if (onState) onState(true);
+      run(null);
+    };
+    step.onclick = function () {
+      play.textContent = 'Play';
+      if (pos >= n - 1 - 1e-9) { stop(); set(0); return; }
+      run(Math.floor(pos + 1e-9) + 1);
+    };
+    range.oninput = function () { stop(); set(+range.value); };
+    return { set: set, stop: stop, get: function () { return pos; } };
+  }
+
+  function lerp(a, b, w) { return a + w * (b - a); }
+  function lerpArr(a, b, w) { return a.map(function (v, i) { return v + w * (b[i] - v); }); }
+  function pts(xs, ys) { return xs.map(function (x, i) { return x.toFixed(1) + ',' + ys[i].toFixed(1); }).join(' '); }
+  function interp1(xs, ys, x) {
+    if (x <= xs[0]) return ys[0];
+    for (var i = 1; i < xs.length; i++) if (xs[i] >= x) {
+      return ys[i - 1] + (x - xs[i - 1]) / (xs[i] - xs[i - 1]) * (ys[i] - ys[i - 1]);
+    }
+    return ys[ys.length - 1];
+  }
+  // The points of a hanging coil spring from (x, y0) down to (x, y1).
+  function coilPts(x, y0, y1, half) {
+    var n = 12, p = [[x, y0], [x, y0 + 6]], seg = (y1 - y0 - 12) / n;
+    for (var i = 0; i < n; i++) p.push([x + (i % 2 ? -half : half), y0 + 6 + seg * (i + 0.5)]);
+    p.push([x, y1 - 6], [x, y1]);
+    return p.map(function (q) { return q[0].toFixed(1) + ',' + q[1].toFixed(1); }).join(' ');
+  }
+
+  /* A hanging spring-mass with a damper. Drag the mass up or down and let go:
+   * it moves by m x'' + mu x' + k x = 0, integrated here with RK4 in real or
+   * slowed-down time, and its trace is drawn on the right. No data. */
+  WIDGETS['spring-drag'] = function (root) {
+    var m = 1, mu = 4, k = 400, x = 1, v = 0, t = 0, slow = 4, raf = null, last = null, dragging = false;
+    var trace = [];
+    var W = 720, H = 330, CX = 130, REST = 190, PPM = 80, PL = 330, PR = 704, PT = 24, PB = 282;
+    html('div', { class: 'cw-title' }, root, 'Drag the mass, let go, and watch the equation of motion play out');
+    var svg = svgRoot(root, W, H, 'A spring-mass with a damper that can be dragged and released');
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    var c2 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'x is the displacement from rest, positive upward. Releasing at rest gives x\'(0) = 0. The trace starts when you let go; ' +
+      'slow motion stretches real time so the 3 oscillations per second can be followed.');
+    function slider(parent, name, lo, hi, st, val, unit, set) {
+      var lab = html('label', {}, parent, name + ' ');
+      var s = html('input', { type: 'range', min: lo, max: hi, step: st, value: val, 'aria-label': name }, lab);
+      var o = html('span', {}, lab, val + ' ' + unit);
+      s.oninput = function () { set(+s.value); o.textContent = s.value + ' ' + unit; release(x); };
+    }
+    slider(c1, 'mass m', 0.5, 4, 0.5, m, 'kg', function (q) { m = q; });
+    slider(c1, 'damping μ', 0, 20, 1, mu, 'N·s/m', function (q) { mu = q; });
+    slider(c1, 'stiffness k', 100, 800, 50, k, 'N/m', function (q) { k = q; });
+    var again = html('button', { type: 'button' }, c2, 'Release from x = 1 m');
+    again.onclick = function () { release(1); };
+    toggleGroup(c2, ['Real time', 'Slow ×4', 'Slow ×10'], 1, function (i) { slow = [1, 4, 10][i]; });
+
+    var sy = scale(-1.25, 1.25, PB, PT);
+    var g0 = el('g', {}, svg);
+    el('rect', { x: CX - 70, y: 6, width: 140, height: 12, fill: 'currentColor', 'fill-opacity': 0.35 }, g0);
+    el('line', { x1: CX - 95, x2: CX + 95, y1: REST, y2: REST, stroke: 'currentColor', 'stroke-opacity': 0.25, 'stroke-dasharray': '4 4' }, g0);
+    text(g0, CX - 98, REST + 4, 'x = 0', { 'text-anchor': 'end', 'font-size': 11, opacity: 0.7 });
+    var spring = el('polyline', { fill: 'none', stroke: 'currentColor', 'stroke-opacity': 0.55, 'stroke-width': 2.4 }, svg);
+    var rod = el('line', { x1: CX + 34, x2: CX + 34, y1: 18, stroke: 'currentColor', 'stroke-width': 2.4 }, svg);
+    var cyl = el('rect', { x: CX + 24, width: 20, fill: 'none', stroke: 'currentColor', 'stroke-width': 2.2 }, svg);
+    var mass = el('rect', { x: CX - 42, width: 84, height: 44, rx: 4, fill: 'var(--cw-green)', class: 'hot', style: 'cursor:grab' }, svg);
+    var mlab = text(svg, CX, 0, 'm', { 'text-anchor': 'middle', 'font-size': 18, style: 'fill:#fff;pointer-events:none', 'font-style': 'italic' });
+    text(svg, CX - 50, 70, 'k', { 'font-size': 16, 'font-style': 'italic' });
+    text(svg, CX + 52, 70, 'μ', { 'font-size': 16, 'font-style': 'italic' });
+    var arrow = el('line', { x1: CX - 62, x2: CX - 62, y1: REST, stroke: RED, 'stroke-width': 2.4, style: 'pointer-events:none' }, svg);
+    var xl = text(svg, CX - 70, 0, 'x', { 'text-anchor': 'end', 'font-size': 15, 'font-style': 'italic', style: 'fill:' + RED + ';pointer-events:none' });
+    // the trace
+    el('line', { x1: PL, x2: PR, y1: sy(0), y2: sy(0), stroke: 'currentColor', 'stroke-opacity': 0.2 }, svg);
+    [-1, 0, 1].forEach(function (q) { text(svg, PL - 6, sy(q) + 4, String(q), { 'text-anchor': 'end', 'font-size': 11, opacity: 0.7 }); });
+    text(svg, PL - 26, PT + 4, 'x (m)', { 'font-size': 11, opacity: 0.8 });
+    var tlabs = [0, 1, 2, 3, 4].map(function (q) { return text(svg, 0, PB + 16, '', { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.7 }); });
+    text(svg, (PL + PR) / 2, PB + 31, 'time since release (s)', { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.8 });
+    var eqn = text(svg, PL, PT - 6, '', { 'font-size': 13, 'font-weight': 600 });
+    var line = el('polyline', { fill: 'none', stroke: 'var(--cw-green)', 'stroke-width': 2.2 }, svg);
+    var dot = el('circle', { r: 5, fill: 'var(--cw-green)' }, svg);
+
+    function f(s) { return [s[1], -(mu * s[1] + k * s[0]) / m]; }
+    function rk4(s, h) {
+      var a = f(s), b = f([s[0] + h / 2 * a[0], s[1] + h / 2 * a[1]]);
+      var c = f([s[0] + h / 2 * b[0], s[1] + h / 2 * b[1]]), d = f([s[0] + h * c[0], s[1] + h * c[1]]);
+      return [s[0] + h / 6 * (a[0] + 2 * b[0] + 2 * c[0] + d[0]), s[1] + h / 6 * (a[1] + 2 * b[1] + 2 * c[1] + d[1])];
+    }
+    function draw() {
+      var y = REST - PPM * x;
+      spring.setAttribute('points', coilPts(CX - 18, 18, y - 22, 12));
+      rod.setAttribute('y2', Math.min(y - 30, 18 + 60));
+      cyl.setAttribute('y', Math.min(y - 30, 18 + 60) - 6);
+      cyl.setAttribute('height', Math.max(8, y - 22 - (Math.min(y - 30, 18 + 60) - 6)));
+      mass.setAttribute('y', y - 22);
+      mlab.setAttribute('y', y + 6);
+      arrow.setAttribute('y2', y);
+      xl.setAttribute('y', (REST + y) / 2 + 5);
+      var t0 = Math.max(0, t - 4), sx = scale(t0, t0 + 4, PL, PR);
+      tlabs.forEach(function (lb, i) { var q = Math.ceil(t0) + i; lb.setAttribute('x', sx(q)); lb.textContent = q <= t0 + 4 ? String(q) : ''; });
+      var vis = trace.filter(function (p) { return p[0] >= t0; });
+      line.setAttribute('points', pts(vis.map(function (p) { return sx(p[0]); }), vis.map(function (p) { return sy(Math.max(-1.25, Math.min(1.25, p[1]))); })));
+      dot.setAttribute('cx', sx(Math.max(t0, t)));
+      dot.setAttribute('cy', sy(Math.max(-1.25, Math.min(1.25, x))));
+      eqn.textContent = m + ' x″ + ' + mu + ' x′ + ' + k + ' x = 0';
+      var wn = Math.sqrt(k / m), zeta = mu / (2 * Math.sqrt(k * m));
+      readout.textContent = 't = ' + t.toFixed(2) + ' s, x = ' + fmt(x) + ' m.  Natural frequency √(k/m) = ' + wn.toFixed(1) +
+        ' rad/s; damping ratio μ/(2√(km)) = ' + zeta.toFixed(2) + (zeta < 1 ? ' (oscillates)' : ' (no oscillation)') + '.';
+    }
+    function loop(now) {
+      if (last === null) last = now;
+      var dt = Math.min(0.05, (now - last) / 1000) / slow;
+      last = now;
+      var s = [x, v], h = 0.0005, nsub = Math.max(1, Math.ceil(dt / h));
+      for (var i = 0; i < nsub; i++) s = rk4(s, dt / nsub);
+      x = s[0]; v = s[1]; t += dt;
+      trace.push([t, x]);
+      draw();
+      if (t > 30 || (mu > 0 && Math.abs(x) < 1e-3 && Math.abs(v) < 1e-2)) { raf = null; return; }
+      raf = requestAnimationFrame(loop);
+    }
+    function release(x0) {
+      if (raf) cancelAnimationFrame(raf);
+      x = x0; v = 0; t = 0; trace = [[0, x0]]; last = null;
+      raf = requestAnimationFrame(loop);
+    }
+    function toX(evt) {
+      var p = svg.createSVGPoint();
+      p.x = evt.clientX; p.y = evt.clientY;
+      var q = p.matrixTransform(svg.getScreenCTM().inverse());
+      return Math.max(-1.2, Math.min(1.2, (REST - q.y) / PPM));
+    }
+    mass.addEventListener('pointerdown', function (e) {
+      dragging = true;
+      if (raf) cancelAnimationFrame(raf);
+      raf = null;
+      mass.setPointerCapture(e.pointerId);
+      mass.style.cursor = 'grabbing';
+    });
+    mass.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      x = toX(e); v = 0; t = 0; trace = [[0, x]];
+      draw();
+    });
+    mass.addEventListener('pointerup', function () {
+      if (!dragging) return;
+      dragging = false;
+      mass.style.cursor = 'grab';
+      release(x);
+    });
+    draw();
+  };
+
+  /* A residual network or an RNN takes fixed steps h_(k+1) = h_k + dt f(h_k);
+   * a neural ODE learns f itself, the arrows. On the phase plane of the
+   * spring-mass, Euler steps of shrinking size fall onto the exact trajectory.
+   * Everything is computed here; the figure takes no data. */
+  WIDGETS['phase-plane'] = function (root) {
+    var m = 1, mu = 4, k = 400, T = 1, DTS = [0.02, 0.01, 0.005, 0.0025, 0.00125, 0.000625];
+    function f(s) { return [s[1], -(mu * s[1] + k * s[0]) / m]; }
+    function euler(dt) {
+      var s = [1, 0], out = [[0, 1, 0]];
+      for (var j = 1; j <= Math.round(T / dt); j++) {
+        var d = f(s);
+        s = [s[0] + dt * d[0], s[1] + dt * d[1]];
+        out.push([j * dt, s[0], s[1]]);
+      }
+      return out;
+    }
+    var ex = [], s = [1, 0], h = 0.0001;
+    for (var j = 0; j <= T / h; j++) {
+      if (j % 20 === 0) ex.push([j * h, s[0], s[1]]);
+      var a = f(s), b = f([s[0] + h / 2 * a[0], s[1] + h / 2 * a[1]]), c = f([s[0] + h / 2 * b[0], s[1] + h / 2 * b[1]]),
+        d = f([s[0] + h * c[0], s[1] + h * c[1]]);
+      s = [s[0] + h / 6 * (a[0] + 2 * b[0] + 2 * c[0] + d[0]), s[1] + h / 6 * (a[1] + 2 * b[1] + 2 * c[1] + d[1])];
+    }
+    function exactAt(tq) { return interp1(ex.map(function (q) { return q[0]; }), ex.map(function (q) { return q[1]; }), tq); }
+    var runs = DTS.map(function (dt) {
+      var e = euler(dt), err = 0;
+      e.forEach(function (q) { err = Math.max(err, Math.abs(q[1] - exactAt(q[0]))); });
+      return { pts: e, err: err };
+    });
+    var W = 720, H = 330, PX0 = 46, PX1 = 330, PY0 = 18, PY1 = 286, TX0 = 400, TX1 = 704;
+    html('div', { class: 'cw-title' }, root, 'Fixed steps against a vector field: shrink the step and the RNN becomes the ODE');
+    var svg = svgRoot(root, W, H, 'Euler steps of a spring-mass on its phase plane, converging to the exact trajectory as the step shrinks');
+    var controls = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'The spring-mass of the PINN section, m = 1 kg, μ = 4 N·s/m, k = 400 N/m, released from x = 1 m. State h = (x, v). ' +
+      'Gray arrows: the right-hand side f(h) = (v, −(μv + kx)/m), drawn at fixed length. Orange: Euler steps ' +
+      'h_(k+1) = h_k + Δt f(h_k). Blue: the exact solution.');
+    var px = scale(-1.15, 1.15, PX0, PX1), pv = scale(-22, 22, PY1, PY0);
+    var tx = scale(0, T, TX0, TX1), ty = scale(-1.15, 1.15, PY1, PY0);
+    // static: axes, the field, the exact curves
+    el('line', { x1: PX0, x2: PX1, y1: pv(0), y2: pv(0), stroke: 'currentColor', 'stroke-opacity': 0.2 }, svg);
+    el('line', { x1: px(0), x2: px(0), y1: PY0, y2: PY1, stroke: 'currentColor', 'stroke-opacity': 0.2 }, svg);
+    text(svg, PX1, pv(0) - 6, 'x (m)', { 'text-anchor': 'end', 'font-size': 11, opacity: 0.8 });
+    text(svg, px(0) + 6, PY0 + 10, 'v (m/s)', { 'font-size': 11, opacity: 0.8 });
+    for (var i = 0; i < 13; i++) for (var jj = 0; jj < 11; jj++) {
+      var xq = -1.05 + 2.1 * i / 12, vq = -20 + 40 * jj / 10, dq = f([xq, vq]);
+      var ux = dq[0] / 2.3, uy = dq[1] / 44, nn = Math.hypot(ux, uy) || 1, L = 9;
+      var x0 = px(xq), y0 = pv(vq), x1 = x0 + L * ux / nn, y1 = y0 - L * uy / nn;
+      el('line', { x1: x0 - (x1 - x0) / 2, y1: y0 - (y1 - y0) / 2, x2: x1, y2: y1, stroke: 'currentColor', 'stroke-opacity': 0.35, 'stroke-width': 1.2 }, svg);
+      el('circle', { cx: x1, cy: y1, r: 1.6, fill: 'currentColor', 'fill-opacity': 0.45 }, svg);
+    }
+    polyline(svg, ex.map(function (q) { return px(q[1]); }), ex.map(function (q) { return pv(q[2]); }), { stroke: 'var(--cw-accent)', 'stroke-width': 2.4 });
+    text(svg, (PX0 + PX1) / 2, PY1 + 30, 'phase plane: arrows = f, what a neural ODE learns', { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.85 });
+    el('line', { x1: TX0, x2: TX1, y1: ty(0), y2: ty(0), stroke: 'currentColor', 'stroke-opacity': 0.2 }, svg);
+    [-1, 0, 1].forEach(function (q) { text(svg, TX0 - 6, ty(q) + 4, String(q), { 'text-anchor': 'end', 'font-size': 11, opacity: 0.7 }); });
+    [0, 0.25, 0.5, 0.75, 1].forEach(function (q) { text(svg, tx(q), PY1 + 16, String(q), { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.7 }); });
+    text(svg, (TX0 + TX1) / 2, PY1 + 30, 'time t (s)', { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.8 });
+    text(svg, TX0 - 30, PY0 + 4, 'x (m)', { 'font-size': 11, opacity: 0.8 });
+    polyline(svg, ex.map(function (q) { return tx(q[0]); }), ex.map(function (q) { return ty(q[1]); }), { stroke: 'var(--cw-accent)', 'stroke-width': 2.4 });
+    var lg = [['gray arrows: f(h), the vector field', 'currentColor', 0.5], ['orange: RNN steps, h(k+1) = h(k) + Δt f(h(k))', 'var(--cw-accent2)', 1],
+      ['blue: the ODE solution, the limit Δt → 0', 'var(--cw-accent)', 1]];
+    lg.forEach(function (q, j) {
+      el('line', { x1: TX1 - 262, x2: TX1 - 244, y1: PY0 + 4 + 14 * j, y2: PY0 + 4 + 14 * j, stroke: q[1], 'stroke-width': 2.4, 'stroke-opacity': q[2] }, svg);
+      text(svg, TX1 - 238, PY0 + 8 + 14 * j, q[0], { 'font-size': 10.5 });
+    });
+    var c1 = clipTo(svg, PX0, PY0, PX1 - PX0, PY1 - PY0), c2 = clipTo(svg, TX0, PY0, TX1 - TX0, PY1 - PY0);
+    var dyn = el('g', {}, svg);
+    var p = player(controls, DTS.length, draw, 1000);
+    function draw(i) {
+      clear(dyn);
+      var r = runs[i].pts, big = r.length < 120;
+      polyline(dyn, r.map(function (q) { return px(q[1]); }), r.map(function (q) { return pv(q[2]); }), { stroke: 'var(--cw-accent2)', 'stroke-width': 1.4, 'clip-path': c1 });
+      polyline(dyn, r.map(function (q) { return tx(q[0]); }), r.map(function (q) { return ty(q[1]); }), { stroke: 'var(--cw-accent2)', 'stroke-width': 1.4, 'clip-path': c2 });
+      if (big) r.forEach(function (q) {
+        el('circle', { cx: px(q[1]), cy: pv(q[2]), r: 2.6, fill: 'var(--cw-accent2)', 'clip-path': c1 }, dyn);
+        el('circle', { cx: tx(q[0]), cy: ty(q[1]), r: 2.6, fill: 'var(--cw-accent2)', 'clip-path': c2 }, dyn);
+      });
+      var e = runs[i].err;
+      readout.textContent = 'Δt = ' + DTS[i] + ' s: ' + (r.length - 1) + ' steps for 1 s, largest error in x ' +
+        (e > 1.15 ? 'over ' + e.toFixed(0) + ' m: the steps spiral out' : e.toFixed(3) + ' m') +
+        (i > 0 && e < 1.15 ? ' (previous step size: ' + (runs[i - 1].err > 1.15 ? 'unstable' : runs[i - 1].err.toFixed(3) + ' m') + ')' : '') + '.';
+    }
+    p.set(0);
+  };
+
+  /* A plain network and a physics-informed network (PINN) trained on ten points
+   * of a damped spring-mass. The player moves smoothly through 40 recorded
+   * training steps, interpolating the curves between them. "Play motion" runs
+   * time forward and moves three masses, each hanging at the displacement one
+   * model predicts. Only the moving parts are redrawn. */
+  WIDGETS['pinn-train'] = function (root, data) {
+    var d = data.pinn, F = d.frames, t = d.t, n = t.length;
+    var W = 720, H = 330, L = 46, PR = 500, T0 = 16, B = 292;
+    var pos = F.length - 1, tc = 1, raf = null;
+    html('div', { class: 'cw-title' }, root, 'A plain network and a PINN, trained on the same ten points');
+    var svg = svgRoot(root, W, H, 'Training a plain network and a physics-informed network on a damped spring-mass');
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    html('span', {}, c1, 'Play: the networks train, then the masses move.');
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'm = 1 kg, μ = 4 N·s/m, k = 400 N/m, released from x = 1 m at rest. Both networks have 3 hidden layers ' +
+      'of 32 tanh units, the same starting weights and the same Adam steps (learning rate 0.001). The PINN also ' +
+      'penalizes the equation\'s residual at 40 collocation points, the ticks on the time axis, with weight λ = 0.0001.');
+    var sx = scale(0, 1, L, PR), sy = scale(-1.15, 1.35, B, T0), xs = t.map(sx);
+    var tEnd = d.t_data[d.t_data.length - 1];
+    var clip = clipTo(svg, L, T0, PR - L, B - T0);
+    el('rect', { x: sx(0), y: T0, width: sx(tEnd) - sx(0), height: B - T0, fill: 'currentColor', 'fill-opacity': 0.07 }, svg);
+    text(svg, (sx(0) + sx(tEnd)) / 2, T0 + 12, 'training data', { 'text-anchor': 'middle', opacity: 0.7 });
+    text(svg, (sx(tEnd) + PR) / 2, T0 + 12, 'no data: extrapolation', { 'text-anchor': 'middle', opacity: 0.7 });
+    el('line', { x1: L, x2: PR, y1: sy(0), y2: sy(0), stroke: 'currentColor', 'stroke-opacity': 0.2 }, svg);
+    [-1, 0, 1].forEach(function (v) { text(svg, L - 6, sy(v) + 4, String(v), { 'text-anchor': 'end', 'font-size': 11, opacity: 0.7 }); });
+    [0, 0.25, 0.5, 0.75, 1].forEach(function (v) { text(svg, sx(v), B + 16, String(v), { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.7 }); });
+    text(svg, (L + PR) / 2, B + 31, 'time t (s)', { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.8 });
+    text(svg, 12, (T0 + B) / 2, 'x (m)', { 'font-size': 11, opacity: 0.8, transform: 'rotate(-90 12 ' + (T0 + B) / 2 + ')', 'text-anchor': 'middle' });
+    d.t_phys.forEach(function (v) { el('line', { x1: sx(v), x2: sx(v), y1: B - 5, y2: B, stroke: 'var(--cw-accent)', 'stroke-opacity': 0.8 }, svg); });
+    polyline(svg, xs, d.exact.map(sy), { stroke: 'currentColor', 'stroke-opacity': 0.3, 'stroke-width': 6, 'clip-path': clip });
+    var lineNN = el('polyline', { fill: 'none', stroke: 'var(--cw-accent2)', 'stroke-width': 2.2, 'clip-path': clip }, svg);
+    var linePI = el('polyline', { fill: 'none', stroke: 'var(--cw-accent)', 'stroke-width': 2.2, 'stroke-dasharray': '7 4', 'clip-path': clip }, svg);
+    d.t_data.forEach(function (v, i) { el('circle', { cx: sx(v), cy: sy(d.x_data[i]), r: 3.6, fill: 'currentColor' }, svg); });
+    var marker = el('line', { y1: T0, y2: B, stroke: 'currentColor', 'stroke-opacity': 0.55, 'stroke-dasharray': '3 3' }, svg);
+    el('line', { x1: 538, x2: 712, y1: T0 - 2, y2: T0 - 2, stroke: 'currentColor', 'stroke-width': 3 }, svg);
+    var masses = [['truth', 'currentColor'], ['network', 'var(--cw-accent2)'], ['PINN', 'var(--cw-accent)']].map(function (mm, j) {
+      var cx = 566 + 58 * j;
+      text(svg, cx, B + 16, mm[0], { 'text-anchor': 'middle', 'font-size': 11 });
+      return {
+        cx: cx,
+        guide: el('line', { x1: PR, x2: cx - 18, stroke: mm[1], 'stroke-opacity': 0.25, 'stroke-dasharray': '2 3' }, svg),
+        spring: el('polyline', { fill: 'none', stroke: mm[1], 'stroke-width': 1.6 }, svg),
+        box: el('rect', { x: cx - 16, width: 32, height: 24, rx: 3, fill: mm[1], 'fill-opacity': j ? 0.85 : 0.35 }, svg)
+      };
+    });
+    var cur = { nn: F[0].nn, pinn: F[0].pinn };
+    // One Play: the curves train, then the three masses move through the second.
+    function stopMotion() { if (raf) cancelAnimationFrame(raf); raf = null; }
+    function playMotion() {
+      stopMotion();
+      var start = null;
+      tc = 0;
+      function tick(now) {
+        if (start === null) start = now;
+        tc = Math.min(1, (now - start) / 4000);
+        place();
+        if (tc < 1) raf = requestAnimationFrame(tick); else raf = null;
+      }
+      raf = requestAnimationFrame(tick);
+    }
+    var p = smoothPlayer(c1, F.length, function (q) { pos = q; curves(); place(); }, 0.32, function (on) {
+      if (on) { stopMotion(); tc = 1; place(); }
+      else if (pos >= F.length - 1) playMotion();
+    });
+    function curves() {
+      var i = Math.min(F.length - 2, Math.floor(pos)), w = pos - i, a = F[i], b = F[i + 1];
+      cur.nn = lerpArr(a.nn, b.nn, w);
+      cur.pinn = lerpArr(a.pinn, b.pinn, w);
+      lineNN.setAttribute('points', pts(xs, cur.nn.map(sy)));
+      linePI.setAttribute('points', pts(xs, cur.pinn.map(sy)));
+      var stepNo = Math.round(lerp(a.step, b.step, w));
+      readout.textContent = 'Step ' + stepNo + ': error over the whole second, network ' + lerp(a.nn_rmse, b.nn_rmse, w).toFixed(3) +
+        ' m, PINN ' + lerp(a.pinn_rmse, b.pinn_rmse, w).toFixed(3) + ' m; PINN residual at the collocation points ' +
+        lerp(a.pinn_phys, b.pinn_phys, w).toFixed(1) + ' N.';
+    }
+    function place() {
+      var vals = [interp1(t, d.exact, tc), interp1(t, cur.nn, tc), interp1(t, cur.pinn, tc)];
+      marker.setAttribute('x1', sx(tc));
+      marker.setAttribute('x2', sx(tc));
+      masses.forEach(function (mm, j) {
+        var cy = Math.max(T0 + 40, Math.min(B - 14, sy(vals[j])));
+        mm.guide.setAttribute('y1', sy(vals[j]));
+        mm.guide.setAttribute('y2', cy);
+        mm.spring.setAttribute('points', coilPts(mm.cx, T0 - 2, cy - 12, 7));
+        mm.box.setAttribute('y', cy - 12);
+      });
+    }
+    p.set(F.length - 1);
+  };
+
+  /* A new batch of the fed-batch bioreactor, predicted by the true mechanistic
+   * model, by the neural ODE trained the sequential way, and by the neural DAE,
+   * which keeps S >= 0. Three vessels show the substrate level; a level below
+   * the floor is a negative concentration. Time moves continuously. */
+  WIDGETS['fedbatch-run'] = function (root, data) {
+    var d = data.fedbatch, t = d.t, n = t.length;
+    var dae = t.map(function (v) { return interp1(d.dae.t, d.dae.S, v); });
+    var series = [['true model', d.truth.S, 'currentColor'], ['neural ODE', d.node.S, 'var(--cw-accent2)'],
+      ['neural DAE', dae, 'var(--cw-accent)']];
+    var W = 720, H = 320, L = 46, PR = 470, T0 = 14, B = 270;
+    html('div', { class: 'cw-title' }, root, 'A new batch: the true model, the neural ODE and the neural DAE');
+    var svg = svgRoot(root, W, H, 'Substrate concentration in a new fed-batch run, predicted by a neural ODE and by a neural DAE');
+    var controls = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'Both models learned the growth rate from the same three batches, 0 to 40 h. New batch: X = ' + d.ic[0] + ' g/L, S = ' + d.ic[2] +
+      ' g/L, V = ' + d.ic[3] + ' L at the start. The neural ODE was trained and is integrated with Diffrax; the neural DAE ' +
+      'is trained and solved with SiNDAE, with S ≥ 0 as a constraint. Red below the floor is a negative concentration.');
+    var sx = scale(0, 60, L, PR), sy = scale(-1.6, 7.6, B, T0);
+    el('rect', { x: L, y: sy(0), width: PR - L, height: B - sy(0), fill: RED, 'fill-opacity': 0.09 }, svg);
+    text(svg, PR - 6, B - 8, 'S < 0: impossible', { 'text-anchor': 'end', 'font-size': 11, style: 'fill:' + RED });
+    el('line', { x1: L, x2: PR, y1: sy(0), y2: sy(0), stroke: 'currentColor', 'stroke-opacity': 0.4 }, svg);
+    [0, 2, 4, 6].forEach(function (v) { text(svg, L - 6, sy(v) + 4, String(v), { 'text-anchor': 'end', 'font-size': 11, opacity: 0.7 }); });
+    [0, 10, 20, 30, 40, 50, 60].forEach(function (v) { text(svg, sx(v), B + 16, String(v), { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.7 }); });
+    text(svg, (L + PR) / 2, B + 31, 'time (h)', { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.8 });
+    text(svg, 12, (T0 + B) / 2, 'S (g/L)', { 'font-size': 11, opacity: 0.8, transform: 'rotate(-90 12 ' + (T0 + B) / 2 + ')', 'text-anchor': 'middle' });
+    var parts = series.map(function (s, j) {
+      polyline(svg, t.map(sx), s[1].map(sy), { stroke: s[2], 'stroke-opacity': 0.15, 'stroke-width': j ? 1.5 : 5 });
+      var vx = 510 + 72 * j, top = 40, floor = 190, w = 46;
+      el('rect', { x: vx, y: top, width: w, height: floor - top, rx: 8, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.6 }, svg);
+      text(svg, vx + w / 2, top - 8, s[0], { 'text-anchor': 'middle', 'font-size': 11 });
+      return {
+        line: el('polyline', { fill: 'none', stroke: s[2], 'stroke-width': j ? 2.4 : 6, 'stroke-opacity': j ? 1 : 0.35, 'stroke-dasharray': j === 2 ? '7 4' : 'none' }, svg),
+        dot: el('circle', { r: 4, fill: s[2] }, svg),
+        liquid: el('rect', { x: vx + 3, width: w - 6, fill: s[2], 'fill-opacity': j ? 0.55 : 0.3 }, svg),
+        neg: el('rect', { x: vx + 3, y: floor + 2, width: w - 6, fill: RED, 'fill-opacity': 0.75 }, svg),
+        val: text(svg, vx + w / 2, 268, '', { 'text-anchor': 'middle', 'font-size': 12, 'font-weight': 600 }),
+        top: top, floor: floor
+      };
+    });
+    series.forEach(function (s, j) { text(svg, 510 + 72 * j + 23, 282, 'g/L', { 'text-anchor': 'middle', 'font-size': 10, opacity: 0.7 }); });
+    var p = smoothPlayer(controls, n, draw, 0.06);
+    function draw(q) {
+      var tq = q / (n - 1) * 60, k = Math.floor(q);
+      series.forEach(function (s, j) {
+        var P = parts[j], S = interp1(t, s[1], tq);
+        var xs = t.slice(0, k + 1).map(sx).concat([sx(tq)]), ys = s[1].slice(0, k + 1).map(sy).concat([sy(S)]);
+        P.line.setAttribute('points', pts(xs, ys));
+        P.dot.setAttribute('cx', sx(tq));
+        P.dot.setAttribute('cy', sy(S));
+        var hgt = (P.floor - P.top) * Math.max(0, S) / 7.5;
+        P.liquid.setAttribute('y', P.floor - hgt);
+        P.liquid.setAttribute('height', hgt);
+        P.neg.setAttribute('height', S < 0 ? (P.floor - P.top) * (-S) / 7.5 : 0);
+        P.val.textContent = S.toFixed(2);
+        P.val.setAttribute('style', 'fill:' + (S < 0 ? RED : 'currentColor'));
+      });
+      var Sn = interp1(t, d.node.S, tq);
+      readout.textContent = 't = ' + tq.toFixed(1) + ' h: substrate, true model ' + interp1(t, d.truth.S, tq).toFixed(2) +
+        ' g/L; neural ODE ' + Sn.toFixed(2) + ' g/L' + (Sn < 0 ? ' (impossible)' : '') + '; neural DAE ' +
+        interp1(t, dae, tq).toFixed(2) + ' g/L.  Over the 60 h the neural ODE spends ' + d.summary.hours_below +
+        ' h below zero, reaching ' + d.summary.minS_node + ' g/L.';
+    }
+    p.set(n - 1);
+  };
+
+  /* Training a network whose last layer is a projection onto a mass balance,
+   * y1 + y2 = F. The strip on top is the architecture; while playing, a pulse
+   * runs forward through it and the gradient runs back through the projection.
+   * Left: the outputs in the (y1, y2) plane. Right: how far each network's
+   * outputs break the balance, epoch by epoch, with and without the layer. */
+  WIDGETS['proj-train'] = function (root, data) {
+    var d = data.proj, Fr = d.frames, nF = Fr.length, F = d.F;
+    var W = 720, H = 350;
+    html('div', { class: 'cw-title' }, root, 'Training with a projection layer: every output obeys the balance, at every epoch');
+    var svg = svgRoot(root, W, H, 'Architecture of a network with a projection layer, its outputs during training, and the balance violation');
+    var controls = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'A splitter with feed F = 10 and a control input u. The network maps u to the two outlet flows. 40 measurements with ' +
+      'noise SD 0.4 on each flow, so the measurements themselves break the balance. Both networks: 2 hidden layers of 16 tanh ' +
+      'units, same starting weights, Adam with learning rate 0.01.');
+    // architecture strip
+    var boxes = [['input u', 8, 78], ['network', 102, 208], ['raw ỹ', 232, 302], ['projection', 326, 456], ['y', 480, 530], ['loss vs data', 554, 712]];
+    var by = 12, bh = 34;
+    boxes.forEach(function (b, i) {
+      el('rect', { x: b[1], y: by, width: b[2] - b[1], height: bh, rx: 6, fill: i === 3 ? 'var(--cw-green)' : 'currentColor', 'fill-opacity': i === 3 ? 0.22 : 0.06, stroke: i === 3 ? 'var(--cw-green)' : 'currentColor', 'stroke-opacity': 0.6 }, svg);
+      text(svg, (b[1] + b[2]) / 2, by + 22, b[0], { 'text-anchor': 'middle', 'font-size': 13, 'font-weight': i === 3 ? 700 : 400 });
+      if (i < boxes.length - 1) el('line', { x1: b[2] + 2, x2: boxes[i + 1][1] - 4, y1: by + bh / 2, y2: by + bh / 2, stroke: 'currentColor', 'stroke-width': 1.6 }, svg);
+    });
+    text(svg, 391, by + bh + 13, 'y = ỹ − Aᵀ(AAᵀ)⁻¹(Aỹ − b): fixed, no weights', { 'text-anchor': 'middle', 'font-size': 10.5, opacity: 0.85 });
+    el('path', { d: 'M 633 ' + (by + bh) + ' L 633 ' + (by + bh + 26) + ' L 155 ' + (by + bh + 26) + ' L 155 ' + (by + bh + 2), fill: 'none', stroke: RED, 'stroke-width': 1.6, 'stroke-dasharray': '5 3' }, svg);
+    text(svg, 180, by + bh + 22, 'gradient ∂L/∂θ, back through the projection', { 'font-size': 10.5, style: 'fill:' + RED });
+    var pulse = el('circle', { r: 5.5, fill: 'var(--cw-accent2)', opacity: 0 }, svg);
+    // output plane
+    var X0 = 50, X1 = 300, Y0 = 108, Y1 = 318;
+    var px = scale(1.5, 8.8, X0, X1), py = scale(1.2, 8.5, Y1, Y0);
+    el('rect', { x: X0, y: Y0, width: X1 - X0, height: Y1 - Y0, fill: 'none', stroke: 'currentColor', 'stroke-opacity': 0.25 }, svg);
+    var cpl = clipTo(svg, X0, Y0, X1 - X0, Y1 - Y0);
+    el('line', { x1: px(1.5), y1: py(F - 1.5), x2: px(F - 1.2), y2: py(1.2), stroke: 'var(--cw-green)', 'stroke-width': 3, 'clip-path': cpl }, svg);
+    text(svg, px(5.3), py(7.9), 'y1 + y2 = 10', { 'font-size': 12, style: 'fill:var(--cw-green)' });
+    [2, 4, 6, 8].forEach(function (v) {
+      text(svg, px(v), Y1 + 13, String(v), { 'text-anchor': 'middle', 'font-size': 10, opacity: 0.7 });
+      text(svg, X0 - 5, py(v) + 4, String(v), { 'text-anchor': 'end', 'font-size': 10, opacity: 0.7 });
+    });
+    text(svg, (X0 + X1) / 2, Y1 + 27, 'outlet flow y1', { 'text-anchor': 'middle', 'font-size': 11 });
+    text(svg, X0 - 26, Y0 - 4, 'y2', { 'font-size': 11 });
+    d.meas[0].forEach(function (v, i) { el('circle', { cx: px(v), cy: py(d.meas[1][i]), r: 2.6, fill: 'currentColor', 'fill-opacity': 0.4, 'clip-path': cpl }, svg); });
+    var dyn = el('g', { 'clip-path': cpl }, svg);
+    var segs = [], raws = [], outs = [];
+    for (var i = 0; i < d.u.length; i++) {
+      segs.push(el('line', { stroke: 'currentColor', 'stroke-opacity': 0.35, 'stroke-width': 0.8 }, dyn));
+      raws.push(el('circle', { r: 3, fill: 'var(--cw-accent2)' }, dyn));
+      outs.push(el('circle', { r: 3, fill: 'var(--cw-accent)' }, dyn));
+    }
+    var lx = X1 + 12;
+    [['measured', 'currentColor', 0.4], ['raw ỹ', 'var(--cw-accent2)', 1], ['projected y', 'var(--cw-accent)', 1]].forEach(function (q, j) {
+      el('circle', { cx: lx + 4, cy: Y0 + 8 + 16 * j, r: 3.5, fill: q[1], 'fill-opacity': q[2] }, svg);
+      text(svg, lx + 12, Y0 + 12 + 16 * j, q[0], { 'font-size': 10.5 });
+    });
+    // violation chart
+    var CX0 = 470, CX1 = 706, CY0 = 112, CY1 = 300;
+    var cxs = scale(0, Math.log10(2000), CX0, CX1), cys = scale(-16, 1, CY1, CY0);
+    function ex(e) { return cxs(Math.log10(Math.max(1, e))); }
+    el('rect', { x: CX0, y: CY0, width: CX1 - CX0, height: CY1 - CY0, fill: 'none', stroke: 'currentColor', 'stroke-opacity': 0.25 }, svg);
+    [0, -4, -8, -12, -16].forEach(function (v) { text(svg, CX0 - 5, cys(v) + 4, '1e' + v, { 'text-anchor': 'end', 'font-size': 10, opacity: 0.7 }); });
+    [1, 10, 100, 1000].forEach(function (v) { text(svg, ex(v), CY1 + 13, String(v), { 'text-anchor': 'middle', 'font-size': 10, opacity: 0.7 }); });
+    text(svg, (CX0 + CX1) / 2, CY1 + 27, 'training epoch', { 'text-anchor': 'middle', 'font-size': 11 });
+    text(svg, CX0, CY0 - 6, 'largest |y1 + y2 − F|', { 'font-size': 11 });
+    var Fe = Fr.slice(1);
+    polyline(svg, Fe.map(function (f) { return ex(f.epoch); }), Fe.map(function (f) { return cys(Math.log10(f.plain_viol)); }), { stroke: 'var(--cw-accent2)', 'stroke-width': 2 });
+    polyline(svg, Fe.map(function (f) { return ex(f.epoch); }), Fe.map(function (f) { return cys(Math.log10(Math.max(f.viol, 1e-16))); }), { stroke: 'var(--cw-accent)', 'stroke-width': 2 });
+    text(svg, CX1 - 4, cys(0.3) - 4, 'without the layer', { 'text-anchor': 'end', 'font-size': 10.5, style: 'fill:var(--cw-accent2)' });
+    text(svg, CX1 - 4, cys(-14.5) - 6, 'with the layer: machine precision', { 'text-anchor': 'end', 'font-size': 10.5, style: 'fill:var(--cw-accent)' });
+    var cur = el('line', { y1: CY0, y2: CY1, stroke: 'currentColor', 'stroke-opacity': 0.5, 'stroke-dasharray': '3 3' }, svg);
+    var pRaf = null, pStart = null;
+    function pulseLoop(now) {
+      if (pStart === null) pStart = now;
+      var ph = ((now - pStart) / 3600) % 1, x, y;
+      if (ph < 0.55) { x = lerp(43, 633, ph / 0.55); y = by + bh / 2; pulse.setAttribute('fill', 'var(--cw-accent2)'); }
+      else { var w = (ph - 0.55) / 0.45; x = lerp(633, 155, w); y = by + bh + 26; pulse.setAttribute('fill', RED); }
+      pulse.setAttribute('cx', x);
+      pulse.setAttribute('cy', y);
+      pulse.setAttribute('opacity', 0.9);
+      pRaf = requestAnimationFrame(pulseLoop);
+    }
+    var p = smoothPlayer(controls, nF, draw, 0.25, function (on) {
+      if (on && !pRaf) pRaf = requestAnimationFrame(pulseLoop);
+      if (!on && pRaf) { cancelAnimationFrame(pRaf); pRaf = null; pStart = null; pulse.setAttribute('opacity', 0); }
+    });
+    function draw(q) {
+      var i = Math.min(nF - 2, Math.floor(q)), w = q - i, a = Fr[i], b = Fr[i + 1];
+      var r0 = lerpArr(a.raw[0], b.raw[0], w), r1 = lerpArr(a.raw[1], b.raw[1], w);
+      var o0 = lerpArr(a.out[0], b.out[0], w), o1 = lerpArr(a.out[1], b.out[1], w);
+      for (var j = 0; j < r0.length; j++) {
+        segs[j].setAttribute('x1', px(r0[j])); segs[j].setAttribute('y1', py(r1[j]));
+        segs[j].setAttribute('x2', px(o0[j])); segs[j].setAttribute('y2', py(o1[j]));
+        raws[j].setAttribute('cx', px(r0[j])); raws[j].setAttribute('cy', py(r1[j]));
+        outs[j].setAttribute('cx', px(o0[j])); outs[j].setAttribute('cy', py(o1[j]));
+      }
+      var ep = lerp(a.epoch, b.epoch, w);
+      cur.setAttribute('x1', ex(ep));
+      cur.setAttribute('x2', ex(ep));
+      var f = w < 0.5 ? a : b;
+      readout.textContent = 'Epoch ' + Math.round(ep) + ': error against the true flows, with the layer ' + f.rmse.toFixed(3) +
+        ', without ' + f.plain_rmse.toFixed(3) + '. Largest balance violation, with the layer ' + sci(Math.max(f.viol, 1e-16)) +
+        ', without ' + f.plain_viol.toFixed(3) + '.';
+    }
+    p.set(nF - 1);
+  };
+
+  // ------------------------------------------------------------------ L14
+
+  var NORM_Z = { 0.1: 0.1257, 0.2: 0.2533, 0.3: 0.3853, 0.4: 0.5244, 0.5: 0.6745, 0.6: 0.8416,
+    0.7: 1.0364, 0.8: 1.2816, 0.9: 1.6449, 0.95: 1.96 };
+
+  /* Prediction intervals on the concrete strength dataset's test mixes, for three
+   * methods and two test sets, at any nominal level. Each mix is a bar from its
+   * interval; red where the interval misses the measured strength. The right
+   * panel is the reliability diagram for the chosen method and test set. */
+  WIDGETS.coverage = function (root, data) {
+    var d = data.uq, LV = d.levels, split = 0, method = 0;
+    var METHODS = ['GP', 'ensemble', 'conformal'];
+    var NAMES = ['Gaussian process', 'ensemble spread', 'split conformal'];
+    var W = 720, H = 320, L = 46, PR = 470, T0 = 14, B = 270;
+    html('div', { class: 'cw-title' }, root, 'Do the intervals contain the truth as often as they claim?');
+    var svg = svgRoot(root, W, H, 'Prediction intervals on the test mixes and the reliability diagram');
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    var c2 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'Concrete strength dataset, Lecture 9\'s grouped split (195 test rows) and an extrapolation split that holds out the ' +
+      '20% of mixes with the lowest water/cement ratio (265 rows, the strongest mixes). Test mixes are sorted by measured ' +
+      'strength. Ensemble: five of Lecture 9\'s networks, interval from their spread alone. Conformal: width set on 210 calibration rows.');
+    toggleGroup(c1, ['Grouped split', 'Extrapolation split'], 0, function (v) { split = v; draw(p.get()); });
+    toggleGroup(c2, NAMES, 0, function (v) { method = v; draw(p.get()); });
+    var p = player(c1, LV.length, draw, 500);
+
+    function halfwidths(s, lv) {
+      var i = LV.indexOf(lv), z = NORM_Z[lv];
+      if (method === 0) return s.gp_sd_pts.map(function (v) { return z * v; });
+      if (method === 1) return s.ens_sd_pts.map(function (v) { return z * v; });
+      return s.y.map(function () { return s.q[i]; });
+    }
+    function centers(s) { return method === 0 ? s.gp_mu : method === 1 ? s.ens_mu : s.conf_mu; }
+
+    function draw(li) {
+      clear(svg);
+      var s = d.splits[split], lv = LV[li], hw = halfwidths(s, lv), c = centers(s);
+      var order = s.y.map(function (_, i) { return i; }).sort(function (a, b) { return s.y[a] - s.y[b]; });
+      var sx = scale(0, order.length - 1, L, PR), sy = scale(-10, 100, B, T0);
+      [0, 20, 40, 60, 80].forEach(function (v) {
+        el('line', { x1: L, x2: PR, y1: sy(v), y2: sy(v), stroke: 'currentColor', 'stroke-opacity': 0.08 }, svg);
+        text(svg, L - 6, sy(v) + 4, String(v), { 'text-anchor': 'end', 'font-size': 11, opacity: 0.7 });
+      });
+      text(svg, 12, (T0 + B) / 2, 'MPa', { 'font-size': 11, opacity: 0.8 });
+      text(svg, (L + PR) / 2, B + 18, 'test mixes, sorted by measured strength', { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.8 });
+      var hit = 0;
+      order.forEach(function (i, k) {
+        var ok = Math.abs(s.y[i] - c[i]) < hw[i];
+        if (ok) hit++;
+        var col = ok ? 'var(--cw-accent)' : RED;
+        el('line', { x1: sx(k), x2: sx(k), y1: sy(c[i] - hw[i]), y2: sy(c[i] + hw[i]), stroke: col, 'stroke-opacity': ok ? 0.35 : 0.7, 'stroke-width': 1.5 }, svg);
+        el('circle', { cx: sx(k), cy: sy(s.y[i]), r: 1.8, fill: ok ? 'currentColor' : RED }, svg);
+      });
+      // Reliability diagram.
+      var rx = scale(0, 1, 520, 700), ry = scale(0, 1, 230, 50);
+      el('rect', { x: 520, y: 50, width: 180, height: 180, fill: 'none', stroke: 'currentColor', 'stroke-opacity': 0.25 }, svg);
+      el('line', { x1: rx(0), y1: ry(0), x2: rx(1), y2: ry(1), stroke: 'currentColor', 'stroke-dasharray': '4 3', 'stroke-opacity': 0.6 }, svg);
+      var cov = s.coverage[METHODS[method]];
+      polyline(svg, LV.map(rx), cov.map(ry), { stroke: 'var(--cw-accent2)', 'stroke-width': 2 });
+      LV.forEach(function (v, i) { el('circle', { cx: rx(v), cy: ry(cov[i]), r: i === li ? 6 : 2.5, fill: 'var(--cw-accent2)' }, svg); });
+      text(svg, 610, 40, 'reliability diagram', { 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 600 });
+      text(svg, 610, 250, 'nominal coverage', { 'text-anchor': 'middle', 'font-size': 10, opacity: 0.8 });
+      text(svg, 512, 140, 'observed', { 'text-anchor': 'end', 'font-size': 10, opacity: 0.8 });
+      text(svg, 690, 222, 'below: overconfident', { 'text-anchor': 'end', 'font-size': 10, style: 'fill:' + RED });
+      var width = hw.reduce(function (a, b) { return a + b; }, 0) / hw.length * 2;
+      readout.textContent = NAMES[method] + ', ' + (split ? 'extrapolation split' : 'grouped split') + ', nominal ' +
+        Math.round(lv * 100) + '%: ' + hit + ' of ' + order.length + ' test mixes inside their interval (' +
+        Math.round(100 * hit / order.length) + '%); mean width ' + width.toFixed(1) + ' MPa.';
+    }
+    p.set(LV.length - 1);
+  };
+
+  /* Bayesian optimization on a 1-D test function with two peaks. Pick the
+   * acquisition; each step fits the GP to the points so far, maximizes the
+   * acquisition and evaluates there. All eight iterations of each run were
+   * recorded by lectures/l14/figures/make_figures.py. */
+  WIDGETS['bo-loop'] = function (root, data) {
+    var d = data.bo, kinds = ['EI', 'PI', 'UCB'], kind = 0;
+    var NAMES = ['expected improvement', 'probability of improvement', 'upper confidence bound, κ = 3'];
+    var W = 720, H = 330, L = 46, R = 16;
+    html('div', { class: 'cw-title' }, root, 'The Bayesian optimization loop, one evaluation at a time');
+    var svg = svgRoot(root, W, H, 'Gaussian process, acquisition function and next evaluation at each iteration');
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    var c2 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'Maximize g(x) = −(6x − 2)² sin(12x − 4) on [0, 1] (the Forrester et al. benchmark, flipped). Global maximum 6.02 at ' +
+      'x = 0.758, a smaller peak near 0.15. Start: four points at 0, 0.33, 0.66 and 1. Gray: the true function, hidden from the ' +
+      'optimizer. Blue: the GP mean and 95% band. Green: the acquisition, scaled to its maximum.');
+    toggleGroup(c2, NAMES, 0, function (v) { kind = v; draw(p.get()); });
+    var p = player(c1, 8, draw, 900);
+    function g(x) { return -Math.pow(6 * x - 2, 2) * Math.sin(12 * x - 4); }
+
+    function draw(i) {
+      clear(svg);
+      var fr = d.runs[kinds[kind]][i], grid = d.grid;
+      var sx = scale(0, 1, L, W - R), sy = scale(-22, 12, 200, 12), sa = scale(0, 1, 300, 222);
+      el('line', { x1: L, x2: W - R, y1: sy(0), y2: sy(0), stroke: 'currentColor', 'stroke-opacity': 0.12 }, svg);
+      [-20, -10, 0, 10].forEach(function (v) { text(svg, L - 6, sy(v) + 4, String(v), { 'text-anchor': 'end', 'font-size': 10, opacity: 0.7 }); });
+      var up = fr.mu.map(function (m, j) { return m + 1.96 * fr.sd[j]; }), lo = fr.mu.map(function (m, j) { return m - 1.96 * fr.sd[j]; });
+      var pts = grid.map(function (x, j) { return sx(x).toFixed(1) + ',' + sy(up[j]).toFixed(1); })
+        .concat(grid.slice().reverse().map(function (x, j) { var k = grid.length - 1 - j; return sx(x).toFixed(1) + ',' + sy(lo[k]).toFixed(1); }));
+      el('polygon', { points: pts.join(' '), fill: 'var(--cw-accent)', 'fill-opacity': 0.15 }, svg);
+      polyline(svg, grid.map(sx), d.truth.map(sy), { stroke: 'currentColor', 'stroke-opacity': 0.35, 'stroke-width': 2.5 });
+      polyline(svg, grid.map(sx), fr.mu.map(sy), { stroke: 'var(--cw-accent)', 'stroke-width': 2 });
+      fr.x.forEach(function (x, j) { el('circle', { cx: sx(x), cy: sy(fr.y[j]), r: 4, fill: 'currentColor' }, svg); });
+      el('line', { x1: sx(fr.next), x2: sx(fr.next), y1: 12, y2: 300, stroke: RED, 'stroke-dasharray': '5 3', 'stroke-width': 1.5 }, svg);
+      polyline(svg, grid.map(sx), fr.acq.map(sa), { stroke: 'var(--cw-green)', 'stroke-width': 2 });
+      el('line', { x1: L, x2: W - R, y1: sa(0), y2: sa(0), stroke: 'currentColor', 'stroke-opacity': 0.25 }, svg);
+      text(svg, L, 216, 'acquisition', { 'font-size': 11, style: 'fill:var(--cw-green)' });
+      [0, 0.25, 0.5, 0.75, 1].forEach(function (v) { text(svg, sx(v), 316, String(v), { 'text-anchor': 'middle', 'font-size': 10, opacity: 0.7 }); });
+      var best = Math.max.apply(null, fr.y);
+      readout.textContent = NAMES[kind] + ', iteration ' + (i + 1) + ': ' + fr.x.length + ' points evaluated, best so far ' +
+        best.toFixed(2) + ' (true maximum 6.02). Next x = ' + fr.next.toFixed(3) + ', where g = ' + g(fr.next).toFixed(2) + '.';
+    }
+    p.set(0);
+  };
+
   // ------------------------------------------------------------------ boot
 
   function boot() {

@@ -122,20 +122,46 @@
     Add tracing so every request's inputs, outputs, tool calls, latency, and cost are
     recorded and queryable.
 
+# L13 objectives, lifted verbatim from the seven bullets in lectures/l13/notes.md.
+
 - id: l13-o1
   lecture: l13
   text: >-
-    Design a surrogate: sampling plan, model family, and validation for extrapolation.
+    Explain what a physics-informed neural network (PINN) minimizes, and why its physics holds
+    only approximately.
 
 - id: l13-o2
   lecture: l13
   text: >-
-    Add physics to a model via soft penalties or hard constraints, and evaluate the payoff.
+    Build a PINN in JAX and compare its extrapolation with a plain network.
 
 - id: l13-o3
   lecture: l13
   text: >-
-    Produce and calibrate predictive uncertainty, separating aleatoric from epistemic.
+    Derive a neural ODE from a recurrent network by letting the time step go to zero, and train
+    one with a differentiable ODE solver.
+
+- id: l13-o4
+  lecture: l13
+  text: >-
+    Explain why some physics must be enforced rather than penalized, and what makes a model a
+    differential-algebraic equation (DAE).
+
+- id: l13-o5
+  lecture: l13
+  text: >-
+    Contrast the sequential and simultaneous approaches to training a dynamic model.
+
+- id: l13-o6
+  lecture: l13
+  text: >-
+    Train a neural DAE with SiNDAE, and check that its predictions satisfy the constraints.
+
+- id: l13-o7
+  lecture: l13
+  text: >-
+    Compare PINNs, neural ODEs, neural DAEs and projection layers: where the physics lives, and
+    what each one guarantees.
 
 - id: l07-o1
   lecture: l07
@@ -370,8 +396,7 @@
   text: >-
     Apply regularization and normalization appropriate to each architecture.
 
-# L14, published notes and no bank yet (game/content/l14.yml, status: unwritten).
-# Registered so whoever writes that bank maps onto objectives that already exist.
+# L14, objectives lifted verbatim from lectures/l14/notes.md; l14-o4 (uncertainty) moved here from L13.
 
 - id: l14-o1
   lecture: l14
@@ -387,6 +412,11 @@
   lecture: l14
   text: >-
     Set up an active-learning loop that chooses the next expensive query.
+
+- id: l14-o4
+  lecture: l14
+  text: >-
+    Produce and calibrate predictive uncertainty, separating aleatoric from epistemic.
 
 # L16, published notes and no bank yet (game/content/l16.yml, status: unwritten).
 # Registered so whoever writes that bank maps onto objectives that already exist.

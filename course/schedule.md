@@ -16,10 +16,10 @@
 | Lecture 10: 09-28-2026 (Monday)                    | The machine learning (ML) workflow III: Classification, experiment tracking and hyperparameter search/tuning                         |
 | Lecture 11: 09-30-2026 (Wednesday)                 | ML with PyTorch/JAX                                                                        |
 | Lecture 12: 10-05-2026 (Monday)                    | ML architectures for engineering data                                                      |
-| Lecture 13: 10-07-2026 (Wednesday)                 | Surrogates, physics-informed models, and uncertainty quantification                        |
+| Lecture 13: 10-07-2026 (Wednesday)                 | Scientific machine learning: PINNs, neural ODEs and neural DAEs                            |
 | 10-12-2026 (Monday)                                | Fall break, no class                                                                       |
 | 10-14-2026 (Wednesday)                             | Fall break, no class                                                                       |
-| Lecture 14: 10-19-2026 (Monday)                    | Bayesian optimization (BO) and active learning (AL)                                        |
+| Lecture 14: 10-19-2026 (Monday)                    | Uncertainty quantification (UQ), Bayesian optimization (BO) and active learning (AL)       |
 | Lecture 15: 10-21-2026 (Wednesday)                 | Large Language Models (LLMs) - Intro                                                       |
 | Lecture 16: 10-26-2026 (Monday)                    | Large Language Models (LLMs) II                                                            |
 | Lecture 17: 10-28-2026 (Wednesday)                 | Retrieval-augmented generation (RAG) and vector databases                                  |

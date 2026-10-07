@@ -392,7 +392,7 @@ def test_declaring_the_enclosing_h2_is_accepted():
     """Pointing at the parent section is a legitimate, coarser citation."""
     text = V.read_source("lectures/l13/notes.md")
     assert text
-    quote = "collapses to **82.2%**."
+    quote = "halving the step halves the error"
     here, _ = V.section_for(text, quote) or (None, None)
     assert here, "fixture quote not found"
     parent = V.enclosing_h2(text, here)

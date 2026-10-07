@@ -210,6 +210,507 @@
         }
       },
       "serve": 6
+    },
+    "3": {
+      "items": {
+        "l13-q01": {
+          "answer": "The residual of the governing equation, zero for a function that obeys it exactly",
+          "options": [
+            "The residual of the governing equation, zero for a function that obeys it exactly",
+            "The error against measurements taken after the training window",
+            "The size of the network's weights, to keep it from overfitting",
+            "The difference between the PINN and a plain network trained on the same data"
+          ]
+        },
+        "l13-q02": {
+          "answer": "At 40 collocation points spread over the whole second, including where there is no data",
+          "options": [
+            "At 40 collocation points spread over the whole second, including where there is no data",
+            "Only at the 10 measured time points, where the answer is known",
+            "Only after the last measurement, where the data cannot help",
+            "At every training step's random batch of measurements"
+          ]
+        },
+        "l13-q03": {
+          "answer": "The residual shrinks, and the fit to the data gets a little worse",
+          "options": [
+            "The residual shrinks, and the fit to the data gets a little worse",
+            "The residual becomes exactly zero",
+            "Both the residual and the fit to the data improve",
+            "Nothing, since λ only rescales the whole loss"
+          ]
+        },
+        "l13-q04": {
+          "answer": "Larger: 5.3 N, because the physics is penalized only where it is evaluated",
+          "options": [
+            "Larger: 5.3 N, because the physics is penalized only where it is evaluated",
+            "Also about 0.7 N, because the network is smooth between the points",
+            "Exactly zero, because the collocation points cover the interval",
+            "Smaller, because the residual averages out between the points"
+          ]
+        },
+        "l13-q05": {
+          "answer": "The PINN; the plain network is wrong by about half a meter",
+          "options": [
+            "The PINN; the plain network is wrong by about half a meter",
+            "Both, since they fit the same 10 points",
+            "The plain network, since no residual term compromises its fit",
+            "Neither, since no model can say anything past its data"
+          ]
+        },
+        "l13-q06": {
+          "answer": "By applying jax.grad twice, differentiating with respect to the input t",
+          "options": [
+            "By applying jax.grad twice, differentiating with respect to the input t",
+            "By finite differences between neighbouring collocation points",
+            "With jax.vmap, which returns the derivative at every point at once",
+            "With a second network trained to predict the acceleration"
+          ]
+        },
+        "l13-q07": {
+          "answer": "Δt/τ: the time step measured in time constants",
+          "options": [
+            "Δt/τ: the time step measured in time constants",
+            "τ/Δt: the number of steps per time constant",
+            "τ: the thermocouple's time constant itself",
+            "x: the gas temperature at each step"
+          ]
+        },
+        "l13-q08": {
+          "answer": "It roughly halves, because forward Euler is first order",
+          "options": [
+            "It roughly halves, because forward Euler is first order",
+            "It drops to about a quarter",
+            "It stays the same, because the network has not changed",
+            "It doubles, because twice as many steps accumulate error"
+          ]
+        },
+        "l13-q09": {
+          "answer": "A neural ODE, dh/dt = f(h, x; θ), of which the recurrent network is the Euler discretization",
+          "options": [
+            "A neural ODE, dh/dt = f(h, x; θ), of which the recurrent network is the Euler discretization",
+            "A PINN, because the residual of the update goes to zero",
+            "A DAE, because the update becomes an algebraic equation",
+            "The same recurrent network, run for more steps"
+          ]
+        },
+        "l13-q10": {
+          "answer": "None: y2 is whatever keeps the two levels equal",
+          "options": [
+            "None: y2 is whatever keeps the two levels equal",
+            "A valve equation relating y2 to the pressure drop",
+            "The pump equation, since the pump drives every flow",
+            "A neural network trained on measured flows"
+          ]
+        },
+        "l13-q11": {
+          "answer": "The constraint x0 = x1 has to be differentiated twice before every flow has an ODE",
+          "options": [
+            "The constraint x0 = x1 has to be differentiated twice before every flow has an ODE",
+            "It has two algebraic variables",
+            "Two of its tanks are joined by a constraint",
+            "Its differential equations are second order"
+          ]
+        },
+        "l13-q12": {
+          "answer": "Only when the solver converges",
+          "options": [
+            "Only when the solver converges",
+            "At every iterate, since each iterate is a simulation",
+            "Only at the measured time points",
+            "Never exactly; they are penalized like a PINN's residual"
+          ]
+        },
+        "l13-q13": {
+          "answer": "Its states sit on the data but break the model equations",
+          "options": [
+            "Its states sit on the data but break the model equations",
+            "It has not computed a gradient yet",
+            "The data are noisy, so a perfect fit is suspect",
+            "Interior-point solvers always run a fixed number of iterations"
+          ]
+        },
+        "l13-q14": {
+          "answer": "Single shooting can stop in a local minimum on oscillating data; the simultaneous approach from the same start found μ = 0.99, k = 402",
+          "options": [
+            "Single shooting can stop in a local minimum on oscillating data; the simultaneous approach from the same start found μ = 0.99, k = 402",
+            "BFGS needed more iterations to reach the true values",
+            "With noisy data, the damping cannot be estimated at all",
+            "Single shooting cannot estimate two parameters at once"
+          ]
+        },
+        "l13-q15": {
+          "answer": "Solves the same model as an NLP with S ≥ 0, moving the growth rate off the network's value only where a constraint would break",
+          "options": [
+            "Solves the same model as an NLP with S ≥ 0, moving the growth rate off the network's value only where a constraint would break",
+            "Retrains the network on the new batch before predicting",
+            "Clips the substrate at zero after integrating",
+            "Integrates with a smaller time step"
+          ]
+        },
+        "l13-q16": {
+          "answer": "Feasible is not accurate: at 60 h the neural DAE's biomass is further from the truth than the integrated model's",
+          "options": [
+            "Feasible is not accurate: at 60 h the neural DAE's biomass is further from the truth than the integrated model's",
+            "Nothing: a constraint that holds always improves every predicted state",
+            "The neural DAE cannot predict biomass, only substrate",
+            "The integrated model's biomass is negative too"
+          ]
+        },
+        "l13-q17": {
+          "answer": "To machine precision, in training and in use",
+          "options": [
+            "To machine precision, in training and in use",
+            "Approximately, with the error set by a penalty weight like a PINN's λ",
+            "Only on the training data",
+            "Only after the network has been trained to convergence"
+          ]
+        },
+        "l13-q18": {
+          "answer": "The neural DAE in the solver; the projection layer in the network, on every forward pass",
+          "options": [
+            "The neural DAE in the solver; the projection layer in the network, on every forward pass",
+            "Both in the loss, with a large penalty weight",
+            "The neural DAE in the network; the projection layer in the solver",
+            "Both after training, by clipping the outputs"
+          ]
+        }
+      },
+      "serve": 9
+    },
+    "4": {
+      "items": {
+        "l13-q01": {
+          "answer": "The residual of the governing equation, zero for a function that obeys it exactly",
+          "options": [
+            "The residual of the governing equation, zero for a function that obeys it exactly",
+            "The error against measurements taken after the training window",
+            "The size of the network's weights, to keep it from overfitting",
+            "The difference between the PINN and a plain network trained on the same data"
+          ]
+        },
+        "l13-q02": {
+          "answer": "At 40 collocation points spread over the whole second, including where there is no data",
+          "options": [
+            "At 40 collocation points spread over the whole second, including where there is no data",
+            "Only at the 10 measured time points, where the answer is known",
+            "Only after the last measurement, where the data cannot help",
+            "At every training step's random batch of measurements"
+          ]
+        },
+        "l13-q03": {
+          "answer": "The residual shrinks, and the fit to the data gets a little worse",
+          "options": [
+            "The residual shrinks, and the fit to the data gets a little worse",
+            "The residual becomes exactly zero",
+            "Both the residual and the fit to the data improve",
+            "Nothing, since λ only rescales the whole loss"
+          ]
+        },
+        "l13-q04": {
+          "answer": "Larger: 5.3 N, because the physics is penalized only where it is evaluated",
+          "options": [
+            "Larger: 5.3 N, because the physics is penalized only where it is evaluated",
+            "Also about 0.7 N, because the network is smooth between the points",
+            "Exactly zero, because the collocation points cover the interval",
+            "Smaller, because the residual averages out between the points"
+          ]
+        },
+        "l13-q05": {
+          "answer": "The PINN; the plain network is wrong by about half a meter",
+          "options": [
+            "The PINN; the plain network is wrong by about half a meter",
+            "Both, since they fit the same 10 points",
+            "The plain network, since no residual term compromises its fit",
+            "Neither, since no model can say anything past its data"
+          ]
+        },
+        "l13-q06": {
+          "answer": "By applying jax.grad twice, differentiating with respect to the input t",
+          "options": [
+            "By applying jax.grad twice, differentiating with respect to the input t",
+            "By finite differences between neighbouring collocation points",
+            "With jax.vmap, which returns the derivative at every point at once",
+            "With a second network trained to predict the acceleration"
+          ]
+        },
+        "l13-q07": {
+          "answer": "The right-hand side f, the vector field, which holds for any starting state and any sampling times",
+          "options": [
+            "The right-hand side f, the vector field, which holds for any starting state and any sampling times",
+            "The jump from one sample to the next, for one fixed step size",
+            "One trajectory x(t), for this release of the mass",
+            "The step sizes the ODE solver should take"
+          ]
+        },
+        "l13-q08": {
+          "answer": "It roughly halves, because forward Euler is first order",
+          "options": [
+            "It roughly halves, because forward Euler is first order",
+            "It drops to about a quarter",
+            "It stays the same, because the network has not changed",
+            "It doubles, because twice as many steps accumulate error"
+          ]
+        },
+        "l13-q09": {
+          "answer": "A neural ODE, dh/dt = f(h, t, θ), of which the recurrent network is the Euler discretization",
+          "options": [
+            "A neural ODE, dh/dt = f(h, t, θ), of which the recurrent network is the Euler discretization",
+            "A PINN, because the residual of the update goes to zero",
+            "A DAE, because the update becomes an algebraic equation",
+            "The same recurrent network, run for more steps"
+          ]
+        },
+        "l13-q10": {
+          "answer": "None: y2 is whatever keeps the two levels equal",
+          "options": [
+            "None: y2 is whatever keeps the two levels equal",
+            "A valve equation relating y2 to the pressure drop",
+            "The pump equation, since the pump drives every flow",
+            "A neural network trained on measured flows"
+          ]
+        },
+        "l13-q11": {
+          "answer": "A penalty makes violations small, not zero; the limit has to hold at every instant, as a path constraint",
+          "options": [
+            "A penalty makes violations small, not zero; the limit has to hold at every instant, as a path constraint",
+            "A penalty cannot be differentiated, so the optimizer ignores it",
+            "Penalties only work for equality constraints",
+            "Temperature limits can only be held by a controller, never by a model"
+          ]
+        },
+        "l13-q12": {
+          "answer": "Only when the solver converges",
+          "options": [
+            "Only when the solver converges",
+            "At every iterate, since each iterate is a simulation",
+            "Only at the measured time points",
+            "Never exactly; they are penalized like a PINN's residual"
+          ]
+        },
+        "l13-q13": {
+          "answer": "Its states sit on the data but break the model equations",
+          "options": [
+            "Its states sit on the data but break the model equations",
+            "It has not computed a gradient yet",
+            "The data are noisy, so a perfect fit is suspect",
+            "Interior-point solvers always run a fixed number of iterations"
+          ]
+        },
+        "l13-q14": {
+          "answer": "Single shooting can stop in a local minimum on oscillating data; the simultaneous approach from the same start found μ = 0.99, k = 402",
+          "options": [
+            "Single shooting can stop in a local minimum on oscillating data; the simultaneous approach from the same start found μ = 0.99, k = 402",
+            "BFGS needed more iterations to reach the true values",
+            "With noisy data, the damping cannot be estimated at all",
+            "Single shooting cannot estimate two parameters at once"
+          ]
+        },
+        "l13-q15": {
+          "answer": "Solves the same model as an NLP with S ≥ 0, moving the growth rate off the network's value only where a constraint would break",
+          "options": [
+            "Solves the same model as an NLP with S ≥ 0, moving the growth rate off the network's value only where a constraint would break",
+            "Retrains the network on the new batch before predicting",
+            "Clips the substrate at zero after integrating",
+            "Integrates with a smaller time step"
+          ]
+        },
+        "l13-q16": {
+          "answer": "Feasible is not accurate: its biomass at 60 h is 3.23 g/L against a true 3.51 g/L",
+          "options": [
+            "Feasible is not accurate: its biomass at 60 h is 3.23 g/L against a true 3.51 g/L",
+            "Nothing: a constraint that holds makes every predicted state correct",
+            "The neural DAE cannot predict biomass, only substrate",
+            "The neural DAE's substrate does go negative, only less than the neural ODE's"
+          ]
+        },
+        "l13-q17": {
+          "answer": "To machine precision, in training and in use",
+          "options": [
+            "To machine precision, in training and in use",
+            "Approximately, with the error set by a penalty weight like a PINN's λ",
+            "Only on the training data",
+            "Only after the network has been trained to convergence"
+          ]
+        },
+        "l13-q18": {
+          "answer": "The neural DAE in the solver; the projection layer in the network, on every forward pass",
+          "options": [
+            "The neural DAE in the solver; the projection layer in the network, on every forward pass",
+            "Both in the loss, with a large penalty weight",
+            "The neural DAE in the network; the projection layer in the solver",
+            "Both after training, by clipping the outputs"
+          ]
+        }
+      },
+      "serve": 9
+    },
+    "5": {
+      "items": {
+        "l13-q01": {
+          "answer": "The residual of the governing equation, zero for a function that obeys it exactly",
+          "options": [
+            "The residual of the governing equation, zero for a function that obeys it exactly",
+            "The error against measurements taken after the training window",
+            "The size of the network's weights, to keep it from overfitting",
+            "The difference between the PINN and a plain network trained on the same data"
+          ]
+        },
+        "l13-q02": {
+          "answer": "At 40 collocation points spread over the whole second, including where there is no data",
+          "options": [
+            "At 40 collocation points spread over the whole second, including where there is no data",
+            "Only at the 10 measured time points, where the answer is known",
+            "Only after the last measurement, where the data cannot help",
+            "At every training step's random batch of measurements"
+          ]
+        },
+        "l13-q03": {
+          "answer": "The residual shrinks, and the fit to the data gets a little worse",
+          "options": [
+            "The residual shrinks, and the fit to the data gets a little worse",
+            "The residual becomes exactly zero",
+            "Both the residual and the fit to the data improve",
+            "Nothing, since λ only rescales the whole loss"
+          ]
+        },
+        "l13-q04": {
+          "answer": "Larger: 5.3 N, because the physics is penalized only where it is evaluated",
+          "options": [
+            "Larger: 5.3 N, because the physics is penalized only where it is evaluated",
+            "Also about 0.7 N, because the network is smooth between the points",
+            "Exactly zero, because the collocation points cover the interval",
+            "Smaller, because the residual averages out between the points"
+          ]
+        },
+        "l13-q05": {
+          "answer": "The PINN; the plain network is wrong by about half a meter",
+          "options": [
+            "The PINN; the plain network is wrong by about half a meter",
+            "Both, since they fit the same 10 points",
+            "The plain network, since no residual term compromises its fit",
+            "Neither, since no model can say anything past its data"
+          ]
+        },
+        "l13-q06": {
+          "answer": "By applying jax.grad twice, differentiating with respect to the input t",
+          "options": [
+            "By applying jax.grad twice, differentiating with respect to the input t",
+            "By finite differences between neighbouring collocation points",
+            "With jax.vmap, which returns the derivative at every point at once",
+            "With a second network trained to predict the acceleration"
+          ]
+        },
+        "l13-q07": {
+          "answer": "The right-hand side f, the vector field, which holds for any starting state and any sampling times",
+          "options": [
+            "The right-hand side f, the vector field, which holds for any starting state and any sampling times",
+            "The jump from one sample to the next, for one fixed step size",
+            "One trajectory x(t), for this release of the mass",
+            "The step sizes the ODE solver should take"
+          ]
+        },
+        "l13-q08": {
+          "answer": "It roughly halves, because forward Euler is first order",
+          "options": [
+            "It roughly halves, because forward Euler is first order",
+            "It drops to about a quarter",
+            "It stays the same, because the network has not changed",
+            "It doubles, because twice as many steps accumulate error"
+          ]
+        },
+        "l13-q09": {
+          "answer": "A neural ODE, dh/dt = f(h, t, θ), of which the recurrent network is the Euler discretization",
+          "options": [
+            "A neural ODE, dh/dt = f(h, t, θ), of which the recurrent network is the Euler discretization",
+            "A PINN, because the residual of the update goes to zero",
+            "A DAE, because the update becomes an algebraic equation",
+            "The same recurrent network, run for more steps"
+          ]
+        },
+        "l13-q10": {
+          "answer": "None: y2 is whatever keeps the two levels equal",
+          "options": [
+            "None: y2 is whatever keeps the two levels equal",
+            "A valve equation relating y2 to the pressure drop",
+            "The pump equation, since the pump drives every flow",
+            "A neural network trained on measured flows"
+          ]
+        },
+        "l13-q11": {
+          "answer": "A penalty makes violations small, not zero; the limit has to hold at every instant, as a path constraint",
+          "options": [
+            "A penalty makes violations small, not zero; the limit has to hold at every instant, as a path constraint",
+            "A penalty cannot be differentiated, so the optimizer ignores it",
+            "Penalties only work for equality constraints",
+            "Temperature limits can only be held by a controller, never by a model"
+          ]
+        },
+        "l13-q12": {
+          "answer": "Only when the solver converges",
+          "options": [
+            "Only when the solver converges",
+            "At every iterate, since each iterate is a simulation",
+            "Only at the measured time points",
+            "Never exactly; they are penalized like a PINN's residual"
+          ]
+        },
+        "l13-q13": {
+          "answer": "Its states sit on the data but break the model equations",
+          "options": [
+            "Its states sit on the data but break the model equations",
+            "It has not computed a gradient yet",
+            "The data are noisy, so a perfect fit is suspect",
+            "Interior-point solvers always run a fixed number of iterations"
+          ]
+        },
+        "l13-q14": {
+          "answer": "Single shooting can stop in a local minimum on oscillating data; the simultaneous approach from the same start found μ = 0.99, k = 402",
+          "options": [
+            "Single shooting can stop in a local minimum on oscillating data; the simultaneous approach from the same start found μ = 0.99, k = 402",
+            "BFGS needed more iterations to reach the true values",
+            "With noisy data, the damping cannot be estimated at all",
+            "Single shooting cannot estimate two parameters at once"
+          ]
+        },
+        "l13-q15": {
+          "answer": "Solves the same model as an NLP with S ≥ 0, moving the growth rate off the network's value only where a constraint would break",
+          "options": [
+            "Solves the same model as an NLP with S ≥ 0, moving the growth rate off the network's value only where a constraint would break",
+            "Retrains the network on the new batch before predicting",
+            "Clips the substrate at zero after integrating",
+            "Integrates with a smaller time step"
+          ]
+        },
+        "l13-q16": {
+          "answer": "Feasible is not accurate: the neural DAE's substrate error is 0.29 g/L, the neural ODE's 0.20 g/L",
+          "options": [
+            "Feasible is not accurate: the neural DAE's substrate error is 0.29 g/L, the neural ODE's 0.20 g/L",
+            "Nothing: a constraint that holds makes every predicted state more accurate",
+            "The neural DAE cannot predict substrate, only biomass",
+            "The neural DAE's substrate does go negative, only less than the neural ODE's"
+          ]
+        },
+        "l13-q17": {
+          "answer": "To machine precision, in training and in use",
+          "options": [
+            "To machine precision, in training and in use",
+            "Approximately, with the error set by a penalty weight like a PINN's λ",
+            "Only on the training data",
+            "Only after the network has been trained to convergence"
+          ]
+        },
+        "l13-q18": {
+          "answer": "The neural DAE in the solver; the projection layer in the network, on every forward pass",
+          "options": [
+            "The neural DAE in the solver; the projection layer in the network, on every forward pass",
+            "Both in the loss, with a large penalty weight",
+            "The neural DAE in the network; the projection layer in the solver",
+            "Both after training, by clipping the outputs"
+          ]
+        }
+      },
+      "serve": 9
     }
   }
 }

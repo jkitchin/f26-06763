@@ -1,937 +1,1669 @@
-# Lecture 13: Surrogate modeling, physics-informed models, and uncertainty quantification
+# Lecture 13: Scientific machine learning: PINNs, neural ODEs and neural DAEs
 
-:::{admonition} Overview
+:::{admonition} At a glance
 :class: tip
 
 - **Session** Lecture 13, Week 7
 - **Arc** Machine learning and deep learning
 - **Slides** <a href="../../slides/l13/">Deck for this session</a>
 - **Practice** <a href="../../game/#/l13">Practice module for this session</a>
-- **Demo** [`l13-surrogates-uq.ipynb`](l13-surrogates-uq.ipynb), two surrogates, and whether their uncertainty means anything
-- **Assignment 6** due, the miniproject (Assignment 7) launches this session
+- **Demo** [`l13-pinn-jax.ipynb`](l13-pinn-jax.ipynb), a physics-informed network built from
+  scratch in JAX; [`l13-neural-dae.ipynb`](l13-neural-dae.ipynb), a fed-batch bioreactor as a
+  neural DAE in SiNDAE, following SiNDAE's own example, and as a neural ODE in Diffrax
+- **Tools** JAX and Optax for the PINN; Diffrax and Equinox for the neural ODE; SiNDAE, Pyomo
+  and the POUNCE solver for the neural DAE
 :::
 
 ## Why this matters
 
-Everything in this course so far has been about building a model that is accurate. This
-session is about the moment that stops being enough.
+```{index} scientific machine learning
+```
+```{index} see: SciML; scientific machine learning
+```
 
-Here is the situation. You have a simulation or an experiment that is expensive: a CFD run
-that takes six hours on a cluster, a finite-element sweep, a DFT calculation, a
-twenty-eight-day concrete cure, a wind-tunnel campaign that needs a technician and a
-booking. You want to search a design space, which means thousands of evaluations, and you
-have budget for perhaps a hundred. So you train a model on the hundred you can afford and
-use it to answer the thousands you cannot. That model is a **surrogate**, and in this
-session's measurement it answers a question about 33,000 times faster than the solver it
-replaces.
+### A fed-batch bioreactor
 
-The trouble arrives immediately afterwards. An optimizer handed a surrogate does not sample
-the design space evenly. It goes exactly where the surrogate says the answer is best, which
-is to say exactly where the surrogate is most likely to be wrong, because the largest
-predictions of a model fitted to noisy sparse data are disproportionately the ones that got
-lucky. Every design loop is therefore an adversarial search against your own model's
-optimism. If the surrogate cannot say "I do not know about this region," the loop will find
-that region and spend your budget there.
+A **fed-batch** bioreactor starts with cells and a growth medium. Substrate (the cells' food,
+such as glucose) is **fed** during the run, and nothing is taken out until harvest.
 
-That is why this session is about uncertainty and not only about accuracy. The
-demonstration to hold onto: two surrogates in these notes score 2.07 dB and 2.61 dB of RMSE
-on the same held-out data, against 6.75 dB for predicting the training mean, and the *worse*
-one reports the **narrower** error bar. Its 95% interval contains 80% of the held-out points
-where the other's contains 91%. If you compared them on accuracy, as every previous session
-in this course has done, you would notice a modest gap and move on. In a design loop the
-difference that matters is the one accuracy does not show.
+- The volume grows with the feed.
+- The feed sets how much substrate the cells see, so it steers growth and product formation.
+- It is used to make monoclonal antibodies (mAbs) and other therapeutic proteins, recombinant
+  proteins in *E. coli*, baker's yeast and penicillin
+  ([summary](https://en.wikipedia.org/wiki/Fed-batch_culture)).
+- Fed-batch is still "the most commonly utilized process type for biomanufacturing"
+  ([Bioprocess and Biosystems Engineering, 2024](https://pmc.ncbi.nlm.nih.gov/articles/PMC11269418/)).
+- Chinese hamster ovary (CHO) cells make about 80% of U.S.-licensed mAb products
+  ([mAbs, 2025](https://pmc.ncbi.nlm.nih.gov/articles/PMC12118382/)).
+
+```{figure} figures/fedbatch-reactor.png
+:alt: A stirred bioreactor drawing with cells suspended in liquid and an impeller at the bottom. A blue arrow labeled feed F (L/h), substrate at S_f points into the top. Labels point to a cell, cells: biomass X; to the liquid, product P and substrate S (g/L); and to the liquid surface, volume V (L) rises with the feed.
+:width: 75%
+
+The fed-batch bioreactor and its four states.
+```
+
+The model has four states: biomass $X$, product $P$, substrate $S$ (all in g/L) and volume $V$
+(L). Each balance reads accumulation = what comes in − what leaves + what is made − what is used:
+
+$$
+\underbrace{\frac{dX}{dt}}_{\text{accumulation}} = \underbrace{\mu\,X}_{\text{growth}} - \underbrace{\frac{F}{V}\,X}_{\text{dilution by the feed}}
+$$
+
+$$
+\frac{dP}{dt} = \underbrace{Y_{P/X}\,\mu\,X}_{\text{made by growing cells}} - \underbrace{\frac{F}{V}\,P}_{\text{dilution}}
+$$
+
+$$
+\frac{dS}{dt} = \underbrace{\frac{F}{V}\,(S_f - S)}_{\text{fed in}} - \underbrace{\frac{\mu\,X}{Y_{X/S}}}_{\text{eaten by the cells}}
+$$
+
+$$
+\frac{dV}{dt} = \underbrace{F}_{\text{feed rate}}
+$$
+
+- $F$ is the feed rate (L/h) and $S_f$ the substrate concentration in the feed (g/L).
+- $Y_{P/X}$ and $Y_{X/S}$ are yields: grams of product per gram of cells, and grams of cells per
+  gram of substrate.
+- $\mu$ is the **specific growth rate** (1/h): the kinetics. Every other term is bookkeeping.
+  **$\mu$ is the part we do not know.**
+
+### Why learn the kinetics
+
+- The balances are conservation of mass: they are certain.
+- The rate laws are not. They depend on the strain, the medium and the conditions, and a cell
+  is a large reaction network. Even a simplified CHO network has 30 reaction rates, $v_1$ to
+  $v_{30}$, each with its own law and parameters.
+- In a monoclonal antibody process the scales stack up: the reactor, the cell, and the Golgi
+  apparatus where the antibody is finished.
+
+```{figure} figures/mab-multiscale.png
+:alt: Three panels joined by arrows. Process scale: a stirred bioreactor with cells, and balance equations for metabolites and viable cells. Cellular scale: a cell with the nucleotide sugar donors (NSDs) UDP-glucose, UDP-galactose and UDP-GalNAc made from glucose, galactose and uridine. Organelle (Golgi) scale: the Golgi apparatus, with a partial differential equation for oligosaccharides moving along it and being modified by enzymes.
+:width: 100%
+
+A monoclonal antibody process across three scales: reactor, cell, and Golgi apparatus.
+```
+
+```{figure} figures/cho-network.png
+:alt: A schematic of a CHO cell with a mitochondrion inside. Extracellular metabolites in green surround the cell; intracellular metabolites in blue are connected by arrows labeled v1 to v30, through glycolysis (glucose to G6P to pyruvate), lactate, alanine, serine, glutamate, the TCA cycle in the mitochondrion, and a biomass reaction.
+:width: 60%
+
+A simplified CHO metabolic network with 30 reaction rates. Fig. 5 of
+[Wang, Harcum and Xie (2025)](https://arxiv.org/abs/2412.03883), CC BY 4.0.
+```
+
+So we keep the balances and let a network learn $\mu$ from data. Here we use three batches.
+
+### Inference on unseen data
+
+Three models learn from the same three training batches, 0 to 40 h. Then each predicts a new
+batch, with a different starting charge, for 60 h.
+
+- **Purely data-driven**: a network for the whole right-hand side, $dx/dt = \mathrm{NN}(x)$. No
+  physics.
+- **Physics-informed**: the balances, with only $\mu$ learned.
+- **Physics-enforced**: the same balances as a neural DAE, with $S \ge 0$ as a constraint.
+
+```{figure} figures/fedbatch-models.png
+:alt: Two panels over 60 hours for a new batch, with the last 20 hours shaded and labeled beyond the training time. Left, biomass: the gray true model rises to 3.5 g/L and levels off; the purple dotted purely data-driven model dips below it after 25 hours and rises again; the orange physics-informed model drifts above it after 40 hours to 3.75; the dashed blue physics-enforced neural DAE stays on the gray curve. Right, substrate: all four fall from 7 g/L; the purple and orange curves go below zero, the purple to minus 0.85 g/L and the orange to minus 0.41 g/L at 60 hours, inside a red band labeled negative concentration, impossible; the blue curve stays at or above zero.
+:width: 100%
+
+The new batch: the true mechanistic model and three learned models.
+```
+
+| New batch, 60 h | Lowest substrate | Hours with $S < 0$ | Biomass error (RMSE) |
+|---|---|---|---|
+| Purely data-driven | **−0.85 g/L** | 26 | 0.19 g/L |
+| Physics-informed | **−0.41 g/L** | 24 | 0.10 g/L |
+| Physics-enforced (neural DAE) | 0.04 g/L | 0 | 0.14 g/L |
+| True mechanistic model | 0.07 g/L | 0 | |
+
+- The data-driven model knows nothing about the balances, and it extrapolates worst.
+- The balances help, but a negative concentration is still possible: nothing in the model forbids
+  it.
+
+This session is about how to put physics into a learned model so that this cannot happen.
+
+### Gen 0 to Gen 2
+
+Machine learning in science and engineering has come in generations.
+
+- **Gen 0, surrogate models.** "Often, the codes are computationally expensive to run, and a
+  common objective of an experiment is to fit a cheaper predictor of the output to the data"
+  ([Sacks et al., 1989](https://doi.org/10.1214/ss/1177012413)). A surrogate is a cheap
+  stand-in for an expensive model.
+- **Gen 1, machine learning with intention.** The surrogate also says how uncertain it is, and
+  the uncertainty decides where to sample next
+  ([Jones, Schonlau and Welch, 1998](https://doi.org/10.1023/A:1008306431147)). This is the idea
+  behind **Bayesian optimization**: a cheap surrogate with its uncertainty chooses the next
+  expensive experiment or simulation.
+- Neither generation knows any physics. Everything comes from the data.
+
+```{figure} figures/gen0.png
+:alt: A one-dimensional test function, dashed blue, with eight blue sampled points. An orange surrogate prediction fits the points but misses the function between them, most badly between x = 3 and x = 5 where there are no samples.
+:width: 70%
+
+Gen 0: a cheap surrogate fitted to a few evaluations of an expensive function.
+```
+
+```{figure} figures/gen1.png
+:alt: The same test function and samples, now with the surrogate's uncertainty shaded in light blue, widest where there are no samples. A green diamond at x = 0 marks the next exploration candidate, labeled reduce uncertainty.
+:width: 70%
+
+Gen 1: the surrogate's uncertainty (shaded) chooses the next sample.
+```
+
+**Gen 2** keeps the mechanistic model and adds machine learning only where the physics is
+unknown.
+
+```{figure} figures/sciml-spectrum.png
+:alt: Three rounded boxes side by side. First-principles, with the equations m C_p dT/dt = f(T, C, k1, k2, ...) and dC/dt = g(T, C, k1, k2, ...), and challenges: unknown physics, time to impact. Hybrid, highlighted with a blue glow and labeled Gen 2, with a network drawing, the equations m C_p dT/dt = f1(T, C, k1, ...), dC/dt = ML(T, C, k1, ...), h = 0 and g <= 0, and opportunities: missing tools (train, optimize, UQ). Data-driven (ML), labeled Gen 0, Gen 1, with a network drawing, C-hat = ML(T, C, k1, k2, ...), and challenges: no gained insight, cost to impact. A red arrow across the top runs from minimal data through moderate data to extensive data; a red arrow across the bottom runs from no physics through physics plus ML to no ML.
+:width: 100%
+
+First-principles, hybrid and data-driven models, after Fig. 1 of Shah et al. (2025).
+```
+
+:::{admonition} Definition: scientific machine learning (SciML)
+:class: tip
+**Scientific machine learning** combines mechanistic, first-principles models (balances, rate
+laws, constraints) with machine learning, so the network learns only what the physics does not
+already say.
+:::
+
+The pattern is the same across engineering and physics: conservation laws are known, and one
+**closure term** is not.
+
+$$
+mL\ddot\theta = -mg\sin\theta - \underbrace{F_f(\dot\theta)}_{\text{friction}}
+\qquad
+\rho c_p\frac{\partial T}{\partial t} = \kappa\frac{\partial^2 T}{\partial z^2} + \underbrace{q(T)}_{\text{heat source}}
+$$
+
+$$
+\frac{dC}{dt} = \frac{q}{V}(C_f - C) - \underbrace{r(C, T)}_{\text{kinetics}}
+\qquad
+A\frac{dh}{dt} = q_\text{in} - \underbrace{q_\text{out}(h)}_{\text{valve law}}
+$$
+
+```{figure} figures/sciml-examples.png
+:alt: Four small plots. Top left, a pendulum angle oscillating and decaying over 12 seconds, with a dashed envelope labeled decay set by the friction term. Top right, temperature profiles along a rod at four times, rising in the middle with the ends held at zero, labeled heats up from inside, the source term. Bottom left, a continuous stirred-tank reactor whose temperature jumps from 300 K to almost 500 K at about 1.6 minutes, labeled ignition, heat from the rate term, while the concentration drops. Bottom right, a tank level rising toward a dashed steady level labeled level where outflow equals inflow, set by the valve law.
+:width: 100%
+
+A pendulum, heat conduction in a rod, an exothermic CSTR (continuous stirred-tank reactor), and
+a tank. In each, the underbraced term is a candidate for a network.
+```
+
+There are four ways to add the physics to a network. Each one guarantees something different.
+
+| | Where the physics lives | High-level formulation |
+|---|---|---|
+| **PINN** | the loss | $L = L_\text{data} + \lambda\,L_\text{physics}$ |
+| **Neural ODE** | the right-hand side of the ODE | $\dfrac{dx}{dt} = f\big(x, \mathrm{NN}(x;\theta)\big)$ |
+| **Neural DAE** | the constraints of one optimization problem | $\min_\theta L_\text{data}$ s.t. $\dot x = f,\ h = 0,\ g \le 0$ |
+| **Projection layer** | the last layer of the network | $y = P_{\{Ay = b\}}\big(\mathrm{NN}(u;\theta)\big)$ |
 
 ## Learning objectives
 
 By the end of this session you should be able to:
 
-- Design a surrogate: sampling plan, model family, and validation for extrapolation.
-- Add physics to a model via soft penalties or hard constraints, and evaluate the payoff.
-- Produce and calibrate predictive uncertainty, separating aleatoric from epistemic.
+- Explain what a physics-informed neural network (PINN) minimizes, and why its physics holds
+  only approximately.
+- Build a PINN in JAX and compare its extrapolation with a plain network.
+- Derive a neural ODE from a recurrent network by letting the time step go to zero, and train
+  one with a differentiable ODE solver.
+- Explain why some physics must be enforced rather than penalized, and what makes a model a
+  differential-algebraic equation (DAE).
+- Contrast the sequential and simultaneous approaches to training a dynamic model.
+- Train a neural DAE with SiNDAE, and check that its predictions satisfy the constraints.
+- Compare PINNs, neural ODEs, neural DAEs and projection layers: where the physics lives, and
+  what each one guarantees.
 
-## What a surrogate is, and when it pays for itself
+## Physics-informed neural networks (PINNs)
 
-```{index} surrogate model, response surface
+```{index} physics-informed neural network, collocation point, soft constraint
 ```
-```{index} see: emulator; surrogate model
-```
-
-A **surrogate model** (also **emulator**, **response surface**, or **metamodel**) is a
-cheap function fitted to the input-output behaviour of an expensive one. The expensive
-thing can be a simulation, a physical experiment, or an entire multi-stage pipeline; the
-surrogate does not care, because it sees only the design variables going in and the
-quantity of interest coming out.
-
-The word "cheap" is doing specific work. A surrogate is not a better model of the physics;
-it is almost always a worse one. What it is, is a model whose evaluation cost is unrelated
-to the cost of the thing it imitates. That decoupling is the entire value proposition, and
-it earns its keep in four situations: an **optimization inner loop** that needs thousands
-of objective evaluations, **real-time or embedded control**, where the solver's latency is
-disqualifying regardless of budget, **design sweeps and sensitivity analysis**, where you
-want derivatives or Sobol indices that would otherwise cost a factorial number of runs, and
-**uncertainty propagation**, where you need to push an input distribution through the model
-by Monte Carlo.
-
-### The economics, measured
-
-To make the trade concrete rather than rhetorical, these notes carry a small
-"expensive" simulation: steady heat conduction on the unit square with a spatially varying
-conductivity, $-\nabla\cdot(k\nabla T) = q$, discretised on a 129 × 129 grid and solved
-directly. The design variables are the source position and the two conductivity gradients,
-four in total, and the quantity of interest is the peak temperature.
-
-```{figure} figures/surrogate-economics.png
-:alt: Three panels. Left, a temperature field from the finite-volume solver, annotated 49 milliseconds. Middle, a parity plot of surrogate against solver on 300 held-out designs, tightly on the diagonal, RMSE 0.002. Right, a log-log plot of total wall-clock against number of design evaluations, with a straight rising line for solving every time and a nearly flat line for training a surrogate first, crossing at 148 queries.
-:width: 100%
-
-One solve costs 49 ms; one surrogate prediction costs 1.5 µs. The break-even is not the
-speedup, it is where the two total-cost curves cross.
+```{index} see: PINN; physics-informed neural network
 ```
 
-One solve costs **49 ms**. A Gaussian process trained on 128 solves predicts in **1.5 µs
-per point**, which is **33,000 times faster**, and it reproduces the solver to an RMSE of
-**0.0018 decades** of peak temperature over a response that spans three and a half decades.
-That is a surrogate accurate to about half a percent, built from six seconds of computing.
+### The example: a damped spring-mass
 
-But the speedup is the wrong number to plan with, and this is the practitioner's point of
-the section. What matters is the **break-even**: the surrogate costs 128 solves plus a
-fitting step *before* it answers anything. Solving directly costs $N \times 49$ ms for $N$
-queries; the surrogate route costs $128 \times 49$ ms plus 0.7 s of fitting plus
-$N \times 1.5$ µs. Those cross at **148 queries**. Below that, building the surrogate was
-strictly a waste of time.
+A mass hangs from a spring, with a damper beside it. A car's suspension is the same system.
+Drag the mass, let go, and change $m$, $\mu$ and $k$:
 
-:::{admonition} What a practitioner should take from this
+<div class="cw" data-widget="spring-drag"></div>
+
+The equation of motion comes from Newton's second law: mass times acceleration equals the sum
+of the forces.
+
+$$
+m\,x'' = F_\text{spring} + F_\text{damper}
+$$
+
+- The spring pulls back toward rest (Hooke's law): $F_\text{spring} = -k\,x$.
+- The damper opposes the motion (viscous friction): $F_\text{damper} = -\mu\,x'$.
+- Move both forces to the left:
+
+$$
+\underbrace{m\,x''}_{\text{inertia}} + \underbrace{\mu\,x'}_{\text{damper force}} + \underbrace{k\,x}_{\text{spring force}} = 0,
+\qquad x(0) = 1\ \text{m}, \quad x'(0) = 0
+$$
+
+| Symbol | Meaning | Value here |
+|---|---|---|
+| $x$ | displacement from rest, up is positive (m) | |
+| $x' = dx/dt$ | velocity (m/s) | |
+| $x'' = d^2x/dt^2$ | acceleration (m/s²) | |
+| $m$ | mass (kg) | 1 |
+| $\mu$ | damping coefficient (N·s/m) | 4 |
+| $k$ | spring stiffness (N/m) | 400 |
+
+Gravity only shifts the rest position, so measuring $x$ from rest removes it.
+
+**The task.**
+
+- We measure $x$ at **10 times**, all in the **first 0.36 s**: about one oscillation.
+- We want $x(t)$ over the **whole second**. From 0.36 s to 1 s there are no measurements.
+- We know the equation of motion and the values of $m$, $\mu$ and $k$.
+
+```{figure} figures/spring-data.png
+:alt: Displacement against time from 0 to 1 second. The gray exact solution oscillates with shrinking swings. Ten black measurements lie in a shaded band from 0 to 0.36 seconds labeled data. A red question mark at t = 1 second, labeled where is the mass at t = 1 s?
+:width: 70%
+
+Ten measurements, all inside the gray band. Everything to its right is extrapolation.
+```
+
+### A plain network
+
+- A network $x_\text{NN}(t;\theta)$ takes the time $t$ and returns the displacement.
+- It is trained on the data alone, by minimizing the mean squared error over the
+  $N = 10$ points:
+
+$$
+L_\text{data}(\theta) = \frac{1}{N}\sum_{i=1}^{N} \big(x_\text{NN}(t_i;\theta) - x_i\big)^2
+$$
+
+- It fits the 10 points. After the last one it has nothing to go on, and drifts to a flat
+  line.
+
+### Physics in the loss
+
+:::{admonition} Definition: physics-informed neural network (PINN)
 :class: tip
-
-Before you build a surrogate, write down how many times you will query it. If the answer is
-"a few dozen," run the solver. The break-even is roughly the size of your training set,
-because the surrogate has to pay back the simulations it consumed before it earns anything,
-and that is true regardless of how large the speedup factor is.
-
-The corollary matters more. The reason to build a surrogate is almost never a single sweep;
-it is that you will query it thousands of times inside an optimizer or a Monte Carlo loop.
-If you cannot name the loop, you are probably building the wrong thing.
+A **PINN** is a network trained to fit the data and, at the same time, to make the residual of
+the governing equation small.
 :::
 
-### The surrogate lifecycle
+Raissi, Perdikaris and Karniadakis introduced them as "neural networks that are trained to
+solve supervised learning tasks while respecting any given law of physics described by general
+nonlinear partial differential equations"
+([2019](https://arxiv.org/abs/1711.10561)). For the spring-mass the loss is
 
-```{index} design of experiments
-```
+$$
+L(\theta) = \underbrace{\frac{1}{N}\sum_{i=1}^{N} \big(x_\text{NN}(t_i) - x_i\big)^2}_{\text{data loss}}
+\; + \; \lambda\, \underbrace{\frac{1}{M}\sum_{j=1}^{M} \Big(m\,x_\text{NN}''(t_j) + \mu\,x_\text{NN}'(t_j) + k\,x_\text{NN}(t_j)\Big)^2}_{\text{physics loss}}
+$$
 
-The sequence is worth naming because each stage has a failure mode:
+- The **second term is the residual** of the equation: zero for a function that obeys it
+  exactly.
+- $\lambda$ weighs the physics against the data. We use $\lambda = 10^{-4}$: the residual is
+  in newtons, hundreds of times larger than the displacement in meters, so its weight is small.
+- The derivatives $x_\text{NN}'$ and $x_\text{NN}''$ come from **automatic differentiation**
+  ([Lecture 11](../l11/notes.md)): differentiate the network with respect to its input $t$.
 
-**Design of experiments** decides where to spend the simulation budget, and this is the
-stage with the largest leverage and the least attention paid to it (the next section is
-entirely about it). **Train** fits the emulator. **Validate** is where this course's
-splitting discipline from [Lecture 9](../l09/notes.md) reappears in a harsher form, because a
-surrogate is not validated by a random hold-out; it is validated by asking it questions
-outside the region it was fitted on. **Deploy** puts it in the loop. **Refine** adds
-points where the surrogate is worst, which is active learning, and closes the loop back to
-the first stage.
+:::{admonition} Definition: collocation point
+:class: tip
+A **collocation point** is a time at which we ask the equation to hold. It needs no
+measurement, so we can place as many as we like, anywhere.
+:::
 
-## Spending a simulation budget
+Here there are $M = 40$ collocation points, spread over the whole interval from 0 to 1 s,
+where we have no data.
 
-```{index} curse of dimensionality, space-filling design, Latin hypercube sampling, Sobol sequence
-```
-
-You have a hundred runs. Where do you put them?
-
-The instinct is a **full factorial grid**: pick a few levels of each variable and cross
-them. In one or two dimensions this is excellent and you should do it. In four it is
-already a disaster, and the arithmetic is the whole argument. A grid with $L$ levels in $d$
-dimensions costs $L^d$ runs, so a budget of $N$ affords $L = \lfloor N^{1/d}\rfloor$ levels
-per variable. With 100 runs: 10 levels in one dimension, 4 in three, **2 in five**, and 1
-in seven. Two levels per variable means you can fit a plane and interactions and nothing
-else. This is the **curse of dimensionality** in its most practical form, and note that it
-bites at the number of dimensions engineering problems actually have.
-
-The fix is a **space-filling design**: choose points that cover the space without insisting
-they line up. The two you should know are:
-
-**Latin hypercube sampling** (McKay, Beckman and Conover, 1979) divides each variable's
-range into $N$ equal bins and places exactly one point in each bin of each variable, then
-pairs the bins up at random. The guarantee is one-dimensional: every variable's marginal is
-perfectly stratified no matter what the others do. That is why an LHS design projected onto
-any single axis looks uniform while a grid projected onto any single axis collapses onto
-$L$ repeated values.
-
-**Sobol sequences** and other **low-discrepancy** (quasi-Monte Carlo) sequences take a
-different route, filling the space in a deterministic order that keeps the **discrepancy**,
-a measure of how unevenly points are distributed, as low as possible. Their practical
-advantage is that they are *extensible*: you can add points later and the design remains
-good, which matters when the campaign gets extended.
-
-```{figure} figures/sampling-designs.png
-:alt: Four small scatter plots of 16 points in two dimensions with tick marks showing the one-dimensional projection: full grid occupies 4 of 16 bins in x, uniform random 9, Latin hypercube and Sobol 16 each. A middle panel plots levels per variable that a full grid affords against dimension, falling to two by five dimensions. A right panel plots surrogate RMSE against simulation budget for the four designs, with the grid an order of magnitude worse at every budget.
+```{figure} figures/collocation.png
+:alt: Left, the spring-mass drawing. Right, displacement against time from 0 to 1 second. A dashed gray curve, the motion we want. Ten black data points in a shaded band from 0 to 0.36 seconds, labeled data loss, match the measured x_i. Forty green triangles along the time axis from 0 to 1 second, with faint vertical lines, labeled physics loss, here we only ask m x'' + mu x' + k x = 0.
 :width: 100%
 
-Left, the same 16 points four ways, with the one-dimensional projection under each. Right,
-what that costs: a GP surrogate for the heat problem, trained on each design and scored on
-the same 300 held-out configurations.
+Data points (black) feed the data loss. Collocation points (green) feed the physics loss.
 ```
 
-Measured on the heat problem, at three budgets that a full grid can actually hit
-($2^4$, $3^4$ and $4^4$), the surrogate RMSE in decades of peak temperature is:
+**Physics is favored, not enforced.** The optimizer makes the residual small, not zero.
 
-| budget | full grid | uniform random | Latin hypercube | Sobol |
+### A PINN in JAX
+
+**JAX** is a Python library for numerical computing that can differentiate any function you
+write in it ([docs](https://docs.jax.dev)). **Optax** is a library of optimizers for JAX,
+Adam among them ([docs](https://optax.readthedocs.io)). The worked example builds the network
+from scratch.
+
+The network: one `(W, b)` pair per layer, three hidden layers of 32 tanh units. tanh is smooth,
+so its second derivative exists.
+
+- `W` is drawn with standard deviation $1/\sqrt{n_\text{in}}$, one over the square root of the
+  number of inputs. A weighted sum of $n_\text{in}$ inputs then has a spread near 1, so tanh
+  starts in its linear range: not saturated, and with gradients that are not tiny. LeCun and
+  colleagues: weights "drawn from a distribution with mean zero and a standard deviation given by
+  $\sigma_w = m^{-1/2}$ where $m$ is the number of inputs to the unit"
+  ([Efficient BackProp, 1998](http://yann.lecun.com/exdb/publis/pdf/lecun-98b.pdf)).
+
+```python
+def init(key, sizes):
+    params = []
+    for n_in, n_out in zip(sizes[:-1], sizes[1:]):
+        key, sub = jax.random.split(key)
+        W = jax.random.normal(sub, (n_in, n_out)) * np.sqrt(1 / n_in)
+        params.append((W, jnp.zeros(n_out)))
+    return params
+
+def net(params, t):
+    h = t[:, None]
+    for W, b in params[:-1]:
+        h = jnp.tanh(h @ W + b)
+    W, b = params[-1]
+    return (h @ W + b)[:, 0]
+
+def x_nn(params, t):
+    return net(params, jnp.array([t]))[0]
+```
+
+The physics. `jax.grad(f, argnums=1)` returns the derivative of `f` with respect to its second
+argument, the time; applying it twice gives the second derivative. `jax.vmap` evaluates a
+function of one time at many times at once.
+
+```python
+dx = jax.grad(x_nn, argnums=1)      # dx/dt
+ddx = jax.grad(dx, argnums=1)       # d2x/dt2
+
+def residual(params, ts):
+    x = jax.vmap(lambda t: x_nn(params, t))(ts)
+    v = jax.vmap(lambda t: dx(params, t))(ts)
+    a = jax.vmap(lambda t: ddx(params, t))(ts)
+    return m * a + mu * v + k * x
+
+def data_loss(params):
+    return jnp.mean((net(params, jnp.array(t_data)) - x_data) ** 2)
+
+def physics_loss(params):
+    return jnp.mean(residual(params, jnp.array(t_phys)) ** 2)
+
+lam = 1e-4
+
+def pinn_loss(params):
+    return data_loss(params) + lam * physics_loss(params)
+```
+
+Training: `optax.adam(1e-3)` is Adam with learning rate 0.001; `jax.jit` compiles one step.
+Both networks start from the same weights and get the same steps. Only the loss differs.
+
+```python
+def train(loss, steps=30_000):
+    opt = optax.adam(1e-3)
+    params = params0
+    state = opt.init(params)
+
+    @jax.jit
+    def step(params, state):
+        grads = jax.grad(loss)(params)
+        updates, state = opt.update(grads, state, params)
+        return optax.apply_updates(params, updates), state
+
+    for _ in range(steps):
+        params, state = step(params, state)
+    return params
+
+p_nn = train(data_loss)
+p_pinn = train(pinn_loss)
+```
+
+### Training and the result
+
+Press Play: the two networks train, and then the three masses move with what each model
+predicts.
+
+<div class="cw" data-widget="pinn-train" data-source="l13"></div>
+
+- **For the first 1,000 steps** both networks fit the 10 points, and both are wrong after
+  0.36 s (error over the whole second about 0.36 m).
+- **Between steps 1,300 and 8,500** the physics term pulls the PINN onto the oscillation: its
+  error over the second falls from 0.34 m to 0.01 m.
+- **The plain network** never improves after the data, at about 0.45 m.
+- The PINN's residual at the collocation points falls from 109 N to 0.7 N.
+
+```{figure} figures/pinn-vs-nn.png
+:alt: Displacement against time from 0 to 1 second. The gray exact solution oscillates with shrinking swings. Ten black data points lie in a shaded band from 0 to 0.36 seconds labeled training data. The orange plain network follows the data and then drifts to a flat line near minus 0.65, labeled RMSE 0.54 m. The dashed blue PINN lies on top of the exact solution everywhere, labeled RMSE 0.001 m.
+:width: 100%
+
+After 30,000 steps. RMSE is the root mean squared error against the exact solution, after the
+last data point.
+```
+
+| After 30,000 steps | Plain network | PINN |
+|---|---|---|
+| RMSE inside the data window | 0.007 m | 0.001 m |
+| RMSE after the data (0.36 to 1 s) | **0.54 m** | **0.001 m** |
+| Residual of the equation (RMS over 0 to 1 s) | 163 N | 5.3 N |
+
+- Inside the data window both are good.
+- After it, the plain network is wrong by about half a meter. The PINN is right, because the
+  equation told it what happens next.
+- [Ben Moseley's blog post](https://benmoseley.blog/my-research/so-what-is-a-physics-informed-neural-network/)
+  shows the same experiment.
+
+### The physics is a penalty, not a constraint
+
+- After training, the PINN's residual is **5.3 N** (root mean square over the whole second).
+  The forces in the equation reach 400 N, so it is small. It is **not zero**.
+- At the 40 collocation points it is 0.7 N; between them it is larger. The physics is
+  penalized only where you evaluate it.
+- This is a **soft constraint**: the optimizer trades a little physics for a little data fit,
+  with $\lambda$ setting the exchange rate. Change $\lambda$ and you get a different model.
+
+Three known difficulties:
+
+- **Training can fail.** Krishnapriyan and colleagues found that PINNs "can easily fail to
+  learn relevant physical phenomena for even slightly more complex problems", and that the
+  cause is that "the PINN's setup makes the loss landscape very hard to optimize"
+  ([NeurIPS 2021](https://arxiv.org/abs/2109.01050)).
+- **The two loss terms compete.** Wang, Teng and Perdikaris traced one failure to "an unstable
+  imbalance in the magnitude of the back-propagated gradients" between the terms
+  ([2021](https://arxiv.org/abs/2001.04536)).
+- **One trained PINN is one solution.** The network learned the trajectory $x(t)$ for this
+  release from 1 m, with these $m$, $\mu$ and $k$. Release the mass from 0.5 m, or change $k$,
+  and you must train again: the network learned a trajectory, not the law of motion.
+
+## From recurrent networks to neural ODEs
+
+```{index} neural ordinary differential equation, forward Euler method, vector field, differentiable integrator, universal differential equation
+```
+```{index} see: neural ODE; neural ordinary differential equation
+```
+
+A PINN learns **one solution**. Here we learn **the dynamics**: the right-hand side of the
+differential equation, which works for any starting point.
+
+### The residual update
+
+Residual networks and recurrent networks build a long computation from many small updates of a
+hidden state $h$ (Chen et al., Eq. 1):
+
+$$
+h_{t+1} = h_t + f(h_t, \theta_t)
+$$
+
+A **recurrent neural network (RNN)**, from [Lecture 12](../l12/notes.md), applied over time
+uses the same $f$ at every step, with steps of a fixed size $\Delta t$:
+
+$$
+h_{k+1} = h_k + \Delta t\, f(h_k;\theta)
+$$
+
+- For the spring-mass, the state is $h = (x, v)$, position and velocity.
+- The network learns how the state jumps **from one sample to the next**.
+- This is the **forward Euler method**: new state = old state + step size × slope at the old
+  state.
+
+Chen, Rubanova, Bettencourt and Duvenaud: "These iterative updates can be seen as an Euler
+discretization of a continuous transformation"
+([Neural Ordinary Differential Equations, 2018](https://arxiv.org/abs/1806.07366)).
+
+Two pictures of the same idea:
+
+- **Recurrent network**: $h_0 \to h_1 \to h_2 \to \dots$, one jump of fixed size $\Delta t$ at a
+  time, with the same network $f$ and the same weights $\theta$ at every step.
+- **Neural ODE**: $h(t_0) \to$ an ODE solver for $dh/dt = f(h, t;\theta) \to h(t)$ at any time.
+  The network learns the arrows $f$; the solver takes as many steps as it needs.
+
+### The limit
+
+Read the hidden state as a function of time: $h_k = h(t_k)$, with $t_{k+1} = t_k + \Delta t$.
+The recurrent update, divided by the step:
+
+$$
+\frac{h(t_k + \Delta t) - h(t_k)}{\Delta t} = f\big(h(t_k), t_k, \theta\big)
+$$
+
+Let $\Delta t \to 0$. The left side tends to the derivative of $h$ (Chen et al., Eq. 2):
+
+$$
+\lim_{\Delta t \to 0} \frac{h(t + \Delta t) - h(t)}{\Delta t} = \frac{dh}{dt}(t) = f\big(h(t), t, \theta\big)
+$$
+
+- "In the limit, we parameterize the continuous dynamics of hidden units using an ordinary
+  differential equation (ODE) specified by a neural network."
+- The recurrent network is the forward Euler discretization of this ODE.
+
+### Shrinking the step
+
+What the figure shows: the spring-mass with the **true** right-hand side
+$f(h) = \big(v,\ -(\mu v + kx)/m\big)$, so the only error is the step.
+
+- Left, the **phase plane**: position against velocity. The gray arrows are $f$.
+- **Orange**: a recurrent network stepping $\Delta t$ at a time, $h_{k+1} = h_k + \Delta t\, f(h_k)$.
+- **Blue**: the ODE's solution, the limit $\Delta t \to 0$.
+- Press Play to shrink the step: the orange steps fall onto the blue curve.
+
+<div class="cw" data-widget="phase-plane"></div>
+
+| $\Delta t$ (s) | Steps for 1 s | Largest error in $x$ |
+|---|---|---|
+| 0.02 | 50 | 6.2 m: the steps spiral out |
+| 0.01 | 100 | 0.85 m |
+| 0.005 | 200 | 0.25 m |
+| 0.0025 | 400 | 0.106 m |
+| 0.00125 | 800 | 0.049 m |
+| 0.000625 | 1600 | 0.024 m |
+
+- With a large step the discrete model behaves differently from the real system: it spirals
+  out while the real mass settles.
+- From $\Delta t = 0.0025$ s down, halving the step halves the error. Forward Euler is a
+  **first-order** method.
+- As $\Delta t \to 0$ the Euler steps converge to the ODE's solution.
+
+### What a neural ODE learns: the vector field
+
+```{figure} figures/resnet-vs-ode.png
+:alt: Two panels. Left, residual or recurrent network: six trajectories of a hidden state h over six fixed steps, drawn as straight segments between orange dots, labeled the network learns this jump, for this step size. Right, neural ODE: a field of gray arrows over time and h, with six smooth blue trajectories following the arrows and open circles where the solver evaluated it, labeled the network learns these arrows.
+:width: 100%
+
+A sequence of fixed steps (left) and a vector field with smooth trajectories (right), after
+Fig. 1 of Chen et al. (2018).
+```
+
+:::{admonition} Takeaway: the vector field
+:class: tip
+A neural ODE learns the right-hand side $f$: the **vector field** of the system. A recurrent
+network learns one time-discrete realization of it, tied to its step $\Delta t$.
+:::
+
+The same arrows hold for any starting state and any sampling times.
+
+### Neural ODEs and differentiable solvers
+
+:::{admonition} Definition: neural ODE
+:class: tip
+A **neural ODE** is a differential equation whose right-hand side is a neural network:
+$\dfrac{dh}{dt} = f(h, t;\theta)$. An ODE solver computes the output.
+:::
+
+Training a neural ODE:
+
+1. **Forward**: start from $h(t_0)$ and let the solver step to the measured times. Every step
+   uses the same network $f(\cdot;\theta)$.
+2. **Loss**: compare $h(t_i)$ with the data.
+3. **Backward**: the gradient $\partial L / \partial \theta$ has to come back through every
+   solver step, because the loss depends on $\theta$ through the whole simulation.
+
+The gradient comes from a **differentiable integrator**:
+
+- A solver written in JAX is a chain of differentiable operations.
+- Reverse-mode automatic differentiation ([Lecture 11](../l11/notes.md)) runs back through
+  every solver step.
+- Memory grows with the number of steps.
+
+What you gain over a recurrent network:
+
+- **Any time points.** The solver returns $h$ at any $t$, so irregular or missing samples are
+  not a problem.
+- **The step size is the solver's job**, chosen to meet an error tolerance.
+- **The state can be physical**: a temperature, a concentration.
+
+Patrick Kidger's work made neural ODEs practical tools.
+
+- His Oxford thesis, [On Neural Differential Equations](https://arxiv.org/abs/2202.02435)
+  (2021), calls neural networks and differential equations "two sides of the same coin".
+- With Morrill, Foster and Lyons he introduced **neural controlled differential equations**
+  for irregularly sampled time series: "the Neural CDE is the continuous time analogue of an
+  RNN" ([2020](https://arxiv.org/abs/2005.08926)).
+- At Google X he built [Diffrax](https://docs.kidger.site/diffrax/), differentiable ODE solvers
+  in JAX, and [Equinox](https://docs.kidger.site/equinox/), neural networks in JAX.
+
+### A neural ODE for the bioreactor
+
+The bioreactor balances are known; only $\mu$ is learned:
+
+$$
+\frac{dX}{dt} = \mu X - \frac{F}{V}X, \quad
+\frac{dP}{dt} = Y_{P/X}\,\mu X - \frac{F}{V}P, \quad
+\frac{dS}{dt} = \frac{F}{V}(S_f - S) - \frac{\mu X}{Y_{X/S}}, \quad
+\frac{dV}{dt} = F
+$$
+
+$$
+\mu = \mu_\text{scale}\;\mathrm{softplus}\big(\mathrm{NN}(x / x_\text{typical};\theta)\big)
+$$
+
+The network:
+
+```python
+mu_scale = 0.3                                 # 1/h: sets the size of mu
+x_typical = jnp.array([5.0, 1.0, 10.0, 3.0])   # typical X, P, S, V
+
+class GrowthRate(eqx.Module):
+    mlp: eqx.nn.MLP
+
+    def __call__(self, x):
+        out = self.mlp(x / x_typical)[0]       # any real number
+        return mu_scale * jax.nn.softplus(out) # mu >= 0, of order mu_scale
+```
+
+- `eqx.Module` is Equinox's network class; `eqx.nn.MLP` is a multilayer perceptron.
+- `x / x_typical` divides each state by a typical value, so the network sees numbers near 1.
+- softplus is always positive, so $\mu \ge 0$. At the start of training softplus is about 0.7,
+  so $\mu$ starts near $0.3 \times 0.7 \approx 0.2$ 1/h, a sensible growth rate. That is what
+  `mu_scale` is for.
+- **Nothing keeps $S \ge 0$.**
+
+:::{admonition} Universal differential equation (UDE)
+:class: note
+A mechanistic model with one term a network is also called a **universal differential
+equation**: "differential equations which are defined in full or part by a universal
+approximator" ([Rackauckas et al., 2020](https://arxiv.org/abs/2001.04385)). Neural ODE, UDE
+and hybrid model are used interchangeably for this.
+:::
+
+The balances, one line per equation:
+
+```python
+def balances(t, x, args):
+    mu_net, Sf = args
+    X, P, S, V = x
+    mu = mu_net(x)                               # the learned term
+    dX = mu * X - F / V * X
+    dP = Ypx * mu * X - F / V * P
+    dS = F / V * (Sf - S) - mu * X / Yxs
+    dV = F
+    return jnp.array([dX, dP, dS, dV])
+```
+
+The solve, with Diffrax:
+
+```python
+def simulate(mu_net, x0, ts):
+    sol = diffrax.diffeqsolve(
+        diffrax.ODETerm(balances),
+        diffrax.Tsit5(),
+        t0=0.0,
+        t1=ts[-1],
+        dt0=0.1,
+        y0=x0,
+        args=(mu_net, x0[2]),
+        saveat=diffrax.SaveAt(ts=ts),
+        stepsize_controller=diffrax.PIDController(
+            rtol=1e-6,
+            atol=1e-8,
+        ),
+    )
+    return sol.ys
+```
+
+- `ODETerm(balances)`: the right-hand side.
+- `Tsit5()`: Tsitouras' fifth-order Runge-Kutta method.
+- `t0`, `t1`, `dt0`, `y0`: from time 0 to the last sample, first step 0.1 h, from the initial
+  state. `args` passes the network and the feed concentration to `balances`.
+- `SaveAt(ts=ts)`: return the states at the sample times. `PIDController`: adapt the step to
+  keep the error below the tolerances.
+- Every operation is JAX, so `jax.grad` of anything computed from `sol.ys` goes back through
+  the solver.
+
+Training is the **sequential approach**: every step simulates the three batches, compares with
+the data, and updates the weights.
+
+```python
+def loss(mu_net):
+    pred = jax.vmap(simulate, in_axes=(None, 0, None))(mu_net, x0s, ts)
+    return jnp.mean(((pred - ys) / y_scale) ** 2)
+
+mu_net = GrowthRate(eqx.nn.MLP(
+    in_size=4,
+    out_size=1,
+    width_size=16,
+    depth=2,
+    activation=jnp.tanh,
+    key=jax.random.PRNGKey(0),
+))
+opt = optax.adam(optax.cosine_decay_schedule(1e-2, steps, alpha=0.05))
+state = opt.init(eqx.filter(mu_net, eqx.is_array))
+
+@eqx.filter_jit
+def step(mu_net, state):
+    value, grads = eqx.filter_value_and_grad(loss)(mu_net)
+    updates, state = opt.update(grads, state, mu_net)
+    return eqx.apply_updates(mu_net, updates), state, value
+
+for _ in range(10_000):
+    mu_net, state, value = step(mu_net, state)
+```
+
+- The loss compares the three simulated batches with their 31 samples, each state divided by
+  its spread in the data.
+- Adam's learning rate decays from 0.01 along a cosine. 10,000 steps take about 30 s.
+
+```{figure} figures/fedbatch-data.png
+:alt: Four panels against time over 40 hours, one per state: biomass, product, substrate and volume. Each shows three batches, blue, orange and green, as noisy points with a solid line through them, the trained neural ODE. Biomass and product rise in an S shape; substrate falls from 10, 5 and 7.5 g/L to near zero; volume rises linearly.
+:width: 100%
+
+Three training batches, 31 noisy samples of each state (dots), and the trained neural ODE (lines).
+```
+
+- Against the true model, the fit is off by 0.045 g/L in $X$ and 0.09 g/L in $S$: within the
+  measurement noise (0.05 and 0.5 g/L).
+- The measurements follow the SiNDAE fed-batch example: the true model, where $\mu$ follows the
+  Monod law $\mu = \mu_\text{max} S/(K_S + S)$, plus noise. The network never sees that law.
+
+```{figure} figures/fedbatch-mu.png
+:alt: Growth rate against substrate concentration. The gray true law, labeled hidden, mu = 0 at S = 0, rises from zero and levels off near 0.18 per hour. An orange path, the learned growth rate along the new batch, comes down from S = 7 close to the gray curve and crosses S = 0 at a red dot at 0.020 per hour, labeled at S = 0 the network still says mu = 0.020 1/h, the cells keep growing, and continues into a shaded region of negative S labeled impossible.
+:width: 90%
+
+The learned growth rate along the new batch.
+```
+
+- **Takeaway**: the network learned $\mu$ well where the data were. It was never told that cells
+  cannot grow without substrate, so at $S = 0$ (36 h on the new batch) it still gives
+  $\mu = 0.020$ 1/h, and the balances drive $S$ below zero.
+- The balances hold the whole time. **Nothing in the model says that $S$ cannot be negative.**
+
+## Physics-enforced machine learning
+
+```{index} hard constraint, path constraint, differential-algebraic equation
+```
+```{index} see: DAE; differential-algebraic equation
+```
+
+Gen 2 promised **guaranteed constraints**. A PINN only informs the training with the physics.
+For some physics that is not enough.
+
+### From a penalty to a constraint
+
+$$
+\underbrace{\min_\theta\; L_\text{data} + \lambda\,\lVert r \rVert^2}_{\text{informed: } r \text{ small}}
+\qquad\longrightarrow\qquad
+\underbrace{\min_\theta\; L_\text{data} \quad \text{s.t.}\quad r = 0,\;\; g \le 0}_{\text{enforced: } r = 0 \text{ to solver tolerance}}
+$$
+
+A **hard constraint** holds at the solution to solver tolerance. Why enforce:
+
+- **Conservation.** Mass and energy balances must close.
+- **Safety.** A reactor temperature or a pressure must stay below its limit at every instant.
+- **Physical bounds.** Concentrations cannot be negative, the $S < 0$ above.
+- **Quality and regulation.** A product specification must be met, not approached.
+- **No $\lambda$ to tune**, and the guarantee holds outside the training data too.
+
+### Path constraints
+
+:::{admonition} Definition: path constraint
+:class: tip
+A **path constraint** is an inequality on the states that must hold at every instant:
+$g\big(x(t)\big) \le 0$ for all $t$.
+:::
+
+- "Problems of dynamic optimisation with inequality path constraints are common in industrial
+  plants. These constraints describe conditions of the process when it operates with extreme
+  values of the variables, based on safety and/or economics restraints"
+  ([Souza et al., 2006](https://skoge.folk.ntnu.no/prost/proceedings/escape16-pse2006/Part%20A/Volume%2021A/N52257-Topic1/Topic1-%20Oral/1577.pdf)).
+- **A batch reactor**: limits on cooling duty and "an adiabatic temperature rise constraint that
+  enforces safe operation even if cooling is lost"
+  ([Biegler, 2017](https://skoge.folk.ntnu.no/prost/proceedings/focapo-cpc-2017/FOCAPO-CPC%202017%20Invited%20Papers/78_CPC_Invited.pdf)).
+- **A plate reactor start-up**: "a temperature path constraint, which is straight forward to
+  enforce using a simultaneous method"
+  ([Haugwitz et al., 2007](https://folk.ntnu.no/skoge/prost/proceedings/dycops2007-and-cab2007/DYCOPS/Wednesday/DynamicOptimization/C1_W51_162_Paperstamped_no.pdf)).
+- **Our bioreactor**: $S(t) \ge 0$ for all $t$.
+
+### Differential-algebraic equations
+
+:::{admonition} Definition: differential-algebraic equation (DAE)
+:class: tip
+A **DAE** is a set of differential equations plus algebraic equations that hold at every
+instant.
+:::
+
+$$
+\frac{dx}{dt} = f(x, y), \qquad 0 = g(x, y)
+$$
+
+- $x$ are the **differential states**: they have a derivative in the model (levels,
+  concentrations, temperatures).
+- $y$ are the **algebraic variables**: no derivative, set at every instant by $g = 0$ (flows,
+  pressures, rates).
+- An ODE is the special case with no $g$.
+- Process models are full of algebraic equations: vapor-liquid equilibrium in a flash drum,
+  flows that balance at a node, flow through a valve.
+
+```{figure} figures/tank-manifold.png
+:alt: Four open tanks with dotted liquid levels. Flow y0 runs from a pump up and over to a valve at the top. The valve sends y1 right into tank x0 and y2, in either direction, left into tank x1. Tank x0 drains y3 down into tank x2, which drains y4 into the large tank x3 at the bottom right. A pipe returns from x3 to the pump, and dashed lines run from tanks x0 and x3 to the pump.
+:width: 70%
+
+A tank manifold. Levels $x_0$ to $x_3$; flows $y_0$ to $y_4$. Redrawn from Lueg et al. (2026),
+Fig. 1 (CC BY 4.0).
+```
+
+Part of its model:
+
+$$
+\frac{dx_0}{dt} = \frac{y_1 - y_3}{\phi_0}, \qquad
+\frac{dx_1}{dt} = \frac{y_2}{\phi_1}, \qquad
+y_0 = y_1 + y_2, \qquad
+\underbrace{x_0 = x_1}_{\text{equal levels}}
+$$
+
+- $\phi_i$ is the cross-sectional area of tank $i$.
+- No equation gives $y_2$ directly. It is whatever keeps $x_0 = x_1$ at every instant.
+- An algebraic equation is a constraint that holds all the time: what we want to enforce.
+
+## Training a dynamic model: sequential or simultaneous
+
+```{index} sequential approach, simultaneous approach, orthogonal collocation
+```
+```{index} pair: failure mode; local minimum in single shooting
+```
+
+Fitting a dynamic model to data is an optimization problem with the model as a constraint:
+
+$$
+\min_{\theta} \;\sum_i \big(x(t_i) - \hat x_i\big)^2
+\quad \text{subject to} \quad
+\frac{dx}{dt} = f(x;\theta), \;\; x(0) = x_0
+$$
+
+- $\hat x_i$ are the measurements; $\theta$ are the unknown parameters (or network weights).
+- This is a **dynamic optimization** problem. There are two classic ways to solve it
+  ([Biegler, 2007](https://doi.org/10.1016/j.cep.2006.06.021)).
+- The example: the spring-mass, lightly damped (true $\mu = 1$ N·s/m, $k = 400$ N/m), 51 noisy
+  measurements over 2 s (noise standard deviation 0.03 m). Estimate $\mu$ and $k$ from a poor
+  starting guess, $\mu = 2$ and $k = 150$.
+
+### Sequential: simulate, then optimize
+
+:::{admonition} Definition: sequential approach (single shooting)
+:class: tip
+The **sequential approach** guesses $\theta$, simulates the model with an ODE solver, computes
+the loss and its gradient, updates $\theta$, and repeats.
+:::
+
+$$
+\theta_0
+\;\longrightarrow\;
+x(t;\theta) = \mathrm{ODESolve}(f, x_0, \theta)
+\;\longrightarrow\;
+L(\theta) = \sum_i \big(x(t_i;\theta) - \hat x_i\big)^2,\ \nabla_\theta L
+\;\longrightarrow\;
+\theta \leftarrow \theta - \eta\,\nabla_\theta L
+$$
+
+```{figure} figures/seq-loop.png
+:alt: Four small panels in a row. One, the loss over damping mu and stiffness k as gray contours, with a narrow dark valley at k = 400, a gold star at the true values and an orange dot at the start, mu = 2, k = 150. Two, the simulated displacement for the starting guess, a slower oscillation. Three, the same simulation with the black data points and red vertical lines for the residuals, SSE = 17.0. Four, the loss after each of 37 updates, falling from 17 and stopping at 5.2.
+:width: 100%
+
+One pass of the sequential loop: guess, simulate, compare, update. The last panel is the loss
+after each update.
+```
+
+- Every iterate is a **full simulation**: the model holds at every step.
+- Training the neural ODE above with Diffrax and Adam was sequential.
+- Biegler: "sequential approaches are known to fail on unstable dynamic systems"
+  ([FOCAPO/CPC 2017](https://skoge.folk.ntnu.no/prost/proceedings/focapo-cpc-2017/FOCAPO-CPC%202017%20Invited%20Papers/78_CPC_Invited.pdf)).
+- The loss over $(\mu, k)$ has one narrow valley along $k$: an oscillation slightly out of
+  phase fits the data badly everywhere.
+
+### Simultaneous: discretize, then optimize
+
+:::{admonition} Definition: simultaneous approach (orthogonal collocation)
+:class: tip
+The **simultaneous approach** turns the state at every time point into an unknown, writes the
+differential equation as algebraic equations between those points, and solves one large
+optimization problem for the states and $\theta$ together.
+:::
+
+From one simulated curve to one optimization problem:
+
+1. Cut the time horizon into **finite elements**.
+2. Every state at every point of every element becomes an **unknown**, started on the data.
+3. At the start the model equations do not hold: one residual per point.
+4. One solver moves all the points and $\theta$ together, until every equation holds.
+
+```{figure} figures/disc-4.png
+:alt: Displacement against time from 0 to 0.6 seconds, with black data points and dotted vertical lines every 0.1 s marking finite elements. Open blue circles every 0.02 s sit on the data; red vertical bars at each circle show the residual of the model equations, largest near the turning points.
+:width: 100%
+
+The starting point of the simultaneous approach: states on the data, model equations broken.
+```
+
+```{figure} figures/disc-5.png
+:alt: The same axes. Solid blue points connected by a line now form a smooth damped oscillation through the data, with no red bars.
+:width: 100%
+
+The solved problem: the points form a trajectory that obeys the model.
+```
+
+```{figure} figures/collocation-poly.png
+:alt: x against t from 0 to 0.3, split into three finite elements by dotted lines labeled element 1, 2 and 3. A thick gray curve is the solution of the ODE; on each element a colored cubic polynomial passes through four points and lies on the gray curve. Short red segments at the collocation points show the slope, with an arrow labeled at each collocation point, the red slope: slope of the polynomial equals f(x) from the model.
+:width: 100%
+
+Collocation: a polynomial on each finite element, whose slope matches the model at the
+collocation points.
+```
+
+On element $i$ the state is a polynomial through $K + 1$ points, with Lagrange polynomials
+$\ell_j$ and element length $h_i$. The polynomial must obey the ODE at the **collocation
+points** $\tau_k$:
+
+$$
+\underbrace{\sum_{j=0}^{K} x_{ij}\,\ell_j'(\tau_k)}_{\text{slope of the polynomial}}
+\;=\; h_i\,\underbrace{f\big(x_{ik};\theta\big)}_{\text{slope from the model}},
+\qquad k = 1, \dots, K
+$$
+
+This is the constrained optimization problem of [Lecture 9](../l09/notes.md),
+$\min_z f(z)$ subject to $h(z) = 0$ and $g(z) \le 0$, with $z$ every state value and $\theta$:
+
+$$
+\begin{aligned}
+\min_{\theta,\;x_{ij}}\quad & \sum_i \big(x(t_i) - \hat x_i\big)^2 && \text{fit the data} \\
+\text{s.t.}\quad & \sum_{l} x_{il}\,\ell_l'(\tau_j) = h_i\, f(x_{ij};\theta) && \text{polynomial slope = model slope} \\
+& x_{i,K} = x_{i+1,0} && \text{elements join} \\
+& x_{0,0} = x_0 && \text{initial condition} \\
+& g(x_{ij}) \le 0 && \text{path constraints}
+\end{aligned}
+$$
+
+- The result is one **nonlinear program** (NLP). [Pyomo.DAE](https://pyomo.readthedocs.io/en/stable/explanation/modeling/dae.html)
+  writes the discretized equations from the continuous model, and
+  [IPOPT](https://coin-or.github.io/Ipopt/), an interior-point NLP solver, solves it.
+- The model equations are satisfied **only when the solver converges**. Biegler: "the dynamic
+  system is solved only once, at the optimal point."
+
+### The same problem, both ways
+
+- **Sequential**: a Runge-Kutta simulation inside BFGS, a gradient-based optimizer.
+- **Simultaneous**: trapezoidal collocation on 200 steps, solved by the POUNCE interior-point
+  solver. 404 unknowns: two states at 201 points, plus $\mu$ and $k$.
+
+Scrub through the iterations of each:
+
+<div class="cw" data-widget="seq-sim" data-source="l13"></div>
+
+```{figure} figures/seq-vs-sim.png
+:alt: Two rows of three panels of displacement against time over 2 seconds, with the noisy data as black points. Top row, sequential, in orange: at iteration 0 a slow oscillation that misses the data; at iteration 12 a heavily damped curve; at iteration 37, the final one, a fast oscillation that keeps too much amplitude, with mu = 0.28, k = 419, SSE = 5.23. Bottom row, simultaneous, in blue: at iteration 0 the curve passes through every data point but the equation error is 8; at iteration 3 a smoother curve that misses the data; at iteration 29 a damped oscillation through the data with mu = 0.99, k = 402, data error 0.04 and equation error 2e-15.
+:width: 100%
+
+Selected iterations. Data error: the sum of squared errors (SSE) over the 51 measurements.
+Equation error: how far the model equations are from holding, the largest violation of the
+collocation equations.
+```
+
+| From $\mu = 2$, $k = 150$ | Sequential | Simultaneous |
+|---|---|---|
+| Iterations | 37 (BFGS) | 29 (interior point) |
+| Final $\mu$, $k$ | 0.29, 419 | **0.99, 402** |
+| Sum of squared errors | 5.23 | **0.036** |
+| Model equations satisfied | at every iterate | from 7.7 at the start to $2.5 \times 10^{-15}$ at the end |
+
+- The **sequential** run gets stuck in a **local minimum**. Its trajectory oscillates at nearly
+  the right frequency but keeps too much amplitude.
+- The **simultaneous** run starts with the states on the data (so it fits, but breaks the
+  ODE), then pulls the two together. It ends at the true parameters, within noise (with the
+  true values the sum of squared errors is 0.038).
+- From a better guess ($k$ = 250, 350 or 450) **both** methods find $\mu \approx 0.98$ and
+  $k \approx 400$.
+
+### Trade-offs
+
+| | Sequential | Simultaneous |
+|---|---|---|
+| Model holds at every iterate | yes | only at convergence |
+| Unknowns | the parameters | parameters + every state at every point |
+| Solver | ODE solver + gradient method (Adam, BFGS) | NLP solver (IPOPT, POUNCE) |
+| Oscillating or unstable dynamics | can stall in a local minimum | states pinned to the data |
+| Path constraints ($S \ge 0$) | penalties, checked afterwards | rows of the NLP, enforced |
+| DAEs | must be rewritten as ODEs first | written at the collocation points |
+| Time steps | adaptive, error-controlled | a fixed grid, chosen beforehand |
+| Big data, big networks | mini-batches on GPUs | the NLP grows with the data |
+
+Between the two sits **multiple shooting**: simulate short segments, and make their ends meet
+as constraints.
+
+## Neural DAEs
+
+```{index} neural differential-algebraic equation, SiNDAE, inference
+```
+```{index} see: neural DAE; neural differential-algebraic equation
+```
+```{index} pair: case study; fed-batch bioreactor
+```
+
+### The same spring-mass, with the physics enforced
+
+Back to the PINN's spring-mass. Suppose the damping is the unknown. Make it the network output
+$z$, and move the equation from the loss into the constraints:
+
+$$
+\begin{aligned}
+\min_\theta\quad & \sum_i \big(x(t_i) - \hat x_i\big)^2 \\
+\text{s.t.}\quad & m\,x'' + z\,x' + k\,x = 0 \\
+& z = \mathrm{NN}(x, x';\theta) \\
+& h(x) = 0, \quad g(x) \le 0
+\end{aligned}
+$$
+
+**The physics is now enforced, rather than informed**: the constraints are written into the NLP.
+
+:::{admonition} Definition: neural DAE
+:class: tip
+A **neural DAE** is a DAE in which some unknown terms are neural networks, trained with the
+simultaneous approach.
+:::
+
+Lueg, Alves, Schicksnus, Kitchin, Laird and Biegler train neural DAEs this way
+([Computational Optimization and Applications, 2026](https://doi.org/10.1007/s10589-026-00823-y),
+open access; [arXiv](https://arxiv.org/abs/2504.04665)).
+
+### The training problem
+
+For trajectories (batches, experiments) $s$, the problem is (their Eq. 4):
+
+$$
+\begin{aligned}
+\min_{\theta,\,x,\,y,\,z}\quad & \underbrace{\sum_{s} \sum_{i} \big\|x^{(s)}(t_i) - \hat x_i^{(s)}\big\|^2}_{\text{every trajectory}} \;+\; \underbrace{\alpha_r\, \tfrac{1}{2}\|\theta\|^2}_{\text{regularization}} \\
+\text{s.t.}\quad & \frac{dx^{(s)}}{dt} = f\big(x^{(s)}, y^{(s)}, z^{(s)}\big) && \text{differential equations} \\
+& 0 = h\big(x^{(s)}, y^{(s)}, z^{(s)}\big) && \text{algebraic equations} \\
+& 0 \ge g\big(x^{(s)}, y^{(s)}, z^{(s)}\big) && \text{inequalities } (S \ge 0) \\
+& z^{(s)} = f_\text{NN}\big(x^{(s)};\theta\big) && \text{the network: the unknown terms} \\
+& x^{(s)}(t_0) = x_0^{(s)} && \text{initial conditions}
+\end{aligned}
+$$
+
+- **Every line holds at every collocation point of every trajectory**, so the physics is exact
+  at the solution.
+- **One $\theta$ is shared by all trajectories**, so one network fits every batch at once, and
+  is reusable for new starting charges and feed profiles.
+- **Smooth activations** (tanh, softplus, not ReLU): the interior-point solver uses second
+  derivatives of the network.
+
+### Making it solvable
+
+The full NLP is large and nonconvex. Started cold, it can fail or be slow. The paper solves it
+in three steps:
+
+1. **Smoother.** Solve the problem without the network: the unknown terms $z$ are free
+   functions of time, kept smooth by a penalty. This gives consistent trajectories close to the
+   data.
+2. **Pretrain.** Fit the network to the smoother's $(x, z)$ pairs with Adam. Now the weights
+   start near a good answer.
+3. **Full NLP.** Solve the network, the states and the balances together, from steps 1 and 2.
+
+```{figure} figures/sindae-stages.png
+:alt: Three columns. Left, smoother: substrate against time for three batches with noisy dots and smooth lines, and below it mu as a free function of time, flat then falling. Middle, pretrain: growth rate against substrate, gray points from the smoother as targets and green points from the pretrained network on top of them. Right, full NLP: substrate against time with the final fits, and below it mu as a function of the states.
+:width: 100%
+
+The three stages on the bioreactor's three training batches.
+```
+
+On the paper's tank manifold, an L-BFGS solver solved 2 of 3 runs started cold, and 3 of 3
+after steps 1 and 2.
+
+### Inference on a new batch
+
+:::{admonition} Definition: inference
+:class: tip
+**Inference** is using the trained model to predict a case it has never seen, with the network
+weights fixed.
+:::
+
+Both models learned $\mu$ from the same three batches. The new batch starts with 0.2 g/L of
+cells, 7 g/L of substrate and 0.9 L, and runs for 60 h, 20 h past the training batches.
+
+- **Neural ODE**: integrate the learned model, the sequential way.
+- **Neural DAE**: solve the same balances as an NLP with $S \ge 0$, the simultaneous way.
+
+<div class="cw" data-widget="fedbatch-run" data-source="l13"></div>
+
+```{figure} figures/fedbatch-inference.png
+:alt: Substrate concentration over 60 hours for a new batch. The gray true mechanistic model falls from 7 to about 0.07 g/L by 25 hours and stays there. The orange sequential approach, neural ODE, follows it, crosses zero at 36 hours and falls to minus 0.41 g/L at 60 hours inside a red band labeled negative concentration, physically impossible. The dashed blue neural DAE stays at or just above zero throughout.
+:width: 100%
+
+The new batch: the true mechanistic model, the neural ODE and the neural DAE.
+```
+
+| New batch, 60 h | True mechanistic model | Sequential approach / neural ODE | Neural DAE |
+|---|---|---|---|
+| Lowest substrate $S$ | 0.07 g/L | **−0.41 g/L** | 0.04 g/L |
+| Hours with $S < 0$ | 0 | **24** | 0 |
+| Substrate error (RMSE) | | 0.20 g/L | 0.29 g/L |
+| Biomass $X$ at 60 h | 3.51 g/L | 3.75 g/L | 3.53 g/L |
+
+- In prediction, SiNDAE lets the solver move the growth rate away from the network's value only
+  where a constraint would otherwise break, at a price set by `slack_coef`.
+- **Feasible is not the same as accurate.** The constraint keeps the prediction physical; it
+  does not make the learned growth rate correct. Here the neural DAE's substrate error is larger
+  than the neural ODE's.
+
+### SiNDAE
+
+**SiNDAE** (Simultaneous Neural Differential-Algebraic Systems of Equations) is a Python package
+that learns unknown terms in dynamical systems from noisy time series while fully satisfying the
+constraints.
+
+- **Mechanistic equations are kept as hard constraints**, so the model stays physically
+  consistent, also for conditions never seen in training.
+- **The network sits inside the model**, trained by solving one constrained NLP with an
+  interior-point method.
+- **Install**: `pip install sindae`. No licensed solver is needed.
+- **Code and docs**: [github.com/Alves-research-group/SiNDAE](https://github.com/Alves-research-group/SiNDAE),
+  [documentation](https://alves-research-group.github.io/SiNDAE/).
+
+What it is built on, and what each part does:
+
+| Role | Tool | What it does here |
+|---|---|---|
+| Physics modeling | [Pyomo](https://www.pyomo.org/) | writes the model's equations and constraints |
+| | Pyomo.DAE | derivatives in time, and their discretization |
+| Machine learning | JAX | the network and its derivatives |
+| | ONNX | a file format to export the trained network |
+| | OMLT | puts trained networks into Pyomo models |
+| Constrained optimization | IPOPT | interior-point solver for the NLP |
+| | POUNCE | interior-point solver, no license needed |
+
+The code follows the SiNDAE example
+[Importing Measured Data, Fed-Batch Bioreactor](https://alves-research-group.github.io/SiNDAE/fedbatch-example/),
+with the product balance diluted by $F/V$. The first three blocks are one class.
+
+**The class.** A SiNDAE problem is a subclass of `ProblemDefinition`:
+
+```python
+class FedBatchBioreactorProblem(ProblemDefinition):
+    def __init__(
+        self,
+        params,
+        ics,
+        input_dim,
+        z_dim,
+        t_span,
+        nfe,
+        ncp,
+        obs_times=None,
+        obs_values=None,
+        obs_dim=None,
+    ):
+        super().__init__(ics, input_dim, z_dim, t_span, nfe, ncp,
+                         obs_times, obs_values, obs_dim)
+        self.params = params
+```
+
+- The arguments: the initial charge of each batch (`ics`), 4 states and 1 learned term, the time
+  span, the finite elements and collocation points, and the measurements.
+- `ProblemDefinition` stores them; the class adds our parameters, the feed rate and the yields.
+
+**The variables.** `build_trajectory` writes the model for one batch in Pyomo:
+
+```python
+    def build_trajectory(self, block, traj_idx):
+        p = self.params
+        t0 = self.t_span[0]
+        x0 = self.ics[traj_idx]
+        Sf = float(x0[2])                # feed concentration = initial substrate
+        Feed, Ypx, Yxs = p["Feed"], p["Ypx"], p["Yxs"]
+
+        block.t = dae.ContinuousSet(bounds=self.t_span)
+        block.x = pyo.Var(
+            block.t,
+            range(self.input_dim),
+            domain=pyo.NonNegativeReals,
+            initialize=1.0,
+        )
+        block.z = pyo.Var(block.t, range(self.z_dim), initialize=0.1)
+        block.dxdt = dae.DerivativeVar(block.x, wrt=block.t)
+```
+
+- It is called once per batch, with that batch's initial charge.
+- `ContinuousSet`: time, continuous; Pyomo.DAE discretizes it later.
+- `NonNegativeReals` declares every state non-negative: here is $S \ge 0$.
+- `z` is $\mu$: a free variable the network will set. `dxdt` are the derivatives of the states.
+
+**The balances**, the initial charge, and the network's inputs and output:
+
+```python
+        @block.Constraint(block.t, range(self.input_dim))
+        def diffeq(b, t, s):
+            mu = b.z[t, 0]               # growth rate, learned by the network
+            X, P, S, V = b.x[t, 0], b.x[t, 1], b.x[t, 2], b.x[t, 3]
+            if s == 0:
+                return b.dxdt[t, 0] == mu * X - Feed * (X / V)
+            elif s == 1:
+                return b.dxdt[t, 1] == Ypx * mu * X - Feed * (P / V)
+            elif s == 2:
+                return b.dxdt[t, 2] == Feed * (Sf - S) / V - mu * (X / Yxs)
+            else:
+                return b.dxdt[t, 3] == Feed
+
+        for j in range(self.input_dim):
+            block.x[t0, j].fix(float(x0[j]))
+
+    def get_input_vars(self, block, t):
+        return [block.x[t, j] for j in range(self.input_dim)]
+
+    def get_output_vars(self, block, t):
+        return [block.z[t, 0]]
+```
+
+- A constraint for every time $t$ and every state $s$: these are rows of the NLP.
+- One balance per branch. There is no formula for $\mu$.
+- `get_input_vars` and `get_output_vars` connect the network: the states in, $z = \mu$ out.
+
+**The network and the three training stages:**
+
+```python
+mlp = SimpleMLP(
+    in_size=INPUT_DIM,
+    out_size=Z_DIM,
+    widths=[20, 20],
+    activations=[jax.nn.softplus] * 2,
+    key=jax.random.PRNGKey(SEED),
+)
+smoother_config = SmootherConfig(smooth_coef=10.0)
+pretrain_config = PretrainConfig(
+    epochs=200,
+    batch_size=32,
+    reg_coef=1e-3,
+)
+simul_config = SimultaneousConfig(
+    use_gbm=True,
+    reg_coef=1e-3,
+)
+solver_options = SolverConfig(
+    tol=1e-6,
+    max_iter=1000,
+    hessian_approximation="limited-memory",
+)
+```
+
+- `SimpleMLP`: 4 states in, $\mu$ out, two hidden layers of 20 softplus units. Softplus is
+  smooth, as the interior-point solver needs.
+- `SmootherConfig`, `PretrainConfig` and `SimultaneousConfig` are the three stages above.
+- `use_gbm=True` hands the network to the solver as an external function evaluated in JAX, so
+  the solver approximates the second derivatives with L-BFGS (`"limited-memory"`).
+
+**Training.** Attach the measurements of the three batches, then fit:
+
+```python
+problem = FedBatchBioreactorProblem(
+    params=FB_PARAMS,
+    ics=BATCH_ICS,
+    input_dim=INPUT_DIM,
+    z_dim=Z_DIM,
+    t_span=T_SPAN,
+    nfe=NFE_TRAIN,
+    ncp=NCP_TRAIN,
+    obs_dim=OBS_DIM,
+    obs_times=obs_times,
+    obs_values=obs_values,
+)
+```
+
+```python
+model = HybridDAE(
+    method="simultaneous",
+    nlp_solver="pounce",
+    net=mlp,
+    smoother=smoother_config,
+    pretrain=pretrain_config,
+    train=simul_config,
+    solver_options=solver_options,
+    unfix_io=True,
+)
+model.fit(problem)
+```
+
+- Training uses 40 finite elements of 3 collocation points over 40 h; this grid need not match
+  the 31 samples.
+- `fit` runs the smoother, the pretraining and the full NLP, solved by POUNCE. About a minute.
+
+**Prediction** on the new batch:
+
+```python
+new_problem = FedBatchBioreactorProblem(
+    params=FB_PARAMS,
+    ics=np.array([[0.20, 0.0, 7.0, 0.90]]),
+    input_dim=INPUT_DIM,
+    z_dim=Z_DIM,
+    t_span=(0.0, 60.0),
+    nfe=45,
+    ncp=3,
+    obs_dim=OBS_DIM,
+)
+prediction = model.predict(
+    new_problem,
+    slack_coef=1e-5,
+)
+```
+
+- The same class, a new initial charge, 60 h and no measurements.
+- `predict` solves the DAE with the network fixed and $S \ge 0$ held. `slack_coef` is the
+  price on moving $\mu$ away from the network's value where a constraint would otherwise break.
+
+### Case study: monoclonal antibody production
+
+```{index} pair: case study; monoclonal antibody glycosylation
+```
+```{index} critical quality attribute
+```
+
+**Monoclonal antibodies (mAbs)** are medicines for cancers and for autoimmune and infectious
+diseases. Most are made by CHO cells in fed-batch reactors.
+
+- **Glycosylation** is the attachment of sugar chains (glycans) to the antibody inside the
+  cell, finished in the Golgi apparatus.
+- The glycans are a **critical quality attribute** (CQA): a property that "must be within an
+  appropriate limit, range or distribution to ensure the desired product quality, safety and
+  efficacy". For mAbs, "the terminal sugars of Fc glycans have been shown to be critical for
+  safety or efficacy" ([Reusch and Tejada, 2015](https://pmc.ncbi.nlm.nih.gov/articles/PMC4634315/)).
+- Glycans also change how the drug behaves in the body and immune reactions to it.
+
+A hybrid glycosylation model from the Alves group (a proof of concept):
+
+- **9 states**: viable cells, glucose, glutamine, lactate, ammonia, the antibody, and three
+  glycoforms G0F, G1F and G2F.
+- **Mechanistic**: six culture balances, and three glycan equations.
+- **Algebraic**: the nucleotide sugar donors (NSDs), the sugar building blocks, are at
+  quasi-steady state, set by glucose at every instant. That makes the model a **DAE**.
+- **Learned**: the growth rate, $\mu = f_\text{NN}(x;\theta)$, a network with 9 inputs, two
+  hidden layers of 16 tanh units, and 1 output.
+- **Why $\mu$**: it is never measured, and its usual law (Monod kinetics, inhibited by lactate
+  and ammonia) is an assumption.
+
+```{figure} figures/cho-pathway.png
+:alt: A pathway diagram. Glucose (GLC) feeds NSD synthesis, at quasi-steady state, which makes GDP-fucose and UDP-galactose. A precursor (Man5 + G0) is fucosylated by FucT at 0.3 per hour to G0F, then galactosylated by GalT1 at 0.05 per hour to G1F and by GalT2 at 0.03 per hour to G2F. Brackets mark fucosylation and galactosylation.
+:width: 75%
+
+The glycosylation steps in the model: fucosylation, then two galactosylations.
+```
+
+The equations, by scale. The learned term is $\mu$, at the process scale:
+
+$$
+\frac{dX_v}{dt} = (\mu - \mu_d)\,X_v, \qquad
+\frac{dGLC}{dt} = -\Big(\frac{\mu - \mu_d}{Y_{X_v/glc}} + m_{glc}\frac{GLC}{K_{glc} + GLC}\Big)X_v, \quad \dots, \qquad
+\mu = f_\text{NN}(x;\theta)
+$$
+
+At the cell scale, the sugar donors are algebraic (quasi-steady state):
+
+$$
+\text{UDP-Gal} = \frac{V_{max,Gal}\,GLC}{K_{M,Gal} + GLC}, \qquad
+\text{GDP-Fuc} = \frac{V_{max,Fuc}\,GLC}{K_{M,Fuc} + GLC}
+$$
+
+At the Golgi scale, the glycans, with $\phi_{Gal} = \text{UDP-Gal}/(K_{UDP\text{-}Gal} + \text{UDP-Gal})$
+and $\phi_{Fuc} = \text{GDP-Fuc}/(K_{GDP\text{-}Fuc} + \text{GDP-Fuc})$:
+
+$$
+\begin{aligned}
+\frac{dG0F}{dt} &= k_{FucT}\,\text{Pre}\;\phi_{Fuc} - k_{GalT1}\,G0F\;\phi_{Gal}, \qquad \text{Pre} = 1 - G0F - G1F - G2F \\
+\frac{dG1F}{dt} &= k_{GalT1}\,G0F\;\phi_{Gal} - k_{GalT2}\,G1F\;\phi_{Gal}, \qquad
+\frac{dG2F}{dt} = k_{GalT2}\,G1F\;\phi_{Gal}
+\end{aligned}
+$$
+
+```{figure} figures/cho-trajectories-scales.png
+:alt: A three-by-three grid of plots over 250 hours, one per state. The top two rows, boxed in blue and labeled process scale, cells, nutrients, metabolites, antibody: viable cells, glucose, glutamine, lactate, ammonia and antibody. The bottom row, boxed in orange and labeled product quality, Golgi scale, glycan fractions: G0F, G1F and G2F. In each, a blue true-model line, a green neural DAE line on top of it, and red noisy observation dots.
+:width: 100%
+
+One model fitted to data at two scales: process measurements (blue box) and glycan fractions
+(orange box). True model (blue), neural DAE (green), noisy data (red).
+```
+
+```{figure} figures/cho-composition.png
+:alt: Two stacked area charts of glycan distribution in percent over 10 days, true model on the left and neural DAE on the right. Both show the precursor disappearing within hours, G0F shrinking over about 4 days, G1F over about 8 days, and G2F growing to nearly 100 percent.
+:width: 100%
+
+Glycan composition over the culture: true model (left) and neural DAE (right).
+```
+
+- The data are **synthetic**: the mechanistic model plus noise, half of the samples kept, three
+  runs of 10 days.
+- **Limits**: 3 of more than 33 glycoforms; quasi-steady sugar donors; the learned $\mu(t)$
+  oscillates even though the states fit.
+
+## Constraints inside the network: projection layers
+
+```{index} projection layer
+```
+
+A neural DAE enforces constraints in the **solver**. Another option is to build them into the
+**network**, so that every output satisfies them.
+
+### Projection layers
+
+:::{admonition} Definition: projection layer
+:class: tip
+A **projection layer** is a last layer that moves the network's raw output $\tilde y$ to the
+closest point that satisfies the constraints.
+:::
+
+**The example: a splitter.** A feed $F = 10$ splits into two outlet flows.
+
+- **Input** $u$: the valve opening.
+- **Outputs** $y_1, y_2$: the two outlet flows.
+- **Balance**: $y_1 + y_2 = F$, whatever the opening.
+- A network predicts $y_1, y_2$ from $u$; a projection layer makes them obey the balance.
+
+```{figure} figures/splitter.png
+:alt: A pipe carries the feed F = 10 from the left into a junction that splits into two outlet pipes, y1 at the top through a valve labeled valve, opening u, and y2 at the bottom. A green box between them reads mass balance, y1 + y2 = F.
+:width: 50%
+
+The splitter.
+```
+
+$$
+u \;\longrightarrow\; \underbrace{\mathrm{NN}(u;\theta)}_{\text{network}} \;\longrightarrow\; \tilde y
+\;\longrightarrow\; \underbrace{P(\tilde y)}_{\text{projection, fixed}} \;\longrightarrow\; y
+\;\longrightarrow\; \text{loss against the data}
+$$
+
+For the splitter, the closest point shares the violation equally between the two flows:
+
+$$
+v = \tilde y_1 + \tilde y_2 - F, \qquad y_1 = \tilde y_1 - \frac{v}{2}, \qquad y_2 = \tilde y_2 - \frac{v}{2}
+$$
+
+Any linear balance $Ay = b$ works the same way. Minimize $\|y - \tilde y\|^2$ subject to
+$Ay = b$; the optimality conditions give
+
+$$
+y = \tilde y - A^\top \big(A A^\top\big)^{-1}\big(A\tilde y - b\big)
+$$
+
+- $A\tilde y - b$ is how much the raw output violates the balance.
+- The correction is a fixed matrix times that violation: one more linear layer, with no
+  trainable weights.
+- The gradient of the loss flows back through it during training, like any linear layer.
+- The output satisfies $Ay = b$ to machine precision, in training and in use.
+
+Drag the raw output and watch the projection follow:
+
+<div class="cw" data-widget="projection"></div>
+
+**Training with the layer.** The 40 measurements carry noise (standard deviation 0.4 on each flow), so they break the
+balance themselves, by 0.48 on average.
+
+<div class="cw" data-widget="proj-train" data-source="l13"></div>
+
+```{figure} figures/projection-train.png
+:alt: Left, the plane of outlet flows y1 and y2 with a green line y1 + y2 = F. Gray noisy measurements scatter around the line. Orange raw network outputs sit off the line, each joined by a short segment to a blue projected output on the line. Right, the largest balance violation against training epoch on log axes: the plain network stays near 1, the network with the projection layer sits near 1e-15 at every epoch, labeled machine precision, every epoch.
+:width: 100%
+
+A network with a projection layer, after 2,000 epochs, and the balance violation during training.
+```
+
+| After 2,000 epochs | Without the layer | With the layer |
+|---|---|---|
+| Largest $\lvert y_1 + y_2 - F \rvert$ on test inputs | 1.13 | $1.8 \times 10^{-15}$ |
+| Error against the true flows (RMSE) | 0.274 | 0.186 |
+
+- The layer holds the balance at every epoch, not only at the end.
+- It is also more accurate here: it removes the part of the noise that breaks the balance.
+
+In the literature:
+
+- **KKT-hPINN** (Chen, Constante Flores and Li, 2024) "rigorously guarantees hard linear
+  equality constraints through projection layers derived from KKT conditions". KKT stands for
+  the Karush-Kuhn-Tucker conditions, the optimality conditions of a constrained problem. It was
+  tested on Aspen models of a CSTR, an extractive distillation and a chemical plant
+  ([arXiv](https://arxiv.org/abs/2402.07251)).
+- **KKT-Hardnet** (Iftakher, Golder, Roy and Hasan, 2025) "enforces linear and nonlinear
+  equality and inequality constraints up to machine precision", by solving the KKT conditions
+  of a distance minimization ([arXiv](https://arxiv.org/abs/2507.08124)).
+- **HardNet** (Min and Azizan, 2024) appends "a differentiable closed-form enforcement layer to
+  the network's output", and keeps the network a universal approximator
+  ([arXiv](https://arxiv.org/abs/2410.10807)).
+- **Climate models** (Beucler and colleagues, 2021): "architectural constraints enforce
+  conservation laws to within machine precision without degrading performance"
+  ([arXiv](https://arxiv.org/abs/1909.00912)).
+
+
+### Four approaches side by side
+
+| | PINN | Neural ODE | Neural DAE | Projection layer |
 |---|---|---|---|---|
-| 16 | 0.526 | 0.143 | 0.122 | **0.076** |
-| 81 | 0.030 | 0.0035 | 0.0029 | **0.0025** |
-| 256 | 0.0090 | 0.0009 | 0.0008 | **0.0007** |
+| Formulation | $\min L_\text{data} + \lambda\lVert r\rVert^2$ | $\dot x = f(x, \mathrm{NN})$ | $\min L_\text{data}$ s.t. $\dot x = f$, $h = 0$, $g \le 0$ | $y = P(\mathrm{NN}(u))$ |
+| Physics lives in | the loss | the right-hand side | the constraints of one NLP | the last layer |
+| Physics held | favored, not enforced | balances held; bounds not | enforced, training and prediction | enforced, linear balances (nonlinear ones in new work, KKT-Hardnet) |
+| Learns | one solution $x(t)$ | the vector field | the unknown terms | a static map |
+| Trained with | Adam | unconstrained solver + Adam (sequential) | nonlinear constrained optimization solver (simultaneous) | Adam |
 
-The grid is **ten times worse than random sampling at every budget**, and about an order of
-magnitude worse than Sobol. That gap is larger than any modelling choice made later in this
-session. It is also entirely free to fix: `scipy.stats.qmc` generates all of these in one
-line.
-
-The gap between random, LHS and Sobol is real but much smaller, and it narrows as the
-budget grows. Be honest about the size of that effect when you report it. At 16 points
-Sobol is roughly twice as good as random and the spread across repeats is large enough that
-a single comparison would not have shown it; at 256 they are within 20% of each other.
-
-:::{admonition} Common pitfall
-:class: warning
-
-**Sobol sequences want a power-of-two sample size.** The construction's balance properties
-hold exactly at $n = 2^m$, and asking for an arbitrary $n$ silently gives you a worse
-design. Measured here, mean discrepancy over eight scrambles: $n = 64$ gives
-$1.04\times10^{-3}$, $n = 81$ gives $1.17\times10^{-3}$, and $n = 128$ gives
-$3.52\times10^{-4}$.
-
-Read that middle number twice. **Adding 17 points made the design measurably worse.** SciPy
-warns about this and the warning is easy to click past; the cost is a design you paid 81
-simulations for that performs like one you paid fewer than 64 for.
-:::
-
-### Interpolation, extrapolation, and how to validate a surrogate
-
-A surrogate's error is not one number. Inside the convex hull of the training points it is
-doing interpolation, which is the easy case, and outside it the error can be arbitrarily
-large with no warning from any random-split cross-validation.
-
-That distinction is the reason surrogate validation looks different from ordinary model
-validation. **Hold out a region of the design space, not a random sample of rows.** If your
-design variable is free-stream velocity and you have four velocities, train on three and
-predict the fourth. If it is a geometry parameter, hold out the largest. Then report the
-extrapolation error *separately*, because averaging it into an overall number hides exactly
-the failure a design loop will find.
-
-This session's dataset makes the point cleanly. The **NASA airfoil self-noise** set from
-[Lecture 9](../l09/notes.md) is 1,503 one-third-octave measurements from an anechoic wind tunnel,
-taken from Brooks, Pope and Marcolini's 1989 report, with five inputs and a scaled sound
-pressure level in decibels. On a random row split a GP gets 1.97 dB. On held-out
-configurations, 2.07 dB. On a held-out free-stream velocity, 3.04 dB. Same model, same
-data, error growing by half as the question gets more honest.
-
-:::{admonition} How the held-out-configuration split is defined, and why it is not `GroupKFold`
-:class: warning
-
-Every held-out-configuration number in these notes comes from a split written out
-explicitly in `figures/make_figures.py`: sort the configuration ids and hold out every
-fifth one. That is what `GroupKFold` is for, and it is not what these notes use, because
-**scikit-learn 1.8 and 1.9 assign groups to folds by different rules**, with the same
-signature and the same `shuffle=False`, and nothing warns you.
-
-The first draft of these notes used `GroupKFold` and the figures disagreed with the demo
-notebook: **2.08 dB against 1.50 dB, and 91% coverage against 94%**, on what was supposed to
-be the same split. The gap between the two library versions was larger than most of the
-effects this session sets out to measure.
-
-This is [Lecture 1](../l01/notes.md)'s `np.trapz` lesson in a new costume, and the fix is the same
-one. A number your conclusion depends on should not be inherited from a library default that
-is free to change.
-:::
-
-:::{admonition} Count your knobs, not your columns
-:class: note
-
-The airfoil file has five feature columns, and it has **four independent design variables**.
-The suction-side displacement thickness is not something the operator sets; it is the
-boundary layer that results, and it takes exactly one value in **106 out of 106**
-configurations once angle of attack, chord and velocity are fixed.
-
-This matters for the sampling discussion in a way that is easy to miss. If you treat the
-five columns as five axes and generate a Latin hypercube over them, most of your design
-points describe a wind tunnel that cannot exist, and a surrogate will answer questions
-about them with a straight face. **The design space is the set of things you can actually
-set.** Derived quantities are outputs wearing an input's clothes.
-:::
-
-## Choosing a surrogate family
-
-```{index} Gaussian process regression, radial basis function, polynomial chaos expansion, neural operator
-```
-```{index} see: kriging; Gaussian process regression
-```
-
-There are four families worth knowing, and the choice is mostly determined by the dimension
-of the design space and the shape of the output.
-
-**Gaussian process regression**, called **kriging** in the geostatistics and engineering
-design literature after Danie Krige's ore-grade work and Georges Matheron's formalisation
-of it, is the default for smooth, low-dimensional, expensive problems and has been since
-the 1980s. A GP places a prior over functions, conditions it on the data, and returns a
-posterior that is again Gaussian: a mean and a variance, at every point, from the same
-algebra. That last property is the reason it dominates surrogate modelling. The uncertainty
-is not bolted on; it falls out.
-
-The **kernel** is the modelling assumption. `Matern(nu=2.5)` assumes the response is twice
-differentiable, which is weaker and usually safer than the RBF kernel's assumption of
-infinite smoothness. A separate length scale per input (**automatic relevance
-determination**) lets the fit tell you which variables matter, and reading those length
-scales afterwards is one of the cheapest diagnostics in this course: a length scale pinned
-at its upper bound is the model saying that input does nothing.
-
-The cost is cubic in the number of training points, $O(n^3)$ to fit and $O(n^2)$ per
-prediction, which caps a plain GP at a few thousand points. That is usually fine, because if
-you had a hundred thousand runs you would not need a surrogate.
-
-**Radial basis function** interpolants are the same idea with the probabilistic
-interpretation removed: a weighted sum of kernels centred on the data points. They are
-faster and simpler, they interpolate exactly, and they give you no uncertainty, which in
-this session's framing is a serious loss.
-
-**Polynomial chaos expansion** expands the response in polynomials orthogonal with respect
-to the *input distribution*. It is the tool of choice when the question is uncertainty
-propagation rather than optimization, because the expansion coefficients give you moments
-and Sobol sensitivity indices analytically instead of by sampling.
-
-**Neural surrogates** win where the others run out: high-dimensional inputs, large training
-sets, and structured outputs. An MLP for a scalar quantity of interest is the simple case.
-The interesting case is **field-to-field** emulation, where a CNN or U-Net maps an input
-field (a geometry, a source distribution, a boundary condition) to an output field (a
-pressure, a temperature, a stress), which is what Lecture 12's convolutional
-architectures were building toward. Beyond that lie **neural operators**, which learn
-mappings between function spaces rather than between vectors, so a single trained model
-handles any discretisation: [DeepONet](https://arxiv.org/abs/1910.03193) and the
-[Fourier Neural Operator](https://arxiv.org/abs/2010.08895) are the two to know, the latter
-claiming up to three orders of magnitude over traditional solvers on parametric PDEs.
-
-### Two surrogates on the same held-out sweep
-
-The demo builds a GP and a **deep ensemble**, five small PyTorch networks each predicting a
-mean *and* a variance, trained by Gaussian negative log-likelihood instead of squared error.
-Both are fitted on the same held-out-configuration split.
-
-```{figure} figures/gp-vs-ensemble.png
-:alt: Left, sound pressure level against frequency for one held-out wind-tunnel configuration, with the GP and the deep ensemble both tracking the measured points closely and both showing 95% bands, the GP's noticeably wider. Right, bar chart of mean predicted sigma for the two models under a held-out-configuration split and a held-out-velocity split, annotated with the coverage each achieved: GP 91% then 94%, ensemble 80% then 78%.
-:width: 100%
-
-The point predictions are close. The intervals are not, and the coverage is not.
-```
-
-On the honest split the GP scores **2.07 dB** and the ensemble **2.61 dB**, against 6.75 dB
-for predicting the training mean. Both are good models, the GP a little better, and by the
-standards of every previous session that is where the comparison ends.
-
-Now look at the intervals, and note that they run the other way. The GP's mean posterior
-$\sigma$ is 1.50 dB and its 95% interval covers **91.0%** of the held-out points. The
-ensemble is the less accurate model and reports the **narrower** interval, mean $\sigma$
-1.15 dB, and it covers **79.9%**. One point in five falls outside an interval that was
-supposed to miss one in twenty. The ensemble is both less accurate and more
-confident than it has earned, which is the combination that does damage.
-
-Move to the held-out velocity and both models get worse and both widen, by almost exactly
-the same factor: $\sigma$ grows **1.83×** for the GP and **1.84×** for the ensemble. That
-symmetry is the point. Growing the interval is not the hard part, and a growth factor is not
-a diagnostic. The GP ends at 3.04 dB error with $\sigma$ = 2.74 dB and **93.8%** coverage;
-the ensemble at 3.55 dB with $\sigma$ = 2.12 dB and **77.6%**. Identical responsiveness,
-opposite outcomes, because only one of them was calibrated before it started widening.
-
-The mechanism behind the GP's behaviour is worth understanding rather than memorising. A
-stationary kernel has a finite correlation length, so far from any training point the
-posterior has nothing to condition on and relaxes back to the prior: prior mean, prior
-variance. **The GP's uncertainty grows away from data by construction, not by cleverness.**
-That property makes it the default surrogate inside a Bayesian optimization loop,
-and it is also why a GP is *conservative* rather than
-*correct* outside the training envelope. It will tell you it does not know. It will not tell
-you the right answer.
-
-## Putting physics into the model
-
-The phrase "physics-informed machine learning" covers a wide range, from a change of
-variables to a full PDE solver expressed as a loss function. It is worth separating them,
-because they cost very different amounts and they buy different things.
-
-### The cheapest version: use the right coordinates
-
-Trailing-edge noise does not depend on frequency and velocity separately. It depends,
-to a first approximation, on the **Strouhal number** $St = f\delta^*/U$, the dimensionless
-group formed from frequency, boundary-layer displacement thickness and free-stream
-velocity. That is a statement that three of your five columns are not three independent
-axes.
-
-Re-expressing the features in those coordinates adds no information and removes none. It is
-a change of variables, done before the model sees anything. It is also, measured here, worth
-more than most of the modelling decisions in this session.
-
-```{figure} figures/physics-features.png
-:alt: Left, four spectra at different free-stream velocities plotted against frequency, clearly separated. Middle, the same four spectra plotted against Strouhal number, collapsing onto each other above the peak. Right, a bar chart of GP RMSE with raw columns against physics coordinates for four hold-out schemes, showing improvements of 12 and 51 percent on the velocity and chord hold-outs and degradations of 8 and 10 percent on the configuration and near-stall hold-outs.
-:width: 100%
-
-The same five numbers per row, in two coordinate systems. Spread is the RMS pointwise
-difference between the four velocity curves on their common support.
-```
-
-For the largest chord at zero incidence, the four velocity curves have an RMS spread of
-**2.26 dB** against frequency and **1.47 dB** against Strouhal number, and the high-frequency
-roll-off collapses onto a single line. Across all 33 settings with more than one velocity,
-the mean spread falls from **2.91 dB to 2.34 dB**, and Strouhal is the tighter coordinate in
-**20 of 33** settings.
-
-Twenty of thirty-three, not thirty-three of thirty-three. The collapse is dramatic where the
-trailing-edge mechanism dominates (at 22.2° on the smallest chord it goes from 6.45 dB to
-1.55 dB) and it is actively *worse* at low incidence on the same small chord (2.10 dB to
-3.46 dB). Brooks, Pope and Marcolini's model has separate terms for suction-side,
-pressure-side and separation noise, each with its own scaling; one dimensionless group
-cannot carry three mechanisms.
-
-The GP results follow that structure exactly, and they are not a uniform win:
-
-| hold-out | raw columns | Strouhal / Mach | |
-|---|---|---|---|
-| held-out configurations | 2.07 dB | 2.24 dB | +8% |
-| held-out velocity, 71.3 m/s | 3.04 dB | 2.68 dB | **−12%** |
-| held-out chord, 0.3048 m | 4.37 dB | **2.15 dB** | **−51%** |
-| held-out stall, $\alpha \geq 15.4°$ | 4.84 dB | 5.31 dB | **+10%** |
-
-Physics coordinates halve the error when extrapolating over chord, because chord is one of
-the variables the Strouhal number involves, so an unseen chord becomes an interpolation
-problem in the new coordinates. They help on velocity for the same reason. They *hurt* when
-extrapolating into stall, where the physics they encode is not the physics that is
-happening, and they hurt slightly on plain interpolation too, where there was no
-extrapolation for them to rescue and the reparameterisation only cost the GP a coordinate
-system its kernel was already fitting well.
-
-Read the pattern rather than the average. The physics pays exactly where it is doing work,
-which is when the model is being asked about a region it has not seen along an axis the
-physics describes. Everywhere else it is a constraint with no upside.
-
-:::{admonition} What a practitioner should take from this
-:class: tip
-
-A physics-informed feature is a **claim**, not a free improvement. It says "these variables
-combine this way," and the model will believe you. When the claim holds you get a large,
-cheap win, and when it does not you have hard-coded an error that no amount of data will
-argue you out of.
-
-So state the claim before you use it, name the regime where you expect it to hold, and test
-inside and outside that regime separately. Averaging over the four rows of that table gives
-roughly no effect at all, which is the least informative summary available. "Chord
-extrapolation improved by 51% and stall extrapolation degraded by 10%, which is what the
-underlying noise model predicts" is the sentence worth writing.
-:::
-
-### Check the physics is actually in your data
-
-A cautionary measurement, and it changed what this session says. Trailing-edge noise
-intensity is supposed to scale roughly as the fifth power of the free-stream velocity, so
-the overall level should rise like $50\log_{10}U$. Fitting that exponent from the data, over
-the settings that have three or more velocities, gives a median of **0.31** rather than 5.
-
-The likely reason is in the dataset documentation rather than in the physics: the UCI column
-is described as "**scaled** sound pressure level," and the spectra appear to have had the
-amplitude scaling removed, leaving the spectral shape. The Strouhal collapse of the *shape*
-is clearly present, as the figure shows; the level scaling is not.
-
-The point is not about aeroacoustics. It is that a physics prior you were about to impose as
-a hard constraint was, in this dataset, **false**, and nothing except a five-line check
-would have told you. Before you constrain a model, measure the constraint on the training
-data. If it is not there, either your understanding of the physics is wrong or your
-understanding of the dataset is, and both are worth finding out before you build on it.
-
-### Soft penalties: physics-informed neural networks
-
-```{index} physics-informed neural network, collocation point
-```
-
-The strongest version of physics-informed modelling puts the governing equation into the
-loss. [Raissi, Perdikaris and Karniadakis](https://doi.org/10.1016/j.jcp.2018.10.045)
-formalised this as the **physics-informed neural network**: represent the solution field by
-a network $T_\theta(x)$, and train on
+The same four, written as the optimization problem each one solves. The data-fit term is the
+same every time; what changes is where the physics sits, and so what the solver has to handle.
 
 $$
-\mathcal{L} = \underbrace{\frac{1}{N}\sum_i \left(T_\theta(x_i) - T_i\right)^2}_{\text{data}}
-+ \lambda \underbrace{\frac{1}{M}\sum_j \mathcal{R}\!\left[T_\theta\right](x_j)^2}_{\text{PDE residual}}
-+ \underbrace{\text{boundary terms}}_{\text{}}
+\text{PINN:}\quad \min_{\theta}\; \sum_i \big(x_\text{NN}(t_i;\theta) - \hat x_i\big)^2 + \lambda \sum_j r\big(x_\text{NN}(t_j;\theta)\big)^2
 $$
 
-where $\mathcal{R}$ is the differential operator, evaluated by automatic differentiation at
-**collocation points** where no measurement exists. This is [Lecture 11](../l11/notes.md)'s
-autodiff doing something other than training: the derivatives being taken are with respect
-to the *inputs*, not the parameters, and they are part of the loss rather than of the
-optimizer.
-
-One implementation detail that is not a detail: **use `tanh`, not ReLU**. The loss
-differentiates the network twice, and the second derivative of a ReLU network is zero almost
-everywhere, so a PINN built on ReLU has a residual term it structurally cannot reduce.
-
-:::{admonition} If you know the equation, the boundary conditions and the source, you do not need data at all
-:class: note
-
-This is worth stating plainly because it determines when a PINN is the right tool. For a
-**forward** problem with everything specified, the physics loss alone determines the
-solution, and the network is a (usually slower, usually less accurate) alternative to a
-finite-element solver.
-
-The engineering case where a PINN genuinely earns its place is the **inverse** or
-partially-specified one: the operator is known, a material property or a boundary flux is
-not, and the measurements are few, noisy and in the wrong places. Then the physics
-regularises a problem that data alone cannot resolve, and it identifies the unknown
-parameter as a by-product.
-:::
-
-The demonstration in these notes is therefore the inverse problem. One-dimensional steady
-conduction, $-k\,T'' = q(x)$ with a known source and unknown conductivity, a handful of
-noisy temperature measurements, and $k$ treated as a learnable scalar alongside the network
-weights.
-
-```{figure} figures/soft-physics.png
-:alt: Three panels. Left, the true temperature field with eight noisy measurements and four fits: data-only, soft PDE penalty, soft PDE with hard boundary conditions, and a penalty using a mis-specified source, which is badly wrong. Middle, log-log RMSE against number of measurements, with the physics variants roughly half the data-only error and the mis-specified variant an order of magnitude worse and flat. Right, recovered conductivity against number of measurements, converging on the true value of 2.5 for the correct physics and sitting near 0.7 for the mis-specified one.
-:width: 100%
-
-The same eight measurements, four ways. Five random data draws per point in the right-hand
-panels.
-```
-
-**Physics roughly halves the field error at every budget**, and the data-efficiency reading
-is the more useful one: with 4 measurements the penalised network reaches an RMSE of 0.070,
-which the data-only network needs about **21 measurements** to match. On this problem the
-governing equation is worth about a factor of five in experiments.
-
-It also **recovers the conductivity**, 2.38 at four measurements and within a few per cent of
-the true 2.5 thereafter, which is a material property identified from four noisy
-temperatures. That is the part that tends to convert sceptics.
-
-Now the failure. Give the same penalty a source term that omits the localised hot spot, a
-plausible modelling oversight, and the field error is **0.505 at four points and 0.359 at
-sixty-four**: three to eleven times worse than using no physics at all, and essentially flat
-in the amount of data. The recovered conductivity settles near 0.7 against a true 2.5. A
-wrong physics prior does not average out. It is a systematic error that the optimizer will
-defend against the evidence, because you told it the equation is true.
-
-### Soft against hard constraints
-
-```{index} hard constraint
-```
-
-The boundary condition in the demo can be imposed two ways. **Softly**, as another penalty
-term, which is what the loss above does. Or **hard**, by construction: write
-
-$$T_\theta(x) = x(1-x)\,N_\theta(x)$$
-
-and $T(0) = T(1) = 0$ holds identically for every possible value of the weights.
-
-Measured, the two give the same field accuracy on this problem (0.049 against 0.049 at eight
-points), and they do not give the same guarantee. The mean boundary violation is
-$1.0\times10^{-2}$ for the soft version and **exactly zero** for the hard one. When the
-constraint is easy to satisfy, that difference is cosmetic. When a downstream calculation
-divides by the constraint, or a certification requires it, or the constraint is what keeps
-the solution physical, it is the entire point.
-
-The same trick covers most of the constraints engineers actually need. **Positivity**:
-predict $\log y$, or pass the output through a softplus, and no configuration of weights can
-produce a negative concentration, a negative temperature or a negative variance. The heat
-surrogate earlier in these notes predicts $\log_{10}T_{\max}$ for exactly this reason, and
-the mean-variance networks pass their variance head through a softplus.
-**Monotonicity**: use a monotone architecture, or add a penalty on the sign of the gradient.
-**Conservation**: predict a potential and take its curl, so that the divergence-free
-condition is structural.
-
-The rule of thumb: **prefer hard constraints, because they cost nothing at run time and
-cannot be traded away by the optimizer.** A soft penalty has a weight $\lambda$, and that
-weight is a hyperparameter that competes with your data term. Getting it wrong is the single
-most common reason a PINN fails to train, which
-[Wang, Teng and Perdikaris](https://arxiv.org/abs/2001.04536) trace to unbalanced
-back-propagated gradients between the loss terms.
-
-## Uncertainty, and whether yours is any good
-
-Everything above produces a prediction and a number attached to it. This section is about
-what that number means and how to find out whether it is true.
-
-### Aleatoric and epistemic
-
-```{index} aleatoric uncertainty, epistemic uncertainty
-```
-
-The distinction is the conceptual crux of the week, and it is not vocabulary.
-
-**Aleatoric** uncertainty is scatter in the process itself: sensor noise, batch-to-batch
-variation, turbulence, the fact that two nominally identical specimens do not fail at the
-same load. It is a property of the world you are measuring. More data gives you a better
-*estimate* of it and does not reduce it. If you want it smaller you need a better
-instrument or a better-controlled experiment, not a better model.
-
-**Epistemic** uncertainty is the model's ignorance: regions of the design space where too
-few points constrain the fit. It is a property of your model and your dataset, and it is
-exactly what more data removes. It is also what a design loop should chase, because a point
-with large epistemic uncertainty is a point where an experiment would teach you something.
-
-A deep ensemble separates them by the **law of total variance**. Each member $m$ predicts a
-mean $\mu_m(x)$ and a variance $\sigma_m^2(x)$; then
-
 $$
-\underbrace{\mathrm{Var}[y \mid x]}_{\text{total}}
-= \underbrace{\mathbb{E}_m\!\left[\sigma_m^2(x)\right]}_{\text{aleatoric}}
-+ \underbrace{\mathrm{Var}_m\!\left[\mu_m(x)\right]}_{\text{epistemic}}
+\text{Neural ODE:}\quad \min_{\theta}\; \sum_i \big(x(t_i;\theta) - \hat x_i\big)^2, \qquad x(\cdot\,;\theta) = \mathrm{ODESolve}\big(f(x, \mathrm{NN}(x;\theta)),\, x_0\big)
 $$
 
-The average of what the members think the noise is, plus how much the members disagree. A
-GP gives the same split more directly: the learned `WhiteKernel` level is the aleatoric part
-and the rest of the posterior variance is epistemic.
+$$
+\text{Neural DAE:}\quad \min_{\theta,\,x,\,z}\; \sum_i \big(x(t_i) - \hat x_i\big)^2 \quad \text{s.t.}\quad \dot x = f(x, z),\;\; 0 = h(x, z),\;\; g(x, z) \le 0,\;\; z = \mathrm{NN}(x;\theta)
+$$
 
-```{figure} figures/calibration.png
-:alt: Three panels. Left, a reliability diagram for four methods on the held-out-configuration split, with the deep ensemble well below the diagonal. Middle, a grouped bar chart of coverage of the nominal 95 percent interval for five methods under three splits, with a dashed line at 95 percent, showing most methods near the line for random rows and well below it for the held-out velocity. Right, a log-log plot of predicted sigma against training points on a synthetic problem, with epistemic falling steeply and aleatoric flattening onto a line marking the noise actually present.
-:width: 100%
+$$
+\text{Projection layer:}\quad \min_{\theta}\; \sum_i \big(y(u_i;\theta) - \hat y_i\big)^2, \qquad y(u;\theta) = \arg\min_{y}\,\lVert y - \mathrm{NN}(u;\theta)\rVert^2 \;\;\text{s.t.}\;\; Ay = b
+$$
 
-Right-hand panel is synthetic on purpose: the airfoil file contains **zero** repeated
-settings, so nothing in it can tell you how much of the scatter is noise.
-```
+- **PINN**: the variables are the weights; no constraints; the physics is one more term to make
+  small.
+- **Neural ODE**: the variables are the weights; the ODE is solved inside the objective, so the
+  balances hold at every iterate, and bounds are not in the problem.
+- **Neural DAE**: the variables are the weights and every state at every collocation point; the
+  equations and bounds are constraints, held at the solution to solver tolerance.
+- **Projection layer**: the variables are the weights; the layer solves a small problem in
+  closed form, so every output satisfies $Ay = b$.
 
-On a synthetic problem where the true noise is known, the split behaves as advertised: the
-epistemic term falls steadily with training-set size while the aleatoric term flattens onto
-the noise that is actually there.
+## Limitations and trade-offs
 
-:::{admonition} The split is a property of the model, not of the data
-:class: warning
+**PINNs**
 
-Run the same decomposition on the airfoil data and you get something less comfortable. As
-the training set grows from 58 rows to 1,179, the GP's epistemic term falls from **3.39 dB
-to 1.24 dB**, which is the behaviour the synthetic problem predicts. The term it calls
-irreducible noise goes **0.88, then 1.23, then 0.78 dB**: no trend, and a spread as large as
-the quantity itself.
+- The physics is a penalty: the residual is small, not zero, and depends on $\lambda$.
+- Training is fragile on stiff or multiscale problems.
+- A plain PINN learns one solution; new conditions mean training again.
+- Use one when you know the equation, have few data, and can live with an approximate residual.
 
-That number is not a measurement of the wind tunnel's repeatability. It is whatever the
-kernel could not explain, relabelled, and it moves when the kernel's job gets easier or
-harder.
+**Neural ODEs, trained sequentially**
 
-There is no way to check it from this file, because it contains **no repeated settings at
-all**: 1,503 rows, 1,503 distinct input combinations. **Without replicates you cannot
-separate noise from model error**, and any aleatoric estimate is a statement about your
-model rather than about your instrument. If irreducible scatter matters to your conclusion,
-budget for repeat measurements. Three replicates at a handful of settings will tell you more
-about your error bars than another hundred unique runs.
-:::
+- The differential equations hold, but bounds and algebraic constraints do not, unless you add
+  penalties.
+- Oscillating or unstable dynamics give local minima, as in the spring-mass.
+- They scale well: mini-batches and GPUs. Use them for large data sets and large networks.
 
-### Five ways to get an interval
+**Neural DAEs, trained simultaneously**
 
-```{index} deep ensemble, MC-dropout, quantile regression, conformal prediction
-```
+- The NLP grows with the network and the number of trajectories, so the simultaneous
+  approach suits small and medium networks.
+- The network needs smooth activations, and the time grid is fixed before solving.
+- Feasible is not accurate: constraints keep the prediction physical, not correct.
+- Use them when constraints must hold exactly: safety limits, regulated quality, mass
+  balances, DAEs.
 
-**GP posterior variance** comes free with the fit and is the most trustworthy of these on
-small, smooth problems, at the cost of cubic scaling and a kernel you have to choose.
+**Projection layers**
 
-**Deep ensembles** ([Lakshminarayanan, Pritzel and Blundell,
-2017](https://arxiv.org/abs/1612.01474)) train $M$ networks from different initialisations
-and combine them as above. Simple, parallel, and the strongest of the neural options in
-independent benchmarks, though the paper's claim of being "as good or better than
-approximate Bayesian NNs" is a relative statement and not a claim of calibration.
+- They constrain one prediction at a time, not a trajectory over time.
+- Linear equalities are cheap; inequalities and nonlinear constraints need a solve in every
+  forward pass.
 
-**MC-dropout** ([Gal and Ghahramani, 2016](https://arxiv.org/abs/1506.02142)) leaves dropout
-switched on at prediction time and treats the resulting sample of predictions as a posterior,
-justified by an equivalence to approximate inference in a deep Gaussian process. It is by
-far the cheapest option, requiring one trained model, and its quality depends heavily on the
-dropout rate, which is now doing double duty as a prior.
+**All hybrid models**
 
-**Quantile regression** fits the conditional 2.5th and 97.5th percentiles directly by
-minimising the pinball loss, giving asymmetric intervals for free. It says nothing about
-where the uncertainty comes from.
-
-**Conformal prediction** ([Angelopoulos and Bates](https://arxiv.org/abs/2107.07511)) takes
-any model's heuristic uncertainty and converts it into an interval with a guarantee. In its
-split form: hold out a calibration set, compute the absolute residuals, take the
-$\lceil (n+1)(1-\alpha)\rceil / n$ empirical quantile, and use it as the interval half-width.
-The guarantee is finite-sample and two-sided,
-
-$$1 - \alpha \le \mathbb{P}\!\left(Y_{\text{test}} \in \mathcal{C}(X_{\text{test}})\right) \le 1 - \alpha + \frac{1}{n+1}$$
-
-and it holds for **any** model and **any** data distribution.
-
-### Checking it: coverage and sharpness
-
-```{index} reliability diagram
-```
-```{index} pair: metric; PICP
-```
-```{index} pair: metric; CRPS
-```
-
-Two numbers, and you need both.
-
-**PICP**, the prediction-interval coverage probability, is the fraction of held-out points
-that fall inside the nominal interval. **Width** is how wide that interval is on average.
-Either alone is trivially gamed: an interval of $\pm\infty$ has perfect coverage and no
-content, and an interval of zero width is maximally sharp and always wrong.
-
-The formulation to remember is [Gneiting, Balabdaoui and
-Raftery's](https://sites.stat.washington.edu/raftery/Research/PDF/Gneiting2007jrssb.pdf):
-**maximise the sharpness of the predictive distribution subject to calibration.** Get the
-coverage right first; then make the interval as narrow as you can. A **reliability diagram**
-checks coverage at every nominal level at once rather than only at 95%, and proper scoring
-rules (**negative log-likelihood**, **CRPS**) roll both properties into a single number that
-you can actually optimize.
-
-Here is every method above, on the same data, under the three splits, at a nominal 95%:
-
-| method | random rows | held-out configurations | held-out velocity |
-|---|---|---|---|
-| Gaussian process | 93.4% (5.5 dB) | 91.0% (5.9 dB) | **93.8%** (10.7 dB) |
-| deep ensemble | 92.7% (4.2 dB) | **79.9%** (4.5 dB) | **77.6%** (8.3 dB) |
-| MC-dropout | 98.7% (7.7 dB) | 94.8% (7.1 dB) | **73.1%** (7.0 dB) |
-| split conformal | 96.7% (9.3 dB) | 95.7% (8.4 dB) | **82.2%** (7.1 dB) |
-| quantile GBM | 88.0% (13.4 dB) | 89.2% (13.7 dB) | 85.8% (14.5 dB) |
-
-Three things in that table are worth more than the rest of this section.
-
-**On a random row split, almost everything looks fine.** Four of five methods land between
-92% and 99%. If your validation is a random split, you will conclude that uncertainty
-quantification is a solved problem and ship an overconfident model.
-
-**The ensemble is the one that fails first, and it fails where the data still looks
-familiar.** 79.9% coverage on held-out configurations, from a method whose paper's title
-contains the words "predictive uncertainty," on a split that is only mildly harder than
-random rows and that every other method here handles. Five members is not many, and the
-disagreement between five networks systematically understates the disagreement between all
-the networks you might have trained. This is consistent with [Ovadia et al.'s
-benchmark](https://arxiv.org/abs/1906.02530), which found ensembles the most robust of the
-methods it tested under dataset shift, and also found all of them degrading.
-
-**Under extrapolation, two of the intervals got narrower.** MC-dropout goes from 7.08 dB to
-6.98 dB and split conformal from 8.41 dB to 7.12 dB, while the actual error rose by half.
-That is the worst possible failure mode: the model became more wrong and more confident at
-the same time, and reported nothing unusual. Only the GP widened enough to keep up, and it
-nearly doubled its interval to do it.
-
-### Why conformal prediction breaks, and why that is instructive
-
-```{index} exchangeability
-```
-```{index} pair: failure mode; conformal prediction under covariate shift
-```
-
-Conformal's guarantee is real, and this is worth demonstrating rather than asserting. Fix
-the model, then repeatedly re-partition a pool of held-out rows into calibration and test
-sets at random, so that exchangeability holds by construction. Over 400 such draws with 451
-calibration points, mean coverage is **95.4%** against the guaranteed band of 95.0% to
-95.2%. The theory works.
-
-Now stop re-partitioning at random. Draw the calibration set from the training rows, as the
-recipe says, and change what the test set is. Holding out whole tunnel configurations, the
-guarantee survives: **95.7%**, because one configuration is much like another and
-exchangeability is approximately intact. Holding out a whole free-stream velocity, it
-collapses to **82.2%**.
-
-Nothing failed except an assumption. The guarantee requires the calibration points and the
-test points to be **exchangeable**, and holding out a design region is precisely a
-declaration that they are not. Note where the boundary fell: a grouped split was fine and a
-design-region split was not, and the difference between them is not visible in any diagnostic
-the method computes.
-
-Worse, the failure is silent and it runs the wrong way. The calibration residuals come from
-the easy interpolation regime, so they are small, so the interval is narrow, so a model
-facing harder questions issues more confident answers. Conformal's interval on the
-extrapolation split is **1.3 dB narrower** than on the split where it worked.
-
-That is the general shape of every uncertainty failure in this session, and it is the shape
-of the leakage failures in [Lecture 7](../l07/notes.md) and [Lecture 9](../l09/notes.md) too. The method
-is fine. The claim it makes is conditional on a property of your data, and the property is
-almost always the same one: that the rows you calibrated on and the rows you will predict
-came from the same place. Angelopoulos and Bates devote sections 4.5 and 4.6 to covariate
-shift and distribution drift precisely because this is the failure everyone hits.
-
-## Where this pushes back
-
-```{index} model discrepancy
-```
-
-**A surrogate is a model of your simulator, not of reality.** Every error your solver makes,
-the surrogate faithfully reproduces, and then adds its own on top. If the CFD is 8% off from
-the wind tunnel and the surrogate is 2% off from the CFD, you have a 10% model that reports
-2%. The literature on this is the **model discrepancy** or **model-form uncertainty**
-problem, and Kennedy and O'Hagan's Bayesian calibration framework is the standard treatment.
-The practical version: validate the surrogate against the simulator and the simulator
-against reality, and report them separately.
-
-**Gaussian processes do not scale, in two different directions.** The $O(n^3)$ fit is the
-one everyone quotes and the easier of the two, since sparse and inducing-point approximations
-handle it and GPyTorch runs them on a GPU. The harder limit is *input* dimension: a
-stationary kernel in twenty dimensions has essentially no interpolation power, because
-everything is far from everything else. Past a few dozen inputs, GPs stop being the default.
-
-**Deep ensembles are five times the training cost for uncertainty you then have to check.**
-This session's measurement should temper the enthusiasm: five members gave 80% coverage
-where 95% was claimed, on a split every other method here handled. More members help, and
-they cost linearly. If the uncertainty is what you need and the problem is small, a GP does
-it better and cheaper.
-
-**PINNs are seductive and finicky.** They are elegant, they read beautifully in a paper, and
-for a two-week miniproject they are a way to spend all of it debugging a loss weight. The
-loss has competing terms with wildly different gradient scales, stiff PDEs make it much
-worse, and the failure mode is a network that converges to something smooth and wrong. For
-this course's timeline, **a soft penalty on a simple constraint or a hard positivity or
-monotonicity constraint on a standard network is the safer physics-informed choice**, and it
-captures most of the benefit.
-
-**Calibration is not transferable.** A model calibrated on one operating regime is not
-calibrated on the next, and re-calibrating requires labelled data from the new regime, which
-in an extrapolating design loop is exactly what you do not have. There is no method in this
-session that solves this. What you can do is detect it: monitor the input distribution
-against the training distribution, and treat a query far outside it as a request for a real
-experiment rather than a prediction.
-
-**And the honest limit on all of it: a confident wrong surrogate is worse than no
-surrogate.** Without a surrogate you would have run the experiment. With an overconfident
-one you run the wrong experiment and believe the result. Every number in this session's
-calibration table is an argument for reporting coverage next to accuracy, every time, from
-the first run.
+- The mechanistic part must be right. If a balance is wrong, the network compensates in ways
+  that do not transfer to new conditions.
+- Physics constrains only what it describes. A learned term can still be wrong far from the
+  data; the constraints only stop it from being impossible.
 
 ## In-class demo
 
-The runnable notebook is [`l13-surrogates-uq.ipynb`](l13-surrogates-uq.ipynb). It fetches
-and caches the NASA airfoil file on first run and needs `mlflow` for the last section.
+Every code block on the slides is a cell in these two notebooks, in the order of the lecture.
+The notebooks add the data and the plots around them.
 
-We start by counting the knobs: 106 configurations, five columns, four independent design
-variables, and a displacement thickness that is an output pretending to be an input. Then
-three splits, in increasing order of honesty, with the do-nothing baseline for each.
-
-Then the two surrogates. We fit the GP, read its learned length scales as a sampling plan
-for the next campaign, and build the five-member ensemble by hand so the mean-variance head
-and the negative log-likelihood loss are visible rather than imported. We plot both on a
-held-out sweep, which is the slide everyone remembers, and then compute the coverage, which
-is the number that changes the decision.
-
-The last third is the part to pay attention to. We put split conformal prediction under
-three splits in increasing order of realism and watch a guarantee that is mathematically
-airtight produce 96.7%, then 95.7%, then 82.2%. Then we refit in Strouhal coordinates and
-find the physics paying for itself on velocity and chord and costing us on stall.
-
-Come with a prediction for one thing: which of the GP and the five-net ensemble will have
-the narrower 95% interval, and which will actually contain the data 95% of the time.
+- [`l13-pinn-jax.ipynb`](l13-pinn-jax.ipynb): the spring-mass PINN from scratch in JAX: a plain
+  network and a PINN with the same weights and steps, their extrapolation errors, and the
+  residual that does not reach zero.
+- [`l13-neural-dae.ipynb`](l13-neural-dae.ipynb): the fed-batch bioreactor as a neural ODE in
+  Diffrax, trained sequentially, then as a neural DAE in SiNDAE, following the SiNDAE fed-batch
+  example; a new batch predicted by both, and the hours with negative substrate.
 
 ## Summary
 
-A surrogate replaces an expensive evaluation with a cheap one, and the number that decides
-whether to build one is not the speedup but the break-even, which sits at roughly the size
-of your training set. Where you put those training points matters more than almost anything
-you do afterwards: a full factorial grid was ten times worse than plain random sampling at
-every budget measured here, because a budget of $N$ runs in $d$ dimensions affords only
-$N^{1/d}$ levels per variable, and Latin hypercube or Sobol designs fix that for free.
-Gaussian processes remain the default surrogate for small, smooth, expensive problems, not
-because they are the most accurate but because the uncertainty falls out of the same algebra
-as the prediction, and that uncertainty grows away from the data by construction. Physics
-helps in three increasingly expensive forms: a change of coordinates, which halved the chord
-extrapolation error here and raised the stall error; a hard constraint, which costs nothing
-and cannot be traded away; and a soft PDE residual penalty, which was worth about a factor
-of five in measurements and became worse than useless when the source term was
-mis-specified. And every uncertainty in this session is a conditional claim: on a random row
-split almost every method looks calibrated, on a held-out configuration split a five-member
-deep ensemble covers 80% of a nominal 95% interval while reporting the narrowest error bar
-of any model in the comparison, and under a held-out velocity two of the five methods
-responded to a 50% rise in error by making their intervals *narrower*. The one property that
-survived every split was the GP posterior variance that grows where data is sparse, which is
-why it is the uncertainty estimate to trust when a query runs past the training envelope.
+- **Scientific machine learning** keeps the mechanistic model and learns only the unknown term.
+- A **PINN** puts the equation's residual in the loss, evaluated at collocation points. It
+  extrapolates far better than a plain network (0.001 m against 0.54 m here), but the physics
+  is favored, not enforced: 5.3 N of residual is left.
+- A **recurrent network is the forward Euler discretization of a neural ODE**. As the time step
+  goes to zero, the steps converge to the ODE's solution. A neural ODE learns the **vector
+  field**, and a differentiable solver gives its gradients.
+- A neural ODE of the bioreactor, trained sequentially, fits three batches and predicts
+  **−0.41 g/L** of substrate on a new one. A purely data-driven model does worse: **−0.85 g/L**.
+- Some physics must be **enforced**: balances, safety limits, bounds. **Path constraints** and
+  **DAEs** hold at every instant.
+- The **sequential** approach simulates at every iterate. The **simultaneous** approach
+  discretizes and solves one NLP, satisfying the model only at convergence, but handling
+  constraints and oscillating dynamics.
+- A **neural DAE** trained and solved simultaneously (SiNDAE) keeps the substrate at or above
+  zero on the new batch.
+- **Projection layers** build constraints into the network itself, one prediction at a time:
+  the balance held to $10^{-15}$.
 
 ## Resources
 
-- [UCI Machine Learning Repository: Airfoil Self-Noise](https://archive.ics.uci.edu/dataset/291/airfoil+self+noise).
-  The dataset page. Note the exact wording of the target, "scaled sound pressure level," and
-  that nothing on the page mentions that the displacement thickness is determined by the
-  other three inputs.
-- T. F. Brooks, D. S. Pope and M. A. Marcolini, ["Airfoil self-noise and
-  prediction"](https://ntrs.nasa.gov/citations/19890016302), NASA RP-1218, 1989. The primary
-  source, free from NTRS, and the origin of both the data and the Strouhal scaling used in
-  these notes. Chapter 4 is where the separate suction-side, pressure-side and separation
-  terms are, which is why one dimensionless group does not collapse everything.
-- C. E. Rasmussen and C. K. I. Williams, [*Gaussian Processes for Machine
-  Learning*](https://gaussianprocess.org/gpml/chapters/RW.pdf), MIT Press, 2006. Free, and
-  the standard reference. Chapters 1 and 2 for the regression mechanics, chapter 5 for
-  choosing and fitting kernels. If you read one thing from this list, read chapter 2.
-- A. Forrester, A. Sóbester and A. Keane, [*Engineering Design via Surrogate
-  Modelling*](https://www.wiley.com/en-us/Engineering+Design+via+Surrogate+Modelling%3A+A+Practical+Guide-p-9780470060681),
-  Wiley, 2008. The engineering-design view rather than the machine-learning one, and the
-  chapters on sampling plans and on kriging are the ones this session leans on. This one is
-  a book to borrow rather than a link to open; the library has it.
-- [scikit-learn: Gaussian Processes](https://scikit-learn.org/stable/modules/gaussian_process.html).
-  The API you will actually use, including the kernel algebra and the note that fitting
-  scales cubically in the number of samples.
-- [`scipy.stats.qmc`](https://docs.scipy.org/doc/scipy/reference/stats.qmc.html). Latin
-  hypercube, Sobol, Halton and Poisson-disk sampling, plus `discrepancy` for scoring a
-  design. Read the section on why Sobol wants a power-of-two sample size before you pick a
-  budget.
-- M. Raissi, P. Perdikaris and G. E. Karniadakis, ["Physics-informed neural
-  networks"](https://doi.org/10.1016/j.jcp.2018.10.045), *J. Comp. Physics* 378, 686-707,
-  2019. The paper that named the field. The [project
-  page](https://maziarraissi.github.io/PINNs/) has worked examples and code, and the arXiv
-  preprints ([Part I](https://arxiv.org/abs/1711.10561),
-  [Part II](https://arxiv.org/abs/1711.10566)) are open if the journal version is not.
-- S. Wang, Y. Teng and P. Perdikaris, ["Understanding and mitigating gradient pathologies in
-  physics-informed neural networks"](https://arxiv.org/abs/2001.04536), 2020. Read this
-  before your first PINN rather than after it: it explains why the loss weights fight each
-  other and what to do about it.
-- B. Lakshminarayanan, A. Pritzel and C. Blundell, ["Simple and Scalable Predictive
-  Uncertainty Estimation using Deep Ensembles"](https://arxiv.org/abs/1612.01474), NeurIPS
-  2017. Five networks and a negative log-likelihood loss. Short, practical, and the method
-  most miniprojects will use.
-- Y. Gal and Z. Ghahramani, ["Dropout as a Bayesian
-  Approximation"](https://arxiv.org/abs/1506.02142), ICML 2016. The cheapest uncertainty
-  there is, and the argument for why leaving dropout on is not a hack.
-- Y. Ovadia et al., ["Can You Trust Your Model's Uncertainty? Evaluating Predictive
-  Uncertainty Under Dataset Shift"](https://arxiv.org/abs/1906.02530), NeurIPS 2019. The
-  large-scale benchmark behind this session's central warning. Every method degrades under
-  shift; ensembles degrade least.
-- A. N. Angelopoulos and S. Bates, ["A Gentle Introduction to Conformal Prediction and
-  Distribution-Free Uncertainty Quantification"](https://arxiv.org/abs/2107.07511). Genuinely
-  gentle, and the algorithm is five lines. Sections 4.5 and 4.6, on covariate shift and
-  distribution drift, are the ones that matter for a design loop.
-- T. Gneiting, F. Balabdaoui and A. E. Raftery, ["Probabilistic forecasts, calibration and
-  sharpness"](https://sites.stat.washington.edu/raftery/Research/PDF/Gneiting2007jrssb.pdf),
-  *J. R. Statist. Soc. B* 69(2), 243-268, 2007. Where "maximise sharpness subject to
-  calibration" comes from, with the diagnostics to do it.
-- L. Lu, P. Jin and G. E. Karniadakis, ["DeepONet"](https://arxiv.org/abs/1910.03193), 2019,
-  and Z. Li et al., ["Fourier Neural Operator for Parametric Partial Differential
-  Equations"](https://arxiv.org/abs/2010.08895), 2020. Operator learning, for when the
-  surrogate's output is a field rather than a number.
-- [Virtual Library of Simulation Experiments](https://www.sfu.ca/~ssurjano/borehole.html).
-  Analytic test functions with known behaviour, including the borehole function, for
-  debugging a surrogate pipeline before you spend real simulation time on it.
+- [Raissi, Perdikaris and Karniadakis (2019), physics-informed neural networks](https://arxiv.org/abs/1711.10561).
+  The paper that introduced PINNs.
+- [Ben Moseley, "So, what is a physics-informed neural network?"](https://benmoseley.blog/my-research/so-what-is-a-physics-informed-neural-network/).
+  The spring-mass PINN, explained with animations and PyTorch code.
+- [Krishnapriyan et al. (2021), failure modes of PINNs](https://arxiv.org/abs/2109.01050).
+  Why PINNs fail on problems that look easy.
+- [Chen et al. (2018), Neural Ordinary Differential Equations](https://arxiv.org/abs/1806.07366).
+  The Euler-step view of residual and recurrent networks.
+- [Kidger (2021), On Neural Differential Equations](https://arxiv.org/abs/2202.02435). A full,
+  readable textbook on neural ODEs, CDEs and SDEs, with practical advice.
+- [Diffrax documentation](https://docs.kidger.site/diffrax/). Differentiable ODE solvers in JAX.
+- [Rackauckas et al. (2020), Universal Differential Equations](https://arxiv.org/abs/2001.04385).
+  Mechanistic models with a network for the unknown term.
+- [Biegler (2017), advanced optimization strategies for dynamic process operations](https://skoge.folk.ntnu.no/prost/proceedings/focapo-cpc-2017/FOCAPO-CPC%202017%20Invited%20Papers/78_CPC_Invited.pdf).
+  Sequential and simultaneous dynamic optimization, with path constraints on real reactors.
+- [Lueg et al. (2026), training neural DAEs with the simultaneous approach](https://doi.org/10.1007/s10589-026-00823-y).
+  The method behind SiNDAE, with the tank manifold, predator-prey and bioreactor studies. Open
+  access.
+- [SiNDAE documentation](https://alves-research-group.github.io/SiNDAE/). Quickstart and worked
+  examples, including the fed-batch bioreactor.
+- [Reusch and Tejada (2015), Fc glycans as critical quality attributes](https://pmc.ncbi.nlm.nih.gov/articles/PMC4634315/).
+  Why glycosylation matters for the safety and efficacy of antibody drugs. Open access.
+- [Chen, Constante Flores and Li (2024), KKT-hPINN](https://arxiv.org/abs/2402.07251).
+  Projection layers for exact mass balances in chemical process models.
+- [Iftakher et al. (2025), KKT-Hardnet](https://arxiv.org/abs/2507.08124). Projection onto
+  nonlinear equality and inequality constraints.
+- [Deep Implicit Layers tutorial](https://implicit-layers-tutorial.org/). Neural ODEs, with code.
+- [Bradley et al. (2022), integrating first-principles and data-driven models](https://par.nsf.gov/servlets/purl/10401237).
+  A review of hybrid modeling for process engineering (author's copy).
 
 ## Assignment
 
-Assignment 6 is due today. The **miniproject (Assignment 7)** launches this session, Wednesday 7 October 2026,
-and is due at the end of Week 8. It asks you to take an engineering dataset from raw data
-through to a **surrogate or predictive model with quantified uncertainty**, tracked in
-MLflow, with a short report and a recorded walkthrough. It replaces a weekly assignment and
-is worth 15% of the course grade.
-
-Four warnings drawn from this session's measurements.
-
-**Report coverage next to accuracy, from the first run.** An MLflow experiment where every
-run logs RMSE and none logs PICP will let you select a model that is accurate and
-overconfident, which is the worst combination for a design loop. Log `picp_95` and the mean
-interval width alongside the error.
-
-**Hold out a region, not a random sample.** Choose a slice of the design space you would
-plausibly be asked to extrapolate into, hold it out entirely, and report its error and
-coverage separately from the interpolation numbers. If both are the same, you have not
-tested extrapolation.
-
-**Prefer a hard constraint to a full PINN.** Positivity through a log transform,
-monotonicity through architecture, a conservation law through the output parameterisation:
-these are an afternoon each and they cannot be traded away. A PDE-residual PINN is a
-two-week project on its own, and the mis-specified-source result above is what it looks like
-when it goes wrong quietly.
-
-**Count and report your simulation or experiment budget.** The point of a surrogate is to
-avoid expensive evaluations, so a report that does not say how many it consumed has not made
-its own case.
-
-The full spec and rubric are in [the miniproject](../../course/miniproject.md); this
-paragraph is a pointer, not the rubric.
+No assignment is released today.
 
 ## Practice module
 
-<a href="../../game/#/l13"><strong>Practice module for this session</strong></a>, about ten
-minutes of questions drawn from this session's notes, slides and demo. It runs entirely in
-your browser, the questions are selected from your Andrew ID, and it ends by producing a PDF
-you upload for participation credit.
+<a href="../../game/#/l13"><strong>Practice module for this session</strong></a>, for
+participation credit.

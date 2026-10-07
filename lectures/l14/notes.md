@@ -1,197 +1,518 @@
-# Lecture 14: Bayesian optimization and active learning for design
+# Lecture 14: Uncertainty quantification, Bayesian optimization and active learning
 
-:::{admonition} Overview
+:::{admonition} At a glance
 :class: tip
 
 - **Session** Lecture 14, Week 7
 - **Arc** Machine learning and deep learning
 - **Slides** <a href="../../slides/l14/">Deck for this session</a>
 - **Practice** <a href="../../game/#/l14">Practice module for this session</a>
-- **Demo** [`l14-bayesopt-design.ipynb`](l14-bayesopt-design.ipynb), a Bayesian optimizer built by hand, then the same loop in BoTorch, both raced against random search
-- **Assignment** the miniproject (Assignment 7) is under way, launched Lecture 13 and due in Week 8
+- **Demo** [`l14-uq-bayesopt.ipynb`](l14-uq-bayesopt.ipynb), prediction intervals and their
+  calibration on the concrete strength dataset, then a Bayesian optimization of a mix design
+- **Tools** scikit-learn for the Gaussian process and the networks, Optuna for Bayesian
+  optimization
 :::
 
 ## Why this matters
 
-The previous session built a surrogate that does more than predict: it reports where it is unsure. A Gaussian process fitted to airfoil measurements returns a mean and a standard deviation at every operating point, and the standard deviation grows in the regions the training data never covered. That extra output looked like a nicety at the time. This session is about spending it.
+A concrete cylinder is tested for strength after **28 days** of curing.
 
-Here is the situation it is for. You have an objective you can evaluate, but each evaluation is expensive: a finite-element sweep that ties up a cluster for hours, a wind-tunnel booking, a twenty-eight-day concrete cure, a materials synthesis followed by a day of characterization. You want the best design, which in principle means searching thousands of candidates, and your budget is perhaps a few dozen evaluations. The question is not "what is my model" any more. It is "given everything I have measured so far, which single experiment should I run next." Answer that well and a few dozen evaluations are enough. Answer it by habit, with a grid or a space-filling plan fixed before you saw any result, and you will spend the whole budget confirming things the first ten runs already implied.
+- Every new mix you want to try costs a month of waiting, plus the materials and the lab.
+- [Lecture 9](../l09/notes.md) fitted a Gaussian process (GP) to the concrete strength dataset. It
+  predicts a strength **and** an uncertainty for any mix.
+- So the model can choose which mixes to cast next. Whether that works depends on whether its
+  uncertainty is right.
 
-Bayesian optimization is the answer this session develops. It keeps a probabilistic surrogate of the objective, and at each step it uses an **acquisition function** to turn the surrogate's mean and uncertainty into a single score for "how worth it is to evaluate here." It evaluates at the maximum of that score, folds the result back into the surrogate, and repeats. The surrogate proposes and the acquisition decides. Active learning, in the second half of the session, is the same machinery pointed at a different goal: instead of finding one optimum, it refines the surrogate everywhere, by querying wherever the model is most ignorant. That is where the epistemic uncertainty from Lecture 13 does its work, because epistemic uncertainty is the reducible kind, the part a well-chosen experiment can actually remove.
+Two numbers from this session:
 
-Two numbers frame the payoff. In this session's demonstration, a Gaussian-process emulator of the airfoil data stands in for the expensive experiment, and two strategies get the same budget of 22 evaluations to find a quiet operating point. Bayesian optimization lands within 1 dB of the best the emulator allows in a median of 16 evaluations and does so in 75% of 40 random seeds; random search, over the identical budget, manages it in 3%. The second number is from the literature and is more humbling. When [Shields and colleagues (2021)](https://b-shields.github.io/files/2021-02-03-Nature.pdf) had fifty expert chemists and engineers optimize a real palladium-catalyzed reaction by hand and pitted them against a Gaussian process with expected improvement, the optimizer beat the human experts on both average efficiency and consistency. Domain knowledge, it turns out, is not a substitute for asking the surrogate where to look.
+- On the strongest mixes, held out from training, one popular method's "95%" intervals contain
+  the true strength only **70%** of the time.
+- An optimizer searching the GP's predictions finds a mix it scores at **91.6 ± 18.0 MPa**. The
+  strongest specimen in the whole dataset is 82.6 MPa.
+
+This session: measure uncertainty, check it, then spend it on choosing experiments.
 
 ## Learning objectives
 
 By the end of this session you should be able to:
 
+- Produce and calibrate predictive uncertainty, separating aleatoric from epistemic.
 - Explain the Bayesian-optimization loop and the role of the surrogate + acquisition.
 - Choose and compare acquisition functions for exploration vs. exploitation.
 - Set up an active-learning loop that chooses the next expensive query.
 
-## The expensive black-box problem
+## Two kinds of uncertainty
 
-```{index} black-box optimization, evaluation budget
-```
-```{index} pair: failure mode; grid search in high dimensions
+```{index} aleatoric uncertainty, epistemic uncertainty
 ```
 
-Start by naming the setting precisely, because it is what rules out the methods you already know. The objective is a **black box**: you can evaluate it at a point and read off a number, but you have no formula and no gradient, the number may be noisy, and each evaluation costs real time or money. A gradient-based optimizer is out because there is no gradient to follow, and even a numerical gradient would cost several evaluations per step for a direction that a stiff, multimodal design landscape will not reward. What is left is search, and the two reflexive choices both waste the budget.
+:::{admonition} Definition: aleatoric and epistemic uncertainty
+:class: tip
+**Aleatoric** uncertainty is the scatter in the data itself, which no amount of data removes.
+**Epistemic** uncertainty is what the model does not know yet, which more data in the right place
+reduces.
+:::
 
-A grid search fails first and fastest. Ten levels per variable is a coarse grid, and in the airfoil problem's four design variables that is already ten thousand evaluations, more than a hundred times the budget. The **curse of dimensionality** is not a slogan here, it is the arithmetic: the grid grows as levels to the power of dimensions, so every variable you add multiplies the cost. A space-filling design, a Latin hypercube or a Sobol sequence of the kind Lecture 13 used to train the surrogate in the first place, spreads the points more cleverly, but it shares the fatal property of the grid. It is fixed in advance. It commits the entire budget before the first result comes back, so it cannot spend evaluation forty in light of what evaluations one through thirty-nine revealed.
-
-That leaves random search, and it deserves more respect than its name suggests. [Bergstra and Bengio (2012)](https://www.jmlr.org/papers/v13/bergstra12a.html) showed that random search over a hyperparameter space finds models as good or better than grid search in a small fraction of the computation, and their explanation generalizes well beyond hyperparameters. Most problems have low effective dimensionality: only a few of the variables really matter, but which few differs from problem to problem. A grid wastes its resolution testing many distinct values along axes that turn out not to matter, while random search, by never repeating a coordinate, effectively samples more distinct values of the variables that do. In their thirty-two-dimensional study, random search matched a careful manual-plus-grid effort on four of seven datasets and beat it on one. The lesson to carry into this session is defensive: random search is cheap, parallel, and surprisingly strong, so it is the baseline every claim about Bayesian optimization has to beat. If your clever optimizer cannot outrun random draws, it is not earning the surrogate it carries.
-
-## The Bayesian optimization loop
-
-```{index} Bayesian optimization, acquisition function, surrogate model
-```
-```{index} pair: case study; Bayesian reaction optimization
-```
-
-The loop itself is four steps, and it is worth stating plainly before adding any detail. Fit a probabilistic surrogate to the data collected so far. Maximize an acquisition function over the design space to choose the next point. Evaluate the true, expensive objective there. Add the new observation and repeat. The surrogate is almost always a Gaussian process, for the reason Lecture 13 gave: it returns a full predictive distribution, a mean $\mu(x)$ and a standard deviation $\sigma(x)$ at every candidate point, and those two quantities are exactly what an acquisition function needs to reason about.
-
-```{figure} figures/bo-loop.png
-:alt: Three rows, each showing on the left a Gaussian-process fit to the Forrester test function with its 95% band and evaluated points, and on the right the expected-improvement curve with a dashed line at its maximum. Across the three iterations the chosen points move from 0.62 to 0.73 to 0.77, converging on the true global minimum near 0.757.
+```{figure} figures/aleatoric-epistemic.png
+:alt: A Gaussian process fitted to noisy points on a smooth curve, with data from 0 to 0.35 and from 0.7 to 1 and a gap between. A wide light-blue band shows the total uncertainty and a narrower orange band the epistemic part only. Near the data the orange band is thin and the blue band stays wide, labeled near data the noise (aleatoric) remains. In the gap the orange band swells, labeled no data, epistemic uncertainty grows.
 :width: 100%
 
-The loop on the Forrester one-dimensional test function, starting from a four-point space-filling design that misses the global minimum near $x = 0.757$. Each row fits a GP (left), maximizes expected improvement (right), and evaluates at the dashed line. In three iterations the proposals walk from 0.62 to 0.73 to 0.77 and the optimizer settles into the global basin.
+Total uncertainty (blue) is aleatoric plus epistemic (orange). Only the epistemic part shrinks
+with more data.
 ```
 
-The figure shows why the probabilistic surrogate is doing the work. After the four-point start the GP has no data near the true minimum, but it does have wide error bars there, and expected improvement reads those wide bars as opportunity. It proposes a point in the promising gap, the evaluation confirms the objective is low, the band tightens, and the next proposal refines. Nothing here required a gradient or a formula for the objective. The optimizer only ever asked the surrogate two questions, where do you predict low values and where are you unsure, and combined the answers.
+On the concrete strength dataset:
 
-### When a surrogate beat fifty chemists
+- **Aleatoric**: 19 settings (the same mix at the same age) were tested more than once, 53 rows
+  in all. Their strengths scatter by **5.0 MPa** (pooled standard deviation). No model predicts
+  better than that.
+- The GP of Lecture 9 estimates the same thing on its own: its noise term, fitted to the
+  training mixes, is **3.9 MPa**.
+- **Epistemic**: the rest of the GP's predictive standard deviation. On test mixes like the
+  training mixes it averages **3.2 MPa**. On the strongest mixes, held out (below), it
+  averages **10.8 MPa**.
+- Why the split matters: epistemic uncertainty tells you **where new data would help**.
+  Bayesian optimization and active learning both use it.
 
-The reaction-optimization study mentioned above is the cleanest demonstration that this loop earns its keep on a real problem. [Shields and colleagues (2021)](https://b-shields.github.io/files/2021-02-03-Nature.pdf), publishing in *Nature*, framed a palladium-catalyzed direct-arylation reaction as a black-box optimization: the inputs were the categorical and continuous choices a chemist makes (ligand, base, solvent, temperature, concentration) and the output was yield, with each evaluation being an actual reaction run in the lab. They built a Gaussian-process optimizer with expected improvement, packaged as a tool called EDBO, and ran a controlled contest. Fifty expert chemists and engineers from academia and industry played the same optimization as a game, choosing their next experiments by intuition and experience, and their trajectories were compared against the optimizer's. Bayesian optimization outperformed the human experts on both average efficiency and consistency.
+## Three ways to get a prediction interval
+
+```{index} deep ensemble, conformal prediction, exchangeability
+```
+
+A **prediction interval** is a range that should contain the true value with a stated
+probability, for example 95%.
+
+### The Gaussian process
+
+- Lecture 9's GP returns a mean $\mu(x)$ and a standard deviation $\sigma(x)$ at every input.
+- The 95% interval is $\mu(x) \pm 1.96\,\sigma(x)$, assuming the error is Gaussian.
+- $\sigma$ includes both parts: the noise term (aleatoric) and the posterior spread
+  (epistemic).
+
+### A deep ensemble
+
+:::{admonition} Definition: deep ensemble
+:class: tip
+A **deep ensemble** trains several networks that differ only in their random starting weights,
+and uses the spread of their predictions as the uncertainty.
+:::
+
+- Here: five copies of Lecture 9's network (one hidden layer of 16 tanh units), seeds 0 to 4.
+- The mean of the five is the prediction; their standard deviation is the spread.
+- Where the data pin the function down, the networks agree. Where they do not, the networks
+  disagree. So the spread measures **epistemic** uncertainty only.
+- [Lakshminarayanan, Pritzel and Blundell (2017)](https://arxiv.org/abs/1612.01474) introduced
+  the method; they also train each network to predict its own noise, which adds the aleatoric
+  part. The spread alone does not.
+
+### Split conformal prediction
+
+:::{admonition} Definition: split conformal prediction
+:class: tip
+**Split conformal prediction** sets the interval width from the errors the model makes on a
+held-out calibration set, with no assumption about their distribution.
+:::
+
+1. Split the training data into a **fitting** set and a **calibration** set (here by mix: 625
+   and 210 rows).
+2. Fit any model on the fitting set. Here, the mean of the five networks.
+3. On the calibration set, compute the absolute errors $s_i = |y_i - \hat y(x_i)|$, for
+   $i = 1, \dots, n$.
+4. Take $q$, the $\lceil (n+1)(1-\alpha) \rceil / n$ quantile of the $s_i$.
+5. The interval for a new input is $\hat y(x) \pm q$.
+
+- **The guarantee**: if the calibration and test points are **exchangeable** (their order does not
+  matter: drawn the same way from the same population), the interval contains the truth with
+  probability at least $1 - \alpha$.
+- It works around any model, and it needs no Gaussian assumption.
+- The interval has the same width everywhere: it does not grow where the model is unsure.
+- [Angelopoulos and Bates](https://arxiv.org/abs/2107.07511) give a gentle introduction.
+
+## Is the uncertainty right? Calibration
+
+```{index} calibration, reliability diagram, prediction interval coverage probability
+```
+```{index} see: PICP; prediction interval coverage probability
+```
+```{index} pair: failure mode; conformal prediction under covariate shift
+```
+
+:::{admonition} Definition: calibration
+:class: tip
+An uncertainty is **calibrated** when its stated probabilities match what happens: 95% intervals
+contain the truth 95% of the time.
+:::
+
+The check is the **prediction interval coverage probability** (PICP), the fraction of test
+points whose interval contains the true value:
+
+$$
+\text{PICP} = \frac{1}{N}\sum_{i=1}^{N} \mathbf{1}\big[\, y_i \in [\,L(x_i),\, U(x_i)\,] \big]
+$$
+
+- $L$ and $U$ are the lower and upper ends of the interval; $\mathbf{1}[\cdot]$ is 1 when the
+  condition holds, 0 otherwise.
+- A **reliability diagram** plots the PICP against the nominal level (10%, 20%, ..., 95%). On
+  the diagonal: calibrated. Below it: **overconfident** (intervals too narrow). Above:
+  underconfident.
+- Coverage alone is not enough. An interval from 0 to 100 MPa always covers. Report the
+  **width** too: the narrowest intervals that still cover.
+
+### Two test sets
+
+- **Grouped split**: Lecture 9's split, 20% of the mixes held out at random (195 rows).
+- **Extrapolation split**: the 20% of mixes with the lowest water/cement ratio held out (265
+  rows). These are the strongest mixes: 49.5 MPa on average, against 31.1 MPa for the mixes
+  kept. A design loop pushes a surrogate exactly here.
+
+```{figure} figures/calibration.png
+:alt: Two reliability diagrams of observed coverage against nominal coverage. Left, grouped split: the Gaussian process and split conformal lines run along the diagonal, while the ensemble spread line falls well below it, reaching 0.76 at 0.95. Right, extrapolation split: all three lines fall below the diagonal; the Gaussian process reaches 0.89 at 0.95, the ensemble 0.86, and split conformal only 0.70.
+:width: 100%
+
+Observed against nominal coverage. Below the dashed line: overconfident.
+```
+
+| 95% intervals | Grouped: coverage | Grouped: width | Extrapolation: coverage | Extrapolation: width |
+|---|---|---|---|---|
+| Gaussian process | 95% | 20.4 MPa | 89% | 43.8 MPa |
+| Ensemble spread | **76%** | 12.1 MPa | 86% | 30.9 MPa |
+| Split conformal | 96% | 26.9 MPa | **70%** | 18.1 MPa |
+
+- **Grouped split**: the GP and conformal are calibrated. The ensemble's spread is
+  overconfident: it measures epistemic uncertainty only, and misses the 5 MPa of scatter.
+- **Extrapolation split**: every method is overconfident.
+  - The GP comes closest (89%), because its $\sigma$ grows away from the data: its intervals
+    double in width.
+  - Conformal falls to **70%**. Its width was set on calibration mixes that look like the
+    training mixes. The strongest mixes are not exchangeable with them, so the guarantee no
+    longer holds, and its constant width does not grow.
+
+Set the nominal level and watch which test mixes fall outside their interval:
+
+<div class="cw" data-widget="coverage" data-source="l14"></div>
+
+```{figure} figures/intervals.png
+:alt: Two panels of predicted against measured strength with 95% Gaussian-process intervals. Left, grouped split, 95% covered: points cluster on the diagonal with a few red misses. Right, extrapolation split, 89% covered: the points scatter widely, the intervals are long, and the red misses sit mostly at high measured strength, where the model predicts too low.
+:width: 100%
+
+The GP's 95% intervals on each test set. Red: the interval misses the measured strength.
+```
 
 :::{admonition} What a practitioner should take from this
 :class: tip
-
-The result is not that chemists are bad at chemistry. It is that unaided human search is inconsistent, and inconsistency is expensive when every trial is a real experiment. The optimizer's advantage is that it never forgets a result, never over-weights the last surprise, and balances exploration against exploitation by the same rule every time. When you frame your own design problem, the question to ask is whether a human is currently choosing the next experiment by feel. If so, a surrogate with an acquisition function is very often a better and more auditable chooser, and the study is your evidence for proposing it.
+- Check coverage on a test set that looks like where the model will be **used**, not only like
+  where it was trained.
+- An ensemble's spread is epistemic only. Add an estimate of the noise before calling it an
+  interval.
+- Conformal's guarantee is real, and it needs exchangeability. A design loop breaks that on
+  purpose.
 :::
 
-## Acquisition functions and the exploration–exploitation trade-off
+## Bayesian optimization
+
+```{index} Bayesian optimization, acquisition function, surrogate model, black-box optimization
+```
+
+### The problem
+
+- Find the input $x$ (a mix design) that maximizes an **expensive** function $f(x)$ (the 28-day
+  strength).
+- No formula, no gradient: you can only evaluate $f$, a few dozen times at most. That is
+  **black-box optimization**.
+- A grid is hopeless: 10 levels of 4 ingredients is 10,000 mixes, 770 years of 28-day tests
+  run one after another.
+
+:::{admonition} Definition: Bayesian optimization (BO)
+:class: tip
+**Bayesian optimization** fits a probabilistic surrogate to the evaluations so far and uses an
+**acquisition function** of its mean and uncertainty to choose the next point to evaluate.
+:::
+
+The loop:
+
+<div class="flow" style="display:flex;gap:.4em;flex-wrap:wrap;align-items:center;justify-content:center;margin:.8em 0">
+<span style="border:2px solid #5c5c5c;border-radius:8px;padding:.3em .7em">1. Fit a GP to the data so far</span> →
+<span style="border:2px solid #5c5c5c;border-radius:8px;padding:.3em .7em">2. Maximize the acquisition</span> →
+<span style="border:2px solid #5c5c5c;border-radius:8px;padding:.3em .7em">3. Evaluate f there</span> →
+<span style="border:2px solid #5c5c5c;border-radius:8px;padding:.3em .7em">4. Add the result, repeat</span>
+</div>
+
+### Acquisition functions
 
 ```{index} expected improvement, upper confidence bound, probability of improvement, Thompson sampling
 ```
 ```{index} exploration-exploitation trade-off
 ```
 
-Everything interesting about Bayesian optimization lives in the acquisition function, because that is where a single decision, where to evaluate next, gets made from two competing instincts. The first instinct is to **exploit**: evaluate where the surrogate's mean is best, near the incumbent, to squeeze out a little more. The second is to **explore**: evaluate where the surrogate's uncertainty is high, to rule regions in or out. Pure exploitation gets stuck in whatever basin it started near, because it never checks the unexplored region that might hold something better. Pure exploration wastes the budget mapping the whole space when you only need the best corner of it. An acquisition function is a specific rule for trading the two off, and the standard rules differ mainly in how they strike that trade.
+Each acquisition trades **exploitation** (sample where the mean is high) against **exploration**
+(sample where the uncertainty is high). With $f^*$ the best value found so far:
+
+**Expected improvement (EI)**: how much, on average, the new point beats $f^*$:
+
+$$
+\text{EI}(x) =
+\underbrace{\big(\mu(x) - f^*\big)\,\Phi(z)}_{\text{exploit: mean above the best}}
++ \underbrace{\sigma(x)\,\phi(z)}_{\text{explore: room to be better}},
+\qquad z = \frac{\mu(x) - f^*}{\sigma(x)}
+$$
+
+- $\Phi$ is the standard normal cumulative distribution; $\phi$ its density.
+- Large when the mean is above $f^*$, or when $\sigma$ is large, or both.
+
+**Probability of improvement (PI)**: $\Phi(z)$, the chance of beating $f^*$ at all, by any margin.
+It favors small sure gains, so it tends to stay near the best point.
+
+**Upper confidence bound (UCB)**: $\mu(x) + \kappa\,\sigma(x)$. The weight $\kappa$ sets the
+trade-off directly: large $\kappa$ explores.
+
+**Thompson sampling**: draw one random function from the GP posterior, and evaluate where that
+draw is highest. The randomness of the draw does the exploring.
+
+### The loop on a test function
+
+The test function is $g(x) = -(6x - 2)^2 \sin(12x - 4)$ on $[0, 1]$, the
+[Forrester et al. (2008)](https://www.wiley.com/en-us/Engineering+Design+via+Surrogate+Modelling%3A+A+Practical+Guide-p-9780470060681)
+benchmark turned into a maximization. Its global maximum is 6.02 at $x = 0.758$, with a
+smaller peak near $x = 0.15$. Four starting points (0, 0.33, 0.66 and 1) all miss the big peak.
+
+<div class="cw" data-widget="bo-loop" data-source="l14"></div>
 
 ```{figure} figures/acquisitions.png
-:alt: Top, one Gaussian-process fit to five points on the Forrester function, with four dashed vertical lines marking where four acquisition functions would sample next. Bottom, the four scaled acquisition curves. Expected improvement, probability of improvement, and the lower confidence bound with kappa=1 all propose near x=0.74 to 0.78 where the objective is lowest, while the lower confidence bound with kappa=3 proposes at x=0.56 in a higher-uncertainty region.
+:alt: Top, a Gaussian process fitted to five points of a test function with two peaks, with its 95% band, and three dashed vertical lines. Bottom, three scaled acquisition curves. Expected improvement peaks at x = 0.73, near the true global maximum; probability of improvement peaks at 0.67, right next to the best point found; the upper confidence bound with kappa = 3 peaks at 0.17, in a wide-band region far from the data.
 :width: 100%
 
-One surrogate, four acquisition rules, four different next experiments. Three of the rules exploit the known-good basin near $x = 0.78$; raising the confidence-bound weight from $\kappa = 1$ to $\kappa = 3$ pushes the fourth out to $x = 0.56$ to reduce uncertainty instead. The rule you pick is a policy for how much to explore.
+One GP state, three acquisitions, three different next experiments.
 ```
 
-**Expected improvement** (EI) is the default for good reason: it needs no tuning knob and it balances the two instincts automatically. It scores a candidate by how much you expect it to beat the incumbent best. Writing $\tau$ for the best value seen so far and taking the case of minimization, its closed form is
+After 8 picks from the same start:
 
-$$
-\mathrm{EI}(x) = (\tau - \mu(x))\,\Phi(Z) + \sigma(x)\,\phi(Z), \qquad Z = \frac{\tau - \mu(x)}{\sigma(x)},
-$$
+| Acquisition | Picks | Best found (true max 6.02) |
+|---|---|---|
+| EI | 0.63, 0.73, 0.78, 0.18, 0.76, ... | 6.02 (from the 5th pick) |
+| PI | 0.66, 0.67, 0.68, 0.68, 0.69, ... 0.72 | 5.26 |
+| UCB, $\kappa = 3$ | 0.59, 0.18, 0.78, 0.45, 0.73, 0.76, ... | 6.02 |
 
-where $\Phi$ and $\phi$ are the standard-normal CDF and PDF. The first term rewards a low predicted mean and the second rewards high uncertainty, so a point is attractive either because it looks good or because it is unknown, and most attractive when it is both. EI is zero wherever $\sigma(x) = 0$, which is to say at points you have already evaluated, so the optimizer never wastes a run repeating itself.
+- **PI** creeps uphill from its best point in tiny steps: it exploits.
+- **UCB** with $\kappa = 3$ checks the far side first: it explores, then finds the peak.
+- **EI** balances the two, and gets there fastest here.
 
-**Upper confidence bound** (UCB), or its lower-confidence-bound twin for minimization, exposes the trade-off as an explicit dial: it scores a candidate as $\mu(x) \pm \kappa\,\sigma(x)$. A small $\kappa$ leans on the mean and exploits; a large $\kappa$ leans on the uncertainty and explores. The figure makes the dial visible, with $\kappa = 1$ staying in the good basin and $\kappa = 3$ striking out to the uncertain region. The honesty of UCB is that it forces you to own the trade-off by choosing $\kappa$ yourself, where EI hides the choice inside its expectation.
+### On the concrete strength dataset: BO against random search
 
-**Probability of improvement** (PI) scores the probability that a candidate beats the incumbent at all, $\Phi\big((\tau - \mu(x))/\sigma(x)\big)$ for minimization. It is the oldest of these rules and the greediest, because it treats a tiny improvement and a huge one as equally good, so without an added margin it clusters its proposals right next to the incumbent and under-explores. **Thompson sampling** takes a different route entirely: it draws one random function from the surrogate's posterior and evaluates at that draw's optimum. Because each step samples a fresh function, the randomness itself supplies the exploration, and the method needs no explicit acquisition value at all.
-
-:::{admonition} The sign of the improvement is the bug you will actually hit
-:class: warning
-
-Every formula above is written for minimization, with the improvement as $\tau - \mu$. Half the libraries and most of the textbooks are written for maximization, with the improvement as $\mu - \tau$. Mixing the two conventions does not throw an error; it produces an optimizer that confidently walks uphill while you are trying to go down. Before you trust an acquisition, evaluate it by hand at two points, one clearly good and one clearly bad, and check that the good one scores higher. The other quiet trap is $\kappa$: the multiplier in $\mu \pm \kappa\sigma$ is not the same symbol as the $\beta_t$ in the original GP-UCB paper, which sits under a square root, so copying a schedule for $\beta_t$ straight into a $\kappa$ slot will over-explore by a lot.
-:::
-
-## Extensions engineers actually need
-
-```{index} constrained Bayesian optimization, multi-objective optimization, Pareto front, batch Bayesian optimization, multi-fidelity optimization
-```
-```{index} BoTorch
+```{index} pair: failure mode; single-seed Bayesian optimization
 ```
 
-The plain loop optimizes one unconstrained objective one evaluation at a time, and real design problems rarely arrive in that form. Four extensions cover most of the gap, and they are worth knowing by name because the tooling implements them directly.
+The "lab" is a GP fitted to all 1,030 rows, which plays the role of the 28-day test.
 
-**Constrained** optimization is the common case: maximize concrete strength subject to a cost ceiling and a carbon budget, where feasibility is itself something you can only estimate. The standard move is to fit a separate probabilistic model for each constraint and weight the acquisition by the predicted probability that a candidate is feasible, so the optimizer is drawn toward points that are both promising and likely to satisfy the limits. **Multi-objective** problems go further and give up on a single best point altogether. When you want high strength and low cost and low carbon at once, there is no single winner but a **Pareto front** of designs, each of which cannot be improved on one objective without sacrificing another, and the job of the optimizer is to map that front efficiently. The acquisition function that does this, expected hypervolume improvement (qEHVI and its noisy variant qNEHVI), scores a candidate by how much it would grow the volume dominated by the known front.
+- **Design**: cement, slag, water and superplasticizer (kg/m³), each within the 5th to 95th
+  percentile of the 28-day mixes; the other ingredients fixed at their medians.
+- **Goal**: the strongest mix at 28 days.
+- **BO**: 5 random mixes, then 20 chosen by EI (a GP refitted after every test). **Random
+  search**: 25 random mixes. Each gets **30 seeds**, because one run of either is luck.
 
-The last two extensions are about spending the budget in parallel and at different resolutions. **Batch** Bayesian optimization proposes several points at once, because if you have four autoclaves or a cluster you want to run four experiments this round, not one, and the batch acquisitions are built so the four proposals are diverse rather than four copies of the same greedy pick. **Multi-fidelity** optimization mixes cheap, coarse evaluations with expensive, accurate ones, a coarse mesh and a fine mesh, a short simulation and a converged one, and lets the optimizer spend many cheap queries to decide where the few expensive ones are worth it. In practice these are reached for through a library rather than coded from scratch. **BoTorch**, built on PyTorch and GPyTorch, provides Monte Carlo acquisition functions (the ones whose names start with `q`) and the GP models to go with them, and [Ax](https://ax.dev/docs/tutorials/quickstart/) wraps BoTorch in a higher-level campaign manager. One caution on the tooling: Ax reorganized its interface in its 1.0 release around a new top-level `Client`, and the older `AxClient` service API that most tutorials still show is deprecated and slated for removal, so check which version a tutorial targets before following it.
+```{figure} figures/bo-vs-random.png
+:alt: Best strength found so far against the number of mixes tested, from 1 to 25, with the median and the 25th to 75th percentile band over 30 seeds. Bayesian optimization in blue rises steeply after the five random starting mixes, passes 87 MPa by the 10th mix, and reaches the red dashed line at 91.4 MPa labeled the emulator's best. Random search in gray climbs slowly to about 81 MPa.
+:width: 100%
+
+Median and middle 50% over 30 seeds.
+```
+
+| After the same 25 tests | BO (EI) | Random search |
+|---|---|---|
+| Median best strength | **91.3 MPa** | 81.1 MPa |
+| Seeds within 1 MPa of the emulator's best | **29 of 30** (median: 16 tests) | 0 of 30 |
+
+**Now check that answer with the uncertainty.** The emulator's best mix (472 kg/m³ cement, 235
+slag, 162 water, 11 superplasticizer) is predicted at **91.6 ± 18.0 MPa** (95%). The strongest
+specimen in the data is **82.6 MPa**.
+
+- The optimizer went where the emulator is most **optimistic**, at the corner of the design box,
+  far from any mix ever tested. The ±18 MPa says so.
+- This is BO on a fixed surrogate. In a real campaign, the next step is to cast that mix: the
+  measurement updates the GP, and the loop continues.
+
+### Bayesian optimization in Optuna
+
+**Optuna** ([Lecture 10](../l10/notes.md)) ran the hyperparameter search with its default sampler,
+TPE. It also has `GPSampler`, which runs Bayesian optimization with a GP surrogate
+([documentation](https://optuna.readthedocs.io/en/stable/reference/samplers/generated/optuna.samplers.GPSampler.html)).
+
+```python
+import optuna
+
+def objective(trial):
+    mix = {
+        "cement": trial.suggest_float("cement", 141, 475),
+        "slag": trial.suggest_float("slag", 0, 237),
+        "water": trial.suggest_float("water", 152, 216),
+        "superplasticizer": trial.suggest_float("superplasticizer", 0, 16),
+    }
+    return lab(mix)                       # the 28-day strength of this mix
+
+study = optuna.create_study(
+    direction="maximize",
+    sampler=optuna.samplers.GPSampler(seed=0, n_startup_trials=5),
+)
+study.optimize(objective, n_trials=25)
+```
+
+- `suggest_float(name, low, high)` lets the sampler choose a value in the range.
+- `GPSampler(n_startup_trials=5)` samples 5 points at random, then lets the GP choose.
+- `direction="maximize"`: higher strength is better.
+
+### Case study: Bayesian optimization against fifty chemists
+
+```{index} pair: case study; Bayesian reaction optimization
+```
+
+- [Shields and colleagues (2021)](https://b-shields.github.io/files/2021-02-03-Nature.pdf),
+  in *Nature*, framed a palladium-catalyzed reaction as a black box: inputs were ligand, base,
+  solvent, temperature and concentration; the output was yield; each evaluation was a real
+  reaction.
+- They ran a GP with expected improvement (their tool, EDBO) against fifty expert chemists and
+  engineers playing the same optimization as a game.
+- Bayesian optimization outperformed the experts in both average efficiency and consistency.
+- Unaided search is inconsistent, and inconsistency is expensive when each trial is an
+  experiment. The optimizer applies the same rule every time and never forgets a result.
 
 ## Active learning
 
 ```{index} active learning, uncertainty sampling, query-by-committee
 ```
+
+:::{admonition} Definition: active learning
+:class: tip
+**Active learning** chooses which data points to label (measure) next, to make the model as
+accurate as possible with as few labels as possible.
+:::
+
+- Bayesian optimization looks for **one** best point. Active learning wants a model that is good
+  **everywhere** you will use it.
+- **Uncertainty sampling**: label the point where the model is least sure, the largest GP
+  $\sigma$. **Query-by-committee**: label where an ensemble disagrees most.
+
+### On the concrete strength dataset
+
+Start with 20 labeled rows of the training pool, then label 40 more, one at a time: where the GP
+is least sure, or at random. Score each model on the grouped test mixes (median of 8 seeds).
+
+```{figure} figures/active-learning.png
+:alt: Test RMSE against the number of labeled rows, from 20 to 60. Querying at random, in gray, drops quickly from 14 to about 10 MPa by 22 rows and ends near 8.6. Querying where the GP is least sure, in blue, stays near 12 to 15 MPa until about 50 rows, then drops to about 8.7 at 60, labeled least-sure queries go to extreme mixes at the edges.
+:width: 100%
+
+Median test RMSE over 8 seeds.
+```
+
+| Test RMSE | 20 rows | 40 rows | 60 rows |
+|---|---|---|---|
+| Least-sure queries | 13.9 MPa | 12.7 MPa | 8.7 MPa |
+| Random queries | 13.9 MPa | **9.5 MPa** | 8.6 MPa |
+
+**Here, uncertainty sampling loses to random.** Why:
+
+- The GP is least sure at the **edges** of the data: the most extreme mixes, ages and doses.
+- Measured: 45% of the least-sure queries are at an age of 3 days or 180 days and more, against
+  19% of the pool. The test mixes, like the pool, are mostly in the middle.
+- Random queries cover where the test mixes are. The least-sure queries cover where nobody will
+  predict.
+- Active learning helps when the queries go where the model will be **used**: weight the
+  uncertainty by how likely an input is, or restrict the pool to the operating region.
+
+### Case study: an autonomous lab
+
 ```{index} pair: case study; A-Lab
 ```
 
-Active learning is the same loop with the goal moved. Bayesian optimization spends its budget to find one excellent point and is happy to leave most of the design space a blur. Active learning spends its budget to make the surrogate good everywhere, because sometimes the deliverable is the emulator itself, a model that will be queried thousands of times later in a design sweep or a control loop, and its worst region is what will bite. The question changes from "where is the objective best" to "where is my model most ignorant, so that one label there teaches it the most."
+- The A-Lab ([Szymanski and colleagues, 2023](https://pmc.ncbi.nlm.nih.gov/articles/PMC10700133/),
+  *Nature*) plans syntheses of inorganic materials, runs them with robots, characterizes the
+  products, and uses an active-learning loop to choose the next recipe when an attempt fails.
+- The paper first reported 41 of 58 targets made in 17 days of continuous operation.
+- Other researchers questioned how the products were identified and whether they were new. In a
+  2026 [author correction](https://doi.org/10.1038/s41586-025-09992-y), a manual re-analysis
+  confirmed 36 of the 40 reported successes and left 4 inconclusive, one target was removed
+  because it was in the training data, and the materials were described as "new to the
+  prediction platform, not necessarily new to science".
+- An autonomous loop needs the same check as any other model: whether its measurements say
+  what it concluded.
 
-The simplest strategy follows directly from Lecture 13's uncertainty. **Uncertainty sampling** queries the point of highest posterior variance, on the argument that the model has the most to learn where it is least sure. This is exactly the epistemic uncertainty from the previous session put to use: epistemic uncertainty is the reducible kind, the part that more data removes, so aiming queries at it is aiming them where they will actually reduce error rather than at irreducible noise. **Query-by-committee** is the ensemble version, and it connects to Lecture 13's deep ensembles: train several models, and query where they disagree most, because disagreement among competent models marks a region the data has not yet pinned down.
+## Extensions engineers need
 
-```{figure} figures/active-learning.png
-:alt: Two panels of a Gaussian process on the Forrester function. Left, before: five points on the left and one at 0.9 leave a wide gap between 0.44 and 0.9, with a red dashed line at the highest-uncertainty point near 0.69. Right, after querying there: the uncertainty band in that region has collapsed and the GP mean now tracks the true objective's dip.
-:width: 100%
-
-One active-learning step. The widest gap in the data sits between $x = 0.44$ and $x = 0.9$, so the highest posterior variance is there and the query goes to $x = 0.69$. Conditioning on that one point (at fixed hyperparameters) shrinks the total posterior standard deviation by 6.5% and lets the surrogate finally see the dip it had been blind to.
+```{index} constrained Bayesian optimization, multi-objective optimization, Pareto front, batch Bayesian optimization, multi-fidelity optimization
 ```
 
-The distinction from Lecture 13 is worth stating carefully, because the figure above holds the GP hyperparameters fixed on purpose. At fixed hyperparameters, conditioning a GP on a new observation can only reduce its posterior variance, everywhere, which is the clean statement of why active learning works. In practice you refit the hyperparameters as data arrives, and a genuinely surprising observation can widen the bands before it narrows them, once the model realizes the world is rougher than it thought. That is not a failure of the method, it is the method learning, but it is why you evaluate active learning by held-out error after several rounds rather than by whether any single query made the bands smaller. [Settles' survey](https://burrsettles.com/pub/settles.activelearning.pdf) is the standard map of the strategies and the settings they suit.
+- **Constrained BO**: a second GP models a constraint (cost, CO₂, slump), and the acquisition is
+  multiplied by the probability that it holds.
+- **Multi-objective BO**: strength **and** cost. The answer is a **Pareto front**, the set of
+  mixes where no objective improves without another getting worse.
+- **Batch BO**: choose several experiments at once, for a lab that casts eight cylinders a day.
+- **Multi-fidelity BO**: mix cheap evaluations (a 7-day test, a coarse simulation) with
+  expensive ones (a 28-day test, a fine simulation).
+- [BoTorch](https://botorch.org/) and [Ax](https://ax.dev/) implement all four.
 
-### An autonomous lab, and a number worth checking
+## Limitations and trade-offs
 
-The most striking recent demonstration of active learning at scale is the A-Lab, reported by [Szymanski and colleagues (2023)](https://escholarship.org/uc/item/4w49b5cb) in *Nature*. It is an autonomous laboratory that plans syntheses, runs them on robotic equipment, characterizes the products, and uses an active-learning loop grounded in thermodynamics to decide which recipe to try next when the first attempt fails. Over seventeen days of continuous operation the system worked through fifty-eight target compounds and produced forty-one of them, a throughput no human lab matches, and it is a clean illustration of the closed loop this session describes: propose, evaluate, learn, propose again, with no human in the inner loop.
+| | Gaussian process | Deep ensemble | Split conformal |
+|---|---|---|---|
+| Uncertainty it reports | aleatoric + epistemic | epistemic only | total, constant width |
+| Guarantee | if the GP's assumptions hold | none | coverage, if exchangeable |
+| Grows away from data | yes | yes | no |
+| Scales to large data | poorly ($O(n^3)$ to fit) | yes | yes, wraps any model |
 
-:::{admonition} What a practitioner should take from this
-:class: tip
-
-The headline figure that circulated was a 71% success rate, and this is a good place to practice the course's habit of checking a number against its source. The primary paper reports forty-one of fifty-eight targets over seventeen days, and 71% is simply that ratio, so the arithmetic is fine. The claim underneath it is what drew scrutiny. Materials scientists including Palgrave and Schoop published an analysis arguing that many of the "novel" compounds were ordered or substituted variants of already-known phases and that the automated crystal-structure refinements had misread the data, a critique the senior author answered by saying the goal had been to demonstrate autonomy rather than to produce publication-grade structure analysis. Both things are true at once: the autonomous active-learning campaign is real and impressive, and the specific count of genuinely new compounds is contested. When you cite a result like this, cite the throughput you can verify (forty-one of fifty-eight in seventeen days) and be honest that the novelty claim is disputed, rather than repeating the tidier headline.
-:::
-
-## Where this pushes back
-
-```{index} pair: failure mode; single-seed Bayesian optimization
-```
-```{index} pair: metric; simple regret
-```
-
-Bayesian optimization is stochastic, and this is the first thing that will mislead you. The initial design is random, the GP hyperparameter fit has local optima, and the acquisition is itself optimized by a search with random restarts, so two runs from the same code find different answers. A single run that finds the optimum in twelve evaluations is a sample of size one, and the next run might take thirty. The only honest way to report Bayesian optimization is over multiple seeds, as a distribution of the metric against evaluation count, and always against a random-search baseline.
-
-```{figure} figures/bo-vs-random.png
-:alt: Best sound pressure level found versus number of expensive evaluations, for Bayesian optimization in red and random search in grey, each a median over 40 seeds with interquartile bands. Bayesian optimization drops faster and reaches a dotted line marking the emulator's achievable floor; random search lags well above it. 
-:width: 100%
-
-The honest comparison, and the reason it takes 40 seeds to draw. Bayesian optimization (red) and random search (grey) get the same 22-evaluation budget on the airfoil emulator; each curve is the median best-so-far over 40 seeds with its interquartile band. Bayesian optimization reaches within 1 dB of the emulator's floor in a median of 16 evaluations and in 75% of seeds, against 3% for random search. A single seed of either could have fallen anywhere in those bands.
-```
-
-The convergence metric worth naming is **simple regret**, the gap between the best value found so far and the true optimum, plotted against the number of evaluations spent; the figure above is a simple-regret curve in disguise, with the emulator's floor standing in for the true optimum. Reporting it as a median with a band across seeds is the difference between evidence and an anecdote.
-
-Beyond stochasticity, the method has real limits. A Gaussian process costs $O(n^3)$ to fit in the number of observations, which is a non-issue in the few-dozen-to-few-hundred regime Bayesian optimization lives in and a wall beyond it, so BO is a tool for expensive objectives and small budgets, not for cheap objectives you could just evaluate a million times. It struggles in high dimensions, past roughly fifteen or twenty design variables, because the acquisition function is itself a global optimization over that space and the surrogate's uncertainty spreads too thin to guide it. And the greedy failure is always waiting: an acquisition tuned to exploit, or a $\kappa$ set too low, gets stuck in the first decent basin it finds and never checks the rest, which is precisely the trap the loop figure was constructed to escape. The discipline that keeps all of this honest is budget accounting. The entire justification for the surrogate is to avoid the expensive evaluation, so an optimizer that quietly made ten thousand oracle calls to tune itself has not saved anything, and you should count and report the expensive evaluations as the currency they are.
+- **Bayesian optimization** works for a few dozen to a few hundred evaluations and up to about
+  15 to 20 design variables; beyond that the GP and the acquisition search both struggle.
+- It is **stochastic**: report several seeds and a random-search baseline, never one run.
+- On a fixed surrogate it **exploits the surrogate's errors**. Its answer is a proposal to test,
+  not a result.
+- **Active learning** queries where the model is unsure, which may not be where it will be used.
+- **Count the expensive evaluations**. A method that spent 10,000 surrogate calls is fine; one that
+  spent 10,000 experiments is not.
 
 ## In-class demo
 
-The notebook [`l14-bayesopt-design.ipynb`](l14-bayesopt-design.ipynb) builds the loop twice. It opens on the Forrester function with a Gaussian process from scikit-learn and an expected-improvement function written out in a few lines, so the acquisition is visible rather than hidden in a library, and you can watch the proposals walk into the global basin exactly as the first figure shows. It then rebuilds the same loop in BoTorch on the airfoil emulator, the tool you would actually reach for, to show that the production version is the same four steps with the GP and the acquisition swapped for their scalable implementations. The honest-evaluation section races Bayesian optimization against random search over many seeds and plots the regret curves with bands, and the point to watch is how wide those bands are, because it is what makes a single-seed claim untrustworthy. The demo closes on one active-learning step, querying the highest-variance point and watching the uncertainty shrink. The two moments to catch are the sign check on the hand-written acquisition, where a flipped convention sends the optimizer the wrong way, and the seed sweep, where the same code gives visibly different single runs.
+- [`l14-uq-bayesopt.ipynb`](l14-uq-bayesopt.ipynb): Lecture 9's GP, a five-network ensemble and
+  split conformal on the concrete strength dataset; their coverage on the grouped and the
+  extrapolation splits; then Bayesian optimization of the mix with expected improvement written
+  out by hand, against random search, and the same search in Optuna's `GPSampler`.
 
 ## Summary
 
-The arc that began with expensive simulations and surrogates closes here with the design loop that surrogates were built for. Lecture 13 gave you a model that knows where it is uncertain; Lecture 14 spends that uncertainty, using an acquisition function to turn a mean and a standard deviation into a decision about the single most valuable next experiment. Bayesian optimization aims that decision at finding an optimum and active learning aims it at improving the model, but they are one mechanism, and the same GP and the same uncertainty drive both. The engineering payoff is concrete: when each evaluation is a cure, a run, or a synthesis, choosing the next one well turns a hopeless thousand-evaluation search into a feasible few-dozen one. Carry three habits out of the session. Always beat a random-search baseline, always report over multiple seeds, and always count the expensive evaluations, because they are the whole point.
+- **Aleatoric** uncertainty is the scatter in the data (5.0 MPa between replicate specimens);
+  **epistemic** is what the model does not know yet, and shrinks with data.
+- **Gaussian process** intervals carry both; an **ensemble's spread** carries only the epistemic
+  part; **split conformal** intervals come with a coverage guarantee, if the test data are
+  exchangeable with the calibration data.
+- **Calibration** is checked with the PICP and a reliability diagram, on a test set like the one
+  you will use the model on. On the strongest mixes, conformal's 95% covered 70%.
+- **Bayesian optimization** fits a GP and maximizes an **acquisition function**: EI, PI, UCB or
+  Thompson sampling, each trading exploration against exploitation differently.
+- On a mix design, BO got within 1 MPa of the emulator's best in 29 of 30 seeds; random search in
+  none. The emulator's best (91.6 ± 18.0 MPa) is a proposal to test.
+- **Active learning** queries where the model is least sure. On the concrete strength dataset that
+  meant the edges, and random queries did better.
 
 ## Resources
 
-- [Frazier, "A Tutorial on Bayesian Optimization" (arXiv:1807.02811)](https://arxiv.org/abs/1807.02811). The cleanest single-author introduction; read it for the loop, expected improvement, and the extensions to parallel and multi-fidelity settings.
-- [Shahriari et al., "Taking the Human Out of the Loop: A Review of Bayesian Optimization" (2016)](https://www.cs.ox.ac.uk/people/nando.defreitas/publications/BayesOptLoop.pdf). The standard survey; the reference for the taxonomy of acquisition functions and the closed forms used above (author's copy).
-- [Bergstra & Bengio, "Random Search for Hyper-Parameter Optimization," JMLR 13 (2012)](https://www.jmlr.org/papers/v13/bergstra12a.html). Why random search is the baseline to beat, and the low-effective-dimensionality argument for why grid search wastes trials.
-- [Settles, "Active Learning Literature Survey," UW-Madison TR 1648 (2009)](https://burrsettles.com/pub/settles.activelearning.pdf). The map of active-learning strategies and settings; author's hosted copy.
-- [Shields et al., "Bayesian reaction optimization as a tool for chemical synthesis," Nature 590 (2021)](https://b-shields.github.io/files/2021-02-03-Nature.pdf). The fifty-chemists contest; the case for BO over unaided expert search on real experiments (author's copy).
-- [Frazier & Wang, "Bayesian Optimization for Materials Design" (arXiv:1506.01349)](https://arxiv.org/abs/1506.01349). The engineering framing, with the knowledge-gradient acquisition for choosing experiments; assign the arXiv version, not the paywalled chapter.
-- [BoTorch documentation](https://botorch.org/docs/introduction) and [Ax quickstart](https://ax.dev/docs/tutorials/quickstart/). The production tooling; note Ax's 1.0 `Client` API, which replaces the older service API most tutorials still show.
+- [Lakshminarayanan, Pritzel and Blundell (2017), deep ensembles](https://arxiv.org/abs/1612.01474).
+  The ensemble method, with the noise term that the spread alone lacks.
+- [Angelopoulos and Bates, A Gentle Introduction to Conformal Prediction](https://arxiv.org/abs/2107.07511).
+  Split conformal from scratch, with code and the exchangeability condition.
+- [Frazier, A Tutorial on Bayesian Optimization](https://arxiv.org/abs/1807.02811). The loop,
+  expected improvement and the extensions, in one readable tutorial.
+- [Shahriari et al. (2016), Taking the Human Out of the Loop](https://www.cs.ox.ac.uk/people/nando.defreitas/publications/BayesOptLoop.pdf).
+  The standard review of Bayesian optimization (author's copy).
+- [Optuna's GPSampler](https://optuna.readthedocs.io/en/stable/reference/samplers/generated/optuna.samplers.GPSampler.html).
+  Bayesian optimization with a GP, in the tool of Lecture 10.
+- [Settles, Active Learning Literature Survey](https://burrsettles.com/pub/settles.activelearning.pdf).
+  Query strategies and the settings they suit (author's copy).
+- [Shields et al. (2021), Bayesian reaction optimization](https://b-shields.github.io/files/2021-02-03-Nature.pdf).
+  The fifty-chemists contest (author's copy).
+- [BoTorch](https://botorch.org/) and [Ax](https://ax.dev/). Production tooling for constrained,
+  multi-objective, batch and multi-fidelity BO.
 
 ## Assignment
 
-The miniproject (Assignment 7) is under way. It launched in Lecture 13 and runs through the dedicated Week 8 sessions, asking you to take an engineering dataset from raw data through a tracked, reproducible workflow to a surrogate model with honest uncertainty quantification, and the Bayesian-optimization and active-learning loops from this session are the natural way to demonstrate that the uncertainty is good for something. The full specification, including the deliverables and the grading breakdown, is in [`course/miniproject.md`](../../course/miniproject.md); this page does not restate it.
+No assignment is released today.
 
 ## Practice module
 
-<a href="../../game/#/l14"><strong>Practice module for this session</strong></a>, about ten
-minutes of questions drawn from this session's notes, slides and demo. It runs entirely in
-your browser, the questions are selected from your Andrew ID, and it ends by producing a PDF
-you upload for participation credit.
+<a href="../../game/#/l14"><strong>Practice module for this session</strong></a>, for
+participation credit.
