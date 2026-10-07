@@ -11,7 +11,7 @@ lecture: l13
 title: "Scientific machine learning: PINNs, neural ODEs and neural DAEs"
 source_notes: lectures/l13/notes.md
 # Held until release: tools/release_lecture.py flips this to published.
-status: unwritten
+status: published
 serve: 9
 pool_version: 5
 provenance:

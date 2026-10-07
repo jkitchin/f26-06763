@@ -54,10 +54,10 @@ parts:
       - file: lectures/l12/notes
         sections:
           - file: lectures/l12/l12-cnn-rul
-#       - file: lectures/l13/notes
-#         sections:
-#           - file: lectures/l13/l13-pinn-jax
-#           - file: lectures/l13/l13-neural-dae
+      - file: lectures/l13/notes
+        sections:
+          - file: lectures/l13/l13-pinn-jax
+          - file: lectures/l13/l13-neural-dae
 #       - file: lectures/l14/notes
 #         sections:
 #           - file: lectures/l14/l14-uq-bayesopt
