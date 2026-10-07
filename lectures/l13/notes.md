@@ -7,9 +7,9 @@
 - **Arc** Machine learning and deep learning
 - **Slides** <a href="../../slides/l13/">Deck for this session</a>
 - **Practice** <a href="../../game/#/l13">Practice module for this session</a>
-- **Demo** [`l13-pinn-jax.ipynb`](l13-pinn-jax.ipynb), a physics-informed network built from
-  scratch in JAX; [`l13-neural-dae.ipynb`](l13-neural-dae.ipynb), a fed-batch bioreactor as a
-  neural DAE in SiNDAE, following SiNDAE's own example, and as a neural ODE in Diffrax
+- **Worked examples** [`l13-pinn-jax.ipynb`](l13-pinn-jax.ipynb), a physics-informed network
+  built from scratch in JAX; [`l13-neural-dae.ipynb`](l13-neural-dae.ipynb), a fed-batch
+  bioreactor as a neural ODE in Diffrax and as a neural DAE in SiNDAE
 - **Tools** JAX and Optax for the PINN; Diffrax and Equinox for the neural ODE; SiNDAE, Pyomo
   and the POUNCE solver for the neural DAE
 :::
@@ -332,8 +332,7 @@ Data points (black) feed the data loss. Collocation points (green) feed the phys
 
 **JAX** is a Python library for numerical computing that can differentiate any function you
 write in it ([docs](https://docs.jax.dev)). **Optax** is a library of optimizers for JAX,
-Adam among them ([docs](https://optax.readthedocs.io)). The worked example builds the network
-from scratch.
+Adam among them ([docs](https://optax.readthedocs.io)).
 
 The network: one `(W, b)` pair per layer, three hidden layers of 32 tanh units. tanh is smooth,
 so its second derivative exists.
@@ -533,8 +532,8 @@ $$
 
 ### Shrinking the step
 
-What the figure shows: the spring-mass with the **true** right-hand side
-$f(h) = \big(v,\ -(\mu v + kx)/m\big)$, so the only error is the step.
+The spring-mass with its **true** right-hand side $f(h) = \big(v,\ -(\mu v + kx)/m\big)$, so
+the only error is the step:
 
 - Left, the **phase plane**: position against velocity. The gray arrows are $f$.
 - **Orange**: a recurrent network stepping $\Delta t$ at a time, $h_{k+1} = h_k + \Delta t\, f(h_k)$.
@@ -621,14 +620,16 @@ Patrick Kidger's work made neural ODEs practical tools.
 The bioreactor balances are known; only $\mu$ is learned:
 
 $$
-\frac{dX}{dt} = \mu X - \frac{F}{V}X, \quad
-\frac{dP}{dt} = Y_{P/X}\,\mu X - \frac{F}{V}P, \quad
-\frac{dS}{dt} = \frac{F}{V}(S_f - S) - \frac{\mu X}{Y_{X/S}}, \quad
-\frac{dV}{dt} = F
+\begin{aligned}
+\frac{dX}{dt} &= \mu X - \frac{F}{V}X, &
+\frac{dP}{dt} &= Y_{P/X}\,\mu X - \frac{F}{V}P, \\
+\frac{dS}{dt} &= \frac{F}{V}(S_f - S) - \frac{\mu X}{Y_{X/S}}, &
+\frac{dV}{dt} &= F
+\end{aligned}
 $$
 
 $$
-\mu = \mu_\text{scale}\;\mathrm{softplus}\big(\mathrm{NN}(x / x_\text{typical};\theta)\big)
+\mu = \mathrm{NN}(x;\theta), \qquad x = (X, P, S, V)
 $$
 
 The network:
@@ -660,7 +661,7 @@ approximator" ([Rackauckas et al., 2020](https://arxiv.org/abs/2001.04385)). Neu
 and hybrid model are used interchangeably for this.
 :::
 
-The balances, one line per equation:
+The right-hand side of the ODE:
 
 ```python
 def balances(t, x, args):
@@ -849,6 +850,38 @@ $$
 - No equation gives $y_2$ directly. It is whatever keeps $x_0 = x_1$ at every instant.
 - An algebraic equation is a constraint that holds all the time: what we want to enforce.
 
+### Neural DAEs: the spring-mass with the physics enforced
+
+```{index} neural differential-algebraic equation
+```
+```{index} see: neural DAE; neural differential-algebraic equation
+```
+
+Back to the PINN's spring-mass. Suppose the damping is the unknown. Make it the network output
+$z$, and move the equation from the loss into the constraints:
+
+$$
+\begin{aligned}
+\min_\theta\quad & \sum_i \big(x(t_i) - \hat x_i\big)^2 \\
+\text{s.t.}\quad & m\,x'' + z\,x' + k\,x = 0 \\
+& z = \mathrm{NN}(x, x';\theta) \\
+& h(x) = 0, \quad g(x) \le 0
+\end{aligned}
+$$
+
+**The physics is now enforced, rather than informed**: the equation is a constraint of the
+optimization problem.
+
+:::{admonition} Definition: neural DAE
+:class: tip
+A **neural DAE** is a DAE in which some unknown terms are neural networks, trained with the
+simultaneous approach of the next section.
+:::
+
+Lueg, Alves, Schicksnus, Kitchin, Laird and Biegler train neural DAEs this way
+([Computational Optimization and Applications, 2026](https://doi.org/10.1007/s10589-026-00823-y),
+open access; [arXiv](https://arxiv.org/abs/2504.04665)).
+
 ## Training a dynamic model: sequential or simultaneous
 
 ```{index} sequential approach, simultaneous approach, orthogonal collocation
@@ -880,13 +913,12 @@ the loss and its gradient, updates $\theta$, and repeats.
 :::
 
 $$
-\theta_0
-\;\longrightarrow\;
-x(t;\theta) = \mathrm{ODESolve}(f, x_0, \theta)
-\;\longrightarrow\;
-L(\theta) = \sum_i \big(x(t_i;\theta) - \hat x_i\big)^2,\ \nabla_\theta L
-\;\longrightarrow\;
-\theta \leftarrow \theta - \eta\,\nabla_\theta L
+\begin{aligned}
+&\text{1. Guess:} && \theta_0 \\
+&\text{2. Simulate:} && x(t;\theta) = \mathrm{ODESolve}(f, x_0, \theta) \\
+&\text{3. Loss and gradient:} && L(\theta) = \sum_i \big(x(t_i;\theta) - \hat x_i\big)^2, \quad \nabla_\theta L \\
+&\text{4. Update, and back to 2:} && \theta \leftarrow \theta - \eta\,\nabla_\theta L
+\end{aligned}
 $$
 
 ```{figure} figures/seq-loop.png
@@ -906,7 +938,7 @@ after each update.
 
 ### Simultaneous: discretize, then optimize
 
-:::{admonition} Definition: simultaneous approach (orthogonal collocation)
+:::{admonition} Definition: simultaneous approach (collocation)
 :class: tip
 The **simultaneous approach** turns the state at every time point into an unknown, writes the
 differential equation as algebraic equations between those points, and solves one large
@@ -935,33 +967,39 @@ The solved problem: the points form a trajectory that obeys the model.
 ```
 
 ```{figure} figures/collocation-poly.png
-:alt: x against t from 0 to 0.3, split into three finite elements by dotted lines labeled element 1, 2 and 3. A thick gray curve is the solution of the ODE; on each element a colored cubic polynomial passes through four points and lies on the gray curve. Short red segments at the collocation points show the slope, with an arrow labeled at each collocation point, the red slope: slope of the polynomial equals f(x) from the model.
+:alt: x against t from 0 to 0.3, split into three finite elements by dotted lines labeled element 1, 2 and 3. A thick gray curve is the exact solution of the ODE; on each element a colored cubic polynomial passes through four points and stays close to the gray curve. Short red segments at the three collocation points of each element show the slope, with an arrow labeled at each collocation point, the red slope: slope of the polynomial equals f(x) from the model.
 :width: 100%
 
-Collocation: a polynomial on each finite element, whose slope matches the model at the
-collocation points.
+Collocation on the spring-mass, solved: on each element a cubic whose slope equals the model's
+slope at three collocation points. It stays close to the exact solution.
 ```
 
-On element $i$ the state is a polynomial through $K + 1$ points, with Lagrange polynomials
-$\ell_j$ and element length $h_i$. The polynomial must obey the ODE at the **collocation
-points** $\tau_k$:
+On each finite element $j$ the state is a polynomial through $K + 1$ points. Its values
+$x_{jk}$ at those points are unknowns of the NLP. At each **collocation point** $t_{jk}$ the
+polynomial's slope must equal the slope the model gives:
 
 $$
-\underbrace{\sum_{j=0}^{K} x_{ij}\,\ell_j'(\tau_k)}_{\text{slope of the polynomial}}
-\;=\; h_i\,\underbrace{f\big(x_{ik};\theta\big)}_{\text{slope from the model}},
+\underbrace{\frac{dx_\text{poly}}{dt}(t_{jk})}_{\text{slope of the polynomial}}
+\;=\; \underbrace{f\big(x_{jk};\theta\big)}_{\text{slope from the model}},
 \qquad k = 1, \dots, K
 $$
+
+- The polynomial's slope at a point is a fixed weighted sum of its point values
+  $x_{j0}, \dots, x_{jK}$, so each equation is algebraic in the unknowns.
+- This is **orthogonal collocation on finite elements**. The equations in full:
+  [Biegler (2007)](https://doi.org/10.1016/j.cep.2006.06.021), and his
+  [lecture slides on collocation](https://aiche.org/sites/default/files/community/446171/aiche-community-site-page/448906/webcastbiegler.pdf) (open).
 
 This is the constrained optimization problem of [Lecture 9](../l09/notes.md),
 $\min_z f(z)$ subject to $h(z) = 0$ and $g(z) \le 0$, with $z$ every state value and $\theta$:
 
 $$
 \begin{aligned}
-\min_{\theta,\;x_{ij}}\quad & \sum_i \big(x(t_i) - \hat x_i\big)^2 && \text{fit the data} \\
-\text{s.t.}\quad & \sum_{l} x_{il}\,\ell_l'(\tau_j) = h_i\, f(x_{ij};\theta) && \text{polynomial slope = model slope} \\
-& x_{i,K} = x_{i+1,0} && \text{elements join} \\
-& x_{0,0} = x_0 && \text{initial condition} \\
-& g(x_{ij}) \le 0 && \text{path constraints}
+\min_{\theta,\;x_{jk}}\quad & \sum_i \big(x(t_i) - \hat x_i\big)^2 && \text{fit the data} \\
+\text{s.t.}\quad & \frac{dx_\text{poly}}{dt}(t_{jk}) = f(x_{jk};\theta) && \text{polynomial slope = model slope} \\
+& x_{j,K} = x_{j+1,0} && \text{elements join} \\
+& x_{1,0} = x_0 && \text{initial condition} \\
+& g(x_{jk}) \le 0 && \text{path constraints}
 \end{aligned}
 $$
 
@@ -1021,40 +1059,12 @@ collocation equations.
 Between the two sits **multiple shooting**: simulate short segments, and make their ends meet
 as constraints.
 
-## Neural DAEs
+## Training neural DAEs
 
-```{index} neural differential-algebraic equation, SiNDAE, inference
-```
-```{index} see: neural DAE; neural differential-algebraic equation
+```{index} SiNDAE, inference
 ```
 ```{index} pair: case study; fed-batch bioreactor
 ```
-
-### The same spring-mass, with the physics enforced
-
-Back to the PINN's spring-mass. Suppose the damping is the unknown. Make it the network output
-$z$, and move the equation from the loss into the constraints:
-
-$$
-\begin{aligned}
-\min_\theta\quad & \sum_i \big(x(t_i) - \hat x_i\big)^2 \\
-\text{s.t.}\quad & m\,x'' + z\,x' + k\,x = 0 \\
-& z = \mathrm{NN}(x, x';\theta) \\
-& h(x) = 0, \quad g(x) \le 0
-\end{aligned}
-$$
-
-**The physics is now enforced, rather than informed**: the constraints are written into the NLP.
-
-:::{admonition} Definition: neural DAE
-:class: tip
-A **neural DAE** is a DAE in which some unknown terms are neural networks, trained with the
-simultaneous approach.
-:::
-
-Lueg, Alves, Schicksnus, Kitchin, Laird and Biegler train neural DAEs this way
-([Computational Optimization and Applications, 2026](https://doi.org/10.1007/s10589-026-00823-y),
-open access; [arXiv](https://arxiv.org/abs/2504.04665)).
 
 ### The training problem
 
@@ -1164,7 +1174,7 @@ What it is built on, and what each part does:
 
 The code follows the SiNDAE example
 [Importing Measured Data, Fed-Batch Bioreactor](https://alves-research-group.github.io/SiNDAE/fedbatch-example/),
-with the product balance diluted by $F/V$. The first three blocks are one class.
+with the product balance diluted by $F/V$.
 
 **The class.** A SiNDAE problem is a subclass of `ProblemDefinition`:
 
@@ -1192,7 +1202,8 @@ class FedBatchBioreactorProblem(ProblemDefinition):
   span, the finite elements and collocation points, and the measurements.
 - `ProblemDefinition` stores them; the class adds our parameters, the feed rate and the yields.
 
-**The variables.** `build_trajectory` writes the model for one batch in Pyomo:
+**The variables.** `build_trajectory`, a method of the same class, writes the model for one
+batch in Pyomo:
 
 ```python
     def build_trajectory(self, block, traj_idx):
@@ -1379,9 +1390,12 @@ The glycosylation steps in the model: fucosylation, then two galactosylations.
 The equations, by scale. The learned term is $\mu$, at the process scale:
 
 $$
-\frac{dX_v}{dt} = (\mu - \mu_d)\,X_v, \qquad
-\frac{dGLC}{dt} = -\Big(\frac{\mu - \mu_d}{Y_{X_v/glc}} + m_{glc}\frac{GLC}{K_{glc} + GLC}\Big)X_v, \quad \dots, \qquad
-\mu = f_\text{NN}(x;\theta)
+\begin{aligned}
+\frac{dX_v}{dt} &= (\mu - \mu_d)\,X_v \\
+\frac{dGLC}{dt} &= -\Big(\frac{\mu - \mu_d}{Y_{X_v/glc}} + m_{glc}\frac{GLC}{K_{glc} + GLC}\Big)X_v \\
+&\;\;\vdots \\
+\mu &= f_\text{NN}(x;\theta)
+\end{aligned}
 $$
 
 At the cell scale, the sugar donors are algebraic (quasi-steady state):
@@ -1396,9 +1410,10 @@ and $\phi_{Fuc} = \text{GDP-Fuc}/(K_{GDP\text{-}Fuc} + \text{GDP-Fuc})$:
 
 $$
 \begin{aligned}
-\frac{dG0F}{dt} &= k_{FucT}\,\text{Pre}\;\phi_{Fuc} - k_{GalT1}\,G0F\;\phi_{Gal}, \qquad \text{Pre} = 1 - G0F - G1F - G2F \\
-\frac{dG1F}{dt} &= k_{GalT1}\,G0F\;\phi_{Gal} - k_{GalT2}\,G1F\;\phi_{Gal}, \qquad
-\frac{dG2F}{dt} = k_{GalT2}\,G1F\;\phi_{Gal}
+\frac{dG0F}{dt} &= k_{FucT}\,\text{Pre}\;\phi_{Fuc} - k_{GalT1}\,G0F\;\phi_{Gal} \\
+\frac{dG1F}{dt} &= k_{GalT1}\,G0F\;\phi_{Gal} - k_{GalT2}\,G1F\;\phi_{Gal} \\
+\frac{dG2F}{dt} &= k_{GalT2}\,G1F\;\phi_{Gal} \\
+\text{Pre} &= 1 - G0F - G1F - G2F
 \end{aligned}
 $$
 
@@ -1438,31 +1453,55 @@ A **projection layer** is a last layer that moves the network's raw output $\til
 closest point that satisfies the constraints.
 :::
 
-**The example: a splitter.** A feed $F = 10$ splits into two outlet flows.
+**The example: a heat exchanger that must not create energy.** Hot water at 90 °C heats cold
+water at 20 °C and 1 kg/s in a counterflow exchanger.
 
-- **Input** $u$: the valve opening.
-- **Outputs** $y_1, y_2$: the two outlet flows.
-- **Balance**: $y_1 + y_2 = F$, whatever the opening.
-- A network predicts $y_1, y_2$ from $u$; a projection layer makes them obey the balance.
+- **Input**: the hot-water flow $\dot m_h$, from 0.2 to 2 kg/s.
+- **Outputs**: the two outlet temperatures, $y = (T_{h,out},\ T_{c,out})$.
+- **First law**: the heat the hot water gives up is the heat the cold water takes.
 
-```{figure} figures/splitter.png
-:alt: A pipe carries the feed F = 10 from the left into a junction that splits into two outlet pipes, y1 at the top through a valve labeled valve, opening u, and y2 at the bottom. A green box between them reads mass balance, y1 + y2 = F.
-:width: 50%
+$$
+\underbrace{\dot m_h c_p\,(T_{h,in} - T_{h,out})}_{Q_h:\ \text{heat given up}}
+\;=\; \underbrace{\dot m_c c_p\,(T_{c,out} - T_{c,in})}_{Q_c:\ \text{heat taken}}
+$$
 
-The splitter.
+- A network that predicts the two temperatures can break it: $Q_c > Q_h$ is energy from
+  nothing.
+
+```{figure} figures/heat-exchanger.png
+:alt: A counterflow heat exchanger. A red tube carries hot water from left to right through a light blue shell; a valve at the inlet is labeled hot water in, 90 °C, flow m-dot h, the input. Blue arrows show cold water flowing right to left in the shell, entering at the top right, cold water in, 20 °C, 1 kg/s, and leaving at the bottom left. The outlets are labeled T h,out and T c,out.
+:width: 60%
+
+The counterflow heat exchanger.
 ```
+
+The balance is **linear in the outputs**:
+
+$$
+\underbrace{\dot m_h\,T_{h,out} + \dot m_c\,T_{c,out}}_{a^\top y}
+\;=\; \underbrace{\dot m_h\,T_{h,in} + \dot m_c\,T_{c,in}}_{b},
+\qquad a = (\dot m_h,\ \dot m_c)
+$$
 
 $$
 u \;\longrightarrow\; \underbrace{\mathrm{NN}(u;\theta)}_{\text{network}} \;\longrightarrow\; \tilde y
-\;\longrightarrow\; \underbrace{P(\tilde y)}_{\text{projection, fixed}} \;\longrightarrow\; y
-\;\longrightarrow\; \text{loss against the data}
+\;\longrightarrow\; \underbrace{P(\tilde y)}_{\text{projection}} \;\longrightarrow\; y
+\;\longrightarrow\; \text{loss}
 $$
 
-For the splitter, the closest point shares the violation equally between the two flows:
+The closest point to the raw output $\tilde y$ that obeys the balance:
 
 $$
-v = \tilde y_1 + \tilde y_2 - F, \qquad y_1 = \tilde y_1 - \frac{v}{2}, \qquad y_2 = \tilde y_2 - \frac{v}{2}
+v = a^\top \tilde y - b, \qquad y = \tilde y - \frac{a\,v}{a^\top a}
 $$
+
+- $v$ is how much the raw output breaks the balance: $c_p v = Q_c - Q_h$.
+- The correction is linear in $\tilde y$, with no trainable weights. $a$ and $b$ change with the
+  input flow; the map stays linear.
+
+Drag the raw output, or change the hot-water flow:
+
+<div class="cw" data-widget="projection"></div>
 
 Any linear balance $Ay = b$ works the same way. Minimize $\|y - \tilde y\|^2$ subject to
 $Ay = b$; the optimality conditions give
@@ -1471,35 +1510,31 @@ $$
 y = \tilde y - A^\top \big(A A^\top\big)^{-1}\big(A\tilde y - b\big)
 $$
 
-- $A\tilde y - b$ is how much the raw output violates the balance.
-- The correction is a fixed matrix times that violation: one more linear layer, with no
-  trainable weights.
 - The gradient of the loss flows back through it during training, like any linear layer.
 - The output satisfies $Ay = b$ to machine precision, in training and in use.
 
-Drag the raw output and watch the projection follow:
-
-<div class="cw" data-widget="projection"></div>
-
-**Training with the layer.** The 40 measurements carry noise (standard deviation 0.4 on each flow), so they break the
-balance themselves, by 0.48 on average.
+**Training with the layer.** The 40 measurements carry noise (standard deviation 1 °C on each
+temperature), so they break the balance themselves, by 5.4 kW on average. The heat duty runs from
+57 to 161 kW over the range of flows.
 
 <div class="cw" data-widget="proj-train" data-source="l13"></div>
 
 ```{figure} figures/projection-train.png
-:alt: Left, the plane of outlet flows y1 and y2 with a green line y1 + y2 = F. Gray noisy measurements scatter around the line. Orange raw network outputs sit off the line, each joined by a short segment to a blue projected output on the line. Right, the largest balance violation against training epoch on log axes: the plain network stays near 1, the network with the projection layer sits near 1e-15 at every epoch, labeled machine precision, every epoch.
+:alt: Left, heat taken minus heat given up, Q c minus Q h in kW, against the hot-water flow from 0.2 to 2 kg/s. The band above zero is shaded red and labeled energy from nothing; the band below is shaded blue and labeled energy lost to nowhere. Gray noisy measurements scatter between minus 15 and 15 kW. The orange plain network wanders between about minus 4 and 10 kW; the dashed blue network with the projection layer lies on zero. Right, the largest imbalance against training epoch on log axes: the plain network falls from about 100 to 10 kW, the network with the projection layer sits near 1e-13 kW at every epoch, labeled machine precision, every epoch.
 :width: 100%
 
-A network with a projection layer, after 2,000 epochs, and the balance violation during training.
+The energy imbalance of each network's predictions after 2,000 epochs (left), and the largest
+imbalance during training (right).
 ```
 
 | After 2,000 epochs | Without the layer | With the layer |
 |---|---|---|
-| Largest $\lvert y_1 + y_2 - F \rvert$ on test inputs | 1.13 | $1.8 \times 10^{-15}$ |
-| Error against the true flows (RMSE) | 0.274 | 0.186 |
+| Largest energy imbalance $\lvert Q_c - Q_h \rvert$ on test flows | 9.95 kW | $1.1 \times 10^{-13}$ kW |
+| Error in the outlet temperatures (RMSE) | 0.49 °C | 0.33 °C |
 
 - The layer holds the balance at every epoch, not only at the end.
 - It is also more accurate here: it removes the part of the noise that breaks the balance.
+- A plain network that fits the data well still creates or destroys up to 10 kW.
 
 In the literature:
 
@@ -1537,15 +1572,24 @@ $$
 $$
 
 $$
-\text{Neural ODE:}\quad \min_{\theta}\; \sum_i \big(x(t_i;\theta) - \hat x_i\big)^2, \qquad x(\cdot\,;\theta) = \mathrm{ODESolve}\big(f(x, \mathrm{NN}(x;\theta)),\, x_0\big)
+\begin{aligned}
+\text{Neural ODE:}\quad & \min_{\theta}\; \sum_i \big(x(t_i;\theta) - \hat x_i\big)^2 \\
+& x(\cdot\,;\theta) = \mathrm{ODESolve}\big(f(x, \mathrm{NN}(x;\theta)),\, x_0\big)
+\end{aligned}
 $$
 
 $$
-\text{Neural DAE:}\quad \min_{\theta,\,x,\,z}\; \sum_i \big(x(t_i) - \hat x_i\big)^2 \quad \text{s.t.}\quad \dot x = f(x, z),\;\; 0 = h(x, z),\;\; g(x, z) \le 0,\;\; z = \mathrm{NN}(x;\theta)
+\begin{aligned}
+\text{Neural DAE:}\quad & \min_{\theta,\,x,\,z}\; \sum_i \big(x(t_i) - \hat x_i\big)^2 \\
+& \text{s.t.}\;\; \dot x = f(x, z),\;\; 0 = h(x, z),\;\; g(x, z) \le 0,\;\; z = \mathrm{NN}(x;\theta)
+\end{aligned}
 $$
 
 $$
-\text{Projection layer:}\quad \min_{\theta}\; \sum_i \big(y(u_i;\theta) - \hat y_i\big)^2, \qquad y(u;\theta) = \arg\min_{y}\,\lVert y - \mathrm{NN}(u;\theta)\rVert^2 \;\;\text{s.t.}\;\; Ay = b
+\begin{aligned}
+\text{Projection layer:}\quad & \min_{\theta}\; \sum_i \big(y(u_i;\theta) - \hat y_i\big)^2 \\
+& y(u;\theta) = \arg\min_{y}\,\lVert y - \mathrm{NN}(u;\theta)\rVert^2 \;\;\text{s.t.}\;\; Ay = b
+\end{aligned}
 $$
 
 - **PINN**: the variables are the weights; no constraints; the physics is one more term to make
@@ -1556,6 +1600,39 @@ $$
   equations and bounds are constraints, held at the solution to solver tolerance.
 - **Projection layer**: the variables are the weights; the layer solves a small problem in
   closed form, so every output satisfies $Ay = b$.
+
+## Not only neural networks
+
+```{index} sparse identification of nonlinear dynamics, symbolic regression
+```
+```{index} see: SINDy; sparse identification of nonlinear dynamics
+```
+
+Every learned term in this session was a neural network. The physics-based formulations do not
+need one: the unknown term can be any model that fits data.
+
+- **Gaussian processes.** In a hybrid model of a fed-batch culture, a Gaussian process (GP)
+  regression model, which also reports its uncertainty, is the unknown right-hand side: "a coupling of polynomial regression with Gaussian Process Models as representation of the
+  right-hand side of the ordinary differential equation system", shown on "a typical fed-batch
+  cultivation for monoclonal antibody production"
+  ([Cruz-Bournazou et al., 2022](https://www.biorxiv.org/content/10.1101/2021.12.27.474269v1)).
+  Raissi, Perdikaris and Karniadakis built GP priors around a known linear differential operator
+  to "infer parameters of the linear equations from scarce and possibly noisy observations"
+  ([2017](https://arxiv.org/abs/1701.02440)).
+- **Sparse regression.** **SINDy** (sparse identification of nonlinear dynamics) learns the
+  equation itself: from a library of candidate terms ($1, x, y, x^2, xy, \dots$) it keeps "the
+  fewest terms in the dynamic governing equations required to accurately represent the data"
+  ([Brunton, Proctor and Kutz, 2016](https://arxiv.org/abs/1509.03580)).
+- **Symbolic regression.** A search over formulas returns a closed-form expression a person can
+  read, such as $\mu_{max} S / (K + S)$. PySR's search is "a multi-population evolutionary
+  algorithm" ([Cranmer, 2023](https://arxiv.org/abs/2305.01582)).
+- **Tree ensembles.** In a hybrid model of a monoclonal antibody process, "while maintaining the
+  mass balance of the mechanistic model, coefficients of the equations were estimated with
+  random forest regression" ([Nemoto et al., 2025](https://psecommunity.org/LAPSE:2025.0552)).
+  Trained gradient-boosted trees can also be written into a mixed-integer optimization model
+  and optimized over ([Mistry et al., 2021](https://arxiv.org/abs/1803.00952)); one of their
+  test cases is concrete mixture design. [OMLT](https://jmlr.org/papers/v23/22-0277.html), the
+  tool SiNDAE uses to put networks into Pyomo, embeds trees as well.
 
 ## Limitations and trade-offs
 
@@ -1595,10 +1672,9 @@ $$
 - Physics constrains only what it describes. A learned term can still be wrong far from the
   data; the constraints only stop it from being impossible.
 
-## In-class demo
+## Worked examples
 
-Every code block on the slides is a cell in these two notebooks, in the order of the lecture.
-The notebooks add the data and the plots around them.
+The code of this session, in order, with the data and the plots:
 
 - [`l13-pinn-jax.ipynb`](l13-pinn-jax.ipynb): the spring-mass PINN from scratch in JAX: a plain
   network and a PINN with the same weights and steps, their extrapolation errors, and the
@@ -1626,8 +1702,10 @@ The notebooks add the data and the plots around them.
   constraints and oscillating dynamics.
 - A **neural DAE** trained and solved simultaneously (SiNDAE) keeps the substrate at or above
   zero on the new batch.
-- **Projection layers** build constraints into the network itself, one prediction at a time:
-  the balance held to $10^{-15}$.
+- **Projection layers** build linear constraints into the network itself, one prediction at a
+  time: the heat exchanger's energy balance held to $10^{-13}$ kW.
+- The learned term need not be a neural network: Gaussian processes, sparse and symbolic
+  regression, and tree ensembles fill the same role.
 
 ## Resources
 

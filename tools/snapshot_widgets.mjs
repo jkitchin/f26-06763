@@ -93,6 +93,9 @@ const slides = await page.$$eval('section', ss => ss
 let failed = 0
 for (const { n, name } of slides) {
   await page.goto(url + '#' + n, { waitUntil: 'load' })
+  // MARP's on-screen navigation bar shows for a moment after every slide change and
+  // would land in the screenshot over the widget.
+  await page.addStyleTag({ content: '.bespoke-marp-osc { display: none !important; }' })
   await new Promise(r => setTimeout(r, 400))
   // Each MARP slide sits in its own <svg>, so :nth-of-type counts 1 for every
   // section; index the full list instead.

@@ -13,7 +13,7 @@ source_notes: lectures/l13/notes.md
 # Held until release: tools/release_lecture.py flips this to published.
 status: published
 serve: 9
-pool_version: 6
+pool_version: 7
 provenance:
   drafted_by: hand
   reviewed_by: none
@@ -465,8 +465,8 @@ items:
     difficulty: 2
     objectives: [l13-o7]
     prompt: |
-      A projection layer enforces a mass balance A y = b on a network's output. How well does the
-      output satisfy it?
+      A projection layer enforces a linear balance A y = b, such as a heat exchanger's energy
+      balance, on a network's output. How well does the output satisfy it?
     options:
       - "To machine precision, in training and in use"
       - "Approximately, with the error set by a penalty weight like a PINN's λ"

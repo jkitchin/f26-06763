@@ -1,7 +1,7 @@
 {
   "lecture": "l13",
   "title": "Scientific machine learning: PINNs, neural ODEs and neural DAEs",
-  "pool_version": 6,
+  "pool_version": 7,
   "source_notes": "lectures/l13/notes.md",
   "generated_by": "tools/arcade_rounds.py",
   "items": [
@@ -339,7 +339,7 @@
       "id": "l13-q17",
       "kind": "mcq",
       "lecture": "l13",
-      "context": "A projection layer enforces a mass balance A y = b on a network's output. How well does the\noutput satisfy it?",
+      "context": "A projection layer enforces a linear balance A y = b, such as a heat exchanger's energy\nbalance, on a network's output. How well does the output satisfy it?",
       "why": "The layer replaces the raw output by the closest point on the constraint, a fixed linear\ncorrection with no trainable weights. Every output it returns satisfies A y = b, whatever\nthe network upstream does.",
       "objectives": [
         "l13-o7"
