@@ -2560,38 +2560,6 @@ Every code block on today's slides is a cell in these two notebooks, in the same
 
 ---
 
-## Recap
-
-<style scoped>
-.rc { width: 1140px; margin: 0 auto; }
-.rc .scale { height: 40px; border-radius: 20px; background: linear-gradient(90deg, #f3d9a4, #b9dcae); display: flex; justify-content: space-between; align-items: center; padding: 0 18px; font-size: 0.68em; font-weight: 700; position: relative; }
-.rc .scale::after { content: ''; position: absolute; right: -16px; top: -6px; border: 26px solid transparent; border-left: 18px solid #b9dcae; border-right: none; }
-.rc .cols4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 14px; }
-.rc .c { background: #f7f7f7; border-radius: 8px; padding: 6px 10px; font-size: 0.66em; text-align: center; border-top: 7px solid #5c5c5c; min-height: 150px; }
-.rc .c h4 { margin: 0 0 6px; font-size: 1.3em; }
-.rc .c .n { font-size: 1.5em; font-weight: 700; margin: 10px 0 6px; }
-.rc .train { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 12px; font-size: 0.7em; }
-.rc .train div { border-radius: 8px; padding: 10px 12px; text-align: center; }
-</style>
-
-<div class="rc">
-<div class="scale"><span>physics favored</span><span>where the physics lives</span><span>physics enforced</span></div>
-<div class="cols4">
-<div class="c" style="border-top-color:#b07d12"><h4>PINN</h4>in the <b>loss</b><div class="n" style="color:#b07d12">5.3 N</div>residual left over</div>
-<div class="c" style="border-top-color:#c2410c"><h4>Neural ODE</h4>in the <b>right-hand side</b>: learns the vector field<div class="n" style="color:#c2410c">S = −0.37 g/L</div>bounds not held</div>
-<div class="c" style="border-top-color:#1f5c99"><h4>Neural DAE</h4>in the <b>constraints of one NLP</b><div class="n" style="color:#1f5c99">S ≥ 0</div>held in training and prediction; balance violation 0, to solver tolerance</div>
-<div class="c" style="border-top-color:#2e7d32"><h4>Projection layer</h4>in the <b>last layer</b><div class="n" style="color:#2e7d32">10⁻¹³ kW</div>energy imbalance</div>
-</div>
-<div class="train">
-<div style="background:#fbeee6; border:2px solid #c2410c"><b>Sequential</b>: simulate, then update θ. The model holds at every iterate; constraints do not</div>
-<div style="background:#eaf1f8; border:2px solid #1f5c99"><b>Simultaneous</b>: discretize, then solve one NLP for states and θ. Constraints enforced at the solution</div>
-</div>
-</div>
-
-<p class="takeaway" style="font-weight:400">SciML: keep the mechanistic model, learn only the unknown term. RNN → neural ODE: let the step go to zero; learn f, the vector field.</p>
-
----
-
 ## Before next time
 
 * The **miniproject** is due **Friday 10-09**
