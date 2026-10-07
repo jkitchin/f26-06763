@@ -231,13 +231,13 @@
       "id": "l13",
       "date": "2026-10-07",
       "title": "Surrogates, physics-informed models, and uncertainty quantification",
-      "written": false,
+      "written": true,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
       "region": 2,
       "x": 8,
       "y": 3,
-      "notes": null
+      "notes": "../lectures/l13/notes.html"
     },
     {
       "session": "L14",
