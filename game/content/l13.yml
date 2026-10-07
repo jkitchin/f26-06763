@@ -13,7 +13,7 @@ source_notes: lectures/l13/notes.md
 # Held until release: tools/release_lecture.py flips this to published.
 status: published
 serve: 9
-pool_version: 5
+pool_version: 6
 provenance:
   drafted_by: hand
   reviewed_by: none
@@ -408,7 +408,7 @@ items:
     difficulty: 2
     objectives: [l13-o6]
     prompt: |
-      On a new batch, the bioreactor's neural ODE drives the substrate to −0.41 g/L. What does
+      On a new batch, the bioreactor's neural ODE drives the substrate to −0.37 g/L. What does
       SiNDAE's neural DAE prediction do differently?
     options:
       - "Solves the same model as an NLP with S ≥ 0, moving the growth rate off the network's value only where a constraint would break"
@@ -438,16 +438,16 @@ items:
       A report says: "The neural DAE never lets the substrate go negative, so it must be more
       accurate than the neural ODE on every state." What is wrong with the claim?
     options:
-      - "Feasible is not accurate: the neural DAE's substrate error is 0.29 g/L, the neural ODE's 0.20 g/L"
+      - "Feasible is not accurate: the neural DAE's substrate error is 0.30 g/L, the neural ODE's 0.19 g/L"
       - "Nothing: a constraint that holds makes every predicted state more accurate"
       - "The neural DAE cannot predict substrate, only biomass"
       - "The neural DAE's substrate does go negative, only less than the neural ODE's"
-    answer: "Feasible is not accurate: the neural DAE's substrate error is 0.29 g/L, the neural ODE's 0.20 g/L"
+    answer: "Feasible is not accurate: the neural DAE's substrate error is 0.30 g/L, the neural ODE's 0.19 g/L"
     evidence: |
       The constraint stops the prediction from being impossible; it does not make the learned
       growth rate correct. On the new batch the neural DAE never goes below zero, yet its
-      substrate error against the true model (RMSE 0.29 g/L) is larger than the neural ODE's
-      (0.20 g/L).
+      substrate error against the true model (RMSE 0.30 g/L) is larger than the neural ODE's
+      (0.19 g/L).
     source:
       file: lectures/l13/notes.md
       heading: "Inference on a new batch"

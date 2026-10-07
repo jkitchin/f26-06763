@@ -444,9 +444,10 @@ def monod(S):
     return FB["mu_max"] * S / (FB["Ks"] + S)
 
 
-# The training batches and their sampling follow the SiNDAE fed-batch example
-# (docs/examples_gallery/generate_fedbatch_data.py): three initial charges, 40 h, every
-# fourth point of a 40-element, 3-point Radau grid, and the same noise per state.
+# The training batches follow the SiNDAE fed-batch example
+# (docs/examples_gallery/generate_fedbatch_data.py): three initial charges, 40 h, and the same
+# noise per state. The samples are evenly spaced, and a reading below zero is recorded as zero,
+# since a concentration cannot be negative.
 BATCH_ICS = np.array([[0.05, 0.0, 10.0, 1.00],
                       [0.025, 0.0, 5.0, 0.80],
                       [0.5, 0.0, 7.5, 0.95]])
@@ -459,15 +460,13 @@ def fedbatch_data():
     """Three training batches, 31 noisy samples of each state over 40 h, from the Monod model."""
     from scipy.integrate import solve_ivp
 
-    radau = (0.155051, 0.644949, 1.0)
-    grid = np.array([0.0] + [i + c for i in range(40) for c in radau])
-    t_obs = grid[::4]
+    t_obs = np.linspace(0, 40, 31)
     rng = np.random.default_rng(SEED)
     y_obs, truth = [], []
     for ic in BATCH_ICS:
         s = solve_ivp(fb_rhs, (0, 40), ic, t_eval=t_obs, args=(lambda x: monod(x[2]), ic[2]),
                       rtol=1e-10, atol=1e-12)
-        y_obs.append(s.y.T + rng.normal(0, 1, s.y.T.shape) * NOISE)
+        y_obs.append(np.clip(s.y.T + rng.normal(0, 1, s.y.T.shape) * NOISE, 0, None))
         dense = solve_ivp(fb_rhs, (0, 40), ic, t_eval=np.linspace(0, 40, 161),
                           args=(lambda x: monod(x[2]), ic[2]), rtol=1e-10, atol=1e-12)
         truth.append(dense.y)
@@ -746,8 +745,7 @@ def group_fedbatch():
         method="simultaneous", nlp_solver="pounce", net=new_mlp(),
         smoother=SmootherConfig(smooth_coef=10.0), pretrain=pre_cfg,
         train=SimultaneousConfig(use_gbm=True, reg_coef=1e-3),
-        solver_options=SolverConfig(tol=1e-6, max_iter=1000,
-                                    hessian_approximation="limited-memory"),
+        solver_options=SolverConfig(tol=1e-6, max_iter=1000),
         unfix_io=True)
     t0 = time.time()
     model.fit(problem)

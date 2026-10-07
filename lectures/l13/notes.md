@@ -105,7 +105,7 @@ batch, with a different starting charge, for 60 h.
 - **Physics-enforced**: the same balances as a neural DAE, with $S \ge 0$ as a constraint.
 
 ```{figure} figures/fedbatch-models.png
-:alt: Two panels over 60 hours for a new batch, with the last 20 hours shaded and labeled beyond the training time. Left, biomass: the gray true model rises to 3.5 g/L and levels off; the purple dotted purely data-driven model dips below it after 25 hours and rises again; the orange physics-informed model drifts above it after 40 hours to 3.75; the dashed blue physics-enforced neural DAE stays on the gray curve. Right, substrate: all four fall from 7 g/L; the purple and orange curves go below zero, the purple to minus 0.85 g/L and the orange to minus 0.41 g/L at 60 hours, inside a red band labeled negative concentration, impossible; the blue curve stays at or above zero.
+:alt: Two panels over 60 hours for a new batch, with the last 20 hours shaded and labeled beyond the training time. Left, biomass: the gray true model rises to 3.5 g/L and levels off; the purple dotted purely data-driven model rises too early, sags to 3.2 g/L near 30 hours and climbs to 3.8 by 60 hours; the orange physics-informed model drifts above it after 40 hours to 3.73; the dashed blue physics-enforced neural DAE stays on the gray curve. Right, substrate: all four fall from 7 g/L; the purple and orange curves go below zero, the purple to minus 0.43 g/L and the orange to minus 0.37 g/L at 60 hours, inside a red band labeled negative concentration, impossible; the blue curve stays at or above zero.
 :width: 100%
 
 The new batch: the true mechanistic model and three learned models.
@@ -113,9 +113,9 @@ The new batch: the true mechanistic model and three learned models.
 
 | New batch, 60 h | Lowest substrate | Hours with $S < 0$ | Biomass error (RMSE) |
 |---|---|---|---|
-| Purely data-driven | **−0.85 g/L** | 26 | 0.19 g/L |
-| Physics-informed | **−0.41 g/L** | 24 | 0.10 g/L |
-| Physics-enforced (neural DAE) | 0.04 g/L | 0 | 0.14 g/L |
+| Purely data-driven | **−0.43 g/L** | 10 | 0.43 g/L |
+| Physics-informed | **−0.37 g/L** | 22 | 0.09 g/L |
+| Physics-enforced (neural DAE) | 0.05 g/L | 0 | 0.15 g/L |
 | True mechanistic model | 0.07 g/L | 0 | |
 
 - The data-driven model knows nothing about the balances, and it extrapolates worst.
@@ -735,7 +735,7 @@ for _ in range(10_000):
 
 - The loss compares the three simulated batches with their 31 samples, each state divided by
   its spread in the data.
-- Adam's learning rate decays from 0.01 along a cosine. 10,000 steps take about 30 s.
+- Adam's learning rate decays from 0.01 along a cosine. 10,000 steps take about 35 s.
 
 ```{figure} figures/fedbatch-data.png
 :alt: Four panels against time over 40 hours, one per state: biomass, product, substrate and volume. Each shows three batches, blue, orange and green, as noisy points with a solid line through them, the trained neural ODE. Biomass and product rise in an S shape; substrate falls from 10, 5 and 7.5 g/L to near zero; volume rises linearly.
@@ -744,10 +744,11 @@ for _ in range(10_000):
 Three training batches, 31 noisy samples of each state (dots), and the trained neural ODE (lines).
 ```
 
-- Against the true model, the fit is off by 0.045 g/L in $X$ and 0.09 g/L in $S$: within the
+- Against the true model, the fit is off by 0.047 g/L in $X$ and 0.094 g/L in $S$: within the
   measurement noise (0.05 and 0.5 g/L).
 - The measurements follow the SiNDAE fed-batch example: the true model, where $\mu$ follows the
-  Monod law $\mu = \mu_\text{max} S/(K_S + S)$, plus noise. The network never sees that law.
+  Monod law $\mu = \mu_\text{max} S/(K_S + S)$, plus noise. A reading below zero is recorded as
+  zero. The network never sees that law.
 
 ```{figure} figures/fedbatch-mu.png
 :alt: Growth rate against substrate concentration. The gray true law, labeled hidden, mu = 0 at S = 0, rises from zero and levels off near 0.18 per hour. An orange path, the learned growth rate along the new batch, comes down from S = 7 close to the gray curve and crosses S = 0 at a red dot at 0.020 per hour, labeled at S = 0 the network still says mu = 0.020 1/h, the cells keep growing, and continues into a shaded region of negative S labeled impossible.
@@ -757,7 +758,7 @@ The learned growth rate along the new batch.
 ```
 
 - **Takeaway**: the network learned $\mu$ well where the data were. It was never told that cells
-  cannot grow without substrate, so at $S = 0$ (36 h on the new batch) it still gives
+  cannot grow without substrate, so at $S = 0$ (38 h on the new batch) it still gives
   $\mu = 0.020$ 1/h, and the balances drive $S$ below zero.
 - The balances hold the whole time. **Nothing in the model says that $S$ cannot be negative.**
 
@@ -1116,7 +1117,7 @@ cells, 7 g/L of substrate and 0.9 L, and runs for 60 h, 20 h past the training b
 <div class="cw" data-widget="fedbatch-run" data-source="l13"></div>
 
 ```{figure} figures/fedbatch-inference.png
-:alt: Substrate concentration over 60 hours for a new batch. The gray true mechanistic model falls from 7 to about 0.07 g/L by 25 hours and stays there. The orange sequential approach, neural ODE, follows it, crosses zero at 36 hours and falls to minus 0.41 g/L at 60 hours inside a red band labeled negative concentration, physically impossible. The dashed blue neural DAE stays at or just above zero throughout.
+:alt: Substrate concentration over 60 hours for a new batch. The gray true mechanistic model falls from 7 to about 0.07 g/L by 25 hours and stays there. The orange sequential approach, neural ODE, follows it, crosses zero at 38 hours and falls to minus 0.37 g/L at 60 hours inside a red band labeled negative concentration, physically impossible. The dashed blue neural DAE stays at or just above zero throughout.
 :width: 100%
 
 The new batch: the true mechanistic model, the neural ODE and the neural DAE.
@@ -1124,10 +1125,10 @@ The new batch: the true mechanistic model, the neural ODE and the neural DAE.
 
 | New batch, 60 h | True mechanistic model | Sequential approach / neural ODE | Neural DAE |
 |---|---|---|---|
-| Lowest substrate $S$ | 0.07 g/L | **−0.41 g/L** | 0.04 g/L |
-| Hours with $S < 0$ | 0 | **24** | 0 |
-| Substrate error (RMSE) | | 0.20 g/L | 0.29 g/L |
-| Biomass $X$ at 60 h | 3.51 g/L | 3.75 g/L | 3.53 g/L |
+| Lowest substrate $S$ | 0.07 g/L | **−0.37 g/L** | 0.05 g/L |
+| Hours with $S < 0$ | 0 | **22** | 0 |
+| Substrate error (RMSE) | | 0.19 g/L | 0.30 g/L |
+| Biomass $X$ at 60 h | 3.51 g/L | 3.73 g/L | 3.50 g/L |
 
 - In prediction, SiNDAE lets the solver move the growth rate away from the network's value only
   where a constraint would otherwise break, at a price set by `slack_coef`.
@@ -1270,7 +1271,6 @@ simul_config = SimultaneousConfig(
 solver_options = SolverConfig(
     tol=1e-6,
     max_iter=1000,
-    hessian_approximation="limited-memory",
 )
 ```
 
@@ -1278,7 +1278,8 @@ solver_options = SolverConfig(
   smooth, as the interior-point solver needs.
 - `SmootherConfig`, `PretrainConfig` and `SimultaneousConfig` are the three stages above.
 - `use_gbm=True` hands the network to the solver as an external function evaluated in JAX, so
-  the solver approximates the second derivatives with L-BFGS (`"limited-memory"`).
+  SiNDAE approximates the second derivatives of that solve with L-BFGS. The smoother has no
+  network and uses exact second derivatives.
 
 **Training.** Attach the measurements of the three batches, then fit:
 
@@ -1313,7 +1314,7 @@ model.fit(problem)
 
 - Training uses 40 finite elements of 3 collocation points over 40 h; this grid need not match
   the 31 samples.
-- `fit` runs the smoother, the pretraining and the full NLP, solved by POUNCE. About a minute.
+- `fit` runs the smoother, the pretraining and the full NLP, solved by POUNCE. About 30 s.
 
 **Prediction** on the new batch:
 
@@ -1616,7 +1617,8 @@ The notebooks add the data and the plots around them.
   goes to zero, the steps converge to the ODE's solution. A neural ODE learns the **vector
   field**, and a differentiable solver gives its gradients.
 - A neural ODE of the bioreactor, trained sequentially, fits three batches and predicts
-  **−0.41 g/L** of substrate on a new one. A purely data-driven model does worse: **−0.85 g/L**.
+  **−0.37 g/L** of substrate on a new one. A purely data-driven model does worse: **−0.43 g/L**,
+  and a biomass error of 0.43 g/L.
 - Some physics must be **enforced**: balances, safety limits, bounds. **Path constraints** and
   **DAEs** hold at every instant.
 - The **sequential** approach simulates at every iterate. The **simultaneous** approach
