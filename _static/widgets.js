@@ -1449,65 +1449,74 @@
     p.set(0);
   };
 
-  /* A projection layer on a split: the two outlet flows must add up to the inlet
-   * flow. Drag the raw network output; the layer returns the closest point on
-   * the line. No data. */
+  /* A projection layer on a heat exchanger's energy balance: the heat the hot water gives
+   * up must equal the heat the cold water takes. Drag the raw network output; the layer
+   * returns the closest point on the balance line. The hot-water flow sets the line. */
   WIDGETS.projection = function (root) {
-    var F = 10, raw = [6.6, 6.0];
-    var PRESETS = [[6.6, 6.0], [2.0, 4.0], [9.0, 4.5], [3.0, 9.5], [5.0, 5.0]], pi = 0;
-    var W = 720, H = 320, L = 40, S0 = 290;
-    html('div', { class: 'cw-title' }, root, 'A projection layer moves the raw output to the nearest point that obeys the balance');
-    var svg = svgRoot(root, W, H, 'Orthogonal projection of a raw network output onto a mass-balance line');
+    var TH = 90, TC = 20, MC = 1.0, CP = 4.18, mh = 1.0, raw = [62, 58];
+    var PRESETS = [[62, 58], [45, 40], [80, 50], [35, 75], [55, 55]], pi = 0;
+    var W = 720, H = 330, L = 46, S0 = 300;
+    html('div', { class: 'cw-title' }, root, 'A projection layer moves the raw output to the nearest point that obeys the energy balance');
+    var svg = svgRoot(root, W, H, 'Orthogonal projection of raw outlet temperatures onto the energy-balance line of a heat exchanger');
     var controls = html('div', { class: 'cw-controls' }, root);
     var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
     html('div', { class: 'cw-note' }, root,
-      'A splitter with inlet flow F = 10: the outlet flows must satisfy y1 + y2 = 10, that is A y = b with A = [1 1] and b = 10. ' +
-      'Drag the orange point, or press Step. The correction is the same matrix times the violation, so it is one fixed linear layer.');
+      'Counterflow heat exchanger: hot water in at 90 °C, cold water in at 20 °C and 1 kg/s. The outlet temperatures must satisfy ' +
+      'ṁh (90 − Th,out) = ṁc (Tc,out − 20), a line a·y = b with a = (ṁh, ṁc). Drag the orange point, press Step, or change the ' +
+      'hot-water flow: a and b change, the layer stays linear.');
     var step = html('button', { type: 'button' }, controls, 'Step');
     step.onclick = function () { pi = (pi + 1) % PRESETS.length; raw = PRESETS[pi].slice(); draw(); };
-    var sx = scale(0, 12, L, L + S0 - 20), sy = scale(0, 12, S0, 10);
+    var lab = html('label', {}, controls, 'hot-water flow ');
+    var flow = html('input', { type: 'range', min: 0.3, max: 2.0, step: 0.05, value: mh, 'aria-label': 'hot-water flow' }, lab);
+    var flowOut = html('span', {}, lab, ' ' + mh.toFixed(2) + ' kg/s');
+    flow.oninput = function () { mh = parseFloat(flow.value); flowOut.textContent = ' ' + mh.toFixed(2) + ' kg/s'; draw(); };
+    var sx = scale(20, 90, L, L + S0 - 20), sy = scale(20, 90, S0, 10);
     var dragging = false;
     function toData(evt) {
       var pt = svg.createSVGPoint();
       pt.x = evt.clientX; pt.y = evt.clientY;
       var q = pt.matrixTransform(svg.getScreenCTM().inverse());
-      return [Math.max(0, Math.min(12, (q.x - L) / (S0 - 20) * 12)), Math.max(0, Math.min(12, (S0 - q.y) / (S0 - 10) * 12))];
+      return [Math.max(20, Math.min(90, 20 + (q.x - L) / (S0 - 20) * 70)), Math.max(20, Math.min(90, 20 + (S0 - q.y) / (S0 - 10) * 70))];
     }
     svg.addEventListener('pointerdown', function (e) { dragging = true; raw = toData(e); draw(); });
     svg.addEventListener('pointermove', function (e) { if (dragging) { raw = toData(e); draw(); } });
     window.addEventListener('pointerup', function () { dragging = false; });
 
+    function duties(y) { return [mh * CP * (TH - y[0]), MC * CP * (y[1] - TC)]; }
     function draw() {
       clear(svg);
-      [0, 2, 4, 6, 8, 10, 12].forEach(function (v) {
-        el('line', { x1: sx(v), x2: sx(v), y1: sy(0), y2: sy(12), stroke: 'currentColor', 'stroke-opacity': 0.06 }, svg);
-        el('line', { x1: sx(0), x2: sx(12), y1: sy(v), y2: sy(v), stroke: 'currentColor', 'stroke-opacity': 0.06 }, svg);
-        text(svg, sx(v), sy(0) + 14, String(v), { 'text-anchor': 'middle', 'font-size': 10, opacity: 0.7 });
-        text(svg, sx(0) - 6, sy(v) + 4, String(v), { 'text-anchor': 'end', 'font-size': 10, opacity: 0.7 });
+      [20, 30, 40, 50, 60, 70, 80, 90].forEach(function (v) {
+        el('line', { x1: sx(v), x2: sx(v), y1: sy(20), y2: sy(90), stroke: 'currentColor', 'stroke-opacity': 0.06 }, svg);
+        el('line', { x1: sx(20), x2: sx(90), y1: sy(v), y2: sy(v), stroke: 'currentColor', 'stroke-opacity': 0.06 }, svg);
+        text(svg, sx(v), sy(20) + 14, String(v), { 'text-anchor': 'middle', 'font-size': 10, opacity: 0.7 });
+        text(svg, sx(20) - 6, sy(v) + 4, String(v), { 'text-anchor': 'end', 'font-size': 10, opacity: 0.7 });
       });
-      text(svg, sx(6), sy(0) + 28, 'outlet flow y1', { 'text-anchor': 'middle', 'font-size': 11 });
-      text(svg, 10, sy(6), 'y2', { 'font-size': 11 });
-      el('line', { x1: sx(0), y1: sy(F), x2: sx(F), y2: sy(0), stroke: 'var(--cw-green)', 'stroke-width': 3 }, svg);
-      text(svg, sx(0.3), sy(11.1), 'y1 + y2 = 10', { 'font-size': 12, style: 'fill:' + 'var(--cw-green)' });
-      var viol = raw[0] + raw[1] - F, proj = [raw[0] - viol / 2, raw[1] - viol / 2];
+      text(svg, sx(55), sy(20) + 28, 'hot-water outlet Th,out (°C)', { 'text-anchor': 'middle', 'font-size': 11 });
+      text(svg, 4, sy(92) + 4, 'Tc,out (°C)', { 'font-size': 11 });
+      var b = mh * TH + MC * TC, aa = mh * mh + MC * MC;
+      var cpl = clipTo(svg, sx(20), sy(90), sx(90) - sx(20), sy(20) - sy(90));
+      el('line', { x1: sx(20), y1: sy((b - mh * 20) / MC), x2: sx(90), y2: sy((b - mh * 90) / MC), stroke: 'var(--cw-green)', 'stroke-width': 3, 'clip-path': cpl }, svg);
+      text(svg, sx(22), sy(23), 'energy balance: heat given up = heat taken', { 'font-size': 11.5, style: 'fill:var(--cw-green)' });
+      var v = mh * raw[0] + MC * raw[1] - b, proj = [raw[0] - mh * v / aa, raw[1] - MC * v / aa];
       el('line', { x1: sx(raw[0]), y1: sy(raw[1]), x2: sx(proj[0]), y2: sy(proj[1]), stroke: 'currentColor', 'stroke-width': 1.6, 'stroke-dasharray': '5 3' }, svg);
-      el('circle', { cx: sx(proj[0]), cy: sy(proj[1]), r: 8, fill: 'var(--cw-accent)' }, svg);
+      el('circle', { cx: sx(proj[0]), cy: sy(proj[1]), r: 8, fill: 'var(--cw-accent)', 'clip-path': cpl }, svg);
       el('circle', { cx: sx(raw[0]), cy: sy(raw[1]), r: 9, fill: 'var(--cw-accent2)', class: 'hot' }, svg);
-      var x0 = 360, rows = [
-        ['raw output ỹ', '(' + raw[0].toFixed(2) + ', ' + raw[1].toFixed(2) + ')', 'var(--cw-accent2)'],
-        ['violation Aỹ − b', (raw[0] + raw[1]).toFixed(2) + ' − 10 = ' + viol.toFixed(2), RED],
-        ['correction Aᵀ(AAᵀ)⁻¹(Aỹ − b)', '(1, 1) × ' + viol.toFixed(2) + ' / 2', 'currentColor'],
-        ['projected y', '(' + proj[0].toFixed(2) + ', ' + proj[1].toFixed(2) + ')', 'var(--cw-accent)'],
-        ['check: y1 + y2', (proj[0] + proj[1]).toFixed(2), 'var(--cw-green)']
+      var qr = duties(raw), qp = duties(proj), gap = qr[1] - qr[0];
+      var x0 = 380, rows = [
+        ['raw output ỹ = (Th,out, Tc,out)', '(' + raw[0].toFixed(1) + ', ' + raw[1].toFixed(1) + ') °C', 'var(--cw-accent2)'],
+        ['heat given up, heat taken', qr[0].toFixed(1) + ' kW, ' + qr[1].toFixed(1) + ' kW', gap > 0 ? RED : 'currentColor'],
+        ['violation v = aᵀỹ − b', v.toFixed(2) + (Math.abs(gap) < 0.05 ? '' : gap > 0 ? '  (energy from nothing)' : '  (energy lost)'), RED],
+        ['projected y = ỹ − a v / (aᵀa)', '(' + proj[0].toFixed(1) + ', ' + proj[1].toFixed(1) + ') °C', 'var(--cw-accent)'],
+        ['check: heat given up, heat taken', qp[0].toFixed(1) + ' kW, ' + qp[1].toFixed(1) + ' kW', 'var(--cw-green)']
       ];
-      text(svg, x0, 40, 'y = ỹ − Aᵀ(AAᵀ)⁻¹(Aỹ − b)', { 'font-size': 15, 'font-weight': 600 });
+      text(svg, x0, 36, 'y = ỹ − a (aᵀỹ − b) / (aᵀa)', { 'font-size': 15, 'font-weight': 600 });
       rows.forEach(function (r, j) {
-        text(svg, x0, 82 + 40 * j, r[0], { 'font-size': 12, opacity: 0.8 });
-        text(svg, x0, 99 + 40 * j, r[1], { 'font-size': 14, style: 'fill:' + r[2], 'font-weight': 600 });
+        text(svg, x0, 76 + 46 * j, r[0], { 'font-size': 12, opacity: 0.8 });
+        text(svg, x0, 94 + 46 * j, r[1], { 'font-size': 14, style: 'fill:' + r[2], 'font-weight': 600 });
       });
-      readout.textContent = 'Raw output (' + raw[0].toFixed(2) + ', ' + raw[1].toFixed(2) + ') breaks the balance by ' +
-        viol.toFixed(2) + '. The layer subtracts half of that from each flow, giving (' + proj[0].toFixed(2) + ', ' +
-        proj[1].toFixed(2) + '), which adds up to ' + (proj[0] + proj[1]).toFixed(2) + '.';
+      readout.textContent = 'Raw output: the hot water gives up ' + qr[0].toFixed(1) + ' kW and the cold water takes ' + qr[1].toFixed(1) +
+        ' kW, ' + (Math.abs(gap) < 0.05 ? 'which balances.' : (gap > 0 ? Math.abs(gap).toFixed(1) + ' kW of energy from nothing.' : Math.abs(gap).toFixed(1) + ' kW lost to nowhere.')) +
+        ' After the layer: (' + proj[0].toFixed(1) + ', ' + proj[1].toFixed(1) + ') °C, ' + qp[0].toFixed(1) + ' kW given up and ' + qp[1].toFixed(1) + ' kW taken.';
     }
     draw();
   };
@@ -1943,68 +1952,64 @@
    * Left: the outputs in the (y1, y2) plane. Right: how far each network's
    * outputs break the balance, epoch by epoch, with and without the layer. */
   WIDGETS['proj-train'] = function (root, data) {
-    var d = data.proj, Fr = d.frames, nF = Fr.length, F = d.F;
+    var d = data.proj, Fr = d.frames, nF = Fr.length;
     var W = 720, H = 350;
-    html('div', { class: 'cw-title' }, root, 'Training with a projection layer: every output obeys the balance, at every epoch');
-    var svg = svgRoot(root, W, H, 'Architecture of a network with a projection layer, its outputs during training, and the balance violation');
+    html('div', { class: 'cw-title' }, root, 'Training with a projection layer: no energy from nothing, at any epoch');
+    var svg = svgRoot(root, W, H, 'Architecture of a network with a projection layer, the energy imbalance of its predictions during training, and the largest imbalance against epoch');
     var controls = html('div', { class: 'cw-controls' }, root);
     var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
     html('div', { class: 'cw-note' }, root,
-      'A splitter with feed F = 10 and a control input u. The network maps u to the two outlet flows. 40 measurements with ' +
-      'noise SD 0.4 on each flow, so the measurements themselves break the balance. Both networks: 2 hidden layers of 16 tanh ' +
-      'units, same starting weights, Adam with learning rate 0.01.');
+      'A counterflow heat exchanger, water on both sides: hot water in at 90 °C, cold water in at 20 °C and 1 kg/s. The network ' +
+      'maps the hot-water flow to the two outlet temperatures. 40 measurements with noise SD 1 °C on each temperature, so the ' +
+      'measurements themselves break the energy balance. Both networks: 2 hidden layers of 16 tanh units, same starting weights, ' +
+      'Adam with learning rate 0.01.');
     // architecture strip
-    var boxes = [['input u', 8, 78], ['network', 102, 208], ['raw ỹ', 232, 302], ['projection', 326, 456], ['y', 480, 530], ['loss vs data', 554, 712]];
+    var boxes = [['flow ṁh', 8, 78], ['network', 102, 208], ['raw ỹ', 232, 302], ['projection', 326, 456], ['y', 480, 530], ['loss vs data', 554, 712]];
     var by = 12, bh = 34;
     boxes.forEach(function (b, i) {
       el('rect', { x: b[1], y: by, width: b[2] - b[1], height: bh, rx: 6, fill: i === 3 ? 'var(--cw-green)' : 'currentColor', 'fill-opacity': i === 3 ? 0.22 : 0.06, stroke: i === 3 ? 'var(--cw-green)' : 'currentColor', 'stroke-opacity': 0.6 }, svg);
       text(svg, (b[1] + b[2]) / 2, by + 22, b[0], { 'text-anchor': 'middle', 'font-size': 13, 'font-weight': i === 3 ? 700 : 400 });
       if (i < boxes.length - 1) el('line', { x1: b[2] + 2, x2: boxes[i + 1][1] - 4, y1: by + bh / 2, y2: by + bh / 2, stroke: 'currentColor', 'stroke-width': 1.6 }, svg);
     });
-    text(svg, 391, by + bh + 13, 'y = ỹ − Aᵀ(AAᵀ)⁻¹(Aỹ − b): fixed, no weights', { 'text-anchor': 'middle', 'font-size': 10.5, opacity: 0.85 });
+    text(svg, 391, by + bh + 13, 'y = ỹ − a(aᵀỹ − b)/(aᵀa): linear, no weights', { 'text-anchor': 'middle', 'font-size': 10.5, opacity: 0.85 });
     el('path', { d: 'M 633 ' + (by + bh) + ' L 633 ' + (by + bh + 26) + ' L 155 ' + (by + bh + 26) + ' L 155 ' + (by + bh + 2), fill: 'none', stroke: RED, 'stroke-width': 1.6, 'stroke-dasharray': '5 3' }, svg);
     text(svg, 180, by + bh + 22, 'gradient ∂L/∂θ, back through the projection', { 'font-size': 10.5, style: 'fill:' + RED });
     var pulse = el('circle', { r: 5.5, fill: 'var(--cw-accent2)', opacity: 0 }, svg);
-    // output plane
-    var X0 = 50, X1 = 300, Y0 = 108, Y1 = 318;
-    var px = scale(1.5, 8.8, X0, X1), py = scale(1.2, 8.5, Y1, Y0);
+    // energy imbalance against the hot-water flow
+    var X0 = 56, X1 = 380, Y0 = 108, Y1 = 300;
+    var px = scale(0.2, 2.0, X0, X1), py = scale(-20, 20, Y1, Y0);
+    el('rect', { x: X0, y: py(20), width: X1 - X0, height: py(0) - py(20), fill: RED, 'fill-opacity': 0.06 }, svg);
+    el('rect', { x: X0, y: py(0), width: X1 - X0, height: py(-20) - py(0), fill: 'var(--cw-accent)', 'fill-opacity': 0.05 }, svg);
     el('rect', { x: X0, y: Y0, width: X1 - X0, height: Y1 - Y0, fill: 'none', stroke: 'currentColor', 'stroke-opacity': 0.25 }, svg);
     var cpl = clipTo(svg, X0, Y0, X1 - X0, Y1 - Y0);
-    el('line', { x1: px(1.5), y1: py(F - 1.5), x2: px(F - 1.2), y2: py(1.2), stroke: 'var(--cw-green)', 'stroke-width': 3, 'clip-path': cpl }, svg);
-    text(svg, px(5.3), py(7.9), 'y1 + y2 = 10', { 'font-size': 12, style: 'fill:var(--cw-green)' });
-    [2, 4, 6, 8].forEach(function (v) {
-      text(svg, px(v), Y1 + 13, String(v), { 'text-anchor': 'middle', 'font-size': 10, opacity: 0.7 });
-      text(svg, X0 - 5, py(v) + 4, String(v), { 'text-anchor': 'end', 'font-size': 10, opacity: 0.7 });
-    });
-    text(svg, (X0 + X1) / 2, Y1 + 27, 'outlet flow y1', { 'text-anchor': 'middle', 'font-size': 11 });
-    text(svg, X0 - 26, Y0 - 4, 'y2', { 'font-size': 11 });
-    d.meas[0].forEach(function (v, i) { el('circle', { cx: px(v), cy: py(d.meas[1][i]), r: 2.6, fill: 'currentColor', 'fill-opacity': 0.4, 'clip-path': cpl }, svg); });
-    var dyn = el('g', { 'clip-path': cpl }, svg);
-    var segs = [], raws = [], outs = [];
-    for (var i = 0; i < d.u.length; i++) {
-      segs.push(el('line', { stroke: 'currentColor', 'stroke-opacity': 0.35, 'stroke-width': 0.8 }, dyn));
-      raws.push(el('circle', { r: 3, fill: 'var(--cw-accent2)' }, dyn));
-      outs.push(el('circle', { r: 3, fill: 'var(--cw-accent)' }, dyn));
-    }
-    var lx = X1 + 12;
-    [['measured', 'currentColor', 0.4], ['raw ỹ', 'var(--cw-accent2)', 1], ['projected y', 'var(--cw-accent)', 1]].forEach(function (q, j) {
-      el('circle', { cx: lx + 4, cy: Y0 + 8 + 16 * j, r: 3.5, fill: q[1], 'fill-opacity': q[2] }, svg);
-      text(svg, lx + 12, Y0 + 12 + 16 * j, q[0], { 'font-size': 10.5 });
+    text(svg, X1 - 6, py(16), 'energy from nothing', { 'text-anchor': 'end', 'font-size': 11, style: 'fill:' + RED });
+    text(svg, X1 - 6, py(-17), 'energy lost to nowhere', { 'text-anchor': 'end', 'font-size': 11, style: 'fill:var(--cw-accent)' });
+    [-20, -10, 0, 10, 20].forEach(function (v) { text(svg, X0 - 5, py(v) + 4, String(v), { 'text-anchor': 'end', 'font-size': 10, opacity: 0.7 }); });
+    [0.5, 1.0, 1.5, 2.0].forEach(function (v) { text(svg, px(v), Y1 + 13, v.toFixed(1), { 'text-anchor': 'middle', 'font-size': 10, opacity: 0.7 }); });
+    text(svg, (X0 + X1) / 2, Y1 + 27, 'hot-water flow (kg/s)', { 'text-anchor': 'middle', 'font-size': 11 });
+    text(svg, X0, Y0 - 6, 'Qc − Qh (kW): heat taken − heat given up', { 'font-size': 11 });
+    d.u.forEach(function (u, i) { el('circle', { cx: px(u), cy: py(d.meas[i]), r: 2.6, fill: 'currentColor', 'fill-opacity': 0.4, 'clip-path': cpl }, svg); });
+    var plainLine = el('polyline', { fill: 'none', stroke: 'var(--cw-accent2)', 'stroke-width': 2.2, 'clip-path': cpl }, svg);
+    var projLine = el('polyline', { fill: 'none', stroke: 'var(--cw-accent)', 'stroke-width': 2.2, 'stroke-dasharray': '6 4', 'clip-path': cpl }, svg);
+    var lx = X0 + 8;
+    [['measured', 'currentColor', 0.4], ['plain network', 'var(--cw-accent2)', 1], ['with the layer', 'var(--cw-accent)', 1]].forEach(function (q, j) {
+      el('circle', { cx: lx + 4, cy: Y0 + 12 + 15 * j, r: 3.5, fill: q[1], 'fill-opacity': q[2] }, svg);
+      text(svg, lx + 12, Y0 + 16 + 15 * j, q[0], { 'font-size': 10.5 });
     });
     // violation chart
     var CX0 = 470, CX1 = 706, CY0 = 112, CY1 = 300;
-    var cxs = scale(0, Math.log10(2000), CX0, CX1), cys = scale(-16, 1, CY1, CY0);
+    var cxs = scale(0, Math.log10(2000), CX0, CX1), cys = scale(-14, 3, CY1, CY0);
     function ex(e) { return cxs(Math.log10(Math.max(1, e))); }
     el('rect', { x: CX0, y: CY0, width: CX1 - CX0, height: CY1 - CY0, fill: 'none', stroke: 'currentColor', 'stroke-opacity': 0.25 }, svg);
-    [0, -4, -8, -12, -16].forEach(function (v) { text(svg, CX0 - 5, cys(v) + 4, '1e' + v, { 'text-anchor': 'end', 'font-size': 10, opacity: 0.7 }); });
+    [2, -2, -6, -10, -14].forEach(function (v) { text(svg, CX0 - 5, cys(v) + 4, '1e' + v, { 'text-anchor': 'end', 'font-size': 10, opacity: 0.7 }); });
     [1, 10, 100, 1000].forEach(function (v) { text(svg, ex(v), CY1 + 13, String(v), { 'text-anchor': 'middle', 'font-size': 10, opacity: 0.7 }); });
     text(svg, (CX0 + CX1) / 2, CY1 + 27, 'training epoch', { 'text-anchor': 'middle', 'font-size': 11 });
-    text(svg, CX0, CY0 - 6, 'largest |y1 + y2 − F|', { 'font-size': 11 });
+    text(svg, CX0, CY0 - 6, 'largest |Qc − Qh| (kW)', { 'font-size': 11 });
     var Fe = Fr.slice(1);
     polyline(svg, Fe.map(function (f) { return ex(f.epoch); }), Fe.map(function (f) { return cys(Math.log10(f.plain_viol)); }), { stroke: 'var(--cw-accent2)', 'stroke-width': 2 });
     polyline(svg, Fe.map(function (f) { return ex(f.epoch); }), Fe.map(function (f) { return cys(Math.log10(Math.max(f.viol, 1e-16))); }), { stroke: 'var(--cw-accent)', 'stroke-width': 2 });
-    text(svg, CX1 - 4, cys(0.3) - 4, 'without the layer', { 'text-anchor': 'end', 'font-size': 10.5, style: 'fill:var(--cw-accent2)' });
-    text(svg, CX1 - 4, cys(-14.5) - 6, 'with the layer: machine precision', { 'text-anchor': 'end', 'font-size': 10.5, style: 'fill:var(--cw-accent)' });
+    text(svg, CX1 - 4, cys(2.4) - 4, 'without the layer', { 'text-anchor': 'end', 'font-size': 10.5, style: 'fill:var(--cw-accent2)' });
+    text(svg, CX1 - 4, cys(-11.5) - 6, 'with the layer: machine precision', { 'text-anchor': 'end', 'font-size': 10.5, style: 'fill:var(--cw-accent)' });
     var cur = el('line', { y1: CY0, y2: CY1, stroke: 'currentColor', 'stroke-opacity': 0.5, 'stroke-dasharray': '3 3' }, svg);
     var pRaf = null, pStart = null;
     function pulseLoop(now) {
@@ -2021,23 +2026,18 @@
       if (on && !pRaf) pRaf = requestAnimationFrame(pulseLoop);
       if (!on && pRaf) { cancelAnimationFrame(pRaf); pRaf = null; pStart = null; pulse.setAttribute('opacity', 0); }
     });
+    function pts(us, vs) { return us.map(function (u, j) { return px(u) + ',' + py(vs[j]); }).join(' '); }
     function draw(q) {
       var i = Math.min(nF - 2, Math.floor(q)), w = q - i, a = Fr[i], b = Fr[i + 1];
-      var r0 = lerpArr(a.raw[0], b.raw[0], w), r1 = lerpArr(a.raw[1], b.raw[1], w);
-      var o0 = lerpArr(a.out[0], b.out[0], w), o1 = lerpArr(a.out[1], b.out[1], w);
-      for (var j = 0; j < r0.length; j++) {
-        segs[j].setAttribute('x1', px(r0[j])); segs[j].setAttribute('y1', py(r1[j]));
-        segs[j].setAttribute('x2', px(o0[j])); segs[j].setAttribute('y2', py(o1[j]));
-        raws[j].setAttribute('cx', px(r0[j])); raws[j].setAttribute('cy', py(r1[j]));
-        outs[j].setAttribute('cx', px(o0[j])); outs[j].setAttribute('cy', py(o1[j]));
-      }
+      plainLine.setAttribute('points', pts(d.ute, lerpArr(a.plain_imb, b.plain_imb, w)));
+      projLine.setAttribute('points', pts(d.ute, lerpArr(a.imb, b.imb, w)));
       var ep = lerp(a.epoch, b.epoch, w);
       cur.setAttribute('x1', ex(ep));
       cur.setAttribute('x2', ex(ep));
       var f = w < 0.5 ? a : b;
-      readout.textContent = 'Epoch ' + Math.round(ep) + ': error against the true flows, with the layer ' + f.rmse.toFixed(3) +
-        ', without ' + f.plain_rmse.toFixed(3) + '. Largest balance violation, with the layer ' + sci(Math.max(f.viol, 1e-16)) +
-        ', without ' + f.plain_viol.toFixed(3) + '.';
+      readout.textContent = 'Epoch ' + Math.round(ep) + ': error in the outlet temperatures, with the layer ' + f.rmse.toFixed(2) +
+        ' °C, without ' + f.plain_rmse.toFixed(2) + ' °C. Largest energy imbalance, with the layer ' + sci(Math.max(f.viol, 1e-16)) +
+        ' kW, without ' + f.plain_viol.toFixed(2) + ' kW.';
     }
     p.set(nF - 1);
   };

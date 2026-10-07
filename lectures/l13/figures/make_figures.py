@@ -26,20 +26,24 @@ what each writes:
                 the slides), and a neural DAE trained with SiNDAE's example settings (its
                 smoother and pretraining stages drawn); then a new batch, 60 h, predicted by
                 all three. About 3 minutes.
-    projection  projection-train.png, and the "proj" entry: a network with and without a
-                projection layer onto a splitter's mass balance, trained with Adam on 40
-                noisy samples, recorded at 44 epochs.
+    projection  projection-train.png, and the "proj" entry: a network that predicts a
+                counterflow heat exchanger's two outlet temperatures from the hot-water flow,
+                with and without a projection layer onto the energy balance, trained with Adam
+                on 40 noisy samples, recorded at 44 epochs.
     pictures    collocation.png, pinn-mini.png, loop-*.png and seq-loop.png (the sequential
                 loop), final-seq.png and final-sim.png, disc-1.png to disc-5.png (from one
                 simulated curve to a discretized NLP), collocation-poly.png
-                (Lagrange polynomials on finite elements). Drawn from the cached pinn and seqsim
+                (collocation on finite elements, solved for the spring-mass). Drawn from the cached pinn and seqsim
                 results; run those first.
     examples    ex-pendulum.png, ex-heat.png, ex-cstr.png, ex-tank.png and sciml-examples.png:
                 four mechanistic models, each with one closure term.
     vectorfield resnet-vs-ode.png: fixed residual steps against a vector field, after Fig. 1
                 of Chen et al. (2018).
-    diagrams    projection.png (a projection layer onto a mass balance), splitter.png (the
-                splitter the projection-layer example models).
+    diagrams    projection.png (a projection layer onto the energy balance), heat-exchanger.png
+                (the counterflow heat exchanger the projection-layer example models).
+                beyond-gp.png, beyond-sindy.png, beyond-symreg.png, beyond-trees.png: small
+                pictures of a Gaussian process, sparse regression, an expression tree and a
+                decision tree, for the slide on learners other than neural networks.
     schematics  tank-manifold.png (Fig. 1 of Lueg et al. 2026, CC BY 4.0, redrawn at a readable
                 size), spring-mass.png (the PINN example), card-neural-ode.png (the deck's
                 neural ODE card), and, from Victor Alves's decks (shared with his permission):
@@ -938,53 +942,134 @@ def nn_glyph(ax, x0, y0, w, h, color):
 
 def group_diagrams():
     with plt.rc_context(STYLE):
-        # ---- a projection layer
+        # ---- a projection layer onto the energy balance, for one hot-water flow
         fig, ax = plt.subplots(figsize=(7.2, 6.2))
-        ax.set_xlim(0, 10)
-        ax.set_ylim(0, 10)
+        mh = 1.0
+        bal = mh * HX["Th_in"] + HX["mc"] * HX["Tc_in"]     # m_h T_h,out + m_c T_c,out = bal
+        ax.set_xlim(40, 75)
+        ax.set_ylim(40, 75)
         ax.set_aspect("equal")
-        xs = np.linspace(0, 10, 2)
-        ax.plot(xs, 10 - xs, color=GREEN, lw=3)
-        ax.text(2.6, 1.6, "$y_1 + y_2 = F_\\mathrm{in}$\n(mass balance)", color=GREEN,
-                ha="center")
-        raw = np.array([6.6, 6.0])
-        proj = raw - (raw.sum() - 10) / 2 * np.ones(2)
+        xs = np.linspace(40, 75, 2)
+        ax.plot(xs, (bal - mh * xs) / HX["mc"], color=GREEN, lw=3)
+        ax.text(50, 43.5, "energy balance:\nheat given up = heat taken", color=GREEN, ha="center")
+        raw = np.array([63.0, 60.0])
+        a_ = np.array([mh, HX["mc"]])
+        proj = raw - a_ * (a_ @ raw - bal) / (a_ @ a_)
         ax.plot(*raw, "o", color=ORANGE, ms=13)
-        ax.text(raw[0] + 0.3, raw[1] + 0.3, "raw network output $\\tilde y$", color=ORANGE)
+        ax.text(raw[0] + 0.6, raw[1] + 0.6, "raw network output", color=ORANGE)
         ax.plot(*proj, "o", color=BLUE, ms=13)
-        ax.text(proj[0] - 0.4, proj[1] - 0.9, "projected output $y$", color=BLUE, ha="right")
+        ax.text(proj[0] - 0.8, proj[1] - 1.8, "projected output", color=BLUE, ha="right")
         ax.add_patch(FancyArrowPatch(raw, proj, arrowstyle="-|>", mutation_scale=22,
                                      color=INK, lw=2, shrinkA=8, shrinkB=8))
-        ax.text(6.3, 4.4, "closest point\non the line", fontsize=13, color=MUTED)
-        ax.set_xlabel("outlet flow $y_1$")
-        ax.set_ylabel("outlet flow $y_2$")
+        ax.text(62.5, 53.5, "closest point\non the line", fontsize=13, color=MUTED)
+        ax.set_xlabel("hot-water outlet $T_{h,out}$ (°C)")
+        ax.set_ylabel("cold-water outlet $T_{c,out}$ (°C)")
         save(fig, "projection.png")
 
-        # ---- the splitter the projection-layer example models
-        fig, ax = plt.subplots(figsize=(5.4, 2.9))
+        # ---- the counterflow heat exchanger the projection-layer example models
+        fig, ax = plt.subplots(figsize=(6.4, 3.3))
         ax.set_xlim(0, 10)
-        ax.set_ylim(0.7, 5.7)
+        ax.set_ylim(0.1, 5.6)
         ax.axis("off")
-        pipe = dict(color=INK, lw=9, solid_capstyle="butt")
-        ax.plot([0.4, 4.2], [2.8, 2.8], **pipe)
-        ax.plot([4.2, 4.2], [1.2, 4.4], **pipe)
-        ax.plot([4.2, 8.4], [4.4, 4.4], **pipe)
-        ax.plot([4.2, 8.4], [1.2, 1.2], **pipe)
-        for y0_, lab in ((4.4, "$y_1$"), (1.2, "$y_2$")):
-            ax.annotate("", xy=(9.5, y0_), xytext=(8.3, y0_),
-                        arrowprops=dict(arrowstyle="-|>", color=INK, lw=2.4, mutation_scale=22))
-            ax.text(9.6, y0_, lab, fontsize=22, va="center")
-        ax.annotate("", xy=(1.6, 2.8), xytext=(0.0, 2.8),
-                    arrowprops=dict(arrowstyle="-|>", color=BLUE, lw=2.4, mutation_scale=22))
-        ax.text(0.1, 3.3, "feed $F = 10$", color=BLUE, fontsize=17)
-        vx, vy = 6.3, 4.4
-        ax.fill([vx - 0.45, vx, vx - 0.45], [vy - 0.32, vy, vy + 0.32], fc="white", ec=INK, lw=2.2, zorder=3)
-        ax.fill([vx + 0.45, vx, vx + 0.45], [vy - 0.32, vy, vy + 0.32], fc="white", ec=INK, lw=2.2, zorder=3)
-        ax.plot([vx, vx], [vy, vy + 0.75], color=INK, lw=2.2)
-        ax.text(vx, vy + 0.85, "valve, opening $u$", ha="center", fontsize=17, color=ORANGE)
-        ax.text(4.8, 2.8, "mass balance:\n$y_1 + y_2 = F$", fontsize=17, color=GREEN, va="center",
-                bbox=dict(boxstyle="round", fc="#e8f3e9", ec=GREEN))
-        save(fig, "splitter.png")
+        ax.add_patch(FancyBboxPatch((2.2, 1.6), 5.6, 2.0, boxstyle="round,pad=0.05,rounding_size=0.5",
+                                    fc="#eaf1f8", ec=INK, lw=2.2))
+        ax.plot([0.9, 9.1], [2.6, 2.6], color=CMU_RED, lw=9, solid_capstyle="butt", zorder=3)
+        for x0 in (3.4, 5.0, 6.6):
+            ax.annotate("", xy=(x0 + 0.7, 2.6), xytext=(x0, 2.6), zorder=4,
+                        arrowprops=dict(arrowstyle="-|>", color="white", lw=2, mutation_scale=16))
+        for x0, y0 in ((6.6, 3.15), (5.0, 3.15), (3.4, 3.15), (6.6, 2.05), (5.0, 2.05), (3.4, 2.05)):
+            ax.annotate("", xy=(x0 - 0.7, y0), xytext=(x0, y0),
+                        arrowprops=dict(arrowstyle="-|>", color=BLUE, lw=2, mutation_scale=16))
+        ax.plot([7.3, 7.3], [3.6, 4.5], color=BLUE, lw=6, solid_capstyle="butt")
+        ax.plot([2.7, 2.7], [1.6, 0.7], color=BLUE, lw=6, solid_capstyle="butt")
+        vx, vy = 1.5, 2.6
+        ax.fill([vx - 0.32, vx, vx - 0.32], [vy - 0.3, vy, vy + 0.3], fc="white", ec=INK, lw=2, zorder=5)
+        ax.fill([vx + 0.32, vx, vx + 0.32], [vy - 0.3, vy, vy + 0.3], fc="white", ec=INK, lw=2, zorder=5)
+        ax.plot([vx, vx], [vy, vy + 0.6], color=INK, lw=2)
+        ax.text(0.0, 3.8, "hot water in, 90 °C\nflow $\\dot m_h$: the input", color=CMU_RED, fontsize=18)
+        ax.text(9.15, 2.6, "$T_{h,out}$", color=CMU_RED, fontsize=24, va="center")
+        ax.text(5.6, 4.75, "cold water in,\n20 °C, 1 kg/s", color=BLUE, fontsize=18, ha="left")
+        ax.text(2.9, 0.55, "$T_{c,out}$", color=BLUE, fontsize=24, va="center")
+        save(fig, "heat-exchanger.png")
+
+        # ---- four small pictures: SciML with learners other than neural networks
+        def glyph():
+            fig, ax = plt.subplots(figsize=(3.4, 2.3))
+            return fig, ax
+
+        # a Gaussian process: mean and two-standard-deviation band through a few points
+        fig, ax = glyph()
+        xd = np.array([0.6, 2.0, 3.1, 5.5, 7.2, 8.6])
+        yd = np.sin(xd) + 0.3 * xd / 4
+        xg = np.linspace(0, 10, 200)
+
+        def kern(a, b):
+            return np.exp(-0.5 * (a[:, None] - b[None, :]) ** 2 / 1.1 ** 2)
+
+        Kd = kern(xd, xd) + 1e-4 * np.eye(xd.size)
+        Ks = kern(xg, xd)
+        mean = Ks @ np.linalg.solve(Kd, yd)
+        sd = np.sqrt(np.clip(1 - np.sum(Ks * np.linalg.solve(Kd, Ks.T).T, 1), 0, None))
+        ax.fill_between(xg, mean - 2 * sd, mean + 2 * sd, color=BLUE, alpha=0.18, lw=0)
+        ax.plot(xg, mean, color=BLUE, lw=2.4)
+        ax.plot(xd, yd, "o", color=INK, ms=6)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_xlabel("input", fontsize=12)
+        ax.set_ylabel("unknown term", fontsize=12)
+        save(fig, "beyond-gp.png")
+
+        # sparse regression: a library of candidate terms, only two kept
+        fig, ax = glyph()
+        terms = ["1", "$x$", "$y$", "$x^2$", "$xy$", "$y^2$", "$x^3$", "$x^2y$"]
+        coef = np.array([0, -0.8, 1.6, 0, 0, 0, 0, 0])
+        cols = [BLUE if c else GRAY for c in coef]
+        ax.bar(range(len(terms)), np.where(coef == 0, 0.04, coef), color=cols, width=0.65)
+        ax.axhline(0, color=MUTED, lw=1)
+        ax.set_xticks(range(len(terms)))
+        ax.set_xticklabels(terms, fontsize=11)
+        ax.set_yticks([])
+        ax.set_ylabel("coefficient", fontsize=12)
+        ax.text(5.0, 1.15, "two terms kept,\nthe rest zero", ha="center", fontsize=11, color=BLUE)
+        save(fig, "beyond-sindy.png")
+
+        # symbolic regression: an expression tree, here Monod's law
+        fig, ax = glyph()
+        ax.set_xlim(0, 10)
+        ax.set_ylim(0, 6.6)
+        ax.axis("off")
+        nodes = {"div": (5, 5.6, "÷"), "mul": (2.8, 3.6, "×"), "add": (7.2, 3.6, "+"),
+                 "mu": (1.5, 1.5, r"$\mu_{max}$"), "s1": (4.1, 1.5, "$S$"),
+                 "k": (5.9, 1.5, "$K$"), "s2": (8.5, 1.5, "$S$")}
+        for a_, b_ in (("div", "mul"), ("div", "add"), ("mul", "mu"), ("mul", "s1"),
+                       ("add", "k"), ("add", "s2")):
+            ax.plot([nodes[a_][0], nodes[b_][0]], [nodes[a_][1], nodes[b_][1]], color=MUTED, lw=1.6, zorder=1)
+        for key, (x_, y_, lab) in nodes.items():
+            leaf = key in ("mu", "s1", "k", "s2")
+            ax.add_patch(plt.Circle((x_, y_), 0.8, fc="white" if leaf else "#e8f3e9",
+                                    ec=GREEN, lw=2, zorder=2))
+            ax.text(x_, y_, lab, ha="center", va="center", fontsize=10.5 if key == "mu" else 14,
+                    zorder=3)
+        save(fig, "beyond-symreg.png")
+
+        # a decision tree on the substrate and biomass
+        fig, ax = glyph()
+        ax.set_xlim(0, 10)
+        ax.set_ylim(0, 6.6)
+        ax.axis("off")
+        boxes = {"r": (5, 5.6, "$S < 1.2$?"), "l": (2.4, 3.3, r"$\mu = 0.05$"),
+                 "n": (7.4, 3.3, "$X < 2$?"), "a": (5.6, 1.0, "0.15"), "b": (9.0, 1.0, "0.18")}
+        for a_, b_, lab in (("r", "l", "yes"), ("r", "n", "no"), ("n", "a", "yes"), ("n", "b", "no")):
+            ax.plot([boxes[a_][0], boxes[b_][0]], [boxes[a_][1], boxes[b_][1]], color=MUTED, lw=1.6, zorder=1)
+            ax.text((boxes[a_][0] + boxes[b_][0]) / 2, (boxes[a_][1] + boxes[b_][1]) / 2, lab,
+                    fontsize=10, color=MUTED, ha="center", va="center",
+                    bbox=dict(fc="white", ec="none", pad=0.5), zorder=2)
+        for key, (x_, y_, lab) in boxes.items():
+            leaf = key in ("l", "a", "b")
+            ax.text(x_, y_, lab, ha="center", va="center", fontsize=12.5, zorder=3,
+                    bbox=dict(boxstyle="round,pad=0.4", fc="#fbf3e3" if leaf else "#f7f7f7",
+                              ec="#b07d12" if leaf else MUTED, lw=1.6))
+        save(fig, "beyond-trees.png")
 
 
 # --------------------------------------------------------------------------------------
@@ -1414,24 +1499,44 @@ def group_vectorfield():
 # --------------------------------------------------------------------------------------
 # projection: a network with a projection layer, trained on a splitter's mass balance
 # --------------------------------------------------------------------------------------
+# The projection-layer example: a counterflow heat exchanger, water on both sides. The input
+# is the hot-water flow; the outputs are the two outlet temperatures. The true model is the
+# effectiveness-NTU relation; the network never sees it.
+HX = dict(Th_in=90.0, Tc_in=20.0, mc=1.0, cp=4.18, UA=4.0)   # degC, degC, kg/s, kJ/(kg K), kW/K
+
+
+def hx_outlets(mh):
+    """Outlet temperatures (T_h,out, T_c,out) of the counterflow exchanger for hot flow mh."""
+    mh = np.asarray(mh, dtype=float)
+    Ch, Cc = mh * HX["cp"], HX["mc"] * HX["cp"]
+    Cmin, Cmax = np.minimum(Ch, Cc), np.maximum(Ch, Cc)
+    Cr = Cmin / Cmax
+    ntu = HX["UA"] / Cmin
+    e = np.exp(-ntu * (1 - Cr))
+    with np.errstate(invalid="ignore", divide="ignore"):
+        eps = np.where(np.isclose(Cr, 1.0), ntu / (1 + ntu), (1 - e) / (1 - Cr * e))
+    Q = eps * Cmin * (HX["Th_in"] - HX["Tc_in"])
+    return np.stack([HX["Th_in"] - Q / Ch, HX["Tc_in"] + Q / Cc], -1)
+
+
+def hx_duties(mh, y):
+    """Heat given up by the hot water and taken by the cold water (kW), from (T_h,out, T_c,out)."""
+    y = np.asarray(y)
+    return (np.asarray(mh) * HX["cp"] * (HX["Th_in"] - y[..., 0]),
+            HX["mc"] * HX["cp"] * (y[..., 1] - HX["Tc_in"]))
+
+
 def group_projection():
     import jax
     import jax.numpy as jnp
     import optax
 
     jax.config.update("jax_enable_x64", True)
-    F = 10.0
-    A = jnp.array([[1.0, 1.0]])
     rng = np.random.default_rng(SEED)
-
-    def split(u):                                  # true fraction of the feed to outlet 1
-        return 0.2 + 0.6 / (1 + np.exp(-8 * (u - 0.5)))
-
-    u_tr = np.sort(rng.uniform(0, 1, 40))
-    y_true = np.stack([F * split(u_tr), F * (1 - split(u_tr))], 1)
-    y_meas = y_true + rng.normal(0, 0.4, y_true.shape)
-    u_te = np.linspace(0, 1, 200)
-    y_te = np.stack([F * split(u_te), F * (1 - split(u_te))], 1)
+    u_tr = np.sort(rng.uniform(0.2, 2.0, 40))            # hot-water flow (kg/s)
+    y_meas = hx_outlets(u_tr) + rng.normal(0, 1.0, (40, 2))  # thermocouples, SD 1 degC
+    u_te = np.linspace(0.2, 2.0, 61)
+    y_te = hx_outlets(u_te)
 
     def init(key, sizes):
         params = []
@@ -1441,21 +1546,30 @@ def group_projection():
         return params
 
     def net(params, u):
-        h = u[:, None]
+        h = ((u - 1.1) / 0.9)[:, None]
         for W, b in params[:-1]:
             h = jnp.tanh(h @ W + b)
         W, b = params[-1]
-        return 5.0 + h @ W + b
+        return 50.0 + 20.0 * (h @ W + b)
 
-    def project(y_raw):                            # y = y~ - A^T (A A^T)^-1 (A y~ - b)
-        viol = y_raw @ A.T - F
-        return y_raw - viol @ jnp.linalg.inv(A @ A.T) @ A
+    def project(y_raw, u):
+        # energy balance a . y = b, with a = (m_h, m_c) and b = m_h T_h,in + m_c T_c,in;
+        # y = y~ - a (a . y~ - b) / (a . a): linear in y~, no weights
+        a = jnp.stack([u, HX["mc"] * jnp.ones_like(u)], 1)
+        b = u * HX["Th_in"] + HX["mc"] * HX["Tc_in"]
+        viol = jnp.sum(a * y_raw, 1) - b
+        return y_raw - a * (viol / jnp.sum(a * a, 1))[:, None]
 
     def loss_plain(p):
         return jnp.mean((net(p, jnp.array(u_tr)) - y_meas) ** 2)
 
     def loss_proj(p):
-        return jnp.mean((project(net(p, jnp.array(u_tr))) - y_meas) ** 2)
+        u = jnp.array(u_tr)
+        return jnp.mean((project(net(p, u), u) - y_meas) ** 2)
+
+    def imbalance(u, y):
+        qh, qc = hx_duties(u, y)
+        return qh - qc
 
     epochs = 2000
     snap = sorted(set([0] + [int(s) for s in np.round(np.geomspace(1, epochs, 44))]))
@@ -1474,51 +1588,52 @@ def group_projection():
         frames = []
         for i in range(epochs + 1):
             if i in snap:
-                raw_tr = np.asarray(net(p, jnp.array(u_tr)))
-                out_tr = np.asarray(project(raw_tr)) if with_proj else raw_tr
                 raw_te = np.asarray(net(p, jnp.array(u_te)))
-                out_te = np.asarray(project(raw_te)) if with_proj else raw_te
+                out_te = np.asarray(project(raw_te, jnp.array(u_te))) if with_proj else raw_te
                 frames.append(dict(
-                    epoch=i, raw=raw_tr, out=out_tr, loss=float(lossf(p)),
+                    epoch=i, imb=-imbalance(u_te, out_te), loss=float(lossf(p)),
                     rmse=float(np.sqrt(np.mean((out_te - y_te) ** 2))),
-                    viol=float(np.max(np.abs(out_te.sum(1) - F)))))
+                    viol=float(np.max(np.abs(imbalance(u_te, out_te))))))
             if i < epochs:
                 p, state = step(p, state)
         return frames
 
     plain, proj = train(loss_plain, False), train(loss_proj, True)
     a, b = plain[-1], proj[-1]
-    print(f"  {epochs} Adam epochs, 40 noisy samples, noise SD 0.4 on each outlet flow:")
-    print(f"    test RMSE against the true flows: plain {a['rmse']:.3f}, projected {b['rmse']:.3f}")
-    print(f"    largest balance violation |y1 + y2 - F| on the test inputs: plain "
-          f"{a['viol']:.3f}, projected {b['viol']:.1e}")
-    print(f"    measurements' own violation: mean |y1 + y2 - F| = "
-          f"{np.mean(np.abs(y_meas.sum(1) - F)):.2f}")
+    q_meas = np.stack(hx_duties(u_tr, y_meas), 1)
+    q_true = np.stack(hx_duties(u_te, y_te), 1)
+    print(f"  {epochs} Adam epochs, 40 noisy samples, noise SD 1 degC on each outlet temperature:")
+    print(f"    heat duty over the flow range: {q_true[:, 0].min():.0f} to {q_true[:, 0].max():.0f} kW")
+    print(f"    test RMSE against the true outlet temperatures: plain {a['rmse']:.2f} degC, "
+          f"projected {b['rmse']:.2f} degC")
+    print(f"    largest energy imbalance |Q_h - Q_c| on the test inputs: plain {a['viol']:.2f} kW, "
+          f"projected {b['viol']:.1e} kW")
+    print(f"    measurements' own imbalance: mean |Q_h - Q_c| = "
+          f"{np.mean(np.abs(q_meas[:, 0] - q_meas[:, 1])):.1f} kW, largest "
+          f"{np.max(np.abs(q_meas[:, 0] - q_meas[:, 1])):.1f} kW")
 
+    meas_imb = q_meas[:, 1] - q_meas[:, 0]          # energy created: Q_c - Q_h
     cache_put("proj", dict(
-        F=F, u=r(u_tr, 3), meas=[r(v, 3) for v in y_meas.T],
-        frames=[dict(epoch=fp["epoch"], raw=[r(v, 3) for v in fp["raw"].T],
-                     out=[r(v, 3) for v in fp["out"].T], loss=round(fp["loss"], 4),
-                     rmse=round(fp["rmse"], 4), viol=float(f"{max(fp['viol'], 1e-16):.3g}"),
-                     plain_out=[r(v, 3) for v in fq["out"].T], plain_rmse=round(fq["rmse"], 4),
-                     plain_viol=float(f"{fq['viol']:.3g}"))
+        u=r(u_tr, 3), meas=r(meas_imb, 2), ute=r(u_te, 3),
+        frames=[dict(epoch=fp["epoch"], imb=r(fp["imb"], 4), plain_imb=r(fq["imb"], 3),
+                     rmse=round(fp["rmse"], 3), viol=float(f"{max(fp['viol'], 1e-16):.3g}"),
+                     plain_rmse=round(fq["rmse"], 3), plain_viol=float(f"{fq['viol']:.3g}"))
                 for fp, fq in zip(proj, plain)]))
 
     with plt.rc_context(STYLE):
         fig, (a1, a2) = plt.subplots(1, 2, figsize=(13, 5))
-        xs = np.linspace(0, F, 2)
-        a1.plot(xs, F - xs, color=GREEN, lw=3, label="balance $y_1 + y_2 = F$")
-        a1.plot(*y_meas.T, "o", color=GRAY, ms=5, label="measurements (noisy)")
-        a1.plot(*b["raw"].T, "o", color=ORANGE, ms=5, label="raw network output $\\tilde y$")
-        a1.plot(*b["out"].T, "o", color=BLUE, ms=5, label="after the projection layer $y$")
-        for p0, p1 in zip(b["raw"], b["out"]):
-            a1.plot([p0[0], p1[0]], [p0[1], p1[1]], color=MUTED, lw=0.8)
-        a1.set_xlabel("outlet flow $y_1$")
-        a1.set_ylabel("outlet flow $y_2$")
-        a1.set_aspect("equal")
-        a1.set_xlim(1.5, 8.8)
-        a1.set_ylim(1.2, 8.5)
-        a1.legend(loc="upper center", fontsize=11)
+        a1.axhspan(0, 20, color=CMU_RED, alpha=0.06, lw=0)
+        a1.axhspan(-20, 0, color=BLUE, alpha=0.05, lw=0)
+        a1.text(1.5, 17.5, "energy from nothing", color=CMU_RED, ha="center", fontsize=13)
+        a1.text(0.7, -18, "energy lost to nowhere", color=BLUE, ha="center", fontsize=13)
+        a1.plot(u_tr, meas_imb, "o", color=GRAY, ms=5, label="measurements (noisy)")
+        a1.plot(u_te, a["imb"], color=ORANGE, lw=2.4, label="plain network")
+        a1.plot(u_te, b["imb"], color=BLUE, lw=2.4, ls="--", label="with the projection layer")
+        a1.set_xlabel("hot-water flow $\\dot m_h$ (kg/s)")
+        a1.set_ylabel("heat taken $-$ heat given up, $Q_c - Q_h$ (kW)")
+        a1.set_xlim(0.2, 2.0)
+        a1.set_ylim(-20, 20)
+        a1.legend(loc="upper left", fontsize=10.5)
         ep = [f["epoch"] for f in proj][1:]
         a2.semilogy(ep, [f["viol"] for f in plain][1:], color=ORANGE, lw=2.4,
                     label="plain network")
@@ -1526,9 +1641,9 @@ def group_projection():
                     label="with projection layer")
         a2.set_xscale("log")
         a2.set_xlabel("training epoch")
-        a2.set_ylabel("largest $|y_1 + y_2 - F|$")
+        a2.set_ylabel("largest $|Q_h - Q_c|$ (kW)")
         a2.legend(loc="upper right", bbox_to_anchor=(1.0, 0.8))
-        a2.annotate("machine precision, every epoch", xy=(300, 1e-15), xytext=(2, 1e-7),
+        a2.annotate("machine precision, every epoch", xy=(300, 1e-13), xytext=(2, 1e-5),
                     color=BLUE, arrowprops=dict(arrowstyle="->", color=BLUE))
         save(fig, "projection-train.png")
 
@@ -1720,9 +1835,40 @@ def group_pictures():
         def va(tq):
             return -np.exp(-d_c * tq) * (w_c + d_c**2 / w_c) * np.sin(w_c * tq)
 
-        taus = np.array([0.0, 0.155051, 0.644949, 1.0])
+        # Radau collocation, 3 points per element, solved element by element for the
+        # spring-mass x' = v, v' = -(mu v + k x): on each element the polynomials' slopes
+        # equal the model's slopes at the three collocation points, exactly.
+        taus = np.array([0.0, (4 - np.sqrt(6)) / 10, (4 + np.sqrt(6)) / 10, 1.0])
         hlen = 0.1
         elem_cols = (BLUE, ORANGE, GREEN)
+
+        def dlagr(tp):
+            """D[k, j] = derivative of the j-th Lagrange basis polynomial at point k."""
+            n = len(tp)
+            D = np.zeros((n, n))
+            for j in range(n):
+                coef = np.poly1d([1.0])
+                for m_ in range(n):
+                    if m_ != j:
+                        coef *= np.poly1d([1.0, -tp[m_]]) / (tp[j] - tp[m_])
+                D[:, j] = np.polyder(coef)(tp)
+            return D
+
+        D = dlagr(taus)[1:] / hlen                   # slopes in t at the collocation points
+        pts, x0_, v0_ = [], 1.0, 0.0
+        for e in range(3):
+            # unknowns X1..X3, V1..V3:  D @ [x0, X] = V,  D @ [v0, V] = -(mu V + k X)
+            M = np.zeros((6, 6))
+            rhs = np.zeros(6)
+            M[:3, :3], M[:3, 3:] = D[:, 1:], -np.eye(3)
+            rhs[:3] = -D[:, 0] * x0_
+            M[3:, 3:] = D[:, 1:] + mu_c * np.eye(3)
+            M[3:, :3] = k_c * np.eye(3)
+            rhs[3:] = -D[:, 0] * v0_
+            sol = np.linalg.solve(M, rhs)
+            Xe, Ve = np.r_[x0_, sol[:3]], np.r_[v0_, sol[3:]]
+            pts.append((Xe, Ve))
+            x0_, v0_ = Xe[-1], Ve[-1]
 
         def lagrange(tp, tq, xq):
             out = np.zeros_like(tq)
@@ -1736,24 +1882,25 @@ def group_pictures():
 
         fig, a1 = plt.subplots(figsize=(11.5, 4.4))
         tg_ = np.linspace(0, 0.3, 400)
-        a1.plot(tg_, xa(tg_), color=GRAY, lw=7, alpha=0.4, label="solution of the ODE")
+        a1.plot(tg_, xa(tg_), color=GRAY, lw=7, alpha=0.4, label="exact solution of the ODE")
         for e in range(3):
             tp_ = e * hlen + hlen * taus
             tq = np.linspace(tp_[0], tp_[-1], 100)
-            a1.plot(tq, lagrange(tp_, tq, xa(tp_)), color=elem_cols[e], lw=2.2,
+            Xe, Ve = pts[e]
+            a1.plot(tq, lagrange(tp_, tq, Xe), color=elem_cols[e], lw=2.2,
                     label=f"polynomial on element {e + 1}")
-            a1.plot(tp_[0], xa(tp_[0]), "s", color=elem_cols[e], ms=8)
-            a1.plot(tp_[1:], xa(tp_[1:]), "o", color=elem_cols[e], ms=8)
-            for tj in tp_[1:]:
+            a1.plot(tp_[0], Xe[0], "s", color=elem_cols[e], ms=8)
+            a1.plot(tp_[1:], Xe[1:], "o", color=elem_cols[e], ms=8)
+            for tj, xj, vj in zip(tp_[1:], Xe[1:], Ve[1:]):
                 dt_ = 0.005
-                a1.plot([tj - dt_, tj + dt_], [xa(tj) - va(tj) * dt_, xa(tj) + va(tj) * dt_],
+                a1.plot([tj - dt_, tj + dt_], [xj - vj * dt_, xj + vj * dt_],
                         color=CMU_RED, lw=2.6, zorder=5)
             a1.axvline(e * hlen, color=MUTED, lw=1, ls=":")
             a1.text(e * hlen + hlen / 2, 1.13, f"element {e + 1}", ha="center", color=MUTED, fontsize=13)
         a1.axvline(0.3, color=MUTED, lw=1, ls=":")
         tj = hlen + hlen * taus[1]
         a1.annotate("at each collocation point (dots), the red slope:\nslope of the polynomial = $f(x)$ from the model",
-                    xy=(tj, xa(tj) + 0.05), xytext=(0.105, 0.72), color=CMU_RED,
+                    xy=(tj, pts[1][0][1] + 0.05), xytext=(0.105, 0.72), color=CMU_RED,
                     fontsize=13, arrowprops=dict(arrowstyle="->", color=CMU_RED))
         a1.set_xlabel("$t$")
         a1.set_ylabel("$x$")

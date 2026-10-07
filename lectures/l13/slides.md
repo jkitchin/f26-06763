@@ -77,7 +77,7 @@ section p.takeaway { text-align: center; font-weight: 700; font-size: 0.82em; ma
 **Systems and Toolchains for AI Engineers**
 
 <!--
-Why physics 12, PINNs 16, RNN to neural ODE 16, physics enforced 7, seq vs sim 10, neural DAEs + SiNDAE + mAb 16, layers 8, close 5. Long deck: skip the code slides live if late, they are in the notebooks.
+Why physics 12, PINNs 16, RNN to neural ODE 16, physics enforced 7, seq vs sim 10, neural DAEs + SiNDAE + mAb 16, layers 8, beyond networks 2, close 5. Long deck: skip the code slides live if late, they are in the notebooks.
 -->
 
 ---
@@ -88,10 +88,11 @@ Why physics 12, PINNs 16, RNN to neural ODE 16, physics enforced 7, seq vs sim 1
 2. **Gen 0 to Gen 2**: from surrogates to scientific machine learning
 3. **PINNs**: physics in the loss
 4. **From RNNs to neural ODEs**: learning the vector field
-5. **Physics-enforced machine learning**: from a penalty to a constraint
+5. **Physics-enforced machine learning**: hard constraints, and neural DAEs
 6. **Sequential or simultaneous**: two ways to train a dynamic model
-7. **Neural DAEs**, SiNDAE, and monoclonal antibodies
+7. **Training neural DAEs**: SiNDAE, and monoclonal antibodies
 8. **Constraints inside the network**: projection layers
+9. **Not only neural networks**
 
 <!--
 One bioreactor at both ends. One spring-mass in the middle.
@@ -1188,7 +1189,7 @@ def balances(t, x, args):
 <div></div>
 <div class="lay" data-marpit-fragment><div class="hl c1" data-lines="1-3" style="top:6px; height:67px"></div><div class="cn c1" style="top:6px">The right-hand side f(t, x) in the form Diffrax wants. <code>args</code> carries the network and the feed concentration S<sub>f</sub></div></div>
 <div class="lay" data-marpit-fragment><div class="hl c4" data-lines="4-4" style="top:69px; height:25px"></div><div class="cn c4" style="top:76px">The network gives μ from the four states</div></div>
-<div class="lay" data-marpit-fragment><div class="hl c2" data-lines="5-8" style="top:90px; height:88px"></div><div class="cn c2" style="top:118px">One line per balance, as on the board: dX/dt = μX − (F/V)X, ..., dV/dt = F</div></div>
+<div class="lay" data-marpit-fragment><div class="hl c2" data-lines="5-8" style="top:90px; height:88px"></div><div class="cn c2" style="top:118px">The four balances: dX/dt = μX − (F/V)X, ..., dV/dt = F</div></div>
 <div class="lay" data-marpit-fragment><div class="hl c3" data-lines="9-9" style="top:174px; height:25px"></div><div class="cn c3" style="top:210px">The four derivatives, stacked</div></div>
 </div>
 
@@ -1413,6 +1414,55 @@ Algebraic equations are constraints that hold all the time: exactly what we want
 -->
 
 ---
+## Physics-enforced machine learning, neural DAEs
+
+<style scoped>
+.pi { display: grid; grid-template-columns: 1fr 0.12fr 1.6fr; align-items: center; }
+.pi .ar { font-size: 2em; color: #5c5c5c; text-align: center; }
+.pi .box { border: 3px solid #1a1a1a; border-radius: 16px; padding: 6px 14px; font-size: 0.74em; display: grid; grid-template-columns: auto 160px; align-items: center; gap: 10px; }
+.pi .box img { width: 150px; margin: 0; }
+.enf { border: 2px solid #2e7d32; border-radius: 8px; padding: 4px 10px; font-size: 0.66em; display: inline-block; }
+</style>
+
+<div class="pi">
+<div>
+
+![w:340](figures/spring-mass.png)
+
+</div>
+<div class="ar">→</div>
+<div class="box">
+<div>
+
+$$
+\begin{aligned}
+\min_\theta\ \ & \sum_i \big(x(t_i) - \hat x_i\big)^2 \\
+\text{s.t.}\ \ & m\,x'' + {\color{#c41230}z}\,x' + k\,x = 0 \\
+& {\color{#c41230}z} = \mathrm{NN}(x, x';\theta) \\
+& h(x) = 0,\ \ g(x) \le 0
+\end{aligned}
+$$
+
+</div>
+<img src="figures/nn-glyph.png">
+</div>
+</div>
+
+* Same data, same physics. The unknown part, here the damping, is the network output ${\color{#c41230}z}$; the equation is a **constraint**, not a term in the loss
+
+<div class="definition">
+
+**Neural DAE**: a DAE in which some unknown terms are neural networks, trained with the simultaneous approach ([Lueg, Alves, Schicksnus, Kitchin, Laird and Biegler, 2026](https://doi.org/10.1007/s10589-026-00823-y), open access).
+
+</div>
+
+<p style="text-align:center; margin: 0.2em 0" data-marpit-fragment><span class="enf">Physics is now <b>enforced, rather than informed</b>: the equation is a constraint of the optimization problem</span></p>
+
+<!--
+Compare with the PINN slide: the physics moved from the loss to the constraints.
+-->
+
+---
 
 <!-- _class: section -->
 
@@ -1571,11 +1621,11 @@ Here $z$ is every state value and $\theta$
 
 $$
 \begin{aligned}
-\min_{\theta,\;x_{ij}}\quad & \sum_i \big(x(t_i) - \hat x_i\big)^2 && \phantom{\text{fit the data}} \\
-\text{s.t.}\quad & \sum_{l} x_{il}\,\ell_l'(\tau_j) = h_i\, f(x_{ij};\theta) && \phantom{\text{polynomial slope = model slope}} \\
-& x_{i,K} = x_{i+1,0} && \phantom{\text{elements join}} \\
-& x_{0,0} = x_0 && \phantom{\text{initial condition}} \\
-& g(x_{ij}) \le 0 && \phantom{\text{path constraints}}
+\min_{\theta,\;x_{jk}}\quad & \sum_i \big(x(t_i) - \hat x_i\big)^2 && \phantom{\text{fit the data}} \\
+\text{s.t.}\quad & \frac{dx_\text{poly}}{dt}(t_{jk}) = f(x_{jk};\theta) && \phantom{\text{polynomial slope = model slope}} \\
+& x_{j,K} = x_{j+1,0} && \phantom{\text{elements join}} \\
+& x_{1,0} = x_0 && \phantom{\text{initial condition}} \\
+& g(x_{jk}) \le 0 && \phantom{\text{path constraints}}
 \end{aligned}
 $$
 
@@ -1584,11 +1634,11 @@ $$
 
 $$
 \begin{aligned}
-\phantom{\min_{\theta,\;x_{ij}}}\quad & \phantom{\sum_i \big(x(t_i) - \hat x_i\big)^2} && \text{fit the data} \\
-\phantom{\text{s.t.}}\quad & \phantom{\sum_{l} x_{il}\,\ell_l'(\tau_j) = h_i\, f(x_{ij};\theta)} && \text{polynomial slope = model slope} \\
-& \phantom{x_{i,K} = x_{i+1,0}} && \text{elements join} \\
-& \phantom{x_{0,0} = x_0} && \text{initial condition} \\
-& \phantom{g(x_{ij}) \le 0} && \text{path constraints}
+\phantom{\min_{\theta,\;x_{jk}}}\quad & \phantom{\sum_i \big(x(t_i) - \hat x_i\big)^2} && \text{fit the data} \\
+\phantom{\text{s.t.}}\quad & \phantom{\frac{dx_\text{poly}}{dt}(t_{jk}) = f(x_{jk};\theta)} && \text{polynomial slope = model slope} \\
+& \phantom{x_{j,K} = x_{j+1,0}} && \text{elements join} \\
+& \phantom{x_{1,0} = x_0} && \text{initial condition} \\
+& \phantom{g(x_{jk}) \le 0} && \text{path constraints}
 \end{aligned}
 $$
 
@@ -1602,7 +1652,7 @@ $$
 </div>
 
 <!--
-x_ij: state in element i at point j. l: Lagrange polynomials. h_i: element length. Next slide: what these polynomials look like.
+x_jk: the state in element j at point k. The polynomial's slope at a point is a weighted sum of its point values, so each line is algebraic in the unknowns. Details: Biegler 2007, and his open lecture slides on collocation. Next slide: what these polynomials look like.
 -->
 
 ---
@@ -1712,52 +1762,7 @@ Green: the better side for that row. Multiple shooting sits between the two.
 
 <!-- _class: section -->
 
-# Neural DAEs
-
----
-
-## Neural DAEs, the same spring-mass
-
-<style scoped>
-.pi { display: grid; grid-template-columns: 1fr 0.12fr 1.6fr; align-items: center; }
-.pi .ar { font-size: 2em; color: #5c5c5c; text-align: center; }
-.pi .box { border: 3px solid #1a1a1a; border-radius: 16px; padding: 6px 14px; font-size: 0.74em; display: grid; grid-template-columns: auto 160px; align-items: center; gap: 10px; }
-.pi .box img { width: 150px; margin: 0; }
-.enf { border: 2px solid #2e7d32; border-radius: 8px; padding: 4px 10px; font-size: 0.66em; display: inline-block; }
-</style>
-
-<div class="pi">
-<div>
-
-![w:340](figures/spring-mass.png)
-
-</div>
-<div class="ar">→</div>
-<div class="box">
-<div>
-
-$$
-\begin{aligned}
-\min_\theta\ \ & \sum_i \big(x(t_i) - \hat x_i\big)^2 \\
-\text{s.t.}\ \ & m\,x'' + {\color{#c41230}z}\,x' + k\,x = 0 \\
-& {\color{#c41230}z} = \mathrm{NN}(x, x';\theta) \\
-& h(x) = 0,\ \ g(x) \le 0
-\end{aligned}
-$$
-
-</div>
-<img src="figures/nn-glyph.png">
-</div>
-</div>
-
-* Same data, same physics. The unknown part, here the damping, is the network output ${\color{#c41230}z}$
-* The equation is a **constraint**, not a term in the loss
-
-<p style="text-align:center; margin: 0.3em 0" data-marpit-fragment><span class="enf">Physics is now <b>enforced, rather than informed</b>; constraints are written into the NLP</span></p>
-
-<!--
-Compare with the PINN slide: the physics moved from the loss to the constraints.
--->
+# Training neural DAEs
 
 ---
 
@@ -1772,12 +1777,6 @@ Compare with the PINN slide: the physics moved from the loss to the constraints.
 .nlp .ar::before { content: ''; position: absolute; left: -12px; top: -6px; border: 7.5px solid transparent; border-right: 12px solid #c41230; }
 .nlp .lab { background: #c41230; color: #fff; border-radius: 8px; padding: 4px 12px; font-size: 0.85em; text-align: center; }
 </style>
-
-<div class="definition">
-
-**Neural DAE**: a DAE in which some unknown terms are neural networks, trained with the simultaneous approach ([Lueg, Alves, Schicksnus, Kitchin, Laird and Biegler, 2026](https://doi.org/10.1007/s10589-026-00823-y), open access).
-
-</div>
 
 <div class="nlp">
 
@@ -2008,7 +2007,7 @@ As in the SiNDAE fed-batch example, with F P / V in the product balance. This an
 </div>
 <div></div>
 <div class="lay" data-marpit-fragment><div class="hl c1" data-lines="1-4" style="top:6px; height:84px"></div><div class="cn c1" style="top:6px">A constraint for every time t and every state s: these are rows of the NLP</div></div>
-<div class="lay" data-marpit-fragment><div class="hl c2" data-lines="5-12" style="top:90px; height:168px"></div><div class="cn c2" style="top:90px">The four balances, one per branch, as on the board. No formula for μ</div></div>
+<div class="lay" data-marpit-fragment><div class="hl c2" data-lines="5-12" style="top:90px; height:168px"></div><div class="cn c2" style="top:90px">The four balances, one per branch. No formula for μ</div></div>
 <div class="lay" data-marpit-fragment><div class="hl c3" data-lines="14-15" style="top:279px; height:42px"></div><div class="cn c3" style="top:279px">Fix the initial charge of the batch</div></div>
 <div class="lay" data-marpit-fragment><div class="hl c4" data-lines="17-21" style="top:342px; height:105px"></div><div class="cn c4" style="top:342px">The network: the states in, z = μ out</div></div>
 </div>
@@ -2290,24 +2289,24 @@ Six culture ODEs: viable cells, glucose, glutamine, lactate, ammonia, antibody. 
 .arch .bt { position: absolute; top: 160px; color: #c41230; }
 </style>
 
-<div class="cols" style="grid-template-columns: 300px 1fr; gap: 0.8em; align-items: center;">
+<div class="cols" style="grid-template-columns: 330px 1fr; gap: 0.8em; align-items: center;">
 <div>
 
-![w:300](figures/splitter.png)
+![w:330](figures/heat-exchanger.png)
 
 </div>
 <div class="small">
 
-* **Input** $u$: the valve opening. **Outputs** $y_1, y_2$: the two outlet flows
-* **Balance**: $y_1 + y_2 = F$, with feed $F = 10$, whatever the opening
-* The network predicts $y_1, y_2$ from $u$; a projection layer makes them obey the balance
+* **Input**: the hot-water flow $\dot m_h$. **Outputs**: the two outlet temperatures
+* **First law**: heat given up = heat taken, $\dot m_h c_p (T_{h,in} - T_{h,out}) = \dot m_c c_p (T_{c,out} - T_{c,in})$
+* Linear in the outputs, $a^\top y = b$. A plain network can still break it: **energy from nothing**
 
 </div>
 </div>
 
 <div class="arch">
 <div>
-<div class="b" style="left:0; width:100px; background:#f7f7f7; border:2px solid #5c5c5c">input&nbsp;<i>u</i></div>
+<div class="b" style="left:0; width:100px; background:#f7f7f7; border:2px solid #5c5c5c">flow&nbsp;<i>ṁ<sub>h</sub></i></div>
 <div class="ln" style="left:102px; width:36px"></div>
 <div class="b" style="left:142px; width:150px; background:#eaf1f8; border:2px solid #1f5c99">network<br>weights θ</div>
 <div class="ln" style="left:294px; width:36px"></div>
@@ -2315,7 +2314,7 @@ Six culture ODEs: viable cells, glucose, glutamine, lactate, ammonia, antibody. 
 </div>
 <div data-marpit-fragment>
 <div class="ln" style="left:436px; width:36px"></div>
-<div class="b" style="left:476px; width:330px; background:#e8f3e9; border:2px solid #2e7d32">projection, fixed<br>violation v = ỹ₁ + ỹ₂ − F<br>y = ỹ − v/2 for each flow</div>
+<div class="b" style="left:476px; width:330px; background:#e8f3e9; border:2px solid #2e7d32">projection, fixed<br>violation v = aᵀỹ − b<br>y = ỹ − a v / (aᵀa)</div>
 <div class="ln" style="left:808px; width:36px"></div>
 <div class="b" style="left:848px; width:80px; background:#eaf1f8; border:2px solid #1f5c99">y</div>
 </div>
@@ -2330,7 +2329,7 @@ Six culture ODEs: viable cells, glucose, glutamine, lactate, ammonia, antibody. 
 </div>
 
 <!--
-The projection shares the violation equally between the two flows, so y1 + y2 = F exactly. Any linear balance works the same way. It is part of the network in training and in prediction, not a fix-up afterwards.
+Counterflow, water on both sides: hot in at 90 C, cold in at 20 C and 1 kg/s. a = (m_h, m_c) changes with the input; the projection stays linear in y~. Any linear balance Ay = b works the same way. It is part of the network in training and in prediction, not a fix-up afterwards.
 -->
 
 ---
@@ -2340,15 +2339,15 @@ The projection shares the violation equally between the two flows, so y1 + y2 = 
 <div class="cols" style="grid-template-columns: 1.75fr 1fr;">
 <div>
 
-<div class="cw compact" data-widget="proj-train" data-source="l13"><img src="figures/widget-proj-train.png" alt="Training a network with a projection layer on a splitter's mass balance"></div>
+<div class="cw compact" data-widget="proj-train" data-source="l13"><img src="figures/widget-proj-train.png" alt="Training a network with a projection layer on a heat exchanger's energy balance"></div>
 
 </div>
 <div class="small">
 
-* Noisy data: the measured flows break the balance by 0.48 on average
-* **Without the layer**: outputs break it by up to **1.13**
-* **With the layer**: **$1.8 \times 10^{-15}$**, at every epoch
-* Error against the true flows: 0.274 → **0.186**: the layer removes the noise that breaks the balance
+* Noisy data: the measurements break the energy balance by 5.4 kW on average
+* **Without the layer**: the predictions create or destroy up to **10 kW**
+* **With the layer**: **$10^{-13}$ kW**, at every epoch
+* Error in the outlet temperatures: 0.49 → **0.33 °C**: the layer removes the noise that breaks the balance
 
 </div>
 </div>
@@ -2513,6 +2512,32 @@ Click through. Same data-fit term every time; what changes is where the physics 
 -->
 
 ---
+## Not only neural networks
+
+<style scoped>
+.bn { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 0.4em; }
+.bn > div { background: #f7f7f7; border-radius: 10px; border-top: 6px solid #5c5c5c; padding: 6px 10px 8px; font-size: 0.56em; line-height: 1.3; }
+.bn img { width: 100%; margin: 0 0 4px; background: #fff; border-radius: 6px; }
+.bn h4 { margin: 0 0 4px; font-size: 1.25em; }
+</style>
+
+The learned term can be any model that fits data. Four families used with physics:
+
+<div class="bn">
+<div style="border-top-color:#1f5c99" data-marpit-fragment><img src="figures/beyond-gp.png" alt="A Gaussian process: a mean curve with a shaded uncertainty band through six points"><h4>Gaussian processes</h4>The unknown right-hand side of a fed-batch mAb culture model, with its uncertainty (<a href="https://www.biorxiv.org/content/10.1101/2021.12.27.474269v1">Cruz-Bournazou et al., 2022</a>)</div>
+<div style="border-top-color:#2e7d32" data-marpit-fragment><img src="figures/beyond-sindy.png" alt="Sparse regression: coefficients of eight candidate terms, two nonzero"><h4>Sparse regression (SINDy)</h4>Learns the equation: keeps the few terms of a library that reproduce the data (<a href="https://arxiv.org/abs/1509.03580">Brunton, Proctor and Kutz, 2016</a>)</div>
+<div style="border-top-color:#b07d12" data-marpit-fragment><img src="figures/beyond-symreg.png" alt="An expression tree for mu max times S divided by K plus S"><h4>Symbolic regression</h4>A search over formulas returns a closed form, such as μ<sub>max</sub>&nbsp;S&nbsp;/&nbsp;(K&nbsp;+&nbsp;S) (<a href="https://arxiv.org/abs/2305.01582">PySR, Cranmer, 2023</a>)</div>
+<div style="border-top-color:#c2410c" data-marpit-fragment><img src="figures/beyond-trees.png" alt="A decision tree that splits on substrate and biomass to give a growth rate"><h4>Tree ensembles</h4>A random forest sets the coefficients of a mAb process's mass balances (<a href="https://psecommunity.org/LAPSE:2025.0552">Nemoto et al., 2025</a>); <a href="https://jmlr.org/papers/v23/22-0277.html">OMLT</a> puts trees into optimization models too</div>
+</div>
+
+<p class="takeaway" data-marpit-fragment>The physics sits in the loss, the right-hand side or the constraints, whatever the learner.</p>
+
+<!--
+GPs also come with physics built into the prior: Raissi, Perdikaris and Karniadakis 2017 learn the parameters of linear ODEs this way. SINDy and symbolic regression return equations a person can read.
+-->
+
+---
+
 
 ## Limitations and trade-offs
 
@@ -2555,7 +2580,7 @@ Every code block on today's slides is a cell in these two notebooks, in the same
 <div class="c" style="border-top-color:#b07d12"><h4>PINN</h4>in the <b>loss</b><div class="n" style="color:#b07d12">5.3 N</div>residual left over</div>
 <div class="c" style="border-top-color:#c2410c"><h4>Neural ODE</h4>in the <b>right-hand side</b>: learns the vector field<div class="n" style="color:#c2410c">S = −0.37 g/L</div>bounds not held</div>
 <div class="c" style="border-top-color:#1f5c99"><h4>Neural DAE</h4>in the <b>constraints of one NLP</b><div class="n" style="color:#1f5c99">S ≥ 0</div>held in training and prediction; balance violation 0, to solver tolerance</div>
-<div class="c" style="border-top-color:#2e7d32"><h4>Projection layer</h4>in the <b>last layer</b><div class="n" style="color:#2e7d32">10⁻¹⁵</div>balance violation</div>
+<div class="c" style="border-top-color:#2e7d32"><h4>Projection layer</h4>in the <b>last layer</b><div class="n" style="color:#2e7d32">10⁻¹³ kW</div>energy imbalance</div>
 </div>
 <div class="train">
 <div style="background:#fbeee6; border:2px solid #c2410c"><b>Sequential</b>: simulate, then update θ. The model holds at every iterate; constraints do not</div>
