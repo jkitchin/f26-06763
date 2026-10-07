@@ -1,27 +1,24 @@
 #!/usr/bin/env python3
 """Generate the two L13 worked examples.
 
-    l13-pinn-jax.ipynb      a plain network and a physics-informed network (PINN), both built
-                            from scratch in JAX, trained with Optax's Adam on ten points of a
-                            damped spring-mass, and compared after the data run out.
+    l13-pinn-jax.ipynb      a plain network and a physics-informed network (PINN), built from
+                            scratch in JAX and trained with Optax's Adam on ten points of a
+                            damped spring-mass.
     l13-neural-dae.ipynb    the fed-batch bioreactor as a neural ODE trained sequentially with
-                            Diffrax and Optax, then as a neural DAE in SiNDAE (step for step the
-                            SiNDAE example "Importing Measured Data, Fed-Batch Bioreactor", with
-                            the product balance diluted by F / V), and a new batch predicted by
-                            both.
+                            Diffrax, then as a neural DAE in SiNDAE, and a new batch predicted
+                            by both.
 
-Every code block on the L13 slides is a cell here, verbatim, in the order of the lecture.
-
-Both follow figures/make_figures.py (groups pinn and fedbatch) step for step, with the same
-seeds, so the numbers they print are the numbers the notes quote.
+Every code block on the L13 slides is a cell here, verbatim, in the order of the lecture. The
+other cells make the data, print and plot. The data and seeds are those of
+figures/make_figures.py, so the numbers printed are the numbers in the notes and slides.
 
 Kept in a generator for deterministic cell ids and no hand-edited JSON. The committed copies
 carry real output. After regenerating, execute both and refresh the Colab cell:
 
     python3 lectures/l13/build_notebooks.py
     cd lectures/l13 && uv run --no-project --python 3.12 --with sindae --with optax \
-        --with diffrax --with scipy --with pandas --with matplotlib --with nbclient --with nbformat \
-        --with ipykernel \
+        --with diffrax --with scipy --with pandas --with matplotlib --with nbclient \
+        --with nbformat --with ipykernel \
         python -c "
 import nbformat
 from nbclient import NotebookClient
@@ -76,32 +73,19 @@ b = Book()
 b.md("""
 # L13 worked example: a physics-informed network in JAX
 
-**JAX** is a Python library for numerical computing that can differentiate any function you
-write in it: https://docs.jax.dev. Lecture 11 used it for automatic differentiation; here we
-also differentiate a network with respect to its **input**, which is what a PINN needs.
-
-**Optax** is a library of optimizers for JAX, Adam among them:
-https://optax.readthedocs.io. It turns gradients into parameter updates.
-
-The problem: a mass on a spring with a damper, measured only during its first 0.36 s. We
-train two networks on the same ten points. One sees only the data. The other, a
-**physics-informed neural network (PINN)**, is also penalized whenever it breaks the equation
-of motion. Then we ask both where the mass is after the data run out.
-
-> Companion notes: [`notes.md`](notes.md).
-""")
-b.md("""
-## 1. The spring-mass and its data
+A damped spring-mass, measured during its first 0.36 s. A plain network and a
+physics-informed neural network (PINN) learn from the same ten points. Where is the mass after
+the data run out?
 
 $$
 m\\,\\frac{d^2x}{dt^2} + \\mu\\,\\frac{dx}{dt} + k\\,x = 0, \\qquad x(0) = 1\\ \\text{m}, \\quad \\frac{dx}{dt}(0) = 0
 $$
 
-- $m = 1$ kg, $\\mu = 4$ N·s/m, $k = 400$ N/m.
-- `exact(t)` is the closed-form solution of the equation, used only to make the data and to
-  score the models.
-- `jax_enable_x64` makes JAX compute in 64-bit floats, so the second derivatives below are
-  accurate.
+$m = 1$ kg, $\\mu = 4$ N·s/m, $k = 400$ N/m.
+
+## 1. The data
+
+`exact(t)` is the closed-form solution: it makes the data and scores the models.
 """)
 b.code("""
 import jax
@@ -143,15 +127,9 @@ ax.legend()
 plt.show()
 """)
 b.md("""
-## 2. A network, from scratch
+## 2. The network
 
-- `init` makes the weights: one `(W, b)` pair per layer. $W$ has standard deviation
-  $1/\\sqrt{n_\\text{in}}$, so each weighted sum has a spread near 1 and tanh starts in its linear
-  range, not saturated (LeCun et al., *Efficient BackProp*, 1998).
-- `net(params, t)` maps a vector of times to a vector of displacements through three hidden
-  layers of 32 tanh units. tanh is smooth, so its second derivative exists, which the
-  physics term needs.
-- `x_nn(params, t)` is the same network for one scalar time, the form `jax.grad` needs.
+Three hidden layers of 32 tanh units. `x_nn` takes one time, the form `jax.grad` needs.
 """)
 b.code("""
 def init(key, sizes):
@@ -178,22 +156,14 @@ b.code("""
 print("weights and biases:", sum(W.size + b.size for W, b in params0))
 """)
 b.md("""
-## 3. Two losses
+## 3. The two losses
 
-**The data loss** is the mean squared error over the ten measurements.
-
-**The physics loss** is the mean squared residual of the equation at the 40 collocation
-points, where we have no data:
+The data loss uses the ten measurements. The physics loss uses the residual at the 40
+collocation points:
 
 $$
 r(t_j) = m\\,x_\\text{NN}''(t_j) + \\mu\\,x_\\text{NN}'(t_j) + k\\,x_\\text{NN}(t_j)
 $$
-
-- `jax.grad(f, argnums=1)` returns the derivative of `f` with respect to its second argument,
-  the time. Applied twice it gives the second derivative.
-- `jax.vmap` evaluates a function of one time at many times at once.
-- The PINN loss is the data loss plus $\\lambda = 10^{-4}$ times the physics loss. The residual
-  is in newtons, hundreds of times larger than the displacement, so its weight is small.
 """)
 b.code("""
 dx = jax.grad(x_nn, argnums=1)      # dx/dt
@@ -221,14 +191,9 @@ residual0 = residual(params0, jnp.array([0.5]))[0]
 print("residual of the untrained network at t = 0.5 s:", float(residual0))
 """)
 b.md("""
-## 4. Train both with Adam
+## 4. Training
 
-- `optax.adam(1e-3)` is the Adam optimizer with learning rate 0.001.
-- `opt.update(grads, state, params)` turns the gradients into updates, and
-  `optax.apply_updates` adds them to the parameters.
-- `jax.jit` compiles one training step, so 30,000 steps take seconds (about 10 s for both
-  networks).
-- Both networks start from the same weights and get the same steps. Only the loss differs.
+Adam, 30,000 steps, the same start for both networks: only the loss differs. About 10 s.
 """)
 b.code("""
 def train(loss, steps=30_000):
@@ -250,10 +215,7 @@ p_nn = train(data_loss)
 p_pinn = train(pinn_loss)
 """)
 b.md("""
-## 5. Compare after the data run out
-
-RMSE is the root mean squared error against the exact solution, inside the data window and
-after it.
+## 5. After the data run out
 """)
 b.code("""
 x_nn_plot = np.asarray(net(p_nn, jnp.array(t_plot)))
@@ -303,20 +265,8 @@ ax.legend(ncol=4)
 plt.show()
 """)
 b.md("""
-**What to read in the output**
-
-- Inside the data window both networks are close to the exact solution.
-- After it, the plain network drifts to a flat line. The PINN follows the oscillation,
-  because the equation tells it what happens next.
-- The PINN's residual is small but **not zero**, and it is larger between the collocation
-  points than at them. The physics is a penalty, applied only where you evaluate it.
-
-## Try it
-
-- Set `lam = 1e-2` and retrain. The residual shrinks. What happens to the fit to the data?
-- Put the collocation points only inside the data window, `np.linspace(0, 0.36, 40)`. Can
-  the PINN still extrapolate?
-- Use 10 collocation points instead of 40, and compare the residual over the whole second.
+The plain network drifts to a flat line once the data stop; the PINN follows the oscillation.
+Its residual is small, but not zero: the physics is a penalty.
 """)
 b.write("l13-pinn-jax.ipynb")
 
@@ -326,41 +276,21 @@ b.write("l13-pinn-jax.ipynb")
 # ======================================================================================
 b = Book()
 b.md("""
-# L13 worked example: a fed-batch bioreactor as a neural ODE and as a neural DAE
+# L13 worked example: a fed-batch bioreactor as a neural ODE and a neural DAE
 
-This notebook is the code of the lecture, in the order of the lecture. Every code cell from the
-slides is here, unchanged; the cells in between make the data, print and plot.
-
-1. **The data**: three batches of a fed-batch bioreactor, as in the SiNDAE fed-batch example.
-2. **A neural ODE**, trained the sequential way with **Diffrax** (differentiable ODE solvers in
-   JAX, https://docs.kidger.site/diffrax/) and **Equinox** (neural networks in JAX,
-   https://docs.kidger.site/equinox/).
-3. **A neural DAE**, trained the simultaneous way with **SiNDAE**
-   (https://github.com/Alves-research-group/SiNDAE). This part follows the SiNDAE example
-   [Importing Measured Data, Fed-Batch Bioreactor](https://alves-research-group.github.io/SiNDAE/fedbatch-example/)
-   step for step, with the product balance diluted by $F/V$, as in Eq. (30b) of Lueg et al.
-   (2026). SiNDAE writes the model in **Pyomo** (https://www.pyomo.org), discretizes it with
-   **Pyomo.DAE**, and solves one nonlinear program with the **POUNCE** interior-point solver.
-4. **A new batch**, predicted by both.
-
-`pip install sindae diffrax` installs everything; no licensed solver is needed.
-
-The bioreactor has four states: biomass $X$, product $P$, substrate $S$ and volume $V$:
+Four states: biomass $X$, product $P$, substrate $S$ and volume $V$. The balances are known; the
+growth rate $\\mu$ is learned by a network of the four states.
 
 $$
 \\begin{align}
-\\frac{dX}{dt} &= \\mu X - \\frac{F}{V}X \\tag{1}\\\\
-\\frac{dP}{dt} &= Y_{px}\\,\\mu X - \\frac{F}{V}P \\tag{2}\\\\
-\\frac{dS}{dt} &= \\frac{F}{V}(S_f - S) - \\frac{\\mu X}{Y_{xs}} \\tag{3}\\\\
-\\frac{dV}{dt} &= F \\tag{4}
+\\frac{dX}{dt} &= \\mu X - \\frac{F}{V}X &
+\\frac{dP}{dt} &= Y_{px}\\,\\mu X - \\frac{F}{V}P \\\\
+\\frac{dS}{dt} &= \\frac{F}{V}(S_f - S) - \\frac{\\mu X}{Y_{xs}} &
+\\frac{dV}{dt} &= F
 \\end{align}
 $$
 
-The unknown term is the specific growth rate $\\mu$, learned by a network of the four states.
-The true kinetics are the Monod law, $\\mu = \\mu_{max}\\, S / (K_s + S)$; we use it only to
-make the measurements and to check the result.
-
-> Companion notes: [`notes.md`](notes.md).
+`pip install sindae diffrax` installs everything.
 """)
 b.code("""
 %matplotlib inline
@@ -397,18 +327,18 @@ logging.getLogger("pyomo").setLevel(logging.ERROR)
 logging.getLogger("cyipopt").setLevel(logging.WARNING)
 """)
 b.md("""
-## Step 1: the measured data
+## 1. The data
 
-The parameters: yields and feed rate, and the true Monod constants, which only the measurements
-and the final check use.
+Three batches, 31 samples each over 40 h. The true kinetics, the Monod law
+$\\mu = \\mu_{max} S / (K_s + S)$, only make the measurements and check the result.
 """)
 b.code("""
 FB_PARAMS = {
     "Feed": 0.05,     # F: volumetric feed rate (L/h)
     "Ypx": 0.2,       # product yield
     "Yxs": 0.5,       # biomass yield on substrate
-    "Ks": 1.0,        # Monod half-saturation (measurements and final check only)
-    "mu_max": 0.2,    # Monod maximum growth rate (measurements and final check only)
+    "Ks": 1.0,        # Monod constant (makes the data only)
+    "mu_max": 0.2,    # Monod constant (makes the data only)
 }
 F, Ypx, Yxs = FB_PARAMS["Feed"], FB_PARAMS["Ypx"], FB_PARAMS["Yxs"]
 STATE_NAMES = ["$X$ (biomass)", "$P$ (product)", "$S$ (substrate)", "$V$ (volume)"]
@@ -416,18 +346,17 @@ OUTPUT_NAME = [r"$\\mu$ (growth rate)"]
 SEED = 0
 """)
 b.md("""
-The SiNDAE example reads `fedbatch_measurements.csv`, made by its script
-`generate_fedbatch_data.py` from the true model. We make the same table here: three batches,
-40 h, every fourth point of a 40-element, 3-point Radau grid (31 samples per batch), and noise
-of standard deviation 0.05, 0.05, 0.5 and 0.1 on $X$, $P$, $S$ and $V$.
+Each measurement gets random noise. A concentration cannot be negative, so a reading below zero
+is recorded as zero.
 """)
 b.code("""
 BATCH_ICS = np.array([
-    [0.05, 0.0, 10.0, 1.00],    # batch 0
+    [0.05, 0.0, 10.0, 1.00],    # batch 0: X, P, S, V at t = 0
     [0.025, 0.0, 5.0, 0.80],    # batch 1
     [0.5, 0.0, 7.5, 0.95],      # batch 2
 ])
-MEASUREMENT_NOISE = np.array([0.05, 0.05, 0.5, 0.1])    # standard deviation per state
+NOISE = np.array([0.05, 0.05, 0.5, 0.1])    # standard deviation of each measurement
+t_obs = np.linspace(0, 40, 31)              # 31 samples over 40 h
 
 
 def true_rhs(t, x, Sf):
@@ -439,42 +368,30 @@ def true_rhs(t, x, Sf):
             F]
 
 
-radau = (0.155051, 0.644949, 1.0)
-grid = np.array([0.0] + [i + c for i in range(40) for c in radau])
-sample_times = grid[::4]
 rng = np.random.default_rng(SEED)
-records = []
-for batch_id, ic in enumerate(BATCH_ICS):
+obs_times = []
+obs_values = []
+for ic in BATCH_ICS:
     sol = solve_ivp(
         true_rhs,
         (0, 40),
         ic,
-        t_eval=sample_times,
+        t_eval=t_obs,
         args=(ic[2],),
         rtol=1e-10,
         atol=1e-12,
     )
-    noisy = sol.y.T + rng.normal(0, 1, sol.y.T.shape) * MEASUREMENT_NOISE
-    for k, t in enumerate(sample_times):
-        records.append({"batch": batch_id, "time": t, "X": noisy[k, 0], "P": noisy[k, 1],
-                        "S": noisy[k, 2], "V": noisy[k, 3]})
-raw = pd.DataFrame(records)
-raw.head()
-""")
-b.md("""
-Group the table by batch, as the SiNDAE example does: `obs_times` and `obs_values` hold one
-array per batch.
+    noisy = sol.y.T + rng.normal(0, 1, sol.y.T.shape) * NOISE
+    obs_times.append(t_obs)
+    obs_values.append(np.clip(noisy, 0, None))
+
+pd.DataFrame(
+    obs_values[0],
+    index=pd.Index(t_obs.round(2), name="time (h)"),
+    columns=["X", "P", "S", "V"],
+).round(3).head()
 """)
 b.code("""
-MEASURED_COLS = ["X", "P", "S", "V"]
-
-obs_times = []
-obs_values = []
-for batch_id in sorted(raw["batch"].unique()):
-    batch = raw[raw["batch"] == batch_id].sort_values("time")
-    obs_times.append(batch["time"].to_numpy())
-    obs_values.append(batch[MEASURED_COLS].to_numpy())
-
 fig, axes = plt.subplots(1, 4, figsize=(16, 3))
 for j, name in enumerate(STATE_NAMES):
     for b_ in range(len(obs_times)):
@@ -491,13 +408,9 @@ plt.tight_layout()
 plt.show()
 """)
 b.md("""
-## Step 2: a neural ODE, trained sequentially
+## 2. A neural ODE, trained sequentially
 
-The balances are known; a small Equinox network gives $\\mu$ from the four states.
-
-- `x_typical` divides each state by a typical value, so the network sees numbers near 1.
-- softplus is always positive, so $\\mu \\ge 0$; at the start it is about 0.7, so `mu_scale`
-  makes $\\mu$ start near 0.2 1/h. **Nothing keeps $S \\ge 0$.**
+The network for $\\mu$, in [Equinox](https://docs.kidger.site/equinox/):
 """)
 b.code("""
 mu_scale = 0.3                                 # 1/h: sets the size of mu
@@ -511,7 +424,7 @@ class GrowthRate(eqx.Module):
         return mu_scale * jax.nn.softplus(out) # mu >= 0, of order mu_scale
 """)
 b.md("""
-The balances, one line per equation: the right-hand side of the ODE, in the form Diffrax wants.
+The balances, as [Diffrax](https://docs.kidger.site/diffrax/) wants them:
 """)
 b.code("""
 def balances(t, x, args):
@@ -525,9 +438,7 @@ def balances(t, x, args):
     return jnp.array([dX, dP, dS, dV])
 """)
 b.md("""
-`diffrax.diffeqsolve` integrates it: `Tsit5` is Tsitouras' fifth-order Runge-Kutta method,
-`SaveAt` returns the states at the sample times, and `PIDController` adapts the step to the
-tolerances. Every operation is JAX, so `jax.grad` goes back through the solver.
+The solve: every operation is JAX, so `jax.grad` goes back through the solver.
 """)
 b.code("""
 def simulate(mu_net, x0, ts):
@@ -548,20 +459,17 @@ def simulate(mu_net, x0, ts):
     return sol.ys
 """)
 b.md("""
-The measurements as JAX arrays, and the number of training steps.
+The measurements as JAX arrays:
 """)
 b.code("""
 x0s = jnp.array(BATCH_ICS)
-ts = jnp.array(obs_times[0])
+ts = jnp.array(t_obs)
 ys = jnp.array(obs_values)
 y_scale = ys.reshape(-1, 4).std(axis=0)
 steps = 10_000
 """)
 b.md("""
-Training is **sequential**: every step simulates the three batches, compares them with the
-data (each state divided by its spread), and updates the weights with Adam.
-`eqx.filter_value_and_grad` and `eqx.filter_jit` are JAX's `value_and_grad` and `jit` for an
-Equinox model. 10,000 steps take about 30 s.
+Training: every step simulates the three batches, then updates the weights. About 35 s.
 """)
 b.code("""
 def loss(mu_net):
@@ -592,12 +500,11 @@ b.code("""
 print(f"final loss {float(value):.4f}")
 """)
 b.md("""
-## Step 3: a neural DAE, trained simultaneously
+## 3. A neural DAE, trained simultaneously
 
-The SiNDAE problem: a `ProblemDefinition` subclass. `build_trajectory()` writes the model for
-one batch, `get_input_vars()` names the network's inputs (the states) and `get_output_vars()` its
-output ($\\mu$). There is no formula for $\\mu$, and the states are declared non-negative: this
-is where $S \\ge 0$ is enforced.
+The problem, as in the SiNDAE example
+[Importing Measured Data, Fed-Batch Bioreactor](https://alves-research-group.github.io/SiNDAE/fedbatch-example/),
+with $F P / V$ in the product balance. The states are non-negative: here is $S \\ge 0$.
 """)
 b.code("""
 class FedBatchBioreactorProblem(ProblemDefinition):
@@ -658,8 +565,7 @@ class FedBatchBioreactorProblem(ProblemDefinition):
         return [block.z[t, 0]]
 """)
 b.md("""
-The sizes, and the training discretization: 40 finite elements of 3 collocation points over
-40 h. It need not match the sampling.
+The sizes, and the training grid: 40 finite elements of 3 collocation points.
 """)
 b.code("""
 INPUT_DIM = 4      # network inputs: X, P, S, V
@@ -670,16 +576,7 @@ NCP_TRAIN = 3      # collocation points per element
 OBS_DIM = 4        # measured states
 """)
 b.md("""
-The network and the three training stages:
-
-- `SimpleMLP`: two hidden layers of 20 softplus units. Softplus is smooth, as the interior-point
-  solver needs.
-- `SmootherConfig`: stage 1, fit smooth trajectories with $\\mu$ free.
-- `PretrainConfig`: stage 2, fit the network to the smoother's (states, $\\mu$) pairs with Adam.
-- `SimultaneousConfig` and `SolverConfig`: stage 3, one NLP with the weights, every state and
-  the balances, solved by POUNCE. `use_gbm=True` hands the network to the solver as an external
-  function evaluated in JAX, which needs the limited-memory (L-BFGS) approximation of the second
-  derivatives.
+The network and the three training stages: smoother, pretraining, full NLP.
 """)
 b.code("""
 mlp = SimpleMLP(
@@ -702,11 +599,10 @@ simul_config = SimultaneousConfig(
 solver_options = SolverConfig(
     tol=1e-6,
     max_iter=1000,
-    hessian_approximation="limited-memory",
 )
 """)
 b.md("""
-Attach the measurements of the three batches to the problem.
+Attach the measurements and train. About 30 s.
 """)
 b.code("""
 problem = FedBatchBioreactorProblem(
@@ -721,13 +617,6 @@ problem = FedBatchBioreactorProblem(
     obs_times=obs_times,
     obs_values=obs_values,
 )
-""")
-b.md("""
-Train. The smoother may stop at its iteration limit with a warning, as in the SiNDAE example;
-the final solve should end `optimal`. About a minute.
-
-After training, the fitted trajectories should pass through the measurements, and the learned
-$\\mu$ should follow the Monod curve we set aside.
 """)
 b.code("""
 model = HybridDAE(
@@ -786,12 +675,9 @@ plt.tight_layout()
 plt.show()
 """)
 b.md("""
-## Step 4: a new batch, predicted by both
+## 4. A new batch, predicted by both
 
-A batch neither model has seen: 0.2 g/L of cells, 7 g/L of substrate and 0.9 L, run for 60 h,
-20 h past the training batches. `predict` builds the same problem, holds the network fixed and
-solves the DAE with the states non-negative; `slack_coef` is the price on moving $\\mu$ away
-from the network's value where a constraint would otherwise break.
+0.2 g/L of cells, 7 g/L of substrate and 0.9 L, run for 60 h: 20 h past the training batches.
 """)
 b.code("""
 new_problem = FedBatchBioreactorProblem(
@@ -808,13 +694,6 @@ prediction = model.predict(
     new_problem,
     slack_coef=1e-5,
 )
-""")
-b.code("""
-states = prediction[0].nn_input
-print(f"lowest state value: {states.min():.3f} (>= 0)")
-""")
-b.md("""
-Now the true model and the neural ODE on the same batch.
 """)
 b.code("""
 ic_A = np.array([0.20, 0.0, 7.0, 0.90])
@@ -871,31 +750,21 @@ ax.set_ylabel("substrate S (g/L)")
 ax.legend()
 plt.show()
 
+
+def rmse(a, b):
+    return np.sqrt(np.mean((a - b) ** 2))
+
+
 S_node = node[:, 2]
+S_dae_tt = np.interp(tt, t_dae, S_dae)
 print(f"{'':26s}{'true model':>12s}{'neural ODE':>12s}{'neural DAE':>12s}")
-print(f"{'lowest S (g/L)':26s}{truth.y[2].min():12.2f}{S_node.min():12.2f}{S_dae.min():12.3f}")
+print(f"{'lowest S (g/L)':26s}{truth.y[2].min():12.2f}{S_node.min():12.2f}{S_dae.min():12.2f}")
 print(f"{'hours with S < 0':26s}{0:12d}{np.mean(S_node < 0) * 60:12.0f}{0:12d}")
-print(f"{'biomass X at 60 h (g/L)':26s}{truth.y[0, -1]:12.2f}{node[-1, 0]:12.2f}"
-      f"{pred_A.nn_input[-1, 0]:12.2f}")
+print(f"{'error in S, RMSE (g/L)':26s}{'':12s}{rmse(S_node, truth.y[2]):12.2f}"
+      f"{rmse(S_dae_tt, truth.y[2]):12.2f}")
 """)
 b.md("""
-**What to read in the output**
-
-- The neural ODE fits the three training batches, then drives the substrate below zero on the
-  new batch: its network still predicts growth when the substrate has run out, and nothing in
-  the model forbids a negative concentration.
-- The neural DAE gives a substrate that never goes negative.
-- Feasible is not the same as accurate: check the errors against the true model, not only the
-  sign.
-
-## Try it
-
-- Integrate the **neural DAE's** network with `solve_ivp` instead of solving it with `predict`.
-  Does its substrate go negative too? What does that say about where the constraint does the
-  work?
-- Keep only the $X$ and $S$ columns as measurements, as in the SiNDAE
-  [partial observation example](https://alves-research-group.github.io/SiNDAE/fedbatch-partial-obs-example/).
-  What else has to change?
-- Raise `slack_coef` to `1e-1`. The slacks become expensive. What happens to the solve?
+The neural ODE drives the substrate below zero; the neural DAE keeps it at or above zero. A
+feasible prediction is not automatically an accurate one: compare the errors too.
 """)
 b.write("l13-neural-dae.ipynb")

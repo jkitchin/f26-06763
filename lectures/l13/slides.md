@@ -221,9 +221,9 @@ Left: my multiscale picture, process to cell to Golgi. Right: what one cell look
 <div class="readbox">
 
 * Three models, all trained on the **same three batches** (0 to 40 h), predict a **new batch** for 60 h
-* **Purely data-driven**, no physics: substrate down to <b class="red">−0.85 g/L</b>, biomass off by 0.19 g/L on average
-* **Physics-informed**, the balances with a learned $\mu$: closer, but still <b class="red">−0.41 g/L</b>
-* **Physics-enforced**, a neural DAE: $S \ge 0$ holds, lowest value 0.04 g/L
+* **Purely data-driven**, no physics: substrate down to <b class="red">−0.43 g/L</b>, biomass off by 0.43 g/L on average
+* **Physics-informed**, the balances with a learned $\mu$: closer, but still <b class="red">−0.37 g/L</b>
+* **Physics-enforced**, a neural DAE: $S \ge 0$ holds, lowest value 0.05 g/L
 
 </div>
 
@@ -1266,7 +1266,7 @@ for _ in range(10_000):
 <div class="lay" data-marpit-fragment><div class="hl c1" data-lines="1-3" style="top:6px; height:67px"></div><div class="cn c1" style="top:6px">Simulate all three batches, compare with their 31 samples, each state divided by its spread</div></div>
 <div class="lay" data-marpit-fragment><div class="hl c2" data-lines="5-12" style="top:90px; height:172px"></div><div class="cn c2" style="top:130px">4 inputs, two hidden layers of 16 tanh units, 1 output</div></div>
 <div class="lay" data-marpit-fragment><div class="hl c3" data-lines="13-14" style="top:258px; height:46px"></div><div class="cn c3" style="top:262px">Adam, with a learning rate that decays from 0.01</div></div>
-<div class="lay" data-marpit-fragment><div class="hl c4" data-lines="16-23" style="top:321px; height:172px"></div><div class="cn c4" style="top:360px"><b>Sequential</b>: every step simulates, then updates θ. 10,000 steps, 33 s</div></div>
+<div class="lay" data-marpit-fragment><div class="hl c4" data-lines="16-23" style="top:321px; height:172px"></div><div class="cn c4" style="top:360px"><b>Sequential</b>: every step simulates, then updates θ. 10,000 steps, 36 s</div></div>
 </div>
 
 ---
@@ -1278,7 +1278,7 @@ for _ in range(10_000):
 <div class="readbox">
 
 * Dots: three batches, **31 noisy samples** of each state. Lines: the trained neural ODE, simulated from each batch's start
-* Error against the true model: 0.045 g/L in $X$ and 0.09 g/L in $S$, within the measurement noise (0.05 and 0.5 g/L)
+* Error against the true model: 0.047 g/L in $X$ and 0.094 g/L in $S$, within the measurement noise (0.05 and 0.5 g/L)
 
 </div>
 
@@ -1847,13 +1847,13 @@ Play. The neural ODE vessel drains through the floor at 25 h. The neural DAE sit
 
 <div class="kpis" style="grid-template-columns: repeat(3, 1fr);">
 <div class="kpi"><div class="v">0.07 g/L</div><div class="l">lowest substrate, <b>true mechanistic model</b></div></div>
-<div class="kpi" style="border-top-color:#c2410c" data-marpit-fragment><div class="v orange">−0.41 g/L</div><div class="l"><b>sequential approach / neural ODE</b>: below zero for 24 of 60 h</div></div>
-<div class="kpi" style="border-top-color:#1f5c99" data-marpit-fragment><div class="v blue">0.04 g/L</div><div class="l"><b>neural DAE</b>: never below zero</div></div>
+<div class="kpi" style="border-top-color:#c2410c" data-marpit-fragment><div class="v orange">−0.37 g/L</div><div class="l"><b>sequential approach / neural ODE</b>: below zero for 22 of 60 h</div></div>
+<div class="kpi" style="border-top-color:#1f5c99" data-marpit-fragment><div class="v blue">0.05 g/L</div><div class="l"><b>neural DAE</b>: never below zero</div></div>
 </div>
 
 ![w:640](figures/fedbatch-inference.png)
 
-<p class="takeaway" data-marpit-fragment>Feasible is not the same as accurate: the substrate error (RMSE) is 0.20 g/L for the neural ODE and 0.29 g/L for the neural DAE.</p>
+<p class="takeaway" data-marpit-fragment>Feasible is not the same as accurate: the substrate error (RMSE) is 0.19 g/L for the neural ODE and 0.30 g/L for the neural DAE.</p>
 
 ---
 
@@ -2041,7 +2041,6 @@ simul_config = SimultaneousConfig(
 solver_options = SolverConfig(
     tol=1e-6,
     max_iter=1000,
-    hessian_approximation="limited-memory",
 )
 ```
 
@@ -2050,7 +2049,7 @@ solver_options = SolverConfig(
 <div class="lay" data-marpit-fragment><div class="hl c1" data-lines="1-7" style="top:6px; height:147px"></div><div class="cn c1" style="top:6px">The network: 4 states in, μ out, two hidden layers of 20 softplus units, smooth as the solver needs</div></div>
 <div class="lay" data-marpit-fragment><div class="hl c2" data-lines="8-8" style="top:153px; height:21px"></div><div class="cn c2" style="top:153px">Stage 1, smoother: smooth trajectories through the data, μ free</div></div>
 <div class="lay" data-marpit-fragment><div class="hl c3" data-lines="9-13" style="top:174px; height:105px"></div><div class="cn c3" style="top:174px">Stage 2, pretraining: fit the network to the smoother's states and μ, with Adam</div></div>
-<div class="lay" data-marpit-fragment><div class="hl c4" data-lines="14-22" style="top:279px; height:189px"></div><div class="cn c4" style="top:279px">Stage 3, simultaneous: one NLP with the weights, every state and the balances. The network is evaluated in JAX, so the solver approximates second derivatives (L-BFGS)</div></div>
+<div class="lay" data-marpit-fragment><div class="hl c4" data-lines="14-21" style="top:279px; height:189px"></div><div class="cn c4" style="top:279px">Stage 3, simultaneous: one NLP with the weights, every state and the balances. The network is evaluated in JAX, so the solver approximates second derivatives (L-BFGS)</div></div>
 </div>
 
 ---
@@ -2106,7 +2105,7 @@ model.fit(problem)
 </div>
 <div></div>
 <div class="lay" data-marpit-fragment><div class="hl c3" data-lines="2-9" style="top:27px; height:168px"></div><div class="cn c3" style="top:27px">Simultaneous training, solved by POUNCE, with the network and the three stages</div></div>
-<div class="lay" data-marpit-fragment><div class="hl c4" data-lines="11-11" style="top:216px; height:21px"></div><div class="cn c4" style="top:216px"><b>fit</b>: smoother, pretraining, then the full NLP. About a minute</div></div>
+<div class="lay" data-marpit-fragment><div class="hl c4" data-lines="11-11" style="top:216px; height:21px"></div><div class="cn c4" style="top:216px"><b>fit</b>: smoother, pretraining, then the full NLP. About 30 s</div></div>
 </div>
 
 ---
@@ -2554,7 +2553,7 @@ Every code block on today's slides is a cell in these two notebooks, in the same
 <div class="scale"><span>physics favored</span><span>where the physics lives</span><span>physics enforced</span></div>
 <div class="cols4">
 <div class="c" style="border-top-color:#b07d12"><h4>PINN</h4>in the <b>loss</b><div class="n" style="color:#b07d12">5.3 N</div>residual left over</div>
-<div class="c" style="border-top-color:#c2410c"><h4>Neural ODE</h4>in the <b>right-hand side</b>: learns the vector field<div class="n" style="color:#c2410c">S = −0.41 g/L</div>bounds not held</div>
+<div class="c" style="border-top-color:#c2410c"><h4>Neural ODE</h4>in the <b>right-hand side</b>: learns the vector field<div class="n" style="color:#c2410c">S = −0.37 g/L</div>bounds not held</div>
 <div class="c" style="border-top-color:#1f5c99"><h4>Neural DAE</h4>in the <b>constraints of one NLP</b><div class="n" style="color:#1f5c99">S ≥ 0</div>held in training and prediction; balance violation 0, to solver tolerance</div>
 <div class="c" style="border-top-color:#2e7d32"><h4>Projection layer</h4>in the <b>last layer</b><div class="n" style="color:#2e7d32">10⁻¹⁵</div>balance violation</div>
 </div>

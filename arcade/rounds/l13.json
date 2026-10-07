@@ -1,7 +1,7 @@
 {
   "lecture": "l13",
   "title": "Scientific machine learning: PINNs, neural ODEs and neural DAEs",
-  "pool_version": 5,
+  "pool_version": 6,
   "source_notes": "lectures/l13/notes.md",
   "generated_by": "tools/arcade_rounds.py",
   "items": [
@@ -297,7 +297,7 @@
       "id": "l13-q15",
       "kind": "mcq",
       "lecture": "l13",
-      "context": "On a new batch, the bioreactor's neural ODE drives the substrate to −0.41 g/L. What does\nSiNDAE's neural DAE prediction do differently?",
+      "context": "On a new batch, the bioreactor's neural ODE drives the substrate to −0.37 g/L. What does\nSiNDAE's neural DAE prediction do differently?",
       "why": "In prediction the network equation gets slack variables whose sum is penalized. The solver\nkeeps the network's growth rate wherever it can, and overrules it only where S would\notherwise go negative.",
       "objectives": [
         "l13-o6"
@@ -319,7 +319,7 @@
       "kind": "spot_the_defect",
       "lecture": "l13",
       "context": "A report says: \"The neural DAE never lets the substrate go negative, so it must be more\naccurate than the neural ODE on every state.\" What is wrong with the claim?",
-      "why": "The constraint stops the prediction from being impossible; it does not make the learned\ngrowth rate correct. On the new batch the neural DAE never goes below zero, yet its\nsubstrate error against the true model (RMSE 0.29 g/L) is larger than the neural ODE's\n(0.20 g/L).",
+      "why": "The constraint stops the prediction from being impossible; it does not make the learned\ngrowth rate correct. On the new batch the neural DAE never goes below zero, yet its\nsubstrate error against the true model (RMSE 0.30 g/L) is larger than the neural ODE's\n(0.19 g/L).",
       "objectives": [
         "l13-o6"
       ],
@@ -328,7 +328,7 @@
         "accuracy",
         "practitioner"
       ],
-      "true": "Feasible is not accurate: the neural DAE's substrate error is 0.29 g/L, the neural ODE's 0.20 g/L",
+      "true": "Feasible is not accurate: the neural DAE's substrate error is 0.30 g/L, the neural ODE's 0.19 g/L",
       "false": [
         "Nothing: a constraint that holds makes every predicted state more accurate",
         "The neural DAE cannot predict substrate, only biomass",
