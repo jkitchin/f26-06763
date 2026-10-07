@@ -2601,11 +2601,13 @@ Every code block on today's slides is a cell in these two notebooks, in the same
 <script>
 /* Code slides: put each highlight on its lines and each callout beside them, measured
    on the rendered code, so the boxes follow the code whatever its font, line height or
-   Marp's shrink-to-fit. A slide is laid out once it is visible. */
+   Marp's shrink-to-fit. Marp shrinks a wide code block only after its slide becomes
+   visible, so the layout is never frozen: it is measured again when a slide or a
+   fragment changes, when the window resizes, and when a code block changes size. */
 (function () {
   function layout(ca) {
     var pre = ca.querySelector('marp-pre, pre');
-    if (!pre || ca.getAttribute('data-placed')) return;
+    if (!pre) return;
     var box = ca.getBoundingClientRect();
     if (!box.width || !ca.offsetWidth) return;
     var k = box.width / ca.offsetWidth;
@@ -2654,13 +2656,23 @@ Every code block on today's slides is a cell in these two notebooks, in the same
       cn.style.setProperty('--ay', Math.max(4, Math.min(h - 20, mid - t - 8)) + 'px');
       prevBottom = t + h;
     });
-    ca.setAttribute('data-placed', '1');
   }
   function run() { document.querySelectorAll('.ca').forEach(layout); }
+  var timers = [];
+  function soon() {
+    timers.forEach(clearTimeout);
+    requestAnimationFrame(run);
+    timers = [120, 400, 1000].map(function (ms) { return setTimeout(run, ms); });
+  }
   function start() {
     run();
-    new MutationObserver(function () { requestAnimationFrame(run); })
-      .observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+    new MutationObserver(soon).observe(document.body,
+      { attributes: true, subtree: true, attributeFilter: ['class', 'data-bespoke-marp-fragment'] });
+    window.addEventListener('resize', soon);
+    if (window.ResizeObserver) {
+      var ro = new ResizeObserver(soon);
+      document.querySelectorAll('.ca marp-pre, .ca pre').forEach(function (e) { ro.observe(e); });
+    }
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(run);
   }
   if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
