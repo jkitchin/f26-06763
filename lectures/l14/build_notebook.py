@@ -1,321 +1,372 @@
 #!/usr/bin/env python3
-"""Generate lectures/l14/l14-bayesopt-design.ipynb.
+"""Generate lectures/l14/l14-uq-bayesopt.ipynb, the L14 worked example.
 
-The L14 demo builds the Bayesian-optimization loop twice, deliberately.
+On the concrete strength dataset: Lecture 9's Gaussian process, a five-network ensemble and
+split conformal prediction, with their coverage on the grouped test split and on an
+extrapolation split; then Bayesian optimization of a mix design with expected improvement
+written out by hand, against random search, and the same search with Optuna's GPSampler.
 
-  1. By hand on the Forrester 1-D test function: a scikit-learn Gaussian process
-     and an expected-improvement function written out in a few lines, so the
-     acquisition math is visible rather than hidden in a library. You watch the
-     proposals walk into the global basin.
-  2. The same loop in BoTorch on the NASA airfoil self-noise data (carried over
-     from L13): a gradient-boosted emulator stands in for the expensive
-     experiment, and BoTorch's SingleTaskGP + qExpectedImprovement drive the
-     search. Same four steps, production implementation.
+It follows figures/make_figures.py (groups uq and bench) with the same seeds and splits, so the
+numbers it prints are the numbers the notes quote (the BO comparison uses 5 seeds here, 30 there).
 
-Then it does the two things that keep the method honest: it races Bayesian
-optimization against random search over many seeds and plots the regret curves
-with bands (a single seed proves nothing), and it runs one active-learning step
-to show uncertainty shrink where the model was most ignorant.
+Kept in a generator for deterministic cell ids and no hand-edited JSON. The committed copy
+carries real output. After regenerating, execute it and refresh the Colab cell:
 
-Design notes:
-  - CPU only; the models are tiny.
-  - Seeds fixed throughout; airfoil cached under .cache/ (gitignored).
-  - Runs top to bottom under the course sys_tools environment (needs botorch,
-    gpytorch, scikit-learn, scipy, matplotlib).
+    python3 lectures/l14/build_notebook.py
+    cd lectures/l14 && uv run --no-project --python 3.12 --with numpy --with pandas --with xlrd \
+        --with scikit-learn --with scipy --with matplotlib --with optuna --with torch --with greenlet \
+        --with ipywidgets --with nbclient --with nbformat --with ipykernel python -c "
+import nbformat
+from nbclient import NotebookClient
+nb = nbformat.read('l14-uq-bayesopt.ipynb', as_version=4)
+NotebookClient(nb, timeout=1200, resources={'metadata': {'path': '.'}}).execute()
+nbformat.write(nb, 'l14-uq-bayesopt.ipynb')
+"
+    python3 tools/colab_setup.py --write "$PWD/lectures/l14/l14-uq-bayesopt.ipynb"
 """
 import json
 import sys
 from pathlib import Path
 
-OUT = Path(__file__).parent / "l14-bayesopt-design.ipynb"
-
-_n = 0
-
-
-def _next_id(kind):
-    global _n
-    _n += 1
-    return f"{kind}-{_n:02d}"
-
-
-def md(*lines):
-    return {"cell_type": "markdown", "id": _next_id("md"),
-            "metadata": {}, "source": list(lines)}
-
-
-def code(*lines):
-    return {"cell_type": "code", "id": _next_id("code"), "execution_count": None,
-            "metadata": {}, "outputs": [], "source": list(lines)}
-
-
-cells = [
-    md("# L14 demo: Bayesian optimization and active learning\n",
-       "\n",
-       "Each expensive evaluation is a simulation run or a physical experiment, and the budget is\n",
-       "a few dozen. The job is to choose the next one well. We build the Bayesian-optimization\n",
-       "loop twice: first by hand so the acquisition math is visible, then in BoTorch on an\n",
-       "engineering objective. Then we do the honest things: beat a random-search baseline over\n",
-       "many seeds, and run one active-learning step.\n",
-       "\n",
-       "> Companion notes: [`notes.md`](notes.md). Dataset: NASA airfoil self-noise, carried over\n",
-       "> from L13."),
-
-    md("## Setup"),
-    code("import warnings\n",
-         "warnings.filterwarnings('ignore')  # GP fits emit convergence chatter\n",
-         "\n",
-         "import io, urllib.request, zipfile\n",
-         "from pathlib import Path\n",
-         "\n",
-         "import numpy as np\n",
-         "import matplotlib.pyplot as plt\n",
-         "from scipy.stats import norm\n",
-         "from sklearn.gaussian_process import GaussianProcessRegressor\n",
-         "from sklearn.gaussian_process.kernels import ConstantKernel, Matern, WhiteKernel\n",
-         "from sklearn.ensemble import GradientBoostingRegressor\n",
-         "\n",
-         "SEED = 0\n",
-         "rng = np.random.default_rng(SEED)\n",
-         "plt.rcParams.update({'figure.dpi': 120, 'axes.spines.top': False,\n",
-         "                     'axes.spines.right': False, 'font.size': 12})\n",
-         "CMU_RED, BLUE, GREEN, BAND = '#c41230', '#1f5c99', '#2b7a4b', '#c9dbec'"),
-
-    md("## 1. The loop by hand on a 1-D function\n",
-       "\n",
-       "The [Forrester function](https://www.sciencedirect.com/book/9780470060681) is a standard\n",
-       "one-dimensional test case with a global minimum near $x = 0.757$ and a shallow local\n",
-       "minimum on the left to trap a greedy optimizer. We minimize it."),
-    code("def forrester(x):\n",
-         "    x = np.asarray(x, dtype=float)\n",
-         "    return (6 * x - 2) ** 2 * np.sin(12 * x - 4)\n",
-         "\n",
-         "grid = np.linspace(0, 1, 400)\n",
-         "x_star = grid[forrester(grid).argmin()]\n",
-         "print(f'true minimum near x = {x_star:.3f}, f = {forrester(x_star):.3f}')"),
-
-    md("### The acquisition, written out\n",
-       "\n",
-       "Two functions, both for **minimization**. Expected improvement scores how much we expect\n",
-       "to beat the incumbent `best`; the lower confidence bound is `mu - kappa * sigma`, with\n",
-       "`kappa` the explore/exploit dial. Watch the sign: the improvement is `best - mu`, because\n",
-       "lower is better here."),
-    code("def expected_improvement(mu, sigma, best, xi=0.01):\n",
-         "    sigma = np.maximum(sigma, 1e-9)\n",
-         "    imp = best - mu - xi            # improvement BELOW the incumbent (minimization)\n",
-         "    z = imp / sigma\n",
-         "    return imp * norm.cdf(z) + sigma * norm.pdf(z)\n",
-         "\n",
-         "def lower_confidence_bound(mu, sigma, kappa=2.0):\n",
-         "    return mu - kappa * sigma        # we will MINIMIZE this\n",
-         "\n",
-         "def fit_gp(x, y):\n",
-         "    kernel = (ConstantKernel(1.0, (1e-2, 1e2))\n",
-         "              * Matern(0.15, (0.05, 0.5), nu=2.5)\n",
-         "              + WhiteKernel(1e-4, (1e-6, 1e-1)))\n",
-         "    gp = GaussianProcessRegressor(kernel=kernel, normalize_y=True,\n",
-         "                                  n_restarts_optimizer=4, random_state=SEED)\n",
-         "    return gp.fit(x.reshape(-1, 1), y)"),
-
-    md("A quick sign check before we trust it: expected improvement should be higher at a point\n",
-       "we believe is good than at one we believe is bad."),
-    code("x0 = np.array([0.0, 0.33, 0.66, 1.0])          # a space-filling start\n",
-         "y0 = forrester(x0)\n",
-         "gp0 = fit_gp(x0, y0)\n",
-         "mu0, sd0 = gp0.predict(grid.reshape(-1, 1), return_std=True)\n",
-         "ei0 = expected_improvement(mu0, sd0, y0.min())\n",
-         "good, bad = grid[mu0.argmin()], grid[mu0.argmax()]\n",
-         "print(f'EI at the predicted-good x={good:.2f}: {expected_improvement(*gp0.predict([[good]], return_std=True), y0.min())[0]:.4f}')\n",
-         "print(f'EI at the predicted-bad  x={bad:.2f}: {expected_improvement(*gp0.predict([[bad]], return_std=True), y0.min())[0]:.4f}')\n",
-         "assert ei0.max() > 0, 'acquisition is flat: something is wrong'\n",
-         "print('sign check ok: EI favours the promising region')"),
-
-    md("### Run the loop\n",
-       "\n",
-       "Fit the GP, maximize EI, evaluate the true function there, repeat. From a start that\n",
-       "misses the global basin, EI walks into it in a handful of steps."),
-    code("x, y = x0.copy(), y0.copy()\n",
-         "picks = []\n",
-         "for it in range(6):\n",
-         "    gp = fit_gp(x, y)\n",
-         "    mu, sd = gp.predict(grid.reshape(-1, 1), return_std=True)\n",
-         "    x_next = grid[expected_improvement(mu, sd, y.min()).argmax()]\n",
-         "    picks.append(x_next)\n",
-         "    x = np.append(x, x_next)\n",
-         "    y = np.append(y, forrester(x_next))\n",
-         "\n",
-         "print('proposed points:', [round(float(p), 3) for p in picks])\n",
-         "print(f'best found: x = {x[y.argmin()]:.3f}, f = {y.min():.3f}  (true {forrester(x_star):.3f})')"),
-    code("fig, ax = plt.subplots(figsize=(9, 4.5))\n",
-         "gp = fit_gp(x, y)\n",
-         "mu, sd = gp.predict(grid.reshape(-1, 1), return_std=True)\n",
-         "ax.plot(grid, forrester(grid), color='0.8', lw=2, label='true objective')\n",
-         "ax.fill_between(grid, mu - 1.96 * sd, mu + 1.96 * sd, color=BAND, alpha=0.8)\n",
-         "ax.plot(grid, mu, color=BLUE, lw=2, label='GP mean')\n",
-         "ax.scatter(x0, y0, color='0.4', s=45, zorder=4, label='initial design')\n",
-         "ax.scatter(x[len(x0):], y[len(x0):], color=CMU_RED, s=45, zorder=5, label='BO evaluations')\n",
-         "ax.axvline(x_star, color='k', ls=':', lw=1.2, label='true optimum')\n",
-         "ax.set_xlabel('design variable x'); ax.set_ylabel('f(x)'); ax.legend(fontsize=9)\n",
-         "ax.set_title('Bayesian optimization on the Forrester function'); plt.show()"),
-
-    md("## 2. The same loop in BoTorch on an engineering objective\n",
-       "\n",
-       "Now the airfoil self-noise data from L13. We fit a gradient-boosted emulator to all 1503\n",
-       "rows and treat *that* as the expensive experiment: the optimizer never sees it, it only\n",
-       "gets to query it. The design space is the box of observed operating conditions, and we\n",
-       "want the quietest one (lowest sound pressure level)."),
-    code("CACHE = Path('.cache'); CACHE.mkdir(exist_ok=True)\n",
-         "URL = 'https://archive.ics.uci.edu/static/public/291/airfoil+self+noise.zip'\n",
-         "local = CACHE / 'airfoil_self_noise.dat'\n",
-         "if not local.exists():\n",
-         "    with urllib.request.urlopen(URL) as r:\n",
-         "        local.write_bytes(zipfile.ZipFile(io.BytesIO(r.read())).read('airfoil_self_noise.dat'))\n",
-         "data = np.loadtxt(local)\n",
-         "X_all, y_all = data[:, :5], data[:, 5]\n",
-         "oracle = GradientBoostingRegressor(random_state=SEED, n_estimators=400,\n",
-         "                                   max_depth=3, learning_rate=0.05).fit(X_all, y_all)\n",
-         "lo, hi = X_all.min(0), X_all.max(0)\n",
-         "def experiment(pt):\n",
-         "    return float(oracle.predict(np.asarray(pt).reshape(1, -1))[0])\n",
-         "\n",
-         "floor = oracle.predict(np.random.default_rng(1).uniform(lo, hi, (200_000, 5))).min()\n",
-         "print(f'best SPL the emulator allows over the box: {floor:.2f} dB')"),
-
-    md("BoTorch maximizes by convention, so to minimize noise we optimize on the negative SPL.\n",
-       "The `Normalize` and `Standardize` transforms handle input and output scaling; the loop is\n",
-       "the same four steps as above with `SingleTaskGP` and `qExpectedImprovement` in place of\n",
-       "the hand-written pieces."),
-    code("import torch\n",
-         "from botorch.models import SingleTaskGP\n",
-         "from botorch.models.transforms import Normalize, Standardize\n",
-         "from botorch.fit import fit_gpytorch_mll\n",
-         "from gpytorch.mlls import ExactMarginalLogLikelihood\n",
-         "from botorch.acquisition import qExpectedImprovement\n",
-         "from botorch.optim import optimize_acqf\n",
-         "\n",
-         "torch.manual_seed(SEED)\n",
-         "td = {'dtype': torch.double}\n",
-         "bounds = torch.tensor(np.vstack([lo, hi]), **td)\n",
-         "\n",
-         "init = np.random.default_rng(SEED).uniform(lo, hi, (6, 5))\n",
-         "X = torch.tensor(init, **td)\n",
-         "Y = torch.tensor([[-experiment(p)] for p in init], **td)   # negate: maximize -SPL\n",
-         "\n",
-         "for it in range(14):\n",
-         "    gp = SingleTaskGP(X, Y, input_transform=Normalize(d=5, bounds=bounds),\n",
-         "                      outcome_transform=Standardize(m=1))\n",
-         "    fit_gpytorch_mll(ExactMarginalLogLikelihood(gp.likelihood, gp))\n",
-         "    acqf = qExpectedImprovement(gp, best_f=Y.max())\n",
-         "    cand, _ = optimize_acqf(acqf, bounds=bounds, q=1, num_restarts=5, raw_samples=64)\n",
-         "    X = torch.cat([X, cand])\n",
-         "    Y = torch.cat([Y, torch.tensor([[-experiment(cand.numpy().ravel())]], **td)])\n",
-         "\n",
-         "best_spl = -float(Y.max())\n",
-         "print(f'BoTorch best SPL after 20 evaluations: {best_spl:.2f} dB  (floor {floor:.2f} dB)')"),
-
-    md("## 3. Honest evaluation: Bayesian optimization vs random search\n",
-       "\n",
-       "Bayesian optimization is stochastic, so a single run proves nothing. We run both\n",
-       "strategies over many seeds, on the same emulator and the same budget, and plot the median\n",
-       "best-so-far with an interquartile band. We use the transparent scikit-learn optimizer here\n",
-       "because it is fast enough to repeat 20 times."),
-    code("def bo_sklearn(seed, budget=22, n_init=4):\n",
-         "    r = np.random.default_rng(1000 + seed)\n",
-         "    Xd = r.uniform(lo, hi, (n_init, 5)); yd = np.array([experiment(p) for p in Xd])\n",
-         "    best = [yd.min()]\n",
-         "    ker = (ConstantKernel(1.0, (1e-2, 1e3)) * Matern(np.ones(5), nu=2.5)\n",
-         "           + WhiteKernel(1.0, (1e-3, 1e3)))\n",
-         "    for _ in range(budget - n_init):\n",
-         "        g = GaussianProcessRegressor(ker, normalize_y=True, random_state=seed)\n",
-         "        m, s = Xd.mean(0), Xd.std(0) + 1e-9\n",
-         "        g.fit((Xd - m) / s, yd)\n",
-         "        pool = r.uniform(lo, hi, (1500, 5))\n",
-         "        mu, sd = g.predict((pool - m) / s, return_std=True)\n",
-         "        nxt = pool[expected_improvement(mu, sd, yd.min()).argmax()]\n",
-         "        Xd = np.vstack([Xd, nxt]); yd = np.append(yd, experiment(nxt)); best.append(yd.min())\n",
-         "    return best\n",
-         "\n",
-         "def random_search(seed, budget=22, n_init=4):\n",
-         "    r = np.random.default_rng(1000 + seed)\n",
-         "    yd = np.array([experiment(p) for p in r.uniform(lo, hi, (n_init, 5))]); best = [yd.min()]\n",
-         "    for _ in range(budget - n_init):\n",
-         "        yd = np.append(yd, experiment(r.uniform(lo, hi, 5))); best.append(yd.min())\n",
-         "    return best\n",
-         "\n",
-         "N = 20\n",
-         "bo = np.array([bo_sklearn(s) for s in range(N)])\n",
-         "rs = np.array([random_search(s) for s in range(N)])\n",
-         "xs = np.arange(4, 4 + bo.shape[1])\n",
-         "print(f'after 22 evals  BO median {np.median(bo[:, -1]):.2f} dB   random {np.median(rs[:, -1]):.2f} dB')"),
-    code("fig, ax = plt.subplots(figsize=(8.5, 5))\n",
-         "for curves, color, name in [(bo, CMU_RED, 'Bayesian optimization'), (rs, '0.5', 'random search')]:\n",
-         "    ax.plot(xs, np.median(curves, 0), color=color, lw=2.4, label=name)\n",
-         "    q1, q3 = np.percentile(curves, [25, 75], axis=0)\n",
-         "    ax.fill_between(xs, q1, q3, color=color, alpha=0.15)\n",
-         "ax.axhline(floor, color='k', ls=':', lw=1.3)\n",
-         "ax.set_xlabel('expensive evaluations spent'); ax.set_ylabel('lowest SPL found (dB)')\n",
-         "ax.set_title(f'median of {N} seeds, with interquartile band'); ax.legend(); plt.show()"),
-    md("The bands are the message. A single seed of either method could land anywhere inside\n",
-       "them, so any claim that Bayesian optimization 'worked' has to be a claim about the\n",
-       "distribution, not about one lucky run."),
-
-    md("## 4. One active-learning step\n",
-       "\n",
-       "Same machinery, different goal: improve the surrogate everywhere rather than find one\n",
-       "optimum. We query the point of highest posterior uncertainty. Holding the hyperparameters\n",
-       "fixed, conditioning on that one observation can only shrink the posterior variance."),
-    code("xa = np.array([0.08, 0.2, 0.32, 0.44, 0.9]); ya = forrester(xa)\n",
-         "g = fit_gp(xa, ya)\n",
-         "mu, sd = g.predict(grid.reshape(-1, 1), return_std=True)\n",
-         "x_query = grid[sd.argmax()]\n",
-         "before = np.trapezoid(sd, grid)\n",
-         "\n",
-         "xb = np.append(xa, x_query); yb = np.append(ya, forrester(x_query))\n",
-         "g2 = GaussianProcessRegressor(kernel=g.kernel_, optimizer=None, normalize_y=True).fit(xb.reshape(-1, 1), yb)\n",
-         "mu2, sd2 = g2.predict(grid.reshape(-1, 1), return_std=True)\n",
-         "after = np.trapezoid(sd2, grid)\n",
-         "print(f'query at x = {x_query:.3f}; total posterior SD {before:.3f} -> {after:.3f} ({100*(before-after)/before:.1f}% lower)')"),
-    code("fig, axes = plt.subplots(1, 2, figsize=(11, 4), sharey=True)\n",
-         "for ax, (m, s, xx, yy, ttl, q) in zip(axes, [\n",
-         "        (mu, sd, xa, ya, 'before: widest gap between 0.44 and 0.9', x_query),\n",
-         "        (mu2, sd2, xb, yb, 'after one query at the most uncertain point', None)]):\n",
-         "    ax.plot(grid, forrester(grid), color='0.8', lw=2)\n",
-         "    ax.fill_between(grid, m - 1.96 * s, m + 1.96 * s, color=BAND, alpha=0.85)\n",
-         "    ax.plot(grid, m, color=BLUE, lw=2); ax.scatter(xx, yy, color='0.3', s=40, zorder=4)\n",
-         "    if q is not None: ax.axvline(q, color=CMU_RED, ls='--', lw=1.6)\n",
-         "    ax.set_title(ttl, fontsize=11); ax.set_xlabel('design variable x')\n",
-         "axes[0].set_ylabel('f(x)'); plt.show()"),
-
-    md("---\n",
-       "\n",
-       "## Takeaway\n",
-       "\n",
-       "We built the Bayesian-optimization loop by hand to see the acquisition math, then in\n",
-       "BoTorch to see the production tool, and both are the same four steps: fit a probabilistic\n",
-       "surrogate, maximize an acquisition, evaluate, update. The honest-evaluation section is the\n",
-       "part to internalize: report over many seeds against a random-search baseline, because a\n",
-       "single run is a sample of one. Active learning is the same loop aimed at the model instead\n",
-       "of the optimum, spending each query where the surrogate is most uncertain. This is the\n",
-       "design-loop payoff the miniproject asks you to demonstrate."),
-]
-
-# The Colab bootstrap cell, injected from the notebook's own imports so this
-# generator does not carry a second copy of the requirement list. See
-# tools/colab_setup.py.
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools"))
+HERE = Path(__file__).parent
+OUT = HERE / "l14-uq-bayesopt.ipynb"
+sys.path.insert(0, str(HERE.parent.parent / "tools"))
 from colab_setup import with_colab_cell  # noqa: E402
 
+cells, n = [], 0
+
+
+def md(text):
+    global n
+    n += 1
+    cells.append({"cell_type": "markdown", "id": f"md-{n:02d}", "metadata": {},
+                  "source": text.strip("\n").splitlines(keepends=True)})
+
+
+def code(text):
+    global n
+    n += 1
+    cells.append({"cell_type": "code", "id": f"code-{n:02d}", "execution_count": None,
+                  "metadata": {}, "outputs": [], "source": text.strip("\n").splitlines(keepends=True)})
+
+
+md("""
+# L14 worked example: uncertainty and Bayesian optimization on the concrete strength dataset
+
+**scikit-learn** fits the Gaussian process (GP) and the networks, as in Lecture 9:
+https://scikit-learn.org.
+
+**Optuna** runs the Bayesian optimization at the end, with its `GPSampler`:
+https://optuna.readthedocs.io. Lecture 10 used Optuna with its default sampler; this sampler
+also needs `torch`, which Colab already has.
+
+The plan:
+
+1. Three ways to get a 95% prediction interval for the strength of a mix.
+2. Check how often each interval contains the measured strength, on two test sets.
+3. Use the GP to choose which mixes to test, against choosing them at random.
+
+> Companion notes: [`notes.md`](notes.md).
+""")
+md("""
+## 1. Load the concrete strength dataset, and lock the split
+
+One row per specimen. `groups` numbers the mixes, so that every row of a mix stays on the
+same side of a split, exactly as in Lecture 9.
+""")
+code("""
+import io
+import urllib.request
+import warnings
+import zipfile
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from scipy.stats import norm
+from sklearn.exceptions import ConvergenceWarning
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel, Matern, WhiteKernel
+from sklearn.model_selection import GroupShuffleSplit
+from sklearn.neural_network import MLPRegressor
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+warnings.filterwarnings("ignore", category=ConvergenceWarning)
+
+DATA = Path("data")
+DATA.mkdir(exist_ok=True)
+XLS = DATA / "Concrete_Data.xls"
+if not XLS.exists():
+    url = "https://archive.ics.uci.edu/static/public/165/concrete+compressive+strength.zip"
+    XLS.write_bytes(
+        zipfile.ZipFile(io.BytesIO(urllib.request.urlopen(url).read())).read("Concrete_Data.xls")
+    )
+
+COLUMNS = ["cement", "slag", "fly_ash", "water", "superplasticizer",
+           "coarse_agg", "fine_agg", "age_days", "strength_mpa"]
+FEATURES, MIX = COLUMNS[:8], COLUMNS[:7]
+concrete = pd.read_excel(XLS)
+concrete.columns = COLUMNS
+X = concrete[FEATURES].to_numpy()
+y = concrete["strength_mpa"].to_numpy()
+groups = concrete.groupby(MIX).ngroup().to_numpy()
+
+splitter = GroupShuffleSplit(
+    n_splits=1,
+    test_size=0.2,
+    random_state=42,
+)
+train, test = next(splitter.split(X, y, groups))
+print(f"{len(train)} training rows, {len(test)} test rows")
+""")
+md("""
+## 2. The aleatoric floor: replicate specimens
+
+Some settings (the same mix at the same age) were tested more than once. Their scatter is
+noise no model can predict away.
+""")
+code("""
+same = concrete.groupby(FEATURES)["strength_mpa"].agg(["size", "std"])
+rep = same[same["size"] > 1]
+pooled = np.sqrt((rep["std"] ** 2 * (rep["size"] - 1)).sum() / (rep["size"] - 1).sum())
+print(f"{len(rep)} settings tested more than once ({int(rep['size'].sum())} rows): "
+      f"pooled scatter {pooled:.2f} MPa")
+""")
+md("""
+## 3. Three intervals
+
+- `gp_model()` is Lecture 9's GP: a scaler, then a GP with one length scale per input and a
+  noise term (`WhiteKernel`). `predict(X, return_std=True)` returns the mean and the standard
+  deviation, which includes the noise.
+- `net(seed)` is Lecture 9's network, one hidden layer of 16 tanh units, started from `seed`.
+- `intervals(train, test)` fits all three methods on the training rows and returns, for each, the
+  centre and the half-width of the 95% interval on the test rows. For split conformal it first
+  sets aside a quarter of the training mixes to calibrate the width.
+""")
+code("""
+def gp_model():
+    return make_pipeline(
+        StandardScaler(),
+        GaussianProcessRegressor(
+            kernel=ConstantKernel(1.0) * RBF(np.ones(8), (1e-2, 1e3)) + WhiteKernel(1e-1, (1e-5, 1e1)),
+            normalize_y=True,
+            random_state=0,
+            n_restarts_optimizer=2,
+        ),
+    )
+
+
+def net(seed):
+    return make_pipeline(
+        StandardScaler(),
+        MLPRegressor(
+            hidden_layer_sizes=(16,),
+            activation="tanh",
+            solver="lbfgs",
+            max_iter=5000,
+            random_state=seed,
+        ),
+    )
+
+
+def intervals(tr, te, alpha=0.05):
+    out = {}
+    gp = gp_model().fit(X[tr], y[tr])
+    mu, sd = gp.predict(X[te], return_std=True)
+    out["Gaussian process"] = (mu, 1.96 * sd)
+
+    preds = np.array([net(s).fit(X[tr], y[tr]).predict(X[te]) for s in range(5)])
+    out["ensemble spread"] = (preds.mean(0), 1.96 * preds.std(0))
+
+    fit_i, cal_i = next(GroupShuffleSplit(n_splits=1, test_size=0.25, random_state=0)
+                        .split(X[tr], y[tr], groups[tr]))
+    fit_i, cal_i = tr[fit_i], tr[cal_i]
+    nets = [net(s).fit(X[fit_i], y[fit_i]) for s in range(5)]
+    scores = np.abs(y[cal_i] - np.mean([m.predict(X[cal_i]) for m in nets], 0))
+    k = len(scores)
+    q = np.quantile(scores, min(1.0, np.ceil((k + 1) * (1 - alpha)) / k), method="higher")
+    out["split conformal"] = (np.mean([m.predict(X[te]) for m in nets], 0), np.full(len(te), q))
+    noise = np.sqrt(gp[-1].kernel_.k2.noise_level) * gp[-1]._y_train_std
+    print(f"  GP noise term {noise:.2f} MPa; conformal calibration rows {k}, q = {q:.2f} MPa")
+    return out
+
+
+def report(tr, te, name):
+    print(name)
+    for method, (centre, half) in intervals(tr, te).items():
+        picp = np.mean(np.abs(y[te] - centre) < half)
+        print(f"  {method:18s} coverage {picp:5.0%}   mean width {2 * half.mean():5.1f} MPa")
+""")
+md("""
+## 4. Coverage on two test sets
+
+The **grouped split** is Lecture 9's. The **extrapolation split** holds out the 20% of mixes
+with the lowest water/cement ratio: the strongest mixes, where a design loop will push.
+""")
+code("""
+report(train, test, "grouped split")
+
+wc = (concrete["water"] / concrete["cement"]).groupby(groups).mean()
+held = wc[wc <= wc.quantile(0.2)].index
+te2 = np.flatnonzero(np.isin(groups, held))
+tr2 = np.flatnonzero(~np.isin(groups, held))
+print(f"\\nheld out: mean strength {y[te2].mean():.1f} MPa; kept: {y[tr2].mean():.1f} MPa")
+report(tr2, te2, "extrapolation split")
+""")
+md("""
+**What to read in the output**
+
+- On the grouped split the GP and conformal intervals cover about 95%. The ensemble's spread
+  covers far less: it is the epistemic part only.
+- On the strongest mixes every method covers less than it claims. Conformal falls furthest: the
+  strong mixes are not exchangeable with its calibration mixes.
+
+## 5. Bayesian optimization of a mix
+
+The "lab" is Lecture 9's GP fitted to all 1,030 rows, standing in for the 28-day test.
+`lab(u)` takes designs scaled to $[0, 1]$ for cement, slag, water and superplasticizer, between
+the 5th and 95th percentiles of the 28-day mixes, with the other ingredients at their medians.
+""")
+code("""
+emulator = gp_model().fit(X, y)
+d28 = concrete[concrete.age_days == 28]
+fixed = d28[FEATURES].median().to_numpy()
+DESIGN = ["cement", "slag", "water", "superplasticizer"]
+idx = [FEATURES.index(c) for c in DESIGN]
+lo = d28[DESIGN].quantile(0.05).to_numpy()
+hi = d28[DESIGN].quantile(0.95).to_numpy()
+
+
+def lab(u):
+    rows = np.tile(fixed, (len(u), 1))
+    rows[:, idx] = lo + u * (hi - lo)
+    return emulator.predict(rows)
+
+
+print({c: (round(a), round(b)) for c, a, b in zip(DESIGN, lo, hi)})
+""")
+md("""
+**Expected improvement**, for maximization, with $f^*$ the best strength so far:
+
+$$
+\\text{EI}(x) = \\big(\\mu(x) - f^*\\big)\\,\\Phi(z) + \\sigma(x)\\,\\phi(z), \\qquad z = \\frac{\\mu(x) - f^*}{\\sigma(x)}
+$$
+
+`bo(seed)` starts from 5 random mixes, then 20 times: fits a GP to the mixes tested so far,
+scores 4,000 random candidates by EI, and tests the best one. `random_search(seed)` tests 25
+random mixes. Both return the best strength found after each test.
+""")
+code("""
+def expected_improvement(mu, sd, best):
+    sd = np.maximum(sd, 1e-9)
+    z = (mu - best) / sd
+    return (mu - best) * norm.cdf(z) + sd * norm.pdf(z)
+
+
+def bo(seed, n_init=5, budget=25):
+    rng = np.random.default_rng(seed)
+    U = rng.random((n_init, 4))
+    Y = lab(U)
+    for _ in range(budget - n_init):
+        gp = GaussianProcessRegressor(
+            kernel=ConstantKernel(1.0) * Matern(np.ones(4), (1e-2, 1e2), nu=2.5)
+            + WhiteKernel(1e-3, (1e-6, 1e-1)),
+            normalize_y=True,
+            random_state=seed,
+        ).fit(U, Y)
+        candidates = rng.random((4000, 4))
+        mu, sd = gp.predict(candidates, return_std=True)
+        best_candidate = candidates[expected_improvement(mu, sd, Y.max()).argmax()]
+        U = np.vstack([U, best_candidate])
+        Y = np.append(Y, lab(best_candidate[None, :]))
+    return np.maximum.accumulate(Y), U[Y.argmax()]
+
+
+def random_search(seed, budget=25):
+    rng = np.random.default_rng(seed)
+    return np.maximum.accumulate(lab(rng.random((budget, 4))))
+
+
+runs_bo = [bo(s) for s in range(5)]
+runs_rand = [random_search(s) for s in range(5)]
+for s in range(5):
+    print(f"seed {s}: BO best {runs_bo[s][0][-1]:.1f} MPa, random best {runs_rand[s][-1]:.1f} MPa")
+
+fig, ax = plt.subplots(figsize=(8, 4))
+for s in range(5):
+    ax.plot(range(1, 26), runs_bo[s][0], color="C0", alpha=0.7, label="BO (EI)" if s == 0 else None)
+    ax.plot(range(1, 26), runs_rand[s], color="0.6", alpha=0.7, label="random search" if s == 0 else None)
+ax.set_xlabel("mixes tested")
+ax.set_ylabel("best strength so far (MPa)")
+ax.legend()
+plt.show()
+""")
+md("""
+## 6. Check the answer with the uncertainty
+
+The best mix BO found, back in kilograms per cubic meter, with the emulator's 95% interval.
+""")
+code("""
+u_best = runs_bo[0][1]
+row = fixed.copy()
+row[idx] = lo + u_best * (hi - lo)
+mean, sd = emulator.predict(row[None, :], return_std=True)
+print({c: round(v) for c, v in zip(DESIGN, row[idx])})
+print(f"predicted {mean[0]:.1f} +/- {1.96 * sd[0]:.1f} MPa; strongest specimen ever tested {y.max():.1f} MPa")
+""")
+md("""
+The optimizer found where the emulator is most optimistic, far from any tested mix, and the
+wide interval says so. In a real campaign the next step is to cast that mix and add the result.
+
+## 7. The same search in Optuna
+
+- `trial.suggest_float(name, low, high)` lets the sampler choose a value in the range.
+- `optuna.samplers.GPSampler(n_startup_trials=5)` samples 5 mixes at random, then lets a GP with
+  an acquisition function choose.
+""")
+code("""
+import optuna
+
+optuna.logging.set_verbosity(optuna.logging.WARNING)
+
+
+def objective(trial):
+    u = np.array([
+        (trial.suggest_float(c, a, b) - a) / (b - a) for c, a, b in zip(DESIGN, lo, hi)
+    ])
+    return float(lab(u[None, :])[0])
+
+
+study = optuna.create_study(
+    direction="maximize",
+    sampler=optuna.samplers.GPSampler(
+        seed=0,
+        n_startup_trials=5,
+    ),
+)
+study.optimize(
+    objective,
+    n_trials=25,
+)
+print(f"Optuna GPSampler, 25 trials: best {study.best_value:.1f} MPa")
+print({k: round(v) for k, v in study.best_params.items()})
+""")
+md("""
+## Try it
+
+- Change `alpha` in `intervals` to 0.2 and check that the 80% intervals cover about 80% on the
+  grouped split.
+- Restrict the design box to the middle of the data (25th to 75th percentile). Does BO still
+  land on a mix the emulator is unsure about?
+- Replace expected improvement with $\\mu + 3\\sigma$ (an upper confidence bound) in `bo`. Does it
+  find the best mix in fewer or more tests?
+""")
+
 cells = with_colab_cell(cells, OUT)
-
-nb = {
-    "cells": cells,
-    "metadata": {
-        "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
-        "language_info": {"name": "python", "version": "3.12"},
-    },
-    "nbformat": 4,
-    "nbformat_minor": 5,
-}
-
-OUT.parent.mkdir(parents=True, exist_ok=True)
+nb = {"cells": cells, "metadata": {
+    "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
+    "language_info": {"name": "python"}}, "nbformat": 4, "nbformat_minor": 5}
 OUT.write_text(json.dumps(nb, indent=1) + "\n")
-print(f"wrote {OUT} ({len(cells)} cells)")
+print(f"wrote {OUT.name} ({len(cells)} cells)")

@@ -230,20 +230,20 @@
       "session": "L13",
       "id": "l13",
       "date": "2026-10-07",
-      "title": "Surrogates, physics-informed models, and uncertainty quantification",
-      "written": false,
+      "title": "Scientific machine learning: PINNs, neural ODEs and neural DAEs",
+      "written": true,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
       "region": 2,
       "x": 8,
       "y": 3,
-      "notes": null
+      "notes": "../lectures/l13/notes.html"
     },
     {
       "session": "L14",
       "id": "l14",
       "date": "2026-10-19",
-      "title": "Bayesian optimization (BO) and active learning (AL)",
+      "title": "Uncertainty quantification (UQ), Bayesian optimization (BO) and active learning (AL)",
       "written": false,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
@@ -520,27 +520,11 @@
     },
     {
       "from": "l13",
-      "to": "l01",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "This is [Lecture 1](../l01/notes.md)'s `np.trapz` lesson in a new costume, and the fix is the same"
-    },
-    {
-      "from": "l13",
-      "to": "l07",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "of the leakage failures in [Lecture 7](../l07/notes.md) and [Lecture 9](../l09/notes.md) too. The method"
-    },
-    {
-      "from": "l13",
       "to": "l09",
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "splitting discipline from [Lecture 9](../l09/notes.md) reappears in a harsher form, because a"
+      "where": "This is the constrained optimization problem of [Lecture 9](../l09/notes.md),"
     },
     {
       "from": "l13",
@@ -548,7 +532,31 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "**collocation points** where no measurement exists. This is [Lecture 11](../l11/notes.md)'s"
+      "where": "([Lecture 11](../l11/notes.md)): differentiate the network with respect to its input $t$."
+    },
+    {
+      "from": "l13",
+      "to": "l12",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "A **recurrent neural network (RNN)**, from [Lecture 12](../l12/notes.md), applied over time"
+    },
+    {
+      "from": "l14",
+      "to": "l09",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "- [Lecture 9](../l09/notes.md) fitted a Gaussian process (GP) to the concrete strength dataset. It"
+    },
+    {
+      "from": "l14",
+      "to": "l10",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "**Optuna** ([Lecture 10](../l10/notes.md)) ran the hyperparameter search with its default sampler,"
     },
     {
       "from": "l15",

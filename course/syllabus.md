@@ -43,8 +43,8 @@ The course is balanced across three main topics/arcs:
 
 1. **Data infrastructure & engineering:** storage, pipelines, features, validation.
 2. **Machine learning:** the ML workflow, PyTorch/JAX, and applied
-   engineering ML (surrogates, physics-informed models, uncertainty, Bayesian
-   optimization (BO)).
+   engineering ML (scientific machine learning: physics-informed networks, neural ODEs
+   and neural DAEs; uncertainty quantification; Bayesian optimization (BO)).
 3. **LLM & agentic engineering:** usage, retrieval, adaptation, and building/using agentic workflows.
 
 
@@ -57,9 +57,9 @@ By the end of the course, students will be able to:
 - Acquire, store, and process engineering data across different types of databases; build **validated data pipelines**.
 - Execute the full **ML workflow** (training, cross-validation, model
   selection, and evaluation) on engineering data.
-- Build **applied-engineering ML**: surrogate and physics-informed models with
-  **uncertainty quantification**, and use **Bayesian optimization / active learning** for
-  solving problems.
+- Build **applied-engineering ML**: physics-informed and hybrid models (PINNs, neural ODEs,
+  neural DAEs) and surrogates with **uncertainty quantification**, and use **Bayesian
+  optimization / active learning** for solving problems.
 - Use **LLMs** effectively (prompting, structured output, embeddings), using **RAG**.
 - **Deploy, monitor, and operate** AI systems, and reason about safety, cost, and responsible use in an engineering context.
 

@@ -190,13 +190,13 @@ per failure mode, naming the mechanism that catches it.
 | Agent | Unsafe tool action (writes, actuation) | Tool allow-lists, read-only credentials by default (Lecture 19), a dry-run mode, human-in-the-loop approval before any consequential call executes |
 | Agent | Infinite or repeating loop | Step budget, cost cap, and repeated-identical-call detection (Lecture 19) |
 | LLM / agent | Silent schema drift | Output validation against a versioned schema; fail loudly, not by silently coercing a malformed response |
-| Surrogate / ML | Extrapolation beyond the training domain | An explicit input-range check before every prediction, refuse or flag rather than silently extrapolate (Lecture 7, Lecture 13) |
-| Surrogate / ML | Over-confident uncertainty | Calibration checked against held-out truth, not assumed from the model's own reported interval (Lecture 13, Lecture 21) |
+| Surrogate / ML | Extrapolation beyond the training domain | An explicit input-range check before every prediction, refuse or flag rather than silently extrapolate (Lecture 7) |
+| Surrogate / ML | Over-confident uncertainty | Calibration checked against held-out truth, not assumed from the model's own reported interval (Lecture 14, Lecture 21) |
 | Surrogate / ML | Stale model | Drift monitoring on the input distribution, tied to a retraining or revalidation trigger, not a calendar guess |
 | Surrogate / ML | Silent input-unit error | Named, typed feature columns; a units assertion at every system boundary (Lecture 7's Mars Climate Orbiter case) |
 
 Notice that most of these guardrails are things this course has already built: a step budget
-is Lecture 19's, a faithfulness check is Lecture 21's, an input-range check is Lecture 7's and Lecture 13's. This session's
+is Lecture 19's, a faithfulness check is Lecture 21's, an input-range check is Lecture 7's. This session's
 contribution is the discipline of a table that forces you to name a mechanism for every failure
 you can think of, rather than a paragraph of good intentions, and the module's suggested
 exercise, filling this table for your own system and marking which rows require a human

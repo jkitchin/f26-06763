@@ -4,6 +4,155 @@
     "1": {
       "items": {},
       "serve": 0
+    },
+    "2": {
+      "items": {
+        "l14-q01": {
+          "answer": "Epistemic: what the model does not know yet",
+          "options": [
+            "Epistemic: what the model does not know yet",
+            "Aleatoric: the scatter between specimens of the same mix",
+            "Both shrink equally with more data",
+            "Neither; uncertainty is a property of the model family"
+          ]
+        },
+        "l14-q02": {
+          "answer": "No model can predict better than about 5.0 MPa: that scatter is aleatoric",
+          "options": [
+            "No model can predict better than about 5.0 MPa: that scatter is aleatoric",
+            "A model with enough capacity can bring its error below 5.0 MPa",
+            "The test set needs more mixes before the error can be trusted",
+            "The specimens were mislabeled, and the replicates should be removed"
+          ]
+        },
+        "l14-q03": {
+          "answer": "The spread measures only epistemic uncertainty, and misses the scatter between specimens",
+          "options": [
+            "The spread measures only epistemic uncertainty, and misses the scatter between specimens",
+            "Five networks are too few; fifty would cover 95%",
+            "The networks were overfitted, so their mean is wrong",
+            "The test mixes were outside the training range"
+          ]
+        },
+        "l14-q04": {
+          "answer": "The calibration and test points are exchangeable: drawn the same way from the same population",
+          "options": [
+            "The calibration and test points are exchangeable: drawn the same way from the same population",
+            "The model's errors are Gaussian",
+            "The model is a Gaussian process",
+            "The calibration set has at least 1,000 points"
+          ]
+        },
+        "l14-q05": {
+          "answer": "The fraction of test points whose interval contains the true value",
+          "options": [
+            "The fraction of test points whose interval contains the true value",
+            "The average width of the intervals",
+            "The probability the model's mean is within 1 MPa of the truth",
+            "The fraction of training points used to calibrate the interval"
+          ]
+        },
+        "l14-q06": {
+          "answer": "A coverage check on mixes like the ones the search will reach; on the strongest mixes coverage fell to between 70% and 89%",
+          "options": [
+            "A coverage check on mixes like the ones the search will reach; on the strongest mixes coverage fell to between 70% and 89%",
+            "A larger random split; 95% on 195 points is not significant",
+            "A second surrogate, to average the two intervals",
+            "Nothing: a calibrated interval stays calibrated everywhere"
+          ]
+        },
+        "l14-q07": {
+          "answer": "A probabilistic surrogate of the evaluations so far, whose mean and uncertainty feed an acquisition function",
+          "options": [
+            "A probabilistic surrogate of the evaluations so far, whose mean and uncertainty feed an acquisition function",
+            "A gradient of the objective, estimated by finite differences",
+            "A grid over the design space, refined around the best point",
+            "A model of the measurement noise only"
+          ]
+        },
+        "l14-q08": {
+          "answer": "Both are random; one run of either could be luck",
+          "options": [
+            "Both are random; one run of either could be luck",
+            "The emulator gives a different answer each time it is called",
+            "Thirty runs make the optimizer converge faster",
+            "Each seed tests a different design variable"
+          ]
+        },
+        "l14-q09": {
+          "answer": "91.6 MPa is the emulator's prediction, ±18 MPa, far from any tested mix; the next step is to cast and test it",
+          "options": [
+            "91.6 MPa is the emulator's prediction, ±18 MPa, far from any tested mix; the next step is to cast and test it",
+            "Bayesian optimization cannot find mixes stronger than the training data",
+            "The optimizer needed more than 25 evaluations to be sure",
+            "Nothing; the emulator was fitted to all 1,030 rows"
+          ]
+        },
+        "l14-q10": {
+          "answer": "When the mean is above the best so far, or the uncertainty is large, or both",
+          "options": [
+            "When the mean is above the best so far, or the uncertainty is large, or both",
+            "Only when the mean is above the best value found so far",
+            "Only where the uncertainty is largest",
+            "Only at points that have not been evaluated before"
+          ]
+        },
+        "l14-q11": {
+          "answer": "Probability of improvement",
+          "options": [
+            "Probability of improvement",
+            "Expected improvement",
+            "Upper confidence bound with κ = 3",
+            "Thompson sampling"
+          ]
+        },
+        "l14-q12": {
+          "answer": "It weights uncertainty more, so it samples more where the GP is unsure: it explores",
+          "options": [
+            "It weights uncertainty more, so it samples more where the GP is unsure: it explores",
+            "It weights the mean more, so it samples closer to the best point: it exploits",
+            "Nothing; κ only rescales the acquisition",
+            "It samples where the measurement noise is lowest"
+          ]
+        },
+        "l14-q13": {
+          "answer": "It draws one random function from the GP posterior and evaluates where that draw is highest",
+          "options": [
+            "It draws one random function from the GP posterior and evaluates where that draw is highest",
+            "It evaluates where the GP's standard deviation is largest",
+            "It evaluates where the GP's mean is highest",
+            "It samples a point uniformly at random"
+          ]
+        },
+        "l14-q14": {
+          "answer": "A model that is accurate everywhere it will be used, with as few labels as possible",
+          "options": [
+            "A model that is accurate everywhere it will be used, with as few labels as possible",
+            "The best point, found with fewer evaluations than BO",
+            "A calibrated interval on the training data",
+            "The point of largest measurement noise"
+          ]
+        },
+        "l14-q15": {
+          "answer": "Random labeling: 9.5 MPa against 12.7",
+          "options": [
+            "Random labeling: 9.5 MPa against 12.7",
+            "Least-sure labeling: 9.5 MPa against 12.7",
+            "They were identical, since both used the same GP",
+            "Neither improved on the 20-row starting model"
+          ]
+        },
+        "l14-q16": {
+          "answer": "The least-sure rows are extreme mixes and ages at the edges, not where the test mixes are",
+          "options": [
+            "The least-sure rows are extreme mixes and ages at the edges, not where the test mixes are",
+            "The GP should be refitted less often",
+            "Uncertainty sampling only works with neural networks",
+            "The pool was too small to choose from"
+          ]
+        }
+      },
+      "serve": 8
     }
   }
 }

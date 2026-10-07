@@ -1,432 +1,567 @@
-"""Figures for L14, Bayesian optimization and active learning for design.
+#!/usr/bin/env python3
+"""Generate the L14 figures and the data behind its interactive figures, and print every
+number the notes and the deck quote.
 
-Run from this directory with the course `sys_tools` environment:
+Run from this directory:
+    uv run --no-project --python 3.12 --with numpy --with pandas --with xlrd \
+        --with scikit-learn --with scipy --with matplotlib python make_figures.py
 
-    python make_figures.py
+Name groups to regenerate only those; with no names, every group runs. The groups, and
+what each writes:
+    uq          aleatoric-epistemic.png, intervals.png, calibration.png, and the "uq" entry
+                of the widget data. On the concrete strength dataset (Yeh 1998), split by
+                mix exactly as in Lecture 9, three ways to get a prediction interval: the
+                Gaussian process (GP) of Lecture 9, a deep ensemble of five of Lecture 9's
+                networks, and split conformal prediction. Each is checked for coverage on
+                the grouped test split and on an extrapolation split that holds out the
+                strongest mixes (the 20% of mixes with the lowest water/cement ratio). Also
+                the replicate scatter: rows that share a mix and an age.
+    bo          bo-loop.png, acquisitions.png, and the "bo" entry: Bayesian optimization
+                on the Forrester et al. (2008) test function, flipped to a maximization,
+                g(x) = -(6x - 2)^2 sin(12x - 4) on [0, 1], with expected improvement,
+                probability of improvement and an upper confidence bound.
+    bench       bo-vs-random.png: Bayesian optimization against random search on a mix
+                design problem, maximizing the 28-day strength predicted by a GP emulator
+                fitted to all 1,030 rows, over cement, slag, water and superplasticizer
+                within the range the data cover; 30 seeds each.
+    al          active-learning.png: active learning on the grouped training pool,
+                querying the mix the GP is least sure of against querying at random.
 
-Everything is computed here rather than copied, for the reasons in CLAUDE.md
-section 5b. The three teaching panels run on the Forrester one-dimensional test
-function, f(x) = (6x - 2)^2 * sin(12x - 4), which is the worked example in
-Forrester, Sobester & Keane (2008), the surrogate-modelling book already cited
-in L13. Its global minimum on [0, 1] is near x = 0.7572, and it carries a second
-local minimum near x = 0.15, so a myopic optimiser that only exploits is easy to
-catch out. The convergence panel runs on the same NASA airfoil self-noise data
-L13 uses, so the two sessions share one dataset: a gradient-boosted model fit to
-all 1503 rows stands in for the expensive experiment, and Bayesian optimisation
-and random search each get the same evaluation budget to find a quiet operating
-point. The airfoil raw file is cached under .cache/ and gitignored; do not commit
-it.
+The concrete workbook is cached under .cache/ (copied from Lecture 9's cache when present)
+and gitignored. uq takes about a minute, bo seconds, bench about a minute, al a few minutes.
 """
-
-from __future__ import annotations
-
 import io
+import json
+import shutil
+import sys
+import time
 import urllib.request
+import warnings
 import zipfile
 from pathlib import Path
 
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.stats import norm
-from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import ConstantKernel, Matern, WhiteKernel
+import matplotlib
 
-HERE = Path(__file__).parent
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from scipy.stats import norm
+from sklearn.exceptions import ConvergenceWarning
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel, Matern, WhiteKernel
+from sklearn.metrics import root_mean_squared_error
+from sklearn.model_selection import GroupShuffleSplit
+from sklearn.neural_network import MLPRegressor
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+warnings.filterwarnings("ignore", category=ConvergenceWarning)
+
+HERE = Path(__file__).resolve().parent
+REPO = HERE.parent.parent.parent
 CACHE = HERE / ".cache"
-AIRFOIL_URL = "https://archive.ics.uci.edu/static/public/291/airfoil+self+noise.zip"
+L09_CACHE = HERE.parent.parent / "l09" / "figures" / ".cache"
+WIDGET_JS = REPO / "_static" / "l14-widget-data.js"
+UCI_CONCRETE = "https://archive.ics.uci.edu/static/public/165/concrete+compressive+strength.zip"
 SEED = 0
 
-# Shared palette with L13, so the two decks look like one course.
 CMU_RED = "#c41230"
 INK = "#1a1a1a"
 MUTED = "#5c5c5c"
-RULE = "#d8d8d8"
 BLUE = "#1f5c99"
-GREEN = "#2b7a4b"
-AMBER = "#b8860b"
-PURPLE = "#6b3fa0"
-TEAL = "#0f7d8c"
+ORANGE = "#c2410c"
+GREEN = "#2e7d32"
+GOLD = "#b07d12"
+GRAY = "#8a8a8a"
 BAND = "#c9dbec"
 
-plt.rcParams.update({
-    "font.size": 13,
-    "axes.labelsize": 13,
-    "axes.titlesize": 15,
-    "axes.spines.top": False,
-    "axes.spines.right": False,
-    "axes.edgecolor": MUTED,
-    "text.color": INK,
-    "axes.labelcolor": INK,
-    "xtick.color": MUTED,
-    "ytick.color": MUTED,
-    "figure.dpi": 160,
-    "savefig.bbox": "tight",
-})
+STYLE = {
+    "font.size": 14, "axes.labelsize": 14, "axes.titlesize": 15,
+    "xtick.labelsize": 13, "ytick.labelsize": 13, "legend.fontsize": 13,
+    "axes.spines.top": False, "axes.spines.right": False,
+    "axes.edgecolor": MUTED, "text.color": INK, "axes.labelcolor": INK,
+    "xtick.color": MUTED, "ytick.color": MUTED, "legend.frameon": False,
+    "savefig.dpi": 150, "savefig.bbox": "tight",
+}
 
-COLS = ["freq_hz", "aoa_deg", "chord_m", "velocity_ms", "thickness_m", "spl_db"]
+COLUMNS = ["cement", "slag", "fly_ash", "water", "superplasticizer",
+           "coarse_agg", "fine_agg", "age_days", "strength_mpa"]
+FEATURES, MIX = COLUMNS[:8], COLUMNS[:7]
+LEVELS = np.array([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95])
 
 
-# --------------------------------------------------------------------------
-# The 1-D test function and a small Gaussian-process helper
-# --------------------------------------------------------------------------
-def forrester(x: np.ndarray) -> np.ndarray:
-    """Forrester et al. (2008). Global min ~ -6.02 at x ~ 0.7572 on [0, 1]."""
-    return (6.0 * x - 2.0) ** 2 * np.sin(12.0 * x - 4.0)
-
-
-def fit_gp(x: np.ndarray, y: np.ndarray, length_scale: float = 0.15,
-           bounds: tuple = (0.05, 0.5)) -> GaussianProcessRegressor:
-    """A Matern-5/2 GP with a fitted noise term, standardised target.
-
-    The same shape the demo builds by hand, kept deliberately small so the
-    posterior is legible: this is a teaching surrogate, not a production one.
-    The length-scale prior is loose enough that the GP generalises across the
-    gap to the global basin rather than reverting to the mean between points,
-    which is what lets the loop below actually find the optimum.
-    """
-    kernel = (ConstantKernel(1.0, (1e-2, 1e2))
-              * Matern(length_scale=length_scale, length_scale_bounds=bounds, nu=2.5)
-              + WhiteKernel(1e-4, (1e-6, 1e-1)))
-    gp = GaussianProcessRegressor(kernel=kernel, normalize_y=True,
-                                  n_restarts_optimizer=4, random_state=SEED)
-    gp.fit(x.reshape(-1, 1), y)
-    return gp
-
-
-def expected_improvement(mu: np.ndarray, sigma: np.ndarray, best: float,
-                         xi: float = 0.0) -> np.ndarray:
-    """EI for MINIMISATION: how much we expect to beat the incumbent `best`."""
-    sigma = np.maximum(sigma, 1e-9)
-    imp = best - mu - xi
-    z = imp / sigma
-    return imp * norm.cdf(z) + sigma * norm.pdf(z)
-
-
-def probability_of_improvement(mu: np.ndarray, sigma: np.ndarray, best: float,
-                               xi: float = 0.0) -> np.ndarray:
-    sigma = np.maximum(sigma, 1e-9)
-    return norm.cdf((best - mu - xi) / sigma)
-
-
-# --------------------------------------------------------------------------
-# Figure 1 — the Bayesian-optimization loop over three iterations
-# --------------------------------------------------------------------------
-def fig_bo_loop() -> dict:
-    grid = np.linspace(0, 1, 400)
-    truth = forrester(grid)
-    # A four-point space-filling start, none near the global optimum at 0.757.
-    x = np.array([0.0, 0.33, 0.66, 1.0])
-    y = forrester(x)
-
-    fig, axes = plt.subplots(3, 2, figsize=(12, 10.5),
-                             gridspec_kw={"width_ratios": [1, 1], "hspace": 0.42,
-                                          "wspace": 0.22})
-    picks = []
-    for row in range(3):
-        gp = fit_gp(x, y)
-        mu, sigma = gp.predict(grid.reshape(-1, 1), return_std=True)
-        best = y.min()
-        ei = expected_improvement(mu, sigma, best, xi=0.01)
-        x_next = grid[int(ei.argmax())]
-        picks.append(x_next)
-
-        ax = axes[row, 0]
-        ax.plot(grid, truth, color=RULE, lw=2, zorder=1,
-                label="true objective" if row == 0 else None)
-        ax.fill_between(grid, mu - 1.96 * sigma, mu + 1.96 * sigma,
-                        color=BAND, alpha=0.8, zorder=0,
-                        label="GP 95% band" if row == 0 else None)
-        ax.plot(grid, mu, color=BLUE, lw=2, zorder=2,
-                label="GP mean" if row == 0 else None)
-        ax.scatter(x, y, color=INK, s=45, zorder=4, label="evaluated" if row == 0 else None)
-        ax.axvline(x_next, color=CMU_RED, ls="--", lw=1.6, zorder=3)
-        ax.set_ylabel(f"iteration {row + 1}\n\nf(x)")
-        ax.set_xlim(0, 1)
-        if row == 0:
-            ax.legend(loc="upper center", fontsize=9, ncol=2, frameon=False)
-
-        axq = axes[row, 1]
-        axq.plot(grid, ei, color=GREEN, lw=2)
-        axq.fill_between(grid, 0, ei, color=GREEN, alpha=0.15)
-        axq.axvline(x_next, color=CMU_RED, ls="--", lw=1.6)
-        axq.set_ylabel("expected\nimprovement")
-        axq.set_xlim(0, 1)
-        axq.annotate("evaluate here next", xy=(x_next, ei.max()),
-                     xytext=(x_next + (0.12 if x_next < 0.6 else -0.28), ei.max() * 0.9),
-                     fontsize=9, color=CMU_RED,
-                     arrowprops=dict(arrowstyle="->", color=CMU_RED, lw=1.2))
-
-        # evaluate the true objective and fold it in for the next row
-        x = np.append(x, x_next)
-        y = np.append(y, forrester(x_next))
-
-    axes[2, 0].set_xlabel("design variable x")
-    axes[2, 1].set_xlabel("design variable x")
-    fig.suptitle("Bayesian optimization: the surrogate proposes, the acquisition decides",
-                 fontsize=16, y=0.94)
-    out = HERE / "bo-loop.png"
-    fig.savefig(out)
+def save(fig, name):
+    fig.savefig(HERE / name)
     plt.close(fig)
-    xbest = x[int(np.argmin(y))]
-    return {"file": out.name, "picks": [round(p, 3) for p in picks],
-            "final_best_x": round(float(xbest), 3),
-            "final_best_f": round(float(y.min()), 3)}
+    print(f"  wrote {name}")
 
 
-# --------------------------------------------------------------------------
-# Figure 2 — four acquisition functions, four different next points
-# --------------------------------------------------------------------------
-def fig_acquisitions() -> dict:
-    grid = np.linspace(0, 1, 400)
-    truth = forrester(grid)
-    # Well into the campaign: the global basin near 0.757 is already sampled, so
-    # the greedy rules cluster there and only a high kappa still explores.
-    x = np.array([0.1, 0.35, 0.68, 0.78, 0.95])
-    y = forrester(x)
-    gp = fit_gp(x, y)
-    mu, sigma = gp.predict(grid.reshape(-1, 1), return_std=True)
-    best = y.min()
-
-    ei = expected_improvement(mu, sigma, best)
-    pi = probability_of_improvement(mu, sigma, best)
-    ucb1 = mu - 1.0 * sigma          # low kappa: exploit
-    ucb3 = mu - 3.0 * sigma          # high kappa: explore (lower is better here)
-
-    proposals = {
-        "EI": (GREEN, grid[int(ei.argmax())]),
-        "PI": (AMBER, grid[int(pi.argmax())]),
-        "LCB, kappa=1": (BLUE, grid[int(ucb1.argmin())]),
-        "LCB, kappa=3": (PURPLE, grid[int(ucb3.argmin())]),
-    }
-
-    fig, (ax, axq) = plt.subplots(2, 1, figsize=(10, 8),
-                                  gridspec_kw={"height_ratios": [1.3, 1], "hspace": 0.28})
-    ax.plot(grid, truth, color=RULE, lw=2, label="true objective")
-    ax.fill_between(grid, mu - 1.96 * sigma, mu + 1.96 * sigma, color=BAND, alpha=0.8)
-    ax.plot(grid, mu, color=INK, lw=2, label="GP mean")
-    ax.scatter(x, y, color=INK, s=45, zorder=4, label="evaluated")
-    for name, (color, xp) in proposals.items():
-        ax.axvline(xp, color=color, ls="--", lw=1.8)
-    ax.set_ylabel("f(x)")
-    ax.set_xlim(0, 1)
-    ax.legend(loc="upper center", fontsize=10, ncol=3, frameon=False)
-    ax.set_title("One surrogate, four acquisition rules, four different next experiments")
-
-    # normalise each acquisition to [0,1] so they share an axis
-    def unit(a, lower_is_better=False):
-        a = -a if lower_is_better else a
-        return (a - a.min()) / (a.max() - a.min() + 1e-12)
-    axq.plot(grid, unit(ei), color=GREEN, lw=2, label="EI")
-    axq.plot(grid, unit(pi), color=AMBER, lw=2, label="PI")
-    axq.plot(grid, unit(ucb1, True), color=BLUE, lw=2, label="LCB kappa=1 (exploit)")
-    axq.plot(grid, unit(ucb3, True), color=PURPLE, lw=2, label="LCB kappa=3 (explore)")
-    for name, (color, xp) in proposals.items():
-        axq.axvline(xp, color=color, ls="--", lw=1.4)
-    axq.set_ylabel("acquisition\n(scaled)")
-    axq.set_xlabel("design variable x")
-    axq.set_xlim(0, 1)
-    axq.legend(fontsize=9, ncol=2, frameon=False, loc="upper center")
-
-    out = HERE / "acquisitions.png"
-    fig.savefig(out)
-    plt.close(fig)
-    return {"file": out.name,
-            "proposals": {k: round(float(v[1]), 3) for k, v in proposals.items()}}
-
-
-# --------------------------------------------------------------------------
-# Figure 3 — Bayesian optimization vs random search on the airfoil oracle
-# --------------------------------------------------------------------------
-def load_airfoil() -> np.ndarray:
+def cache_put(name, obj):
     CACHE.mkdir(exist_ok=True)
-    local = CACHE / "airfoil_self_noise.dat"
-    if not local.exists():
-        print(f"downloading {AIRFOIL_URL}")
-        with urllib.request.urlopen(AIRFOIL_URL) as response:
-            archive = zipfile.ZipFile(io.BytesIO(response.read()))
-        local.write_bytes(archive.read("airfoil_self_noise.dat"))
-    import pandas as pd
-    df = pd.read_csv(local, sep="\t", header=None, names=COLS)
-    return df.values
+    (CACHE / f"{name}.json").write_text(json.dumps(obj))
 
 
-def propose_by_ei(gp, lo, hi, best, rng, pool=800):
-    """Optimise EI over a fresh random pool, the transparent way the demo does."""
-    cand = rng.uniform(lo, hi, size=(pool, lo.size))
-    mu, sigma = gp.predict(cand, return_std=True)
-    ei = expected_improvement(mu, sigma, best)
-    return cand[int(ei.argmax())]
+def r(a, nd=2):
+    return [round(float(v), nd) for v in np.asarray(a).ravel()]
 
 
-def fig_bo_vs_random() -> dict:
-    data = load_airfoil()
-    X, y = data[:, :5], data[:, 5]
-    # A fixed, deterministic stand-in for the expensive experiment: predict SPL
-    # anywhere in the input box. This is the "oracle"; the optimisers never see it.
-    oracle = GradientBoostingRegressor(random_state=SEED, n_estimators=400,
-                                       max_depth=3, learning_rate=0.05)
-    oracle.fit(X, y)
-    lo, hi = X.min(axis=0), X.max(axis=0)
+def load_concrete():
+    CACHE.mkdir(exist_ok=True)
+    path = CACHE / "Concrete_Data.xls"
+    if not path.exists() and (L09_CACHE / "Concrete_Data.xls").exists():
+        shutil.copy(L09_CACHE / "Concrete_Data.xls", path)
+    if not path.exists():
+        z = zipfile.ZipFile(io.BytesIO(urllib.request.urlopen(UCI_CONCRETE).read()))
+        path.write_bytes(z.read("Concrete_Data.xls"))
+    df = pd.read_excel(path)
+    df.columns = COLUMNS
+    return df
 
-    def f(pt):
-        return float(oracle.predict(pt.reshape(1, -1))[0])
 
-    # A dense reference for "the best the oracle can do" over the box.
-    ref_rng = np.random.default_rng(12345)
-    ref = oracle.predict(ref_rng.uniform(lo, hi, size=(200_000, 5)))
-    oracle_floor = float(ref.min())
+def l09_gp(restarts=2):
+    """Lecture 9's Gaussian process for the concrete strength dataset, unchanged."""
+    return make_pipeline(StandardScaler(), GaussianProcessRegressor(
+        kernel=ConstantKernel(1.0) * RBF(np.ones(8), (1e-2, 1e3)) + WhiteKernel(1e-1, (1e-5, 1e1)),
+        normalize_y=True, random_state=0, n_restarts_optimizer=restarts))
 
-    budget = 22
-    n_init = 4
-    n_seeds = 40
-    kernel = (ConstantKernel(1.0, (1e-2, 1e3))
-              * Matern(length_scale=np.ones(5), nu=2.5)
-              + WhiteKernel(1.0, (1e-3, 1e3)))
 
-    bo_curves, rs_curves = [], []
-    for s in range(n_seeds):
-        rng = np.random.default_rng(1000 + s)
-        # shared initial design so the comparison is paired
-        init = rng.uniform(lo, hi, size=(n_init, 5))
-        yi = np.array([f(p) for p in init])
+def l09_net(seed):
+    """Lecture 9's network for the concrete strength dataset, with a seed."""
+    return make_pipeline(StandardScaler(), MLPRegressor(
+        hidden_layer_sizes=(16,), activation="tanh", solver="lbfgs", max_iter=5000,
+        random_state=seed))
 
-        # --- Bayesian optimization ---
-        Xb, yb = init.copy(), yi.copy()
-        best_bo = [yb.min()]
-        for _ in range(budget - n_init):
-            gp = GaussianProcessRegressor(kernel=kernel, normalize_y=True,
-                                          n_restarts_optimizer=0, random_state=s)
-            # standardise inputs for a saner length scale
-            mean, std = Xb.mean(0), Xb.std(0) + 1e-9
-            gp.fit((Xb - mean) / std, yb)
-            pool = rng.uniform(lo, hi, size=(1500, 5))
-            mu, sigma = gp.predict((pool - mean) / std, return_std=True)
-            ei = expected_improvement(mu, sigma, yb.min())
-            x_next = pool[int(ei.argmax())]
-            Xb = np.vstack([Xb, x_next])
-            yb = np.append(yb, f(x_next))
-            best_bo.append(yb.min())
-        bo_curves.append(best_bo)
 
-        # --- random search, same budget, same start ---
-        Xr, yr = init.copy(), yi.copy()
-        best_rs = [yr.min()]
-        for _ in range(budget - n_init):
-            x_next = rng.uniform(lo, hi, size=5)
-            yr = np.append(yr, f(x_next))
-            best_rs.append(yr.min())
-        rs_curves.append(best_rs)
+# --------------------------------------------------------------------------------------
+# uq
+# --------------------------------------------------------------------------------------
+def coverage_study(X, y, groups, tr, te, label):
+    """GP, deep ensemble and split conformal on one split. Returns the record."""
+    gp = l09_gp().fit(X[tr], y[tr])
+    mu, sd = gp.predict(X[te], return_std=True)
+    kern = gp[-1].kernel_
+    noise = float(np.sqrt(kern.k2.noise_level) * gp[-1]._y_train_std)
+    epi = np.sqrt(np.maximum(sd**2 - noise**2, 0))
 
-    bo = np.array(bo_curves)
-    rs = np.array(rs_curves)
-    evals = np.arange(n_init, budget + 1)  # best-so-far indexed from n_init eval
-    # curves have length budget - n_init + 1, aligned to evals above
-    xs = np.arange(n_init, n_init + bo.shape[1])
+    nets = [l09_net(s).fit(X[tr], y[tr]) for s in range(5)]
+    P = np.array([n.predict(X[te]) for n in nets])
+    emu, esd = P.mean(0), P.std(0)
 
-    fig, ax = plt.subplots(figsize=(9.5, 6))
-    for curves, color, name in [(bo, CMU_RED, "Bayesian optimization (EI)"),
-                                (rs, MUTED, "random search")]:
-        med = np.median(curves, axis=0)
-        q1, q3 = np.percentile(curves, [25, 75], axis=0)
-        ax.plot(xs, med, color=color, lw=2.4, label=name)
-        ax.fill_between(xs, q1, q3, color=color, alpha=0.15)
-    ax.axhline(oracle_floor, color=INK, ls=":", lw=1.5)
-    ax.annotate("best the emulator allows over the design box",
-                xy=(xs[-1], oracle_floor), xytext=(xs[0] + 0.3, oracle_floor + 1.2),
-                fontsize=9, color=INK)
-    ax.set_xlabel("expensive evaluations spent")
-    ax.set_ylabel("lowest sound pressure level found (dB)")
-    ax.set_title("Same budget, two strategies: where the next experiment goes matters")
-    ax.legend(frameon=False, fontsize=11)
-    out = HERE / "bo-vs-random.png"
-    fig.savefig(out)
-    plt.close(fig)
+    # Split conformal: a quarter of the training mixes calibrate the residuals.
+    fit_i, cal_i = next(GroupShuffleSplit(n_splits=1, test_size=0.25, random_state=SEED)
+                        .split(X[tr], y[tr], groups[tr]))
+    fit_i, cal_i = tr[fit_i], tr[cal_i]
+    cnets = [l09_net(s).fit(X[fit_i], y[fit_i]) for s in range(5)]
+    cal_res = np.abs(y[cal_i] - np.mean([n.predict(X[cal_i]) for n in cnets], 0))
+    cpred = np.mean([n.predict(X[te]) for n in cnets], 0)
+    n_cal = len(cal_res)
+    qs = np.array([np.quantile(cal_res, min(1.0, np.ceil((n_cal + 1) * a) / n_cal), method="higher")
+                   for a in LEVELS])
 
-    # honest summary numbers for the caption and notes
-    def evals_to_reach(curves, target):
-        outs = []
-        for c in curves:
-            hit = np.where(np.array(c) <= target)[0]
-            outs.append(int(xs[hit[0]]) if hit.size else None)
-        hit = [o for o in outs if o is not None]
-        return hit
-    target = oracle_floor + 1.0  # within 1 dB of the emulator floor
-    bo_hits = evals_to_reach(bo, target)
-    rs_hits = evals_to_reach(rs, target)
-    return {
-        "file": out.name,
-        "oracle_floor_db": round(oracle_floor, 2),
-        "target_db": round(target, 2),
-        "bo_final_median_db": round(float(np.median(bo[:, -1])), 2),
-        "rs_final_median_db": round(float(np.median(rs[:, -1])), 2),
-        "bo_reached_target_frac": round(len(bo_hits) / n_seeds, 2),
-        "rs_reached_target_frac": round(len(rs_hits) / n_seeds, 2),
-        "bo_median_evals_to_target": int(np.median(bo_hits)) if bo_hits else None,
-        "n_seeds": n_seeds, "budget": budget,
+    z = norm.ppf(0.5 + LEVELS / 2)
+    cov = {
+        "GP": [float(np.mean(np.abs(y[te] - mu) < zz * sd)) for zz in z],
+        "ensemble": [float(np.mean(np.abs(y[te] - emu) < zz * esd)) for zz in z],
+        "conformal": [float(np.mean(np.abs(y[te] - cpred) < q)) for q in qs],
     }
+    width95 = {"GP": float(2 * 1.96 * sd.mean()), "ensemble": float(2 * 1.96 * esd.mean()),
+               "conformal": float(2 * qs[-1])}
+    rec = dict(
+        label=label, n_train=int(len(tr)), n_test=int(len(te)), n_cal=int(n_cal),
+        rmse=dict(GP=float(root_mean_squared_error(y[te], mu)),
+                  ensemble=float(root_mean_squared_error(y[te], emu)),
+                  conformal=float(root_mean_squared_error(y[te], cpred))),
+        gp_noise=noise, gp_sd=float(sd.mean()), gp_epi=float(epi.mean()), ens_sd=float(esd.mean()),
+        coverage=cov, width95=width95, q=r(qs),
+        y=r(y[te], 1), gp_mu=r(mu, 1), gp_sd_pts=r(sd, 2), ens_mu=r(emu, 1), ens_sd_pts=r(esd, 2),
+        conf_mu=r(cpred, 1), kernel=str(kern))
+    print(f"  {label}: {len(tr)} training rows, {len(te)} test rows ({n_cal} calibration rows)")
+    print(f"    RMSE: GP {rec['rmse']['GP']:.2f}, ensemble {rec['rmse']['ensemble']:.2f},"
+          f" conformal's model {rec['rmse']['conformal']:.2f} MPa")
+    print(f"    GP noise term {noise:.2f} MPa; mean predictive SD {sd.mean():.2f}; mean epistemic"
+          f" SD {epi.mean():.2f}; ensemble mean spread {esd.mean():.2f} MPa")
+    for k, v in cov.items():
+        print(f"    coverage {k:10s}", " ".join(f"{c:.2f}" for c in v),
+              f"   (95% interval width {width95[k]:.1f} MPa)")
+    return rec
 
 
-# --------------------------------------------------------------------------
-# Figure 4 — one active-learning step shrinks the uncertainty
-# --------------------------------------------------------------------------
-def fig_active_learning() -> dict:
-    grid = np.linspace(0, 1, 400)
-    truth = forrester(grid)
-    x = np.array([0.08, 0.2, 0.32, 0.44, 0.9])   # a wide gap between 0.44 and 0.9
-    y = forrester(x)
+def group_uq():
+    df = load_concrete()
+    X, y = df[FEATURES].to_numpy(), df["strength_mpa"].to_numpy()
+    groups = df.groupby(MIX).ngroup().to_numpy()
 
-    gp = fit_gp(x, y)
-    mu, sigma = gp.predict(grid.reshape(-1, 1), return_std=True)
-    x_next = grid[int(sigma.argmax())]          # query where we are most ignorant
-    before_total = float(np.trapezoid(sigma, grid))
+    same = df.groupby(FEATURES)["strength_mpa"].agg(["size", "std"])
+    rep = same[same["size"] > 1]
+    pooled = float(np.sqrt((rep["std"] ** 2 * (rep["size"] - 1)).sum() / (rep["size"] - 1).sum()))
+    print(f"  replicates: {len(rep)} settings (same mix and age) tested more than once, "
+          f"{int(rep['size'].sum())} rows; pooled scatter {pooled:.2f} MPa")
 
-    # Condition on the new point at the SAME hyperparameters (optimizer=None).
-    # That isolates what active learning actually does: adding data reduces the
-    # posterior variance everywhere. Refitting the length scale on a surprising
-    # value is a separate effect that would muddy the picture, so we freeze it.
-    x2 = np.append(x, x_next)
-    y2 = np.append(y, forrester(x_next))
-    gp2 = GaussianProcessRegressor(kernel=gp.kernel_, optimizer=None,
-                                   normalize_y=True)
-    gp2.fit(x2.reshape(-1, 1), y2)
-    mu2, sigma2 = gp2.predict(grid.reshape(-1, 1), return_std=True)
-    after_total = float(np.trapezoid(sigma2, grid))
+    tr, te = next(GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42).split(X, y, groups))
+    t0 = time.time()
+    grouped = coverage_study(X, y, groups, tr, te, "grouped split, as in Lecture 9")
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4.8), sharey=True)
-    for ax, (m, sg, xs_, ys_, title, star) in zip(axes, [
-        (mu, sigma, x, y, "before: the widest gap sits between x=0.44 and x=0.9", x_next),
-        (mu2, sigma2, x2, y2, "after one query at the most uncertain point", None),
-    ]):
-        ax.plot(grid, truth, color=RULE, lw=2)
-        ax.fill_between(grid, m - 1.96 * sg, m + 1.96 * sg, color=BAND, alpha=0.85)
-        ax.plot(grid, m, color=BLUE, lw=2)
-        ax.scatter(xs_, ys_, color=INK, s=42, zorder=4)
-        if star is not None:
-            ax.axvline(star, color=CMU_RED, ls="--", lw=1.6)
-        ax.set_title(title, fontsize=12)
-        ax.set_xlabel("design variable x")
-        ax.set_xlim(0, 1)
-    axes[0].set_ylabel("f(x)")
-    fig.suptitle("Active learning: spend the query where the model is most uncertain",
-                 fontsize=15, y=1.02)
-    out = HERE / "active-learning.png"
-    fig.savefig(out)
-    plt.close(fig)
-    return {"file": out.name, "query_x": round(float(x_next), 3),
-            "total_sd_before": round(before_total, 3),
-            "total_sd_after": round(after_total, 3),
-            "sd_drop_pct": round(100 * (before_total - after_total) / before_total, 1)}
+    wc = (df["water"] / df["cement"]).groupby(groups).mean()
+    cut = float(wc.quantile(0.2))
+    held = set(wc[wc <= cut].index)
+    te2 = np.flatnonzero(np.isin(groups, list(held)))
+    tr2 = np.flatnonzero(~np.isin(groups, list(held)))
+    print(f"  extrapolation split: mixes with water/cement <= {cut:.3f} held out; mean strength"
+          f" {y[te2].mean():.1f} MPa held out against {y[tr2].mean():.1f} kept")
+    extrap = coverage_study(X, y, groups, tr2, te2, "extrapolation: strongest mixes held out")
+    print(f"  ({time.time() - t0:.0f} s)")
+
+    cache_put("uq", dict(levels=r(LEVELS), replicate_sd=round(pooled, 2), wc_cut=round(cut, 3),
+                         splits=[grouped, extrap]))
+
+    with plt.rc_context(STYLE):
+        # ---- aleatoric and epistemic on a 1-D toy problem with a gap in the data
+        rng = np.random.default_rng(SEED)
+        xs = np.concatenate([rng.uniform(0, 0.35, 18), rng.uniform(0.7, 1.0, 14)])
+        ftrue = lambda x: np.sin(6 * x) + 0.5 * x
+        ys = ftrue(xs) + rng.normal(0, 0.15, xs.size)
+        g = GaussianProcessRegressor(ConstantKernel(1.0) * RBF(0.2) + WhiteKernel(0.02),
+                                     normalize_y=True, random_state=0).fit(xs[:, None], ys)
+        grid = np.linspace(0, 1, 300)
+        m, s_tot = g.predict(grid[:, None], return_std=True)
+        nz = float(np.sqrt(g.kernel_.k2.noise_level) * g._y_train_std)
+        s_epi = np.sqrt(np.maximum(s_tot**2 - nz**2, 0))
+        fig, ax = plt.subplots(figsize=(10, 4.4))
+        ax.fill_between(grid, m - 2 * s_tot, m + 2 * s_tot, color=BAND, lw=0,
+                        label="total: aleatoric + epistemic")
+        ax.fill_between(grid, m - 2 * s_epi, m + 2 * s_epi, color=ORANGE, alpha=0.35, lw=0,
+                        label="epistemic only")
+        ax.plot(grid, m, color=BLUE, lw=2, label="GP mean")
+        ax.plot(xs, ys, "o", color=INK, ms=5, label="noisy data")
+        ax.annotate("no data: epistemic\nuncertainty grows", xy=(0.52, m[156] + 2 * s_epi[156]),
+                    xytext=(0.42, 2.6), color=ORANGE, ha="center",
+                    arrowprops=dict(arrowstyle="->", color=ORANGE))
+        ax.annotate("near data: the noise\n(aleatoric) remains", xy=(0.17, m[51] - 2 * s_tot[51]),
+                    xytext=(0.12, -2.3), color=BLUE, ha="center",
+                    arrowprops=dict(arrowstyle="->", color=BLUE))
+        ax.set_xlabel("input $x$")
+        ax.set_ylabel("output $y$")
+        ax.set_ylim(-2.8, 3.2)
+        ax.legend(loc="upper right", fontsize=12)
+        save(fig, "aleatoric-epistemic.png")
+
+        # ---- GP intervals on the test mixes, both splits
+        fig, axes = plt.subplots(1, 2, figsize=(13, 5.2), sharey=True)
+        for ax, rec in zip(axes, (grouped, extrap)):
+            yy, mu_, sd_ = (np.array(rec[k]) for k in ("y", "gp_mu", "gp_sd_pts"))
+            miss = np.abs(yy - mu_) >= 1.96 * sd_
+            ax.errorbar(yy[~miss], mu_[~miss], yerr=1.96 * sd_[~miss], fmt="o", ms=3.5,
+                        color=BLUE, ecolor="#b9cde3", elinewidth=1, label="interval covers the truth")
+            ax.errorbar(yy[miss], mu_[miss], yerr=1.96 * sd_[miss], fmt="o", ms=4.5,
+                        color=CMU_RED, ecolor="#f0b3bd", elinewidth=1.2, label="interval misses")
+            ax.plot([0, 90], [0, 90], "k--", lw=1)
+            cov95 = rec["coverage"]["GP"][-1]
+            ax.set_title(f"{rec['label'].split(':')[0].split(',')[0]}: {cov95:.0%} covered",
+                         color=INK)
+            ax.set_xlabel("measured strength (MPa)")
+        axes[0].set_ylabel("predicted strength, 95% interval (MPa)")
+        axes[0].legend(loc="upper left", fontsize=12)
+        save(fig, "intervals.png")
+
+        # ---- reliability diagrams
+        fig, axes = plt.subplots(1, 2, figsize=(12, 5), sharey=True)
+        cols = {"GP": BLUE, "ensemble": GOLD, "conformal": GREEN}
+        names = {"GP": "Gaussian process", "ensemble": "ensemble spread", "conformal": "split conformal"}
+        for ax, rec in zip(axes, (grouped, extrap)):
+            ax.plot([0, 1], [0, 1], "k--", lw=1, label="perfect calibration")
+            for k, c in cols.items():
+                ax.plot(LEVELS, rec["coverage"][k], "o-", color=c, lw=2, ms=5, label=names[k])
+            ax.set_title(rec["label"].split(":")[0].split(",")[0])
+            ax.set_xlabel("nominal coverage")
+            ax.text(0.95, 0.05, "below the line:\noverconfident", ha="right", color=CMU_RED,
+                    fontsize=12)
+        axes[0].set_ylabel("observed coverage on the test mixes")
+        axes[1].legend(loc="upper left", fontsize=12)
+        save(fig, "calibration.png")
 
 
-def main() -> None:
-    results = {}
-    for fn in (fig_bo_loop, fig_acquisitions, fig_bo_vs_random, fig_active_learning):
-        r = fn()
-        results[fn.__name__] = r
-        print(f"{fn.__name__}: {r}")
-    print("\nwrote:", ", ".join(sorted(p.name for p in HERE.glob("*.png"))))
+# --------------------------------------------------------------------------------------
+# bo: the loop on a 1-D test function
+# --------------------------------------------------------------------------------------
+def g_test(x):
+    """The Forrester et al. (2008) function, negated so that we maximize it."""
+    return -((6 * x - 2) ** 2) * np.sin(12 * x - 4)
 
+
+def fit_1d(x, y):
+    gp = GaussianProcessRegressor(
+        ConstantKernel(1.0, (1e-2, 1e2)) * Matern(0.15, (0.05, 0.5), nu=2.5) + WhiteKernel(1e-4, (1e-6, 1e-1)),
+        normalize_y=True, n_restarts_optimizer=4, random_state=SEED)
+    return gp.fit(x[:, None], y)
+
+
+def acquisition(kind, mu, sd, best):
+    sd = np.maximum(sd, 1e-9)
+    if kind == "EI":
+        imp = mu - best
+        z = imp / sd
+        return imp * norm.cdf(z) + sd * norm.pdf(z)
+    if kind == "PI":
+        return norm.cdf((mu - best) / sd)
+    if kind == "UCB":
+        return mu + 3.0 * sd
+    raise ValueError(kind)
+
+
+def group_bo():
+    grid = np.linspace(0, 1, 121)
+    truth = g_test(grid)
+    x0 = np.array([0.0, 0.33, 0.66, 1.0])
+    print(f"  g(x) on [0, 1]: global maximum {truth.max():.2f} at x = {grid[truth.argmax()]:.3f}; "
+          f"start points {x0.tolist()}, best start value {g_test(x0).max():.2f}")
+    runs = {}
+    for kind in ("EI", "PI", "UCB"):
+        x = x0.copy()
+        frames = []
+        for it in range(8):
+            y = g_test(x)
+            gp = fit_1d(x, y)
+            mu, sd = gp.predict(grid[:, None], return_std=True)
+            acq = acquisition(kind, mu, sd, y.max())
+            nxt = float(grid[int(acq.argmax())])
+            frames.append(dict(x=r(x, 3), y=r(y, 3), mu=r(mu, 3), sd=r(sd, 3),
+                               acq=r(acq / (acq.max() or 1), 3), next=round(nxt, 3)))
+            x = np.append(x, nxt)
+        best = g_test(x).max()
+        print(f"  {kind}: picks {[f['next'] for f in frames]}; best after 8 picks {best:.2f}")
+        runs[kind] = frames
+    cache_put("bo", dict(grid=r(grid, 3), truth=r(truth, 3), runs=runs))
+
+    with plt.rc_context(STYLE):
+        fig, axes = plt.subplots(3, 2, figsize=(13, 9.6), sharex=True,
+                                 gridspec_kw={"hspace": 0.45, "wspace": 0.2})
+        for row in range(3):
+            fr = runs["EI"][row]
+            mu, sd = np.array(fr["mu"]), np.array(fr["sd"])
+            ax = axes[row, 0]
+            ax.plot(grid, truth, color=GRAY, lw=2, label="true objective" if row == 0 else None)
+            ax.fill_between(grid, mu - 1.96 * sd, mu + 1.96 * sd, color=BAND, lw=0,
+                            label="GP 95% band" if row == 0 else None)
+            ax.plot(grid, mu, color=BLUE, lw=2, label="GP mean" if row == 0 else None)
+            ax.plot(fr["x"], fr["y"], "o", color=INK, ms=6, label="evaluated" if row == 0 else None)
+            ax.axvline(fr["next"], color=CMU_RED, ls="--", lw=1.5)
+            ax.set_title(f"iteration {row + 1}: fit the GP to {len(fr['x'])} points")
+            ax = axes[row, 1]
+            ax.plot(grid, fr["acq"], color=GREEN, lw=2)
+            ax.axvline(fr["next"], color=CMU_RED, ls="--", lw=1.5)
+            ax.set_title(f"expected improvement: next x = {fr['next']:.2f}")
+            ax.set_yticks([])
+        axes[0, 0].legend(loc="lower left", fontsize=11)
+        axes[2, 0].set_xlabel("design variable $x$")
+        axes[2, 1].set_xlabel("design variable $x$")
+        save(fig, "bo-loop.png")
+
+        # one GP state, three acquisitions
+        x = np.append(x0, runs["EI"][0]["next"])       # the state after one EI pick
+        y = g_test(x)
+        gp = fit_1d(x, y)
+        mu, sd = gp.predict(grid[:, None], return_std=True)
+        fig, axes = plt.subplots(2, 1, figsize=(11, 7), sharex=True,
+                                 gridspec_kw={"height_ratios": [1.3, 1], "hspace": 0.12})
+        ax = axes[0]
+        ax.plot(grid, truth, color=GRAY, lw=2, label="true objective")
+        ax.fill_between(grid, mu - 1.96 * sd, mu + 1.96 * sd, color=BAND, lw=0, label="GP 95% band")
+        ax.plot(grid, mu, color=BLUE, lw=2, label="GP mean")
+        ax.plot(x, y, "o", color=INK, ms=6, label="evaluated")
+        ax.legend(loc="lower left", fontsize=11, ncol=2)
+        picks = {}
+        for kind, col, lab in (("EI", GREEN, "expected improvement"), ("PI", GOLD, "probability of improvement"),
+                               ("UCB", ORANGE, "upper confidence bound, $\\kappa$ = 3")):
+            a = acquisition(kind, mu, sd, y.max())
+            a = (a - a.min()) / ((a.max() - a.min()) or 1)
+            nxt = grid[int(a.argmax())]
+            picks[kind] = float(nxt)
+            axes[1].plot(grid, a, color=col, lw=2, label=f"{lab}: next x = {nxt:.2f}")
+            axes[0].axvline(nxt, color=col, ls="--", lw=1.4)
+        axes[1].set_yticks([])
+        axes[1].set_ylabel("acquisition\n(scaled)")
+        axes[1].set_xlabel("design variable $x$")
+        axes[1].legend(loc="upper left", fontsize=11)
+        save(fig, "acquisitions.png")
+        print(f"  acquisitions from one GP state: {picks}")
+
+
+# --------------------------------------------------------------------------------------
+# bench: Bayesian optimization against random search on a mix design
+# --------------------------------------------------------------------------------------
+DESIGN = ["cement", "slag", "water", "superplasticizer"]
+
+
+def group_bench():
+    df = load_concrete()
+    X, y = df[FEATURES].to_numpy(), df["strength_mpa"].to_numpy()
+    emulator = l09_gp().fit(X, y)
+    d28 = df[df.age_days == 28]
+    fixed = d28[FEATURES].median()
+    lo = d28[DESIGN].quantile(0.05).to_numpy()
+    hi = d28[DESIGN].quantile(0.95).to_numpy()
+    idx = [FEATURES.index(c) for c in DESIGN]
+
+    def lab(u):
+        """Cast and test a mix at 28 days: here, the emulator's prediction."""
+        rows = np.tile(fixed.to_numpy(), (len(u), 1))
+        rows[:, idx] = lo + u * (hi - lo)
+        return emulator.predict(rows)
+
+    rng = np.random.default_rng(SEED)
+    dense = lab(rng.random((200_000, 4)))
+    best_possible = float(dense.max())
+    print(f"  design bounds (5th to 95th percentile of the 28-day mixes): "
+          + ", ".join(f"{c} {a:.0f} to {b:.0f}" for c, a, b in zip(DESIGN, lo, hi)) + " kg/m3")
+    print(f"  best emulated 28-day strength in the box (200,000 random mixes): {best_possible:.1f} MPa")
+    u_best = rng.random((200_000, 4))
+    u_best = u_best[int(lab(u_best).argmax())]
+    row = fixed.to_numpy().copy()
+    row[idx] = lo + u_best * (hi - lo)
+    m_b, s_b = emulator.predict(row[None, :], return_std=True)
+    print("  that mix: " + ", ".join(f"{c} {v:.0f}" for c, v in zip(DESIGN, row[idx])) +
+          f" kg/m3; emulator {m_b[0]:.1f} +/- {1.96 * s_b[0]:.1f} MPa (95%); strongest specimen in"
+          f" the data {y.max():.1f} MPa; strongest at 28 days {d28.strength_mpa.max():.1f} MPa")
+
+    budget, n_init, n_seeds = 25, 5, 30
+    curves = {"BO": [], "random": []}
+    t0 = time.time()
+    for seed in range(n_seeds):
+        r_ = np.random.default_rng(seed)
+        u = r_.random((budget, 4))
+        curves["random"].append(np.maximum.accumulate(lab(u)))
+        U = r_.random((n_init, 4))
+        Y = lab(U)
+        for _ in range(budget - n_init):
+            gp = GaussianProcessRegressor(
+                ConstantKernel(1.0) * Matern(np.ones(4), (1e-2, 1e2), nu=2.5) + WhiteKernel(1e-3, (1e-6, 1e-1)),
+                normalize_y=True, random_state=seed).fit(U, Y)
+            cand = r_.random((4000, 4))
+            mu, sd = gp.predict(cand, return_std=True)
+            nxt = cand[int(acquisition("EI", mu, sd, Y.max()).argmax())]
+            U = np.vstack([U, nxt])
+            Y = np.append(Y, lab(nxt[None, :]))
+        curves["BO"].append(np.maximum.accumulate(Y))
+    print(f"  {n_seeds} seeds x {budget} evaluations each ({time.time() - t0:.0f} s)")
+    out = {}
+    for k, c in curves.items():
+        c = np.array(c)
+        gap = best_possible - c
+        within = [int(np.argmax(g <= 1.0)) + 1 if (g <= 1.0).any() else None for g in gap]
+        hit = [w for w in within if w is not None]
+        out[k] = dict(median=r(np.median(c, 0), 2), q25=r(np.quantile(c, 0.25, 0), 2),
+                      q75=r(np.quantile(c, 0.75, 0), 2))
+        print(f"  {k:6s}: median best after 10 evaluations {np.median(c[:, 9]):.1f} MPa, after 25 "
+              f"{np.median(c[:, -1]):.1f}; within 1 MPa of the best in {len(hit)} of {n_seeds} seeds"
+              + (f", median {int(np.median(hit))} evaluations" if hit else ""))
+
+    with plt.rc_context(STYLE):
+        fig, ax = plt.subplots(figsize=(10, 4.8))
+        n = np.arange(1, budget + 1)
+        for k, col in (("random", GRAY), ("BO", BLUE)):
+            ax.fill_between(n, out[k]["q25"], out[k]["q75"], color=col, alpha=0.2, lw=0)
+            ax.plot(n, out[k]["median"], color=col, lw=2.5,
+                    label="Bayesian optimization (EI)" if k == "BO" else "random search")
+        ax.axhline(best_possible, color=CMU_RED, ls="--", lw=1.4)
+        ax.text(budget, best_possible + 0.4, f"the emulator's best: {best_possible:.1f} MPa", ha="right",
+                color=CMU_RED)
+        ax.axvline(n_init + 0.5, color=MUTED, ls=":", lw=1)
+        ax.text(n_init + 0.8, ax.get_ylim()[0] + 1, "5 random mixes to start", color=MUTED, fontsize=12)
+        ax.set_xlabel("mixes cast and tested (28 days each)")
+        ax.set_ylabel("best strength so far (MPa)")
+        ax.legend(loc="lower right")
+        save(fig, "bo-vs-random.png")
+
+
+# --------------------------------------------------------------------------------------
+# al: active learning on the grouped training pool
+# --------------------------------------------------------------------------------------
+def group_al():
+    df = load_concrete()
+    X, y = df[FEATURES].to_numpy(), df["strength_mpa"].to_numpy()
+    groups = df.groupby(MIX).ngroup().to_numpy()
+    tr, te = next(GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42).split(X, y, groups))
+    n_start, n_query, n_seeds = 20, 40, 8
+    sc = StandardScaler().fit(X[tr])
+    Xp, yp, Xt, yt = sc.transform(X[tr]), y[tr], sc.transform(X[te]), y[te]
+    res = {"uncertainty": [], "random": []}
+    picked = {"uncertainty": [], "random": []}
+    t0 = time.time()
+    for seed in range(n_seeds):
+        r_ = np.random.default_rng(seed)
+        start = list(r_.choice(len(Xp), n_start, replace=False))
+        for strat in res:
+            lab_ = list(start)
+            curve = []
+            for q in range(n_query + 1):
+                gp = GaussianProcessRegressor(
+                    ConstantKernel(1.0) * RBF(np.ones(8), (1e-2, 1e3)) + WhiteKernel(1e-1, (1e-5, 1e1)),
+                    normalize_y=True, random_state=0).fit(Xp[lab_], yp[lab_])
+                curve.append(root_mean_squared_error(yt, gp.predict(Xt)))
+                if q == n_query:
+                    picked[strat].extend(lab_[n_start:])
+                    break
+                pool = np.setdiff1d(np.arange(len(Xp)), lab_)
+                if strat == "uncertainty":
+                    _, sd = gp.predict(Xp[pool], return_std=True)
+                    lab_.append(int(pool[int(sd.argmax())]))
+                else:
+                    lab_.append(int(r_.choice(pool)))
+            res[strat].append(curve)
+    print(f"  {n_seeds} seeds, start with {n_start} rows, {n_query} queries ({time.time() - t0:.0f} s)")
+    edge = lambda rows: float(np.mean(np.max(np.abs(rows), axis=1)))
+    print(f"  how extreme the queried mixes are (mean of each row's largest |standardized input|): "
+          f"uncertainty {edge(Xp[picked['uncertainty']]):.2f}, random {edge(Xp[picked['random']]):.2f}, "
+          f"test mixes {edge(Xt):.2f}")
+    ages = X[tr][:, FEATURES.index("age_days")]
+    for k in picked:
+        a = ages[picked[k]]
+        print(f"  {k:12s}: {np.mean((a <= 3) | (a >= 180)):.0%} of queries at age 3 days or 180 days and"
+              f" over (pool: {np.mean((ages <= 3) | (ages >= 180)):.0%})")
+    out = {}
+    for k, c in res.items():
+        c = np.array(c)
+        out[k] = np.median(c, 0)
+        print(f"  {k:12s}: median test RMSE {out[k][0]:.2f} MPa at {n_start} rows, "
+              f"{out[k][20]:.2f} at {n_start + 20}, {out[k][-1]:.2f} at {n_start + n_query}")
+
+    with plt.rc_context(STYLE):
+        fig, ax = plt.subplots(figsize=(10, 4.6))
+        n = np.arange(n_start, n_start + n_query + 1)
+        ax.plot(n, out["random"], color=GRAY, lw=2.5, label="query at random")
+        ax.plot(n, out["uncertainty"], color=BLUE, lw=2.5, label="query where the GP is least sure")
+        ax.annotate("least-sure queries go to\nextreme mixes at the edges", xy=(n[18], out["uncertainty"][18]),
+                    xytext=(n[22], out["uncertainty"][18] + 2.2), color=BLUE,
+                    arrowprops=dict(arrowstyle="->", color=BLUE))
+        ax.set_xlabel("labeled rows (tested specimens)")
+        ax.set_ylabel("test RMSE (MPa)")
+        ax.legend(loc="lower left")
+        save(fig, "active-learning.png")
+
+
+# --------------------------------------------------------------------------------------
+def write_widget_data():
+    data = {}
+    for name in ("uq", "bo"):
+        p = CACHE / f"{name}.json"
+        if p.exists():
+            data[name] = json.loads(p.read_text())
+    if "uq" in data:
+        for s in data["uq"]["splits"]:
+            s.pop("kernel", None)
+    text = ("/* Generated by lectures/l14/figures/make_figures.py. Do not edit. */\n"
+            "window.COURSE_WIDGET_DATA = window.COURSE_WIDGET_DATA || {};\n"
+            "window.COURSE_WIDGET_DATA.l14 = " + json.dumps(data, separators=(",", ":")) + ";\n")
+    WIDGET_JS.write_text(text)
+    print(f"  wrote {WIDGET_JS.relative_to(REPO)} ({len(text) / 1024:.0f} KB)")
+
+
+GROUPS = {"uq": group_uq, "bo": group_bo, "bench": group_bench, "al": group_al}
 
 if __name__ == "__main__":
-    main()
+    names = sys.argv[1:] or list(GROUPS)
+    for name in names:
+        print(f"[{name}]")
+        GROUPS[name]()
+    write_widget_data()

@@ -161,36 +161,43 @@
     {
       "from": "l12",
       "to": "l11",
-      "weight": 3,
+      "weight": 2,
       "where": "[Lecture 11](../l11/notes.md) built the machinery: tensors, autograd, a training loop, and a multilayer perceptron on tabular concrete data. It also delivered a",
       "origin": "link"
     },
     {
       "from": "l13",
-      "to": "l01",
-      "weight": 1,
-      "where": "This is [Lecture 1](../l01/notes.md)'s `np.trapz` lesson in a new costume, and the fix is the same",
-      "origin": "link"
-    },
-    {
-      "from": "l13",
-      "to": "l07",
-      "weight": 1,
-      "where": "of the leakage failures in [Lecture 7](../l07/notes.md) and [Lecture 9](../l09/notes.md) too. The method",
-      "origin": "link"
-    },
-    {
-      "from": "l13",
       "to": "l09",
-      "weight": 3,
-      "where": "splitting discipline from [Lecture 9](../l09/notes.md) reappears in a harsher form, because a",
+      "weight": 1,
+      "where": "This is the constrained optimization problem of [Lecture 9](../l09/notes.md),",
       "origin": "link"
     },
     {
       "from": "l13",
       "to": "l11",
+      "weight": 2,
+      "where": "([Lecture 11](../l11/notes.md)): differentiate the network with respect to its input $t$.",
+      "origin": "link"
+    },
+    {
+      "from": "l13",
+      "to": "l12",
       "weight": 1,
-      "where": "**collocation points** where no measurement exists. This is [Lecture 11](../l11/notes.md)'s",
+      "where": "A **recurrent neural network (RNN)**, from [Lecture 12](../l12/notes.md), applied over time",
+      "origin": "link"
+    },
+    {
+      "from": "l14",
+      "to": "l09",
+      "weight": 1,
+      "where": "- [Lecture 9](../l09/notes.md) fitted a Gaussian process (GP) to the concrete strength dataset. It",
+      "origin": "link"
+    },
+    {
+      "from": "l14",
+      "to": "l10",
+      "weight": 1,
+      "where": "**Optuna** ([Lecture 10](../l10/notes.md)) ran the hyperparameter search with its default sampler,",
       "origin": "link"
     },
     {
@@ -306,18 +313,18 @@
     }
   ],
   "in_degree": {
-    "l01": 2,
+    "l01": 1,
     "l02": 1,
     "l03": 4,
     "l04": 3,
     "l05": 5,
     "l06": 0,
-    "l07": 5,
+    "l07": 4,
     "l08": 3,
-    "l09": 5,
-    "l10": 0,
+    "l09": 6,
+    "l10": 1,
     "l11": 3,
-    "l12": 0,
+    "l12": 1,
     "l13": 3,
     "l14": 0,
     "l15": 0,
@@ -328,18 +335,18 @@
     "l21": 0
   },
   "in_weight": {
-    "l01": 2,
+    "l01": 1,
     "l02": 1,
     "l03": 6,
     "l04": 4,
     "l05": 7,
     "l06": 0,
-    "l07": 7,
+    "l07": 6,
     "l08": 5,
-    "l09": 11,
-    "l10": 0,
+    "l09": 10,
+    "l10": 1,
     "l11": 5,
-    "l12": 0,
+    "l12": 1,
     "l13": 3,
     "l14": 0,
     "l15": 0,
@@ -362,8 +369,8 @@
     "l10": 5,
     "l11": 2,
     "l12": 4,
-    "l13": 4,
-    "l14": 0,
+    "l13": 3,
+    "l14": 2,
     "l15": 3,
     "l16": 0,
     "l17": 0,
@@ -373,8 +380,6 @@
   },
   "unreferenced": [
     "l06",
-    "l10",
-    "l12",
     "l14",
     "l15",
     "l16",
@@ -385,7 +390,6 @@
     "l01",
     "l02",
     "l03",
-    "l14",
     "l16",
     "l17",
     "l18"

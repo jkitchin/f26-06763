@@ -1,13 +1,447 @@
+# L14 item bank for uncertainty quantification on the concrete strength dataset (aleatoric and
+# epistemic uncertainty, a Gaussian process, a deep ensemble, split conformal prediction and
+# their calibration), Bayesian optimization (the loop, acquisition functions, a mix design
+# against random search) and active learning. Version 2 replaces the empty version 1.
+
 schema: 1
 lecture: l14
-title: "Bayesian optimization and active learning for design"
+title: "Uncertainty quantification, Bayesian optimization and active learning"
 source_notes: lectures/l14/notes.md
-# See game/content/l06.yml and l08.yml. The notes are published and the bank is
-# not written yet; the graded items are authored and reviewed by hand separately.
+# Held until release: tools/release_lecture.py flips this to published.
 status: unwritten
-serve: 0
-pool_version: 1
+serve: 8
+pool_version: 2
 provenance:
-  drafted_by: none
+  drafted_by: hand
   reviewed_by: none
-items: []
+  reviewed_at: 2026-10-06
+
+items:
+
+  # --- o4: aleatoric and epistemic uncertainty, intervals and calibration ----------------------
+
+  - id: l14-q01
+    kind: mcq
+    rung: 1
+    difficulty: 1
+    objectives: [l14-o4]
+    prompt: |
+      Which kind of uncertainty shrinks if you test more mixes in the right place?
+    options:
+      - "Epistemic: what the model does not know yet"
+      - "Aleatoric: the scatter between specimens of the same mix"
+      - "Both shrink equally with more data"
+      - "Neither; uncertainty is a property of the model family"
+    answer: "Epistemic: what the model does not know yet"
+    evidence: |
+      Epistemic uncertainty comes from missing data, so testing where the model is unsure
+      reduces it. Aleatoric uncertainty is the scatter in the measurements themselves; more
+      tests measure it better but do not remove it.
+    source:
+      file: lectures/l14/notes.md
+      heading: "Two kinds of uncertainty"
+      quote: |
+        **Epistemic** uncertainty is what the model does not know yet, which more data in the right place
+        reduces.
+    verify: {mode: quote, needle: "what the model does not know yet", volatility: stable}
+    tags: [epistemic, aleatoric]
+
+  - id: l14-q02
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l14-o4]
+    prompt: |
+      Specimens of the same mix tested at the same age scatter by 5.0 MPa. What does that number
+      tell you about any model of this data?
+    options:
+      - "No model can predict better than about 5.0 MPa: that scatter is aleatoric"
+      - "A model with enough capacity can bring its error below 5.0 MPa"
+      - "The test set needs more mixes before the error can be trusted"
+      - "The specimens were mislabeled, and the replicates should be removed"
+    answer: "No model can predict better than about 5.0 MPa: that scatter is aleatoric"
+    evidence: |
+      Two specimens with the same inputs get the same prediction from any model, so their
+      scatter is a floor on the error. The GP's fitted noise term, 3.9 MPa, estimates the same
+      floor on its own.
+    source:
+      file: lectures/l14/notes.md
+      heading: "Two kinds of uncertainty"
+      quote: |
+        Their strengths scatter by **5.0 MPa** (pooled standard deviation). No model predicts
+        better than that.
+    verify: {mode: quote, needle: "no model predicts", volatility: measured}
+    tags: [aleatoric, replicates]
+
+  - id: l14-q03
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l14-o4]
+    prompt: |
+      Intervals from the spread of five networks claimed 95% and covered 76% of the test mixes.
+      Why?
+    options:
+      - "The spread measures only epistemic uncertainty, and misses the scatter between specimens"
+      - "Five networks are too few; fifty would cover 95%"
+      - "The networks were overfitted, so their mean is wrong"
+      - "The test mixes were outside the training range"
+    answer: "The spread measures only epistemic uncertainty, and misses the scatter between specimens"
+    evidence: |
+      Networks trained on the same data agree wherever the data pin the function down, noisy or
+      not. Their spread grows only where data are missing, so it leaves out the 5 MPa of
+      aleatoric scatter that every test mix carries.
+    source:
+      file: lectures/l14/notes.md
+      heading: "A deep ensemble"
+      quote: |
+        So the spread measures **epistemic** uncertainty only.
+    verify: {mode: quote, needle: "so the spread measures", volatility: stable}
+    tags: [deep-ensemble, epistemic, calibration]
+
+  - id: l14-q04
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l14-o4]
+    prompt: |
+      Split conformal prediction guarantees its coverage under one condition. Which?
+    options:
+      - "The calibration and test points are exchangeable: drawn the same way from the same population"
+      - "The model's errors are Gaussian"
+      - "The model is a Gaussian process"
+      - "The calibration set has at least 1,000 points"
+    answer: "The calibration and test points are exchangeable: drawn the same way from the same population"
+    evidence: |
+      Conformal makes no assumption about the model or the error distribution. It does assume
+      the test points look like the calibration points, which is exactly what a design loop
+      pushing into new mixes breaks.
+    source:
+      file: lectures/l14/notes.md
+      heading: "Split conformal prediction"
+      quote: |
+        **The guarantee**: if the calibration and test points are **exchangeable** (their order does not
+        matter: drawn the same way from the same population), the interval contains the truth with
+        probability at least $1 - \alpha$.
+    verify: {mode: quote, needle: "the interval contains the truth with", volatility: stable}
+    tags: [conformal-prediction, exchangeability]
+
+  - id: l14-q05
+    kind: mcq
+    rung: 1
+    difficulty: 1
+    objectives: [l14-o4]
+    prompt: |
+      What does the prediction interval coverage probability (PICP) measure?
+    options:
+      - "The fraction of test points whose interval contains the true value"
+      - "The average width of the intervals"
+      - "The probability the model's mean is within 1 MPa of the truth"
+      - "The fraction of training points used to calibrate the interval"
+    answer: "The fraction of test points whose interval contains the true value"
+    evidence: |
+      PICP counts hits: for each test point, is the measured value inside its interval? For a
+      calibrated 95% interval it should be about 0.95. It says nothing about width, which is
+      reported alongside it.
+    source:
+      file: lectures/l14/notes.md
+      heading: "Is the uncertainty right? Calibration"
+      quote: |
+        The check is the **prediction interval coverage probability** (PICP), the fraction of test
+        points whose interval contains the true value:
+    verify: {mode: quote, needle: "the fraction of test", volatility: stable}
+    tags: [calibration, picp]
+
+  - id: l14-q06
+    kind: spot_the_defect
+    rung: 3
+    difficulty: 3
+    objectives: [l14-o4]
+    prompt: |
+      A team checks their surrogate's 95% intervals on a random split of their mixes, finds 95%
+      coverage, and then uses the intervals to search for mixes stronger than any they have
+      tested. What is missing?
+    options:
+      - "A coverage check on mixes like the ones the search will reach; on the strongest mixes coverage fell to between 70% and 89%"
+      - "A larger random split; 95% on 195 points is not significant"
+      - "A second surrogate, to average the two intervals"
+      - "Nothing: a calibrated interval stays calibrated everywhere"
+    answer: "A coverage check on mixes like the ones the search will reach; on the strongest mixes coverage fell to between 70% and 89%"
+    evidence: |
+      Calibration on mixes like the training mixes says little about the strongest mixes, where
+      a design search goes. Holding those out, the GP covered 89%, the ensemble 86% and split
+      conformal 70% of what each claimed as 95%.
+    source:
+      file: lectures/l14/notes.md
+      heading: "Two test sets"
+      quote: |
+        Check coverage on a test set that looks like where the model will be **used**, not only like
+        where it was trained.
+    verify: {mode: quote, needle: "check coverage on a test set", volatility: stable}
+    tags: [calibration, extrapolation, practitioner]
+
+  # --- o1: the Bayesian optimization loop ------------------------------------------------------------
+
+  - id: l14-q07
+    kind: mcq
+    rung: 1
+    difficulty: 1
+    objectives: [l14-o1]
+    prompt: |
+      What does Bayesian optimization fit before choosing each new experiment?
+    options:
+      - "A probabilistic surrogate of the evaluations so far, whose mean and uncertainty feed an acquisition function"
+      - "A gradient of the objective, estimated by finite differences"
+      - "A grid over the design space, refined around the best point"
+      - "A model of the measurement noise only"
+    answer: "A probabilistic surrogate of the evaluations so far, whose mean and uncertainty feed an acquisition function"
+    evidence: |
+      Each step fits a GP to every evaluation so far, scores candidates with an acquisition
+      function of its mean and uncertainty, and evaluates the best-scoring one. No gradient of
+      the objective is ever needed.
+    source:
+      file: lectures/l14/notes.md
+      heading: "The problem"
+      quote: |
+        **Bayesian optimization** fits a probabilistic surrogate to the evaluations so far and uses an
+        **acquisition function** of its mean and uncertainty to choose the next point to evaluate.
+    verify: {mode: quote, needle: "fits a probabilistic surrogate", volatility: stable}
+    tags: [bayesian-optimization, surrogate]
+
+  - id: l14-q08
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l14-o1]
+    prompt: |
+      The mix-design comparison ran Bayesian optimization and random search 30 times each, with
+      different seeds. Why not once?
+    options:
+      - "Both are random; one run of either could be luck"
+      - "The emulator gives a different answer each time it is called"
+      - "Thirty runs make the optimizer converge faster"
+      - "Each seed tests a different design variable"
+    answer: "Both are random; one run of either could be luck"
+    evidence: |
+      Both methods start from random mixes, and BO's later choices depend on them. A single run
+      can win or lose by chance, so the comparison reports how often each method gets close
+      across seeds: 29 of 30 for BO, 0 of 30 for random search.
+    source:
+      file: lectures/l14/notes.md
+      heading: "On the concrete strength dataset: BO against random search"
+      quote: |
+        Each gets **30 seeds**, because one run of either is luck.
+    verify: {mode: quote, needle: "because one run of either is luck", volatility: stable}
+    tags: [bayesian-optimization, seeds, random-search]
+
+  - id: l14-q09
+    kind: spot_the_defect
+    rung: 3
+    difficulty: 3
+    objectives: [l14-o1]
+    prompt: |
+      A report says: "Bayesian optimization on our emulator found a 91.6 MPa mix, stronger than
+      anything we have tested. We will specify it." What is wrong with that?
+    options:
+      - "91.6 MPa is the emulator's prediction, ±18 MPa, far from any tested mix; the next step is to cast and test it"
+      - "Bayesian optimization cannot find mixes stronger than the training data"
+      - "The optimizer needed more than 25 evaluations to be sure"
+      - "Nothing; the emulator was fitted to all 1,030 rows"
+    answer: "91.6 MPa is the emulator's prediction, ±18 MPa, far from any tested mix; the next step is to cast and test it"
+    evidence: |
+      An optimizer run on a fixed surrogate goes where the surrogate is most optimistic. Here
+      that is a corner of the design box, 9 MPa above the strongest specimen ever tested, with a
+      95% interval of ±18 MPa. It is a proposal to test.
+    source:
+      file: lectures/l14/notes.md
+      heading: "On the concrete strength dataset: BO against random search"
+      quote: |
+        This is BO on a fixed surrogate. In a real campaign, the next step is to cast that mix: the
+        measurement updates the GP, and the loop continues.
+    verify: {mode: quote, needle: "the next step is to cast that mix", volatility: measured}
+    tags: [bayesian-optimization, surrogate, practitioner]
+
+  # --- o2: acquisition functions -----------------------------------------------------------------------
+
+  - id: l14-q10
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l14-o2]
+    prompt: |
+      When is expected improvement large?
+    options:
+      - "When the mean is above the best so far, or the uncertainty is large, or both"
+      - "Only when the mean is above the best value found so far"
+      - "Only where the uncertainty is largest"
+      - "Only at points that have not been evaluated before"
+    answer: "When the mean is above the best so far, or the uncertainty is large, or both"
+    evidence: |
+      EI adds an exploitation term, large where the mean beats the best so far, to an
+      exploration term, large where the GP is unsure. A point can score highly for either
+      reason.
+    source:
+      file: lectures/l14/notes.md
+      heading: "Acquisition functions"
+      quote: |
+        Large when the mean is above $f^*$, or when $\sigma$ is large, or both.
+    verify: {mode: quote, needle: "large when the mean is above", volatility: stable}
+    tags: [expected-improvement, exploration-exploitation]
+
+  - id: l14-q11
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l14-o2]
+    prompt: |
+      On the two-peak test function, one acquisition picked 0.66, 0.67, 0.68 and so on to 0.72,
+      and stopped at 5.26 of a possible 6.02. Which?
+    options:
+      - "Probability of improvement"
+      - "Expected improvement"
+      - "Upper confidence bound with κ = 3"
+      - "Thompson sampling"
+    answer: "Probability of improvement"
+    evidence: |
+      PI scores only the chance of beating the best so far, by any margin, so it prefers points
+      right next to the best one and climbs in tiny steps. EI and UCB with κ = 3 both found the
+      global maximum.
+    source:
+      file: lectures/l14/notes.md
+      heading: "The loop on a test function"
+      quote: |
+        **PI** creeps uphill from its best point in tiny steps: it exploits.
+    verify: {mode: quote, needle: "creeps uphill from its best point", volatility: measured}
+    tags: [probability-of-improvement, exploitation]
+
+  - id: l14-q12
+    kind: direction
+    rung: 2
+    difficulty: 2
+    objectives: [l14-o2]
+    prompt: |
+      You raise κ in the upper confidence bound μ(x) + κσ(x). What changes in where it samples?
+    options:
+      - "It weights uncertainty more, so it samples more where the GP is unsure: it explores"
+      - "It weights the mean more, so it samples closer to the best point: it exploits"
+      - "Nothing; κ only rescales the acquisition"
+      - "It samples where the measurement noise is lowest"
+    answer: "It weights uncertainty more, so it samples more where the GP is unsure: it explores"
+    evidence: |
+      κ multiplies the standard deviation. A larger κ lets uncertain regions outscore regions
+      with a high mean, which is exploration; with κ = 3 the first picks went to the far side of
+      the test function before the peak.
+    source:
+      file: lectures/l14/notes.md
+      heading: "Acquisition functions"
+      quote: |
+        **Upper confidence bound (UCB)**: $\mu(x) + \kappa\,\sigma(x)$. The weight $\kappa$ sets the
+        trade-off directly: large $\kappa$ explores.
+    verify: {mode: quote, needle: "trade-off directly", volatility: stable}
+    tags: [upper-confidence-bound, exploration]
+
+  - id: l14-q13
+    kind: mcq
+    rung: 1
+    difficulty: 2
+    objectives: [l14-o2]
+    prompt: |
+      How does Thompson sampling choose the next point?
+    options:
+      - "It draws one random function from the GP posterior and evaluates where that draw is highest"
+      - "It evaluates where the GP's standard deviation is largest"
+      - "It evaluates where the GP's mean is highest"
+      - "It samples a point uniformly at random"
+    answer: "It draws one random function from the GP posterior and evaluates where that draw is highest"
+    evidence: |
+      A draw from the posterior is high where the mean is high, and sometimes high where the GP
+      is unsure. The randomness of the draw does the exploring, with no explicit trade-off
+      parameter.
+    source:
+      file: lectures/l14/notes.md
+      heading: "Acquisition functions"
+      quote: |
+        **Thompson sampling**: draw one random function from the GP posterior, and evaluate where that
+        draw is highest.
+    verify: {mode: quote, needle: "draw one random function from the gp posterior", volatility: stable}
+    tags: [thompson-sampling]
+
+  # --- o3: active learning -----------------------------------------------------------------------------
+
+  - id: l14-q14
+    kind: mcq
+    rung: 1
+    difficulty: 1
+    objectives: [l14-o3]
+    prompt: |
+      Bayesian optimization looks for one best point. What does active learning aim for?
+    options:
+      - "A model that is accurate everywhere it will be used, with as few labels as possible"
+      - "The best point, found with fewer evaluations than BO"
+      - "A calibrated interval on the training data"
+      - "The point of largest measurement noise"
+    answer: "A model that is accurate everywhere it will be used, with as few labels as possible"
+    evidence: |
+      Both loops choose the next expensive measurement, but for different goals. BO wants one
+      excellent design; active learning wants a surrogate good across the region it will be
+      queried in.
+    source:
+      file: lectures/l14/notes.md
+      heading: "Active learning"
+      quote: |
+        Bayesian optimization looks for **one** best point. Active learning wants a model that is good
+        **everywhere** you will use it.
+    verify: {mode: quote, needle: "active learning wants a model that is good", volatility: stable}
+    tags: [active-learning]
+
+  - id: l14-q15
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l14-o3]
+    prompt: |
+      On the concrete strength dataset, labeling where the GP is least sure was compared with
+      labeling at random. After 40 labeled rows, which model had the lower test error?
+    options:
+      - "Random labeling: 9.5 MPa against 12.7"
+      - "Least-sure labeling: 9.5 MPa against 12.7"
+      - "They were identical, since both used the same GP"
+      - "Neither improved on the 20-row starting model"
+    answer: "Random labeling: 9.5 MPa against 12.7"
+    evidence: |
+      Uncertainty sampling lost here. Its queries went to the edges of the data, where the test
+      mixes rarely are, while random queries covered the middle, where they mostly are.
+    source:
+      file: lectures/l14/notes.md
+      heading: "On the concrete strength dataset"
+      quote: |
+        **Here, uncertainty sampling loses to random.**
+    verify: {mode: quote, needle: "uncertainty sampling loses to random", volatility: measured}
+    tags: [active-learning, uncertainty-sampling]
+
+  - id: l14-q16
+    kind: spot_the_defect
+    rung: 3
+    difficulty: 3
+    objectives: [l14-o3]
+    prompt: |
+      A team labels whichever pool row their GP is least sure about, expecting the fastest drop in
+      test error. On the concrete strength dataset it did worse than random. What did they miss?
+    options:
+      - "The least-sure rows are extreme mixes and ages at the edges, not where the test mixes are"
+      - "The GP should be refitted less often"
+      - "Uncertainty sampling only works with neural networks"
+      - "The pool was too small to choose from"
+    answer: "The least-sure rows are extreme mixes and ages at the edges, not where the test mixes are"
+    evidence: |
+      A GP is least sure at the edges of its data. 45% of its queries were at an age of 3 days or
+      180 days and more, against 19% of the pool. Labels there teach the model about inputs it
+      will rarely be asked about.
+    source:
+      file: lectures/l14/notes.md
+      heading: "On the concrete strength dataset"
+      quote: |
+        Measured: 45% of the least-sure queries are at an age of 3 days or 180 days and more, against
+        19% of the pool.
+    verify: {mode: quote, needle: "45% of the least-sure queries", volatility: measured}
+    tags: [active-learning, practitioner]
