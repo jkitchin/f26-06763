@@ -44,8 +44,9 @@ The course is balanced across three main topics/arcs:
 1. **Data infrastructure & engineering:** storage, pipelines, features, validation.
 2. **Machine learning:** the ML workflow, PyTorch/JAX, and applied
    engineering ML (scientific machine learning: physics-informed networks, neural ODEs
-   and neural DAEs; uncertainty quantification; Bayesian optimization (BO)).
-3. **LLM & agentic engineering:** usage, retrieval, adaptation, and building/using agentic workflows.
+   and neural DAEs; uncertainty quantification; Bayesian optimization (BO); active and
+   reinforcement learning).
+3. **LLM & agentic engineering:** an introduction to using LLMs, retrieval (RAG), and agents.
 
 
 ## Learning Objectives
@@ -59,7 +60,7 @@ By the end of the course, students will be able to:
   selection, and evaluation) on engineering data.
 - Build **applied-engineering ML**: physics-informed and hybrid models (PINNs, neural ODEs,
   neural DAEs) and surrogates with **uncertainty quantification**, and use **Bayesian
-  optimization / active learning** for solving problems.
+  optimization, active learning and reinforcement learning** to decide what to do next.
 - Use **LLMs** effectively (prompting, structured output, embeddings), using **RAG**.
 - **Deploy, monitor, and operate** AI systems, and reason about safety, cost, and responsible use in an engineering context.
 

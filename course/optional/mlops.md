@@ -168,7 +168,7 @@ context bloat**, a RAG system's retrieved context growing as the corpus grows, o
 prompt accumulating one more instruction every time someone fixes an edge case, quietly raises
 the token count on every single call. **Retry storms**, a downstream service degrading and a
 client retrying aggressively, can multiply cost by the retry count exactly when the system is
-already under stress. **Runaway agent loops**, the failure Lecture 19's bounded loop exists to prevent,
+already under stress. **Runaway agent loops**, the failure Lecture 20's bounded loop exists to prevent,
 turn a single user request into dozens of billed model calls if nothing stops them. A one-time
 cost estimate misses all three; only cost logged as a time series, the same way Lecture 21 logged eval
 metrics, catches them. **Budgets and rate limits**,
@@ -184,11 +184,11 @@ per failure mode, naming the mechanism that catches it.
 
 | System | Failure mode | Concrete guardrail |
 |---|---|---|
-| LLM / RAG | Hallucinated fact or citation | Retrieval grounding with an explicit "answer only from context" instruction (Lecture 17); a faithfulness check verifying the cited chunk is in the retrieved set (Lecture 21) |
+| LLM / RAG | Hallucinated fact or citation | Retrieval grounding with an explicit "answer only from context" instruction (Lecture 20); a faithfulness check verifying the cited chunk is in the retrieved set (Lecture 21) |
 | LLM / RAG | Confident wrong number | Numeric-tolerance reference check against a known value where one exists; flag, don't silently accept, an unsourced quantity |
 | LLM / agent | Prompt injection via retrieved or tool content | Treat all retrieved documents and tool outputs as untrusted input; never let instructions embedded in them change the system prompt's authority |
-| Agent | Unsafe tool action (writes, actuation) | Tool allow-lists, read-only credentials by default (Lecture 19), a dry-run mode, human-in-the-loop approval before any consequential call executes |
-| Agent | Infinite or repeating loop | Step budget, cost cap, and repeated-identical-call detection (Lecture 19) |
+| Agent | Unsafe tool action (writes, actuation) | Tool allow-lists, read-only credentials by default (Lecture 20), a dry-run mode, human-in-the-loop approval before any consequential call executes |
+| Agent | Infinite or repeating loop | Step budget, cost cap, and repeated-identical-call detection (Lecture 20) |
 | LLM / agent | Silent schema drift | Output validation against a versioned schema; fail loudly, not by silently coercing a malformed response |
 | Surrogate / ML | Extrapolation beyond the training domain | An explicit input-range check before every prediction, refuse or flag rather than silently extrapolate (Lecture 7) |
 | Surrogate / ML | Over-confident uncertainty | Calibration checked against held-out truth, not assumed from the model's own reported interval (Lecture 14, Lecture 21) |
@@ -196,7 +196,7 @@ per failure mode, naming the mechanism that catches it.
 | Surrogate / ML | Silent input-unit error | Named, typed feature columns; a units assertion at every system boundary (Lecture 7's Mars Climate Orbiter case) |
 
 Notice that most of these guardrails are things this course has already built: a step budget
-is Lecture 19's, a faithfulness check is Lecture 21's, an input-range check is Lecture 7's. This session's
+is Lecture 20's, a faithfulness check is Lecture 21's, an input-range check is Lecture 7's. This session's
 contribution is the discipline of a table that forces you to name a mechanism for every failure
 you can think of, rather than a paragraph of good intentions, and the module's suggested
 exercise, filling this table for your own system and marking which rows require a human
