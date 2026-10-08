@@ -12,8 +12,8 @@ title: "Scientific machine learning: PINNs, neural ODEs and neural DAEs"
 source_notes: lectures/l13/notes.md
 # Held until release: tools/release_lecture.py flips this to published.
 status: published
-serve: 9
-pool_version: 7
+serve: 8
+pool_version: 8
 provenance:
   drafted_by: hand
   reviewed_by: none
@@ -345,33 +345,6 @@ items:
         The model equations are satisfied **only when the solver converges**.
     verify: {mode: quote, needle: "only when the solver converges", volatility: stable}
     tags: [simultaneous-approach, collocation]
-
-  - id: l13-q13
-    kind: mcq
-    rung: 2
-    difficulty: 2
-    objectives: [l13-o5]
-    prompt: |
-      At iteration 0 the simultaneous fit of the spring-mass has a sum of squared errors of 0.00.
-      Why is it not finished?
-    options:
-      - "Its states sit on the data but break the model equations"
-      - "It has not computed a gradient yet"
-      - "The data are noisy, so a perfect fit is suspect"
-      - "Interior-point solvers always run a fixed number of iterations"
-    answer: "Its states sit on the data but break the model equations"
-    evidence: |
-      The states start as an interpolation of the data, so the misfit is zero, but the largest
-      violation of the collocation equations is 7.7. The solver then repairs the physics, ending
-      with a defect of 2.5e-15.
-    source:
-      file: lectures/l13/notes.md
-      heading: "The same problem, both ways"
-      quote: |
-        The **simultaneous** run starts with the states on the data (so it fits, but breaks the
-        ODE), then pulls the two together.
-    verify: {mode: quote, needle: "so it fits, but breaks the", volatility: stable}
-    tags: [simultaneous-approach, infeasible-path]
 
   - id: l13-q14
     kind: spot_the_defect

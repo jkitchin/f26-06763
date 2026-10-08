@@ -337,12 +337,9 @@ Adam among them ([docs](https://optax.readthedocs.io)).
 The network: one `(W, b)` pair per layer, three hidden layers of 32 tanh units. tanh is smooth,
 so its second derivative exists.
 
-- `W` is drawn with standard deviation $1/\sqrt{n_\text{in}}$, one over the square root of the
-  number of inputs. A weighted sum of $n_\text{in}$ inputs then has a spread near 1, so tanh
-  starts in its linear range: not saturated, and with gradients that are not tiny. LeCun and
-  colleagues: weights "drawn from a distribution with mean zero and a standard deviation given by
-  $\sigma_w = m^{-1/2}$ where $m$ is the number of inputs to the unit"
-  ([Efficient BackProp, 1998](http://yann.lecun.com/exdb/publis/pdf/lecun-98b.pdf)).
+- `W` starts random, scaled by $1/\sqrt{n_\text{in}}$ (the number of inputs), a standard choice
+  that keeps tanh from saturating at the start
+  ([LeCun et al., 1998](http://yann.lecun.com/exdb/publis/pdf/lecun-98b.pdf)).
 
 ```python
 def init(key, sizes):
@@ -467,7 +464,9 @@ Three known difficulties:
   ([2021](https://arxiv.org/abs/2001.04536)).
 - **One trained PINN is one solution.** The network learned the trajectory $x(t)$ for this
   release from 1 m, with these $m$, $\mu$ and $k$. Release the mass from 0.5 m, or change $k$,
-  and you must train again: the network learned a trajectory, not the law of motion.
+  and you must train again: the network learned a trajectory, not the law of motion. The way
+  around it is to make the conditions inputs of the network, as physics-informed DeepONets do
+  ([Wang, Wang and Perdikaris, 2021](https://arxiv.org/abs/2103.10974)).
 
 ## From recurrent networks to neural ODEs
 
@@ -1107,9 +1106,6 @@ in three steps:
 The three stages on the bioreactor's three training batches.
 ```
 
-On the paper's tank manifold, an L-BFGS solver solved 2 of 3 runs started cold, and 3 of 3
-after steps 1 and 2.
-
 ### Inference on a new batch
 
 :::{admonition} Definition: inference
@@ -1616,7 +1612,7 @@ need one: the unknown term can be any model that fits data.
   right-hand side of the ordinary differential equation system", shown on "a typical fed-batch
   cultivation for monoclonal antibody production"
   ([Cruz-Bournazou et al., 2022](https://www.biorxiv.org/content/10.1101/2021.12.27.474269v1)).
-  Raissi, Perdikaris and Karniadakis built GP priors around a known linear differential operator
+  Raissi and Karniadakis built GP priors around a known linear differential operator
   to "infer parameters of the linear equations from scarce and possibly noisy observations"
   ([2017](https://arxiv.org/abs/1701.02440)).
 - **Sparse regression.** **SINDy** (sparse identification of nonlinear dynamics) learns the
@@ -1639,8 +1635,11 @@ need one: the unknown term can be any model that fits data.
 **PINNs**
 
 - The physics is a penalty: the residual is small, not zero, and depends on $\lambda$.
-- Training is fragile on stiff or multiscale problems.
-- A plain PINN learns one solution; new conditions mean training again.
+- Training can fail on stiff problems, such as stiff chemical kinetics
+  ([Ji et al., 2021](https://arxiv.org/abs/2011.04520)), and on solutions with high-frequency or
+  multiscale features ([Wang, Wang and Perdikaris, 2021](https://arxiv.org/abs/2012.10047)).
+- A plain PINN learns one solution: a new initial condition or parameter means training again,
+  unless it is an input of the network.
 - Use one when you know the equation, have few data, and can live with an approximate residual.
 
 **Neural ODEs, trained sequentially**
