@@ -60,22 +60,22 @@ parts:
           - file: lectures/l13/l13-neural-dae
 #       - file: lectures/l14/notes
 #         sections:
-#           - file: lectures/l14/l14-uq-bayesopt
+#           - file: lectures/l14/l14-uq
 #       - file: lectures/l15/notes
 #         sections:
-#           - file: lectures/l15/l15-tokens-embeddings
-#       - file: lectures/l16/notes
-#         sections:
-#           - file: lectures/l16/l16-structured-extraction
+#           - file: lectures/l15/l15-uq-bayesopt
 #       - file: lectures/l17/notes
 #         sections:
-#           - file: lectures/l17/l17-rag
+#           - file: lectures/l17/l17-tokens-embeddings
 #       - file: lectures/l18/notes
 #         sections:
-#           - file: lectures/l18/l18-prompt-vs-rag
+#           - file: lectures/l18/l18-structured-extraction
 #       - file: lectures/l19/notes
 #         sections:
-#           - file: lectures/l19/l19-agent
+#           - file: lectures/l19/l19-rag
+#       - file: lectures/l20/notes
+#         sections:
+#           - file: lectures/l20/l20-agent
 #       - file: lectures/l21/notes
 #         sections:
 #           - file: lectures/l21/l21-eval

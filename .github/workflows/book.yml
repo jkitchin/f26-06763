@@ -122,7 +122,7 @@ jobs:
           pip install pypdf
           cd game && npm run --silent samples && cd ..
           python tools/verify_evidence.py game/tests/samples/ \
-            --pool game/content/l15.yml | tee /tmp/verify.txt
+            --pool game/content/l17.yml | tee /tmp/verify.txt
 
           # The expected shape of that run, asserted rather than eyeballed. Two
           # honest first attempts, one honest *second* attempt, and the four

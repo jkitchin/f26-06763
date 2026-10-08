@@ -2042,7 +2042,7 @@
     p.set(nF - 1);
   };
 
-  // ------------------------------------------------------------------ L14
+  // ------------------------------------------------------------------ L15
 
   var NORM_Z = { 0.1: 0.1257, 0.2: 0.2533, 0.3: 0.3853, 0.4: 0.5244, 0.5: 0.6745, 0.6: 0.8416,
     0.7: 1.0364, 0.8: 1.2816, 0.9: 1.6449, 0.95: 1.96 };
@@ -2159,6 +2159,453 @@
         best.toFixed(2) + ' (true maximum 6.02). Next x = ' + fr.next.toFixed(3) + ', where g = ' + g(fr.next).toFixed(2) + '.';
     }
     p.set(0);
+  };
+
+  // ------------------------------------------------------------------ L14
+
+  /* Shared pieces for the uncertainty-quantification figures. Everything a toy figure
+   * reports is exact rather than sampled: the truth f(x) and the noise sd s(x) are known,
+   * so the chance that y lands in [lo, hi] at x is Phi((hi - f)/s) - Phi((lo - f)/s). */
+  function erf(x) {
+    // Abramowitz and Stegun 7.1.26, absolute error below 1.5e-7.
+    var s = x < 0 ? -1 : 1, t = 1 / (1 + 0.3275911 * Math.abs(x));
+    var y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) *
+      t * Math.exp(-x * x);
+    return s * y;
+  }
+  function Phi(z) { return 0.5 * (1 + erf(z / Math.SQRT2)); }
+  function pcov(lo, hi, f, s) { return Phi((hi - f) / s) - Phi((lo - f) / s); }
+  function mean(a) { var t = 0; a.forEach(function (v) { t += v; }); return a.length ? t / a.length : NaN; }
+  var TRUTHS = {
+    sin: function (x) { return Math.sin(2 * Math.PI * x); },
+    step: function (x) { return (x < 0.5 ? -0.5 : 0.5) + 0.2 * Math.sin(2 * Math.PI * x); }
+  };
+  function linspace(a, b, n) { var o = []; for (var i = 0; i < n; i++) o.push(a + (b - a) * i / (n - 1)); return o; }
+
+  function chol(A) {
+    var n = A.length, L = [], i, j, k;
+    for (i = 0; i < n; i++) L.push(new Float64Array(n));
+    for (i = 0; i < n; i++) {
+      for (j = 0; j <= i; j++) {
+        var s = A[i][j];
+        for (k = 0; k < j; k++) s -= L[i][k] * L[j][k];
+        if (i === j) { if (s <= 0) return null; L[i][i] = Math.sqrt(s); } else L[i][j] = s / L[j][j];
+      }
+    }
+    return L;
+  }
+  function fwd(L, b) {
+    var n = b.length, x = new Float64Array(n);
+    for (var i = 0; i < n; i++) { var s = b[i]; for (var k = 0; k < i; k++) s -= L[i][k] * x[k]; x[i] = s / L[i][i]; }
+    return x;
+  }
+  function bwd(L, b) {
+    var n = b.length, x = new Float64Array(n);
+    for (var i = n - 1; i >= 0; i--) { var s = b[i]; for (var k = i + 1; k < n; k++) s -= L[k][i] * x[k]; x[i] = s / L[i][i]; }
+    return x;
+  }
+  /* A zero-mean GP with an RBF kernel and a noise variance per training point.
+   * Returns null when the kernel matrix is not positive definite. */
+  function gpFit(xs, ys, ell, sf, nvar) {
+    var n = xs.length, K = [], i, j;
+    for (i = 0; i < n; i++) {
+      K.push([]);
+      for (j = 0; j < n; j++) {
+        var d = (xs[i] - xs[j]) / ell;
+        K[i].push(sf * sf * Math.exp(-0.5 * d * d) + (i === j ? (typeof nvar === 'number' ? nvar : nvar[i]) + 1e-10 : 0));
+      }
+    }
+    var L = chol(K);
+    if (!L) return null;
+    var alpha = bwd(L, fwd(L, ys));
+    var logdet = 0, quad = 0;
+    for (i = 0; i < n; i++) { logdet += 2 * Math.log(L[i][i]); quad += ys[i] * alpha[i]; }
+    return {
+      lml: -0.5 * quad - 0.5 * logdet - 0.5 * n * Math.log(2 * Math.PI),
+      quad: quad, logdet: logdet,
+      predict: function (x) {
+        var k = xs.map(function (xi) { var d = (x - xi) / ell; return sf * sf * Math.exp(-0.5 * d * d); });
+        var m = 0;
+        for (var t = 0; t < n; t++) m += k[t] * alpha[t];
+        var v = fwd(L, k), vv = 0;
+        for (t = 0; t < n; t++) vv += v[t] * v[t];
+        return [m, Math.max(sf * sf - vv, 1e-12)];
+      }
+    };
+  }
+  function band(parent, xs, lo, hi, sx, sy, attrs) {
+    var pts = xs.map(function (x, j) { return sx(x).toFixed(1) + ',' + sy(hi[j]).toFixed(1); })
+      .concat(xs.slice().reverse().map(function (x, j) { var k = xs.length - 1 - j; return sx(x).toFixed(1) + ',' + sy(lo[k]).toFixed(1); }));
+    var a = { points: pts.join(' ') };
+    for (var k in attrs) a[k] = attrs[k];
+    return el('polygon', a, parent);
+  }
+  function slider(controls, label, min, max, step, value, show, onInput) {
+    var lab = html('label', {}, controls, label + ' ');
+    var r = html('input', { type: 'range', min: min, max: max, step: step, value: value }, lab);
+    var out = html('span', {}, lab, show(value));
+    r.oninput = function () { out.textContent = show(+r.value); onInput(+r.value); };
+    return { input: r, set: function (v) { r.value = v; out.textContent = show(v); } };
+  }
+  function axes1d(svg, sx, sy, xt, yt, L, R, T, B) {
+    yt.forEach(function (v) {
+      el('line', { x1: L, x2: R, y1: sy(v), y2: sy(v), stroke: 'currentColor', 'stroke-opacity': v === 0 ? 0.18 : 0.07 }, svg);
+      text(svg, L - 6, sy(v) + 4, String(v), { 'text-anchor': 'end', 'font-size': 11, opacity: 0.7 });
+    });
+    xt.forEach(function (v) { text(svg, sx(v), B + 16, String(v), { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.7 }); });
+  }
+  function pct(v) { return isFinite(v) ? Math.round(100 * v) + '%' : '–'; }
+
+  /* Aleatoric and epistemic uncertainty. A GP with the true noise level and fixed kernel
+   * settings, fitted to the first n of a fixed sequence of noisy points, so moving the n
+   * slider adds points rather than redrawing them. */
+  WIDGETS['uq-sources'] = function (root) {
+    var W = 720, H = 300, L = 40, R = 706, T = 12, B = 268, sigma = 0.15, n = 8;
+    html('div', { class: 'cw-title' }, root, 'Which part of the uncertainty does more data remove?');
+    var svg = svgRoot(root, W, H, 'A Gaussian process band split into noise and model uncertainty');
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'Truth sin(2πx), observed on [0, 1] with Gaussian noise. The GP is given the true noise level and a fixed ' +
+      'length scale of 0.2, so the only thing that changes is the data. Dark band: epistemic (the GP\'s uncertainty ' +
+      'about f). Light band: total, epistemic plus the noise. Both at ±1.96 standard deviations.');
+    var rng = mulberry(11), X = [], E = [];
+    for (var i = 0; i < 60; i++) { X.push(rng()); E.push(gauss(rng)); }
+    slider(c1, 'noise sd', 0.02, 0.4, 0.01, sigma, function (v) { return v.toFixed(2); }, function (v) { sigma = v; draw(); });
+    slider(c1, 'points', 1, 60, 1, n, function (v) { return String(v); }, function (v) { n = v; draw(); });
+    var grid = linspace(-0.2, 1.4, 161);
+    function draw() {
+      clear(svg);
+      var sx = scale(-0.2, 1.4, L, R), sy = scale(-2.2, 2.2, B, T);
+      axes1d(svg, sx, sy, [0, 0.5, 1], [-2, -1, 0, 1, 2], L, R, T, B);
+      el('rect', { x: sx(1), y: T, width: sx(1.4) - sx(1), height: B - T, fill: 'currentColor', 'fill-opacity': 0.04 }, svg);
+      el('rect', { x: sx(-0.2), y: T, width: sx(0) - sx(-0.2), height: B - T, fill: 'currentColor', 'fill-opacity': 0.04 }, svg);
+      var xs = X.slice(0, n), ys = xs.map(function (x, j) { return TRUTHS.sin(x) + sigma * E[j]; });
+      var gp = gpFit(xs, ys, 0.2, 1, sigma * sigma);
+      var P = grid.map(function (x) { return gp.predict(x); });
+      var mu = P.map(function (p) { return p[0]; }), ve = P.map(function (p) { return p[1]; });
+      band(svg, grid, mu.map(function (m, j) { return m - 1.96 * Math.sqrt(ve[j] + sigma * sigma); }),
+        mu.map(function (m, j) { return m + 1.96 * Math.sqrt(ve[j] + sigma * sigma); }), sx, sy,
+        { fill: 'var(--cw-accent)', 'fill-opacity': 0.14 });
+      band(svg, grid, mu.map(function (m, j) { return m - 1.96 * Math.sqrt(ve[j]); }),
+        mu.map(function (m, j) { return m + 1.96 * Math.sqrt(ve[j]); }), sx, sy,
+        { fill: 'var(--cw-accent2)', 'fill-opacity': 0.35 });
+      polyline(svg, grid.map(sx), grid.map(function (x) { return sy(TRUTHS.sin(x)); }), { stroke: 'currentColor', 'stroke-opacity': 0.35, 'stroke-width': 2.5 });
+      polyline(svg, grid.map(sx), mu.map(sy), { stroke: 'var(--cw-accent)', 'stroke-width': 2 });
+      xs.forEach(function (x, j) { el('circle', { cx: sx(x), cy: sy(ys[j]), r: 3.5, fill: 'currentColor' }, svg); });
+      text(svg, sx(1.2), T + 14, 'no data', { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.7 });
+      var inside = [];
+      grid.forEach(function (x, j) { if (x >= 0 && x <= 1) inside.push(Math.sqrt(ve[j])); });
+      var epi = mean(inside);
+      readout.textContent = n + ' points. Across [0, 1] the epistemic sd averages ' + epi.toFixed(3) +
+        ' and the noise sd is ' + sigma.toFixed(2) + ', so the noise is ' +
+        Math.round(100 * sigma * sigma / (sigma * sigma + epi * epi)) + '% of the variance. Beyond the data the epistemic sd returns to 1, the prior.';
+    }
+    draw();
+  };
+
+  /* A GP you can fit by hand or by maximum likelihood, on one of four toy problems. Click
+   * the plot to observe the truth, with its noise, at that x. */
+  WIDGETS['gp-explorer'] = function (root, data) {
+    var mode = root.getAttribute('data-mode') || 'smooth';
+    var S = data.gp.scenarios[mode], f = TRUTHS[S.truth];
+    var W = 720, H = 300, L = 40, R = 706, T = 12, B = 268;
+    var ell = S.fit[0], sf = S.fit[1], sn = S.fit[2], hetero = false;
+    var TITLES = { smooth: 'A Gaussian process on a smooth function', hetero: 'One noise level, when the noise grows with x',
+      step: 'A smooth kernel on a function with a step', few: 'Five points, and the fitted settings' };
+    html('div', { class: 'cw-title' }, root, TITLES[mode]);
+    var svg = svgRoot(root, W, H, 'A Gaussian process fit with its 95% band and the true function');
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    var c2 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'Gray: the truth. Blue: the GP mean and its 95% band for a new observation. Click the plot to observe the truth, ' +
+      'with noise, at that x. "Fit" maximizes the log marginal likelihood over the length scale and the noise, with ' +
+      'the signal sd at its best value for each pair. Coverage is exact against the known truth and noise, not sampled. ' +
+      'The noise sd is ' + (S.b ? S.a + ' + ' + S.b + 'x' : S.a) + '.');
+    var X = S.x.slice(), Y = S.y.slice(), rng = mulberry(29);
+    function nsd(x) { return S.a + S.b * Math.max(x, 0); }
+    var sl = slider(c1, 'length scale', -2, 0.3, 0.01, Math.log10(ell), function (v) { return Math.pow(10, v).toFixed(3); },
+      function (v) { ell = Math.pow(10, v); draw(); });
+    var ss = slider(c1, 'signal sd', 0.1, 3, 0.01, sf, function (v) { return v.toFixed(2); }, function (v) { sf = v; draw(); });
+    var sn_ = slider(c1, 'noise sd', -2.5, -0.3, 0.01, Math.log10(sn), function (v) { return Math.pow(10, v).toFixed(3); },
+      function (v) { sn = Math.pow(10, v); draw(); });
+    var fitB = html('button', { type: 'button' }, c2, 'Fit by maximum likelihood');
+    var resetB = html('button', { type: 'button' }, c2, 'Reset data');
+    if (mode === 'hetero') {
+      toggleGroup(c2, ['one noise level', 'noise learned per point'], 0, function (v) { hetero = v === 1; draw(); });
+    }
+    fitB.onclick = function () { fit(); draw(); };
+    resetB.onclick = function () { X = S.x.slice(); Y = S.y.slice(); ell = S.fit[0]; sf = S.fit[1]; sn = S.fit[2]; sync(); draw(); };
+    function sync() { sl.set(Math.log10(ell)); ss.set(sf); sn_.set(Math.log10(sn)); }
+    function fit() {
+      // Profile out the signal variance: for kernel sf^2 (R + lam I), the best sf^2 is y'A^-1 y / n.
+      var best = null, n = X.length;
+      linspace(-2, 0.3, 36).forEach(function (le) {
+        linspace(-5, 1, 31).forEach(function (ll) {
+          var g = gpFit(X, Y, Math.pow(10, le), 1, Math.pow(10, ll));
+          if (!g) return;
+          var s2 = g.quad / n, lml = -0.5 * n - 0.5 * (g.logdet + n * Math.log(s2));
+          if (!best || lml > best[0]) best = [lml, Math.pow(10, le), Math.sqrt(s2), Math.sqrt(Math.pow(10, ll) * s2)];
+        });
+      });
+      ell = best[1]; sf = Math.min(3, best[2]); sn = Math.max(Math.pow(10, -2.5), Math.min(Math.pow(10, -0.3), best[3]));
+      sync();
+    }
+    var grid = linspace(-0.1, 1.4, 151);
+    svg.addEventListener('click', function (ev) {
+      var pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
+      var p = pt.matrixTransform(svg.getScreenCTM().inverse());
+      var x = (p.x - L) / (R - L) * 1.5 - 0.1;
+      if (x < -0.1 || x > 1.4) return;
+      X.push(x); Y.push(f(x) + nsd(x) * gauss(rng));
+      draw();
+    });
+    svg.style.cursor = 'crosshair';
+
+    function model() {
+      if (!hetero) {
+        var g = gpFit(X, Y, ell, sf, sn * sn);
+        return g && function (x) { var p = g.predict(x); return [p[0], p[1] + sn * sn]; };
+      }
+      // Noise per point: regress log squared residuals on x with a second GP, then refit.
+      // For Gaussian noise E[log eps^2] = log s^2 - 1.27 and Var[log eps^2] = pi^2 / 2.
+      var nv = X.map(function () { return sn * sn; }), g1 = null, g2 = null, m = 0;
+      for (var it = 0; it < 3; it++) {
+        g1 = gpFit(X, Y, ell, sf, nv);
+        if (!g1) return null;
+        var z = X.map(function (x, j) { var r = Y[j] - g1.predict(x)[0]; return Math.log(r * r + 1e-12) + 1.2704; });
+        m = mean(z);
+        var vz = mean(z.map(function (v) { return (v - m) * (v - m); }));
+        g2 = gpFit(X, z.map(function (v) { return v - m; }), 0.3, Math.sqrt(Math.max(vz - 4.93, 0.1)), 4.93);
+        if (!g2) return null;
+        nv = X.map(function (x) { return Math.exp(m + g2.predict(x)[0]); });
+      }
+      g1 = gpFit(X, Y, ell, sf, nv);
+      return g1 && function (x) { var p = g1.predict(x); return [p[0], p[1] + Math.exp(m + g2.predict(x)[0])]; };
+    }
+
+    function draw() {
+      clear(svg);
+      var sx = scale(-0.1, 1.4, L, R), sy = scale(-2.2, 2.2, B, T);
+      axes1d(svg, sx, sy, [0, 0.5, 1], [-2, -1, 0, 1, 2], L, R, T, B);
+      el('rect', { x: sx(1), y: T, width: sx(1.4) - sx(1), height: B - T, fill: 'currentColor', 'fill-opacity': 0.04 }, svg);
+      var mdl = model();
+      polyline(svg, grid.map(sx), grid.map(function (x) { return sy(f(x)); }), { stroke: 'currentColor', 'stroke-opacity': 0.35, 'stroke-width': 2.5 });
+      if (!mdl) { readout.textContent = 'These settings give a kernel matrix that is not positive definite. Raise the noise.'; return; }
+      var P = grid.map(mdl), mu = P.map(function (p) { return p[0]; }), sd = P.map(function (p) { return Math.sqrt(p[1]); });
+      var lo = mu.map(function (m, j) { return m - 1.96 * sd[j]; }), hi = mu.map(function (m, j) { return m + 1.96 * sd[j]; });
+      band(svg, grid, lo.map(function (v) { return Math.max(-2.5, v); }), hi.map(function (v) { return Math.min(2.5, v); }), sx, sy,
+        { fill: 'var(--cw-accent)', 'fill-opacity': 0.18 });
+      polyline(svg, grid.map(sx), mu.map(function (v) { return sy(Math.max(-2.5, Math.min(2.5, v))); }), { stroke: 'var(--cw-accent)', 'stroke-width': 2 });
+      X.forEach(function (x, j) { el('circle', { cx: sx(x), cy: sy(Y[j]), r: 3.2, fill: 'currentColor' }, svg); });
+      var cin = [], cout = [], th = [[], [], []];
+      grid.forEach(function (x, j) {
+        var c = pcov(lo[j], hi[j], f(x), nsd(x));
+        if (x >= 0 && x <= 1) { cin.push(c); th[Math.min(2, Math.floor(x * 3))].push(c); } else if (x > 1) cout.push(c);
+      });
+      var msg = X.length + ' points; length scale ' + ell.toFixed(3) + ', signal sd ' + sf.toFixed(2) + ', noise sd ' + sn.toFixed(3) +
+        '. 95% band covers ' + pct(mean(cin)) + ' of new observations in [0, 1] and ' + pct(mean(cout)) + ' beyond x = 1';
+      if (mode === 'hetero') msg += '; by third of [0, 1]: ' + th.map(function (t) { return pct(mean(t)); }).join(', ');
+      if (mode === 'step') {
+        var near = [];
+        grid.forEach(function (x, j) { if (Math.abs(x - 0.5) < 0.1) near.push(pcov(lo[j], hi[j], f(x), nsd(x))); });
+        msg += '; within 0.1 of the step: ' + pct(mean(near));
+      }
+      readout.textContent = msg + '.';
+    }
+    draw();
+  };
+
+  /* Ten networks from different seeds, or from bootstrap resamples, trained on [0, 1]. */
+  WIDGETS['ensemble-members'] = function (root, data) {
+    var d = data.ens, kind = 0, k = 5, addNoise = false;
+    var W = 720, H = 300, L = 40, R = 706, T = 12, B = 268;
+    html('div', { class: 'cw-title' }, root, 'An ensemble\'s spread, inside the data and beyond it');
+    var svg = svgRoot(root, W, H, 'Ensemble members, their mean and a 95% band');
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    var c2 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'Truth sin(2πx) plus noise of sd 0.1, 120 points on [0, 1]. Each member is a two-layer ReLU network (32 units each) ' +
+      'from scikit-learn. Seeds: all the data, different starting weights. Bootstrap: a resample of the data for each. ' +
+      'The noise estimate is the sd of the training residuals of the ensemble mean. Coverage is exact against the truth.');
+    toggleGroup(c1, ['different seeds', 'bootstrap resamples'], 0, function (v) { kind = v; draw(); });
+    slider(c1, 'members', 2, 10, 1, k, function (v) { return String(v); }, function (v) { k = v; draw(); });
+    toggleGroup(c2, ['band from the spread only', 'spread plus a noise estimate'], 0, function (v) { addNoise = v === 1; draw(); });
+    function draw() {
+      clear(svg);
+      var M = (kind ? d.bootstrap : d.seeds).slice(0, k), g = d.grid;
+      var sx = scale(0, 1.5, L, R), sy = scale(-3, 2, B, T);
+      axes1d(svg, sx, sy, [0, 0.5, 1, 1.5], [-3, -2, -1, 0, 1, 2], L, R, T, B);
+      el('rect', { x: sx(1), y: T, width: sx(1.5) - sx(1), height: B - T, fill: 'currentColor', 'fill-opacity': 0.05 }, svg);
+      text(svg, sx(1.25), T + 14, 'no data', { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.7 });
+      var mu = g.map(function (_, j) { return mean(M.map(function (m) { return m[j]; })); });
+      var sp = g.map(function (_, j) {
+        var mm = mu[j], t = 0;
+        M.forEach(function (m) { t += (m[j] - mm) * (m[j] - mm); });
+        return Math.sqrt(t / (M.length - 1));
+      });
+      var res = d.x.map(function (x, i) {
+        var j = Math.min(g.length - 2, Math.floor(x / 0.01)), w = (x - g[j]) / (g[j + 1] - g[j]);
+        return d.y[i] - (mu[j] * (1 - w) + mu[j + 1] * w);
+      });
+      var rm = mean(res), sn = Math.sqrt(res.reduce(function (a, r) { return a + (r - rm) * (r - rm); }, 0) / (res.length - 1));
+      var sd = sp.map(function (s) { return addNoise ? Math.sqrt(s * s + sn * sn) : s; });
+      var lo = mu.map(function (m, j) { return m - 1.96 * sd[j]; }), hi = mu.map(function (m, j) { return m + 1.96 * sd[j]; });
+      var g2 = clipRect(svg, L, T, R - L, B - T);
+      band(g2, g, lo, hi, sx, sy, { fill: 'var(--cw-accent)', 'fill-opacity': 0.18 });
+      M.forEach(function (m) { polyline(g2, g.map(sx), m.map(sy), { stroke: 'var(--cw-accent)', 'stroke-opacity': 0.45, 'stroke-width': 1 }); });
+      polyline(g2, g.map(sx), g.map(function (x) { return sy(TRUTHS.sin(x)); }), { stroke: 'currentColor', 'stroke-opacity': 0.4, 'stroke-width': 2.5 });
+      d.x.forEach(function (x, i) { el('circle', { cx: sx(x), cy: sy(d.y[i]), r: 1.8, fill: 'currentColor', 'fill-opacity': 0.7 }, svg); });
+      var cin = [], cout = [], ein = [], eout = [], sin_ = [], sout = [];
+      g.forEach(function (x, j) {
+        var c = pcov(lo[j], hi[j], TRUTHS.sin(x), d.noise), e = Math.abs(mu[j] - TRUTHS.sin(x));
+        if (x <= 1) { cin.push(c); ein.push(e); sin_.push(sp[j]); } else { cout.push(c); eout.push(e); sout.push(sp[j]); }
+      });
+      readout.textContent = k + ' members. Inside the data: spread ' + mean(sin_).toFixed(3) + ', error of the mean ' +
+        mean(ein).toFixed(3) + ', 95% coverage ' + pct(mean(cin)) + '. Beyond x = 1: spread ' + mean(sout).toFixed(2) +
+        ', error ' + mean(eout).toFixed(2) + ', coverage ' + pct(mean(cout)) + '. Noise estimate ' + sn.toFixed(3) + '.';
+    }
+    draw();
+  };
+
+  /* One scale factor on an ensemble's spread, on the concrete strength dataset. */
+  WIDGETS['sigma-scale'] = function (root, data) {
+    var D = data.scale, split = 0, s = 1, LV = D.levels;
+    var W = 720, H = 300;
+    html('div', { class: 'cw-title' }, root, 'Rescaling an ensemble\'s spread by one number');
+    var svg = svgRoot(root, W, H, 'Negative log likelihood against the scale factor, and a reliability diagram');
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    var c2 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'Concrete strength dataset. Five of Lecture 9\'s networks trained on the fitting mixes; the interval is the mean ' +
+      '± z × s × spread. The factor s that minimizes the negative log likelihood on the calibration mixes is the root mean ' +
+      'square of their z-scores. Grouped split: test mixes like the training mixes. Extrapolation split: the 20% of ' +
+      'mixes with the lowest water/cement ratio held out, the strongest concrete.');
+    toggleGroup(c1, ['grouped split', 'extrapolation split'], 0, function (v) { split = v; draw(); });
+    var ssl = slider(c1, 'scale s', 0.5, 8, 0.05, s, function (v) { return v.toFixed(2); }, function (v) { s = v; draw(); });
+    var fitB = html('button', { type: 'button' }, c2, 'Fit s on the calibration mixes');
+    var oneB = html('button', { type: 'button' }, c2, 's = 1 (raw spread)');
+    fitB.onclick = function () { s = D.splits[split].s; ssl.set(s); draw(); };
+    oneB.onclick = function () { s = 1; ssl.set(1); draw(); };
+    function nll(set, k) {
+      var t = 0;
+      set.y.forEach(function (y, i) { var sd = k * set.sd[i], z = (y - set.mu[i]) / sd; t += 0.5 * Math.log(2 * Math.PI * sd * sd) + 0.5 * z * z; });
+      return t / set.y.length;
+    }
+    function cov(set, k, lv) {
+      var z = NORM_Z[lv], hit = 0;
+      set.y.forEach(function (y, i) { if (Math.abs(y - set.mu[i]) <= z * k * set.sd[i]) hit++; });
+      return hit / set.y.length;
+    }
+    function draw() {
+      clear(svg);
+      var sp = D.splits[split], ks = linspace(0.5, 8, 76);
+      var nc = ks.map(function (k) { return nll(sp.cal, k); }), nt = ks.map(function (k) { return nll(sp.test, k); });
+      var lo = Math.min.apply(null, nc.concat(nt)), hi = Math.min(Math.max.apply(null, nc.concat(nt)), lo + 12);
+      var L = 46, R = 380, T = 22, B = 262;
+      var sx = scale(0.5, 8, L, R), sy = scale(lo - 0.3, hi, B, T);
+      frame(svg, L, T, R - L, B - T);
+      text(svg, (L + R) / 2, 14, 'negative log likelihood per mix', { 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 600 });
+      [1, 2, 4, 6, 8].forEach(function (v) { text(svg, sx(v), B + 16, String(v), { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.7 }); });
+      text(svg, (L + R) / 2, B + 32, 'scale factor s', { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.8 });
+      var g = clipRect(svg, L, T, R - L, B - T);
+      polyline(g, ks.map(sx), nc.map(sy), { stroke: 'var(--cw-accent)', 'stroke-width': 2 });
+      polyline(g, ks.map(sx), nt.map(sy), { stroke: 'var(--cw-accent2)', 'stroke-width': 2, 'stroke-dasharray': '5 3' });
+      el('line', { x1: sx(sp.s), x2: sx(sp.s), y1: T, y2: B, stroke: 'var(--cw-accent)', 'stroke-opacity': 0.5, 'stroke-dasharray': '2 3' }, svg);
+      el('line', { x1: sx(s), x2: sx(s), y1: T, y2: B, stroke: 'currentColor', 'stroke-width': 1.5 }, svg);
+      text(svg, R - 6, T + 16, 'calibration mixes', { 'text-anchor': 'end', 'font-size': 11, style: 'fill:var(--cw-accent)' });
+      text(svg, R - 6, T + 32, 'test mixes', { 'text-anchor': 'end', 'font-size': 11, style: 'fill:var(--cw-accent2)' });
+      // Reliability diagram.
+      var rx = scale(0, 1, 470, 690), ry = scale(0, 1, 262, 42);
+      el('rect', { x: 470, y: 42, width: 220, height: 220, fill: 'none', stroke: 'currentColor', 'stroke-opacity': 0.25 }, svg);
+      el('line', { x1: rx(0), y1: ry(0), x2: rx(1), y2: ry(1), stroke: 'currentColor', 'stroke-dasharray': '4 3', 'stroke-opacity': 0.6 }, svg);
+      text(svg, 580, 30, 'reliability diagram at this s', { 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 600 });
+      text(svg, 580, 292, 'nominal coverage', { 'text-anchor': 'middle', 'font-size': 10, opacity: 0.8 });
+      text(svg, 446, 152, 'observed', { 'text-anchor': 'end', 'font-size': 10, opacity: 0.8 });
+      [0, 0.5, 1].forEach(function (v) {
+        text(svg, rx(v), 276, String(v), { 'text-anchor': 'middle', 'font-size': 10, opacity: 0.7 });
+        text(svg, 464, ry(v) + 4, String(v), { 'text-anchor': 'end', 'font-size': 10, opacity: 0.7 });
+      });
+      [['cal', 'var(--cw-accent)'], ['test', 'var(--cw-accent2)']].forEach(function (p) {
+        var c = LV.map(function (lv) { return cov(sp[p[0]], s, lv); });
+        polyline(svg, LV.map(rx), c.map(ry), { stroke: p[1], 'stroke-width': 2 });
+        LV.forEach(function (v, i) { el('circle', { cx: rx(v), cy: ry(c[i]), r: 2.8, fill: p[1] }, svg); });
+      });
+      var w = 2 * 1.6449 * s * mean(sp.test.sd);
+      readout.textContent = sp.label + ', s = ' + s.toFixed(2) + ' (fitted: ' + sp.s.toFixed(2) + '). 90% intervals cover ' +
+        pct(cov(sp.cal, s, 0.9)) + ' of the calibration mixes and ' + pct(cov(sp.test, s, 0.9)) +
+        ' of the test mixes, mean width ' + w.toFixed(1) + ' MPa. Test NLL ' + nll(sp.test, s).toFixed(2) + '.';
+    }
+    draw();
+  };
+
+  /* Split conformal on a problem whose noise grows with x. */
+  WIDGETS.conformal = function (root, data) {
+    var d = data.conf, alpha = 0.1, n = 200, norm = false, a0 = 0;
+    var W = 720, H = 300, L = 40, R = 520, T = 12, B = 268;
+    html('div', { class: 'cw-title' }, root, 'Split conformal: the width comes from the calibration residuals');
+    var svg = svgRoot(root, W, H, 'A conformal band on a toy problem, and the histogram of calibration scores');
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    var c2 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'Truth sin(2πx); noise sd 0.05 + 0.25x. The model (mean of five tanh networks) and ρ(x), a small network fitted to ' +
+      'its absolute residuals, were trained on 300 other points in [0, 1]. Calibration points are drawn from [0, 1]. ' +
+      'Score: |y − ŷ| for the constant band, |y − ŷ| / ρ(x) for the normalized one. q is the ⌈(n+1)(1−α)⌉-th smallest ' +
+      'score. Coverage over the shaded test window is exact against the truth.');
+    slider(c1, 'α', 0.05, 0.5, 0.01, alpha, function (v) { return v.toFixed(2); }, function (v) { alpha = v; draw(); });
+    slider(c1, 'calibration points', 5, 500, 1, n, function (v) { return String(v); }, function (v) { n = v; draw(); });
+    toggleGroup(c2, ['score |y − ŷ|', 'score |y − ŷ| / ρ(x)'], 0, function (v) { norm = v === 1; draw(); });
+    slider(c2, 'test window starts at', 0, 1, 0.05, a0, function (v) { return v.toFixed(2); }, function (v) { a0 = v; draw(); });
+    function draw() {
+      clear(svg);
+      var sx = scale(0, 1.5, L, R), sy = scale(-3, 2.5, B, T), g = d.grid;
+      axes1d(svg, sx, sy, [0, 0.5, 1, 1.5], [-3, -2, -1, 0, 1, 2], L, R, T, B);
+      el('rect', { x: sx(a0), y: T, width: sx(a0 + 0.5) - sx(a0), height: B - T, fill: 'var(--cw-accent2)', 'fill-opacity': 0.08 }, svg);
+      text(svg, sx(a0 + 0.25), T + 12, 'test window', { 'text-anchor': 'middle', 'font-size': 11, style: 'fill:var(--cw-accent2)' });
+      var sc = [];
+      for (var i = 0; i < n; i++) { var r = Math.abs(d.cal.y[i] - d.cal.mu[i]); sc.push(norm ? r / d.cal.rho[i] : r); }
+      var sorted = sc.slice().sort(function (p, q) { return p - q; }), k = Math.ceil((n + 1) * (1 - alpha));
+      var q = k > n ? Infinity : sorted[k - 1];
+      var hw = g.map(function (_, j) { return norm ? q * d.rho[j] : q; });
+      var lo = d.mu.map(function (m, j) { return m - hw[j]; }), hi = d.mu.map(function (m, j) { return m + hw[j]; });
+      var gg = clipRect(svg, L, T, R - L, B - T);
+      if (isFinite(q)) band(gg, g, lo, hi, sx, sy, { fill: 'var(--cw-accent)', 'fill-opacity': 0.18 });
+      polyline(gg, g.map(sx), d.truth.map(sy), { stroke: 'currentColor', 'stroke-opacity': 0.4, 'stroke-width': 2.5 });
+      polyline(gg, g.map(sx), d.mu.map(sy), { stroke: 'var(--cw-accent)', 'stroke-width': 2 });
+      for (i = 0; i < n; i++) el('circle', { cx: sx(d.cal.x[i]), cy: sy(d.cal.y[i]), r: 1.7, fill: 'currentColor', 'fill-opacity': 0.6 }, svg);
+      // Histogram of scores.
+      var hx = 560, hw_ = 150, hy = 40, hh = 200, top = Math.max(sorted[n - 1], isFinite(q) ? q : 0) * 1.05;
+      var bins = 20, cnt = [];
+      for (i = 0; i < bins; i++) cnt.push(0);
+      sc.forEach(function (v) { cnt[Math.min(bins - 1, Math.floor(v / top * bins))]++; });
+      var cmax = Math.max.apply(null, cnt);
+      text(svg, hx + hw_ / 2, 28, 'calibration scores', { 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 600 });
+      cnt.forEach(function (c, b) {
+        el('rect', { x: hx + b * hw_ / bins, y: hy + hh - c / cmax * hh, width: hw_ / bins - 1, height: c / cmax * hh, fill: 'currentColor', 'fill-opacity': 0.35 }, svg);
+      });
+      if (isFinite(q)) {
+        el('line', { x1: hx + q / top * hw_, x2: hx + q / top * hw_, y1: hy - 4, y2: hy + hh, stroke: RED, 'stroke-width': 2 }, svg);
+        text(svg, hx + q / top * hw_, hy + hh + 14, 'q = ' + q.toFixed(3), { 'text-anchor': 'middle', 'font-size': 11, style: 'fill:' + RED });
+      }
+      var cw = [], th = [[], [], []];
+      g.forEach(function (x, j) {
+        var c = isFinite(q) ? pcov(lo[j], hi[j], d.truth[j], d.noise[j]) : 1;
+        if (x >= a0 - 1e-9 && x <= a0 + 0.5 + 1e-9) cw.push(c);
+        if (x <= 1) th[Math.min(2, Math.floor(x * 3))].push(c);
+      });
+      if (!isFinite(q)) {
+        readout.textContent = 'With ' + n + ' calibration points and α = ' + alpha.toFixed(2) + ', ⌈(n+1)(1−α)⌉ = ' + k +
+          ' exceeds n: the interval is infinite. You need n ≥ ' + Math.ceil(1 / alpha - 1) + '.';
+        return;
+      }
+      readout.textContent = 'Target ' + pct(1 - alpha) + '. Test window [' + a0.toFixed(2) + ', ' + (a0 + 0.5).toFixed(2) +
+        ']: ' + pct(mean(cw)) + ' covered. Inside [0, 1] by third: ' + th.map(function (t) { return pct(mean(t)); }).join(', ') + '.';
+    }
+    draw();
   };
 
   // ------------------------------------------------------------------ boot

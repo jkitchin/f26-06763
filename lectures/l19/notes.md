@@ -1,326 +1,422 @@
-# Lecture 19: Agent fundamentals: tool use, function calling, planning and execution loops
+# Lecture 19: Retrieval-augmented generation and vector databases
 
 :::{admonition} Overview
 :class: tip
 
-- **Session** Lecture 19, Week 11
+- **Session** Lecture 19, Week 10
 - **Arc** LLM and agentic engineering
 - **Slides** <a href="../../slides/l19/">Deck for this session</a>
 - **Practice** <a href="../../game/#/l19">Practice module for this session</a>
-- **Demo** [`l19-agent.ipynb`](l19-agent.ipynb), a hand-rolled tool-using agent, no framework
-- **Assignment 10** released this session, **Final-project proposal due this week**
+- **Demo** [`l19-rag.ipynb`](l19-rag.ipynb), a RAG pipeline measured end to end
+- **Assignment 9** released this session
 :::
 
 ## Why this matters
 
-In July 2025, a founder running an experiment with Replit's AI coding agent told it, explicitly,
-that the codebase was in a change freeze: no more edits while he was away. According to his
-widely reported account, the agent went ahead anyway, and at some point in that unsupervised
-stretch it ran a command that wiped the production database his SaaS prototype depended on,
-destroying weeks of real user records. He later described the agent's own status updates during
-this period as reassuring him that everything was fine. Replit's CEO publicly acknowledged the
-incident, called it unacceptable, and announced changes: an automatic backup-and-restore path, a
-default that separates a planning mode from one that can actually act, and database access that
-defaults to read-only unless a human explicitly grants otherwise.
+In 2022, Jake Moffatt's grandmother died, and he went to Air Canada's website to book a
+last-minute flight for the funeral. He asked the airline's customer service chatbot about
+bereavement fares, and it told him he could book a full-price ticket immediately and apply
+for a bereavement discount within 90 days after travel. He did exactly that. Air Canada then
+refused the refund, pointing out, correctly, that its actual bereavement policy required the
+discount request to be submitted *before* travel, not after. The chatbot's answer simply was
+not what the airline's policy said. Air Canada's defense in the case that followed argued the
+chatbot was "a separate legal entity that is responsible for its own actions," and that Mr.
+Moffatt should have verified the chatbot's claim against the airline's own policy page himself.
+Canada's Civil Resolution Tribunal rejected that argument
+in February 2024, calling it "a remarkable submission" and holding that a company is
+responsible for all the information on its website, "whether it comes from a static page or a
+chatbot." Air Canada was ordered to pay the fare difference and damages.
 
-Every session before this one in the course has been about a single call to a language model,
-in and out, done. This one is about what happens when you stop doing that: when a model is
-handed a set of tools it can invoke on its own, told a goal, and left to decide, call after call,
-what to do next without a human approving each step. That is what "agent" means here, and the
-Replit incident is what it costs when the loop around the model has no bound, no read-only
-default, and no human checkpoint between "decide" and "act" on something that cannot be undone.
-Nothing about the model itself needs to have been malicious for this to happen. A model that
-occasionally makes a bad call is an accepted cost of using one at all; a model that occasionally
-makes a bad call *with unrestricted write access and no one watching* is a different kind of
-risk entirely, and it is a risk that lives in the engineering around the model, not in the model.
+Read past the legal outcome and the engineering failure is precise and entirely familiar by
+this point in the course: a language model was asked a factual question about a policy
+document that exists, in full, in a specific, retrievable place, and instead of being shown
+that document, it was left to generate an answer from whatever pattern of bereavement-policy
+language it had absorbed in training. The chatbot had no intent to deceive: it was doing
+exactly what a language model does when nothing constrains it to a source, producing
+plausible, fluent, and in this case wrong text. Grounding is not an optional refinement of a
+chatbot: a model unconstrained by a real source generates plausible text, and "plausible" and
+"correct" are different properties that coincide often enough to be dangerous.
 
-By this point in the semester you already know a language model can use a tool. This session's
-actual subject is how you build the harness around that capability so a bad call is bounded,
-recoverable, and visible rather than catastrophic. Every topic below, tool design, the loop's
-shape, budgets, error handling, is an answer to the same question the Replit story raises: what
-has to be true about your code, not the model, for an agent to fail small instead of failing big.
+Retrieval-augmented generation is the engineering answer to exactly this failure: instead of
+asking a model to recall a fact from its training data, hand it the actual, current,
+retrievable text of the fact and ask it to answer from that. The word "augmented" undersells
+what is happening: RAG makes a model's answer traceable to a source a human can go check.
+That traceability is the property Air Canada's chatbot was missing, and it is what this
+session builds toward. RAG also solves two problems retrieval-free generation cannot touch at
+all: **freshness**, since a retrieved document can be updated the moment the policy changes
+with no retraining, and **cost**, since retrieving three relevant paragraphs is cheaper than
+either fine-tuning a model on your entire corpus or pasting the entire corpus into every
+prompt. Retrieval and simply using a very long context window, now that models support
+hundreds of thousands of tokens, are not the same choice: a longer context is not a substitute
+for retrieval, both because it is billed by the token on every single call and because, as
+later sections show, a model does not read a long context uniformly.
 
 ## Learning objectives
 
 By the end of this session you should be able to:
 
-- Implement a minimal tool-using agent from scratch against the tool-calling API, no framework.
-- Design tool schemas that an LLM can use correctly and a harness can execute safely.
-- Build in termination, budgets, and error recovery so the loop is bounded and debuggable.
+- Explain why RAG exists (grounding, freshness, source attribution, cost vs long-context) and
+  where it breaks.
+- Build each stage of a RAG pipeline and reason about the design choices at each stage.
+- Evaluate retrieval quality quantitatively and connect retrieval failures to downstream
+  answer failures.
 
-## What "agent" means here
+## The anatomy of a RAG pipeline
 
-```{index} agent, workflow
+```{index} retrieval-augmented generation
+```
+```{index} see: RAG; retrieval-augmented generation
 ```
 
-Every system in this course before today has been a **workflow**: you, the engineer, wrote the
-control flow, and the model filled in one step of it. A RAG pipeline in Lecture 17 always retrieves,
-then always generates; the order and the branching are yours, fixed in code, and the model
-never decides what happens next. An **agent** inverts that: the model is handed a goal, a set of
-tools, and an observation of what happened last, and it is the model, not your code, that decides
-which tool to call next, or whether to stop. The defining property is **where the control flow
-lives**, not how intelligent the model is. A workflow's control flow lives in your source file.
-An agent's control flow lives, call to call, inside the model's own output.
+Split the system into the two paths that actually run at different times, because conflating
+them is the fastest way to get confused about where a bug lives. The **ingestion path** runs
+once per document, offline, whenever your corpus changes: load the raw files, clean them,
+**chunk** them into retrievable pieces, embed each chunk into a vector, and write the vectors
+into an index. The **query path** runs once per user question, online, under a latency budget
+a user is actually waiting on: embed the incoming question with the same embedding model used
+at ingestion, retrieve the top-k most similar chunks from the index, assemble those chunks
+into a prompt alongside an instruction to answer only from them, and generate an answer that
+cites which chunk supported which claim.
 
-That inversion is a spectrum, not a binary switch, and it is worth placing yourself on it
-deliberately rather than by default. A single tool call appended to an otherwise fixed pipeline
-is barely past "workflow." A model that plans a multi-step approach, executes it, observes
-results, and revises the plan is close to the "agent" end. Anthropic's 2024 guidance on this
-exact question, "Building Effective Agents," states the practical rule plainly: **use the
-simplest pattern that solves the problem**, and treat an autonomous, model-driven control loop
-as something you reach for because a fixed workflow genuinely cannot express the task, not
-because it demos well. Everything in this session assumes you have already tried the fixed
-workflow and it was not enough; the tool-calling loop is a heavier tool than a pipeline, and it
-should be picked for the same reason you would pick Dask over pandas in Lecture 5, because the simpler
-thing stopped being adequate, not because it is the more impressive-looking option.
+The architecture traces back to a specific 2020 paper, Lewis and colleagues' "Retrieval-
+Augmented Generation for Knowledge-Intensive NLP Tasks," which coined the name and the
+now-standard shape: a retriever that scores documents against a query, and a generator
+conditioned on both the query and whatever the retriever returned. What has changed since 2020
+is mostly the scale and convenience of the pieces, embeddings are better, indexes are faster,
+context windows are longer, but the two-path shape and the reason for it, do not ask a model to
+recall what you can instead show it, has not moved.
 
-## The tool-calling loop, concretely
+Every stage in that anatomy is a place a design decision changes the answer's correctness, and
+the rest of this session works through them in order: what makes a good chunk, what an index
+actually buys you, how retrieval itself works, how to force the generation step to stay
+honest, and, last, how you would know any of this is working before you ship it.
 
-```{index} tool calling, tool definition
+## Chunking strategy
+
+```{index} chunking, fixed-size chunking, structure-aware chunking
 ```
 
-Strip away every framework and an agent's execution loop is five steps, repeated. You send the
-model your **messages so far** plus the **tool definitions** it is allowed to use. The model
-returns either a final answer or a **request** to call a specific tool with specific arguments,
-formatted as structured data, not prose you have to parse. Your harness, never the model,
-**executes** that tool. The tool's result is appended to the message history as a new message.
-The whole bundle goes back to the model, which now sees what actually happened and decides the
-next action, or stops. This is the entire mechanism every provider's tool-calling or
-function-calling API implements, whatever the exact field names; strip the vendor-specific
-serialization away and every one of them is this same cycle.
+A chunk is the unit your retriever can return, and that constraint cuts both ways. Too large a
+chunk and a query about one clause drags in several unrelated ones, diluting the similarity
+signal and wasting context budget on irrelevant text. Too small a chunk and a single fact gets
+severed from the context that makes it unambiguous, a number with no unit, a clause with no
+subject.
 
-```python
-messages = [{'role': 'user', 'content': task}]
-while True:
-    action = model.step(messages, tools=TOOL_SCHEMAS)      # model decides
-    if action.final_answer is not None:
-        break
-    result = harness_execute(action.tool_call)              # your code, not the model, runs it
-    messages.append({'role': 'assistant', 'content': action.tool_call})
-    messages.append({'role': 'tool', 'content': result})    # the model observes this next
-```
+**Fixed-size chunking** is the default anyone reaches for first: pick a token count, say 256
+or 1024, and a chunk boundary every that-many tokens, usually with some overlap between
+consecutive chunks so a fact sitting near a boundary has a chance of appearing whole in at
+least one chunk. It is trivial to implement and it is blind to the document's own structure,
+which is exactly what makes it a poor fit for the kind of document this session's demo uses:
+an engineering standard or manual, built from numbered clauses and tables, where the unit of
+meaning is a numbered clause like "clause 4.2" or a table row like "the row for 3/8 inch
+bolts." A fixed window does not know where clause 4.2 ends. It will, with some regularity, end a chunk in the middle
+of a table row, separating a bolt size from its torque value, or bury one short, specific
+clause inside a chunk dominated by an unrelated neighboring one.
 
-The line worth reading twice is `harness_execute`. The model never touches your database, your
-filesystem, or your surrogate model directly. It only ever emits a request to do so, structured
-as data, and every consequence of that request passes through code you wrote and can inspect,
-log, rate-limit, or refuse. That boundary, between what the model *asks for* and what your
-code *does*, is where every guardrail attaches, and it is also exactly the boundary the
-Replit incident's fix targets: making the default on the "does" side of that line read-only.
+**Structure-aware chunking** respects the document's own boundaries instead: one chunk per
+section, per clause, per table, using whatever markup or numbering the source document already
+provides. It costs more to implement, since it needs a parser for the document's actual
+structure rather than a token counter, but it never splits a fact in half and never merges two
+unrelated ones, because the chunk boundary is the same boundary the document's author already
+decided was meaningful.
 
-## Designing tools an LLM can use correctly
+This session's demo measures the difference rather than asserting it. On a small constructed
+corpus of clause-numbered engineering notes, structure-aware chunking holds recall@k at or near
+1.0 for a 15-query gold set; a naive fixed-size chunker that ignores both clause and document
+boundaries drops recall to roughly 0.93 at k=3 and, more tellingly, drops nDCG considerably
+further, from about 0.95 to somewhere around 0.6-0.7, meaning even the queries that still
+technically succeed are finding their answer ranked lower and buried next to an arbitrary
+neighboring clause the splitter happened to glue on. Two specific queries fail outright: one
+because the value it needs is stitched into a mostly-irrelevant window from a neighboring
+clause, the other because a table row's specific size-and-radius pair ends up split across
+chunk boundaries. Neither failure is subtle once you look at the retrieved text; both are
+invisible if you only look at an aggregate score.
 
-```{index} JSON Schema
-```
-
-A tool is a function plus a specification the model reads to decide *when* and *how* to call it.
-That specification is a prompt in every meaningful sense, subject to the same care as anything
-else you would put in front of the model. The **name** should say what the tool does in a word
-or two a reader would guess correctly. The **description** is the
-part beginners underinvest in and then blame the model for the consequences: "get sensor data"
-invites the model to call it with almost any argument, because nothing in that sentence tells it
-what a valid mote id looks like, what variables exist, or when to call this tool instead of some
-other one. "Read-only lookup of the most recent N readings of one variable, temperature, humidity,
-light, or voltage, for one mote id 1 through 54; returns an error if the mote or variable is
-invalid" gives the model almost everything it needs to call the tool correctly on the first try,
-and it is the difference between a tool the model uses well and one that looks broken because its
-own documentation was.
-
-Arguments should be **typed and validated** with a real JSON Schema, not a free-text string the
-tool has to parse itself: an integer field with a stated minimum and maximum, an enum for a
-variable name restricted to a known set, rather than trusting the model to spell "temperature"
-consistently. Where a provider's API supports it, request **strict** schema validation so a
-malformed call is rejected before your tool code ever runs, rather than crashing inside it.
-
-The single most consequential design decision is what a tool does when the request is invalid,
-and the answer is never to raise an uncaught exception. Return a **plain, informative result**
-the model can read and react to: a mote id that has no data, a variable name outside the allowed
-set, an input outside a surrogate's validated range. This session's demo tests exactly this by
-asking for a mote that genuinely has no data in the real Intel Lab file (a mote can die
-mid-deployment, and this dataset has real gaps), and the scripted model in the demo reads that
-error and tries a different mote instead of the loop simply dying. A tool that crashes on bad
-input does not "fail safely," it stops the entire agent on the first mistake, which is a strictly
-worse outcome than a tool that hands back an error message a caller, model or human, can act on.
+Whichever chunking strategy you use, keep **metadata** alongside every chunk: the source
+document, the section or clause number, a page if there is one, and a revision or version
+identifier. A citation without a section number is not a citation a reader can check, and a
+chunk with no revision tag becomes a liability the day the source document is revised and your
+index is not.
 
 :::{admonition} Common pitfall
 :class: warning
 
-A tool description written for a human reader ("queries the sensor database") and a tool
-description written for the model calling it ("read-only lookup of ⟨exactly what, for what
-range of inputs, returning what on failure⟩") are not the same document, and writing only the
-first is the single most common reason a tool gets called with the wrong arguments. The model
-never sees your docstring's intent, only the string in the schema.
+Chunk size and overlap interact with your embedding model's own limits in a way that is easy
+to ignore until it silently truncates something. Most embedding models have a maximum input
+length; a chunk built without checking against it does not raise an error, it just gets cut
+off, and the last third of a long clause quietly never makes it into the vector that is
+supposed to represent it.
 :::
 
-## Planning patterns: how much reasoning to ask for
+## Vector databases and the index that backs retrieval
 
-```{index} ReAct, plan-then-execute
+```{index} vector database, approximate nearest neighbor search, HNSW, FAISS, pgvector
 ```
 
-Not every task needs the model to reason about its plan out loud, and asking it to when it does
-not costs latency and tokens for no benefit. **Single-step tool use** is a model choosing exactly
-one tool and calling it once, the right shape when a task genuinely resolves in one lookup.
-**ReAct**, from Yao and colleagues' 2022 paper "Synergizing Reasoning and Acting in Language
-Models," interleaves an explicit reasoning trace with each action: the model states what it
-observed, what that implies, and what it will do next, before emitting the next tool call. That
-visible reasoning step makes the model's decisions auditable. This session's scripted stand-in
-mimics the same structure, even though it is not a real model: observe a tool result, decide the
-next call, repeat, stop once the goal is met. **Plan-then-execute** separates the two phases
-entirely, producing a full multi-step plan before executing any of it,
-which is worth the extra latency when a wrong early step is expensive to discover late, and
-mostly wasted motion when the task is short enough that reasoning and acting in lockstep would
-have caught a bad turn just as fast.
+A **vector database** (or, for smaller corpora, an in-process vector index) exists to answer
+one question fast: given a query vector, which of my stored vectors are closest to it. What it
+actually provides, beyond a big array of floats, is **approximate nearest-neighbor (ANN)
+search** at a scale where checking every vector one at a time would be too slow, **metadata
+filtering** so you can restrict a search to, say, only the current revision of a document, and
+**persistence** so the index survives past one Python process.
 
-## Bounding the loop
+Name the real options rather than treating "vector database" as one interchangeable thing,
+because they occupy genuinely different points in the operations-versus-scale trade-off.
+[FAISS](https://faiss.ai/) is a library, not a server: it runs in-process, has no
+authentication or multi-user story, and is the right choice for exactly the situation this
+session's demo is in, a corpus that fits in memory on the machine doing the retrieving.
+[Chroma](https://www.trychroma.com/) and [Qdrant](https://qdrant.tech/) are purpose-built
+vector databases with a server component, persistence, and metadata filtering built in as
+first-class features, appropriate once more than one process needs to query the same index or
+the corpus stops fitting comfortably in one machine's memory. [pgvector](https://github.com/pgvector/pgvector)
+takes a different and, for a course that spent Week 2 on PostgreSQL, a notable path: it adds a
+vector column type and similarity operators directly to Postgres, so a team already running
+Postgres for its relational data gets approximate nearest-neighbor search without introducing
+a second database technology to operate and back up. The right choice is the one whose
+operational model matches what you already run and how many queries per second you actually
+expect, not whichever tool is loudest in a given year.
 
-```{index} max-step budget, loop detection
-```
-```{index} pair: failure mode; runaway agent loop
-```
+The **exact-versus-approximate** distinction is the trade-off every one of these systems is
+built around. An exact nearest-neighbor search, checking every stored vector's distance to the
+query, always returns the true top-k, but its cost grows linearly with the number of stored
+vectors. An approximate index (FAISS's `IndexIVFFlat` or HNSW-based indexes being common
+examples) trades a small, tunable chance of missing the true best match for retrieval times
+that barely grow as the corpus scales into the millions of vectors. For a corpus in the
+thousands to low millions, exact search is often fast enough that the complexity of an
+approximate index is not worth adding; the trade-off starts to matter once query latency
+under exact search would already be noticeable to a user.
 
-An agent loop with no bound is an unmanaged liability. That is the single idea this session most
-wants to leave you unable to forget. A **max-step budget** stops the loop after a fixed number
-of tool calls regardless of whether the model thinks it is making
-progress. A **token or cost budget** stops it when the accumulated spend crosses a line you
-chose in advance, which matters because a model that is not converging can otherwise burn real
-money at machine speed while you are not watching. A **timeout** bounds wall-clock time the same
-way, independent of the model's decisions.
+## Retrieval mechanics: dense, keyword, and hybrid
 
-**Loop detection** is the bound that catches the specific failure mode of a model that is not
-stuck exactly, just wrong the same way twice: it calls the same tool with the same arguments,
-gets the same error, and tries again. This session's demo builds this in directly, comparing
-each new tool call's name and arguments against the previous one and breaking the loop after the
-third identical failing call, with an explicit message rather than a silent stop. Watch what that
-means in practice: the harness does not wait for the model to notice it is stuck, because a model
-that has not noticed after two identical failures is not about to notice on the third. The
-harness decides, on the model's behalf, that this line of attempts is over.
-
-**Logging every step**, the prompt sent, the tool called, the arguments, the result, and the
-token usage, turns "the agent did something weird" into a debuggable incident. Reuse the
-structured logging and MLflow tracking from Lecture 5 rather than inventing a new
-mechanism: an agent trace is a run, the same as a training run, and it deserves the same
-discipline about being recorded rather than trusted to memory.
-
-## Determinism and testing
-
-```{index} temperature
+```{index} dense retrieval, keyword retrieval, BM25, hybrid retrieval, re-ranking, cross-encoder
 ```
 
-Tool-calling reliability benefits from a **low sampling temperature**: a model deciding which of
-several tools to call, and with what arguments, is doing something closer to classification than
-creative writing, and the variance a higher temperature introduces here buys you nothing but
-inconsistent tool choices on functionally identical inputs. This session's demo cannot show a
-temperature setting doing anything, since there is no real model call in it at all, but the
-principle carries directly into Assignment 10, where you will set it.
+**Dense retrieval** embeds both the query and every chunk into the same vector space with a
+neural embedding model and ranks chunks by vector similarity, cosine similarity being the
+usual choice. Its strength is exactly what makes it "semantic": a query about a "leak" can
+retrieve a chunk about "seepage" because the embedding model learned that those concepts sit
+near each other in the space, with no shared vocabulary required. Karpukhin and colleagues'
+2020 Dense Passage Retrieval paper is the result that made this the default for open-domain
+question answering, showing dense retrieval beating classical keyword search on exactly the
+kind of paraphrase mismatch keyword search cannot see past.
 
-What this session's demo can show, and does, is the other half of testing an agent: **unit-test
-every tool independently of the model**. `query_sensor_db`, `compute_stats`, and `call_surrogate`
-are plain Python functions, and every one of them gets tested the way any function does, with
-fixed inputs and asserted outputs, no model anywhere in the loop. This matters because it
-separates two entirely different classes of bug. If a unit test on `call_surrogate` fails, your
-tool is wrong and no model behavior will fix that. If your tools all pass their unit tests and
-the agent still behaves strangely, the bug is in the loop, the prompt, or the model's choices,
-not in the tools, and you have just saved yourself from debugging the wrong layer. **Recording
-traces**, the full step-by-step log from the previous section, makes that second class of bug
-diagnosable once you know it is not the tools.
+**Keyword retrieval**, of which **BM25** (a scoring function refined through the 1990s and
+still the workhorse of the field) is the standard implementation, scores a chunk by how many
+of the query's exact terms it contains, weighted by how rare each term is across the whole
+corpus. It cannot see past a paraphrase, but it is exact where dense retrieval is fuzzy: a
+query for a specific part number, error code, or clause number is precisely the case where you
+want literal term matching, not a model's notion of semantic similarity, because "similar to
+part number 4471-B" is not a coherent idea and a dense retriever has no principled way to treat
+it as one.
+
+**Hybrid retrieval**, running both and combining the rankings, is the practical answer to
+neither being uniformly better: it catches the paraphrase case dense retrieval is built for and
+the exact-identifier case BM25 is built for, at the cost of maintaining two indexes and a
+combination rule. **Metadata filters**, restricting a search to chunks tagged with the current
+document revision or a particular equipment class, apply on top of either method and are
+frequently what actually saves a query from returning a technically-similar but obsolete
+answer.
+
+**Re-ranking** with a cross-encoder is the step that trades latency for precision at the very
+top of the ranking. A dense or BM25 retriever scores each chunk independently against the
+query, cheaply, across the whole corpus, to produce a candidate list. A cross-encoder instead
+takes the query and one candidate chunk together as a single input and scores that pair
+jointly, which lets it model interactions between the two that independent scoring cannot see,
+at the cost of being far too slow to run against the whole corpus. The standard pattern is
+therefore two stages: a fast retriever narrows the corpus to a few dozen candidates, and a
+slower cross-encoder re-ranks just those, spending its expense only where it can afford to.
+
+## Grounding the generation
+
+```{index} grounding
+```
+
+Retrieval only gets you halfway. The generation step has to be explicitly instructed to use
+what it was given rather than what it remembers, and this session's demo shows exactly why
+that instruction has to live at generation time rather than being papered over earlier in the
+pipeline. It is tempting to think a retrieval score can do this job, refuse to answer whenever
+the top match scores below some threshold, but a similarity score measures topical closeness,
+not "does this chunk actually answer the question." A question about PVC conduit bend radius
+retrieves a chunk about rigid metal conduit bend radius at a similarity score indistinguishable
+from the scores of genuinely correct matches elsewhere in the same corpus, because the two
+questions really are topically close. The wrong document is not an unrelated document, and no
+number computed before generation reliably tells the two apart.
+
+The instruction has to be explicit and has to be evaluated by something that can actually read:
+answer only from the provided context, cite the section or chunk that supports each claim, and
+if the context does not contain the answer, say so in fixed, recognizable words rather than
+guessing. That last clause matters mechanically: a model instructed only to "be careful" will
+still often produce a plausible-sounding answer, because plausible-sounding answers are what
+it was trained to produce. An explicit refusal phrase gives you something to grep for later
+when you audit whether the instruction actually worked.
+
+**Conflicting or duplicate chunks** are the other case worth handling on purpose rather than by
+accident. Retrieval frequently returns two chunks that say almost the same thing, an older and
+a newer revision of the same clause, or two engineering handbooks that specify a slightly
+different torque value for the same fastener, and a generation prompt that hands both over with
+no guidance will produce an answer that arbitrarily favors whichever chunk happened to appear
+first in the context. Preferring the chunk with the most recent revision tag, deduplicating
+near-identical chunks before they reach the prompt, or explicitly asking the model to note a
+conflict rather than silently pick one are all better than leaving the choice to whatever the
+model's attention happens to favor.
+
+## Evaluating retrieval, separately from evaluating the answer
+
+```{index} gold set, LLM-as-judge
+```
+```{index} pair: metric; Recall@k
+```
+```{index} pair: metric; MRR
+```
+```{index} pair: metric; nDCG
+```
+
+The single most common mistake in building a RAG system is judging it by reading the final
+answers and deciding whether they sound right. That skips the one measurement that tells you
+where a failure actually lives: if the retriever did not return the right chunk, no generation
+strategy can produce a correct, grounded answer, and a good-sounding answer produced despite
+bad retrieval is luck: the system still failed, it just did not look like it failed.
+
+Retrieval evaluation needs a **gold set**: a list of queries paired with the chunk or chunks
+that actually answer each one, built by a human who knows the corpus, the same discipline this
+session's demo uses at a toy scale with 15 queries. Four metrics, all standard information
+retrieval measures rather than anything RAG-specific, cover what you need. **Recall@k** asks
+whether a relevant chunk appears anywhere in the top k results, the most basic and most
+important question, since nothing downstream can succeed if the answer was never retrieved at
+all. **Precision@k** asks what fraction of the top k is actually relevant, which matters
+because irrelevant chunks in the context are not free, they compete for the generation model's
+attention and for your context budget. **MRR** (mean reciprocal rank) rewards ranking the first
+relevant result higher, averaged across queries. **nDCG** (normalized discounted cumulative
+gain) generalizes that idea to reward the whole ranking, not just the first hit, discounting a
+relevant result more the further down the list it appears.
+
+Keep **answer-quality metrics** conceptually and practically separate from these. Faithfulness
+(does the generated answer actually follow from the retrieved context, rather than adding
+something the context never said), correctness (is the answer actually right), and citation
+validity (does the cited chunk actually support the claim attached to it) are properties of the
+generation step, and a system can score well on retrieval metrics while still failing every one
+of them if the generation step ignores its instructions. [RAGAS](https://docs.ragas.io/), from
+Es and colleagues' 2023 paper, is one attempt to standardize this vocabulary and offers a
+worked set of these metrics if you want a starting point rather than building your own.
+
+**LLM-as-judge**, using a second language model call to score faithfulness or correctness
+because no simple string match can, is worth introducing here as a tool you will reach for, with
+one caveat stated plainly: a judge model has its own
+biases and blind spots, and treating its score as ground truth without ever checking it against
+human judgment just moves the trust problem rather than solving it.
 
 ## Where this pushes back
 
-An agent loop is a genuine capability upgrade over a fixed workflow, and it buys that upgrade
-with real, specific costs worth naming before you reach for one.
+RAG is a genuine fix for ungrounded generation, and it introduces failure modes of its own that
+are easy to miss precisely because the system appears to be working.
 
-**Every additional tool call is latency and cost the user or the budget pays for.** A four-step
-agent loop is, at minimum, four round trips to a model, plus whatever the tools themselves take
-to execute, and that adds up in a way a single well-designed prompt does not. Reach for an agent
-only once a fixed pipeline has genuinely stopped being sufficient, not as a default architecture.
+**A confident wrong answer looks identical to a confident right one.** Nothing about a fluent,
+well-cited-looking answer distinguishes a case where retrieval actually found the right chunk
+from a case where it confidently found the wrong one, unless you specifically built and ran
+the retrieval evaluation from the previous section. A RAG system without a retrieval eval is
+not obviously safer than no RAG system at all: its failures now come with a citation attached,
+which can make them more convincing.
 
-**A scripted or heavily tested demo tells you the harness works. It tells you nothing about
-whether a real model will decide well.** This session deliberately shows you a harness proven
-correct against a model that cannot actually reason, because that is the part you can fully
-verify without a live API call. The much harder, unresolved question, does a real model choose
-the right tool, with the right arguments, at the right time, is untested by anything in this
-notebook, and it is the question Assignment 10 actually measures.
+**Long context is not a free substitute for retrieval, and it has its own failure mode.** With
+context windows now reaching hundreds of thousands of tokens, the obvious question is why chunk
+and retrieve at all instead of pasting the whole corpus into every prompt. Cost is one answer,
+you pay per token on every call regardless of whether the model needed most of them. A second,
+less obvious answer is that models do not read a long context uniformly: Liu and colleagues'
+2023 study "Lost in the Middle" found that model accuracy on a fact embedded in a long context
+is reliably higher when that fact sits near the beginning or end of the context and measurably
+worse when it sits in the middle, regardless of how relevant the fact actually is. A shorter,
+retrieval-curated context is cheaper and, for exactly this reason, can be more reliable too.
 
-**Low temperature makes determinism more likely. It does not guarantee it.** A model's tool
-choices become more consistent, not identical, and a model update on the provider's side can
-change its behavior on the exact same prompt with no warning and no version bump you control. An agent
-that worked reliably in testing can start failing differently after a silent model update, which
-is a real operational risk with no clean engineering fix beyond monitoring and pinning the model
-version as tightly as your provider allows.
+**Embedding-model and index mismatch fails silently.** Re-embedding a query with a different
+model than the one used to build the index does not raise an error. It just returns nearest
+neighbors in a space the query vector was never placed in correctly, and every retrieval
+quietly degrades with no exception to catch. Pin the embedding model as part of your index's
+own version metadata, the same discipline as pinning a random seed or a library version
+elsewhere in this course.
 
-**Limiting a loop is not the same as making it safe.** A step budget, a cost cap, and loop
-detection stop an agent from running forever or repeating a failure indefinitely, and none
-of them stop it from doing something genuinely harmful within those bounds, three tool calls is
-plenty to delete something if the tool it calls can delete something. That is why guardrails,
-read-only data access, output validation, and a human approval gate before any
-consequential action, are a separate stage this session's harness has
-not yet built.
+**Chunking is a lossy transformation you cannot fully undo downstream.** No amount of clever
+re-ranking recovers a fact that structure-blind chunking already split across two chunks at
+ingestion time. Money spent getting chunking right the first time buys more than the same
+money spent on a fancier retriever afterward.
+
+**Hybrid and re-ranking add real operational cost for a real gain.**
+Maintaining two indexes, or adding a cross-encoder pass, is more moving parts, more latency,
+and more to keep synchronized when the corpus updates. Measure the recall and nDCG gain against
+your actual gold set before adding either; a corpus small and clean enough that plain dense
+retrieval already hits recall@k near 1.0 has nothing left for a re-ranker to improve.
 
 :::{admonition} What a practitioner should take from this
 :class: tip
 
-Build the loop, the tool schemas, and the bounds first, and prove every one of them with tests
-that do not require a real model call, exactly as this session's demo does. Then, and only then,
-point the harness at a real model, because a harness you have not stress-tested against a
-scripted, adversarial "model" first is a harness you are testing for the first time against
-something that can actually decide to do the wrong thing.
+Build the retrieval gold set and measure recall@k before you ever judge a generated answer.
+Treat a similarity score as a measure of topical closeness, never as a confidence score, and
+put the "answer only from context, or say you cannot" instruction, and a check that it was
+followed, at the generation step where it belongs. A RAG system's citations make its failures
+look more trustworthy. That is why the evaluation has to be a measurement, not a glance at
+whether the answers sound plausible.
 :::
 
 ## In-class demo
 
-We hand-build a tool-using agent with no framework, over three real tools: a read-only query
-against the same Intel Lab sensor Parquet file from Lecture 3 and Lecture 4, a stats helper, and a call into a
-small surrogate standing in for Lecture 13's airfoil noise model, sharing that model's five inputs and
-validated ranges. A scripted model plays the loop end to end, querying a mote's recent voltage,
-summarizing it, and sweeping angle of attack to report the setting with the lowest predicted
-noise, in the same request/response shape a real tool-calling API uses. We then watch the same
-harness handle a hard step budget cutting the task off early, a genuinely missing mote's error
-being observed and recovered from, and a model that never adapts getting its loop broken by the
-harness after three identical failing calls. There is no hosted-model call anywhere in this
-notebook; every one of those four outcomes is a property of the harness, not of the model.
+We build one small RAG pipeline over a constructed engineering-manual corpus end to end:
+structure-aware and naive fixed-size chunking, a dense index (FAISS, over embeddings built
+without any network access this notebook could rely on) alongside a BM25 keyword index,
+retrieval evaluated against a 15-query gold set with recall@k, precision@k, MRR, and nDCG, a
+chunking sweep that measures the fixed-versus-structure-aware gap directly rather than asserting
+it, and a walk through one query the retriever gets confidently wrong to show why a similarity
+threshold cannot rescue you and why the grounding instruction belongs in the prompt sent to
+generation. There is no hosted LLM call in this notebook; it assembles and shows you the exact
+grounded prompt a real model would receive, which is as far as a network-free notebook can take
+the generation step. Assignment 9 is where you connect that prompt to an actual model and measure what
+comes back.
 
-The runnable notebook is [`l19-agent.ipynb`](l19-agent.ipynb). It downloads the same Intel Lab
-data Lecture 3 and Lecture 4 use and needs no API key.
+The runnable notebook is [`l19-rag.ipynb`](l19-rag.ipynb). It requires no external data
+download and no API key; everything it measures runs locally.
 
 ## Summary
 
-An agent is a workflow whose control flow has moved from your source file into the model's own
-output, one tool call at a time. That inversion costs latency, unpredictability, and consequence,
-and it deserves engineering discipline in proportion to that cost. The tool-calling loop itself
-is five repeating steps, send messages and tool definitions, receive a
-tool request or a final answer, execute in your harness, feed the result back, and every
-guardrail this arc eventually builds attaches to the single line where your code, not the model,
-decides what actually happens. Tool descriptions are prompts and deserve prompt-level care;
-typed schemas and informative errors are what let a model recover from its own mistakes instead
-of crashing the loop; and a step budget, a cost cap, and loop detection are what stand between an
-agent that fails small and one that fails the way Replit's did. None of that requires a real
-model to build or test, which is exactly why this session's demo does not use one.
+A language model asked a factual question with nothing to ground it will answer anyway, fluently
+and often wrong, and Air Canada's chatbot is what that costs when the question was one a real
+document already answered correctly. Retrieval-augmented generation's whole argument is that an
+answer traceable to a retrievable source is worth building deliberately: chunk a corpus with its
+own structure in mind rather than an arbitrary token count, index it in a vector index sized to
+your actual scale, retrieve with dense, keyword, or hybrid search depending on whether your
+queries are paraphrases or exact identifiers, and instruct the generation step, explicitly and
+checkably, to answer only from what it was given. None of that is safe to assume works until you
+measure it, and retrieval evaluation, recall@k first, is the measurement this whole argument
+depends on.
 
 ## Resources
 
-- [Yao et al., "ReAct: Synergizing Reasoning and Acting in Language Models"](https://arxiv.org/abs/2210.03629),
-  2022. The paper behind the reason-then-act pattern this session's planning-patterns section
-  names.
-- [Anthropic, "Building Effective Agents"](https://www.anthropic.com/research/building-effective-agents),
-  2024. The workflow-versus-agent framing and the "use the simplest pattern that works" rule this
-  session opens its second section with.
-- [Schick et al., "Toolformer: Language Models Can Teach Themselves to Use Tools"](https://arxiv.org/abs/2302.04761),
-  2023. Background on how tool use came to be a trainable model capability rather than a hand-
-  engineered scaffold.
-- Your hosted-LLM provider's tool-use or function-calling guide (current version). The exact
-  message shapes and field names this session's loop deliberately abstracts away; read the
-  concrete version for whichever provider Assignment 10 uses.
-- ["Replit AI coding agent deleted a production database, then covered it up"](https://www.pcmag.com/news/vibe-coding-service-replit-deleted-a-companys-database-then-covered-it-up),
-  PCMag, July 2025. Coverage of the incident behind this session's opening case study; read it
-  alongside Replit's own public response for both sides of the account.
+- [Lewis et al., "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks"](https://arxiv.org/abs/2005.11401),
+  NeurIPS 2020. The paper that named the architecture this whole session is built around.
+- [Karpukhin et al., "Dense Passage Retrieval for Open-Domain Question Answering"](https://arxiv.org/abs/2004.04906),
+  EMNLP 2020. The result that made dense retrieval the default over classical keyword search
+  for open-domain QA.
+- [Es et al., "RAGAS: Automated Evaluation of Retrieval Augmented Generation"](https://arxiv.org/abs/2309.15217),
+  2023. A working vocabulary and toolkit for the faithfulness/answer-relevance/context-relevance
+  metrics this session only introduces.
+- [Liu et al., "Lost in the Middle: How Language Models Use Long Contexts"](https://arxiv.org/abs/2307.03172),
+  2023. The primary source for the long-context accuracy dip discussed in the limitations
+  section; read this before deciding retrieval is unnecessary because your context window is big.
+- [FAISS documentation](https://faiss.ai/). The in-process vector index used in this session's
+  demo; start with the "Getting started" guide.
+- [Chroma documentation](https://docs.trychroma.com/) and [Qdrant documentation](https://qdrant.tech/documentation/).
+  Two purpose-built vector databases with a server model, for when an in-process index stops
+  being enough.
+- [pgvector](https://github.com/pgvector/pgvector). Vector search as a Postgres extension,
+  worth reading against your Week 2 notes on when a relational database is already the right
+  home for your data.
+- [Moffatt v. Air Canada, 2024 BCCRT 149](https://www.canlii.org/en/bc/bccrt/doc/2024/2024bccrt149/2024bccrt149.html).
+  The tribunal decision behind the case study above; short and worth reading in full.
 
 ## Assignment
 
-Assignment 10, "Build a tool-using engineering agent," is released this session and due roughly one week
-later. It asks you to hand-build (or, if you can explain the loop underneath, adopt a framework
-for) an agent that queries real engineering data and calls a surrogate model as tools, bound the
-loop with a step and cost budget, and evaluate it on a fixed task suite. **Your final-project
-proposal is also due this week**; a well-scoped Assignment 10 is a strong seed for it. This is a
-pointer, not the rubric.
+Assignment 9, "RAG system over an engineering corpus," is released this session and due roughly one week
+later. It asks you to build a retrieval-augmented QA system over an engineering corpus and
+measure, not assume, both retrieval quality and answer quality against a gold set, connecting
+the assembled grounded prompt this session's demo stops at to an actual hosted-LLM call. This
+paragraph is a pointer, not the rubric.
 
 ## Practice module
 

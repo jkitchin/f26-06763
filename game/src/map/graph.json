@@ -18,10 +18,10 @@
     "l13",
     "l14",
     "l15",
-    "l16",
     "l17",
     "l18",
     "l19",
+    "l20",
     "l21"
   ],
   "edges": [
@@ -190,39 +190,46 @@
       "from": "l14",
       "to": "l09",
       "weight": 1,
-      "where": "- [Lecture 9](../l09/notes.md) fitted a Gaussian process (GP) to the concrete strength dataset. It",
-      "origin": "link"
-    },
-    {
-      "from": "l14",
-      "to": "l10",
-      "weight": 1,
-      "where": "**Optuna** ([Lecture 10](../l10/notes.md)) ran the hyperparameter search with its default sampler,",
+      "where": "This example uses the concrete strength dataset from [Lecture 9](../l09/notes.md), with Lecture",
       "origin": "link"
     },
     {
       "from": "l15",
       "to": "l09",
       "weight": 1,
-      "where": "[Lecture 9](../l09/notes.md) and [Lecture 13](../l13/notes.md); this is the report itself. It is 146",
+      "where": "- [Lecture 9](../l09/notes.md) fitted a Gaussian process (GP) to the concrete strength dataset. It",
       "origin": "link"
     },
     {
       "from": "l15",
+      "to": "l10",
+      "weight": 1,
+      "where": "**Optuna** ([Lecture 10](../l10/notes.md)) ran the hyperparameter search with its default sampler,",
+      "origin": "link"
+    },
+    {
+      "from": "l17",
+      "to": "l09",
+      "weight": 1,
+      "where": "[Lecture 9](../l09/notes.md) and [Lecture 13](../l13/notes.md); this is the report itself. It is 146",
+      "origin": "link"
+    },
+    {
+      "from": "l17",
       "to": "l11",
       "weight": 1,
       "where": "Nothing in that stack is new to this course. [Lecture 11](../l11/notes.md) covered tensors,",
       "origin": "link"
     },
     {
-      "from": "l15",
+      "from": "l17",
       "to": "l13",
       "weight": 1,
       "where": "[Lecture 9](../l09/notes.md) and [Lecture 13](../l13/notes.md); this is the report itself. It is 146",
       "origin": "link"
     },
     {
-      "from": "l19",
+      "from": "l20",
       "to": "l03",
       "weight": 1,
       "where": "against the same Intel Lab sensor Parquet file from Lecture 3 and Lecture 4",
@@ -231,7 +238,7 @@
       "why": "The Intel Lab sensor data, still the spine of the course's examples."
     },
     {
-      "from": "l19",
+      "from": "l20",
       "to": "l04",
       "weight": 1,
       "where": "against the same Intel Lab sensor Parquet file from Lecture 3 and Lecture 4",
@@ -240,7 +247,7 @@
       "why": "Same file, reached through the columnar path Lecture 4 introduces."
     },
     {
-      "from": "l19",
+      "from": "l20",
       "to": "l05",
       "weight": 1,
       "where": "Reuse the structured logging and MLflow tracking from Lecture 5",
@@ -249,7 +256,7 @@
       "why": "Agent observability is not a new subject; it is the logging from the streaming session pointed at a different kind of run."
     },
     {
-      "from": "l19",
+      "from": "l20",
       "to": "l13",
       "weight": 1,
       "where": "small surrogate standing in for Lecture 13's airfoil noise model, sharing that model's five inputs",
@@ -258,10 +265,10 @@
       "why": "The agent's tool is a surrogate, so the demo only works if the surrogate session already happened. A genuine prerequisite rather than a callback."
     },
     {
-      "from": "l19",
-      "to": "l17",
+      "from": "l20",
+      "to": "l19",
       "weight": 1,
-      "where": "A RAG pipeline in Lecture 17 always retrieves, then always generates; the order and the branching are yours, fixed in code",
+      "where": "A RAG pipeline in Lecture 19 always retrieves, then always generates; the order and the branching are yours, fixed in code",
       "origin": "authored",
       "relation": "contrasts",
       "why": "The cleanest statement of what an agent is, and it is a negative definition: retrieval always happens, tool use is decided. Walking this corridor should feel like the distinction landing."
@@ -279,7 +286,7 @@
       "from": "l21",
       "to": "l04",
       "weight": 1,
-      "where": "data Lecture 3, Lecture 4, and Lecture 19 use and needs no API key or external service",
+      "where": "data Lecture 3, Lecture 4, and Lecture 20 use and needs no API key or external service",
       "origin": "authored",
       "relation": "shares-data",
       "why": "Same sensor data, no API key, which is why the demo runs anywhere."
@@ -295,18 +302,18 @@
     },
     {
       "from": "l21",
-      "to": "l17",
+      "to": "l19",
       "weight": 1,
-      "where": "eval harness for a small RAG assistant in the spirit of Lecture 17's system",
+      "where": "eval harness for a small RAG assistant in the spirit of Lecture 19's system",
       "origin": "authored",
       "relation": "reuses",
-      "why": "The eval harness is built against the RAG system Lecture 17 leaves behind."
+      "why": "The eval harness is built against the RAG system Lecture 19 leaves behind."
     },
     {
       "from": "l21",
-      "to": "l19",
+      "to": "l20",
       "weight": 1,
-      "where": "Lecture 19's harness already logs everything a failure taxonomy needs, every tool call, every result, every stop condition",
+      "where": "Lecture 20's harness already logs everything a failure taxonomy needs, every tool call, every result, every stop condition",
       "origin": "authored",
       "relation": "builds-on",
       "why": "The evaluation session consumes exactly what the agent session already emits, which is why the two are adjacent rather than merely related."
@@ -321,17 +328,17 @@
     "l06": 0,
     "l07": 4,
     "l08": 3,
-    "l09": 6,
+    "l09": 7,
     "l10": 1,
     "l11": 3,
     "l12": 1,
     "l13": 3,
     "l14": 0,
     "l15": 0,
-    "l16": 0,
-    "l17": 2,
+    "l17": 0,
     "l18": 0,
-    "l19": 1,
+    "l19": 2,
+    "l20": 1,
     "l21": 0
   },
   "in_weight": {
@@ -343,17 +350,17 @@
     "l06": 0,
     "l07": 6,
     "l08": 5,
-    "l09": 10,
+    "l09": 11,
     "l10": 1,
     "l11": 5,
     "l12": 1,
     "l13": 3,
     "l14": 0,
     "l15": 0,
-    "l16": 0,
-    "l17": 2,
+    "l17": 0,
     "l18": 0,
-    "l19": 1,
+    "l19": 2,
+    "l20": 1,
     "l21": 0
   },
   "out_degree": {
@@ -370,19 +377,19 @@
     "l11": 2,
     "l12": 4,
     "l13": 3,
-    "l14": 2,
-    "l15": 3,
-    "l16": 0,
-    "l17": 0,
+    "l14": 1,
+    "l15": 2,
+    "l17": 3,
     "l18": 0,
-    "l19": 5,
+    "l19": 0,
+    "l20": 5,
     "l21": 5
   },
   "unreferenced": [
     "l06",
     "l14",
     "l15",
-    "l16",
+    "l17",
     "l18",
     "l21"
   ],
@@ -390,8 +397,7 @@
     "l01",
     "l02",
     "l03",
-    "l16",
-    "l17",
-    "l18"
+    "l18",
+    "l19"
   ]
 }

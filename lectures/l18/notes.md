@@ -1,141 +1,165 @@
-# Lecture 18: Prompting, RAG, or fine-tuning: choosing the right lever
+# Lecture 18: The API, prompt, and structured-output interface
 
 :::{admonition} Overview
 :class: tip
 
-- **Session** Lecture 18, Week 10
+- **Session** Lecture 18, Week 9
 - **Arc** LLM and agentic engineering
 - **Slides** <a href="../../slides/l18/">Deck for this session</a>
 - **Practice** <a href="../../game/#/l18">Practice module for this session</a>
-- **Demo** [`l18-prompt-vs-rag.ipynb`](l18-prompt-vs-rag.ipynb), one corpus, one gold set, two systems scored the same way
-- **Assignment 9** is under way, released last session and due about a week out
+- **Demo** [`l18-structured-extraction.ipynb`](l18-structured-extraction.ipynb), a datasheet turned into a validated parts record, and what happens when it cannot be
+- **Assignment 8** released last session, due about a week out
 :::
 
 ## Why this matters
 
-The last two sessions gave you two ways to make a general model useful on your problem. Lecture 16 was prompting: instruct the model well and constrain its output. Lecture 17 was retrieval: put the right documents in front of it. This session adds the third and, more importantly, tells you how to choose among all three, because the wrong choice is expensive and common.
+The previous session treated a large language model as an object of study: tokens in, a next-token distribution out. This session treats it as a component in a system you are responsible for. You call it over an API, you pay for every token in both directions, it answers on its own schedule, and the thing it hands back is text that you now have to trust enough to write into a database. Every one of those is an engineering constraint, and none of them is visible from a chat window.
 
-Here is the mistake, and it is made constantly. A team wants an assistant that knows their equipment: the specs, the standards, the internal manuals. Someone proposes to fine-tune a model "on our documents" so it learns them. They collect the PDFs, run a fine-tune, and the result is disappointing in a specific way. The model sounds more like their domain, but it still gets the actual numbers wrong, invents part numbers that look right, and cannot tell you which document any answer came from. Weeks of GPU time bought a model that is confidently wrong about the very facts it was supposed to learn. The tool was wrong for the job. Facts that must be correct, current, and cited belong in retrieval, and fine-tuning is for something else entirely.
+Here is the task that makes them concrete, and it is the task behind Assignment 8. You have a few hundred component datasheets, one per valve or pump or fastener, each a page of units-heavy prose and half-tables, no two laid out the same way. You want a clean parts table: part number, material, maximum pressure in megapascals, operating temperature range, mass. A language model can read a datasheet and produce that record, which is exactly the kind of messy-text-to-structured-data job that used to need a human. The trouble is what "produce that record" hides.
 
-Getting this choice right is the practitioner skill the whole adaptation unit builds toward. There are three levers, and they map onto three different kinds of need. If the gap is **knowledge** the model lacks, reach for retrieval. If the gap is **behavior**, a consistent format, style, or way of responding, that is where fine-tuning earns its place. If you are still exploring what you need, prompting is the cheapest way to find out. This session lays out that decision framework, explains fine-tuning and LoRA at the level a practitioner needs to decide for or against them, and ends with a measured bake-off between prompting and retrieval so the framework is grounded in numbers rather than assertion.
+Consider the ways it goes wrong, none of which raise an exception. The model returns valid JSON with `max_pressure_MPa: 42`, and the datasheet said 42 bar, which is 4.2 MPa, so your table is off by a factor of ten and nothing complained. The model is handed a datasheet that genuinely omits the pressure rating and, rather than leave the field empty, it invents a plausible 16 MPa because inventing plausible text is what it was trained to do. Someone pastes a sixty-page manual into a single call, the input runs past the context window, the provider silently drops the end, and the answer is extracted from a truncated document. In each case you got JSON back, the program ran, and the number is wrong. **"The model returned JSON" is not the same claim as "the JSON is correct,"** and the entire discipline of this session is the gap between those two.
 
-A note on what this session is not. The original plan included a hands-on LoRA fine-tune on a GPU. That has moved to an optional lab, for two reasons. A GPU training run does not reproduce for every student, and more to the point, fine-tuning is the lever an AI-in-engineering practitioner reaches for least. The durable skill is knowing when you would fine-tune and, far more often, why you would not.
+So the job is to make the interface an engineering artifact rather than a hope. That means getting output in a shape you can validate mechanically and treating a validation failure as a retry rather than a crash, accounting for cost and latency as first-class numbers, and measuring prompt quality on a small labelled set instead of eyeballing a few examples and declaring victory. Those three, structured output, cost, and measured prompting, are the spine of the session.
 
 ## Learning objectives
 
 By the end of this session you should be able to:
 
-- Give a defensible answer to "should I prompt, retrieve, or fine-tune?" for a concrete engineering task.
-- Explain what fine-tuning and LoRA/PEFT do, when fine-tuning is the right tool, and why engineering knowledge usually belongs in RAG instead.
-- Compare prompting, RAG, and fine-tuning on cost, latency, freshness, and failure modes on the same task and metric.
+- Call a hosted LLM API robustly and account for cost and latency as first-class engineering metrics.
+- Get validated, schema-constrained output out of an LLM and handle the cases where it fails.
+- Apply a disciplined prompting method and measure prompt quality on a small labeled set.
 
-## Three levers, and when each wins
+## The request and response interface
 
-```{index} model adaptation, retrieval-augmented generation, fine-tuning, prompting
+```{index} system prompt, user message, streaming
 ```
 
-Start with the decision, because it organizes everything else. The question is never "which technique is best" in the abstract, it is "which kind of gap am I closing," and there are three.
+Strip away the SDK and every hosted chat model exposes the same shape of request. You send a list of **messages**, each tagged with a role. The **system prompt** sets the model's standing instructions and persona for the whole exchange, the **user message** carries the actual input, and prior assistant turns can be replayed to give the model the conversation so far. You set a cap on how many tokens the model may generate, commonly called `max_tokens`, along with the **temperature** that controls how random the sampling is, and optional stop conditions that end generation early. The response comes back with the generated text and, importantly, a usage record: how many tokens went in, how many came out, and increasingly how many were served from cache. That usage block is the meter, and reading it on every call is the difference between knowing what your pipeline costs and finding out at the end of the month.
 
-The first gap is **knowledge**: the model does not know a fact it needs, because the fact is proprietary, niche, or newer than its training data. Your equipment specs, your internal standards, last week's incident reports. The second gap is **behavior and format**: the model knows enough but does not respond the way you need, in the right structure, the right style, the right domain conventions, reliably every time. The third is **freshness**: the answer depends on data that changes, so whatever you do has to stay current without a rebuild.
+Two settings deserve a moment because they trade against each other. Temperature near zero makes the model close to deterministic, which is what you want for extraction, where there is a right answer and creativity is a bug. Higher temperature is for generation tasks where variety helps. The token cap interacts with latency: the model streams tokens one at a time, so a larger `max_tokens` and a longer answer mean a longer wait, and a response can be delivered all at once when it finishes or **streamed** token by token as it is produced. Streaming does not make the total faster, it makes the first token arrive sooner, which matters for anything a human is watching and matters not at all for a batch job filling a table overnight.
 
-Each lever fits one of these. **Prompting**, including few-shot examples, is the cheapest and fastest to iterate, and it is limited by the context window and by what the base model already latently knows. **Retrieval-augmented generation** is the right tool when the gap is knowledge that is large, changing, or proprietary and that must be cited, at the cost of building and maintaining retrieval infrastructure and adding latency to each call. **Fine-tuning** is the right tool when the gap is behavior or format, when you need the model to produce a specific structure or style consistently across thousands of calls, and it is poor at fast-changing facts and needs labeled data plus a real evaluation. Microsoft's own adaptation guidance frames the split the same way: choose fine-tuning for stable, specialized behavior and style, and retrieval for dynamic content and broad, current knowledge.
+The interface is deliberately similar across providers, which is why this course stays provider-agnostic: pick one hosted API, learn the shape, and the concepts move. What does not move, and what will break your code six months from now, is the specifics. Model identifiers, context limits, and prices all change on the provider's schedule, not yours. The defensive habit is to **pin the exact model ID you used** in your code and your report, and to read the current documentation for limits and pricing rather than trusting a number you memorized last term. This session quotes concrete prices to make the arithmetic real, and every one of them is stamped with the date it was true.
 
-The levers are not exclusive, and the strongest systems combine them. A common pattern is RAG for the knowledge plus a light fine-tune for the format, so the model reliably emits your schema while retrieval keeps the facts correct and current. Hold that combination in mind while reading the rest of this session, because the decision is rarely "one of three" and often "which primary lever, and what do I add."
+## Getting structured output you can trust
 
-## What fine-tuning and LoRA actually do
-
-```{index} full fine-tuning, LoRA, parameter-efficient fine-tuning, low-rank adapter
+```{index} structured output, JSON Schema, tool calling, Pydantic
 ```
-```{index} see: PEFT; parameter-efficient fine-tuning
+```{index} pair: failure mode; hallucinated field
 ```
 
-To decide for or against fine-tuning you need a working picture of what it is, so here is the one-pass version. **Full fine-tuning** continues training the model on your examples and updates every weight. For a modern model that is billions of parameters in motion, which means a large GPU, a full-size copy of the weights for the optimizer state, and a checkpoint as big as the model itself. It works, and it is mostly impractical outside a well-resourced lab.
+The naive way to get structured data from a model is to ask for JSON in the prompt and hope. It mostly works and fails exactly often enough to corrupt a batch job: a stray sentence of preamble before the JSON, a trailing comma, a field the model decided to rename. The modern APIs give you two better routes, and both start from the same idea, which is to hand the model a **schema** and constrain it rather than ask politely.
 
-**Parameter-efficient fine-tuning** (PEFT) is the set of methods that make this feasible by training far fewer parameters, and **LoRA**, low-rank adaptation, is the one to know. The idea is to leave the base model's weights frozen and train a small add-on beside each adapted weight matrix. Where a layer computes $Wx$, LoRA adds a low-rank detour and computes $Wx + BAx$, where $B$ and $A$ are two thin matrices whose inner dimension, the **rank** $r$, is tiny, often 8 or 16. Only $B$ and $A$ are trained; $W$ never moves.
+The first route is **schema-enforced JSON**. You supply a JSON Schema describing the object you want, and the provider constrains decoding so the returned text parses and conforms. As of August 2026 this is Anthropic's `output_config.format` with a `json_schema` type (which replaced an earlier top-level `output_format` parameter) and OpenAI's `text.format` with `strict: true` on the Responses API. The second route is **tool calling**, sometimes called function calling, where you declare a tool with a typed argument schema (Anthropic's `input_schema`, and a `strict` flag to force exact adherence) and read the arguments the model produces for it. Structured-output mode and tool calling are close cousins: both send the model a schema and get back a payload shaped to it. Tool calling is the older and more universal path and doubles as the mechanism for agents; dedicated structured-output mode is newer and reads more directly for pure extraction.
 
-```{figure} figures/lora-adapter.png
-:alt: A diagram. The input x feeds two paths: up into a blue box "W (frozen), d x d" and down into two green boxes "A, r x d" then "B, d x r". Both paths converge into an output box "h = Wx + BAx". A caption notes only A and B are trained and rank r is tiny.
+Neither route makes the content correct, and students routinely skip past that. A schema guarantees the shape: that `max_pressure_MPa` is present and is a number. It says nothing about whether the number is right, whether the units were converted, or whether the model invented it because the datasheet did not mention pressure. Schema conformance is necessary and nowhere near sufficient, so the schema is only the first check.
+
+That is why the output goes through a validator. Define the target as a **Pydantic** model, a Python class whose typed fields the library checks at construction, and feed the model's payload into it. Pydantic will reject a string where a float belongs, a missing required field, or a value that fails a custom check you write, such as a pressure that must be positive or a temperature range whose low end is below its high end. The step that turns this from decoration into engineering is what you do when validation fails.
+
+```python
+from pydantic import BaseModel, field_validator
+
+class Component(BaseModel):
+    part_number: str
+    material: str
+    max_pressure_MPa: float | None      # None when the datasheet omits it
+    mass_kg: float | None
+
+    @field_validator("max_pressure_MPa")
+    @classmethod
+    def pressure_is_plausible(cls, v):
+        if v is not None and not (0 < v < 1000):
+            raise ValueError("pressure out of plausible range")
+        return v
+```
+
+### Treat a validation failure as a repair loop
+
+```{figure} figures/repair-loop.png
+:alt: A flow diagram. Datasheet text flows into a schema-constrained LLM call, then into a Pydantic validate step. From validate, a green arrow labelled "valid" leads to a "valid record, parts table" box; a red arrow labelled "still invalid" leads to a "give up after N tries, flag" box; and an amber arrow loops back from validate to the LLM call, labelled "invalid: send the error back and ask it to fix".
 :width: 100%
 
-LoRA freezes the large weight matrix $W$ and trains a small low-rank detour $BA$ beside it. Because the rank $r$ is tiny, the adapter adds very few trainable parameters, and at inference $BA$ can be folded into $W$ so there is no extra latency.
+The extract, validate, repair loop. When schema validation fails, send the error message back to the model and ask it to correct its output; only after a small number of failed repairs do you give up and flag the document for a human rather than write a bad record.
 ```
 
-The payoff is dramatic, and it is worth seeing as a number. For a mid-size model with LoRA applied to the attention projections, the trainable parameters come to well under one percent of the model.
+When validation fails, the useful move is to send the model its own broken output together with the validator's error message and ask it to fix that specific problem. Models are good at this, because the error is concrete ("mass_kg: expected number, got string '2.3 kg'") and the fix is local. You cap the number of repair attempts so a genuinely unparseable datasheet cannot spin forever, and when the cap is reached you flag the document for a human rather than write a record you do not trust. A crash on the first malformed response throws away a document the model could have fixed on the second try; a silent accept of the malformed response writes garbage into the table. The repair loop is the middle path, and it is why the validator and the API call belong in one function together rather than in separate scripts.
 
-```{figure} figures/trainable-params.png
-:alt: A bar chart on a log scale. "Full fine-tuning" is a 7.0B bar; "LoRA (r=8, q and v)" is a 4.2M bar. Text notes LoRA trains 0.06% of the weights, 1669 times fewer than full fine-tuning.
+## Context, cost, and latency
+
+```{index} prompt caching, cost accounting
+```
+```{index} pair: failure mode; silent truncation
+```
+
+Cost on these APIs is close to linear in tokens, so it is predictable once you measure it, and invisible until you do. Read the usage block on every call, multiply by the current per-token prices, and log the cost per call and per document. A concrete anchor, dated August 2026 and certain to drift: a mid-tier model like Claude Sonnet 5 was 2 US dollars per million input tokens and 10 dollars per million output tokens. A one-page datasheet is perhaps a thousand input tokens and a few hundred output, so a call costs a fraction of a cent, but a batch of ten thousand datasheets is real money, and a careless design that resends a large fixed context on every call multiplies it.
+
+That last case is where **prompt caching** earns its keep. When many calls share a large, unchanging prefix, a long instruction block, a schema, a set of few-shot examples, a reference table, you can mark that prefix as cacheable and the provider stores its processed form. The first call pays a small premium to write the cache (on Anthropic, 1.25 times the normal input price for the short-lived cache) and every later call that reuses the prefix reads it at a steep discount (one tenth of the input price), for as long as the cache lives, which defaults to a few minutes and can be extended. The savings compound with reuse.
+
+```{figure} figures/prompt-caching.png
+:alt: A line chart of cumulative cost in US cents against the number of calls that reuse the same 20,000-token context, from 1 to 30. The grey "no caching" line rises steeply and linearly to about 132 cents; the red "prompt caching" line rises much more slowly to about 29 cents. An annotation reads "4.6x cheaper at 30 calls".
 :width: 100%
 
-Trainable parameters for a 7B model, computed for LoRA of rank 8 on the query and value projections. LoRA trains about 0.06% of the weights. Hu and colleagues, who introduced LoRA, report reducing trainable parameters by 10,000 times and GPU memory by 3 times relative to fully fine-tuning GPT-3 175B, with quality on par or better and no added inference latency.
+Cost of reusing one 20,000-token context across many calls, with and without prompt caching, computed from Anthropic Sonnet 5 pricing on 2026-08-18. Caching turns a per-call cost into a one-time write plus a tenth-price read, so by 30 calls it is about 4.6 times cheaper. The break-even is at the second call. Providers change these multipliers, so treat the shape as the lesson and the numbers as a snapshot.
 ```
 
-Two extensions round out the picture. **QLoRA** quantizes the frozen base model to 4-bit precision so it takes a quarter of the memory, then trains LoRA adapters on top; Dettmers and colleagues used it to fine-tune a 65-billion-parameter model on a single 48GB GPU while preserving full 16-bit task performance, and their Guanaco model reached 99.3% of ChatGPT's score on one benchmark after 24 hours of training on that single GPU. The knobs you will actually turn are the rank $r$, a scaling factor `alpha`, which weight matrices to adapt, the learning rate, and the number of epochs, and the failure you will actually hit on a small engineering dataset is **overfitting**: with a few hundred examples it is easy to train a model that memorizes them and generalizes worse than the base. None of this, notice, changes what fine-tuning is *for*. It makes fine-tuning cheap; it does not make it the right tool for knowledge.
+The other lever is choosing the right model and the right amount of context. A small, fast, cheap model is often perfectly good at an easy subtask like classifying a line or normalizing a unit, and reserving the large model for the hard reasoning is a real cost and latency win. And more context is not free even when it fits.
 
-## Why fine-tuning is the wrong lever for knowledge
+### The middle of a long context is where answers go to die
 
-```{index} knowledge injection, catastrophic forgetting
-```
-```{index} pair: failure mode; fine-tuning as a knowledge store
+```{index} pair: failure mode; lost in the middle
 ```
 
-Return to the opening mistake, because it is the single most important thing to take from this session. Fine-tuning to inject facts fails for reasons that are structural, not fixable with more data or a bigger rank. Facts baked into weights cannot be cited, so a fine-tuned model gives you an answer with no source, which is unacceptable for a code-compliance or safety question. They go stale the moment the underlying data changes, and updating them means another training run rather than an index write. And teaching new facts by fine-tuning risks **catastrophic forgetting**, where training on the new distribution degrades what the model already knew.
+The instinct when a task feels hard is to give the model more: stuff every possibly-relevant page into the prompt and let it sort them out. [Liu and colleagues (2023)](https://arxiv.org/abs/2307.03172) measured what that actually does. They gave models a question and many documents, only one of which held the answer, and moved the position of that relevant document through the context. Performance was not flat. It was U-shaped: highest when the answer sat at the very beginning or the very end of the context, and markedly worse when it sat in the middle.
 
-This is not folklore, it has been measured. Ovadia and colleagues, in a study whose title is exactly the question of this session, compared fine-tuning against retrieval for injecting knowledge into several open models, testing both on standard benchmarks and on a purpose-built set of questions about events after the models' training cutoff. Their finding is blunt: retrieval consistently outperformed fine-tuning, for knowledge the models had seen and for entirely new knowledge alike, and the models "struggle to learn new factual information through unsupervised fine-tuning." On the genuinely new material the gap was not subtle. Retrieval answered most of the questions correctly while fine-tuning barely moved the base model's score.
+The magnitudes are large. For GPT-3.5-Turbo answering over twenty documents, accuracy was 75.8% when the answer was first, 63.2% when it was last, and 53.8% when it was buried in the middle, a swing of 22 points driven by nothing but position. The middle number is below 56.1%, which was the model's closed-book accuracy with no documents at all. In other words, for a question whose answer was sitting right there in the context, burying it in the middle left the model worse off than giving it no documents at all. Stuffing everything into a long prompt is not a substitute for putting the right thing in the right place.
 
-### What fine-tuning is actually good at
+The failure that will actually bite you first, though, is cruder. A document that exceeds the context window does not always error. Depending on the provider and how you call it, the overflow can be silently dropped, and you extract from a truncated input without knowing it. **Count the tokens of every input before you send it,** using the provider's own tokenizer, and treat "this document is too long" as a case to handle rather than a possibility to ignore.
 
-The flip side is where fine-tuning genuinely wins: **behavior and format**. If you need a model to always emit your exact JSON schema, to adopt a house style, to follow a domain convention that no amount of prompting makes stick, or to perform a narrow classification consistently, fine-tuning bakes that behavior in so you stop paying for it in every prompt and stop having it drift. The provider fine-tuning guides say the same in their use-case lists: classification, generation in a specific format, correcting instruction-following failures, a reliable style. The rule that survives all of this is short. Knowledge is retrieval's job; behavior and format are fine-tuning's. When you find yourself about to fine-tune a model on a pile of documents so it "knows" them, stop, because what you want is an index rather than a training run.
+## Prompting you can measure
 
-## Evaluating adaptation apples-to-apples
-
-```{index} pair: failure mode; unfair adaptation comparison
+```{index} zero-shot prompting, few-shot prompting
 ```
 
-Whichever levers you compare, the comparison is only worth something if it is fair, and the standard failure is comparing a tuned model to a prompt on different data, or judging each by a different yardstick. The discipline is the one from the ML weeks: fix a single held-out set and a single metric, and run every candidate through the same gate. A fine-tune that scores 90% on its own validation data tells you nothing against a prompt scored on a different set of questions.
+Prompting has a reputation as a dark art, and it stays one only as long as you refuse to measure it. The techniques themselves are mundane. Give the model a clear role and explicit instructions in the system prompt. Decide between **zero-shot prompting**, just the instruction, and **few-shot prompting**, the instruction plus a handful of worked examples, and use few-shot when the format is fiddly or the task is easy to misread, which extraction usually is. Ground the model in the provided text and instruct it explicitly to say "not found" rather than invent, because a model told only to fill in the fields will fill them in whether or not the datasheet supports it. Ask for the source span when you can, so a human can check the extraction against the document. And hold temperature low, because extraction has a right answer.
 
-The demo does this honestly on a small scale, pitting prompting against retrieval on one engineering corpus and one gold set.
+What turns these from folklore into engineering is a **gold set**. Build a small set of examples, ten to thirty is plenty to start, where you have written down the correct extraction by hand. Then score any prompt against it automatically: field-level accuracy, how many of the fields across the set the prompt got exactly right. Now a prompt change is an experiment with a number attached. "The improved prompt raised field accuracy from 71% to 89% and cost 4% more per document" is a sentence you can act on; "the new prompt seems better" is not. The gold set is small enough to build in an afternoon and it is the single habit that most separates people who ship reliable extractors from people who tweak prompts forever. The demo builds one and shows the accuracy and cost deltas side by side, because a prompt that is more accurate and ten times more expensive is a different decision from one that is more accurate and free.
 
-```{figure} figures/bakeoff.png
-:alt: A grouped bar chart. For "knowledge lookup", prompting is 0% and RAG about 80%. For "absent (must decline)", prompting 0% and RAG 100%. For "formatting", both 100%. A note says RAG misses one lookup to a distractor.
-:width: 100%
+## Reliability engineering
 
-Prompting versus RAG on the same gold set, scored the same way. On knowledge lookups the bare prompt guesses every one wrong while retrieval grounds its answers in a cited chunk. On the query whose answer is deliberately absent from the corpus, retrieval declines while the prompt invents a confident value. On the formatting task the two tie, because there is nothing to retrieve.
+```{index} retry with backoff
 ```
 
-Two details in that figure repay attention. Retrieval scores four of five on the knowledge lookups, one short of a clean sweep: the bolt-torque query pulled in a distractor sentence about torque in general instead of the one with the actual value, so the grounded answer was on topic and wrong. That is Lecture 17's lesson resurfacing, retrieval quality is not free, and it is exactly the kind of honest result a real evaluation surfaces and a confident assertion would have hidden. And on the formatting task retrieval and prompting tie, which is the framework in miniature: retrieval added nothing because the gap there was never knowledge.
-
-## Cost, latency, and ops
-
-The three levers also differ in what they cost to run and to keep running, and this often decides the matter once correctness is settled. Prompting adds nothing beyond the API call, though a long few-shot prompt is tokens you pay for on every request. Retrieval adds an index to build, store, and refresh, and a retrieval step of latency before every generation, in exchange for cited, current answers. Fine-tuning front-loads a training cost and then either a per-token premium if the provider hosts your tuned model, or the full operational burden of serving the model yourself: a GPU that stays up, a model to monitor, a checkpoint to version.
-
-That self-hosting burden is why the case for fine-tuning a small local model over calling a large hosted one is narrower than it first looks. It can win when call volume is high enough that per-call API pricing dominates, when latency or data-residency rules forbid a hosted call, or when the task is narrow enough that a small tuned model matches a large general one. Outside those conditions, the hosted call is usually cheaper all-in once you count the engineer-hours of keeping a GPU service healthy. Count the total cost of ownership, not just the price per token.
+The remaining failures are the ordinary ones of any networked service, and the LLM API is a networked service. Calls hit rate limits and return 429s, servers return transient 5xxs, and connections time out. The standard answer is a **retry with backoff**: on a retryable error, wait a short and increasing interval, with a little randomness so a fleet of workers does not retry in lockstep, and cap the attempts. Make the operation **idempotent** where you can, so a retry that actually did succeed the first time does not double-charge or double-write. Log every call's prompt, response, and usage, reusing the same tracking discipline the course applied to experiments earlier, because when an extraction is wrong in week nine the log is the only way to find out whether the prompt, the model, or the datasheet changed. And never truncate an input silently to make it fit; count first, and handle the overflow deliberately.
 
 ## Where this pushes back
 
-The framework is a guide with real edges. The levers combine, and the combination can beat either alone: RAFT, a 2024 method, fine-tunes a model specifically to be a better consumer of retrieved context, teaching it to cite the relevant passage and ignore distractor documents, and beats both plain retrieval and plain domain fine-tuning on several benchmarks. So "knowledge means RAG" does not forbid fine-tuning in a RAG system, it means do not fine-tune *instead of* retrieving for knowledge.
+```{index} pair: failure mode; schema-valid but wrong
+```
 
-Retrieval has its own failure modes, and the demo showed one: a distractor outranking the answer, which no amount of grounding instruction fixes if the right chunk never gets retrieved. Fine-tuning's headline risk is using it as a knowledge store, but even for behavior it can overfit a small dataset or forget general ability. And the evaluation itself is where comparisons quietly go wrong, through a held-out set that leaks into training or a metric that flatters one lever. The honest posture is to treat every adaptation claim, including your own, as something to measure on a fair, fixed gold set before believing it.
+The honest limitations of this interface are mostly the ways its guarantees are narrower than they look. Schema-constrained output guarantees shape, not truth: a record can be perfectly valid and factually wrong, with a hallucinated pressure or a unit left unconverted, and no validator catches it unless you encode the check. The units-and-numbers problem is where extraction quietly fails most often, because "2.5" as a string and 2.5 as a float and 2.5 bar versus 2.5 MPa all look nearly identical and mean different things; put explicit units in the schema and a normalization step after it. Non-determinism undermines debugging, because a prompt that worked once may fail the next time, so "it worked in the demo" is not a passing test and low temperature plus a fixed gold set is how you get repeatability. Cost is invisible unless you make it visible, and a pipeline without per-call usage logging cannot be reasoned about. And the whole interface drifts underneath you: model IDs are retired, context limits and prices change, and the very structured-output parameters this session names have already moved once, which is why the durable skill is reading the current documentation and pinning what you used, not memorizing a parameter.
+
+There is a deeper limit. Everything here makes an LLM call reliable and measurable; none of it makes the model know something it was not given. When the answer is not in the prompt, a better schema and a lower temperature will not conjure it, and stuffing more context invites the lost-in-the-middle failure above. The fix for that is retrieval.
 
 ## In-class demo
 
-The notebook [`l18-prompt-vs-rag.ipynb`](l18-prompt-vs-rag.ipynb) runs the bake-off above end to end and offline: a small corpus of engineering-reference snippets, a gold set of the questions an engineer actually asks, a prompting baseline that answers from latent knowledge alone, and a retrieval system that does real TF-IDF retrieval and a grounded read with a confidence threshold so it can decline. It scores both on the same metric and prints the per-category table. The two moments to watch are the absent query, where retrieval declines while the prompt confidently invents a flash point, and the one knowledge query retrieval gets wrong, where a distractor sentence outranks the answer. Fine-tuning is discussed as the third lever and deliberately not trained here; the optional GPU lab is where you would run one.
+The notebook [`l18-structured-extraction.ipynb`](l18-structured-extraction.ipynb) builds the extractor end to end on a handful of small component datasheets, including a deliberately incomplete one. It defines the `Component` Pydantic schema, sends a datasheet with a schema-constrained request, validates the result, and runs the repair loop when validation fails, printing token usage and the estimated cost of each call. It then does the two things the session argues for: on the datasheet that omits pressure, it shows the model returning `null` rather than a hallucinated number when the prompt tells it to, and it scores a naive prompt against an improved one on a small gold set, printing the accuracy delta beside the cost delta. The notebook is built to run for everyone: with no API key it uses a deterministic stand-in that returns provider-shaped responses, so the schema, validation, repair loop, cost accounting, and gold-set scoring all execute offline, and with a key set it makes the same calls against a real provider. The moments to watch are the repair loop turning a rejected response into a valid one, and the incomplete datasheet producing a null instead of a confident fabrication.
 
 ## Summary
 
-The lever follows the need. Knowledge the model lacks is retrieval's job, because retrieval keeps facts correct, current, and cited; behavior and format are fine-tuning's, because fine-tuning bakes a consistent way of responding into the weights; and prompting is the cheap first move that often tells you which of the other two you actually need. LoRA and QLoRA matter because they make fine-tuning feasible on modest hardware, training under a percent of the weights, but feasibility does not change what fine-tuning is for, and the measured evidence is clear that injecting knowledge is not it. The strongest systems combine the levers, and the only way to know a choice was right is to measure the candidates on one fair gold set. That discipline of measuring before believing, rather than any single technique, is what this session leaves you with.
+The lesson of this session is that a hosted LLM is a system component like any other, with a cost, a latency, a failure model, and an output you must validate before you trust it. Getting structured data out of one reliably takes a loop: constrain the output to a schema, validate it against a typed model, and repair rather than crash when it fails. Cost and latency are numbers you read off every response and design around, with prompt caching and model choice as the main levers, and prompting stops being guesswork the moment you score it against a small gold set. Above all, a schema guarantees shape and never truth, so the units, the "not found" behavior, and the gold set are the checks that keep the parts table honest.
 
 ## Resources
 
-- [Ovadia et al., "Fine-Tuning or Retrieval? Comparing Knowledge Injection in LLMs" (2023)](https://arxiv.org/abs/2312.05934). The measured case that retrieval beats fine-tuning for knowledge; the evidence behind this session's central rule.
-- [Hu et al., "LoRA: Low-Rank Adaptation of Large Language Models" (2021)](https://arxiv.org/abs/2106.09685). The method itself, with the 10,000-times parameter reduction and no-inference-latency result.
-- [Dettmers et al., "QLoRA: Efficient Finetuning of Quantized LLMs" (2023)](https://arxiv.org/abs/2305.14314). Fine-tuning a 65B model on one 48GB GPU via 4-bit quantization; the Guanaco result.
-- [Zhang et al., "RAFT: Adapting Language Model to Domain Specific RAG" (2024)](https://arxiv.org/abs/2403.10131). How the two levers combine: fine-tuning a model to use retrieval well and ignore distractors.
-- [Augment LLMs with RAG or Fine-Tuning (Microsoft Learn)](https://learn.microsoft.com/en-us/azure/developer/ai/augment-llm-rag-fine-tuning). A practitioner decision guide mapping fine-tuning to stable/specialized behavior and RAG to dynamic, current knowledge.
-- [Hugging Face PEFT documentation](https://huggingface.co/docs/peft). The library for LoRA and friends, for the optional GPU lab rather than the core session.
+- [Liu et al., "Lost in the Middle: How Language Models Use Long Contexts" (2023)](https://arxiv.org/abs/2307.03172). Why more context is not free; the source of the U-shaped accuracy figure. Published in TACL 2024.
+- [Anthropic structured outputs guide](https://platform.claude.com/docs/en/build-with-claude/structured-outputs) and [tool use overview](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview). The two routes to schema-shaped output; read the current version, since these parameters have already changed once.
+- [OpenAI structured outputs guide](https://developers.openai.com/api/docs/guides/structured-outputs). The other provider's take, for the cross-provider view; note the canonical shape moved from Chat Completions to the Responses API.
+- [Anthropic prompt caching guide](https://platform.claude.com/docs/en/build-with-claude/prompt-caching). The cache-write and cache-read multipliers behind the cost figure, and the minimum cacheable length.
+- [Pydantic documentation: models](https://docs.pydantic.dev/latest/concepts/models/) and [validators](https://docs.pydantic.dev/latest/concepts/validators/). Defining the schema and writing field- and model-level checks.
+- [JSON Schema](https://json-schema.org/). The vocabulary both providers' structured-output modes speak; current specification is 2020-12.
+- [Anthropic prompt engineering overview](https://docs.claude.com/en/docs/build-with-claude/prompt-engineering/overview). Provider guidance on the prompting techniques above; read alongside your own provider's guide.
 
 ## Assignment
 
-Assignment 9, a RAG system over an engineering corpus, was released last session and is due about a week later. It asks you to build a retrieval-augmented QA system and measure both retrieval quality and answer quality against a gold set, which is the retrieval half of this session's bake-off built for real and at scale. This page does not restate the rubric.
+Assignment 8, structured extraction from engineering documents, was released last session and is due about a week later. It asks you to build and evaluate a schema-constrained LLM extractor that turns messy engineering text into a validated, normalized table, with per-call cost logging and a small gold set to measure prompt quality, which is exactly the pipeline this session builds in miniature. This page does not restate the rubric.
 
 ## Practice module
 

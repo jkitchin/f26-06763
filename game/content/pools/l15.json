@@ -2,214 +2,157 @@
   "lecture": "l15",
   "versions": {
     "1": {
-      "items": {
-        "l15-q01": {
-          "answer": "1,263, about 63% more than the local count",
-          "options": [
-            "About 780, within 1% of the local count",
-            "924, the same as Claude Haiku 4.5",
-            "1,263, about 63% more than the local count",
-            "About 590, because a newer tokenizer compresses better"
-          ]
-        },
-        "l15-q02": {
-          "answer": "An alarm table flattened out of a PDF, at 2.35 characters per token",
-          "options": [
-            "Technical prose, at 4.82 characters per token, since English words are what the vocabulary was fitted on",
-            "A pump datasheet, at 3.05 characters per token",
-            "Python source, at 2.56 characters per token, because identifiers and punctuation fragment badly",
-            "An alarm table flattened out of a PDF, at 2.35 characters per token"
-          ]
-        },
-        "l15-q03": {
-          "answer": "The estimate came in 31% low, well outside the documented range",
-          "options": [
-            "15-20% was confirmed, so the documented figure is safe to budget with and the vendor number can be trusted directly",
-            "The estimate came in 31% low, well outside the documented range",
-            "The estimate came in 31% high, so the budget has slack rather than a shortfall",
-            "The two counts agreed, because both tokenizers now share a vocabulary"
-          ]
-        },
-        "l15-q04": {
-          "answer": "Trimming the output; the 128-fold output cut saves about 22 seconds while the 130-fold input cut saves about 0.4 seconds",
-          "options": [
-            "Trimming the input; long prompts dominate latency, because the model must attend over every pair of positions before it can answer",
-            "Trimming the output; the 128-fold output cut saves about 22 seconds while the 130-fold input cut saves about 0.4 seconds",
-            "Both about equally, since latency is roughly linear in total tokens",
-            "Neither; latency is set by the provider's queue rather than by token counts"
-          ]
-        },
-        "l15-q05": {},
-        "l15-q06": {
-          "answer": "There is no token meaning \"not in the source\", so permit an explicit NOT FOUND answer",
-          "options": [
-            "The temperature is too high; set it to 0 so the model stops guessing and returns only what the datasheet actually supports",
-            "There is no token meaning \"not in the source\", so permit an explicit NOT FOUND answer",
-            "The datasheet was truncated before the relevant page; raise the context window",
-            "The model is lying, and the fix is a stronger instruction not to fabricate"
-          ]
-        },
-        "l15-q07": {
-          "answer": "The window is shared between input and output, so there is room for about 10,000 tokens of answer whatever `max_tokens` says",
-          "options": [
-            "You get up to 64,000 tokens back, because `max_tokens` governs generation and the window governs input, and the two are budgeted separately",
-            "The window is shared between input and output, so there is room for about 10,000 tokens of answer whatever `max_tokens` says",
-            "The provider silently truncates the input to make room for the output",
-            "The oldest part of the input is evicted automatically, sliding-window style"
-          ]
-        },
-        "l15-q08": {
-          "answer": "C (0.971) > B (0.694) > A (0.532)",
-          "options": [
-            "C (0.971) > B (0.694) > A (0.532)",
-            "A (0.971) > C (0.694) > B (0.532), the same-event pair scoring highest",
-            "C (0.971) > A (0.694) > B (0.532)",
-            "A (0.694) > B (0.532) > C (0.361), with the unit mismatch scoring lowest of the three"
-          ]
-        },
-        "l15-q09": {
-          "answer": "In the pipeline: unit normalization has to be an explicit, typed, tested step, with the original value retained",
-          "options": [
-            "In the embedding model: switch to one trained on technical text, which will encode degC and degF as the distinct quantities they are",
-            "In the threshold: raise the cosine cut until these two fall apart",
-            "In the pipeline: unit normalization has to be an explicit, typed, tested step, with the original value retained",
-            "In the LLM: add a downstream judge call that checks the units agree"
-          ]
-        },
-        "l15-q10": {
-          "answer": "One call and 455 tokens, after which every comparison is a dot product",
-          "options": [
-            "561 embedding calls, one per pair, but each is far cheaper than an LLM call so the total cost still falls by orders of magnitude",
-            "One call and 455 tokens, after which every comparison is a dot product",
-            "34 calls, one per entry, then 561 cosine comparisons",
-            "One call, but the comparison still needs an LLM to interpret the scores"
-          ]
-        },
-        "l15-q11": {
-          "answer": "Nothing about the model. On 34 records the curve cannot be monotonic; this is sampling noise, and tuning a storage decision on a sample this small is the mistake",
-          "options": [
-            "512 dimensions is genuinely the sweet spot for this model, so truncate there and take both the storage saving and the accuracy",
-            "Nothing about the model. On 34 records the curve cannot be monotonic; this is sampling noise, and tuning a storage decision on a sample this small is the mistake",
-            "The Matryoshka training failed for this model, so truncation is unsafe here",
-            "The 1,024 measurement is a bug and should be re-run until it exceeds the 512 row"
-          ]
-        },
-        "l15-q12": {
-          "answer": "The datasheet is more dense: fewer characters per token than prose, by about 1.6x",
-          "options": [
-            "The datasheet is less dense: more characters per token than prose, by about 1.6x",
-            "The datasheet is more dense: fewer characters per token than prose, by about 1.6x",
-            "They come out within a few percent of each other",
-            "The datasheet is more dense by more than 5x, since almost every line is numbers and units rather than words"
-          ]
-        }
-      },
-      "serve": 8
+      "items": {},
+      "serve": 0
     },
     "2": {
       "items": {
         "l15-q01": {
-          "answer": "1,263, about 63% more than the local count",
+          "answer": "Epistemic: what the model does not know yet",
           "options": [
-            "About 780, within 1% of the local count",
-            "924, the same as Claude Haiku 4.5",
-            "1,263, about 63% more than the local count",
-            "About 590, because a newer tokenizer compresses better"
+            "Epistemic: what the model does not know yet",
+            "Aleatoric: the scatter between specimens of the same mix",
+            "Both shrink equally with more data",
+            "Neither; uncertainty is a property of the model family"
           ]
         },
         "l15-q02": {
-          "answer": "An alarm table flattened out of a PDF, at 2.35 characters per token",
+          "answer": "No model can predict better than about 5.0 MPa: that scatter is aleatoric",
           "options": [
-            "Technical prose, at 4.82 characters per token, since English words are what the vocabulary was fitted on",
-            "A pump datasheet, at 3.05 characters per token",
-            "Python source, at 2.56 characters per token, because identifiers and punctuation fragment badly",
-            "An alarm table flattened out of a PDF, at 2.35 characters per token"
+            "No model can predict better than about 5.0 MPa: that scatter is aleatoric",
+            "A model with enough capacity can bring its error below 5.0 MPa",
+            "The test set needs more mixes before the error can be trusted",
+            "The specimens were mislabeled, and the replicates should be removed"
           ]
         },
         "l15-q03": {
-          "answer": "The estimate came in 31% low, well outside the documented range",
+          "answer": "The spread measures only epistemic uncertainty, and misses the scatter between specimens",
           "options": [
-            "15-20% was confirmed, so the documented figure is safe to budget with and the vendor number can be trusted directly",
-            "The estimate came in 31% low, well outside the documented range",
-            "The estimate came in 31% high, so the budget has slack rather than a shortfall",
-            "The two counts agreed, because both tokenizers now share a vocabulary"
+            "The spread measures only epistemic uncertainty, and misses the scatter between specimens",
+            "Five networks are too few; fifty would cover 95%",
+            "The networks were overfitted, so their mean is wrong",
+            "The test mixes were outside the training range"
           ]
         },
         "l15-q04": {
-          "answer": "Trimming the output; the 128-fold output cut saves about 22 seconds while the 130-fold input cut saves about 0.4 seconds",
+          "answer": "The calibration and test points are exchangeable: drawn the same way from the same population",
           "options": [
-            "Trimming the input; long prompts dominate latency, because the model must attend over every pair of positions before it can answer",
-            "Trimming the output; the 128-fold output cut saves about 22 seconds while the 130-fold input cut saves about 0.4 seconds",
-            "Both about equally, since latency is roughly linear in total tokens",
-            "Neither; latency is set by the provider's queue rather than by token counts"
+            "The calibration and test points are exchangeable: drawn the same way from the same population",
+            "The model's errors are Gaussian",
+            "The model is a Gaussian process",
+            "The calibration set has at least 1,000 points"
           ]
         },
-        "l15-q05": {},
-        "l15-q06": {
-          "answer": "There is no token meaning \"not in the source\", so permit an explicit NOT FOUND answer",
+        "l15-q05": {
+          "answer": "The fraction of test points whose interval contains the true value",
           "options": [
-            "The temperature is too high; set it to 0 so the model stops guessing and returns only what the datasheet actually supports",
-            "There is no token meaning \"not in the source\", so permit an explicit NOT FOUND answer",
-            "The datasheet was truncated before the relevant page; raise the context window",
-            "The model is lying, and the fix is a stronger instruction not to fabricate"
+            "The fraction of test points whose interval contains the true value",
+            "The average width of the intervals",
+            "The probability the model's mean is within 1 MPa of the truth",
+            "The fraction of training points used to calibrate the interval"
+          ]
+        },
+        "l15-q06": {
+          "answer": "A coverage check on mixes like the ones the search will reach; on the strongest mixes coverage fell to between 70% and 89%",
+          "options": [
+            "A coverage check on mixes like the ones the search will reach; on the strongest mixes coverage fell to between 70% and 89%",
+            "A larger random split; 95% on 195 points is not significant",
+            "A second surrogate, to average the two intervals",
+            "Nothing: a calibrated interval stays calibrated everywhere"
           ]
         },
         "l15-q07": {
-          "answer": "The window is shared between input and output, so there is room for about 10,000 tokens of answer whatever `max_tokens` says",
+          "answer": "A probabilistic surrogate of the evaluations so far, whose mean and uncertainty feed an acquisition function",
           "options": [
-            "You get up to 64,000 tokens back, because `max_tokens` governs generation and the window governs input, and the two are budgeted separately",
-            "The window is shared between input and output, so there is room for about 10,000 tokens of answer whatever `max_tokens` says",
-            "The provider silently truncates the input to make room for the output",
-            "The oldest part of the input is evicted automatically, sliding-window style"
+            "A probabilistic surrogate of the evaluations so far, whose mean and uncertainty feed an acquisition function",
+            "A gradient of the objective, estimated by finite differences",
+            "A grid over the design space, refined around the best point",
+            "A model of the measurement noise only"
           ]
         },
         "l15-q08": {
-          "answer": "C (0.971) > B (0.694) > A (0.532)",
+          "answer": "Both are random; one run of either could be luck",
           "options": [
-            "C (0.971) > B (0.694) > A (0.532)",
-            "A (0.971) > C (0.694) > B (0.532), the same-event pair scoring highest",
-            "C (0.971) > A (0.694) > B (0.532)",
-            "A (0.694) > B (0.532) > C (0.361), with the unit mismatch scoring lowest of the three"
+            "Both are random; one run of either could be luck",
+            "The emulator gives a different answer each time it is called",
+            "Thirty runs make the optimizer converge faster",
+            "Each seed tests a different design variable"
           ]
         },
         "l15-q09": {
-          "answer": "In the pipeline: unit normalization has to be an explicit, typed, tested step, with the original value retained",
+          "answer": "91.6 MPa is the emulator's prediction, ±18 MPa, far from any tested mix; the next step is to cast and test it",
           "options": [
-            "In the embedding model: switch to one trained on technical text, which will encode degC and degF as the distinct quantities they are",
-            "In the threshold: raise the cosine cut until these two fall apart",
-            "In the pipeline: unit normalization has to be an explicit, typed, tested step, with the original value retained",
-            "In the LLM: add a downstream judge call that checks the units agree"
+            "91.6 MPa is the emulator's prediction, ±18 MPa, far from any tested mix; the next step is to cast and test it",
+            "Bayesian optimization cannot find mixes stronger than the training data",
+            "The optimizer needed more than 25 evaluations to be sure",
+            "Nothing; the emulator was fitted to all 1,030 rows"
           ]
         },
         "l15-q10": {
-          "answer": "One call and 455 tokens, after which every comparison is a dot product",
+          "answer": "When the mean is above the best so far, or the uncertainty is large, or both",
           "options": [
-            "561 embedding calls, one per pair, but each is far cheaper than an LLM call so the total cost still falls by orders of magnitude",
-            "One call and 455 tokens, after which every comparison is a dot product",
-            "34 calls, one per entry, then 561 cosine comparisons",
-            "One call, but the comparison still needs an LLM to interpret the scores"
+            "When the mean is above the best so far, or the uncertainty is large, or both",
+            "Only when the mean is above the best value found so far",
+            "Only where the uncertainty is largest",
+            "Only at points that have not been evaluated before"
           ]
         },
         "l15-q11": {
-          "answer": "Nothing about the model. On 34 records the curve cannot be monotonic; this is sampling noise, and tuning a storage decision on a sample this small is the mistake",
+          "answer": "Probability of improvement",
           "options": [
-            "512 dimensions is genuinely the sweet spot for this model, so truncate there and take both the storage saving and the accuracy",
-            "Nothing about the model. On 34 records the curve cannot be monotonic; this is sampling noise, and tuning a storage decision on a sample this small is the mistake",
-            "The Matryoshka training failed for this model, so truncation is unsafe here",
-            "The 1,024 measurement is a bug and should be re-run until it exceeds the 512 row"
+            "Probability of improvement",
+            "Expected improvement",
+            "Upper confidence bound with κ = 3",
+            "Thompson sampling"
           ]
         },
         "l15-q12": {
-          "answer": "The datasheet is more dense: fewer characters per token than prose, by about 1.6x",
+          "answer": "It weights uncertainty more, so it samples more where the GP is unsure: it explores",
           "options": [
-            "The datasheet is less dense: more characters per token than prose, by about 1.6x",
-            "The datasheet is more dense: fewer characters per token than prose, by about 1.6x",
-            "They come out within a few percent of each other",
-            "The datasheet is more dense by more than 5x, since almost every line is numbers and units rather than words"
+            "It weights uncertainty more, so it samples more where the GP is unsure: it explores",
+            "It weights the mean more, so it samples closer to the best point: it exploits",
+            "Nothing; κ only rescales the acquisition",
+            "It samples where the measurement noise is lowest"
+          ]
+        },
+        "l15-q13": {
+          "answer": "It draws one random function from the GP posterior and evaluates where that draw is highest",
+          "options": [
+            "It draws one random function from the GP posterior and evaluates where that draw is highest",
+            "It evaluates where the GP's standard deviation is largest",
+            "It evaluates where the GP's mean is highest",
+            "It samples a point uniformly at random"
+          ]
+        },
+        "l15-q14": {
+          "answer": "A model that is accurate everywhere it will be used, with as few labels as possible",
+          "options": [
+            "A model that is accurate everywhere it will be used, with as few labels as possible",
+            "The best point, found with fewer evaluations than BO",
+            "A calibrated interval on the training data",
+            "The point of largest measurement noise"
+          ]
+        },
+        "l15-q15": {
+          "answer": "Random labeling: 9.5 MPa against 12.7",
+          "options": [
+            "Random labeling: 9.5 MPa against 12.7",
+            "Least-sure labeling: 9.5 MPa against 12.7",
+            "They were identical, since both used the same GP",
+            "Neither improved on the 20-row starting model"
+          ]
+        },
+        "l15-q16": {
+          "answer": "The least-sure rows are extreme mixes and ages at the edges, not where the test mixes are",
+          "options": [
+            "The least-sure rows are extreme mixes and ages at the edges, not where the test mixes are",
+            "The GP should be refitted less often",
+            "Uncertainty sampling only works with neural networks",
+            "The pool was too small to choose from"
           ]
         }
       },
-      "serve": 6
+      "serve": 8
     }
   }
 }

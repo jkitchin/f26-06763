@@ -2,157 +2,144 @@
   "lecture": "l14",
   "versions": {
     "1": {
-      "items": {},
-      "serve": 0
-    },
-    "2": {
       "items": {
         "l14-q01": {
-          "answer": "Epistemic: what the model does not know yet",
+          "answer": "Epistemic: the model learns those mixes better",
           "options": [
-            "Epistemic: what the model does not know yet",
-            "Aleatoric: the scatter between specimens of the same mix",
-            "Both shrink equally with more data",
-            "Neither; uncertainty is a property of the model family"
+            "Epistemic: the model learns those mixes better",
+            "Aleatoric: repeated tests average the scatter away",
+            "Both, by the same amount",
+            "Neither, because the mixes are not new"
           ]
         },
         "l14-q02": {
-          "answer": "No model can predict better than about 5.0 MPa: that scatter is aleatoric",
+          "answer": "A prediction interval, which includes the scatter of a new specimen",
           "options": [
-            "No model can predict better than about 5.0 MPa: that scatter is aleatoric",
-            "A model with enough capacity can bring its error below 5.0 MPa",
-            "The test set needs more mixes before the error can be trusted",
-            "The specimens were mislabeled, and the replicates should be removed"
+            "A confidence interval on the mean strength of the mix",
+            "A prediction interval, which includes the scatter of a new specimen",
+            "A credible interval on the model's parameters",
+            "Any of them, since all three are the same width"
           ]
         },
         "l14-q03": {
-          "answer": "The spread measures only epistemic uncertainty, and misses the scatter between specimens",
+          "answer": "It is calibrated but not sharp: its intervals are too wide to be useful",
           "options": [
-            "The spread measures only epistemic uncertainty, and misses the scatter between specimens",
-            "Five networks are too few; fifty would cover 95%",
-            "The networks were overfitted, so their mean is wrong",
-            "The test mixes were outside the training range"
+            "Nothing; it is calibrated, so it is a good forecast",
+            "It is miscalibrated, because it ignores the inputs",
+            "It is calibrated but not sharp: its intervals are too wide to be useful",
+            "It is sharp but not calibrated"
           ]
         },
         "l14-q04": {
-          "answer": "The calibration and test points are exchangeable: drawn the same way from the same population",
+          "answer": "They get wider, because the factor is above 1",
           "options": [
-            "The calibration and test points are exchangeable: drawn the same way from the same population",
-            "The model's errors are Gaussian",
-            "The model is a Gaussian process",
-            "The calibration set has at least 1,000 points"
+            "They get wider, because the factor is above 1",
+            "They get narrower, because the factor is below 1",
+            "They stay the same width and shift toward the data",
+            "Nothing, because rescaling cannot change coverage"
           ]
         },
         "l14-q05": {
-          "answer": "The fraction of test points whose interval contains the true value",
+          "answer": "Only the inputs and the kernel, not the observed targets",
           "options": [
-            "The fraction of test points whose interval contains the true value",
-            "The average width of the intervals",
-            "The probability the model's mean is within 1 MPa of the truth",
-            "The fraction of training points used to calibrate the interval"
+            "The training targets, so a poor fit widens the band",
+            "Only the inputs and the kernel, not the observed targets",
+            "The residuals of the mean on the training points",
+            "The number of points only, not where they are"
           ]
         },
         "l14-q06": {
-          "answer": "A coverage check on mixes like the ones the search will reach; on the strongest mixes coverage fell to between 70% and 89%",
+          "answer": "A length scale that keeps shrinking signals a kernel that does not fit the function, such as a step",
           "options": [
-            "A coverage check on mixes like the ones the search will reach; on the strongest mixes coverage fell to between 70% and 89%",
-            "A larger random split; 95% on 195 points is not significant",
-            "A second surrogate, to average the two intervals",
-            "Nothing: a calibrated interval stays calibrated everywhere"
+            "Nothing; a shorter length scale always means a better model",
+            "The optimizer is failing to converge as the data grow",
+            "The noise level is too high for an RBF kernel",
+            "A length scale that keeps shrinking signals a kernel that does not fit the function, such as a step"
           ]
         },
         "l14-q07": {
-          "answer": "A probabilistic surrogate of the evaluations so far, whose mean and uncertainty feed an acquisition function",
+          "answer": "Many settings explain five points equally well, and maximum likelihood keeps one as if known",
           "options": [
-            "A probabilistic surrogate of the evaluations so far, whose mean and uncertainty feed an acquisition function",
-            "A gradient of the objective, estimated by finite differences",
-            "A grid over the design space, refined around the best point",
-            "A model of the measurement noise only"
+            "Many settings explain five points equally well, and maximum likelihood keeps one as if known",
+            "Five points are too few to compute a posterior at all",
+            "Maximum likelihood always overestimates the noise",
+            "The band cannot widen beyond the data with so few points"
           ]
         },
         "l14-q08": {
-          "answer": "Both are random; one run of either could be luck",
+          "answer": "Too wide where the noise is small, too narrow where it is large",
           "options": [
-            "Both are random; one run of either could be luck",
-            "The emulator gives a different answer each time it is called",
-            "Thirty runs make the optimizer converge faster",
-            "Each seed tests a different design variable"
+            "95% everywhere, since the overall number is right",
+            "Too narrow where the noise is small, too wide where it is large",
+            "Too wide where the noise is small, too narrow where it is large",
+            "Too narrow everywhere, hidden by rounding"
           ]
         },
         "l14-q09": {
-          "answer": "91.6 MPa is the emulator's prediction, ±18 MPa, far from any tested mix; the next step is to cast and test it",
+          "answer": "The spread measures only the epistemic part and leaves out the noise",
           "options": [
-            "91.6 MPa is the emulator's prediction, ±18 MPa, far from any tested mix; the next step is to cast and test it",
-            "Bayesian optimization cannot find mixes stronger than the training data",
-            "The optimizer needed more than 25 evaluations to be sure",
-            "Nothing; the emulator was fitted to all 1,030 rows"
+            "The networks were not trained long enough",
+            "Ten members are too few for a stable spread",
+            "The spread measures only the epistemic part and leaves out the noise",
+            "The spread is too large and overshoots the data"
           ]
         },
         "l14-q10": {
-          "answer": "When the mean is above the best so far, or the uncertainty is large, or both",
+          "answer": "How much the fitted function varies with the data: the variance part of the error",
           "options": [
-            "When the mean is above the best so far, or the uncertainty is large, or both",
-            "Only when the mean is above the best value found so far",
-            "Only where the uncertainty is largest",
-            "Only at points that have not been evaluated before"
+            "The noise in a new measurement",
+            "How much the fitted function varies with the data: the variance part of the error",
+            "The bias of the model, including its errors far from the data",
+            "The total prediction error, noise included"
           ]
         },
         "l14-q11": {
-          "answer": "Probability of improvement",
+          "answer": "Proposed mixes are chosen for being different, so they are not exchangeable with the calibration mixes",
           "options": [
-            "Probability of improvement",
-            "Expected improvement",
-            "Upper confidence bound with κ = 3",
-            "Thompson sampling"
+            "Split conformal needs Gaussian errors, which strengths are not",
+            "The calibration set must be larger than the training set",
+            "Proposed mixes are chosen for being different, so they are not exchangeable with the calibration mixes",
+            "Conformal intervals cannot be used with neural networks"
           ]
         },
         "l14-q12": {
-          "answer": "It weights uncertainty more, so it samples more where the GP is unsure: it explores",
+          "answer": "It is the same everywhere; the guarantee holds on average over inputs",
           "options": [
-            "It weights uncertainty more, so it samples more where the GP is unsure: it explores",
-            "It weights the mean more, so it samples closer to the best point: it exploits",
-            "Nothing; κ only rescales the acquisition",
-            "It samples where the measurement noise is lowest"
+            "It is the same everywhere; the guarantee holds on average over inputs",
+            "It grows where the training data are sparse",
+            "It follows the noise level at each input",
+            "It shrinks as the model becomes more confident"
           ]
         },
         "l14-q13": {
-          "answer": "It draws one random function from the GP posterior and evaluates where that draw is highest",
+          "answer": "At least 1 − 2α in the worst case, and close to 1 − α in practice",
           "options": [
-            "It draws one random function from the GP posterior and evaluates where that draw is highest",
-            "It evaluates where the GP's standard deviation is largest",
-            "It evaluates where the GP's mean is highest",
-            "It samples a point uniformly at random"
+            "Exactly 1 − α, like split conformal",
+            "At least 1 − 2α in the worst case, and close to 1 − α in practice",
+            "At least 1 − α, but only with Gaussian errors",
+            "No guarantee at all, like the plain jackknife"
           ]
         },
         "l14-q14": {
-          "answer": "A model that is accurate everywhere it will be used, with as few labels as possible",
+          "answer": "The cubic basis is wrong for a sine, and its uncertainty only covers fits within that basis",
           "options": [
-            "A model that is accurate everywhere it will be used, with as few labels as possible",
-            "The best point, found with fewer evaluations than BO",
-            "A calibrated interval on the training data",
-            "The point of largest measurement noise"
+            "The noise estimate is too small",
+            "The cubic basis is wrong for a sine, and its uncertainty only covers fits within that basis",
+            "Linear regression cannot produce prediction intervals",
+            "The band widens too fast and overshoots"
           ]
         },
         "l14-q15": {
-          "answer": "Random labeling: 9.5 MPa against 12.7",
+          "answer": "The rescaling factor on validation points from inside the training range",
           "options": [
-            "Random labeling: 9.5 MPa against 12.7",
-            "Least-sure labeling: 9.5 MPa against 12.7",
-            "They were identical, since both used the same GP",
-            "Neither improved on the 20-row starting model"
-          ]
-        },
-        "l14-q16": {
-          "answer": "The least-sure rows are extreme mixes and ages at the edges, not where the test mixes are",
-          "options": [
-            "The least-sure rows are extreme mixes and ages at the edges, not where the test mixes are",
-            "The GP should be refitted less often",
-            "Uncertainty sampling only works with neural networks",
-            "The pool was too small to choose from"
+            "Coverage on a held-out region beyond the training data",
+            "That the network converged",
+            "The rescaling factor on validation points from inside the training range",
+            "That the residuals are Gaussian"
           ]
         }
       },
-      "serve": 8
+      "serve": 7
     }
   }
 }

@@ -8,7 +8,7 @@
  * bytes rather than a dict someone wrote by hand. A verifier tested only on
  * hand-built input is a verifier that has never met pypdf.
  *
- * These load the *real* game/content/l15.yml. An earlier version used a
+ * These load the *real* game/content/l17.yml. An earlier version used a
  * synthetic pool, and every clean sample came back REVIEW because the generator
  * and the verifier were deriving against two different pools. That is a fixture
  * bug rather than a verifier bug, and it is exactly the kind that gets
@@ -28,7 +28,7 @@ import type { PoolItem } from '../src/seed.ts'
 const OUT = fileURLToPath(new URL('./samples/', import.meta.url))
 mkdirSync(OUT, { recursive: true })
 
-const LECTURE = 'l15'
+const LECTURE = 'l17'
 const bank = parseBank(
   readFileSync(fileURLToPath(new URL(`../content/${LECTURE}.yml`, import.meta.url)), 'utf8'),
 )

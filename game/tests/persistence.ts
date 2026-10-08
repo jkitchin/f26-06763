@@ -3,7 +3,7 @@
  *
  * The instructor's requirement for this game was that a student can stop and
  * come back later "even if we update the game with new resources". That is not
- * a nice-to-have: material is written during the semester, `game/content/l15.yml`
+ * a nice-to-have: material is written during the semester, `game/content/l17.yml`
  * already carries a note planning to raise `serve` from 8 to 12, and a student's
  * log may be the only record that they did the work.
  *
@@ -55,7 +55,7 @@ console.log('persistence:')
 // --- a bank that grows ----------------------------------------------------
 
 const ID = 'jkitchin'
-const LECTURE = 'l15'
+const LECTURE = 'l17'
 
 /** A synthetic pool of n four-option items, ids stable as n grows. */
 const pool = (n: number): Record<string, PoolItem> =>
@@ -84,7 +84,7 @@ function finishedSitting(poolSize: number, serve: number): Event[] {
   ]
 }
 
-// The scenario from game/content/l15.yml, played out. The student finished
+// The scenario from game/content/l17.yml, played out. The student finished
 // eight items in week 3; in week 9 the bank grew to twenty and serve went to
 // twelve. Nothing about their save changed, so nothing about their credit may.
 const saved = finishedSitting(12, 8)
@@ -245,7 +245,7 @@ check(completedFor(empty, LECTURE).length === 0,
 const v1 = {
   version: 1, andrewId: ID, displayName: 'J. Kitchin',
   settings: { hearts: true, theme: 'dark' },
-  log: [answer('s', { id: 'l15-q01', variant: '-', opts: [0, 1, 2, 3] }, 5)],
+  log: [answer('s', { id: 'l17-q01', variant: '-', opts: [0, 1, 2, 3] }, 5)],
 }
 const m1 = migrate(v1, 1)
 check(m1.andrewId === ID && m1.displayName === 'J. Kitchin', 'migration keeps the identity')
@@ -256,7 +256,7 @@ check(m1.quarantine.length === 0, 'with nothing quarantined')
 
 // A v1 log has no recorded plan, so its sittings cannot be judged at all. They
 // are carried as history, not silently treated as complete.
-check(completedFor(m1.log, 'l15').length === 0,
+check(completedFor(m1.log, 'l17').length === 0,
   'a v1 sitting is not resurrected as complete')
 
 // Total for any input. zustand destructures the result inside its hydrate
