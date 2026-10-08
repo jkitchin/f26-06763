@@ -1,227 +1,206 @@
-"""Figures for L18, prompting vs RAG vs fine-tuning.
+"""Figures for L18, the API/prompt/structured-output interface.
 
 Run from this directory with the course `sys_tools` environment:
 
     python make_figures.py
 
-Three figures, generated rather than copied (CLAUDE.md section 5b):
+Three figures, all generated rather than copied (CLAUDE.md section 5b):
 
-  1. lora-adapter.png     the LoRA idea as a diagram: freeze W, train a small
-                          low-rank B*A alongside it. A schematic.
-  2. trainable-params.png full fine-tuning vs LoRA trainable-parameter counts,
-                          computed from first principles for a stated config.
-  3. bakeoff.png          prompting vs RAG accuracy by query type, recomputed
-                          from the same corpus and gold set as the demo notebook.
+  1. repair-loop.png     the extract -> validate -> repair control flow, the
+                         idea that a schema-validation failure is a retry, not a
+                         crash. A schematic, no data.
+  2. prompt-caching.png  cost against number of calls that reuse one large fixed
+                         context, with and without prompt caching. Computed from
+                         published cache multipliers (see PRICING below).
+  3. lost-in-the-middle.png  a redraw of the accuracy-vs-position finding from
+                         Liu et al. (2023), from the numbers reported there.
 
-The bake-off is recomputed here (rather than copied from the notebook) so the
-committed figure and the demo cannot drift.
+The pricing and the Liu et al. numbers are filled in from verified sources and
+are dated in the captions; providers change both, so treat them as a snapshot.
 """
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 
 HERE = Path(__file__).parent
+
 CMU_RED = "#c41230"
 INK = "#1a1a1a"
 MUTED = "#5c5c5c"
+RULE = "#d8d8d8"
 BLUE = "#1f5c99"
 GREEN = "#2b7a4b"
-BLUE_BG = "#e8f0f8"
+AMBER = "#b8860b"
 GREEN_BG = "#eaf7ee"
-GREY_BG = "#eeeeee"
+BLUE_BG = "#e8f0f8"
+RED_BG = "#fbe9ec"
 
 plt.rcParams.update({
-    "font.size": 13, "axes.labelsize": 13, "axes.titlesize": 15,
-    "axes.spines.top": False, "axes.spines.right": False,
-    "axes.edgecolor": MUTED, "text.color": INK, "axes.labelcolor": INK,
-    "xtick.color": MUTED, "ytick.color": MUTED,
-    "figure.dpi": 160, "savefig.bbox": "tight",
+    "font.size": 13,
+    "axes.labelsize": 13,
+    "axes.titlesize": 15,
+    "axes.spines.top": False,
+    "axes.spines.right": False,
+    "axes.edgecolor": MUTED,
+    "text.color": INK,
+    "axes.labelcolor": INK,
+    "xtick.color": MUTED,
+    "ytick.color": MUTED,
+    "figure.dpi": 160,
+    "savefig.bbox": "tight",
 })
 
 
 # --------------------------------------------------------------------------
-# Figure 1 — the LoRA adapter, as a diagram
+# Figure 1 — the extract / validate / repair control flow
 # --------------------------------------------------------------------------
-def fig_lora_adapter() -> dict:
-    fig, ax = plt.subplots(figsize=(10, 5))
-    ax.set_xlim(0, 10)
-    ax.set_ylim(0, 5)
+def fig_repair_loop() -> dict:
+    fig, ax = plt.subplots(figsize=(11, 5.2))
+    ax.set_xlim(0, 11)
+    ax.set_ylim(0, 5.2)
     ax.axis("off")
 
     def box(x, y, w, h, text, face, edge=INK, fs=12):
         ax.add_patch(FancyBboxPatch((x, y), w, h,
-                     boxstyle="round,pad=0.06,rounding_size=0.1",
+                     boxstyle="round,pad=0.08,rounding_size=0.12",
                      linewidth=1.6, edgecolor=edge, facecolor=face, zorder=2))
-        ax.text(x + w / 2, y + h / 2, text, ha="center", va="center", fontsize=fs, zorder=3)
+        ax.text(x + w / 2, y + h / 2, text, ha="center", va="center",
+                fontsize=fs, zorder=3)
 
-    def arrow(x1, y1, x2, y2, color=INK):
-        ax.add_patch(FancyArrowPatch((x1, y1), (x2, y2), arrowstyle="-|>",
+    def arrow(x1, y1, x2, y2, text="", color=INK, rad=0.0):
+        ax.add_patch(FancyArrowPatch((x1, y1), (x2, y2),
+                     connectionstyle=f"arc3,rad={rad}", arrowstyle="-|>",
                      mutation_scale=16, linewidth=1.6, color=color, zorder=1))
+        if text:
+            ax.text((x1 + x2) / 2, (y1 + y2) / 2 + 0.22, text, ha="center",
+                    va="center", fontsize=10.5, color=color, zorder=4)
 
-    box(0.3, 2.1, 1.5, 1.0, "input\nx", GREY_BG)
-    # frozen base weight
-    box(3.0, 3.1, 2.6, 1.2, "W  (frozen)\nd x d", BLUE_BG, edge=BLUE)
-    # the trainable low-rank path
-    box(2.8, 0.5, 1.3, 1.0, "A\nr x d", GREEN_BG, edge=GREEN)
-    box(4.5, 0.5, 1.3, 1.0, "B\nd x r", GREEN_BG, edge=GREEN)
-    box(7.2, 2.1, 1.7, 1.0, "output\nh = Wx + BAx", GREY_BG)
+    box(0.2, 2.1, 2.0, 1.0, "datasheet\ntext", BLUE_BG)
+    box(2.9, 2.1, 2.1, 1.0, "LLM call\n(schema-constrained)", BLUE_BG)
+    box(5.7, 2.1, 2.0, 1.0, "validate\n(Pydantic)", GREEN_BG)
+    box(8.4, 3.3, 2.3, 1.0, "valid record\n-> parts table", GREEN_BG, edge=GREEN)
+    box(8.4, 0.7, 2.3, 1.0, "give up after\nN tries -> flag", RED_BG, edge=CMU_RED)
 
-    arrow(1.8, 2.6, 3.0, 3.6)          # x -> W
-    arrow(1.8, 2.5, 2.8, 1.0)          # x -> A
-    arrow(4.1, 1.0, 4.5, 1.0)          # A -> B
-    arrow(5.6, 3.6, 7.2, 2.8)          # W -> output
-    arrow(5.8, 1.0, 7.2, 2.3)          # B -> output
+    arrow(2.2, 2.6, 2.9, 2.6)
+    arrow(5.0, 2.6, 5.7, 2.6)
+    arrow(7.7, 2.9, 8.4, 3.6, "valid", GREEN)
+    arrow(7.7, 2.3, 8.4, 1.5, "still invalid", CMU_RED)
 
-    ax.text(4.3, 4.6, "LoRA: freeze the big matrix, train a small low-rank detour",
-            ha="center", fontsize=14.5)
-    ax.text(4.3, 0.05, "only A and B are trained; rank r is tiny (e.g. 8), so B*A adds few parameters",
-            ha="center", fontsize=10.5, color=GREEN)
-    out = HERE / "lora-adapter.png"
+    # the repair loop: invalid -> back to the LLM call with the error
+    arrow(6.7, 2.1, 3.95, 2.1, "", AMBER, rad=-0.5)
+    ax.text(5.3, 1.05, "invalid: send the error back and ask it to fix",
+            ha="center", va="center", fontsize=10.5, color=AMBER)
+
+    ax.text(5.5, 4.7, "Extract, validate, repair: a failure loops back",
+            ha="center", va="center", fontsize=15, color=INK)
+    out = HERE / "repair-loop.png"
     fig.savefig(out)
     plt.close(fig)
     return {"file": out.name}
 
 
 # --------------------------------------------------------------------------
-# Figure 2 — how few parameters LoRA actually trains
+# Figure 2 — prompt caching pays off when a big context is reused
 # --------------------------------------------------------------------------
-def fig_trainable_params() -> dict:
-    # A stated, honest config so the arithmetic is checkable.
-    d = 4096            # hidden size
-    layers = 32
-    total_params = 7.0e9                       # a ~7B model
-    r = 8
-    adapted_per_layer = 2                       # LoRA on the q and v projections
-    # each adapted matrix adds A (r x d) + B (d x r) = 2*d*r trainable params
-    lora_params = layers * adapted_per_layer * 2 * d * r
-    frac = lora_params / total_params
+# Anthropic pricing, observed 2026-08-18 (drift-prone, dated in the caption):
+#   Claude Sonnet 5: input $2 / MTok, output $10 / MTok.
+#   5-minute cache write = 1.25x base input; cache read = 0.1x base input.
+IN_PER_MTOK = 2.0
+OUT_PER_MTOK = 10.0
+CACHE_WRITE = 1.25
+CACHE_READ = 0.10
 
-    fig, ax = plt.subplots(figsize=(8, 5))
-    bars = ax.bar(["full fine-tuning", "LoRA (r=8, q & v)"],
-                  [total_params, lora_params], color=[MUTED, CMU_RED], width=0.55)
-    ax.set_yscale("log")
-    ax.set_ylabel("trainable parameters (log scale)")
-    ax.set_title("What you actually train")
-    for b, v in zip(bars, [total_params, lora_params]):
-        ax.text(b.get_x() + b.get_width() / 2, v * 1.25,
-                f"{v/1e6:,.1f}M" if v < 1e9 else f"{v/1e9:.1f}B",
-                ha="center", fontsize=12)
-    ax.text(0.5, 0.14, f"LoRA trains {frac*100:.2f}% of the weights\n"
-            f"({total_params/lora_params:,.0f}x fewer than full fine-tuning)",
-            transform=ax.transAxes, ha="center", fontsize=12, color=CMU_RED)
-    ax.text(0.98, 0.02, "7B model, hidden 4096, 32 layers; Hu et al. report 10,000x for GPT-3 175B",
+
+def fig_prompt_caching() -> dict:
+    fixed_ctx = 20_000     # a spec/manual + instructions + few-shot, reused every call
+    per_call_in = 500      # the one datasheet that changes each call
+    per_call_out = 300
+    n = np.arange(1, 31)
+
+    def dollars(tok, per_mtok):
+        return tok / 1e6 * per_mtok
+
+    out_cost = dollars(per_call_out, OUT_PER_MTOK)
+    var_in = dollars(per_call_in, IN_PER_MTOK)
+
+    # No caching: pay full input for the fixed context on every call.
+    no_cache = n * (dollars(fixed_ctx, IN_PER_MTOK) + var_in + out_cost)
+
+    # Caching: first call writes the cache (1.25x), the rest read it (0.1x).
+    first = dollars(fixed_ctx, IN_PER_MTOK) * CACHE_WRITE + var_in + out_cost
+    later = dollars(fixed_ctx, IN_PER_MTOK) * CACHE_READ + var_in + out_cost
+    cached = first + (n - 1) * later
+
+    fig, ax = plt.subplots(figsize=(9, 5.5))
+    ax.plot(n, no_cache * 100, color=MUTED, lw=2.4, label="no caching")
+    ax.plot(n, cached * 100, color=CMU_RED, lw=2.4, label="prompt caching")
+    ax.fill_between(n, cached * 100, no_cache * 100, color=CMU_RED, alpha=0.08)
+    ax.set_xlabel("calls that reuse the same 20k-token context")
+    ax.set_ylabel("cumulative cost (US cents)")
+    ax.set_title("Prompt caching, when a large fixed context is reused")
+    ax.legend(frameon=False, fontsize=11)
+    at30 = no_cache[-1] / cached[-1]
+    ax.annotate(f"{at30:.1f}x cheaper at 30 calls",
+                xy=(30, cached[-1] * 100), xytext=(16, no_cache[-1] * 100 * 0.55),
+                fontsize=10.5, color=CMU_RED,
+                arrowprops=dict(arrowstyle="->", color=CMU_RED, lw=1.2))
+    ax.text(0.98, 0.02, "Claude Sonnet 5 pricing, 2026-08-18 (providers change this)",
             transform=ax.transAxes, ha="right", va="bottom", fontsize=8.5, color=MUTED)
-    ax.set_ylim(1e6, 3e10)
-    out = HERE / "trainable-params.png"
+    out = HERE / "prompt-caching.png"
     fig.savefig(out)
     plt.close(fig)
-    return {"file": out.name, "lora_params_M": round(lora_params/1e6, 2),
-            "fraction_pct": round(frac*100, 3), "reduction": round(total_params/lora_params)}
+    return {"file": out.name, "ratio_at_30": round(float(at30), 2),
+            "no_cache_30_cents": round(float(no_cache[-1] * 100), 2),
+            "cached_30_cents": round(float(cached[-1] * 100), 2)}
 
 
 # --------------------------------------------------------------------------
-# Figure 3 — prompting vs RAG, recomputed from the demo's corpus and gold set
+# Figure 3 — lost in the middle (Liu et al. 2023, Table 6)
 # --------------------------------------------------------------------------
-CORPUS = [
-    ("PlumbCode 7.3", "Cold bending of annealed copper tube. The minimum centerline bend radius "
-     "for 12 mm outside-diameter annealed copper tube is 45 mm. For 15 mm tube it is 60 mm."),
-    ("PipeSpec 4.1", "Schedule 40 carbon steel pipe, ASTM A53. The maximum allowable working "
-     "pressure for 2-inch Schedule 40 pipe at 200 C is 2.4 MPa; at 20 C it is 3.1 MPa."),
-    ("FastenGuide 2.2", "Grade 8.8 M12 hex bolts, lightly oiled, shall be tightened to a torque "
-     "of 86 N-m. Grade 10.9 M12 bolts to 121 N-m."),
-    ("GasketMan 3.5", "Spiral-wound gaskets with flexible graphite filler are rated for continuous "
-     "service from -200 C to 450 C."),
-    ("PumpManual 9.1", "The required NPSH for the CP-4L pump at rated flow is 3.2 m. Available NPSH "
-     "must exceed this value by a margin of 0.6 m."),
-    ("PlumbCode 7.1", "Copper tube shall be cut square and deburred before bending. Annealed tube "
-     "bends cold; hard-drawn tube requires a bending spring or fittings."),
-    ("PipeSpec 1.2", "Carbon steel pipe shall be marked with the heat number, schedule, and "
-     "specification. Schedule 40 is the most common wall thickness for general service."),
-    ("FastenGuide 1.1", "Bolt torque depends on grade, lubrication, and thread pitch. Always use a "
-     "calibrated wrench; dry threads need more torque than oiled ones."),
-]
-GOLD = [
-    ("what is the minimum bend radius for 12 mm copper tube?", "45 mm", "knowledge"),
-    ("maximum allowable working pressure of 2-inch schedule 40 pipe at 200 C?", "2.4 MPa", "knowledge"),
-    ("tightening torque for a grade 8.8 M12 bolt?", "86 N-m", "knowledge"),
-    ("lower temperature limit of a spiral-wound graphite gasket?", "-200 C", "knowledge"),
-    ("required NPSH for the CP-4L pump at rated flow?", "3.2 m", "knowledge"),
-    ("flash point of ISO VG 46 hydraulic oil?", "not in the provided documents", "absent"),
-    ('normalize the log "brng making noise on P-101" to component/symptom', "bearing/noise", "formatting"),
-]
-PROMPT_ONLY = {
-    GOLD[0][0]: "about 3 times the diameter, so ~36 mm",
-    GOLD[1][0]: "roughly 2.0 MPa",
-    GOLD[2][0]: "approximately 60 N-m",
-    GOLD[3][0]: "around -50 C",
-    GOLD[4][0]: "typically 2 to 3 m",
-    GOLD[5][0]: "about 210 C",
-    GOLD[6][0]: "bearing/noise",
-}
+def fig_lost_in_the_middle() -> dict:
+    # GPT-3.5-Turbo, 20-document multi-document QA, verified from Table 6.
+    positions = [1, 10, 20]
+    acc = [75.8, 53.8, 63.2]
+    closed_book = 56.1
+    oracle = 88.3
 
-
-def fig_bakeoff() -> dict:
-    texts = [c[1] for c in CORPUS]
-    vec = TfidfVectorizer(stop_words="english").fit(texts)
-    chunk_mat = vec.transform(texts)
-
-    def answer_rag(query, k=3, threshold=0.12):
-        if "normalize the log" in query:
-            return "bearing/noise"
-        sims = cosine_similarity(vec.transform([query]), chunk_mat)[0]
-        top = np.argsort(sims)[::-1][:k]
-        cand = []
-        for i in top:
-            for s in re.split(r"(?<=[.;]) ", texts[i]):
-                if s.strip():
-                    cand.append(s.strip())
-        ssim = cosine_similarity(vec.transform([query]), vec.transform(cand))[0]
-        best = int(ssim.argmax())
-        return "not in the provided documents" if ssim[best] < threshold else cand[best]
-
-    def ok(pred, gold):
-        return gold.lower() in pred.lower()
-
-    cats = ["knowledge", "absent", "formatting"]
-    prom, rag = {}, {}
-    for c in cats:
-        sub = [g for g in GOLD if g[2] == c]
-        prom[c] = sum(ok(PROMPT_ONLY[q], gold) for q, gold, _ in sub) / len(sub)
-        rag[c] = sum(ok(answer_rag(q), gold) for q, gold, _ in sub) / len(sub)
-
-    labels = ["knowledge\nlookup", "absent\n(must decline)", "formatting"]
-    x = np.arange(len(cats))
-    w = 0.38
-    fig, ax = plt.subplots(figsize=(8, 4.8))
-    ax.bar(x - w/2, [prom[c]*100 for c in cats], w, label="prompting", color=MUTED)
-    ax.bar(x + w/2, [rag[c]*100 for c in cats], w, label="RAG", color=CMU_RED)
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels)
-    ax.set_ylabel("accuracy (%)")
-    ax.set_ylim(0, 108)
-    ax.set_title("The lever follows the need: prompting vs RAG on one gold set")
-    ax.legend(frameon=False)
-    ax.text(0.5, 96, "RAG misses one lookup to a distractor",
-            ha="center", fontsize=9, color=MUTED, style="italic")
-    out = HERE / "bakeoff.png"
+    fig, ax = plt.subplots(figsize=(9, 5.5))
+    ax.plot(positions, acc, color=CMU_RED, lw=2.6, marker="o", markersize=9,
+            zorder=4, label="accuracy vs position of the answer")
+    for x, y in zip(positions, acc):
+        ax.annotate(f"{y:.1f}%", (x, y), textcoords="offset points",
+                    xytext=(0, 12), ha="center", fontsize=11, color=INK)
+    ax.axhline(oracle, color=GREEN, ls="--", lw=1.6)
+    ax.text(20, oracle + 0.6, f"oracle, gold document only: {oracle:.1f}%",
+            ha="right", va="bottom", fontsize=10, color=GREEN)
+    ax.axhline(closed_book, color=MUTED, ls=":", lw=1.6)
+    ax.text(1, closed_book - 2.2, f"closed book, no documents at all: {closed_book:.1f}%",
+            ha="left", va="top", fontsize=10, color=MUTED)
+    ax.set_xticks(positions)
+    ax.set_xticklabels(["first", "middle (10th)", "last"])
+    ax.set_xlabel("position of the relevant document among 20")
+    ax.set_ylabel("answer accuracy (%)")
+    ax.set_ylim(45, 92)
+    ax.set_title("Lost in the middle: burying the answer costs 22 points")
+    ax.text(0.98, 0.02, "GPT-3.5-Turbo, Liu et al. (2023), Table 6",
+            transform=ax.transAxes, ha="right", va="bottom", fontsize=8.5, color=MUTED)
+    out = HERE / "lost-in-the-middle.png"
     fig.savefig(out)
     plt.close(fig)
-    return {"file": out.name,
-            "prompting": {c: round(prom[c], 2) for c in cats},
-            "rag": {c: round(rag[c], 2) for c in cats}}
+    return {"file": out.name, "first": acc[0], "middle": acc[1], "last": acc[2],
+            "closed_book": closed_book, "drop_pts": round(acc[0] - acc[1], 1)}
 
 
 def main() -> None:
-    for fn in (fig_lora_adapter, fig_trainable_params, fig_bakeoff):
-        print(f"{fn.__name__}: {fn()}")
+    results = {}
+    for fn in (fig_repair_loop, fig_prompt_caching, fig_lost_in_the_middle):
+        results[fn.__name__] = fn()
+        print(f"{fn.__name__}: {results[fn.__name__]}")
     print("wrote:", ", ".join(sorted(p.name for p in HERE.glob("*.png"))))
 
 

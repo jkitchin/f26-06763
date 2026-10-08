@@ -5,20 +5,20 @@
 # Do not edit `text` by hand to make a check pass. If the notes changed, the
 # objective changed, and the items mapped to it need re-reading.
 
-- id: l15-o1
-  lecture: l15
+- id: l17-o1
+  lecture: l17
   text: >-
     Build a correct-enough mental model of a decoder-only LLM to reason about failure modes
     (truncation, hallucination, context limits) rather than treat it as a black box.
 
-- id: l15-o2
-  lecture: l15
+- id: l17-o2
+  lecture: l17
   text: >-
     Understand tokenization concretely: subword units, why "10.5 MPa" or "SS316L" may split
     oddly, and how token counts drive cost/latency.
 
-- id: l15-o3
-  lecture: l15
+- id: l17-o3
+  lecture: l17
   text: >-
     Understand embeddings as vectors and use cosine similarity to cluster/retrieve
     engineering text.
@@ -89,19 +89,19 @@
   text: >-
     Measure whether an accelerator helps before moving a model onto one.
 
-- id: l19-o1
-  lecture: l19
+- id: l20-o1
+  lecture: l20
   text: >-
     Implement a minimal tool-using agent from scratch against the tool-calling API, no
     framework.
 
-- id: l19-o2
-  lecture: l19
+- id: l20-o2
+  lecture: l20
   text: >-
     Design tool schemas that an LLM can use correctly and a harness can execute safely.
 
-- id: l19-o3
-  lecture: l19
+- id: l20-o3
+  lecture: l20
   text: >-
     Build in termination, budgets, and error recovery so the loop is bounded and debuggable.
 
@@ -181,19 +181,19 @@
     Convert the two coefficients of a fitted first-order model into a time constant and
     a gain, and say whether they are physically plausible.
 
-- id: l17-o1
-  lecture: l17
+- id: l19-o1
+  lecture: l19
   text: >-
     Explain why RAG exists (grounding, freshness, source attribution, cost vs long-context)
     and where it breaks.
 
-- id: l17-o2
-  lecture: l17
+- id: l19-o2
+  lecture: l19
   text: >-
     Build each stage of a RAG pipeline and reason about the design choices at each stage.
 
-- id: l17-o3
-  lecture: l17
+- id: l19-o3
+  lecture: l19
   text: >-
     Evaluate retrieval quality quantitatively and connect retrieval failures to downstream
     answer failures.
@@ -396,45 +396,63 @@
   text: >-
     Apply regularization and normalization appropriate to each architecture.
 
-# L14, objectives lifted verbatim from lectures/l14/notes.md; l14-o4 (uncertainty) moved here from L13.
+# L15, objectives lifted verbatim from lectures/l15/notes.md; l15-o4 (uncertainty) moved here from L13.
 
 - id: l14-o1
   lecture: l14
   text: >-
-    Explain the Bayesian-optimization loop and the role of the surrogate + acquisition.
+    Define uncertainty quantification, distinguish aleatoric from epistemic uncertainty, and
+    tell confidence, credible and prediction intervals apart.
 
 - id: l14-o2
   lecture: l14
   text: >-
-    Choose and compare acquisition functions for exploration vs. exploitation.
+    Check whether a predictive uncertainty is calibrated, with coverage, a reliability diagram
+    and a proper scoring rule, and recalibrate it with one scale factor.
 
 - id: l14-o3
   lecture: l14
   text: >-
-    Set up an active-learning loop that chooses the next expensive query.
+    Explain what a Gaussian process's band promises, and recognize three ways it fails:
+    heteroscedastic noise, a misspecified kernel, and too few data.
 
 - id: l14-o4
   lecture: l14
   text: >-
+    Explain what the spread of a bootstrap or a deep ensemble measures, and why it needs a noise
+    term and recalibration before it is an interval.
+
+- id: l14-o5
+  lecture: l14
+  text: >-
+    Wrap any model in split conformal or CV+ prediction intervals, and state the exchangeability
+    condition their guarantee rests on.
+
+- id: l14-o6
+  lecture: l14
+  text: >-
+    Fit and compare UQ-capable regressors from pycse on data inside and beyond the training
+    range.
+
+- id: l15-o1
+  lecture: l15
+  text: >-
+    Explain the Bayesian-optimization loop and the role of the surrogate + acquisition.
+
+- id: l15-o2
+  lecture: l15
+  text: >-
+    Choose and compare acquisition functions for exploration vs. exploitation.
+
+- id: l15-o3
+  lecture: l15
+  text: >-
+    Set up an active-learning loop that chooses the next expensive query.
+
+- id: l15-o4
+  lecture: l15
+  text: >-
     Produce and calibrate predictive uncertainty, separating aleatoric from epistemic.
-
-# L16, published notes and no bank yet (game/content/l16.yml, status: unwritten).
-# Registered so whoever writes that bank maps onto objectives that already exist.
-
-- id: l16-o1
-  lecture: l16
-  text: >-
-    Call a hosted LLM API robustly and account for cost and latency as first-class engineering metrics.
-
-- id: l16-o2
-  lecture: l16
-  text: >-
-    Get validated, schema-constrained output out of an LLM and handle the cases where it fails.
-
-- id: l16-o3
-  lecture: l16
-  text: >-
-    Apply a disciplined prompting method and measure prompt quality on a small labeled set.
 
 # L18, published notes and no bank yet (game/content/l18.yml, status: unwritten).
 # Registered so whoever writes that bank maps onto objectives that already exist.
@@ -442,14 +460,20 @@
 - id: l18-o1
   lecture: l18
   text: >-
-    Give a defensible answer to "should I prompt, retrieve, or fine-tune?" for a concrete engineering task.
+    Call a hosted LLM API robustly and account for cost and latency as first-class engineering metrics.
 
 - id: l18-o2
   lecture: l18
   text: >-
-    Explain what fine-tuning and LoRA/PEFT do, when fine-tuning is the right tool, and why engineering knowledge usually belongs in RAG instead.
+    Get validated, schema-constrained output out of an LLM and handle the cases where it fails.
 
 - id: l18-o3
   lecture: l18
   text: >-
-    Compare prompting, RAG, and fine-tuning on cost, latency, freshness, and failure modes on the same task and metric.
+    Apply a disciplined prompting method and measure prompt quality on a small labeled set.
+
+# L19, published notes and no bank yet (game/content/l19.yml, status: unwritten).
+# Registered so whoever writes that bank maps onto objectives that already exist.
+
+
+

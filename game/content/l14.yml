@@ -1,447 +1,431 @@
-# L14 item bank for uncertainty quantification on the concrete strength dataset (aleatoric and
-# epistemic uncertainty, a Gaussian process, a deep ensemble, split conformal prediction and
-# their calibration), Bayesian optimization (the loop, acquisition functions, a mix design
-# against random search) and active learning. Version 2 replaces the empty version 1.
+# L14 item bank for uncertainty quantification in machine learning: aleatoric and epistemic
+# uncertainty and the kinds of interval, calibration and recalibration, what a Gaussian
+# process's band promises and three ways it fails, what an ensemble's spread measures, split
+# conformal prediction and CV+ and their one condition, and models with uncertainty built in
+# (pycse). Version 1 is the first bank for this lecture, which was written as lectures/l14a and
+# moved into l14 in the 2026-10-08 renumbering; the previous l14 bank moved to l15 with its
+# lecture.
 
 schema: 1
 lecture: l14
-title: "Uncertainty quantification, Bayesian optimization and active learning"
+title: "Uncertainty quantification in machine learning"
 source_notes: lectures/l14/notes.md
 # Held until release: tools/release_lecture.py flips this to published.
 status: unwritten
-serve: 8
-pool_version: 2
+serve: 7
+pool_version: 1
 provenance:
   drafted_by: hand
   reviewed_by: none
-  reviewed_at: 2026-10-06
+  reviewed_at: 2026-10-08
 
 items:
 
-  # --- o4: aleatoric and epistemic uncertainty, intervals and calibration ----------------------
+  # --- o1: what UQ is, aleatoric and epistemic, kinds of interval ------------------------------
 
   - id: l14-q01
     kind: mcq
     rung: 1
     difficulty: 1
-    objectives: [l14-o4]
+    objectives: [l14-o1]
     prompt: |
-      Which kind of uncertainty shrinks if you test more mixes in the right place?
+      You re-test fifty more cylinders of concrete mixes you have already tested. Which part of
+      the uncertainty in the strength prediction for those mixes goes down?
     options:
-      - "Epistemic: what the model does not know yet"
-      - "Aleatoric: the scatter between specimens of the same mix"
-      - "Both shrink equally with more data"
-      - "Neither; uncertainty is a property of the model family"
-    answer: "Epistemic: what the model does not know yet"
+      - "Epistemic: the model learns those mixes better"
+      - "Aleatoric: repeated tests average the scatter away"
+      - "Both, by the same amount"
+      - "Neither, because the mixes are not new"
+    answer: "Epistemic: the model learns those mixes better"
     evidence: |
-      Epistemic uncertainty comes from missing data, so testing where the model is unsure
-      reduces it. Aleatoric uncertainty is the scatter in the measurements themselves; more
-      tests measure it better but do not remove it.
+      Repeats pin down the strength of those mixes, so what the model does not know shrinks.
+      The scatter between repeat specimens is the noise itself, and no number of repeats
+      removes it from the next specimen.
     source:
       file: lectures/l14/notes.md
-      heading: "Two kinds of uncertainty"
+      heading: "Aleatoric and epistemic uncertainty"
       quote: |
         **Epistemic** uncertainty is what the model does not know yet, which more data in the right place
         reduces.
-    verify: {mode: quote, needle: "what the model does not know yet", volatility: stable}
-    tags: [epistemic, aleatoric]
+    verify: {mode: quote, needle: "more data in the right place", volatility: stable}
+    tags: [aleatoric, epistemic]
 
   - id: l14-q02
     kind: mcq
-    rung: 2
+    rung: 1
     difficulty: 2
-    objectives: [l14-o4]
+    objectives: [l14-o1]
     prompt: |
-      Specimens of the same mix tested at the same age scatter by 5.0 MPa. What does that number
-      tell you about any model of this data?
+      You need to know whether the next cylinder of a mix will pass a strength specification.
+      Which interval answers that?
     options:
-      - "No model can predict better than about 5.0 MPa: that scatter is aleatoric"
-      - "A model with enough capacity can bring its error below 5.0 MPa"
-      - "The test set needs more mixes before the error can be trusted"
-      - "The specimens were mislabeled, and the replicates should be removed"
-    answer: "No model can predict better than about 5.0 MPa: that scatter is aleatoric"
+      - "A confidence interval on the mean strength of the mix"
+      - "A prediction interval, which includes the scatter of a new specimen"
+      - "A credible interval on the model's parameters"
+      - "Any of them, since all three are the same width"
+    answer: "A prediction interval, which includes the scatter of a new specimen"
     evidence: |
-      Two specimens with the same inputs get the same prediction from any model, so their
-      scatter is a floor on the error. The GP's fitted noise term, 3.9 MPa, estimates the same
-      floor on its own.
+      The cylinder that gets tested is a new measurement, carrying the noise as well as the
+      model's uncertainty about the mean. A confidence or credible interval covers only the true
+      function value, so it is narrower than what the specimen will do.
     source:
       file: lectures/l14/notes.md
-      heading: "Two kinds of uncertainty"
+      heading: "Three kinds of interval"
       quote: |
-        Their strengths scatter by **5.0 MPa** (pooled standard deviation). No model predicts
-        better than that.
-    verify: {mode: quote, needle: "no model predicts", volatility: measured}
-    tags: [aleatoric, replicates]
+        needs the **prediction**
+        interval, because the specimen that gets tested is a new measurement.
+    verify: {mode: quote, needle: "specimen that gets tested is a new measurement", volatility: stable}
+    tags: [prediction-interval, confidence-interval]
+
+  # --- o2: calibration and recalibration ---------------------------------------------------------
 
   - id: l14-q03
     kind: mcq
     rung: 2
     difficulty: 2
-    objectives: [l14-o4]
+    objectives: [l14-o2]
     prompt: |
-      Intervals from the spread of five networks claimed 95% and covered 76% of the test mixes.
-      Why?
+      A forecaster ignores the mix and issues the same interval for every cylinder, the 5% to 95%
+      range of all past strengths. Its 90% intervals cover about 90% of new cylinders. What is
+      wrong with it?
     options:
-      - "The spread measures only epistemic uncertainty, and misses the scatter between specimens"
-      - "Five networks are too few; fifty would cover 95%"
-      - "The networks were overfitted, so their mean is wrong"
-      - "The test mixes were outside the training range"
-    answer: "The spread measures only epistemic uncertainty, and misses the scatter between specimens"
+      - "Nothing; it is calibrated, so it is a good forecast"
+      - "It is miscalibrated, because it ignores the inputs"
+      - "It is calibrated but not sharp: its intervals are too wide to be useful"
+      - "It is sharp but not calibrated"
+    answer: "It is calibrated but not sharp: its intervals are too wide to be useful"
     evidence: |
-      Networks trained on the same data agree wherever the data pin the function down, noisy or
-      not. Their spread grows only where data are missing, so it leaves out the 5 MPa of
-      aleatoric scatter that every test mix carries.
+      This is the climatological forecaster. Calibration alone can be bought with width; the goal
+      is the sharpest intervals that stay calibrated. On the concrete data it covered 91% with
+      intervals 55.9 MPa wide, against 22.2 MPa for the rescaled ensemble.
     source:
       file: lectures/l14/notes.md
-      heading: "A deep ensemble"
+      heading: "Sharpness subject to calibration"
       quote: |
-        So the spread measures **epistemic** uncertainty only.
-    verify: {mode: quote, needle: "so the spread measures", volatility: stable}
-    tags: [deep-ensemble, epistemic, calibration]
+        It is perfectly calibrated and useless.
+    verify: {mode: quote, needle: "perfectly calibrated and useless", volatility: stable}
+    tags: [sharpness, calibration, climatology]
 
   - id: l14-q04
-    kind: mcq
-    rung: 2
-    difficulty: 2
-    objectives: [l14-o4]
-    prompt: |
-      Split conformal prediction guarantees its coverage under one condition. Which?
-    options:
-      - "The calibration and test points are exchangeable: drawn the same way from the same population"
-      - "The model's errors are Gaussian"
-      - "The model is a Gaussian process"
-      - "The calibration set has at least 1,000 points"
-    answer: "The calibration and test points are exchangeable: drawn the same way from the same population"
-    evidence: |
-      Conformal makes no assumption about the model or the error distribution. It does assume
-      the test points look like the calibration points, which is exactly what a design loop
-      pushing into new mixes breaks.
-    source:
-      file: lectures/l14/notes.md
-      heading: "Split conformal prediction"
-      quote: |
-        **The guarantee**: if the calibration and test points are **exchangeable** (their order does not
-        matter: drawn the same way from the same population), the interval contains the truth with
-        probability at least $1 - \alpha$.
-    verify: {mode: quote, needle: "the interval contains the truth with", volatility: stable}
-    tags: [conformal-prediction, exchangeability]
-
-  - id: l14-q05
-    kind: mcq
-    rung: 1
-    difficulty: 1
-    objectives: [l14-o4]
-    prompt: |
-      What does the prediction interval coverage probability (PICP) measure?
-    options:
-      - "The fraction of test points whose interval contains the true value"
-      - "The average width of the intervals"
-      - "The probability the model's mean is within 1 MPa of the truth"
-      - "The fraction of training points used to calibrate the interval"
-    answer: "The fraction of test points whose interval contains the true value"
-    evidence: |
-      PICP counts hits: for each test point, is the measured value inside its interval? For a
-      calibrated 95% interval it should be about 0.95. It says nothing about width, which is
-      reported alongside it.
-    source:
-      file: lectures/l14/notes.md
-      heading: "Is the uncertainty right? Calibration"
-      quote: |
-        The check is the **prediction interval coverage probability** (PICP), the fraction of test
-        points whose interval contains the true value:
-    verify: {mode: quote, needle: "the fraction of test", volatility: stable}
-    tags: [calibration, picp]
-
-  - id: l14-q06
-    kind: spot_the_defect
-    rung: 3
-    difficulty: 3
-    objectives: [l14-o4]
-    prompt: |
-      A team checks their surrogate's 95% intervals on a random split of their mixes, finds 95%
-      coverage, and then uses the intervals to search for mixes stronger than any they have
-      tested. What is missing?
-    options:
-      - "A coverage check on mixes like the ones the search will reach; on the strongest mixes coverage fell to between 70% and 89%"
-      - "A larger random split; 95% on 195 points is not significant"
-      - "A second surrogate, to average the two intervals"
-      - "Nothing: a calibrated interval stays calibrated everywhere"
-    answer: "A coverage check on mixes like the ones the search will reach; on the strongest mixes coverage fell to between 70% and 89%"
-    evidence: |
-      Calibration on mixes like the training mixes says little about the strongest mixes, where
-      a design search goes. Holding those out, the GP covered 89%, the ensemble 86% and split
-      conformal 70% of what each claimed as 95%.
-    source:
-      file: lectures/l14/notes.md
-      heading: "Two test sets"
-      quote: |
-        Check coverage on a test set that looks like where the model will be **used**, not only like
-        where it was trained.
-    verify: {mode: quote, needle: "check coverage on a test set", volatility: stable}
-    tags: [calibration, extrapolation, practitioner]
-
-  # --- o1: the Bayesian optimization loop ------------------------------------------------------------
-
-  - id: l14-q07
-    kind: mcq
-    rung: 1
-    difficulty: 1
-    objectives: [l14-o1]
-    prompt: |
-      What does Bayesian optimization fit before choosing each new experiment?
-    options:
-      - "A probabilistic surrogate of the evaluations so far, whose mean and uncertainty feed an acquisition function"
-      - "A gradient of the objective, estimated by finite differences"
-      - "A grid over the design space, refined around the best point"
-      - "A model of the measurement noise only"
-    answer: "A probabilistic surrogate of the evaluations so far, whose mean and uncertainty feed an acquisition function"
-    evidence: |
-      Each step fits a GP to every evaluation so far, scores candidates with an acquisition
-      function of its mean and uncertainty, and evaluates the best-scoring one. No gradient of
-      the objective is ever needed.
-    source:
-      file: lectures/l14/notes.md
-      heading: "The problem"
-      quote: |
-        **Bayesian optimization** fits a probabilistic surrogate to the evaluations so far and uses an
-        **acquisition function** of its mean and uncertainty to choose the next point to evaluate.
-    verify: {mode: quote, needle: "fits a probabilistic surrogate", volatility: stable}
-    tags: [bayesian-optimization, surrogate]
-
-  - id: l14-q08
-    kind: mcq
-    rung: 2
-    difficulty: 2
-    objectives: [l14-o1]
-    prompt: |
-      The mix-design comparison ran Bayesian optimization and random search 30 times each, with
-      different seeds. Why not once?
-    options:
-      - "Both are random; one run of either could be luck"
-      - "The emulator gives a different answer each time it is called"
-      - "Thirty runs make the optimizer converge faster"
-      - "Each seed tests a different design variable"
-    answer: "Both are random; one run of either could be luck"
-    evidence: |
-      Both methods start from random mixes, and BO's later choices depend on them. A single run
-      can win or lose by chance, so the comparison reports how often each method gets close
-      across seeds: 29 of 30 for BO, 0 of 30 for random search.
-    source:
-      file: lectures/l14/notes.md
-      heading: "On the concrete strength dataset: BO against random search"
-      quote: |
-        Each gets **30 seeds**, because one run of either is luck.
-    verify: {mode: quote, needle: "because one run of either is luck", volatility: stable}
-    tags: [bayesian-optimization, seeds, random-search]
-
-  - id: l14-q09
-    kind: spot_the_defect
-    rung: 3
-    difficulty: 3
-    objectives: [l14-o1]
-    prompt: |
-      A report says: "Bayesian optimization on our emulator found a 91.6 MPa mix, stronger than
-      anything we have tested. We will specify it." What is wrong with that?
-    options:
-      - "91.6 MPa is the emulator's prediction, ±18 MPa, far from any tested mix; the next step is to cast and test it"
-      - "Bayesian optimization cannot find mixes stronger than the training data"
-      - "The optimizer needed more than 25 evaluations to be sure"
-      - "Nothing; the emulator was fitted to all 1,030 rows"
-    answer: "91.6 MPa is the emulator's prediction, ±18 MPa, far from any tested mix; the next step is to cast and test it"
-    evidence: |
-      An optimizer run on a fixed surrogate goes where the surrogate is most optimistic. Here
-      that is a corner of the design box, 9 MPa above the strongest specimen ever tested, with a
-      95% interval of ±18 MPa. It is a proposal to test.
-    source:
-      file: lectures/l14/notes.md
-      heading: "On the concrete strength dataset: BO against random search"
-      quote: |
-        This is BO on a fixed surrogate. In a real campaign, the next step is to cast that mix: the
-        measurement updates the GP, and the loop continues.
-    verify: {mode: quote, needle: "the next step is to cast that mix", volatility: measured}
-    tags: [bayesian-optimization, surrogate, practitioner]
-
-  # --- o2: acquisition functions -----------------------------------------------------------------------
-
-  - id: l14-q10
-    kind: mcq
-    rung: 2
-    difficulty: 2
-    objectives: [l14-o2]
-    prompt: |
-      When is expected improvement large?
-    options:
-      - "When the mean is above the best so far, or the uncertainty is large, or both"
-      - "Only when the mean is above the best value found so far"
-      - "Only where the uncertainty is largest"
-      - "Only at points that have not been evaluated before"
-    answer: "When the mean is above the best so far, or the uncertainty is large, or both"
-    evidence: |
-      EI adds an exploitation term, large where the mean beats the best so far, to an
-      exploration term, large where the GP is unsure. A point can score highly for either
-      reason.
-    source:
-      file: lectures/l14/notes.md
-      heading: "Acquisition functions"
-      quote: |
-        Large when the mean is above $f^*$, or when $\sigma$ is large, or both.
-    verify: {mode: quote, needle: "large when the mean is above", volatility: stable}
-    tags: [expected-improvement, exploration-exploitation]
-
-  - id: l14-q11
-    kind: mcq
-    rung: 2
-    difficulty: 2
-    objectives: [l14-o2]
-    prompt: |
-      On the two-peak test function, one acquisition picked 0.66, 0.67, 0.68 and so on to 0.72,
-      and stopped at 5.26 of a possible 6.02. Which?
-    options:
-      - "Probability of improvement"
-      - "Expected improvement"
-      - "Upper confidence bound with κ = 3"
-      - "Thompson sampling"
-    answer: "Probability of improvement"
-    evidence: |
-      PI scores only the chance of beating the best so far, by any margin, so it prefers points
-      right next to the best one and climbs in tiny steps. EI and UCB with κ = 3 both found the
-      global maximum.
-    source:
-      file: lectures/l14/notes.md
-      heading: "The loop on a test function"
-      quote: |
-        **PI** creeps uphill from its best point in tiny steps: it exploits.
-    verify: {mode: quote, needle: "creeps uphill from its best point", volatility: measured}
-    tags: [probability-of-improvement, exploitation]
-
-  - id: l14-q12
     kind: direction
     rung: 2
     difficulty: 2
     objectives: [l14-o2]
     prompt: |
-      You raise κ in the upper confidence bound μ(x) + κσ(x). What changes in where it samples?
+      On the calibration mixes, the z-scores (y − μ)/σ of an ensemble have a mean square well
+      above 1. You rescale every σ by the factor that minimizes the negative log likelihood.
+      What happens to the intervals?
     options:
-      - "It weights uncertainty more, so it samples more where the GP is unsure: it explores"
-      - "It weights the mean more, so it samples closer to the best point: it exploits"
-      - "Nothing; κ only rescales the acquisition"
-      - "It samples where the measurement noise is lowest"
-    answer: "It weights uncertainty more, so it samples more where the GP is unsure: it explores"
+      - "They get wider, because the factor is above 1"
+      - "They get narrower, because the factor is below 1"
+      - "They stay the same width and shift toward the data"
+      - "Nothing, because rescaling cannot change coverage"
+    answer: "They get wider, because the factor is above 1"
     evidence: |
-      κ multiplies the standard deviation. A larger κ lets uncertain regions outscore regions
-      with a high mean, which is exploration; with κ = 3 the first picks went to the far side of
-      the test function before the peak.
+      The best factor is the root mean square of the calibration z-scores. A mean square above 1
+      means the errors are larger than the stated σ, so the model was overconfident and the
+      factor widens every interval.
     source:
       file: lectures/l14/notes.md
-      heading: "Acquisition functions"
+      heading: "Worked example: recalibrating an ensemble"
       quote: |
-        **Upper confidence bound (UCB)**: $\mu(x) + \kappa\,\sigma(x)$. The weight $\kappa$ sets the
-        trade-off directly: large $\kappa$ explores.
-    verify: {mode: quote, needle: "trade-off directly", volatility: stable}
-    tags: [upper-confidence-bound, exploration]
+        the mean square of the calibration $z$-scores. A calibrated model has $z$-scores with unit
+        variance, so $s$ measures how far from that the model is.
+    verify: {mode: quote, needle: "measures how far from that the model is", volatility: stable}
+    tags: [recalibration, scale-factor]
 
-  - id: l14-q13
-    kind: mcq
-    rung: 1
-    difficulty: 2
-    objectives: [l14-o2]
-    prompt: |
-      How does Thompson sampling choose the next point?
-    options:
-      - "It draws one random function from the GP posterior and evaluates where that draw is highest"
-      - "It evaluates where the GP's standard deviation is largest"
-      - "It evaluates where the GP's mean is highest"
-      - "It samples a point uniformly at random"
-    answer: "It draws one random function from the GP posterior and evaluates where that draw is highest"
-    evidence: |
-      A draw from the posterior is high where the mean is high, and sometimes high where the GP
-      is unsure. The randomness of the draw does the exploring, with no explicit trade-off
-      parameter.
-    source:
-      file: lectures/l14/notes.md
-      heading: "Acquisition functions"
-      quote: |
-        **Thompson sampling**: draw one random function from the GP posterior, and evaluate where that
-        draw is highest.
-    verify: {mode: quote, needle: "draw one random function from the gp posterior", volatility: stable}
-    tags: [thompson-sampling]
+  # --- o3: what a GP's band promises, and three failures -----------------------------------------
 
-  # --- o3: active learning -----------------------------------------------------------------------------
-
-  - id: l14-q14
-    kind: mcq
-    rung: 1
-    difficulty: 1
-    objectives: [l14-o3]
-    prompt: |
-      Bayesian optimization looks for one best point. What does active learning aim for?
-    options:
-      - "A model that is accurate everywhere it will be used, with as few labels as possible"
-      - "The best point, found with fewer evaluations than BO"
-      - "A calibrated interval on the training data"
-      - "The point of largest measurement noise"
-    answer: "A model that is accurate everywhere it will be used, with as few labels as possible"
-    evidence: |
-      Both loops choose the next expensive measurement, but for different goals. BO wants one
-      excellent design; active learning wants a surrogate good across the region it will be
-      queried in.
-    source:
-      file: lectures/l14/notes.md
-      heading: "Active learning"
-      quote: |
-        Bayesian optimization looks for **one** best point. Active learning wants a model that is good
-        **everywhere** you will use it.
-    verify: {mode: quote, needle: "active learning wants a model that is good", volatility: stable}
-    tags: [active-learning]
-
-  - id: l14-q15
+  - id: l14-q05
     kind: mcq
     rung: 2
     difficulty: 2
     objectives: [l14-o3]
     prompt: |
-      On the concrete strength dataset, labeling where the GP is least sure was compared with
-      labeling at random. After 40 labeled rows, which model had the lower test error?
+      With its kernel settings held fixed, what does a Gaussian process's predictive variance
+      depend on?
     options:
-      - "Random labeling: 9.5 MPa against 12.7"
-      - "Least-sure labeling: 9.5 MPa against 12.7"
-      - "They were identical, since both used the same GP"
-      - "Neither improved on the 20-row starting model"
-    answer: "Random labeling: 9.5 MPa against 12.7"
+      - "The training targets, so a poor fit widens the band"
+      - "Only the inputs and the kernel, not the observed targets"
+      - "The residuals of the mean on the training points"
+      - "The number of points only, not where they are"
+    answer: "Only the inputs and the kernel, not the observed targets"
     evidence: |
-      Uncertainty sampling lost here. Its queries went to the edges of the data, where the test
-      mixes rarely are, while random queries covered the middle, where they mostly are.
+      The variance formula contains the kernel values between inputs and no y at all. At fixed
+      settings a GP that fits badly reports the same band as one that fits well; y reaches the
+      band only through fitted hyperparameters.
     source:
       file: lectures/l14/notes.md
-      heading: "On the concrete strength dataset"
+      heading: "Prior and posterior"
       quote: |
-        **Here, uncertainty sampling loses to random.**
-    verify: {mode: quote, needle: "uncertainty sampling loses to random", volatility: measured}
-    tags: [active-learning, uncertainty-sampling]
+        **The variance does not contain $y$.** It depends "only on the inputs" (p. 18).
+    verify: {mode: quote, needle: "only on the inputs", volatility: stable}
+    tags: [gaussian-process, posterior-variance]
 
-  - id: l14-q16
+  - id: l14-q06
     kind: spot_the_defect
     rung: 3
     difficulty: 3
     objectives: [l14-o3]
     prompt: |
-      A team labels whichever pool row their GP is least sure about, expecting the fastest drop in
-      test error. On the concrete strength dataset it did worse than random. What did they miss?
+      A team adds more simulation runs to an RBF Gaussian process and notices the fitted length
+      scale falls every time: 0.09, then 0.06, then 0.03. They conclude the model is resolving
+      finer detail. What did they miss?
     options:
-      - "The least-sure rows are extreme mixes and ages at the edges, not where the test mixes are"
-      - "The GP should be refitted less often"
-      - "Uncertainty sampling only works with neural networks"
-      - "The pool was too small to choose from"
-    answer: "The least-sure rows are extreme mixes and ages at the edges, not where the test mixes are"
+      - "Nothing; a shorter length scale always means a better model"
+      - "The optimizer is failing to converge as the data grow"
+      - "The noise level is too high for an RBF kernel"
+      - "A length scale that keeps shrinking signals a kernel that does not fit the function, such as a step"
+    answer: "A length scale that keeps shrinking signals a kernel that does not fit the function, such as a step"
     evidence: |
-      A GP is least sure at the edges of its data. 45% of its queries were at an age of 3 days or
-      180 days and more, against 19% of the pool. Labels there teach the model about inputs it
-      will rarely be asked about.
+      To bend at a discontinuity, a smooth kernel shortens its length scale everywhere, and more
+      data push it further. Duvenaud's cookbook calls this a classic sign of misspecification;
+      near the step the 95% band covered 72%.
     source:
       file: lectures/l14/notes.md
-      heading: "On the concrete strength dataset"
+      heading: "Failure 2: a kernel that does not match the function"
       quote: |
-        Measured: 45% of the least-sure queries are at an age of 3 days or 180 days and more, against
-        19% of the pool.
-    verify: {mode: quote, needle: "45% of the least-sure queries", volatility: measured}
-    tags: [active-learning, practitioner]
+        that "never stops becoming smaller as you add more data" "a classic sign of model
+        misspecification".
+    verify: {mode: quote, needle: "a classic sign of model", volatility: stable}
+    tags: [gaussian-process, kernel-misspecification, practitioner]
+
+  - id: l14-q07
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l14-o3]
+    prompt: |
+      Why is a Gaussian process fitted to five points, with its settings chosen by maximum
+      likelihood, often overconfident?
+    options:
+      - "Many settings explain five points equally well, and maximum likelihood keeps one as if known"
+      - "Five points are too few to compute a posterior at all"
+      - "Maximum likelihood always overestimates the noise"
+      - "The band cannot widen beyond the data with so few points"
+    answer: "Many settings explain five points equally well, and maximum likelihood keeps one as if known"
+    evidence: |
+      Short and long length scales fit five points about equally, and the uncertainty about which
+      is right never reaches the band. Over 200 data sets of five points, the median coverage of
+      a nominal 95% band was 78%.
+    source:
+      file: lectures/l14/notes.md
+      heading: "Failure 3: too few points"
+      quote: |
+        With few points, many
+        settings explain the data about equally well, and maximum likelihood picks one of them as if it
+        were known.
+    verify: {mode: quote, needle: "picks one of them as if it", volatility: stable}
+    tags: [gaussian-process, few-data, hyperparameters]
+
+  - id: l14-q08
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l14-o3]
+    prompt: |
+      Noise in a data set grows with x. A Gaussian process with one noise level covers 95% over
+      the whole range. What does checking coverage by region show?
+    options:
+      - "95% everywhere, since the overall number is right"
+      - "Too narrow where the noise is small, too wide where it is large"
+      - "Too wide where the noise is small, too narrow where it is large"
+      - "Too narrow everywhere, hidden by rounding"
+    answer: "Too wide where the noise is small, too narrow where it is large"
+    evidence: |
+      One fitted noise level sits between the small and the large noise, so the band is too wide
+      on the quiet side and too narrow on the noisy side. By third of the range the toy problem
+      gave 100%, 98% and 88%.
+    source:
+      file: lectures/l14/notes.md
+      heading: "Failure 1: noise that grows with the input"
+      quote: |
+        too wide on the left, too narrow on the right. The average hides both errors.
+    verify: {mode: quote, needle: "The average hides both errors", volatility: stable}
+    tags: [heteroscedastic-noise, gaussian-process]
+
+  # --- o4: what an ensemble's spread measures ----------------------------------------------------
+
+  - id: l14-q09
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l14-o4]
+    prompt: |
+      Ten networks trained from different seeds agree closely inside the training range, and a
+      95% interval built from their spread alone covers far less than 95% there. Why?
+    options:
+      - "The networks were not trained long enough"
+      - "Ten members are too few for a stable spread"
+      - "The spread measures only the epistemic part and leaves out the noise"
+      - "The spread is too large and overshoots the data"
+    answer: "The spread measures only the epistemic part and leaves out the noise"
+    evidence: |
+      Members disagree about the function, not about a new measurement. Inside the data they
+      agreed to 0.021 while the noise was 0.1, so the spread alone covered 29%; adding a noise
+      estimate brought it to 93%.
+    source:
+      file: lectures/l14/notes.md
+      heading: "What the spread measures"
+      quote: |
+        The spread is the epistemic part only, so an interval built from it
+        alone covers **29%**.
+    verify: {mode: quote, needle: "epistemic part only", volatility: measured}
+    tags: [ensemble, epistemic, noise-term]
+
+  - id: l14-q10
+    kind: mcq
+    rung: 1
+    difficulty: 2
+    objectives: [l14-o4]
+    prompt: |
+      What does the spread of models refit on bootstrap resamples estimate?
+    options:
+      - "The noise in a new measurement"
+      - "How much the fitted function varies with the data: the variance part of the error"
+      - "The bias of the model, including its errors far from the data"
+      - "The total prediction error, noise included"
+    answer: "How much the fitted function varies with the data: the variance part of the error"
+    evidence: |
+      Resampling shows how the fit would change with a new data set of the same size. If every
+      resample makes the same mistake, the spread is small and the error large, so the bias is
+      missed, and so is the noise.
+    source:
+      file: lectures/l14/notes.md
+      heading: "The bootstrap"
+      quote: |
+        That is the **variance** part of the error.
+    verify: {mode: quote, needle: "part of the error", volatility: stable}
+    tags: [bootstrap, variance, bias]
+
+  # --- o5: conformal prediction and its condition ------------------------------------------------
+
+  - id: l14-q11
+    kind: spot_the_defect
+    rung: 3
+    difficulty: 3
+    objectives: [l14-o5]
+    prompt: |
+      An optimizer searches a surrogate for the strongest mix it can find, and the team reports
+      each proposed mix with a split conformal 90% interval, citing the method's finite-sample
+      guarantee. What is wrong?
+    options:
+      - "Split conformal needs Gaussian errors, which strengths are not"
+      - "The calibration set must be larger than the training set"
+      - "Proposed mixes are chosen for being different, so they are not exchangeable with the calibration mixes"
+      - "Conformal intervals cannot be used with neural networks"
+    answer: "Proposed mixes are chosen for being different, so they are not exchangeable with the calibration mixes"
+    evidence: |
+      The guarantee needs only exchangeability, and an optimizer breaks it on purpose. On the
+      strongest mixes, held out because they differ, split conformal covered 56% at a nominal 90%.
+    source:
+      file: lectures/l14/notes.md
+      heading: "Out of domain"
+      quote: |
+        The guarantee did not fail. Its
+        condition was not met.
+    verify: {mode: quote, needle: "condition was not met", volatility: stable}
+    tags: [conformal-prediction, exchangeability, design-loop, practitioner]
+
+  - id: l14-q12
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l14-o5]
+    prompt: |
+      How does the width of a plain split conformal interval vary across inputs?
+    options:
+      - "It is the same everywhere; the guarantee holds on average over inputs"
+      - "It grows where the training data are sparse"
+      - "It follows the noise level at each input"
+      - "It shrinks as the model becomes more confident"
+    answer: "It is the same everywhere; the guarantee holds on average over inputs"
+    evidence: |
+      Plain split conformal adds one quantile of the calibration residuals to every prediction.
+      Coverage is marginal, so on a problem with growing noise it was 100%, 95% and 82% by third;
+      normalized scores or CQR make the width adapt.
+    source:
+      file: lectures/l14/notes.md
+      heading: "Marginal coverage, not conditional coverage"
+      quote: |
+        "the width is exactly
+        constant over x"
+    verify: {mode: quote, needle: "constant over x", volatility: stable}
+    tags: [conformal-prediction, marginal-coverage]
+
+  - id: l14-q13
+    kind: mcq
+    rung: 2
+    difficulty: 3
+    objectives: [l14-o5]
+    prompt: |
+      What coverage does the jackknife+ guarantee for a target level of 1 − α?
+    options:
+      - "Exactly 1 − α, like split conformal"
+      - "At least 1 − 2α in the worst case, and close to 1 − α in practice"
+      - "At least 1 − α, but only with Gaussian errors"
+      - "No guarantee at all, like the plain jackknife"
+    answer: "At least 1 − 2α in the worst case, and close to 1 − α in practice"
+    evidence: |
+      Barber et al. prove 1 − 2α and show the factor of 2 cannot be removed in general, while
+      reporting near 1 − α in practice. The plain jackknife has no guarantee, and its coverage can
+      vanish.
+    source:
+      file: lectures/l14/notes.md
+      heading: "Jackknife+ and CV+"
+      quote: |
+        The worst case is $1 - 2\alpha$ (their Theorem 1)
+    verify: {mode: quote, needle: "(their Theorem 1)", volatility: stable}
+    tags: [jackknife-plus, cv-plus, guarantee]
+
+  # --- o6: models with uncertainty built in (pycse) ----------------------------------------------
+
+  - id: l14-q14
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l14-o6]
+    prompt: |
+      LinearRegressionUQ with a cubic basis, fitted to a sine on [0, 1], covers about 95% inside
+      the data and almost nothing beyond it, although its band widens there. Why?
+    options:
+      - "The noise estimate is too small"
+      - "The cubic basis is wrong for a sine, and its uncertainty only covers fits within that basis"
+      - "Linear regression cannot produce prediction intervals"
+      - "The band widens too fast and overshoots"
+    answer: "The cubic basis is wrong for a sine, and its uncertainty only covers fits within that basis"
+    evidence: |
+      The parameter term says how unsure the coefficients of a cubic are, not whether a cubic is
+      the right shape. That is model inadequacy, and nothing inside the training range reveals it.
+    source:
+      file: lectures/l14/notes.md
+      heading: "UQ built into models: pycse"
+      quote: |
+        the parameter term only measures uncertainty within that basis.
+    verify: {mode: quote, needle: "only measures uncertainty within that basis", volatility: stable}
+    tags: [pycse, model-inadequacy]
+
+  - id: l14-q15
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l14-o6]
+    prompt: |
+      While fitting, a pycse model prints "Model is well-calibrated", then covers well under 95%
+      beyond its training range. What did the message check?
+    options:
+      - "Coverage on a held-out region beyond the training data"
+      - "That the network converged"
+      - "The rescaling factor on validation points from inside the training range"
+      - "That the residuals are Gaussian"
+    answer: "The rescaling factor on validation points from inside the training range"
+    evidence: |
+      The validation points came from the same range as the training points, so the check is an
+      in-distribution statement. It says nothing about inputs beyond the data.
+    source:
+      file: lectures/l14/notes.md
+      heading: "UQ built into models: pycse"
+      quote: |
+        so it is an in-distribution statement
+    verify: {mode: quote, needle: "in-distribution statement", volatility: stable}
+    tags: [pycse, calibration, practitioner]

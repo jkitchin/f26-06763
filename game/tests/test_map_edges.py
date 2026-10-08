@@ -66,12 +66,13 @@ def test_every_edge_is_from_the_back_half():
         assert (e["from"], e["to"]) not in linked, f"{e['from']} -> {e['to']} is already a link"
 
 
-def test_l17_is_still_the_dead_end():
-    """L17 cites nothing, by link or in prose. It is a true fact about the
-    course and the map should show it, so an edge appearing out of L17 means
-    somebody found a citation and this test should be updated deliberately."""
+def test_l19_is_still_the_dead_end():
+    """L19 (RAG; L17 before the 2026-10-08 renumbering) cites nothing, by link or
+    in prose. It is a true fact about the course and the map should show it, so
+    an edge appearing out of L19 means somebody found a citation and this test
+    should be updated deliberately."""
     out = {e["from"] for e in graph.build()["edges"]}
-    assert "l17" not in out
+    assert "l19" not in out
 
 
 def test_every_relation_is_documented():

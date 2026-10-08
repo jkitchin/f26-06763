@@ -4,85 +4,85 @@
     "1": {
       "items": {
         "l19-q01": {
-          "answer": "In the harness: break after the third identical failing call, with an explicit message",
+          "answer": "A system whose failures now come with a citation attached",
           "options": [
-            "In the model: raise the temperature so it explores a different tool instead of repeating itself",
-            "In the tool: raise an exception on a bad mote id so the loop stops on the first failed call",
-            "In the harness: break after the third identical failing call, with an explicit message",
-            "In the prompt: instruct the model to keep track of calls it has already made and never repeat one that failed"
+            "Grounding, since the model can now only answer from documents you supplied",
+            "A system whose failures now come with a citation attached",
+            "Freshness, which is the main benefit and does not depend on evaluation",
+            "Lower cost, since retrieved chunks are cheaper than long-context prompts"
           ]
         },
         "l19-q02": {
-          "answer": "The description was written for a human reader, not for the model that has to call it",
+          "answer": "Models do not read a long context uniformly: accuracy on a fact is worse when it sits in the middle",
           "options": [
-            "The model is too small for tool use; a larger model would infer the argument format from the tool name",
-            "The description was written for a human reader, not for the model that has to call it",
-            "The tool should be split into four narrower tools, one per variable, so that no argument is needed",
-            "Tool descriptions should be short so they do not crowd the context window; the fault is in the arguments alone"
+            "Latency, since a long prompt takes proportionally longer to process before the first token",
+            "Models do not read a long context uniformly: accuracy on a fact is worse when it sits in the middle",
+            "Truncation, since providers silently drop the oldest tokens once the window is exceeded",
+            "The attention mechanism degrades quadratically, so quality falls smoothly with length"
           ]
         },
         "l19-q03": {
-          "answer": "Return a plain, informative result the model can read and react to",
+          "answer": "The query is placed in the wrong space and nothing raises; pin the model in the index metadata",
           "options": [
-            "Raise an exception, so the failure is loud and the agent stops before it can compound the mistake",
-            "Return a plain, informative result the model can read and react to",
-            "Return an empty result, so the model infers that nothing matched and moves on",
-            "Retry internally with a nearby valid id, so the agent makes progress without a wasted turn"
+            "The vector store validates dimensions, so a mismatch is caught only if the dimensions differ; pad the shorter vectors",
+            "The query is placed in the wrong space and nothing raises; pin the model in the index metadata",
+            "The scores are renormalised per query, which hides the change; disable normalisation to surface it",
+            "The index needs rebuilding on every deploy, and the staleness is what degraded retrieval"
           ]
         },
         "l19-q04": {
-          "answer": "Safety. The loop is limited, not safe: three tool calls is plenty to delete something if a tool can delete something",
+          "answer": "In chunking, at ingestion; re-ranking cannot recover a split fact",
           "options": [
-            "Nothing further is needed; those three bounds are what makes an agent production-ready",
-            "Safety. The loop is limited, not safe: three tool calls is plenty to delete something if a tool can delete something",
-            "Debuggability, which requires structured logging of every step in addition to the bounds",
-            "Determinism, which requires pinning the temperature to zero as well as bounding the loop"
+            "In the retriever: a cross-encoder re-ranker will surface both halves and the model can combine them",
+            "In chunking, at ingestion; re-ranking cannot recover a split fact",
+            "In the generation prompt: instruct the model to combine partial evidence across retrieved chunks",
+            "In k: retrieve more chunks so both halves are likely to appear in the context together"
           ]
         },
         "l19-q05": {
-          "answer": "It establishes that the harness is correct, and leaves entirely open whether a real model chooses the right tool, with the right arguments, at the right time",
+          "answer": "When plain dense retrieval already hits recall@k near 1.0, since there is nothing left to improve",
           "options": [
-            "It establishes that the agent works end to end, leaving only latency and cost to tune",
-            "It establishes that the harness is correct, and leaves entirely open whether a real model chooses the right tool, with the right arguments, at the right time",
-            "It establishes nothing useful, because a model that cannot reason is not a meaningful test of a system built around reasoning",
-            "It establishes that the tool schemas are well formed, and leaves the harness logic untested"
+            "When the corpus is large, since two indexes do not scale to millions of documents",
+            "When plain dense retrieval already hits recall@k near 1.0, since there is nothing left to improve",
+            "When queries are short, since re-rankers need long queries to score against",
+            "When the embedding model is recent, since modern embeddings subsume what BM25 contributes"
           ]
         },
         "l19-q06": {
-          "answer": "A silent model update on the provider's side; determinism is a preference, not a guarantee",
+          "answer": "That it is topically close, and nothing about whether it answers the question or even agrees with it",
           "options": [
-            "Temperature drift in your own configuration; pin it to zero and the behaviour becomes identical",
-            "A silent model update on the provider's side; determinism is a preference, not a guarantee",
-            "Context-window exhaustion, which changes behaviour once conversations grow past a threshold",
-            "Rate limiting, which causes retries that present as different tool choices"
+            "That the chunk is relevant with roughly 83% confidence, which is a usable threshold",
+            "That it is topically close, and nothing about whether it answers the question or even agrees with it",
+            "That it is the best match available, since scores are normalised across the corpus",
+            "That the answer can be generated from it, provided the score exceeds your tuned cutoff"
           ]
         },
         "l19-q07": {
-          "answer": "No. Reach for an agent only once a fixed pipeline has stopped being sufficient",
+          "answer": "Build the retrieval gold set and measure recall@k before ever judging a generated answer",
           "options": [
-            "Yes; an agent handles the fixed case too and gives you room to grow",
-            "No. Reach for an agent only once a fixed pipeline has stopped being sufficient",
-            "Yes, provided the loop is bounded, since bounds remove the cost objection",
-            "It makes no difference; the two compile to the same sequence of API calls"
+            "Judge the generated answers first, since that is what users experience, then trace failures back to retrieval",
+            "Build the retrieval gold set and measure recall@k before ever judging a generated answer",
+            "Both at once, since retrieval and generation failures are indistinguishable from the outside",
+            "Neither in isolation; only end-to-end task success is meaningful for a retrieval system"
           ]
         },
         "l19-q08": {},
         "l19-q09": {
-          "answer": "A malformed call can be rejected before your tool code runs, rather than crashing inside it",
+          "answer": "Exact lexical matching, which is what rescues a query containing a part number or an error code",
           "options": [
-            "It makes the tool faster, since parsing is done by the provider rather than in your code",
-            "A malformed call can be rejected before your tool code runs, rather than crashing inside it",
-            "It is required by the tool-calling API, which rejects tools without typed arguments",
-            "It reduces token usage, because a schema is more compact than a prose description"
+            "Semantic matching across paraphrase, which embeddings approximate less reliably",
+            "Exact lexical matching, which is what rescues a query containing a part number or an error code",
+            "A calibrated probability of relevance, which dense scores lack",
+            "Language independence, since term statistics do not depend on a trained model"
           ]
         },
         "l19-q10": {
-          "answer": "The harness breaks after the third identical failing call, not the model noticing",
+          "answer": "The fraction of questions whose correct chunk appears in the top k",
           "options": [
-            "The model gives up on its own after reading the error twice, so the bound is a formality",
-            "The harness breaks after the third identical failing call, not the model noticing",
-            "The tool raises an exception on the second call, which propagates and stops the run",
-            "The max-step budget expires, which is why loop detection is redundant when a step budget exists"
+            "The fraction of generated answers that cite a real source, which is the grounding rate",
+            "The fraction of questions whose correct chunk appears in the top k",
+            "The average similarity of the top k chunks, which indicates whether the index is well built",
+            "The fraction of retrieved chunks that are relevant, which is precision at the retrieval stage"
           ]
         }
       },
@@ -91,85 +91,85 @@
     "2": {
       "items": {
         "l19-q01": {
-          "answer": "In the harness: break after the third identical failing call, with an explicit message",
+          "answer": "A system whose failures now come with a citation attached",
           "options": [
-            "In the model: raise the temperature so it explores a different tool instead of repeating itself",
-            "In the tool: raise an exception on a bad mote id so the loop stops on the first failed call",
-            "In the harness: break after the third identical failing call, with an explicit message",
-            "In the prompt: instruct the model to keep track of calls it has already made and never repeat one that failed"
+            "Grounding, since the model can now only answer from documents you supplied",
+            "A system whose failures now come with a citation attached",
+            "Freshness, which is the main benefit and does not depend on evaluation",
+            "Lower cost, since retrieved chunks are cheaper than long-context prompts"
           ]
         },
         "l19-q02": {
-          "answer": "The description was written for a human reader, not for the model that has to call it",
+          "answer": "Models do not read a long context uniformly: accuracy on a fact is worse when it sits in the middle",
           "options": [
-            "The model is too small for tool use; a larger model would infer the argument format from the tool name",
-            "The description was written for a human reader, not for the model that has to call it",
-            "The tool should be split into four narrower tools, one per variable, so that no argument is needed",
-            "Tool descriptions should be short so they do not crowd the context window; the fault is in the arguments alone"
+            "Latency, since a long prompt takes proportionally longer to process before the first token",
+            "Models do not read a long context uniformly: accuracy on a fact is worse when it sits in the middle",
+            "Truncation, since providers silently drop the oldest tokens once the window is exceeded",
+            "The attention mechanism degrades quadratically, so quality falls smoothly with length"
           ]
         },
         "l19-q03": {
-          "answer": "Return a plain, informative result the model can read and react to",
+          "answer": "The query is placed in the wrong space and nothing raises; pin the model in the index metadata",
           "options": [
-            "Raise an exception, so the failure is loud and the agent stops before it can compound the mistake",
-            "Return a plain, informative result the model can read and react to",
-            "Return an empty result, so the model infers that nothing matched and moves on",
-            "Retry internally with a nearby valid id, so the agent makes progress without a wasted turn"
+            "The vector store validates dimensions, so a mismatch is caught only if the dimensions differ; pad the shorter vectors",
+            "The query is placed in the wrong space and nothing raises; pin the model in the index metadata",
+            "The scores are renormalised per query, which hides the change; disable normalisation to surface it",
+            "The index needs rebuilding on every deploy, and the staleness is what degraded retrieval"
           ]
         },
         "l19-q04": {
-          "answer": "Safety. The loop is limited, not safe: three tool calls is plenty to delete something if a tool can delete something",
+          "answer": "In chunking, at ingestion; re-ranking cannot recover a split fact",
           "options": [
-            "Nothing further is needed; those three bounds are what makes an agent production-ready",
-            "Safety. The loop is limited, not safe: three tool calls is plenty to delete something if a tool can delete something",
-            "Debuggability, which requires structured logging of every step in addition to the bounds",
-            "Determinism, which requires pinning the temperature to zero as well as bounding the loop"
+            "In the retriever: a cross-encoder re-ranker will surface both halves and the model can combine them",
+            "In chunking, at ingestion; re-ranking cannot recover a split fact",
+            "In the generation prompt: instruct the model to combine partial evidence across retrieved chunks",
+            "In k: retrieve more chunks so both halves are likely to appear in the context together"
           ]
         },
         "l19-q05": {
-          "answer": "It establishes that the harness is correct, and leaves entirely open whether a real model chooses the right tool, with the right arguments, at the right time",
+          "answer": "When plain dense retrieval already hits recall@k near 1.0, since there is nothing left to improve",
           "options": [
-            "It establishes that the agent works end to end, leaving only latency and cost to tune",
-            "It establishes that the harness is correct, and leaves entirely open whether a real model chooses the right tool, with the right arguments, at the right time",
-            "It establishes nothing useful, because a model that cannot reason is not a meaningful test of a system built around reasoning",
-            "It establishes that the tool schemas are well formed, and leaves the harness logic untested"
+            "When the corpus is large, since two indexes do not scale to millions of documents",
+            "When plain dense retrieval already hits recall@k near 1.0, since there is nothing left to improve",
+            "When queries are short, since re-rankers need long queries to score against",
+            "When the embedding model is recent, since modern embeddings subsume what BM25 contributes"
           ]
         },
         "l19-q06": {
-          "answer": "A silent model update on the provider's side; determinism is a preference, not a guarantee",
+          "answer": "That it is topically close, and nothing about whether it answers the question or even agrees with it",
           "options": [
-            "Temperature drift in your own configuration; pin it to zero and the behaviour becomes identical",
-            "A silent model update on the provider's side; determinism is a preference, not a guarantee",
-            "Context-window exhaustion, which changes behaviour once conversations grow past a threshold",
-            "Rate limiting, which causes retries that present as different tool choices"
+            "That the chunk is relevant with roughly 83% confidence, which is a usable threshold",
+            "That it is topically close, and nothing about whether it answers the question or even agrees with it",
+            "That it is the best match available, since scores are normalised across the corpus",
+            "That the answer can be generated from it, provided the score exceeds your tuned cutoff"
           ]
         },
         "l19-q07": {
-          "answer": "No. Reach for an agent only once a fixed pipeline has stopped being sufficient",
+          "answer": "Build the retrieval gold set and measure recall@k before ever judging a generated answer",
           "options": [
-            "Yes; an agent handles the fixed case too and gives you room to grow",
-            "No. Reach for an agent only once a fixed pipeline has stopped being sufficient",
-            "Yes, provided the loop is bounded, since bounds remove the cost objection",
-            "It makes no difference; the two compile to the same sequence of API calls"
+            "Judge the generated answers first, since that is what users experience, then trace failures back to retrieval",
+            "Build the retrieval gold set and measure recall@k before ever judging a generated answer",
+            "Both at once, since retrieval and generation failures are indistinguishable from the outside",
+            "Neither in isolation; only end-to-end task success is meaningful for a retrieval system"
           ]
         },
         "l19-q08": {},
         "l19-q09": {
-          "answer": "A malformed call can be rejected before your tool code runs, rather than crashing inside it",
+          "answer": "Exact lexical matching, which is what rescues a query containing a part number or an error code",
           "options": [
-            "It makes the tool faster, since parsing is done by the provider rather than in your code",
-            "A malformed call can be rejected before your tool code runs, rather than crashing inside it",
-            "It is required by the tool-calling API, which rejects tools without typed arguments",
-            "It reduces token usage, because a schema is more compact than a prose description"
+            "Semantic matching across paraphrase, which embeddings approximate less reliably",
+            "Exact lexical matching, which is what rescues a query containing a part number or an error code",
+            "A calibrated probability of relevance, which dense scores lack",
+            "Language independence, since term statistics do not depend on a trained model"
           ]
         },
         "l19-q10": {
-          "answer": "The harness breaks after the third identical failing call, not the model noticing",
+          "answer": "The fraction of questions whose correct chunk appears in the top k",
           "options": [
-            "The model gives up on its own after reading the error twice, so the bound is a formality",
-            "The harness breaks after the third identical failing call, not the model noticing",
-            "The tool raises an exception on the second call, which propagates and stops the run",
-            "The max-step budget expires, which is why loop detection is redundant when a step budget exists"
+            "The fraction of generated answers that cite a real source, which is the grounding rate",
+            "The fraction of questions whose correct chunk appears in the top k",
+            "The average similarity of the top k chunks, which indicates whether the index is well built",
+            "The fraction of retrieved chunks that are relevant, which is precision at the retrieval stage"
           ]
         }
       },

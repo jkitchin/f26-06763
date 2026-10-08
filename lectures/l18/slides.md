@@ -8,28 +8,28 @@ footer: "Systems and Toolchains for AI Engineers"
 
 <!-- _class: title -->
 
-# Lecture 18: Prompting, RAG, or fine-tuning
+# Lecture 18: The API, prompt, and structured-output interface
 
-## Week 10, LLM & agentic engineering
+## Week 9, LLM & agentic engineering
 
-**Systems & Toolchains for AI in Engineering**
+**Systems and Toolchains for AI Engineers**
 
 ---
 
 ## Roadmap
 
 1. Why this matters
-2. Three levers, and when each wins
-3. What fine-tuning and LoRA actually do
-4. Why fine-tuning is the wrong lever for knowledge
-5. Evaluating adaptation apples-to-apples
-6. Cost, latency, and ops
+2. The request and response interface
+3. Structured output you can trust
+4. Context, cost, and latency
+5. Prompting you can measure
+6. Reliability engineering
 7. Where it pushes back
-8. Live demo: prompting vs RAG, measured
+8. Live demo: a datasheet to a validated record
 
-<!-- 110 min. Budget roughly 10 / 16 / 16 / 14 / 12 / 8 / 8 / 18 demo.
-     The hands-on LoRA fine-tune was moved to an optional GPU lab; this session is
-     the decision framework. Keep the knowledge-vs-behavior split front and centre. -->
+<!-- 110 min. Budget roughly 10 / 12 / 20 / 16 / 14 / 8 / 10 / 20 demo.
+     Task throughout: component datasheets -> a normalized parts table (Assignment 8).
+     Assignment 8 was released last session; tie the demo back to it at the end. -->
 
 ---
 
@@ -41,248 +41,284 @@ footer: "Systems and Toolchains for AI Engineers"
 
 ## Why this matters
 
-A team wants an assistant that knows their equipment:
-the specs, the standards, the internal manuals.
+The task behind Assignment 8: a few hundred component datasheets,
+one clean parts table.
 
-They **fine-tune a model on the PDFs.**
+Part number, material, max pressure (MPa),
+temperature range, mass.
 
-The result: it sounds like their domain, but still gets
-the numbers wrong, invents part codes, and **cannot cite a source.**
-Weeks of GPU time bought a model confidently wrong about the facts.
+An LLM can read a datasheet and produce that record.
+The trouble is what "produce that record" hides.
 
 ---
 
 ## Why this matters
 
-The tool was wrong for the job. Three levers, three kinds of gap:
+Three ways it goes wrong, none of which raise an error:
 
-- gap is **knowledge** the model lacks -> retrieval
-- gap is **behavior / format** -> fine-tuning
-- still figuring out what you need -> prompting
-
-The practitioner skill is the choice, not any one technique.
-
----
-
-<!-- _class: section -->
-
-# Three levers, and when each wins
-
----
-
-## Three levers, and when each wins
-
-| Need | Lever | Cost |
-|---|---|---|
-| knowledge (proprietary, changing, must cite) | **RAG** | index + retrieval latency |
-| behavior / format / style, consistently | **fine-tuning** | labeled data + training + serving |
-| quick iteration, latent knowledge | **prompting** | tokens per call |
-
-They combine: RAG for the facts, a light fine-tune for the format.
-
----
-
-## Three levers, and when each wins
+- datasheet says **40 bar**, model writes `42` MPa: off by 10x, silently
+- datasheet omits pressure, model **invents** 16 MPa
+- 60-page PDF overruns the context, the end is **silently truncated**
 
 <div class="definition">
 
-**Model adaptation**: closing the gap between a general model and your task, by prompting, retrieval, fine-tuning, or a combination.
-
-</div>
-
-Microsoft's own guide splits it the same way:
-fine-tuning for stable/specialized behavior, RAG for dynamic/current knowledge.
-
----
-
-## Three levers, and when each wins
-
-| Engineering task | Lever |
-|---|---|
-| "what is the MAWP of this pipe?" (spec lookup) | RAG |
-| always emit our inspection-report schema | fine-tuning |
-| classify a maintenance log's failure mode | few-shot, then fine-tune |
-| summarize this one datasheet | prompting |
-| answer from 10,000 changing standards, with citations | RAG |
-
-The task names the lever. Most engineering gaps are knowledge, so most are RAG.
-
----
-
-<!-- _class: section -->
-
-# What fine-tuning and LoRA actually do
-
----
-
-## What fine-tuning and LoRA actually do
-
-- **full fine-tuning**: update every weight. Big GPU, full-size checkpoint, mostly impractical.
-- **PEFT**: train far fewer parameters.
-
-<div class="definition">
-
-**LoRA**: freeze the base weights `W`, train a small low-rank detour `BA` beside them, so `h = Wx + BAx`. Only `A` and `B` train.
+"The model returned JSON" is not the same claim as "the JSON is correct."
 
 </div>
 
 ---
 
-## What fine-tuning and LoRA actually do
+## Why this matters
 
-![w:820](figures/lora-adapter.png)
+So make the interface an engineering artifact:
 
-Rank `r` is tiny (8, 16). At inference `BA` folds into `W`: no added latency.
+- **structured output** you can validate mechanically
+- **cost and latency** as first-class numbers
+- **prompting** measured on a labeled set, not eyeballed
 
----
-
-## What fine-tuning and LoRA actually do
-
-![w:620](figures/trainable-params.png)
-
-Under 1% of the weights train. Hu et al.: **10,000x fewer** params than full fine-tuning of GPT-3, quality on par or better.
+Those three are the spine of the session.
 
 ---
 
-## What fine-tuning and LoRA actually do
+<!-- _class: section -->
+
+# The request and response interface
+
+---
+
+## The request and response interface
+
+Every hosted model exposes the same shape:
+
+- **messages** with roles: system (standing instructions), user (the input)
+- `max_tokens`, `temperature`, stop conditions
+- streaming vs non-streaming
+- a **usage** block: tokens in, tokens out, cached
+
+Reading usage on every call is how you know what a pipeline costs.
+
+---
+
+## The request and response interface
+
+Two settings that trade off:
+
+- **temperature ~ 0** for extraction (there is a right answer)
+- larger `max_tokens` and streaming change *when* tokens arrive, not the total
+
+The interface is provider-agnostic; the specifics are not.
+**Pin the model ID** you used; read current docs for limits and price.
+
+---
+
+## The request and response interface
 
 ```python
-from peft import LoraConfig
-cfg = LoraConfig(
-    r=8, lora_alpha=16,                    # rank and scaling
-    target_modules=["q_proj", "v_proj"],   # which matrices get a detour
-    lora_dropout=0.05,
+resp = client.messages.create(
+    model="claude-sonnet-5",        # pin it
+    max_tokens=512, temperature=0,  # extraction: deterministic
+    system="You extract component data as JSON...",
+    messages=[{"role": "user", "content": datasheet_text}],
 )
-# wrap the frozen base with adapters, then train as usual
+text = resp.content[0].text
+usage = resp.usage                  # input_tokens, output_tokens: the meter
 ```
 
-Few knobs; the base never moves. Read aloud, run in the optional lab.
-
----
-
-## What fine-tuning and LoRA actually do
-
-- **QLoRA**: quantize the frozen base to 4-bit, train adapters on top
-- Dettmers et al.: fine-tuned a **65B model on one 48GB GPU**; Guanaco hit **99.3% of ChatGPT** on one benchmark in 24 h
-- knobs: rank `r`, alpha, target modules, LR, epochs
-- the real risk on small data: **overfitting**
-
-Cheap to run does not make it the right tool for knowledge.
+Read on a slide, run in the demo. The usage block is the cost meter.
 
 ---
 
 <!-- _class: section -->
 
-# Why fine-tuning is the wrong lever for knowledge
+# Structured output you can trust
 
 ---
 
-## Why fine-tuning is the wrong lever for knowledge
+## Structured output you can trust
 
-Facts baked into weights:
-
-- **cannot be cited** (fatal for a code/spec answer)
-- **go stale** the moment the data changes
-- risk **catastrophic forgetting** of what the model knew
-
-Updating a fact means another training run, not an index write.
-
----
-
-## Why fine-tuning is the wrong lever for knowledge
+Asking for JSON in the prompt and hoping fails just often enough
+to corrupt a batch. Two better routes, both hand the model a schema:
 
 <div class="definition">
 
-**Knowledge injection**: getting new facts into a model's answers, by fine-tuning on them or by retrieving them at query time.
+**Structured output**: constrain decoding to a schema so the reply parses and conforms, via schema-enforced JSON or a typed tool call.
 
 </div>
 
-[Ovadia et al. 2023](https://arxiv.org/abs/2312.05934): across models and tasks, **RAG consistently beat fine-tuning** for knowledge, and models "struggle to learn new factual information through unsupervised fine-tuning."
+---
+
+## Structured output you can trust
+
+- **schema-enforced JSON**: Anthropic `output_config.format`, OpenAI `text.format` with `strict`
+- **tool / function calling**: a tool with a typed `input_schema`
+
+Close cousins: both send a schema, both return a payload shaped to it.
+Tool calling is older, universal, and reused for agents.
 
 ---
 
-## Why fine-tuning is the wrong lever for knowledge
+## Structured output you can trust
 
-What fine-tuning is actually good at: **behavior and format.**
+A schema guarantees **shape**, never **truth**.
 
-- always emit your exact schema
-- adopt a house style or domain convention
-- a narrow classification, consistently
+- `max_pressure_MPa` is present and a number: yes
+- the number is right, units converted, not invented: **not checked**
 
-The rule: **knowledge -> retrieval; behavior/format -> fine-tuning.**
+So the schema is only the first check. Validate the content with **Pydantic**:
+typed fields, plus custom checks (pressure positive, temp low < high).
 
 ---
 
-<!-- _class: definition -->
+## Structured output, the validator
 
-Knowledge is retrieval's job.
+```python
+class Component(BaseModel):
+    part_number: str
+    material: str
+    max_pressure_MPa: float | None = None   # None when not stated
 
-Behavior and format are fine-tuning's.
+    @field_validator("max_pressure_MPa")
+    @classmethod
+    def plausible(cls, v):
+        if v is not None and not (0 < v < 1000):
+            raise ValueError("pressure out of range")
+        return v
+```
 
-Prompting is how you find out which one you need.
+A typed class is the contract; a validator turns shape-checking into fact-checking.
+
+---
+
+## Structured output, and how it drifts
+
+The parameters themselves are a live example of provider drift:
+
+- Anthropic added `output_config.format`, **deprecating** the old `output_format`
+- OpenAI moved the canonical shape from Chat `response_format` to Responses `text.format`
+
+Both changed inside a year. Read the current docs; pin what you used.
+
+---
+
+## Structured output, the repair loop
+
+![w:950](figures/repair-loop.png)
+
+<div class="definition">
+
+A validation failure feeds the error back to the model as a repair request. Cap the retries; after N, flag for a human.
+
+</div>
 
 ---
 
 <!-- _class: section -->
 
-# Evaluating adaptation apples-to-apples
+# Context, cost, and latency
 
 ---
 
-## Evaluating adaptation apples-to-apples
+## Context, cost, and latency
 
-The comparison only counts if it is fair:
-**same held-out set, same metric, every candidate.**
+Cost is near-linear in tokens: predictable once measured, invisible until then.
 
-A tuned model at 90% on its own validation data
-tells you nothing against a prompt scored on different questions.
-
----
-
-## Evaluating adaptation apples-to-apples
-
-![w:760](figures/bakeoff.png)
-
-Prompting guesses every lookup; RAG grounds and cites, and declines on the absent one. On formatting they tie.
+- read usage on every call; log cost per call and per document
+- anchor (Sonnet 5, 2026-08-18): **$2 / Mtok in, $10 / Mtok out**
+- a one-page datasheet is a fraction of a cent; 10,000 of them is real money
 
 ---
 
-## Evaluating adaptation apples-to-apples
+## Context, cost, and latency, the levers
 
-Two honest details in that bake-off:
+- **prompt caching** for a large fixed prefix (next slide)
+- **right-size the model**: a small fast model for easy subtasks
+- **sane `max_tokens`**: you pay for output length
+- **batching** when latency does not matter
 
-- RAG scores **4 of 5**, not a sweep: a distractor sentence outranked the answer (Lecture 17's lesson)
-- on formatting, RAG and prompting **tie**: the gap there was never knowledge
+Measure first: log usage per call, then pull the lever that helps.
 
-The framework, measured.
+---
+
+## Context, cost, and latency, caching
+
+<div class="definition">
+
+**Prompt caching**: mark a large fixed prefix (instructions, schema, examples) cacheable; pay once to write, a tenth to read.
+
+</div>
+
+![w:620](figures/prompt-caching.png)
+
+Break-even at the second call; ~4.6x cheaper by 30.
+
+---
+
+## Context, cost, and latency, lost in the middle
+
+![w:760](figures/lost-in-the-middle.png)
+
+[Liu et al. 2023](https://arxiv.org/abs/2307.03172): burying the answer mid-context drops accuracy 22 points, below closed-book. More context is not free.
 
 ---
 
 <!-- _class: section -->
 
-# Cost, latency, and ops
+# Prompting you can measure
 
 ---
 
-## Cost, latency, and ops
+## Prompting you can measure
 
-| Lever | Ongoing cost |
-|---|---|
-| prompting | tokens per call (long few-shot adds up) |
-| RAG | index to maintain + retrieval latency |
-| fine-tuning | training up front, then serving a GPU |
+The techniques are mundane:
 
-Self-hosting a tuned model wins only at high volume, or under latency / data-residency limits. Count total cost of ownership.
+- clear role and instructions in the system prompt
+- **zero-shot** vs **few-shot**; few-shot when the format is fiddly
+- ground in the provided text; instruct it to say "not found"
+- ask for the source span; keep temperature low
 
 ---
 
-## The levers combine
+## Prompting you can measure, the gold set
 
-- RAG for the facts **+** a light fine-tune for the format
-- **RAFT**: fine-tune the model to *use* retrieval well, cite the right passage, ignore distractors
-- "knowledge means RAG" forbids fine-tuning *instead of* retrieving, not *alongside* it
+<div class="definition">
 
-The decision is rarely one of three; it is which primary lever, and what you add.
+**Gold set**: 10-30 examples with the correct extraction written by hand, so a prompt change is scored, not guessed.
+
+</div>
+
+"Field accuracy 71% -> 89%, cost +4%" is a sentence you can act on.
+"Seems better" is not.
+
+---
+
+## Prompting you can measure, the delta
+
+| | naive prompt | improved prompt |
+|---|---|---|
+| instruction | "extract fields as JSON" | roles, units rule, "say null", one example |
+| `40 bar` | left as 40 MPa | converted to 4.0 MPa |
+| bolt pressure | invented 16 MPa | null |
+| field accuracy | 80% | 100% |
+| cost / 4 sheets | 0.21 cents | 0.34 cents |
+
+More accurate and more expensive: the decision is accuracy per dollar.
+
+---
+
+<!-- _class: section -->
+
+# Reliability engineering
+
+---
+
+## Reliability engineering
+
+An LLM API is a networked service. Treat it like one:
+
+- **retry with backoff** on 429 / 5xx, with jitter and a cap
+- make writes **idempotent** so a retry does not double-charge
+- log prompt + response + usage (reuse the week 5 tracking discipline)
+- count tokens before sending; never truncate an input silently
 
 ---
 
@@ -294,12 +330,23 @@ The decision is rarely one of three; it is which primary lever, and what you add
 
 ## Where it pushes back
 
-- the levers **combine**: RAFT fine-tunes a model to use retrieval well and ignore distractors, beating either alone
-- RAG has its own misses: a distractor outranks the answer (the demo)
-- fine-tuning can overfit small data or forget general skill
-- eval goes wrong quietly: a leaked held-out set, a flattering metric
+| Looks like it guarantees | Actually guarantees |
+|---|---|
+| the answer is correct | the answer has the right shape |
+| "it worked in the demo" | it worked once, at that temperature |
+| the parameter you learned | a parameter that already drifted |
 
-Measure every adaptation claim, including your own.
+Schema-valid is not correct; low temperature is not determinism.
+
+---
+
+## Where it pushes back
+
+- **units and numbers** are where extraction quietly fails: bar vs MPa, "2.5" str vs float
+- **provider drift**: model IDs, limits, prices, even these structured-output params change
+- **no answer in the prompt?** no schema conjures it, and stuffing context invites lost-in-the-middle
+
+The fix for the last one is retrieval.
 
 ---
 
@@ -307,19 +354,18 @@ Measure every adaptation claim, including your own.
 
 # Demo
 
-## `l18-prompt-vs-rag.ipynb`
+## `l18-structured-extraction.ipynb`
 
-One corpus, one gold set, two systems scored the same way. No GPU, no key.
+Datasheets to a validated parts table. Runs offline; real API with a key.
 
 ---
 
 ## Demo: what to watch
 
-1. the **absent query**: RAG declines; the bare prompt invents a flash point
-2. the **distractor miss**: RAG's one wrong lookup, retrieval outranked by a near-miss sentence
-3. the **tie** on formatting: retrieval adds nothing when the gap is not knowledge
-
-Fine-tuning is discussed, not trained: that is the optional GPU lab.
+1. the **repair loop**: a bad `mass_kg` string is fed back and fixed on retry
+2. the **incomplete bolt**: pressure comes back `null`, not a hallucinated number
+3. **cost accounting**: token usage and cents printed per call
+4. **gold set**: naive 80% vs improved 100%, with the cost delta beside it
 
 ---
 
@@ -331,16 +377,16 @@ Fine-tuning is discussed, not trained: that is the optional GPU lab.
 
 ## Recap
 
-- the lever follows the need: knowledge -> RAG, behavior/format -> fine-tuning, iterate -> prompting
-- LoRA/QLoRA make fine-tuning cheap, training <1% of weights, but cheap does not make it right for knowledge
-- the strongest systems combine levers
-- prove the choice on one fair gold set
+- getting structured data out reliably is a loop: constrain, validate, repair
+- read usage every call; caching and model choice are the cost levers
+- a schema guarantees shape, never truth: units, "not found", and the gold set do the rest
+- score prompts on a gold set; pin the model; count tokens
 
 ---
 
 ## Next
 
-**Reading** Ovadia et al. (fine-tuning vs retrieval); Hu et al. (LoRA)
-**Assignment 9**, the RAG system, due about a week out
+**Reading** Liu et al., "Lost in the Middle", and your provider's structured-output guide
+**Assignment 8**, the structured extractor, due about a week out
 
 Notes for this lecture: `lectures/l18/notes.md`

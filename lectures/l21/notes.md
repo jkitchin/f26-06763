@@ -191,7 +191,7 @@ use it responsibly rather than as a shortcut.
 system takes more than one step: **task success rate** against a fixed suite with known-good
 outcomes, **tool-call correctness** (right tool, right arguments), **steps and cost per task**,
 and a **failure taxonomy** that names how an agent failed rather than only that it did, wrong
-tool selected, a hallucinated argument, an infinite loop, or the agent simply giving up. Lecture 19's
+tool selected, a hallucinated argument, an infinite loop, or the agent simply giving up. Lecture 20's
 harness already logs everything a failure taxonomy needs, every tool call, every result, every
 stop condition; this session's contribution is turning that log into the aggregate numbers a
 reviewer can actually act on.
@@ -314,7 +314,7 @@ version of the same idea rather than the full treatment.
 
 ## In-class demo
 
-We build a roughly sixty-line eval harness for a small RAG assistant in the spirit of Lecture 17's
+We build a roughly sixty-line eval harness for a small RAG assistant in the spirit of Lecture 19's
 system: a frozen four-question eval set, a retriever over a small constructed corpus, two
 programmatic checks (faithfulness and reference match) that catch a deliberately injected
 hallucinated citation and a real exact-match brittleness, and an LLM-as-judge stand-in
@@ -328,7 +328,7 @@ the truth only about 14% of the time. Both passes log their metrics and artifact
 MLflow store.
 
 The runnable notebook is [`l21-eval.ipynb`](l21-eval.ipynb). It downloads the same Intel Lab
-data Lecture 3, Lecture 4, and Lecture 19 use and needs no API key or external service.
+data Lecture 3, Lecture 4, and Lecture 20 use and needs no API key or external service.
 
 ## Summary
 

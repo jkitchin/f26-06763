@@ -8,9 +8,9 @@ footer: "Systems and Toolchains for AI Engineers"
 
 <!-- _class: title -->
 
-# Lecture 17: Retrieval-augmented generation & vector databases
+# Lecture 17: Tokens, context, and vectors
 
-## Week 10, LLM & agentic engineering
+## Week 9, LLM & agentic engineering
 
 **Systems and Toolchains for AI Engineers**
 
@@ -18,19 +18,17 @@ footer: "Systems and Toolchains for AI Engineers"
 
 ## Roadmap
 
-1. Why this matters: a chatbot, a policy, a tribunal
-2. The anatomy of a RAG pipeline
-3. Chunking strategy
-4. Vector databases and indexes
-5. Retrieval mechanics: dense, keyword, hybrid
-6. Grounding the generation
-7. Evaluating retrieval, separately from the answer
-8. Live demo: one pipeline, measured end to end
+1. What a decoder-only model actually does
+2. Predict the next token: fluency and hallucination
+3. Tokenization, and what it does to engineering text
+4. The context window as a budget
+5. Embeddings and cosine similarity
+6. Where cosine pushes back
+7. Live demo: a datasheet and a log book
 
-<!-- 110 min. Budget roughly 10/15/15/10/15/15/15/15 demo.
-     No hosted LLM call in the demo -- no network in the build environment.
-     The demo assembles and shows the grounded prompt instead of calling a model.
-     If running long, cut the vector-DB options slide, not the demo. -->
+<!-- 110 min. Budget roughly 10 / 15 / 22 / 18 / 18 / 12 / 20 demo.
+     Assignment 8 is released today: hold 5 min at the end for it.
+     If running long, cut the sampling-knob slides, not the negation result. -->
 
 ---
 
@@ -42,536 +40,720 @@ footer: "Systems and Toolchains for AI Engineers"
 
 ## Why this matters
 
-2022: Jake Moffatt asks Air Canada's chatbot about
-bereavement fares.
-
-Bot: book now, apply for the discount within 90 days
-**after** travel.
-
-**The airline's actual policy.**
-
-Discount had to be requested **before** travel.
-
-Air Canada refused the refund. Case went to
-Canada's Civil Resolution Tribunal.
+# `±0.05 mm`
 
 ---
 
-## Why this matters, air Canada's defense
+## Why this matters, what the model receives
 
-The chatbot was "a separate legal entity ...
-responsible for its own actions."
+```
+'±'   '0'   '.'   '05'   ' mm'
+```
 
-The customer should have checked the real
-policy page himself.
+Five tokens. **Not one of them is `0.05`.**
 
----
+The number the specification is about does not
+exist in the model's input.
 
-## Why this matters, the tribunal's answer
-
-February 2024: "a remarkable submission."
-
-A company is responsible for all the information
-on its website, chatbot or static page.
-
-[Moffatt v. Air Canada, 2024 BCCRT 149](https://www.canlii.org/en/bc/bccrt/doc/2024/2024bccrt149/2024bccrt149.html)
+<!-- The fragment '05' is the same fragment it sees in 2005, in 0.5, and in a
+     serial number. Let that sit for a second before moving on. -->
 
 ---
 
-## Why this matters, the engineering failure, precisely
+## Why this matters, and it costs a different amount everywhere
 
-A factual question about a document that
-**already existed, in full, retrievably**.
+The same 2,365-character datasheet:
 
-The model answered from training-data pattern
-instead of being shown the actual policy.
+| tokenizer | tokens |
+|---|---|
+| `tiktoken` / `cl100k_base` | 776 |
+| Claude Haiku 4.5 | 924 |
+| Claude Opus 5 | **1,263** |
 
----
+**+63%** over the local estimate.
+**+37%** over another model from the same vendor.
 
-## Why this matters, not lying. Doing exactly what it does.
+**Today's claim.**
 
-No source to constrain it →
-plausible, fluent, fluent-and-wrong text.
+An LLM is a **next-token predictor over subword
+fragments.**
 
-**Plausible** and **correct** are different
-properties that often coincide. Not always.
-
----
-
-## Why this matters, what RAG actually buys you
-
-Not "smarter." **Traceable to a source
-a human can go check.**
-
-Plus: freshness (update the doc, not the model)
-and cost (retrieve 3 paragraphs, not fine-tune).
-
-**Why not just use a huge context window?.**
-
-Billed per token, every call, whether the
-model needed most of them or not.
-
-And: a model doesn't read a long context
-uniformly.
+What fits, what it costs, how long it takes,
+and what it gets wrong about numbers
+all fall out of that one sentence.
 
 ---
 
 <!-- _class: section -->
 
-# Anatomy of a RAG pipeline
+# What the model actually does
 
 ---
 
-## Anatomy of a RAG pipeline
+## What the model actually does
 
 <div class="definition">
 
-**Retrieval-augmented generation**: retrieving passages from your own corpus and putting them in the context, so the model answers from them rather than from memory.
+**Decoder-only language model**: a next-token predictor: it consumes a sequence of tokens and returns a distribution over the token that follows.
 
 </div>
 
-**Ingestion** (offline, once per doc change):
-load → clean → chunk → embed → index
+1. **Tokenize** → integers from a fixed vocabulary
+2. **Embed + position** → one vector per token
+3. **Stack of blocks** → attention + feed-forward, ×100
+4. **Logits** → one number per vocabulary entry
+5. **Softmax, sample, append, repeat**
 
-**Query** (online, once per question, user waiting):
-embed query → retrieve top-k → assemble prompt → generate + cite
-
----
-
-## Anatomy of a RAG pipeline, where the name comes from
-
-Lewis et al., NeurIPS 2020: "Retrieval-Augmented
-Generation for Knowledge-Intensive NLP Tasks"
-
-A retriever scoring documents against a query +
-a generator conditioned on the query **and** what came back.
-
-[arxiv.org/abs/2005.11401](https://arxiv.org/abs/2005.11401)
+[Vaswani et al. 2017](https://arxiv.org/abs/1706.03762)
 
 ---
 
-## Anatomy of a RAG pipeline, what's changed since 2020
+## What the model actually does, attention, in one slide
 
-Embeddings better. Indexes faster.
-Context windows longer.
+Each position emits a **query**.
+Every position exposes a **key** and a **value**.
 
-The two-path shape, and the reason for it,
-hasn't moved.
+Query dot keys → weights.
+Weights × values → what this position attends to.
+
+That is how "it" three sentences later
+still refers to the pump.
+
+<!-- Do not derive it. The Alammar post is in the notes for anyone who wants
+     the picture; the paper for anyone who wants the algebra. -->
+
+---
+
+## What the model actually does, you already built the pieces
+
+Lecture 11: tensors, matmul on a GPU, autodiff, batching.
+
+A transformer block is **those operations,
+in a particular order, repeated.**
+
+What is new is the scale and the training
+objective, not the machinery.
+
+**The one structural fact that matters.**
+
+**Reading input is parallel.**
+All of it at once.
+
+**Writing output is serial.**
+500 tokens = 500 forward passes, in order.
+
+No hardware makes step 200 start
+before step 199 finishes.
+
+<!-- Flag this now; the latency measurement in 40 minutes is the payoff. -->
+
+---
+
+## What the model actually does, "Foundation model"
+
+[Bommasani et al. 2021](https://arxiv.org/abs/2108.07258):
+trained once on broad data, adapted to many tasks.
+
+Names the **economics**, not the architecture.
+
+Consequence for you: you will not train one.
+The interface, the budget, and the failure
+modes are your engineering problem.
 
 ---
 
 <!-- _class: section -->
 
-# Chunking strategy
+# Predict the next token
 
 ---
 
-## Chunking strategy
+## Predict the next token
+
+Not an answer. A **probability for every token
+in the vocabulary.**
+
+Then something samples from it.
+
+Everything good and everything bad
+about an LLM comes from this.
+
+---
+
+## Predict the next token, measured, four ways
+
+![w:1140](figures/next-token.png)
+
+<!-- Real top-20 logprobs from gpt-4.1-mini. Walk left to right. -->
+
+---
+
+## Predict the next token, answer is in the prompt
+
+| token | probability |
+|---|---|
+| `10` | **1.000** |
+
+**0.00 bits** of entropy.
+
+Not reasoning about pressure. Completing a
+pattern the context made overwhelming.
+
+**Part number does not exist.**
+
+`Kessler-Voss KV-7710/B`, a pump that does not exist
+
+| token | probability |
+|---|---|
+| `1` | 0.405 |
+| `2` | 0.358 |
+| `10` | 0.080 |
+
+**2.22 bits.** Less certain. **Still emitting a digit.**
+
+---
+
+## Predict the next token, why it cannot say "I don't know"
+
+There is **no token** in the vocabulary
+that means *not in the source*.
+
+So the probability mass that should go there
+has nowhere to go except onto plausible numbers.
+
+# Hallucination is a missing output symbol.
+
+---
+
+## Predict the next token, give it the token
+
+Add eleven words:
+
+> *...or with the words NOT FOUND if the answer
+> is not in the text below.*
+
+| token | probability |
+|---|---|
+| `NOT` | **1.000** |
+
+**0.00 bits.** Highest-leverage line in an extraction prompt.
+
+---
+
+## Predict the next token, temperature and top-p
+
+**Temperature** divides the logits: <1 sharpens, >1 flattens.
+**Top-p** keeps the smallest set whose mass exceeds *p*.
+
+| what they do | what they do not do |
+|---|---|
+| reshape a computed distribution | add information |
+| trade repeatability for variety | improve accuracy |
+| `T=0` → most likely token, always | make output deterministic |
+
+---
+
+## Predict the next token, "It worked once" is not a passing test
+
+Same prompt, byte identical, sent **5 times**.
+Reading the returned distribution, not the sample:
+
+| | range across 5 calls |
+|---|---|
+| leading token probability | **0.626 → 0.858** |
+| entropy | **0.71 → 1.26 bits** |
+
+Batching, reduced precision, heterogeneous
+hardware. Float addition is not associative.
+
+<!-- This is the module's non-determinism pitfall, measured. Evaluate on a set,
+     never on an anecdote, and re-run the set when anything changes. -->
+
+---
+
+<!-- _class: section -->
+
+# Tokenization
+
+---
+
+## Tokenization
 
 <div class="definition">
 
-**Chunk**: the unit you embed and retrieve. Too large and the match is diluted; too small and the passage loses the context that made it meaningful.
+**Token**: the subword unit a model actually reads. Token counts, not characters or words, are what you are billed for.
 
 </div>
 
-Too large → one query drags in unrelated clauses,
-dilutes the signal.
+Nobody decided that ` MP` should be a token
+and `MPa` should not.
 
-Too small → a fact loses the context that
-makes it unambiguous.
+**Byte-pair encoding**: start from bytes, merge
+the most frequent adjacent pair, repeat ~50k times,
+freeze the merge list.
 
----
-
-## Chunking strategy, fixed-size chunking
-
-Pick a token count (256? 1024?), cut there,
-overlap a bit at the boundary.
-
-Trivial to implement. **Blind to the document's
-own structure.**
-
-**Why that's bad for engineering docs.**
-
-A fixed window doesn't know clause 4.2 ends
-where it ends.
-
-It will, with regularity, split a table row:
-a bolt size, severed from its torque value.
+[Gage 1994](https://en.wikipedia.org/wiki/Byte_pair_encoding) as compression,
+[Sennrich et al. 2016](https://arxiv.org/abs/1508.07909) for language
 
 ---
 
-## Chunking strategy, structure-aware chunking
+## Tokenization, everything follows from the corpus
 
-One chunk per section, per clause, per table.
-Uses the document's own boundaries.
+Frequent on the web → merged early → one token.
 
-Costs a parser instead of a token counter.
-Never splits a fact in half.
+Frequent in **your documents**, rare on the web
+→ never merged at all.
+
+# Engineering notation is the second case.
 
 ---
 
-## Chunking strategy, measured, not asserted
+## Tokenization, look at it
 
-15-query gold set, this session's demo:
+![w:1180](figures/tokenization.png)
 
-| Chunking | recall@3 | nDCG@3 |
+<!-- Ask them to guess "P/N 4L-2200-XG" before revealing. Nobody says ten. -->
+
+---
+
+## Tokenization, four ways engineering text breaks
+
+- **Units detach**: `10.5 MPa` → `10` `.` `5` ` MP` `a`
+- **Digits group by three, not by meaning**: `1500` → `150` `0`
+- **Part numbers shatter**: `P/N 4L-2200-XG` = 14 chars, **10 tokens**
+- **Some characters are not tokens**: `Ø25` → two *broken bytes* + `25`
+
+---
+
+## Tokenization, why LLMs are bad at arithmetic
+
+`1500` → `150` + `0`
+`4140` → `414` + `0`
+`2200` → `220` + `0`
+
+The representation does not respect place value.
+
+The model never sees the number.
+It sees a chunk and a leftover.
+
+**Case and spacing are not free.**
+
+| string | tokens |
+|---|---|
+| `bearing` | 1 |
+| `Bearing` | 2 |
+| `BEARING` | 2 |
+
+Maintenance logs are written in capitals.
+They cost more, and the model sees different symbols.
+
+---
+
+## Tokenization, what it adds up to per page
+
+| kind of text | chars / token |
+|---|---|
+| technical prose | **4.82** |
+| maintenance log | 3.82 |
+| pump datasheet | 3.05 |
+| Python source | 2.56 |
+| table flattened out of a PDF | **2.35** |
+
+A datasheet page costs **1.6×** a prose page.
+A table costs **2×**.
+
+**So the rule of thumb is wrong.**
+
+"About four characters per token"
+is a fact about **English prose**.
+
+Your documents are not English prose.
+
+Any budget built on it is wrong
+in the expensive direction.
+
+---
+
+## Tokenization, count, do not estimate
+
+| tokenizer | datasheet | vs `cl100k` |
 |---|---|---|
-| Structure-aware | ~1.00 | ~0.95 |
-| Naive fixed (crosses clause + doc bounds) | ~0.93 | ~0.6-0.7 |
+| `cl100k_base` | 776 | baseline |
+| `o200k_base` | 770 | −1% |
+| Claude Haiku 4.5 | 924 | +19% |
+| Claude Opus 5 | **1,263** | **+63%** |
+
+The gap that catches people is the **last two rows**:
+same vendor, 37% apart.
 
 ---
 
-## Chunking strategy, what the two real misses look like
+## Tokenization, two providers, opposite trade-offs
 
-One: a value stitched into a mostly-irrelevant
-neighboring window.
+| | OpenAI `tiktoken` | Anthropic `count_tokens` |
+|---|---|---|
+| where | local library | network endpoint |
+| cost | free, instant | free, own rate limit |
+| exactness | exact for their models | documented as an *estimate* |
+| offline | yes | no |
 
-One: a table row's size-and-radius pair,
-split across a chunk boundary.
+Neither is wrong. Using one to predict
+the other's bill always is.
 
-Neither subtle once you read the retrieved text.
-Both invisible in an aggregate score alone.
+[docs](https://platform.claude.com/docs/en/build-with-claude/token-counting)
 
 ---
 
-## Chunking strategy, keep metadata with every chunk
+## Tokenization, the measured cost of guessing
 
-Source document. Section/clause number.
-Page. **Revision.**
+146-page report, one document:
 
-A citation with no section number isn't
-a citation a reader can check.
+| | tokens |
+|---|---|
+| `tiktoken` says | 87,556 |
+| Claude Opus 5 bills | **126,452** |
 
-**The pitfall: silent truncation.**
+**The estimate is 31% low.**
 
-Chunk built without checking the embedding
-model's max input length?
-
-No error. The last third of a long clause
-just never makes it into the vector.
+Multiply by ten thousand documents.
 
 ---
 
 <!-- _class: section -->
 
-# Vector databases and indexes
+# The context window as a budget
 
 ---
 
-## Vector databases and indexes
+## The context window as a budget
 
 <div class="definition">
 
-**Approximate nearest neighbour**: an index that trades exact recall for speed, returning most of the true nearest vectors in a fraction of the time.
+**Context window**: the hard limit on tokens a model can attend to at once, shared between what you send and what it generates.
 
 </div>
 
-**Approximate nearest-neighbor search** at scale.
-**Metadata filtering** (current revision only).
-**Persistence** past one Python process.
+Send 190K to a 200K-window model and you have
+left room for 10K of answer, whatever
+`max_tokens` says.
+
+Exceeding it is a **request error**, not a
+silent truncation. That is the merciful case.
+
+**The truncation that actually bites you.**
+
+Is in **your** code:
+
+- a chunker with an off-by-one
+- a PDF extractor that gives up on page 40
+- a `[:8000]` somebody added while debugging
+
+Nobody gets an error. The answer is just wrong.
 
 ---
 
-## Vector databases and indexes, name the real options
+## The context window as a budget, a real document
 
-**FAISS**: a library, in-process, no server.
-**Chroma / Qdrant**: purpose-built vector DBs, a server, filtering built in.
-**pgvector**: a Postgres extension, no second database to operate.
+![w:1180](figures/context-cost.png)
+
+<!-- NASA RP-1218, the report behind the airfoil data from Lecture 9 and Lecture 13. 1989
+     scan, so the text layer is OCR: figure axis labels, running heads, garbage
+     like 'TEj LE'. You pay tokens for whatever the extractor emits. -->
 
 ---
 
-## Vector databases and indexes, pick by access pattern, not hype
+## The context window as a budget, three numbers, three decisions
 
-| | FAISS | Chroma/Qdrant | pgvector |
+| | |
+|---|---|
+| **126,452 tokens** on Opus 5 | 13% of a 1M window, **half** of Haiku's 200K |
+| **$0.63 per question** | ×50 questions = $31 on one report |
+| **+0.4 s of latency** | over 130× more input |
+
+Windows got big. **Cost replaced capacity**
+as the binding constraint.
+
+**Input is cheap in time. Output is not..**
+
+| varied | from | to | median latency |
 |---|---|---|---|
-| Ops model | none, in-process | dedicated server | your existing Postgres |
-| Fits | fits-in-memory corpora | multi-process, growing scale | already-Postgres shops |
+| **input** tokens | 769 | 100,456 | 0.85 s → **1.21 s** |
+| **output** tokens | 16 | 2,048 | 1.00 s → **22.55 s** |
+
+130× more input: **+0.4 s** (inside the scatter)
+128× more output: **+22 s**
 
 ---
 
-## Vector databases and indexes, exact vs. approximate
+## The context window as a budget, the ratio to remember
 
-**Exact**: check every vector. Always right.
-Cost grows linearly with corpus size.
+# 1 output token ≈ 1000 input tokens
+# of wall-clock time
 
-**Approximate (ANN)**: small, tunable miss chance.
-Near-flat latency into the millions of vectors.
-
----
-
-## Vector databases and indexes, when the trade-off starts to matter
-
-Thousands to low millions of chunks:
-exact search is often fast enough already.
-
-Add ANN complexity when exact latency would
-already be noticeable to a user.
+Generation ran at ~90 tokens/second.
+That is the serial loop, and you cannot buy your way out.
 
 ---
 
-<!-- _class: section -->
+## The context window as a budget, so optimize the right term
 
-# Retrieval mechanics
+| you want | you trim |
+|---|---|
+| lower bill | the input |
+| lower latency | the **output** |
 
----
+Trimming the pasted document to "make it faster"
+optimizes the wrong budget.
 
-## Retrieval mechanics
+<!-- For an extraction task returning small JSON: you pay input tokens in
+     dollars and output tokens in seconds. Two budgets, two fixes. -->
 
-Same vector space, query and chunk both embedded.
-Rank by cosine similarity.
+**Before you build anything.**
 
-"Leak" retrieves "seepage." No shared vocabulary needed.
+Three numbers, for **one** representative document:
 
-[Karpukhin et al., DPR, EMNLP 2020](https://arxiv.org/abs/2004.04906)
+1. tokens, under the model you will actually call
+2. dollars per call
+3. seconds per call
 
----
-
-## Retrieval mechanics, keyword retrieval: BM25
-
-Score by exact term overlap, weighted by
-how rare each term is corpus-wide.
-
-Can't see past a paraphrase.
-**Exact where dense retrieval is fuzzy.**
-
----
-
-## Retrieval mechanics, when you want BM25, specifically
-
-A query for a part number, an error code,
-a clause number.
-
-"Similar to part 4471-B" isn't a coherent idea.
-
-**Hybrid: run both, combine rankings.**
-
-Catches the paraphrase case **and**
-the exact-identifier case.
-
-Cost: two indexes, a combination rule.
-
----
-
-## Retrieval mechanics, re-ranking with a cross-encoder
-
-Retriever scores each chunk **independently**,
-cheaply, across the whole corpus.
-
-Cross-encoder scores query + **one** candidate
-**jointly**, sees interactions, too slow at scale.
-
-**The standard two-stage pattern.**
-
-Fast retriever → narrow to ~dozens of candidates.
-
-Slow cross-encoder → re-rank just those.
-Spend the expense only where you can afford it.
+All three are one API call away.
+None can be guessed reliably.
 
 ---
 
 <!-- _class: section -->
 
-# Grounding the generation
+# Embeddings
 
 ---
 
-## Grounding the generation
+## Embeddings
 
 <div class="definition">
 
-**Grounding**: instructing the model to answer only from the retrieved context, and treating an unsupported claim as a failure.
+**Embedding**: a fixed-length vector for a piece of text, positioned so that similar meanings sit close together.
 
 </div>
 
-The generation step has to be told, explicitly,
-to use what it was given, not what it remembers.
+**Token embeddings**: the lookup table at the model's
+input. One row per *fragment*. `SS316L` has three.
+
+**Sentence / document embeddings**: one vector for the
+whole input, from a **separate model** trained so that
+distance means similarity.
+
+Averaging the first is not the second.
+[Reimers & Gurevych 2019](https://arxiv.org/abs/1908.10084)
 
 ---
 
-## Grounding the generation, why a similarity threshold can't do this job
+## Embeddings, who has one
 
-A PVC-conduit question retrieves an RMC-conduit
-chunk at a score **indistinguishable** from genuine matches.
+| provider | embedding model |
+|---|---|
+| OpenAI | `text-embedding-3-small` (1536), `-large` (3072) |
+| Voyage | `voyage-4` family (1024 default) |
+| Anthropic | **none**, [docs point you elsewhere](https://platform.claude.com/docs/en/build-with-claude/embeddings) |
 
-The wrong document isn't an unrelated one.
-No pre-generation number tells them apart.
-
----
-
-## Grounding the generation, the instruction has to be explicit
-
-> Answer only from the provided context.
-> Cite the section for every claim.
-> If it's not there, say so, in fixed words.
-
-Enforced by the model **reading**, not a number.
+Today's numbers are `text-embedding-3-small`.
+They are properties of *that model*, not of embeddings.
 
 ---
 
-## Grounding the generation, why "fixed words" matters
+## Embeddings, cosine similarity
 
-A model told only to "be careful" still often
-produces something plausible-sounding.
+$$\cos(\mathbf{u}, \mathbf{v}) = \frac{\mathbf{u} \cdot \mathbf{v}}{\|\mathbf{u}\|\,\|\mathbf{v}\|}$$
 
-An exact refusal phrase gives you something
-to grep for when you audit later.
+Most APIs return unit vectors already,
+so it is just a dot product.
+
+Values are **not comparable across models.**
 
 ---
 
-## Grounding the generation, conflicting or duplicate chunks
+## Embeddings, 34 maintenance log entries
 
-Two chunks, almost the same claim: an old and
-a new revision, or two manuals disagreeing.
+![w:1140](figures/embeddings.png)
 
-Hand both over with no guidance →
-the model arbitrarily favors whichever came first.
+<!-- The middle panel is the argument. Vertical spread at the left edge is
+     pairs with no words in common. -->
 
-**Handle it on purpose.**
+---
 
-Prefer the chunk with the newer revision tag.
-Deduplicate near-identical chunks before the prompt.
+## Embeddings, the pair that makes the case
 
-Or: ask the model to name the conflict explicitly.
+> `brg vibration p101 high at startup`
+> `Operator reports growling from the drive end bearing on P-101`
+
+| | |
+|---|---|
+| TF-IDF cosine | **0.000** |
+| embedding cosine | **0.532** |
+
+Same event. **Not one word in common.**
+Every keyword search misses this.
+
+---
+
+## Embeddings, when embeddings beat an LLM call
+
+Deduplicating 34 entries pairwise:
+
+| | calls | cost | time |
+|---|---|---|---|
+| LLM, pairwise | 561 | ~$1 | minutes |
+| embeddings | **1** | **<$0.01** | one matmul |
+
+At 100,000 records the first is not expensive,
+it is **arithmetically impossible**.
+
+**The rule.**
+
+**"Which of these are alike?"** → embeddings
+dedup, clustering, retrieval
+
+**"What does this one say?"** → an LLM call
+extraction, summarization, judgment
+
+Real pipelines: narrow millions to tens with vectors,
+then spend tokens on the tens.
+
+---
+
+## Embeddings, dimensionality is a storage decision
+
+1M chunks × 1536 float32 = **6 GB** before indexing.
+
+Matryoshka training: truncate from the end,
+renormalize, and it still works.
+
+| dims | bytes | top-1 neighbour unchanged |
+|---|---|---|
+| 1536 | 6144 | 100% |
+| **512** | **2048** | **100%** |
+| 256 | 1024 | 85.3% |
+| 64 | 256 | 67.6% |
+
+**Read that table honestly.**
+
+1024 dims scored **97.1%**.
+512 dims scored **100%**.
+
+The curve is **not monotonic**,
+because 34 records is not a sample.
+
+Tuning a storage decision on this
+would be tuning on noise.
+
+---
+
+## Embeddings, changing embedding model is a migration
+
+Vectors from two models are **not comparable**,
+and there is no conversion.
+
+- re-embed the entire corpus (full token cost again)
+- re-tune every threshold downstream
+- pin the model id next to the vectors, like a schema version
+
+Also: `input_type` for asymmetric models, and
+8K to 32K token input limits, so chunk first.
 
 ---
 
 <!-- _class: section -->
 
-# Evaluating retrieval
+# Where cosine pushes back
 
 ---
 
-## Evaluating retrieval
+## Where cosine pushes back
 
-<div class="definition">
+> `Mechanical seal leaking, approx 8 drops/min, pump P-101`
+> `P-101 seal inspected, no leak found`
 
-**Recall@k and nDCG**: whether the right passage is in the top k at all, and how highly it is ranked when it is.
+One is a fault. The other is its refutation.
 
-</div>
-
-Judging a RAG system by reading the final
-answers and deciding if they sound right.
-
-Skips the one measurement that shows
-**where** a failure actually lives.
+## cosine = 0.694
 
 ---
 
-## Evaluating retrieval, build a gold set
+## Where cosine pushes back, compare
 
-Queries paired with the chunk(s) that actually
-answer each one. A human who knows the corpus writes it.
+| pair | means | cosine |
+|---|---|---|
+| `brg vibration` / `growling from the DE bearing` | **the same** | 0.532 |
+| `seal leaking` / `no leak found` | **the opposite** | **0.694** |
 
-This session's demo: 15 queries, toy scale, same discipline.
-
----
-
-## Evaluating retrieval, four retrieval metrics
-
-**recall@k**: is the answer anywhere in the top k
-**precision@k**: what fraction of top k is relevant
-**MRR**: how high does the first hit rank
-**nDCG**: rewards the whole ranking, not just the first hit
+# The opposite pair scores higher.
 
 ---
 
-## Evaluating retrieval, keep answer-quality metrics separate
+## Where cosine pushes back, not a near miss
 
-**Faithfulness**: does the answer follow from the context
-**Correctness**: is it actually right
-**Citation validity**: does the cited chunk support the claim
+![w:1150](figures/embedding-limits.png)
 
-A system can ace retrieval and fail all three.
-
----
-
-## Evaluating retrieval, RAGAS: a starting vocabulary
-
-Es et al., 2023: faithfulness, answer relevance,
-context relevance, worked out as metrics.
-
-Not mandatory. A reasonable place to not start from scratch.
-
-[docs.ragas.io](https://docs.ragas.io/)
+<!-- All 8 opposite-meaning pairs score above the weakest true match. Medians
+     0.691 vs 0.655. The groups sit on top of each other. -->
 
 ---
 
-## Evaluating retrieval, LLM-as-judge: a tool, with a caveat
+## Where cosine pushes back, there is no threshold
 
-A second model call scores faithfulness because
-no string match can.
+Not a badly chosen one. **There is no value.**
 
-It has its own biases. Trusting it blindly just
-moves the trust problem.
+Sweeping the cut across the labelled pairs,
+precision never exceeds **0.62**.
 
----
+Cosine measures *what a text is about*.
+A leak and a no-leak are maximally about the same thing.
 
-<!-- _class: section -->
+**Units are invisible.**
 
-# Where this pushes back
+> `Bearing temperature 85 degC steady on the drive end`
+> `Bearing temperature 85 degF steady on the drive end`
 
----
+## cosine = 0.971
 
-## Where this pushes back
+One is at its alarm limit. One is room temperature.
 
-Nothing about a fluent, cited-looking answer
-tells you retrieval quietly failed.
-
-A RAG system with no retrieval eval is not
-obviously safer than no RAG at all.
+`10.5 MPa` vs `10.5 bar`: **0.761**
 
 ---
 
-## Where this pushes back, long context isn't a free substitute
+## Where cosine pushes back, which is about Assignment 8
 
-Cost: billed per token, every call.
+Unit normalization cannot be delegated to:
 
-Liu et al. 2023, "Lost in the Middle": accuracy on
-a fact **drops** when it sits mid-context, regardless of relevance.
+- semantic similarity (0.971, see above)
+- the model's good judgment
 
-[arxiv.org/abs/2307.03172](https://arxiv.org/abs/2307.03172)
+It is an **explicit, typed, tested** pipeline stage.
+Units in the schema. Original *and* normalized retained.
 
----
+**The principled objection.**
 
-## Where this pushes back, embedding/index mismatch fails silently
+[Steck, Ekanadham & Kallus 2024](https://arxiv.org/abs/2403.05440),
+*Is Cosine-Similarity of Embeddings Really About Similarity?*
 
-Re-embed a query with a different model than
-built the index?
+Cosine between learned embeddings can be
+"arbitrary and therefore meaningless", governed
+by **regularization**, not semantics.
 
-No error. Nearest neighbors in a space the
-query was never correctly placed in.
-
-**Pin the embedding model.**
-
-Same discipline as a pinned random seed
-or a pinned library version, elsewhere in this course.
+Not "never use it". "It carries no guarantee."
 
 ---
 
-## Where this pushes back, chunking is lossy, and not undoable downstream
+## Where cosine pushes back, and the ground moves
 
-No re-ranker recovers a fact that structure-blind
-chunking already split at ingestion.
+Model ids deprecate. Tokenizers get revised.
+Prices and windows change.
 
-Money spent on chunking beats the same money
-spent on a fancier retriever after the fact.
+Anything depending on a token count is a
+**hardcoded assumption about a model version**:
+chunk size, cost estimate, context-fit check, rate budget.
 
----
-
-## Where this pushes back, hybrid + re-ranking: real cost, not a free upgrade
-
-More indexes. More latency. More to keep in sync.
-
-Measure the recall/nDCG gain against your gold set
-before adding either.
-
-**What a practitioner should take from this.**
-
-Build the gold set and measure recall@k **before**
-judging any generated answer.
-
-A similarity score is topical closeness,
-never a confidence score.
+Pin the id. Record it in your output. Re-measure on upgrade.
 
 ---
 
@@ -579,35 +761,28 @@ never a confidence score.
 
 # Demo
 
-## `l17-rag.ipynb`
+## `l17-tokens-embeddings.ipynb`
 
-Chunk two ways, index with FAISS + BM25,
-evaluate on a 15-query gold set, sweep chunking, ground.
-
----
-
-## What to watch
-
-- Structure-aware vs. naive fixed: recall and nDCG, measured
-- The PVC-conduit miss: score 0.827, sitting inside the true-match range
-- The assembled grounded prompt: what a real model would receive
-- No hosted LLM call here, that's Assignment 9
+**Predict before we compute.**
+Which pairs cluster? How many tokens is that part number?
 
 ---
 
 ## Recap
 
-- A model with nothing to ground it answers anyway, plausible, not necessarily correct
-- Chunk with the document's own structure; a fixed token count doesn't know where a clause ends
-- Dense retrieval for paraphrase, BM25 for exact identifiers, hybrid for both
-- A similarity threshold cannot substitute for an explicit "answer only from context" instruction
-- Measure recall@k before you ever judge a generated answer
+- Tokens are **subword fragments**, and engineering
+  notation gets the worst of them
+- Count with the **model you will call**, not the library you have
+- Context is a shared budget; **cost binds before capacity**
+- **Input is cheap in time, output is not** (1000:1)
+- Hallucination is a **missing output symbol**; give it one
+- Cosine finds near-duplicates and **cannot see negation or units**
 
 ---
 
 ## Next
 
-**Assignment 9** released today, due ~1 week
-**Reading** Lewis et al. 2020 (RAG); Liu et al. 2023 (Lost in the Middle)
+**Reading** linked at the end of the notes
+**Assignment 8** released today, due 2026-11-04
 
-Full notes, with all sources: `lectures/l17/notes.md`
+Notes for this lecture: `lectures/l17/notes.md`

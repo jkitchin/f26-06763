@@ -37,8 +37,8 @@ def bank():
 
 @pytest.fixture
 def item():
-    data = yaml.safe_load((GAME / "content" / "l15.yml").read_text(encoding="utf-8"))
-    return copy.deepcopy(data["items"][0])   # l15-q01, a predict_measure
+    data = yaml.safe_load((GAME / "content" / "l17.yml").read_text(encoding="utf-8"))
+    return copy.deepcopy(data["items"][0])   # l17-q01, a predict_measure
 
 
 def errors_for(check, item, *args):
@@ -179,14 +179,14 @@ def test_rank_permutations_are_not_flagged_as_duplicates():
     A ranking item offers the same values in different orders. Comparing on
     numbers alone rejected every one of them.
     """
-    data = yaml.safe_load((GAME / "content" / "l15.yml").read_text(encoding="utf-8"))
+    data = yaml.safe_load((GAME / "content" / "l17.yml").read_text(encoding="utf-8"))
     rank = next(i for i in data["items"] if i["kind"] == "rank")
     assert not errors_for(V.check_choices, rank)
 
 
 def test_direction_options_sharing_a_magnitude_are_not_flagged():
-    data = yaml.safe_load((GAME / "content" / "l15.yml").read_text(encoding="utf-8"))
-    nb = next(i for i in data["items"] if i["id"] == "l15-q12")
+    data = yaml.safe_load((GAME / "content" / "l17.yml").read_text(encoding="utf-8"))
+    nb = next(i for i in data["items"] if i["id"] == "l17-q12")
     assert not errors_for(V.check_choices, nb)
 
 
@@ -211,7 +211,7 @@ def test_mcq_whose_options_differ_only_by_number_fails(item):
 
 
 def test_figure_script_number_declared_stable_fails(item):
-    item["source"]["file"] = "lectures/l15/figures/make_figures.py"
+    item["source"]["file"] = "lectures/l17/figures/make_figures.py"
     item["verify"]["volatility"] = "stable"
     msgs = errors_for(V.check_volatility, item)
     assert any("measured on the author's machine" in m for m in msgs)
@@ -261,10 +261,10 @@ def test_manual_mode_without_a_reason_fails(item):
 # --- objectives ------------------------------------------------------------
 
 def test_unknown_objective_fails(item, bank):
-    item["objectives"] = ["l15-o9"]
+    item["objectives"] = ["l17-o9"]
     b = V.Bank()
     b.objectives = bank.objectives
-    V.check_objectives(b, item, "test-item", "l15")
+    V.check_objectives(b, item, "test-item", "l17")
     assert any("unknown objective" in i.message for i in b.issues)
 
 
@@ -273,16 +273,16 @@ def test_objective_from_another_lecture_fails(item, bank):
     b.objectives = dict(bank.objectives)
     b.objectives["l11-o1"] = {"id": "l11-o1", "lecture": "l11", "text": "x"}
     item["objectives"] = ["l11-o1"]
-    V.check_objectives(b, item, "test-item", "l15")
+    V.check_objectives(b, item, "test-item", "l17")
     assert any("belongs to lecture" in i.message for i in b.issues)
 
 
 def test_objective_text_must_still_match_the_notes(bank):
     b = V.Bank()
     b.objectives = {
-        "l15-o1": {
-            "id": "l15-o1",
-            "lecture": "l15",
+        "l17-o1": {
+            "id": "l17-o1",
+            "lecture": "l17",
             "text": "Build a mental model of an encoder-only LLM.",   # wrong
         }
     }

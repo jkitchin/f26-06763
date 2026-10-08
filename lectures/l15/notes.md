@@ -1,719 +1,518 @@
-# Lecture 15: Foundation models and LLMs at a systems level: architecture, tokenization, embeddings
+# Lecture 15: Uncertainty quantification, Bayesian optimization and active learning
 
-:::{admonition} Overview
+:::{admonition} At a glance
 :class: tip
 
-- **Session** Lecture 15, Week 9
-- **Arc** LLM and agentic engineering
+- **Session** Lecture 15, Week 7
+- **Arc** Machine learning and deep learning
 - **Slides** <a href="../../slides/l15/">Deck for this session</a>
 - **Practice** <a href="../../game/#/l15">Practice module for this session</a>
-- **Demo** [`l15-tokens-embeddings.ipynb`](l15-tokens-embeddings.ipynb), what a datasheet costs and what a log book clusters into
-- **Assignment 8** released this session
+- **Demo** [`l15-uq-bayesopt.ipynb`](l15-uq-bayesopt.ipynb), prediction intervals and their
+  calibration on the concrete strength dataset, then a Bayesian optimization of a mix design
+- **Tools** scikit-learn for the Gaussian process and the networks, Optuna for Bayesian
+  optimization
 :::
 
 ## Why this matters
 
-Here is a string from a pump datasheet: `±0.05 mm`. Eight characters, one tolerance,
-one number. Here is what the model receives when you send it:
+A concrete cylinder is tested for strength after **28 days** of curing.
 
-```
-'±'  '0'  '.'  '05'  ' mm'
-```
+- Every new mix you want to try costs a month of waiting, plus the materials and the lab.
+- [Lecture 9](../l09/notes.md) fitted a Gaussian process (GP) to the concrete strength dataset. It
+  predicts a strength **and** an uncertainty for any mix.
+- So the model can choose which mixes to cast next. Whether that works depends on whether its
+  uncertainty is right.
 
-Five tokens, and not one of them is `0.05`. The number the specification is about does
-not exist anywhere in the model's input. It exists as three fragments that the model has
-to reassemble, and the fragment `05` is the same fragment it would see in `2005`, in
-`0.5`, and in a serial number. This is not a corner case. It is what happens to almost
-every quantity in almost every engineering document, and it is the reason that an
-extraction pipeline which handles prose beautifully starts quietly returning `2.5` where
-the datasheet said `25.0`.
+Two numbers from this session:
 
-The second thing that happens to that datasheet is that it costs different amounts
-depending on who you ask. The two-page pump specification in these notes is 2,365
-characters. `tiktoken`, the tokenizer most engineers reach for because it is the one that
-installs locally, counts **776 tokens**. Claude Haiku 4.5 counts **924**. Claude Opus 5
-counts **1,263**, which is **63% more than the local estimate and 37% more than another
-model from the same vendor**. Scale that to a real corpus and the difference between the
-number you planned with and the number you were billed for is not a rounding error; on the
-146-page report these notes measure, estimating with `tiktoken` understates the Opus 5
-input bill by **31%**.
+- On the strongest mixes, held out from training, one popular method's "95%" intervals contain
+  the true strength only **70%** of the time.
+- An optimizer searching the GP's predictions finds a mix it scores at **91.6 ± 18.0 MPa**. The
+  strongest specimen in the whole dataset is 82.6 MPa.
 
-Both of those failures come from the same place: not knowing what the model actually
-consumes. That is what this session is about. An LLM is not a black box that reads
-English, it is a next-token predictor over a fixed vocabulary of subword fragments, and
-almost every engineering constraint you will meet with these models (what fits, what
-it costs, how long it takes, what it gets wrong about numbers) falls out of that one
-sentence. The point of building the mental model is not theoretical interest. It is that
-once you have it, the failures become predictable in advance instead of surprising in
-production.
+This session: measure uncertainty, check it, then spend it on choosing experiments.
 
 ## Learning objectives
 
 By the end of this session you should be able to:
 
-- Build a correct-enough mental model of a decoder-only LLM to reason about failure modes
-  (truncation, hallucination, context limits) rather than treat it as a black box.
-- Understand tokenization concretely: subword units, why "10.5 MPa" or "SS316L" may split
-  oddly, and how token counts drive cost/latency.
-- Understand embeddings as vectors and use cosine similarity to cluster/retrieve
-  engineering text.
+- Produce and calibrate predictive uncertainty, separating aleatoric from epistemic.
+- Explain the Bayesian-optimization loop and the role of the surrogate + acquisition.
+- Choose and compare acquisition functions for exploration vs. exploitation.
+- Set up an active-learning loop that chooses the next expensive query.
 
-## The shape of a decoder-only model
+## Two kinds of uncertainty
 
-```{index} decoder-only transformer, self-attention, feed-forward network, foundation model
+```{index} aleatoric uncertainty, epistemic uncertainty
 ```
 
-At the level that matters for engineering, a modern LLM is five stages in a loop.
-
-**Tokenize.** The input string is cut into subword units drawn from a fixed vocabulary,
-typically 50,000 to 200,000 entries. This is the stage that will get its own section
-below, because it is where engineering text goes wrong.
-
-**Embed and position.** Each token id indexes a row of a learned matrix, turning a
-sequence of integers into a sequence of vectors. Position information is injected here
-(originally as a sinusoidal encoding, and in many current models as a rotary transformation
-of the query and key vectors), because everything downstream is otherwise order-blind.
-
-**Stack of blocks.** Each block does two things. **Self-attention** lets every position
-look at every earlier position: each token emits a *query*, every token exposes a *key* and
-a *value*, the query is compared against the keys to produce weights, and the values are
-mixed in those proportions. This is the mechanism that lets "it" three sentences later
-refer to the pump. Then a **feed-forward network** transforms each position independently.
-Both are wrapped in residual connections and normalization. Dozens to over a hundred of
-these blocks are stacked.
-
-**Logits.** The final vector at the last position is multiplied by an output matrix to
-produce one real number per vocabulary entry. A softmax turns those into a probability
-distribution over "what comes next."
-
-**Sample and repeat.** One token is drawn from that distribution, appended to the
-sequence, and the whole thing runs again. This is what *autoregressive* means, and it is
-worth pausing on: generating 500 tokens is 500 forward passes, in strict sequence, and no
-amount of hardware makes step 200 start before step 199 finishes.
-
-That last point is the reason the latency measurement later in these notes comes out the
-way it does, and it is the most useful structural fact in the whole architecture. Reading
-the input is a *parallel* operation: all of it can be processed at once. Writing the output
-is a *serial* one.
-
-:::{admonition} You have already built the pieces
-:class: note
-
-Nothing in that stack is new to this course. [Lecture 11](../l11/notes.md) covered tensors,
-matrix multiplication on a GPU, autodiff, and why batch dimensions exist. A transformer
-block is those operations arranged in a particular order and repeated. What is new is the
-scale and the training objective, not the machinery.
+:::{admonition} Definition: aleatoric and epistemic uncertainty
+:class: tip
+**Aleatoric** uncertainty is the scatter in the data itself, which no amount of data removes.
+**Epistemic** uncertainty is what the model does not know yet, which more data in the right place
+reduces.
 :::
 
-The term **foundation model** comes from Bommasani et al.'s 2021 report, and it names the
-economic fact rather than the architecture: a single model is trained once on broad data
-at enormous cost and then adapted to many downstream tasks. For you, the consequence is
-that you are not going to train one. You are going to *call* one, which makes the
-interface, the budget, and the failure modes your engineering problem rather than the
-architecture.
-
-## Prediction, fluency, and hallucination
-
-```{index} hallucination
-```
-```{index} pair: failure mode; confident hallucination
-```
-
-The model computes a probability distribution over the next token. That single fact
-explains both why the output reads so well and why it is confidently wrong, and you can
-watch it happen.
-
-```{figure} figures/next-token.png
-:alt: Four panels. First, a question whose answer is in the prompt, showing one token at probability 1.000 and zero bits of entropy. Second, the same question about a part number that does not exist, showing probability spread across the digits 1, 2, 10, 3, 16 and 2.22 bits. Third, the same gap with NOT FOUND permitted, collapsing back to one token at 1.000 and zero bits. Fourth, grouped bars showing how temperature and top-p reshape a measured distribution.
+```{figure} figures/aleatoric-epistemic.png
+:alt: A Gaussian process fitted to noisy points on a smooth curve, with data from 0 to 0.35 and from 0.7 to 1 and a gap between. A wide light-blue band shows the total uncertainty and a narrower orange band the epistemic part only. Near the data the orange band is thin and the blue band stays wide, labeled near data the noise (aleatoric) remains. In the gap the orange band swells, labeled no data, epistemic uncertainty grows.
 :width: 100%
 
-The top-20 next-token probabilities returned by `gpt-4.1-mini`, for four prompts about the
-same pump.
+Total uncertainty (blue) is aleatoric plus epistemic (orange). Only the epistemic part shrinks
+with more data.
 ```
 
-Ask for a value that is present in the prompt and the distribution collapses: the token
-`10` arrives with probability **1.000** and an entropy of **0.00 bits**. The model is not
-reasoning about pressure; it is completing a pattern that the context has made
-overwhelming.
+On the concrete strength dataset:
 
-Now ask the same question about `Kessler-Voss KV-7710/B`, a pump that does not exist. The
-distribution does not become uniform, and it does not contain any signal that means "I
-have never heard of this." It puts **0.405** on the token `1`, **0.358** on `2`, and
-spreads the rest over `10`, `3`, `16`, `6`, `4`. Entropy rises to **2.22 bits**. Read that
-carefully, because it is the whole hallucination story in one measurement: the model is
-*less* certain, but it is still emitting a digit. There is no token in its vocabulary that
-means "not in the source," so the probability mass that ought to go there has nowhere to go
-except onto plausible numbers.
+- **Aleatoric**: 19 settings (the same mix at the same age) were tested more than once, 53 rows
+  in all. Their strengths scatter by **5.0 MPa** (pooled standard deviation). No model predicts
+  better than that.
+- The GP of Lecture 9 estimates the same thing on its own: its noise term, fitted to the
+  training mixes, is **3.9 MPa**.
+- **Epistemic**: the rest of the GP's predictive standard deviation. On test mixes like the
+  training mixes it averages **3.2 MPa**. On the strongest mixes, held out (below), it
+  averages **10.8 MPa**.
+- Why the split matters: epistemic uncertainty tells you **where new data would help**.
+  Bayesian optimization and active learning both use it.
 
-Give it that token and the problem disappears. The third panel is the same missing value,
-with one clause added to the prompt: *or with the words NOT FOUND if the answer is not in
-the text below*. The distribution collapses again, this time onto `NOT` at probability
-**1.000**, entropy **0.00 bits**. The escape hatch costs eleven words and it is the single
-highest-leverage line in an extraction prompt.
+## Three ways to get a prediction interval
+
+```{index} deep ensemble, conformal prediction, exchangeability
+```
+
+A **prediction interval** is a range that should contain the true value with a stated
+probability, for example 95%.
+
+### The Gaussian process
+
+- Lecture 9's GP returns a mean $\mu(x)$ and a standard deviation $\sigma(x)$ at every input.
+- The 95% interval is $\mu(x) \pm 1.96\,\sigma(x)$, assuming the error is Gaussian.
+- $\sigma$ includes both parts: the noise term (aleatoric) and the posterior spread
+  (epistemic).
+
+### A deep ensemble
+
+:::{admonition} Definition: deep ensemble
+:class: tip
+A **deep ensemble** trains several networks that differ only in their random starting weights,
+and uses the spread of their predictions as the uncertainty.
+:::
+
+- Here: five copies of Lecture 9's network (one hidden layer of 16 tanh units), seeds 0 to 4.
+- The mean of the five is the prediction; their standard deviation is the spread.
+- Where the data pin the function down, the networks agree. Where they do not, the networks
+  disagree. So the spread measures **epistemic** uncertainty only.
+- [Lakshminarayanan, Pritzel and Blundell (2017)](https://arxiv.org/abs/1612.01474) introduced
+  the method; they also train each network to predict its own noise, which adds the aleatoric
+  part. The spread alone does not.
+
+### Split conformal prediction
+
+:::{admonition} Definition: split conformal prediction
+:class: tip
+**Split conformal prediction** sets the interval width from the errors the model makes on a
+held-out calibration set, with no assumption about their distribution.
+:::
+
+1. Split the training data into a **fitting** set and a **calibration** set (here by mix: 625
+   and 210 rows).
+2. Fit any model on the fitting set. Here, the mean of the five networks.
+3. On the calibration set, compute the absolute errors $s_i = |y_i - \hat y(x_i)|$, for
+   $i = 1, \dots, n$.
+4. Take $q$, the $\lceil (n+1)(1-\alpha) \rceil / n$ quantile of the $s_i$.
+5. The interval for a new input is $\hat y(x) \pm q$.
+
+- **The guarantee**: if the calibration and test points are **exchangeable** (their order does not
+  matter: drawn the same way from the same population), the interval contains the truth with
+  probability at least $1 - \alpha$.
+- It works around any model, and it needs no Gaussian assumption.
+- The interval has the same width everywhere: it does not grow where the model is unsure.
+- [Angelopoulos and Bates](https://arxiv.org/abs/2107.07511) give a gentle introduction.
+
+## Is the uncertainty right? Calibration
+
+```{index} calibration, reliability diagram, prediction interval coverage probability
+```
+```{index} see: PICP; prediction interval coverage probability
+```
+```{index} pair: failure mode; conformal prediction under covariate shift
+```
+
+:::{admonition} Definition: calibration
+:class: tip
+An uncertainty is **calibrated** when its stated probabilities match what happens: 95% intervals
+contain the truth 95% of the time.
+:::
+
+The check is the **prediction interval coverage probability** (PICP), the fraction of test
+points whose interval contains the true value:
+
+$$
+\text{PICP} = \frac{1}{N}\sum_{i=1}^{N} \mathbf{1}\big[\, y_i \in [\,L(x_i),\, U(x_i)\,] \big]
+$$
+
+- $L$ and $U$ are the lower and upper ends of the interval; $\mathbf{1}[\cdot]$ is 1 when the
+  condition holds, 0 otherwise.
+- A **reliability diagram** plots the PICP against the nominal level (10%, 20%, ..., 95%). On
+  the diagonal: calibrated. Below it: **overconfident** (intervals too narrow). Above:
+  underconfident.
+- Coverage alone is not enough. An interval from 0 to 100 MPa always covers. Report the
+  **width** too: the narrowest intervals that still cover.
+
+### Two test sets
+
+- **Grouped split**: Lecture 9's split, 20% of the mixes held out at random (195 rows).
+- **Extrapolation split**: the 20% of mixes with the lowest water/cement ratio held out (265
+  rows). These are the strongest mixes: 49.5 MPa on average, against 31.1 MPa for the mixes
+  kept. A design loop pushes a surrogate exactly here.
+
+```{figure} figures/calibration.png
+:alt: Two reliability diagrams of observed coverage against nominal coverage. Left, grouped split: the Gaussian process and split conformal lines run along the diagonal, while the ensemble spread line falls well below it, reaching 0.76 at 0.95. Right, extrapolation split: all three lines fall below the diagonal; the Gaussian process reaches 0.89 at 0.95, the ensemble 0.86, and split conformal only 0.70.
+:width: 100%
+
+Observed against nominal coverage. Below the dashed line: overconfident.
+```
+
+| 95% intervals | Grouped: coverage | Grouped: width | Extrapolation: coverage | Extrapolation: width |
+|---|---|---|---|---|
+| Gaussian process | 95% | 20.4 MPa | 89% | 43.8 MPa |
+| Ensemble spread | **76%** | 12.1 MPa | 86% | 30.9 MPa |
+| Split conformal | 96% | 26.9 MPa | **70%** | 18.1 MPa |
+
+- **Grouped split**: the GP and conformal are calibrated. The ensemble's spread is
+  overconfident: it measures epistemic uncertainty only, and misses the 5 MPa of scatter.
+- **Extrapolation split**: every method is overconfident.
+  - The GP comes closest (89%), because its $\sigma$ grows away from the data: its intervals
+    double in width.
+  - Conformal falls to **70%**. Its width was set on calibration mixes that look like the
+    training mixes. The strongest mixes are not exchangeable with them, so the guarantee no
+    longer holds, and its constant width does not grow.
+
+Set the nominal level and watch which test mixes fall outside their interval:
+
+<div class="cw" data-widget="coverage" data-source="l15"></div>
+
+```{figure} figures/intervals.png
+:alt: Two panels of predicted against measured strength with 95% Gaussian-process intervals. Left, grouped split, 95% covered: points cluster on the diagonal with a few red misses. Right, extrapolation split, 89% covered: the points scatter widely, the intervals are long, and the red misses sit mostly at high measured strength, where the model predicts too low.
+:width: 100%
+
+The GP's 95% intervals on each test set. Red: the interval misses the measured strength.
+```
 
 :::{admonition} What a practitioner should take from this
 :class: tip
-
-Hallucination is not the model lying. It is the model doing exactly what it was trained to
-do, in a situation where the correct answer is not expressible in its output space.
-
-The three fixes follow directly, and you will use all of them in Assignment 8. **Put the answer in
-the context**, because grounded questions collapse to near-zero entropy. **Give it a way
-to say no**, explicitly, in the prompt and in the schema, so that a null is a legal answer
-rather than an impossible one. **Do not rely on confidence as a detector**: entropy went
-from 0.00 to 2.22 bits between a right answer and a fabricated one, which is a real signal
-but nowhere near a clean one, and you do not get to see it at all on most APIs.
+- Check coverage on a test set that looks like where the model will be **used**, not only like
+  where it was trained.
+- An ensemble's spread is epistemic only. Add an estimate of the noise before calling it an
+  interval.
+- Conformal's guarantee is real, and it needs exchangeability. A design loop breaks that on
+  purpose.
 :::
 
-### The two knobs, and what they cannot do
+## Bayesian optimization
 
-```{index} temperature, top-p sampling
+```{index} Bayesian optimization, acquisition function, surrogate model, black-box optimization
 ```
 
-**Temperature** divides the logits before the softmax. Below 1 it sharpens the
-distribution toward the leading candidate; above 1 it flattens it. **Top-p** (nucleus
-sampling) truncates instead: sort candidates by probability, keep the smallest set whose
-mass exceeds *p*, renormalize, and sample only from those. The fourth panel of the figure
-applies both to a measured distribution.
+### The problem
 
-The important thing about both is what they are *not*. Neither adds information. The
-distribution has already been computed by the time either knob applies, and every
-candidate the model was going to consider is already in it. Lowering the temperature to
-zero does not make the model more accurate; it makes it more repeatable at whatever
-accuracy it had. For extraction, that repeatability is what you want, which is why Assignment 8 asks
-for a low temperature.
+- Find the input $x$ (a mix design) that maximizes an **expensive** function $f(x)$ (the 28-day
+  strength).
+- No formula, no gradient: you can only evaluate $f$, a few dozen times at most. That is
+  **black-box optimization**.
+- A grid is hopeless: 10 levels of 4 ingredients is 10,000 mixes, 770 years of 28-day tests
+  run one after another.
 
-:::{admonition} Common pitfall
-:class: warning
-
-**"It worked once" is not a passing test, and low temperature does not make it one.**
-
-Sending the *same* prompt to `gpt-4.1-mini` five times, and reading the returned
-distribution rather than the sampled token, the leading candidate's probability ranged from
-**0.626 to 0.858** and the entropy from **0.71 to 1.26 bits**. The prompt was byte
-identical. The distribution itself was not reproducible, before any sampling happened.
-
-Providers batch requests, run in reduced precision, and route across heterogeneous
-hardware, and floating-point addition is not associative. You should expect run-to-run
-variation as a property of the platform, not as a bug you can configure away. Evaluate on a
-set, not on an anecdote, and re-run the set when you change anything.
+:::{admonition} Definition: Bayesian optimization (BO)
+:class: tip
+**Bayesian optimization** fits a probabilistic surrogate to the evaluations so far and uses an
+**acquisition function** of its mean and uncertainty to choose the next point to evaluate.
 :::
 
-## Tokenization, and what it does to engineering text
+The loop:
 
-```{index} tokenization, byte-pair encoding
+<div class="flow" style="display:flex;gap:.4em;flex-wrap:wrap;align-items:center;justify-content:center;margin:.8em 0">
+<span style="border:2px solid #5c5c5c;border-radius:8px;padding:.3em .7em">1. Fit a GP to the data so far</span> →
+<span style="border:2px solid #5c5c5c;border-radius:8px;padding:.3em .7em">2. Maximize the acquisition</span> →
+<span style="border:2px solid #5c5c5c;border-radius:8px;padding:.3em .7em">3. Evaluate f there</span> →
+<span style="border:2px solid #5c5c5c;border-radius:8px;padding:.3em .7em">4. Add the result, repeat</span>
+</div>
+
+### Acquisition functions
+
+```{index} expected improvement, upper confidence bound, probability of improvement, Thompson sampling
+```
+```{index} exploration-exploitation trade-off
 ```
 
-The vocabulary is learned. Nobody sat down and decided that ` MP` should be a token and
-`MPa` should not.
+Each acquisition trades **exploitation** (sample where the mean is high) against **exploration**
+(sample where the uncertainty is high). With $f^*$ the best value found so far:
 
-The dominant scheme is **byte-pair encoding**, an idea Philip Gage published in 1994 as a
-data-compression algorithm and Sennrich, Haddow and Birch repurposed in 2016 to give
-neural translation systems an open vocabulary. Training it is almost embarrassingly simple:
-start with the raw bytes as your vocabulary, find the most frequent adjacent pair in the
-corpus, merge it into a new symbol, and repeat once per vocabulary entry you want, which in
-practice is tens or hundreds of thousands of times. The merge list is then frozen and
-shipped with the model. Encoding new text means replaying those merges greedily.
+**Expected improvement (EI)**: how much, on average, the new point beats $f^*$:
 
-Everything that follows is a consequence of that corpus being mostly ordinary web text.
-Fragments that are common in English get merged early and become single tokens. Fragments
-that are common in *your* documents and rare on the web never get merged at all.
+$$
+\text{EI}(x) =
+\underbrace{\big(\mu(x) - f^*\big)\,\Phi(z)}_{\text{exploit: mean above the best}}
++ \underbrace{\sigma(x)\,\phi(z)}_{\text{explore: room to be better}},
+\qquad z = \frac{\mu(x) - f^*}{\sigma(x)}
+$$
 
-```{figure} figures/tokenization.png
-:alt: Three panels. Left, eight engineering strings drawn as sequences of coloured token boxes, showing 10.5 MPa as five tokens and P/N 4L-2200-XG as ten. Middle, a horizontal bar chart of characters per token for five kinds of text, from 4.82 for technical prose down to 2.35 for an alarm table. Right, four bars for the token count of the same datasheet under cl100k_base, o200k_base, Claude Haiku 4.5, and Claude Opus 5, at 776, 770, 924, and 1,263.
+- $\Phi$ is the standard normal cumulative distribution; $\phi$ its density.
+- Large when the mean is above $f^*$, or when $\sigma$ is large, or both.
+
+**Probability of improvement (PI)**: $\Phi(z)$, the chance of beating $f^*$ at all, by any margin.
+It favors small sure gains, so it tends to stay near the best point.
+
+**Upper confidence bound (UCB)**: $\mu(x) + \kappa\,\sigma(x)$. The weight $\kappa$ sets the
+trade-off directly: large $\kappa$ explores.
+
+**Thompson sampling**: draw one random function from the GP posterior, and evaluate where that
+draw is highest. The randomness of the draw does the exploring.
+
+### The loop on a test function
+
+The test function is $g(x) = -(6x - 2)^2 \sin(12x - 4)$ on $[0, 1]$, the
+[Forrester et al. (2008)](https://www.wiley.com/en-us/Engineering+Design+via+Surrogate+Modelling%3A+A+Practical+Guide-p-9780470060681)
+benchmark turned into a maximization. Its global maximum is 6.02 at $x = 0.758$, with a
+smaller peak near $x = 0.15$. Four starting points (0, 0.33, 0.66 and 1) all miss the big peak.
+
+<div class="cw" data-widget="bo-loop" data-source="l15"></div>
+
+```{figure} figures/acquisitions.png
+:alt: Top, a Gaussian process fitted to five points of a test function with two peaks, with its 95% band, and three dashed vertical lines. Bottom, three scaled acquisition curves. Expected improvement peaks at x = 0.73, near the true global maximum; probability of improvement peaks at 0.67, right next to the best point found; the upper confidence bound with kappa = 3 peaks at 0.17, in a wide-band region far from the data.
 :width: 100%
 
-The same characters, three different ways of looking at what they cost.
+One GP state, three acquisitions, three different next experiments.
 ```
 
-### What breaks, specifically
+After 8 picks from the same start:
 
-**Units detach from their numbers.** `10.5 MPa` is five tokens: `10`, `.`, `5`, ` MP`,
-`a`. The unit is split across a token that also begins "MP3" and "MPG", and a bare `a`.
-
-**Numbers are cut in fixed-width digit groups, not at their real boundaries.** `1500 rpm`
-tokenizes as `150`, `0`, ` rpm`. The model never sees `1500` as a unit; it sees a
-three-digit chunk followed by a stray zero. `4140` in `AISI 4140` becomes `414` + `0`, and
-`2200` becomes `220` + `0`. If you have wondered why LLMs are unreliable at arithmetic on
-long numbers, this is a large part of the answer: the representation itself does not
-respect place value.
-
-**Part numbers shatter.** `P/N 4L-2200-XG` is 14 characters and **10 tokens**, a rate of
-1.4 characters per token against 4.8 for prose. Identifiers are the densest and most
-expensive thing in your corpus and they are also the thing you most need extracted exactly.
-
-**Some characters are not even one token.** `Ø25` under `cl100k_base` is three tokens, and
-the first two are *halves of a character*: `Ø` is two bytes in UTF-8 and the encoder had no
-merge for that pair, so it emitted each byte separately. Neither one decodes to a printable
-character on its own. Under the newer `o200k_base` the same string is two tokens. Nothing
-about your document changed.
-
-**Case and spacing matter.** `bearing` is one token. `Bearing` is two (`B` + `earing`).
-`BEARING` is two. Maintenance logs written in capitals, which is most of them, cost more
-than the same words in lower case, and the model sees different symbols.
-
-### What that adds up to per page
-
-Averaged over a document, the effect shows up as characters per token, which is the number
-worth carrying in your head:
-
-| kind of text | characters per token |
-|---|---|
-| technical prose | 4.82 |
-| free-text maintenance log | 3.82 |
-| pump datasheet | 3.05 |
-| Python source | 2.56 |
-| an alarm table flattened out of a PDF | 2.35 |
-
-A page of a datasheet costs about **1.6 times** as many tokens as a page of prose with the
-same number of characters, and a page of tabular data costs about **twice**. Any budget
-you build from a general "four characters per token" rule of thumb will be wrong in the
-expensive direction for exactly the documents this course cares about.
-
-### Count, do not estimate
-
-The measured spread across tokenizers is the practical lesson. On the same 2,365-character
-datasheet:
-
-| tokenizer | tokens | against `cl100k_base` |
+| Acquisition | Picks | Best found (true max 6.02) |
 |---|---|---|
-| `cl100k_base` (OpenAI) | 776 | baseline |
-| `o200k_base` (OpenAI) | 770 | −1% |
-| Claude Haiku 4.5 | 924 | +19% |
-| Claude Opus 5 | 1,263 | **+63%** |
+| EI | 0.63, 0.73, 0.78, 0.18, 0.76, ... | 6.02 (from the 5th pick) |
+| PI | 0.66, 0.67, 0.68, 0.68, 0.69, ... 0.72 | 5.26 |
+| UCB, $\kappa = 3$ | 0.59, 0.18, 0.78, 0.45, 0.73, 0.76, ... | 6.02 |
 
-People expect the vendors to differ. The gap that catches them is the last row against the
-one above it. **Two models from the same provider disagree by 37% on the same text**,
-because Anthropic changed tokenizer within its own model line and documents the change as
-roughly 30% more tokens for the same input. "Use the provider's tokenizer" is not a
-sufficient rule. Use the *model's*, for the exact model id you are going to call, and
-re-measure when you change model.
+- **PI** creeps uphill from its best point in tiny steps: it exploits.
+- **UCB** with $\kappa = 3$ checks the far side first: it explores, then finds the peak.
+- **EI** balances the two, and gets there fastest here.
 
-Mechanically, the two providers make opposite trade-offs and you should know both.
-OpenAI's `tiktoken` is a local library: counting is free, offline, instantaneous, and
-exact for their models. Anthropic publishes no offline tokenizer and instead exposes a
-[token counting endpoint](https://platform.claude.com/docs/en/build-with-claude/token-counting),
-`POST /v1/messages/count_tokens`, which is free to call but is a network round trip,
-consumes its own rate limit, and is documented as an *estimate* that may differ slightly
-from what you are billed. Neither is wrong; they are different points on a
-latency-versus-fidelity curve. What is always wrong is using one vendor's local library to
-predict another vendor's bill.
+### On the concrete strength dataset: BO against random search
 
-:::{admonition} Common pitfall
-:class: warning
-
-Anthropic's own documentation puts it bluntly, and it is worth quoting because it is the
-mistake in this section that costs real money: `tiktoken` "is OpenAI's tokenizer. It
-undercounts Claude tokens by ~15–20% on typical text, and by much more on code or
-non-English input."
-
-Measured on the 146-page report in the next section: `tiktoken` says 87,556 tokens, Claude
-Opus 5 bills 126,452. The estimate is **31% low**. On a corpus of ten thousand documents,
-that is the difference between a budget that holds and one that does not.
-:::
-
-## The context window as a budget
-
-```{index} context window
+```{index} pair: failure mode; single-seed Bayesian optimization
 ```
 
-The context window is the total number of tokens a model can attend to at once, and the
-budget is shared: **tokens in plus tokens out**. If you send 190,000 tokens to a model
-with a 200,000-token window, you have left room for 10,000 tokens of answer, whatever you
-set `max_tokens` to. On the providers this course uses, exceeding the window is a
-request-level error rather than a silent truncation, which is the merciful behaviour, and
-you should confirm that for any provider you add. The silent truncation that
-actually bites you happens earlier, in your own code: a chunker with an off-by-one, a PDF
-extractor that gives up on page 40, a `[:8000]` somebody added while debugging and never
-removed.
+The "lab" is a GP fitted to all 1,030 rows, which plays the role of the 28-day test.
 
-Windows are now large enough that "will it fit" is rarely the binding question. What
-replaced it is "what does each question cost, and which model can I afford to route to."
+- **Design**: cement, slag, water and superplasticizer (kg/m³), each within the 5th to 95th
+  percentile of the 28-day mixes; the other ingredients fixed at their medians.
+- **Goal**: the strongest mix at 28 days.
+- **BO**: 5 random mixes, then 20 chosen by EI (a GP refitted after every test). **Random
+  search**: 25 random mixes. Each gets **30 seeds**, because one run of either is luck.
 
-```{figure} figures/context-cost.png
-:alt: Three panels. Left, cumulative tokens across 146 pages of a NASA report, drawn twice, once as tiktoken counts it reaching 88 thousand and once as Claude Opus 5 bills it reaching 126 thousand, against a dashed line at the 200 thousand token Haiku context window. Middle, log-log cost per call against input tokens for two models with and without prompt caching, marking 63 cents per question for this report on Opus 5. Right, measured wall-clock latency against token count, with input length nearly flat and output length rising steeply to 22 seconds.
+```{figure} figures/bo-vs-random.png
+:alt: Best strength found so far against the number of mixes tested, from 1 to 25, with the median and the 25th to 75th percentile band over 30 seeds. Bayesian optimization in blue rises steeply after the five random starting mixes, passes 87 MPa by the 10th mix, and reaches the red dashed line at 91.4 MPa labeled the emulator's best. Random search in gray climbs slowly to about 81 MPa.
 :width: 100%
 
-One real document, measured three ways: what it counts as, what it costs, and what it does
-to latency.
+Median and middle 50% over 30 seeds.
 ```
 
-The document is NASA RP-1218, Brooks, Pope and Marcolini's 1989 report on airfoil
-self-noise. This course has used the dataset from it twice already, in
-[Lecture 9](../l09/notes.md) and [Lecture 13](../l13/notes.md); this is the report itself. It is 146
-pages and 248,947 characters of extracted text, and it is a 1989 scan, so what the
-extractor returns is OCR output complete with figure axis labels, running heads, and
-garbled fragments like `oi` and `TEj LE`. That is not a defect in the demonstration, it is
-the realistic case: **you pay tokens for whatever your extractor produces, noise
-included**. It comes out at 2.84 characters per token, more token-dense than the datasheet
-at 3.05, which is what OCR noise and equations do to a document.
+| After the same 25 tests | BO (EI) | Random search |
+|---|---|---|
+| Median best strength | **91.3 MPa** | 81.1 MPa |
+| Seeds within 1 MPa of the emulator's best | **29 of 30** (median: 16 tests) | 0 of 30 |
 
-Three numbers follow, and each drives a different decision:
+**Now check that answer with the uncertainty.** The emulator's best mix (472 kg/m³ cement, 235
+slag, 162 water, 11 superplasticizer) is predicted at **91.6 ± 18.0 MPa** (95%). The strongest
+specimen in the data is **82.6 MPa**.
 
-**It counts as 126,452 tokens on Claude Opus 5** and 100,448 on Claude Haiku 4.5. Against a
-1M-token window that is 13%, so it fits comfortably. Against Haiku's 200K window it is
-half, so it fits exactly once with room for a conversation and no more. The constraint is
-not the document, it is the document plus everything else you wanted in the prompt.
+- The optimizer went where the emulator is most **optimistic**, at the corner of the design box,
+  far from any mix ever tested. The ±18 MPa says so.
+- This is BO on a fixed surrogate. In a real campaign, the next step is to cast that mix: the
+  measurement updates the GP, and the loop continues.
 
-**It costs $0.63 per question** at Opus 5's $5 per million input tokens, every time you
-re-send it. Ask fifty questions over a working session and you have spent $31 on one
-report. Prompt caching, which most providers now offer, cuts the repeat reads to about a
-tenth, which is the difference between a workflow and a line item. The same document on
-Haiku 4.5 is $0.10 per question, which is what "route the easy subtasks to a smaller
-model" means in practice.
+### Bayesian optimization in Optuna
 
-**It barely affects latency at all**, and this is the measurement that most often reverses
-students' intuition.
+**Optuna** ([Lecture 10](../l10/notes.md)) ran the hyperparameter search with its default sampler,
+TPE. It also has `GPSampler`, which runs Bayesian optimization with a GP surrogate
+([documentation](https://optuna.readthedocs.io/en/stable/reference/samplers/generated/optuna.samplers.GPSampler.html)).
 
-### Input is cheap in time; output is not
+```python
+import optuna
 
-The right-hand panel is a real sweep against Claude Haiku 4.5, three repeats per point,
-with the individual repeats drawn as faint dots so you can see the scatter honestly.
+def objective(trial):
+    mix = {
+        "cement": trial.suggest_float("cement", 141, 475),
+        "slag": trial.suggest_float("slag", 0, 237),
+        "water": trial.suggest_float("water", 152, 216),
+        "superplasticizer": trial.suggest_float("superplasticizer", 0, 16),
+    }
+    return lab(mix)                       # the 28-day strength of this mix
 
-| what varied | from | to | median latency |
+study = optuna.create_study(
+    direction="maximize",
+    sampler=optuna.samplers.GPSampler(seed=0, n_startup_trials=5),
+)
+study.optimize(objective, n_trials=25)
+```
+
+- `suggest_float(name, low, high)` lets the sampler choose a value in the range.
+- `GPSampler(n_startup_trials=5)` samples 5 points at random, then lets the GP choose.
+- `direction="maximize"`: higher strength is better.
+
+### Case study: Bayesian optimization against fifty chemists
+
+```{index} pair: case study; Bayesian reaction optimization
+```
+
+- [Shields and colleagues (2021)](https://b-shields.github.io/files/2021-02-03-Nature.pdf),
+  in *Nature*, framed a palladium-catalyzed reaction as a black box: inputs were ligand, base,
+  solvent, temperature and concentration; the output was yield; each evaluation was a real
+  reaction.
+- They ran a GP with expected improvement (their tool, EDBO) against fifty expert chemists and
+  engineers playing the same optimization as a game.
+- Bayesian optimization outperformed the experts in both average efficiency and consistency.
+- Unaided search is inconsistent, and inconsistency is expensive when each trial is an
+  experiment. The optimizer applies the same rule every time and never forgets a result.
+
+## Active learning
+
+```{index} active learning, uncertainty sampling, query-by-committee
+```
+
+:::{admonition} Definition: active learning
+:class: tip
+**Active learning** chooses which data points to label (measure) next, to make the model as
+accurate as possible with as few labels as possible.
+:::
+
+- Bayesian optimization looks for **one** best point. Active learning wants a model that is good
+  **everywhere** you will use it.
+- **Uncertainty sampling**: label the point where the model is least sure, the largest GP
+  $\sigma$. **Query-by-committee**: label where an ensemble disagrees most.
+
+### On the concrete strength dataset
+
+Start with 20 labeled rows of the training pool, then label 40 more, one at a time: where the GP
+is least sure, or at random. Score each model on the grouped test mixes (median of 8 seeds).
+
+```{figure} figures/active-learning.png
+:alt: Test RMSE against the number of labeled rows, from 20 to 60. Querying at random, in gray, drops quickly from 14 to about 10 MPa by 22 rows and ends near 8.6. Querying where the GP is least sure, in blue, stays near 12 to 15 MPa until about 50 rows, then drops to about 8.7 at 60, labeled least-sure queries go to extreme mixes at the edges.
+:width: 100%
+
+Median test RMSE over 8 seeds.
+```
+
+| Test RMSE | 20 rows | 40 rows | 60 rows |
 |---|---|---|---|
-| input tokens (`max_tokens` = 16) | 769 | 100,456 | 0.85 s → 1.21 s |
-| output tokens (39-token prompt) | 16 | 2,048 | 1.00 s → 22.55 s |
+| Least-sure queries | 13.9 MPa | 12.7 MPa | 8.7 MPa |
+| Random queries | 13.9 MPa | **9.5 MPa** | 8.6 MPa |
 
-A **130-fold** increase in input added about **0.4 seconds**, which is inside the
-run-to-run scatter. A **128-fold** increase in output added **22 seconds**. Generation ran
-at roughly 90 tokens per second and that rate is set by the serial loop described earlier,
-not by anything you can pay to avoid.
+**Here, uncertainty sampling loses to random.** Why:
 
-Put crudely: **one output token costs about as much wall-clock time as a thousand input
-tokens.** So the instinct to trim the document you paste in, to make the call faster,
-optimizes the wrong term. Trimming the input saves money. Trimming what you ask
-the model to *write* saves time. For an extraction task that returns a small JSON object,
-you are almost entirely paying for input tokens in dollars and almost entirely paying for
-output tokens in seconds, and those are two different budgets with two different fixes.
+- The GP is least sure at the **edges** of the data: the most extreme mixes, ages and doses.
+- Measured: 45% of the least-sure queries are at an age of 3 days or 180 days and more, against
+  19% of the pool. The test mixes, like the pool, are mostly in the middle.
+- Random queries cover where the test mixes are. The least-sure queries cover where nobody will
+  predict.
+- Active learning helps when the queries go where the model will be **used**: weight the
+  uncertainty by how likely an input is, or restrict the pool to the operating region.
 
-:::{admonition} What a practitioner should take from this
-:class: tip
+### Case study: an autonomous lab
 
-Before you build anything, write down three numbers for one representative document:
-tokens under the model you will call, dollars per call, and seconds per call. All three
-are one API call away and none of them can be guessed reliably.
-
-Then decide where the loop is. If the same large context is queried repeatedly, prompt
-caching is the first optimization and it is nearly free. If each document is seen once,
-caching does nothing and a smaller model is the lever. If a human is waiting, cap
-`max_tokens` and ask for the smallest output that answers the question, because that is
-the only term that moves the clock.
-:::
-
-## Embeddings
-
-An embedding is a vector that stands in for a piece of text, arranged so that texts with
-similar meaning land near each other. That is the whole idea, and the reason it earns a
-section is that for a large class of engineering problems it is a better tool than an LLM
-call: cheaper by orders of magnitude, faster, deterministic, and easy to index.
-
-### Two different things are called embeddings
-
-```{index} embedding
-```
-```{index} single: embedding; token embedding
-```
-```{index} single: embedding; sentence embedding
+```{index} pair: case study; A-Lab
 ```
 
-Inside the model, the first stage after tokenization is an embedding lookup: a table with
-one row per vocabulary entry. Those are **token embeddings**, and there is one per
-fragment, not one per word or per sentence. `SS316L` has three of them.
+- The A-Lab ([Szymanski and colleagues, 2023](https://pmc.ncbi.nlm.nih.gov/articles/PMC10700133/),
+  *Nature*) plans syntheses of inorganic materials, runs them with robots, characterizes the
+  products, and uses an active-learning loop to choose the next recipe when an attempt fails.
+- The paper first reported 41 of 58 targets made in 17 days of continuous operation.
+- Other researchers questioned how the products were identified and whether they were new. In a
+  2026 [author correction](https://doi.org/10.1038/s41586-025-09992-y), a manual re-analysis
+  confirmed 36 of the 40 reported successes and left 4 inconclusive, one target was removed
+  because it was in the training data, and the materials were described as "new to the
+  prediction platform, not necessarily new to science".
+- An autonomous loop needs the same check as any other model: whether its measurements say
+  what it concluded.
 
-What you get from an embeddings API is a **sentence or document embedding**: one vector
-for the whole input, produced by a separate model trained specifically so that distance
-between vectors means semantic similarity. Reimers and Gurevych's 2019 Sentence-BERT paper
-is the standard reference for why the distinction matters. Averaging the token embeddings
-of a generative model is not a substitute; those vectors were optimized to predict the
-next token, not to make cosine distance meaningful, and they perform badly at it.
+## Extensions engineers need
 
-Providers differ here in a way worth knowing. Anthropic does not train an embedding model
-at all and its documentation points you at
-[third-party providers](https://platform.claude.com/docs/en/build-with-claude/embeddings),
-recommending Voyage AI. OpenAI ships `text-embedding-3-small` (1,536 dimensions) and
-`text-embedding-3-large` (3,072). Voyage's current models default to 1,024. The measurements
-below use `text-embedding-3-small`, and every claim in them is a property of that model
-rather than of embeddings in general.
-
-### Cosine similarity, and what it buys you
-
-```{index} cosine similarity, TF-IDF
+```{index} constrained Bayesian optimization, multi-objective optimization, Pareto front, batch Bayesian optimization, multi-fidelity optimization
 ```
 
-Vectors are compared by the cosine of the angle between them, which is the dot product of
-the unit-normalized vectors. Most embedding APIs return vectors already normalized, in
-which case cosine similarity and dot product are the same computation and the second is
-faster. Cosine ranges from −1 to 1, though in practice the interesting range for one
-model on one corpus is much narrower, and the absolute values are not comparable across
-models.
+- **Constrained BO**: a second GP models a constraint (cost, CO₂, slump), and the acquisition is
+  multiplied by the probability that it holds.
+- **Multi-objective BO**: strength **and** cost. The answer is a **Pareto front**, the set of
+  mixes where no objective improves without another getting worse.
+- **Batch BO**: choose several experiments at once, for a lab that casts eight cylinders a day.
+- **Multi-fidelity BO**: mix cheap evaluations (a 7-day test, a coarse simulation) with
+  expensive ones (a 28-day test, a fine simulation).
+- [BoTorch](https://botorch.org/) and [Ax](https://ax.dev/) implement all four.
 
-The demonstration is 34 free-text maintenance log entries, written the way maintenance
-logs are actually written: abbreviations, missing articles, inconsistent tag formats.
+## Limitations and trade-offs
 
-```{figure} figures/embeddings.png
-:alt: Three panels. Left, a 34 by 34 cosine similarity heatmap with visible bright blocks along the diagonal corresponding to labelled clusters. Middle, a scatter of embedding cosine against TF-IDF cosine for every pair, with same-event pairs in green well above the lexical baseline and one at zero lexical overlap. Right, a two-dimensional PCA projection of the same vectors coloured by cluster.
-:width: 100%
+| | Gaussian process | Deep ensemble | Split conformal |
+|---|---|---|---|
+| Uncertainty it reports | aleatoric + epistemic | epistemic only | total, constant width |
+| Guarantee | if the GP's assumptions hold | none | coverage, if exchangeable |
+| Grows away from data | yes | yes | no |
+| Scales to large data | poorly ($O(n^3)$ to fit) | yes | yes, wraps any model |
 
-Thirty-four maintenance log entries, embedded and compared. The middle panel is the
-argument for embeddings: the vertical spread at the left edge is pairs with no words in
-common.
-```
-
-The single most convincing pair in the whole set:
-
-> `brg vibration p101 high at startup`
-> `Operator reports growling from the drive end bearing on P-101`
-
-These describe the same event. Their **TF-IDF cosine is 0.000**: after tokenizing on word
-boundaries, they share not one term. Any keyword search, any `LIKE '%bearing%'`, any
-lexical index misses this pair completely. Their **embedding cosine is 0.532**, comfortably
-above the 0.364 median for unrelated pairs. That gap is the entire value proposition, and
-it is why the vector store previewed in Week 2 exists.
-
-### When embeddings beat an LLM call
-
-Deduplicating those 34 entries pairwise with an LLM means 561 calls. At roughly a
-thousand input tokens and a short answer each, that is on the order of a dollar and several
-minutes, and the answers are not reproducible. Embedding all 34 entries was **one call, 455
-tokens, and a fraction of a cent**, after which every pairwise comparison is a dot product:
-a 34 × 1,536 matrix times its own transpose, microseconds. Scaled to a hundred thousand
-records the LLM approach is arithmetically impossible, while the embedding approach is a
-single matrix multiply or an approximate-nearest-neighbour index.
-
-The rule of thumb: **use embeddings when the question is "which of these are alike," and an
-LLM when the question is "what does this one say."** Deduplication, clustering, near-
-duplicate detection, and retrieval are the first kind. Extraction, summarization, and
-judgment are the second. Most real pipelines use embeddings to narrow a corpus from
-millions to tens, and then spend LLM tokens only on the tens. That pipeline is
-retrieval-augmented generation, and this is the half of it you can build today.
-
-### Dimensionality is a storage decision
-
-Vector size is not free. A million chunks at 1,536 float32 dimensions is 6 GB before any
-index overhead, which is a database decision rather than a modelling one.
-
-Both OpenAI's v3 models and Voyage's current models are trained so the vector can be
-**truncated from the end** and renormalized, a technique known as Matryoshka
-representation. Measured on this corpus, keeping the leading *n* dimensions and asking
-whether each entry's nearest neighbour is unchanged:
-
-| dimensions kept | bytes per vector | nearest neighbour unchanged |
-|---|---|---|
-| 1,536 | 6,144 | 100% |
-| 1,024 | 4,096 | 97.1% |
-| 512 | 2,048 | 100% |
-| 256 | 1,024 | 85.3% |
-| 128 | 512 | 82.4% |
-| 64 | 256 | 67.6% |
-
-A third of the storage for no measurable loss is a good trade and you should take it. But
-look at the 1,024 row, which does *worse* than the 512 row below it. The curve is not
-monotonic, and on 34 records it cannot be: this is sampling noise, not a property of the
-model. It is in the table rather than smoothed away because the temptation to tune a
-storage decision on a small sample is exactly the mistake this course keeps warning about,
-and here it is in one of our own measurements.
-
-:::{admonition} Common pitfall
-:class: warning
-
-**Embeddings from two different models are not comparable, and there is no conversion.**
-
-Cosine values from `text-embedding-3-small` and from `voyage-4` are different numbers in
-different spaces. A threshold tuned on one is meaningless on the other. This makes changing
-embedding model a *migration*: you must re-embed the entire corpus, which costs the full
-corpus in tokens again, and you must re-tune every threshold downstream. Pin the model id
-in your config next to the vectors, the way you would pin a schema version.
-
-Two related traps. Some providers use **asymmetric** embeddings, where a query and a
-document must be embedded with a different `input_type` flag because the model prepends a
-different instruction to each; embedding both sides the same way silently degrades
-retrieval. And embedding APIs have their own token limits (8,192 for OpenAI's v3 models,
-32,000 for Voyage's), so a long document must be chunked before it can be embedded at all.
-:::
-
-## Where this pushes back
-
-Everything above sold you two tools. This section is the part where they are weighed, and
-the honest summary is that cosine similarity is a much blunter instrument than its
-convenience suggests.
-
-```{figure} figures/embedding-limits.png
-:alt: Three panels. Left, a strip plot of embedding cosine for unrelated pairs, same-event pairs, and opposite-meaning pairs, with the same-event and opposite-meaning groups overlapping almost completely inside a shaded band. Middle, precision and recall against cosine threshold on the labelled pairs, with precision never exceeding 0.62. Right, top-1 neighbour agreement against the number of dimensions kept.
-:width: 100%
-
-The same 34 entries, asked harder questions.
-```
-
-### Cosine similarity does not know about negation
-
-```{index} pair: failure mode; cosine similarity and negation
-```
-
-Consider these two entries:
-
-> `Mechanical seal leaking, approx 8 drops/min, pump P-101`
-> `P-101 seal inspected, no leak found`
-
-One is a fault and the other is its refutation. Their cosine similarity is **0.694**. Now
-recall the pair from the previous section, which describe the *same* event and score
-**0.532**.
-
-**A pair that means the opposite scores higher than a pair that means the same thing.**
-This is not a near miss. Across the eight opposite-meaning pairs in this set, **all eight
-score above the weakest true match**, and the medians are 0.691 for the opposite pairs
-against 0.655 for the true ones. The left panel shows the two groups sitting on top of each
-other.
-
-The reason is structural rather than a defect of this particular model. Cosine similarity
-measures how much two texts are *about the same thing*, and a report of a leak and a report
-of no leak are maximally about the same thing. The word "no" is one token among a dozen and
-it does not move the vector far. Nothing in the training objective of an embedding model
-requires it to.
-
-The middle panel is what that costs you operationally. Sweeping the duplicate-detection
-threshold across the labelled pairs, precision never rises above **0.62** at any cut that
-retains meaningful recall. There is no threshold. Not a badly chosen one; there is no value
-that separates these two classes, because the classes overlap in the underlying quantity.
-
-### Units are invisible
-
-Two more entries:
-
-> `Bearing temperature 85 degC steady on the drive end`
-> `Bearing temperature 85 degF steady on the drive end`
-
-Cosine **0.971**. One of these describes a bearing at its alarm limit and the other
-describes a bearing at room temperature. To the embedding they are the same sentence with a
-typo. The same effect on pressures, `10.5 MPa` against `10.5 bar`, gives **0.761**, still
-well inside the range where a deduplicator would merge them.
-
-This should worry you specifically because of Assignment 8. Unit normalization cannot be delegated to
-semantic similarity, and it cannot be delegated to the LLM's good judgment either. It has
-to be an explicit, typed, tested step in your pipeline, which is why the assignment requires
-units in the schema and a normalization stage with the original value retained.
-
-### The theoretical objection
-
-There is also a principled critique worth knowing about. Steck, Ekanadham and Kallus'
-2024 paper *Is Cosine-Similarity of Embeddings Really About Similarity?* shows that for
-regularized linear models, cosine similarity between learned embeddings can yield
-"arbitrary and therefore meaningless" similarities, because the values are governed by the
-regularization applied during training rather than by anything semantic. Deep models
-combine several regularizers with similar unintended effects. The paper does not say never
-use cosine, and neither do these notes. It says the metric is a convention with no
-guarantee attached, which is a good frame for the measurements above: they are the
-empirical version of the same warning.
-
-### And the tokenizer moves under you
-
-The 37% disagreement between two models from one vendor is not a quirk of this month. It
-is the normal condition. Model ids are deprecated, tokenizers are revised, context windows
-and prices change, and the numbers in these notes are dated 2026-08-06 for exactly that
-reason. Anything in your system that depends on a token count (a chunk size, a cost
-estimate, a context-fit check, a rate-limit budget) is a hardcoded assumption about a
-model version. Pin the model id, record it in your outputs, and re-measure on upgrade. Assignment 8
-requires you to report the exact model id you used, and this is why.
+- **Bayesian optimization** works for a few dozen to a few hundred evaluations and up to about
+  15 to 20 design variables; beyond that the GP and the acquisition search both struggle.
+- It is **stochastic**: report several seeds and a random-search baseline, never one run.
+- On a fixed surrogate it **exploits the surrogate's errors**. Its answer is a proposal to test,
+  not a result.
+- **Active learning** queries where the model is unsure, which may not be where it will be used.
+- **Count the expensive evaluations**. A method that spent 10,000 surrogate calls is fine; one that
+  spent 10,000 experiments is not.
 
 ## In-class demo
 
-[`l15-tokens-embeddings.ipynb`](l15-tokens-embeddings.ipynb) runs in two halves.
-
-The first half tokenizes a datasheet. We start with the strings from the figure above,
-predict the token counts as a room before revealing them, then tokenize the whole document
-and count it four ways. The moment to watch for is `Ø25`, where the tokenizer emits two
-fragments that are not characters, and the four-way count, where the two Anthropic models
-disagree with each other by more than either disagrees with OpenAI.
-
-The second half embeds the thirty-four maintenance log entries. Before we compute anything,
-you will be asked to predict which pairs cluster. Most rooms get the near-duplicates right
-and the negations wrong, which is the point: the pair everyone marks as "obviously
-different" scores higher than the pair everyone marks as "obviously the same."
-
-The notebook runs without any API key using local tokenizers and a lexical baseline, and
-uses the provider endpoints when `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` are set. Bring
-keys if you have them.
+- [`l15-uq-bayesopt.ipynb`](l15-uq-bayesopt.ipynb): Lecture 9's GP, a five-network ensemble and
+  split conformal on the concrete strength dataset; their coverage on the grouped and the
+  extrapolation splits; then Bayesian optimization of the mix with expected improvement written
+  out by hand, against random search, and the same search in Optuna's `GPSampler`.
 
 ## Summary
 
-An LLM is a next-token predictor over a vocabulary of subword fragments, and nearly every
-engineering property you care about follows from that. Tokenization decides what the model
-actually sees, and it treats engineering notation badly: numbers split at digit-group
-boundaries rather than real ones, units detach, part numbers shatter into ten tokens, and a
-character can fail to be a token at all. Token counts decide cost, and they are not
-portable: the same datasheet is 776 tokens to `tiktoken` and 1,263 to Claude Opus 5, so you
-count with the model you are going to call rather than the library you happen to have.
-Context is a shared budget of input plus output, but on current models the binding
-constraint is usually money rather than capacity, and the latency is set almost entirely by
-what you ask the model to write rather than what you give it to read. Hallucination is what
-happens when the right answer is not expressible in the output space, so the fix is to
-ground the question and to supply a token that means "not found." Embeddings turn text into
-vectors whose distances mean something, which finds near-duplicates that share no words at
-all, and which is blind to negation and to units in ways that will bite an extraction
-pipeline that trusts them too far.
-
-The three habits worth carrying out of this session are the ones Assignment 8 is built on:
-count the tokens with the model you will actually call, ground every question in the
-context, and give the model a token that means "not found."
+- **Aleatoric** uncertainty is the scatter in the data (5.0 MPa between replicate specimens);
+  **epistemic** is what the model does not know yet, and shrinks with data.
+- **Gaussian process** intervals carry both; an **ensemble's spread** carries only the epistemic
+  part; **split conformal** intervals come with a coverage guarantee, if the test data are
+  exchangeable with the calibration data.
+- **Calibration** is checked with the PICP and a reliability diagram, on a test set like the one
+  you will use the model on. On the strongest mixes, conformal's 95% covered 70%.
+- **Bayesian optimization** fits a GP and maximizes an **acquisition function**: EI, PI, UCB or
+  Thompson sampling, each trading exploration against exploitation differently.
+- On a mix design, BO got within 1 MPa of the emulator's best in 29 of 30 seeds; random search in
+  none. The emulator's best (91.6 ± 18.0 MPa) is a proposal to test.
+- **Active learning** queries where the model is least sure. On the concrete strength dataset that
+  meant the edges, and random queries did better.
 
 ## Resources
 
-- [Vaswani et al., *Attention Is All You Need*](https://arxiv.org/abs/1706.03762) (2017).
-  The architecture, from the paper that introduced it. Skim for Figure 1 and section 3.2;
-  the point is the block diagram, not the derivation.
-- [Jay Alammar, *The Illustrated Transformer*](https://jalammar.github.io/illustrated-transformer/).
-  The best visual explanation of attention there is. Read this before the paper if the
-  paper is heavy going.
-- [Jay Alammar, *The Illustrated Word2vec*](https://jalammar.github.io/illustrated-word2vec/).
-  Where the intuition that vector distance means semantic similarity comes from, built up
-  from scratch.
-- [Bommasani et al., *On the Opportunities and Risks of Foundation Models*](https://arxiv.org/abs/2108.07258)
-  (2021). Read the introduction for the framing: why one model trained once and adapted
-  many times changes the engineering problem.
-- [Sennrich, Haddow and Birch, *Neural Machine Translation of Rare Words with Subword Units*](https://arxiv.org/abs/1508.07909)
-  (2016). The paper that brought byte-pair encoding into language models. Section 3.2 is
-  the algorithm, and it is shorter than you expect.
-- [Reimers and Gurevych, *Sentence-BERT*](https://arxiv.org/abs/1908.10084) (2019). Why a
-  sentence embedding is a different object, trained specifically so that cosine similarity
-  between two independently computed vectors means something. The abstract's arithmetic is
-  the part to keep: finding the most similar pair in 10,000 sentences takes about 65 hours
-  of cross-encoder inference and about 5 seconds with sentence embeddings.
-- [Steck, Ekanadham and Kallus, *Is Cosine-Similarity of Embeddings Really About Similarity?*](https://arxiv.org/abs/2403.05440)
-  (2024). The principled version of this session's limits section. Short, and it will make
-  you more careful with thresholds.
-- [Anthropic, token counting](https://platform.claude.com/docs/en/build-with-claude/token-counting).
-  The endpoint, its rate limits, and the note that Claude 4.7 and later use a tokenizer
-  producing roughly 30% more tokens for the same text.
-- [Anthropic, embeddings](https://platform.claude.com/docs/en/build-with-claude/embeddings).
-  Worth reading precisely because Anthropic does not have an embedding model; it is a clear
-  statement of what to look for in one, and the Voyage sections cover `input_type`,
-  Matryoshka truncation, and quantization.
-- [OpenAI, embeddings guide](https://developers.openai.com/api/docs/guides/embeddings). The
-  `dimensions` parameter, the 8,192-token input limit, and the model comparison.
-- [`tiktoken`](https://github.com/openai/tiktoken). OpenAI's local BPE tokenizer. Fast,
-  exact for OpenAI models, and correct for no others; useful in this course mainly as the
-  thing to measure other tokenizers against.
-- [Brooks, Pope and Marcolini, *Airfoil self-noise and prediction*](https://ntrs.nasa.gov/citations/19890016302),
-  NASA RP-1218 (1989). The 146-page report measured in these notes, and the source of the
-  dataset used in Lecture 9 and Lecture 13. Public domain, and a good test document precisely because the
-  scan is imperfect.
+- [Lakshminarayanan, Pritzel and Blundell (2017), deep ensembles](https://arxiv.org/abs/1612.01474).
+  The ensemble method, with the noise term that the spread alone lacks.
+- [Angelopoulos and Bates, A Gentle Introduction to Conformal Prediction](https://arxiv.org/abs/2107.07511).
+  Split conformal from scratch, with code and the exchangeability condition.
+- [Frazier, A Tutorial on Bayesian Optimization](https://arxiv.org/abs/1807.02811). The loop,
+  expected improvement and the extensions, in one readable tutorial.
+- [Shahriari et al. (2016), Taking the Human Out of the Loop](https://www.cs.ox.ac.uk/people/nando.defreitas/publications/BayesOptLoop.pdf).
+  The standard review of Bayesian optimization (author's copy).
+- [Optuna's GPSampler](https://optuna.readthedocs.io/en/stable/reference/samplers/generated/optuna.samplers.GPSampler.html).
+  Bayesian optimization with a GP, in the tool of Lecture 10.
+- [Settles, Active Learning Literature Survey](https://burrsettles.com/pub/settles.activelearning.pdf).
+  Query strategies and the settings they suit (author's copy).
+- [Shields et al. (2021), Bayesian reaction optimization](https://b-shields.github.io/files/2021-02-03-Nature.pdf).
+  The fifty-chemists contest (author's copy).
+- [BoTorch](https://botorch.org/) and [Ax](https://ax.dev/). Production tooling for constrained,
+  multi-objective, batch and multi-fidelity BO.
 
 ## Assignment
 
-**Assignment 8, structured extraction from engineering documents**, is released today and is due on
-2026-11-04. You will build and *evaluate* an LLM extractor that turns
-messy engineering text into a schema-validated, normalized table, with a gold set, a
-measured prompt iteration, and per-call cost accounting. This is a pointer, not the rubric.
-
-Two things from today feed straight into it and are worth starting on now. Task 2 is a
-token and cost baseline over your corpus, which you can do with nothing but the tokenizer
-and the counting endpoint before you have written any extraction code. And the corpus
-itself needs two or three deliberately incomplete documents, because the "not found"
-behaviour measured in this session is exactly what those documents exist to test.
+No assignment is released today.
 
 ## Practice module
 
-<a href="../../game/#/l15"><strong>Practice module for this session</strong></a>, about ten
-minutes of questions drawn from this session's notes, slides and demo. It runs entirely in
-your browser, the questions are selected from your Andrew ID, and it ends by producing a PDF
-you upload for participation credit.
+<a href="../../game/#/l15"><strong>Practice module for this session</strong></a>, for
+participation credit.

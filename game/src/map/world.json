@@ -3,12 +3,12 @@
   "note": "Rooms are the sessions in course/schedule.md, regions are the arcs the notes declare, corridors are the edges tools/graph.py verified. Nothing is placed by hand.",
   "grid": {
     "width": 16,
-    "height": 6,
+    "height": 7,
     "cols_per_region": 2
   },
   "spawn": {
     "x": 1,
-    "y": 5
+    "y": 6
   },
   "regions": [
     {
@@ -35,7 +35,7 @@
     {
       "name": "Machine learning and deep learning",
       "x0": 7,
-      "rows": 4,
+      "rows": 5,
       "rooms": [
         "l08",
         "l09",
@@ -43,16 +43,16 @@
         "l11",
         "l12",
         "l13",
-        "l14"
+        "l14",
+        "l15",
+        "l16"
       ]
     },
     {
       "name": "LLM and agentic engineering",
       "x0": 10,
-      "rows": 3,
+      "rows": 2,
       "rooms": [
-        "l15",
-        "l16",
         "l17",
         "l18",
         "l19",
@@ -259,10 +259,10 @@
       "title": "Bayesian optimization (BO)",
       "written": false,
       "arc_source": "declared",
-      "arc": "LLM and agentic engineering",
-      "region": 3,
-      "x": 10,
-      "y": 1,
+      "arc": "Machine learning and deep learning",
+      "region": 2,
+      "x": 8,
+      "y": 4,
       "notes": null
     },
     {
@@ -271,11 +271,11 @@
       "date": "2026-10-26",
       "title": "Active learning (AL) and reinforcement learning (RL)",
       "written": false,
-      "arc_source": "declared",
-      "arc": "LLM and agentic engineering",
-      "region": 3,
-      "x": 11,
-      "y": 1,
+      "arc_source": "inherited",
+      "arc": "Machine learning and deep learning",
+      "region": 2,
+      "x": 7,
+      "y": 5,
       "notes": null
     },
     {
@@ -288,7 +288,7 @@
       "arc": "LLM and agentic engineering",
       "region": 3,
       "x": 10,
-      "y": 2,
+      "y": 1,
       "notes": null
     },
     {
@@ -301,7 +301,7 @@
       "arc": "LLM and agentic engineering",
       "region": 3,
       "x": 11,
-      "y": 2,
+      "y": 1,
       "notes": null
     },
     {
@@ -314,7 +314,7 @@
       "arc": "LLM and agentic engineering",
       "region": 3,
       "x": 10,
-      "y": 3,
+      "y": 2,
       "notes": null
     },
     {
@@ -323,11 +323,11 @@
       "date": "2026-11-09",
       "title": "LLM agents: tools, loops and guardrails",
       "written": false,
-      "arc_source": "inherited",
+      "arc_source": "declared",
       "arc": "LLM and agentic engineering",
       "region": 3,
       "x": 11,
-      "y": 3,
+      "y": 2,
       "notes": null
     },
     {
@@ -548,15 +548,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "- [Lecture 9](../l09/notes.md) fitted a Gaussian process (GP) to the concrete strength dataset. It"
-    },
-    {
-      "from": "l14",
-      "to": "l10",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "**Optuna** ([Lecture 10](../l10/notes.md)) ran the hyperparameter search with its default sampler,"
+      "where": "This example uses the concrete strength dataset from [Lecture 9](../l09/notes.md), with Lecture"
     },
     {
       "from": "l15",
@@ -564,10 +556,26 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "[Lecture 9](../l09/notes.md) and [Lecture 13](../l13/notes.md); this is the report itself. It is 146"
+      "where": "- [Lecture 9](../l09/notes.md) fitted a Gaussian process (GP) to the concrete strength dataset. It"
     },
     {
       "from": "l15",
+      "to": "l10",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "**Optuna** ([Lecture 10](../l10/notes.md)) ran the hyperparameter search with its default sampler,"
+    },
+    {
+      "from": "l17",
+      "to": "l09",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "[Lecture 9](../l09/notes.md) and [Lecture 13](../l13/notes.md); this is the report itself. It is 146"
+    },
+    {
+      "from": "l17",
       "to": "l11",
       "origin": "link",
       "relation": null,
@@ -575,7 +583,7 @@
       "where": "Nothing in that stack is new to this course. [Lecture 11](../l11/notes.md) covered tensors,"
     },
     {
-      "from": "l15",
+      "from": "l17",
       "to": "l13",
       "origin": "link",
       "relation": null,
@@ -583,7 +591,7 @@
       "where": "[Lecture 9](../l09/notes.md) and [Lecture 13](../l13/notes.md); this is the report itself. It is 146"
     },
     {
-      "from": "l19",
+      "from": "l20",
       "to": "l03",
       "origin": "authored",
       "relation": "shares-data",
@@ -591,7 +599,7 @@
       "where": "against the same Intel Lab sensor Parquet file from Lecture 3 and Lecture 4"
     },
     {
-      "from": "l19",
+      "from": "l20",
       "to": "l04",
       "origin": "authored",
       "relation": "shares-data",
@@ -599,7 +607,7 @@
       "where": "against the same Intel Lab sensor Parquet file from Lecture 3 and Lecture 4"
     },
     {
-      "from": "l19",
+      "from": "l20",
       "to": "l05",
       "origin": "authored",
       "relation": "reuses",
@@ -607,7 +615,7 @@
       "where": "Reuse the structured logging and MLflow tracking from Lecture 5"
     },
     {
-      "from": "l19",
+      "from": "l20",
       "to": "l13",
       "origin": "authored",
       "relation": "reuses",
@@ -615,12 +623,12 @@
       "where": "small surrogate standing in for Lecture 13's airfoil noise model, sharing that model's five inputs"
     },
     {
-      "from": "l19",
-      "to": "l17",
+      "from": "l20",
+      "to": "l19",
       "origin": "authored",
       "relation": "contrasts",
       "why": "The cleanest statement of what an agent is, and it is a negative definition: retrieval always happens, tool use is decided. Walking this corridor should feel like the distinction landing.",
-      "where": "A RAG pipeline in Lecture 17 always retrieves, then always generates; the order and the branching are yours, fixed in code"
+      "where": "A RAG pipeline in Lecture 19 always retrieves, then always generates; the order and the branching are yours, fixed in code"
     },
     {
       "from": "l21",
@@ -636,7 +644,7 @@
       "origin": "authored",
       "relation": "shares-data",
       "why": "Same sensor data, no API key, which is why the demo runs anywhere.",
-      "where": "data Lecture 3, Lecture 4, and Lecture 19 use and needs no API key or external service"
+      "where": "data Lecture 3, Lecture 4, and Lecture 20 use and needs no API key or external service"
     },
     {
       "from": "l21",
@@ -648,19 +656,19 @@
     },
     {
       "from": "l21",
-      "to": "l17",
+      "to": "l19",
       "origin": "authored",
       "relation": "reuses",
-      "why": "The eval harness is built against the RAG system Lecture 17 leaves behind.",
-      "where": "eval harness for a small RAG assistant in the spirit of Lecture 17's system"
+      "why": "The eval harness is built against the RAG system Lecture 19 leaves behind.",
+      "where": "eval harness for a small RAG assistant in the spirit of Lecture 19's system"
     },
     {
       "from": "l21",
-      "to": "l19",
+      "to": "l20",
       "origin": "authored",
       "relation": "builds-on",
       "why": "The evaluation session consumes exactly what the agent session already emits, which is why the two are adjacent rather than merely related.",
-      "where": "Lecture 19's harness already logs everything a failure taxonomy needs, every tool call, every result, every stop condition"
+      "where": "Lecture 20's harness already logs everything a failure taxonomy needs, every tool call, every result, every stop condition"
     }
   ],
   "signs": []

@@ -4,176 +4,212 @@
     "1": {
       "items": {
         "l17-q01": {
-          "answer": "A system whose failures now come with a citation attached",
+          "answer": "1,263, about 63% more than the local count",
           "options": [
-            "Grounding, since the model can now only answer from documents you supplied",
-            "A system whose failures now come with a citation attached",
-            "Freshness, which is the main benefit and does not depend on evaluation",
-            "Lower cost, since retrieved chunks are cheaper than long-context prompts"
+            "About 780, within 1% of the local count",
+            "924, the same as Claude Haiku 4.5",
+            "1,263, about 63% more than the local count",
+            "About 590, because a newer tokenizer compresses better"
           ]
         },
         "l17-q02": {
-          "answer": "Models do not read a long context uniformly: accuracy on a fact is worse when it sits in the middle",
+          "answer": "An alarm table flattened out of a PDF, at 2.35 characters per token",
           "options": [
-            "Latency, since a long prompt takes proportionally longer to process before the first token",
-            "Models do not read a long context uniformly: accuracy on a fact is worse when it sits in the middle",
-            "Truncation, since providers silently drop the oldest tokens once the window is exceeded",
-            "The attention mechanism degrades quadratically, so quality falls smoothly with length"
+            "Technical prose, at 4.82 characters per token, since English words are what the vocabulary was fitted on",
+            "A pump datasheet, at 3.05 characters per token",
+            "Python source, at 2.56 characters per token, because identifiers and punctuation fragment badly",
+            "An alarm table flattened out of a PDF, at 2.35 characters per token"
           ]
         },
         "l17-q03": {
-          "answer": "The query is placed in the wrong space and nothing raises; pin the model in the index metadata",
+          "answer": "The estimate came in 31% low, well outside the documented range",
           "options": [
-            "The vector store validates dimensions, so a mismatch is caught only if the dimensions differ; pad the shorter vectors",
-            "The query is placed in the wrong space and nothing raises; pin the model in the index metadata",
-            "The scores are renormalised per query, which hides the change; disable normalisation to surface it",
-            "The index needs rebuilding on every deploy, and the staleness is what degraded retrieval"
+            "15-20% was confirmed, so the documented figure is safe to budget with and the vendor number can be trusted directly",
+            "The estimate came in 31% low, well outside the documented range",
+            "The estimate came in 31% high, so the budget has slack rather than a shortfall",
+            "The two counts agreed, because both tokenizers now share a vocabulary"
           ]
         },
         "l17-q04": {
-          "answer": "In chunking, at ingestion; re-ranking cannot recover a split fact",
+          "answer": "Trimming the output; the 128-fold output cut saves about 22 seconds while the 130-fold input cut saves about 0.4 seconds",
           "options": [
-            "In the retriever: a cross-encoder re-ranker will surface both halves and the model can combine them",
-            "In chunking, at ingestion; re-ranking cannot recover a split fact",
-            "In the generation prompt: instruct the model to combine partial evidence across retrieved chunks",
-            "In k: retrieve more chunks so both halves are likely to appear in the context together"
+            "Trimming the input; long prompts dominate latency, because the model must attend over every pair of positions before it can answer",
+            "Trimming the output; the 128-fold output cut saves about 22 seconds while the 130-fold input cut saves about 0.4 seconds",
+            "Both about equally, since latency is roughly linear in total tokens",
+            "Neither; latency is set by the provider's queue rather than by token counts"
           ]
         },
-        "l17-q05": {
-          "answer": "When plain dense retrieval already hits recall@k near 1.0, since there is nothing left to improve",
-          "options": [
-            "When the corpus is large, since two indexes do not scale to millions of documents",
-            "When plain dense retrieval already hits recall@k near 1.0, since there is nothing left to improve",
-            "When queries are short, since re-rankers need long queries to score against",
-            "When the embedding model is recent, since modern embeddings subsume what BM25 contributes"
-          ]
-        },
+        "l17-q05": {},
         "l17-q06": {
-          "answer": "That it is topically close, and nothing about whether it answers the question or even agrees with it",
+          "answer": "There is no token meaning \"not in the source\", so permit an explicit NOT FOUND answer",
           "options": [
-            "That the chunk is relevant with roughly 83% confidence, which is a usable threshold",
-            "That it is topically close, and nothing about whether it answers the question or even agrees with it",
-            "That it is the best match available, since scores are normalised across the corpus",
-            "That the answer can be generated from it, provided the score exceeds your tuned cutoff"
+            "The temperature is too high; set it to 0 so the model stops guessing and returns only what the datasheet actually supports",
+            "There is no token meaning \"not in the source\", so permit an explicit NOT FOUND answer",
+            "The datasheet was truncated before the relevant page; raise the context window",
+            "The model is lying, and the fix is a stronger instruction not to fabricate"
           ]
         },
         "l17-q07": {
-          "answer": "Build the retrieval gold set and measure recall@k before ever judging a generated answer",
+          "answer": "The window is shared between input and output, so there is room for about 10,000 tokens of answer whatever `max_tokens` says",
           "options": [
-            "Judge the generated answers first, since that is what users experience, then trace failures back to retrieval",
-            "Build the retrieval gold set and measure recall@k before ever judging a generated answer",
-            "Both at once, since retrieval and generation failures are indistinguishable from the outside",
-            "Neither in isolation; only end-to-end task success is meaningful for a retrieval system"
+            "You get up to 64,000 tokens back, because `max_tokens` governs generation and the window governs input, and the two are budgeted separately",
+            "The window is shared between input and output, so there is room for about 10,000 tokens of answer whatever `max_tokens` says",
+            "The provider silently truncates the input to make room for the output",
+            "The oldest part of the input is evicted automatically, sliding-window style"
           ]
         },
-        "l17-q08": {},
-        "l17-q09": {
-          "answer": "Exact lexical matching, which is what rescues a query containing a part number or an error code",
+        "l17-q08": {
+          "answer": "C (0.971) > B (0.694) > A (0.532)",
           "options": [
-            "Semantic matching across paraphrase, which embeddings approximate less reliably",
-            "Exact lexical matching, which is what rescues a query containing a part number or an error code",
-            "A calibrated probability of relevance, which dense scores lack",
-            "Language independence, since term statistics do not depend on a trained model"
+            "C (0.971) > B (0.694) > A (0.532)",
+            "A (0.971) > C (0.694) > B (0.532), the same-event pair scoring highest",
+            "C (0.971) > A (0.694) > B (0.532)",
+            "A (0.694) > B (0.532) > C (0.361), with the unit mismatch scoring lowest of the three"
+          ]
+        },
+        "l17-q09": {
+          "answer": "In the pipeline: unit normalization has to be an explicit, typed, tested step, with the original value retained",
+          "options": [
+            "In the embedding model: switch to one trained on technical text, which will encode degC and degF as the distinct quantities they are",
+            "In the threshold: raise the cosine cut until these two fall apart",
+            "In the pipeline: unit normalization has to be an explicit, typed, tested step, with the original value retained",
+            "In the LLM: add a downstream judge call that checks the units agree"
           ]
         },
         "l17-q10": {
-          "answer": "The fraction of questions whose correct chunk appears in the top k",
+          "answer": "One call and 455 tokens, after which every comparison is a dot product",
           "options": [
-            "The fraction of generated answers that cite a real source, which is the grounding rate",
-            "The fraction of questions whose correct chunk appears in the top k",
-            "The average similarity of the top k chunks, which indicates whether the index is well built",
-            "The fraction of retrieved chunks that are relevant, which is precision at the retrieval stage"
+            "561 embedding calls, one per pair, but each is far cheaper than an LLM call so the total cost still falls by orders of magnitude",
+            "One call and 455 tokens, after which every comparison is a dot product",
+            "34 calls, one per entry, then 561 cosine comparisons",
+            "One call, but the comparison still needs an LLM to interpret the scores"
+          ]
+        },
+        "l17-q11": {
+          "answer": "Nothing about the model. On 34 records the curve cannot be monotonic; this is sampling noise, and tuning a storage decision on a sample this small is the mistake",
+          "options": [
+            "512 dimensions is genuinely the sweet spot for this model, so truncate there and take both the storage saving and the accuracy",
+            "Nothing about the model. On 34 records the curve cannot be monotonic; this is sampling noise, and tuning a storage decision on a sample this small is the mistake",
+            "The Matryoshka training failed for this model, so truncation is unsafe here",
+            "The 1,024 measurement is a bug and should be re-run until it exceeds the 512 row"
+          ]
+        },
+        "l17-q12": {
+          "answer": "The datasheet is more dense: fewer characters per token than prose, by about 1.6x",
+          "options": [
+            "The datasheet is less dense: more characters per token than prose, by about 1.6x",
+            "The datasheet is more dense: fewer characters per token than prose, by about 1.6x",
+            "They come out within a few percent of each other",
+            "The datasheet is more dense by more than 5x, since almost every line is numbers and units rather than words"
           ]
         }
       },
-      "serve": 6
+      "serve": 8
     },
     "2": {
       "items": {
         "l17-q01": {
-          "answer": "A system whose failures now come with a citation attached",
+          "answer": "1,263, about 63% more than the local count",
           "options": [
-            "Grounding, since the model can now only answer from documents you supplied",
-            "A system whose failures now come with a citation attached",
-            "Freshness, which is the main benefit and does not depend on evaluation",
-            "Lower cost, since retrieved chunks are cheaper than long-context prompts"
+            "About 780, within 1% of the local count",
+            "924, the same as Claude Haiku 4.5",
+            "1,263, about 63% more than the local count",
+            "About 590, because a newer tokenizer compresses better"
           ]
         },
         "l17-q02": {
-          "answer": "Models do not read a long context uniformly: accuracy on a fact is worse when it sits in the middle",
+          "answer": "An alarm table flattened out of a PDF, at 2.35 characters per token",
           "options": [
-            "Latency, since a long prompt takes proportionally longer to process before the first token",
-            "Models do not read a long context uniformly: accuracy on a fact is worse when it sits in the middle",
-            "Truncation, since providers silently drop the oldest tokens once the window is exceeded",
-            "The attention mechanism degrades quadratically, so quality falls smoothly with length"
+            "Technical prose, at 4.82 characters per token, since English words are what the vocabulary was fitted on",
+            "A pump datasheet, at 3.05 characters per token",
+            "Python source, at 2.56 characters per token, because identifiers and punctuation fragment badly",
+            "An alarm table flattened out of a PDF, at 2.35 characters per token"
           ]
         },
         "l17-q03": {
-          "answer": "The query is placed in the wrong space and nothing raises; pin the model in the index metadata",
+          "answer": "The estimate came in 31% low, well outside the documented range",
           "options": [
-            "The vector store validates dimensions, so a mismatch is caught only if the dimensions differ; pad the shorter vectors",
-            "The query is placed in the wrong space and nothing raises; pin the model in the index metadata",
-            "The scores are renormalised per query, which hides the change; disable normalisation to surface it",
-            "The index needs rebuilding on every deploy, and the staleness is what degraded retrieval"
+            "15-20% was confirmed, so the documented figure is safe to budget with and the vendor number can be trusted directly",
+            "The estimate came in 31% low, well outside the documented range",
+            "The estimate came in 31% high, so the budget has slack rather than a shortfall",
+            "The two counts agreed, because both tokenizers now share a vocabulary"
           ]
         },
         "l17-q04": {
-          "answer": "In chunking, at ingestion; re-ranking cannot recover a split fact",
+          "answer": "Trimming the output; the 128-fold output cut saves about 22 seconds while the 130-fold input cut saves about 0.4 seconds",
           "options": [
-            "In the retriever: a cross-encoder re-ranker will surface both halves and the model can combine them",
-            "In chunking, at ingestion; re-ranking cannot recover a split fact",
-            "In the generation prompt: instruct the model to combine partial evidence across retrieved chunks",
-            "In k: retrieve more chunks so both halves are likely to appear in the context together"
+            "Trimming the input; long prompts dominate latency, because the model must attend over every pair of positions before it can answer",
+            "Trimming the output; the 128-fold output cut saves about 22 seconds while the 130-fold input cut saves about 0.4 seconds",
+            "Both about equally, since latency is roughly linear in total tokens",
+            "Neither; latency is set by the provider's queue rather than by token counts"
           ]
         },
-        "l17-q05": {
-          "answer": "When plain dense retrieval already hits recall@k near 1.0, since there is nothing left to improve",
-          "options": [
-            "When the corpus is large, since two indexes do not scale to millions of documents",
-            "When plain dense retrieval already hits recall@k near 1.0, since there is nothing left to improve",
-            "When queries are short, since re-rankers need long queries to score against",
-            "When the embedding model is recent, since modern embeddings subsume what BM25 contributes"
-          ]
-        },
+        "l17-q05": {},
         "l17-q06": {
-          "answer": "That it is topically close, and nothing about whether it answers the question or even agrees with it",
+          "answer": "There is no token meaning \"not in the source\", so permit an explicit NOT FOUND answer",
           "options": [
-            "That the chunk is relevant with roughly 83% confidence, which is a usable threshold",
-            "That it is topically close, and nothing about whether it answers the question or even agrees with it",
-            "That it is the best match available, since scores are normalised across the corpus",
-            "That the answer can be generated from it, provided the score exceeds your tuned cutoff"
+            "The temperature is too high; set it to 0 so the model stops guessing and returns only what the datasheet actually supports",
+            "There is no token meaning \"not in the source\", so permit an explicit NOT FOUND answer",
+            "The datasheet was truncated before the relevant page; raise the context window",
+            "The model is lying, and the fix is a stronger instruction not to fabricate"
           ]
         },
         "l17-q07": {
-          "answer": "Build the retrieval gold set and measure recall@k before ever judging a generated answer",
+          "answer": "The window is shared between input and output, so there is room for about 10,000 tokens of answer whatever `max_tokens` says",
           "options": [
-            "Judge the generated answers first, since that is what users experience, then trace failures back to retrieval",
-            "Build the retrieval gold set and measure recall@k before ever judging a generated answer",
-            "Both at once, since retrieval and generation failures are indistinguishable from the outside",
-            "Neither in isolation; only end-to-end task success is meaningful for a retrieval system"
+            "You get up to 64,000 tokens back, because `max_tokens` governs generation and the window governs input, and the two are budgeted separately",
+            "The window is shared between input and output, so there is room for about 10,000 tokens of answer whatever `max_tokens` says",
+            "The provider silently truncates the input to make room for the output",
+            "The oldest part of the input is evicted automatically, sliding-window style"
           ]
         },
-        "l17-q08": {},
-        "l17-q09": {
-          "answer": "Exact lexical matching, which is what rescues a query containing a part number or an error code",
+        "l17-q08": {
+          "answer": "C (0.971) > B (0.694) > A (0.532)",
           "options": [
-            "Semantic matching across paraphrase, which embeddings approximate less reliably",
-            "Exact lexical matching, which is what rescues a query containing a part number or an error code",
-            "A calibrated probability of relevance, which dense scores lack",
-            "Language independence, since term statistics do not depend on a trained model"
+            "C (0.971) > B (0.694) > A (0.532)",
+            "A (0.971) > C (0.694) > B (0.532), the same-event pair scoring highest",
+            "C (0.971) > A (0.694) > B (0.532)",
+            "A (0.694) > B (0.532) > C (0.361), with the unit mismatch scoring lowest of the three"
+          ]
+        },
+        "l17-q09": {
+          "answer": "In the pipeline: unit normalization has to be an explicit, typed, tested step, with the original value retained",
+          "options": [
+            "In the embedding model: switch to one trained on technical text, which will encode degC and degF as the distinct quantities they are",
+            "In the threshold: raise the cosine cut until these two fall apart",
+            "In the pipeline: unit normalization has to be an explicit, typed, tested step, with the original value retained",
+            "In the LLM: add a downstream judge call that checks the units agree"
           ]
         },
         "l17-q10": {
-          "answer": "The fraction of questions whose correct chunk appears in the top k",
+          "answer": "One call and 455 tokens, after which every comparison is a dot product",
           "options": [
-            "The fraction of generated answers that cite a real source, which is the grounding rate",
-            "The fraction of questions whose correct chunk appears in the top k",
-            "The average similarity of the top k chunks, which indicates whether the index is well built",
-            "The fraction of retrieved chunks that are relevant, which is precision at the retrieval stage"
+            "561 embedding calls, one per pair, but each is far cheaper than an LLM call so the total cost still falls by orders of magnitude",
+            "One call and 455 tokens, after which every comparison is a dot product",
+            "34 calls, one per entry, then 561 cosine comparisons",
+            "One call, but the comparison still needs an LLM to interpret the scores"
+          ]
+        },
+        "l17-q11": {
+          "answer": "Nothing about the model. On 34 records the curve cannot be monotonic; this is sampling noise, and tuning a storage decision on a sample this small is the mistake",
+          "options": [
+            "512 dimensions is genuinely the sweet spot for this model, so truncate there and take both the storage saving and the accuracy",
+            "Nothing about the model. On 34 records the curve cannot be monotonic; this is sampling noise, and tuning a storage decision on a sample this small is the mistake",
+            "The Matryoshka training failed for this model, so truncation is unsafe here",
+            "The 1,024 measurement is a bug and should be re-run until it exceeds the 512 row"
+          ]
+        },
+        "l17-q12": {
+          "answer": "The datasheet is more dense: fewer characters per token than prose, by about 1.6x",
+          "options": [
+            "The datasheet is less dense: more characters per token than prose, by about 1.6x",
+            "The datasheet is more dense: fewer characters per token than prose, by about 1.6x",
+            "They come out within a few percent of each other",
+            "The datasheet is more dense by more than 5x, since almost every line is numbers and units rather than words"
           ]
         }
       },
-      "serve": 5
+      "serve": 6
     }
   }
 }

@@ -1,16 +1,8 @@
-# L19 has no figures and almost no bolded numbers. It is not item-poor, it is
-# number-poor: only three of the ten kinds need a number, and this bank is built
-# from the mechanism paragraphs, the pitfall admonition, and the pushback
-# section instead.
-
 schema: 1
 lecture: l19
-title: "Agent fundamentals: tool use, function calling, planning loops"
+title: "Retrieval-augmented generation and vector databases"
 source_notes: lectures/l19/notes.md
 status: unwritten
-# Ten items and a serve of 8 means two students share most of their draw, which
-# weakens the item-set half of the evidence design. Serving 6 until the bank
-# grows past 15. GROWTH TARGET: 15+ items.
 serve: 5
 pool_version: 2
 provenance:
@@ -21,250 +13,250 @@ provenance:
 items:
 
   - id: l19-q01
-    kind: locus_of_control
+    kind: claim_vs_source
     rung: 3
-    difficulty: 2
-    objectives: [l19-o3]
+    difficulty: 3
+    objectives: [l19-o1]
     prompt: |
-      Your agent calls `query_sensor_db` with mote 5, gets "no data for this
-      mote", calls it again with mote 5, gets the same error, and calls it a
-      third time.
+      "We added RAG, so the answers are grounded now."
 
-      Where does the fix belong?
+      What does adding retrieval without a retrieval evaluation actually buy?
     options:
-      - "In the model: raise the temperature so it explores a different tool instead of repeating itself"
-      - "In the tool: raise an exception on a bad mote id so the loop stops on the first failed call"
-      - "In the harness: break after the third identical failing call, with an explicit message"
-      - "In the prompt: instruct the model to keep track of calls it has already made and never repeat one that failed"
-    answer: "In the harness: break after the third identical failing call, with an explicit message"
+      - "Grounding, since the model can now only answer from documents you supplied"
+      - "A system whose failures now come with a citation attached"
+      - "Freshness, which is the main benefit and does not depend on evaluation"
+      - "Lower cost, since retrieved chunks are cheaper than long-context prompts"
+    answer: "A system whose failures now come with a citation attached"
     evidence: |
-      The harness does not wait for the model to notice it is stuck, because a
-      model that has not noticed after two identical failures is not about to
-      notice on the third. It decides, on the model's behalf, that this line of
-      attempts is over. Note what the second option gets wrong: a tool that
-      crashes on bad input does not fail safely, it stops the entire agent on the
-      first mistake, which is strictly worse than handing back an error a caller
-      can act on.
+      A confident wrong answer looks identical to a confident right one. Nothing
+      about a fluent, well-cited-looking answer distinguishes retrieval finding
+      the right chunk from retrieval confidently finding the wrong one, unless
+      you built and ran the retrieval eval. Freshness and cost are real benefits
+      and neither is what the question asked. The notes go further than most
+      treatments here: a RAG system without a retrieval eval is not obviously
+      safer than no RAG system at all.
     source:
       file: lectures/l19/notes.md
-      heading: "Bounding the loop"
-      quote: "third identical failing call, with an explicit message rather than a silent stop"
-    verify: {mode: quote, needle: "third identical failing call", volatility: stable}
-    tags: [agents, harness, loop-detection]
+      heading: "Where this pushes back"
+      quote: "failures now come with a citation attached"
+    verify: {mode: quote, needle: "come with a citation attached", volatility: stable}
+    tags: [rag, evaluation]
 
   - id: l19-q02
+    kind: predict_measure
+    rung: 2
+    difficulty: 3
+    objectives: [l19-o1]
+    prompt: |
+      Context windows now reach hundreds of thousands of tokens. Why not paste
+      the whole corpus into every prompt instead of chunking and retrieving?
+
+      Cost is one answer. Before you look: what is the other one?
+    predict:
+      ask: "Write down a second reason before revealing."
+      common_prior: "There isn't one. If it fits and you can afford it, long context is simply better."
+    options:
+      - "Latency, since a long prompt takes proportionally longer to process before the first token"
+      - "Models do not read a long context uniformly: accuracy on a fact is worse when it sits in the middle"
+      - "Truncation, since providers silently drop the oldest tokens once the window is exceeded"
+      - "The attention mechanism degrades quadratically, so quality falls smoothly with length"
+    answer: "Models do not read a long context uniformly: accuracy on a fact is worse when it sits in the middle"
+    evidence: |
+      Liu and colleagues' 2023 "Lost in the Middle" found accuracy on a fact
+      embedded in a long context is reliably higher near the beginning or end and
+      measurably worse in the middle, regardless of how relevant the fact is. So
+      a shorter, retrieval-curated context is not just cheaper, it can be more
+      reliable. Note that latency is a real cost and the wrong answer here: L17
+      measured input length as nearly free in wall-clock terms, and it is output
+      length that moves the clock.
+    source:
+      file: lectures/l19/notes.md
+      heading: "Where this pushes back"
+      quote: "Lost in the Middle"
+    verify: {mode: quote, needle: "Lost in the Middle", volatility: stable}
+    tags: [rag, long-context]
+
+  - id: l19-q03
     kind: spot_the_defect
     rung: 3
     difficulty: 2
     objectives: [l19-o2]
     prompt: |
-      A tool is registered with the description `"queries the sensor database"`
-      and a single free-text `query` argument. The model calls it with the wrong
-      arguments most of the time.
+      Your retrieval quality has quietly degraded. The index was built with one
+      embedding model; a recent change re-embeds queries with a different one.
+      Nothing in the logs shows an error.
 
-      What is wrong?
+      Why not, and what is the fix?
     options:
-      - "The model is too small for tool use; a larger model would infer the argument format from the tool name"
-      - "The description was written for a human reader, not for the model that has to call it"
-      - "The tool should be split into four narrower tools, one per variable, so that no argument is needed"
-      - "Tool descriptions should be short so they do not crowd the context window; the fault is in the arguments alone"
-    answer: "The description was written for a human reader, not for the model that has to call it"
+      - "The vector store validates dimensions, so a mismatch is caught only if the dimensions differ; pad the shorter vectors"
+      - "The query is placed in the wrong space and nothing raises; pin the model in the index metadata"
+      - "The scores are renormalised per query, which hides the change; disable normalisation to surface it"
+      - "The index needs rebuilding on every deploy, and the staleness is what degraded retrieval"
+    answer: "The query is placed in the wrong space and nothing raises; pin the model in the index metadata"
     evidence: |
-      Nothing in "queries the sensor database" tells the model what a valid mote
-      id looks like, what variables exist, or when to call this tool rather than
-      another. The version that works says what it reads, over what range of
-      inputs, and what it returns on failure. A tool description is a prompt in
-      every meaningful sense and deserves the same care. The model never sees
-      your docstring's intent, only the string in the schema.
+      This is the same silent-conversion shape as the dtype trap in L11 and the
+      unit mismatch in L7: a value crosses an interface, is interpreted in the
+      wrong frame, and every downstream diagnostic reports something plausible.
+      The discipline is the same too, pin the model the way you pin a seed or a
+      library version, and record it next to the artifact it produced.
     source:
       file: lectures/l19/notes.md
-      heading: "Designing tools an LLM can use correctly"
-      quote: "The model never sees your docstring's intent, only the string in the schema."
-    verify: {mode: quote, needle: "only the string in the schema", volatility: stable}
-    tags: [agents, tool-design]
+      heading: "Where this pushes back"
+      quote: "model than the one used to build the index does not raise an error"
+    verify: {mode: quote, needle: "does not raise an error", volatility: stable}
+    tags: [rag, embeddings, silent-failure]
 
-  - id: l19-q03
+  - id: l19-q04
+    kind: locus_of_control
+    rung: 3
+    difficulty: 3
+    objectives: [l19-o2]
+    prompt: |
+      A fact your users need was split across two chunks at ingestion time, so no
+      single chunk contains it. Retrieval never returns a chunk that answers the
+      question.
+
+      Where does the fix belong?
+    options:
+      - "In the retriever: a cross-encoder re-ranker will surface both halves and the model can combine them"
+      - "In chunking, at ingestion; re-ranking cannot recover a split fact"
+      - "In the generation prompt: instruct the model to combine partial evidence across retrieved chunks"
+      - "In k: retrieve more chunks so both halves are likely to appear in the context together"
+    answer: "In chunking, at ingestion; re-ranking cannot recover a split fact"
+    evidence: |
+      Chunking is a lossy transformation you cannot fully undo downstream, so
+      money spent getting it right the first time buys more than the same money
+      spent on a fancier retriever afterward. Raising k and re-ranking are both
+      real techniques and both operate on what chunking already produced. This is
+      the retrieval version of a rule this course keeps repeating: fix it at the
+      boundary where the information is still intact.
+    source:
+      file: lectures/l19/notes.md
+      heading: "Where this pushes back"
+      quote: "Chunking is a lossy transformation you cannot fully undo downstream"
+    verify: {mode: quote, needle: "lossy transformation you cannot fully undo", volatility: stable}
+    tags: [rag, chunking]
+
+  - id: l19-q05
     kind: mcq
     rung: 2
     difficulty: 2
-    objectives: [l19-o2]
+    objectives: [l19-o3]
     prompt: |
-      What should a tool do when the model calls it with an invalid argument, for
-      example a mote id that has no data?
+      When is adding hybrid retrieval or a cross-encoder re-ranker not worth it?
     options:
-      - "Raise an exception, so the failure is loud and the agent stops before it can compound the mistake"
-      - "Return a plain, informative result the model can read and react to"
-      - "Return an empty result, so the model infers that nothing matched and moves on"
-      - "Retry internally with a nearby valid id, so the agent makes progress without a wasted turn"
-    answer: "Return a plain, informative result the model can read and react to"
+      - "When the corpus is large, since two indexes do not scale to millions of documents"
+      - "When plain dense retrieval already hits recall@k near 1.0, since there is nothing left to improve"
+      - "When queries are short, since re-rankers need long queries to score against"
+      - "When the embedding model is recent, since modern embeddings subsume what BM25 contributes"
+    answer: "When plain dense retrieval already hits recall@k near 1.0, since there is nothing left to improve"
     evidence: |
-      This is called out as the single most consequential design decision in tool
-      design, and the answer is never an uncaught exception. The demo tests it by
-      asking for a mote that genuinely has no data in the real Intel Lab file,
-      and the model reads the error and tries a different mote instead of the
-      loop dying. An empty result is nearly as bad as a crash: it is
-      indistinguishable from a successful query that found nothing.
+      Hybrid and re-ranking are a real gain for real operational cost: two
+      indexes to maintain, more latency, and more to keep synchronised when the
+      corpus updates. The instruction is to measure the recall and nDCG gain
+      against your own gold set before adding either. A corpus small and clean
+      enough that dense retrieval already finds everything has nothing left for a
+      re-ranker to improve, and you would be paying the cost for none of the gain.
     source:
       file: lectures/l19/notes.md
-      heading: "Designing tools an LLM can use correctly"
-      quote: "Return a **plain, informative result**"
-    verify: {mode: quote, needle: "plain, informative result", volatility: stable}
-    tags: [agents, tool-design, error-handling]
+      heading: "Where this pushes back"
+      quote: "has nothing left for a re-ranker to improve"
+    verify: {mode: quote, needle: "nothing left for a re-ranker to improve", volatility: stable}
+    tags: [rag, retrieval, cost]
 
-  - id: l19-q04
+  - id: l19-q06
     kind: mcq
     rung: 3
     difficulty: 3
     objectives: [l19-o3]
     prompt: |
-      You have added a max-step budget, a cost cap, and loop detection to your
-      agent. What have you *not* achieved?
+      A retrieved chunk comes back with a similarity of 0.83. What does that
+      number license you to conclude?
     options:
-      - "Nothing further is needed; those three bounds are what makes an agent production-ready"
-      - "Safety. The loop is limited, not safe: three tool calls is plenty to delete something if a tool can delete something"
-      - "Debuggability, which requires structured logging of every step in addition to the bounds"
-      - "Determinism, which requires pinning the temperature to zero as well as bounding the loop"
-    answer: "Safety. The loop is limited, not safe: three tool calls is plenty to delete something if a tool can delete something"
+      - "That the chunk is relevant with roughly 83% confidence, which is a usable threshold"
+      - "That it is topically close, and nothing about whether it answers the question or even agrees with it"
+      - "That it is the best match available, since scores are normalised across the corpus"
+      - "That the answer can be generated from it, provided the score exceeds your tuned cutoff"
+    answer: "That it is topically close, and nothing about whether it answers the question or even agrees with it"
     evidence: |
-      A well-bounded loop is not a safe loop, only a limited one. Bounds stop an
-      agent running forever or repeating a failure indefinitely, and none of them
-      says anything about whether the actions it does take are ones you wanted.
-      Logging and determinism are both real concerns and both appear elsewhere in
-      this session, but neither is what the bounds fail to buy. Safety is a
-      question about tool capability, and that is L20's subject.
+      Treat a similarity score as a measure of topical closeness, never as a
+      confidence score. L17 measured the sharp version of this: a fault report
+      and its refutation score 0.694 while two descriptions of the same event
+      score 0.532, so "about the same thing" and "says the same thing" are
+      different questions and cosine answers only the first. A tuned cutoff
+      inherits that problem rather than solving it.
     source:
       file: lectures/l19/notes.md
       heading: "Where this pushes back"
-      quote: "none of them stop it from doing something genuinely harmful within those bounds, three tool calls is plenty to delete something if the tool it calls can delete something"
-    verify: {mode: quote, needle: "stop it from doing something genuinely harmful within those bounds", volatility: stable}
-    tags: [agents, safety, bounds]
-
-  - id: l19-q05
-    kind: claim_vs_source
-    rung: 2
-    difficulty: 3
-    objectives: [l19-o1]
-    prompt: |
-      This session's demo proves the harness works against a scripted model that
-      cannot reason.
-
-      What does that demonstration establish, and what does it leave open?
-    options:
-      - "It establishes that the agent works end to end, leaving only latency and cost to tune"
-      - "It establishes that the harness is correct, and leaves entirely open whether a real model chooses the right tool, with the right arguments, at the right time"
-      - "It establishes nothing useful, because a model that cannot reason is not a meaningful test of a system built around reasoning"
-      - "It establishes that the tool schemas are well formed, and leaves the harness logic untested"
-    answer: "It establishes that the harness is correct, and leaves entirely open whether a real model chooses the right tool, with the right arguments, at the right time"
-    evidence: |
-      The split is deliberate: the harness is the part you can fully verify
-      without a live API call, so it is verified, and the much harder question is
-      named rather than quietly folded into the demo's success. That harder
-      question is what A10 and L20's evaluation section actually measure. The
-      general habit is worth more than the example: know which half of a system
-      your test covers, and say so.
-    source:
-      file: lectures/l19/notes.md
-      heading: "Where this pushes back"
-      quote: "It tells you nothing about\nwhether a real model will decide well."
-    verify: {mode: quote, needle: "whether a real model will decide well", volatility: stable}
-    tags: [agents, evaluation, testing]
-
-  - id: l19-q06
-    kind: mcq
-    rung: 3
-    difficulty: 2
-    objectives: [l19-o1]
-    prompt: |
-      An agent that worked reliably in testing starts failing differently in
-      production, on the same prompts, with no change to your code.
-
-      What is the most likely explanation, and what can you do about it?
-    options:
-      - "Temperature drift in your own configuration; pin it to zero and the behaviour becomes identical"
-      - "A silent model update on the provider's side; determinism is a preference, not a guarantee"
-      - "Context-window exhaustion, which changes behaviour once conversations grow past a threshold"
-      - "Rate limiting, which causes retries that present as different tool choices"
-    answer: "A silent model update on the provider's side; determinism is a preference, not a guarantee"
-    evidence: |
-      Low temperature makes tool choices more consistent, not identical, and a
-      provider-side update can change behaviour on the exact same prompt with no
-      warning and no version bump you control. The notes are explicit that there
-      is no clean engineering fix for this beyond monitoring and pinning. That is
-      an unusual thing for a course to say and it is worth remembering: some
-      operational risks are managed rather than solved.
-    source:
-      file: lectures/l19/notes.md
-      heading: "Where this pushes back"
-      quote: "a model update on the provider's side can change its behavior on the exact same prompt with no warning and no version bump you control"
-    verify: {mode: quote, needle: "change its behavior on the exact same prompt with no warning", volatility: stable}
-    tags: [agents, determinism, operations]
+      quote: "never as a confidence score"
+    verify: {mode: quote, needle: "never as a confidence score", volatility: stable}
+    tags: [rag, similarity]
 
   - id: l19-q07
-    kind: locus_of_control
+    kind: mcq
     rung: 2
     difficulty: 2
-    objectives: [l19-o1]
+    objectives: [l19-o3]
     prompt: |
-      A task can be written as a fixed sequence of four steps that always run in
-      the same order. Should it be an agent?
+      In what order should a RAG system be evaluated?
     options:
-      - "Yes; an agent handles the fixed case too and gives you room to grow"
-      - "No. Reach for an agent only once a fixed pipeline has stopped being sufficient"
-      - "Yes, provided the loop is bounded, since bounds remove the cost objection"
-      - "It makes no difference; the two compile to the same sequence of API calls"
-    answer: "No. Reach for an agent only once a fixed pipeline has stopped being sufficient"
+      - "Judge the generated answers first, since that is what users experience, then trace failures back to retrieval"
+      - "Build the retrieval gold set and measure recall@k before ever judging a generated answer"
+      - "Both at once, since retrieval and generation failures are indistinguishable from the outside"
+      - "Neither in isolation; only end-to-end task success is meaningful for a retrieval system"
+    answer: "Build the retrieval gold set and measure recall@k before ever judging a generated answer"
     evidence: |
-      A four-step agent loop is at minimum four round trips to a model, plus tool
-      execution, and that adds up in a way one well-designed prompt does not. The
-      distinction that matters is where control flow lives: in a workflow you
-      decide the order, in an agent the model does. Paying for the model to
-      decide something you already know is the commonest way an agent turns out
-      to be worse than the pipeline it replaced.
+      If the right chunk was never retrieved, no amount of prompt work at the
+      generation step can fix the answer, and judging the answer tells you the
+      system failed without telling you where. Measuring retrieval separately
+      partitions the failure: either the chunk was not there, or it was there and
+      the model did not use it, and those have entirely different fixes.
     source:
       file: lectures/l19/notes.md
       heading: "Where this pushes back"
-      quote: "not as a default architecture"
-    verify: {mode: quote, needle: "not as a default architecture", volatility: stable}
-    tags: [agents, architecture]
+      quote: "before you ever judge a generated answer"
+    verify: {mode: quote, needle: "before you ever judge a generated answer", volatility: stable}
+    tags: [rag, evaluation]
 
   - id: l19-q08
     kind: mechanism_recall
     rung: 5
     difficulty: 3
-    objectives: [l19-o1]
+    objectives: [l19-o2]
     prompt: |
-      Close the notes. Write out the tool-calling loop from memory, step by step,
-      and say what ends it. Stop when you stall, and note where.
+      Close the notes. Write out the stages of a RAG pipeline in order, from raw
+      documents to a grounded answer, and name one design decision at each stage.
+      Stop when you stall, and note where.
     checklist:
-      - text: "Send the prompt plus the tool schemas to the model"
-        needle: "tool"
-      - text: "The model returns either an answer or a request to call a tool"
-        needle: "call"
-      - text: "The harness executes the tool and appends the result to the conversation"
-        needle: "result"
-      - text: "Repeat, with the model now seeing what the tool returned"
-        needle: "loop"
-      - text: "It ends on an answer, or on a bound: max steps, cost, timeout, or loop detection"
-        needle: "budget"
+      - text: "Ingest and chunk the documents"
+        needle: "chunk"
+      - text: "Embed the chunks and build an index"
+        needle: "index"
+      - text: "Embed the query and retrieve the top k"
+        needle: "retriev"
+      - text: "Optionally re-rank the candidates"
+        needle: "rank"
+      - text: "Ground the generation in the retrieved context, with an instruction to refuse if it is not there"
+        needle: "Grounding"
     answer: null
     evidence: |
-      The part people leave out is the last one, and it is the one the session
-      most wants you unable to forget: an agent loop with no bound is not a
-      feature, it is an unmanaged liability. If your loop ended only when the
-      model decided to stop, you have described a program whose termination
-      condition is a language model's judgement.
+      The stage people compress is the first, and it is the one that cannot be
+      repaired later: chunking is lossy and no re-ranker recovers a fact split
+      across two chunks. The stage people omit entirely is the refusal
+      instruction at generation, which is L17's NOT FOUND escape hatch arriving
+      in a new setting. Where you stalled is your reading assignment.
     source:
       file: lectures/l19/notes.md
-      heading: "Bounding the loop"
-      quote: "An agent loop with no bound is an unmanaged liability"
+      heading: "The anatomy of a RAG pipeline"
+      quote: "chunk"
     verify:
       mode: manual
-      needle: "unmanaged liability"
+      needle: "chunk"
       volatility: stable
       exempt_reason: >-
         Free-text recall; each checklist entry is verified against the source
         individually rather than the answer being matched as a whole.
-    tags: [agents, self-test]
+    tags: [rag, self-test]
 
   - id: l19-q09
     kind: mcq
@@ -272,27 +264,26 @@ items:
     difficulty: 2
     objectives: [l19-o2]
     prompt: |
-      Why type and validate tool arguments with a real JSON Schema rather than
-      accepting a free-text string the tool parses itself?
+      What does BM25 contribute that dense retrieval does not?
     options:
-      - "It makes the tool faster, since parsing is done by the provider rather than in your code"
-      - "A malformed call can be rejected before your tool code runs, rather than crashing inside it"
-      - "It is required by the tool-calling API, which rejects tools without typed arguments"
-      - "It reduces token usage, because a schema is more compact than a prose description"
-    answer: "A malformed call can be rejected before your tool code runs, rather than crashing inside it"
+      - "Semantic matching across paraphrase, which embeddings approximate less reliably"
+      - "Exact lexical matching, which is what rescues a query containing a part number or an error code"
+      - "A calibrated probability of relevance, which dense scores lack"
+      - "Language independence, since term statistics do not depend on a trained model"
+    answer: "Exact lexical matching, which is what rescues a query containing a part number or an error code"
     evidence: |
-      A schema does two jobs at once. It tells the model what a valid call looks
-      like, which reduces malformed calls; and where the provider supports strict
-      validation, it rejects the ones that still happen at the boundary rather
-      than inside your code. That is the same principle as declaring a dtype at
-      the boundary in L11: check where the value enters, not after it has already
-      travelled.
+      The two fail in complementary directions, which is the whole argument for
+      hybrid retrieval. Dense retrieval finds the maintenance entry that shares
+      no words with the query, which L17 measured; BM25 finds the chunk
+      containing `P/N 4L-2200-XG` exactly, which an embedding may fragment beyond
+      recognition. Neither dominates, and which one you need depends on whether
+      your users search by meaning or by identifier.
     source:
       file: lectures/l19/notes.md
-      heading: "Designing tools an LLM can use correctly"
-      quote: "rather than trusting the model to spell \"temperature\"\nconsistently"
-    verify: {mode: quote, needle: "trusting the model to spell", volatility: stable}
-    tags: [agents, tool-design, validation]
+      heading: "Retrieval mechanics: dense, keyword, and hybrid"
+      quote: "**BM25**"
+    verify: {mode: quote, needle: "BM25", volatility: stable}
+    tags: [rag, retrieval]
 
   - id: l19-q10
     kind: notebook_run
@@ -300,27 +291,27 @@ items:
     difficulty: 2
     objectives: [l19-o3]
     prompt: |
-      Open [`l19-agent.ipynb`](../lectures/l19/l19-agent.ipynb) and run the
-      loop-detection case, where the scripted model asks repeatedly for a mote
-      with no data.
+      Open [`l19-rag.ipynb`](../lectures/l19/l19-rag.ipynb) and run the retrieval
+      evaluation against the gold set.
 
-      What ends the loop, and what would have happened without that bound?
+      What is recall@k measuring, and why is it computed before any answer is
+      judged?
     options:
-      - "The model gives up on its own after reading the error twice, so the bound is a formality"
-      - "The harness breaks after the third identical failing call, not the model noticing"
-      - "The tool raises an exception on the second call, which propagates and stops the run"
-      - "The max-step budget expires, which is why loop detection is redundant when a step budget exists"
-    answer: "The harness breaks after the third identical failing call, not the model noticing"
+      - "The fraction of generated answers that cite a real source, which is the grounding rate"
+      - "The fraction of questions whose correct chunk appears in the top k"
+      - "The average similarity of the top k chunks, which indicates whether the index is well built"
+      - "The fraction of retrieved chunks that are relevant, which is precision at the retrieval stage"
+    answer: "The fraction of questions whose correct chunk appears in the top k"
     evidence: |
-      Loop detection and the step budget are different bounds and both are worth
-      having: a step budget stops a loop that is making no progress, but only
-      after it has spent the whole budget doing so. Loop detection catches the
-      specific case of a model that is wrong the same way twice, and stops it
-      three calls in rather than twenty. Watching it fire is the point of running
-      the cell.
+      It is a ceiling. If the right chunk is not in the top k, the generator
+      cannot produce a grounded correct answer no matter how good the prompt is,
+      so recall@k tells you the best your system could do before you spend any
+      effort on generation. Note the last option describes precision, which is a
+      different and also useful number, and confusing the two is the commonest
+      error in reading a retrieval eval.
     source:
       file: lectures/l19/notes.md
-      heading: "Bounding the loop"
-      quote: "breaking the loop after the\nthird identical failing call"
-    verify: {mode: quote, needle: "third identical failing call", volatility: stable}
-    tags: [agents, notebook, loop-detection]
+      heading: "Evaluating retrieval, separately from evaluating the answer"
+      quote: "**Recall@k** asks"
+    verify: {mode: quote, needle: "recall@k", volatility: stable}
+    tags: [rag, evaluation, notebook]

@@ -4,7 +4,7 @@ schema: cmu-06763-map-edges/1
 #
 # tools/graph.py extracts the dependency graph from markdown cross-links, which
 # is the right default because a link is unambiguous and machine-checkable. It
-# stops at Lecture 15. The four late lectures cite earlier sessions only in prose, so
+# stops at Lecture 17. The four late lectures cite earlier sessions only in prose, so
 # an extracted map would leave the entire LLM and production arc unconnected,
 # which is the half students reach when they are most lost.
 #
@@ -23,7 +23,7 @@ schema: cmu-06763-map-edges/1
 # prerequisite, and inventing prerequisites is precisely what this course
 # teaches against.
 #
-# Lecture 17 is absent on purpose. It cites nothing, by link or in prose, and that is a
+# Lecture 19 is absent on purpose. It cites nothing, by link or in prose, and that is a
 # true fact about the course rather than a gap in this file. It should show on
 # the map as the dead end it is.
 
@@ -37,54 +37,54 @@ relations:
   prevents:    the session's mechanism prevents a failure the target named
 
 edges:
-  # --- Lecture 19, agents ---------------------------------------------------------
-  - from: l19
-    to: l17
+  # --- Lecture 20, agents ---------------------------------------------------------
+  - from: l20
+    to: l19
     relation: contrasts
     why: >-
       The cleanest statement of what an agent is, and it is a negative
       definition: retrieval always happens, tool use is decided. Walking this
       corridor should feel like the distinction landing.
     source:
-      file: lectures/l19/notes.md
+      file: lectures/l20/notes.md
       quote: >-
-        A RAG pipeline in Lecture 17 always retrieves, then always generates; the order
+        A RAG pipeline in Lecture 19 always retrieves, then always generates; the order
         and the branching are yours, fixed in code
 
-  - from: l19
+  - from: l20
     to: l05
     relation: reuses
     why: >-
       Agent observability is not a new subject; it is the logging from the
       streaming session pointed at a different kind of run.
     source:
-      file: lectures/l19/notes.md
+      file: lectures/l20/notes.md
       quote: Reuse the structured logging and MLflow tracking from Lecture 5
 
-  - from: l19
+  - from: l20
     to: l03
     relation: shares-data
     why: The Intel Lab sensor data, still the spine of the course's examples.
     source:
-      file: lectures/l19/notes.md
+      file: lectures/l20/notes.md
       quote: against the same Intel Lab sensor Parquet file from Lecture 3 and Lecture 4
 
-  - from: l19
+  - from: l20
     to: l04
     relation: shares-data
     why: Same file, reached through the columnar path Lecture 4 introduces.
     source:
-      file: lectures/l19/notes.md
+      file: lectures/l20/notes.md
       quote: against the same Intel Lab sensor Parquet file from Lecture 3 and Lecture 4
 
-  - from: l19
+  - from: l20
     to: l13
     relation: reuses
     why: >-
       The agent's tool is a surrogate, so the demo only works if the surrogate
       session already happened. A genuine prerequisite rather than a callback.
     source:
-      file: lectures/l19/notes.md
+      file: lectures/l20/notes.md
       quote: >-
         small surrogate standing in for Lecture 13's airfoil noise model, sharing that
         model's five inputs
@@ -113,7 +113,7 @@ edges:
       quote: sensor readings above Lecture 3's 2.4-volt trustworthiness threshold
 
   - from: l21
-    to: l19
+    to: l20
     relation: builds-on
     why: >-
       The evaluation session consumes exactly what the agent session already
@@ -121,17 +121,17 @@ edges:
     source:
       file: lectures/l21/notes.md
       quote: >-
-        Lecture 19's harness already logs everything a failure taxonomy needs, every
+        Lecture 20's harness already logs everything a failure taxonomy needs, every
         tool call, every result, every stop condition
 
   - from: l21
-    to: l17
+    to: l19
     relation: reuses
-    why: The eval harness is built against the RAG system Lecture 17 leaves behind.
+    why: The eval harness is built against the RAG system Lecture 19 leaves behind.
     source:
       file: lectures/l21/notes.md
       quote: >-
-        eval harness for a small RAG assistant in the spirit of Lecture 17's system
+        eval harness for a small RAG assistant in the spirit of Lecture 19's system
 
   - from: l21
     to: l04
@@ -139,7 +139,7 @@ edges:
     why: Same sensor data, no API key, which is why the demo runs anywhere.
     source:
       file: lectures/l21/notes.md
-      quote: data Lecture 3, Lecture 4, and Lecture 19 use and needs no API key or external service
+      quote: data Lecture 3, Lecture 4, and Lecture 20 use and needs no API key or external service
 
   # --- Lecture 23, MLOps and responsibility ---------------------------------------
 # Signs on the rooms that are not written yet.

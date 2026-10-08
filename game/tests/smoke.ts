@@ -232,7 +232,7 @@ async function main() {
     check(files.length === 1, 'the evidence PDF downloads', files[0] ?? '(none)')
     check(size > 5000, 'the PDF has real content', `${size} bytes`)
     // Pattern, not a literal: which module comes first depends on how many
-    // banks are published, and an assertion on "l15" quietly became wrong the
+    // banks are published, and an assertion on "l17" quietly became wrong the
     // day L01 was authored.
     check(
       /^l\d\d-evidence-jkitchin\.pdf$/.test(files[0] ?? ''),

@@ -66,9 +66,10 @@ check(world.doors.every((d) => d.from !== d.to), 'no corridor loops back on itse
 check(world.signs.every((s) => roomById(s.lecture)?.written === false),
   'every signed shutter names a room that is genuinely unwritten')
 
-// A corridor drawn out of L17 would contradict the finding that it cites
-// nothing. See game/content/map-edges.yml.
-check(!world.doors.some((d) => d.from === 'l17'), 'L17 is still the dead end')
+// A corridor drawn out of L19 (RAG, which was L17 before the 2026-10-08
+// renumbering) would contradict the finding that it cites nothing. See
+// game/content/map-edges.yml.
+check(!world.doors.some((d) => d.from === 'l19'), 'L19 is still the dead end')
 
 // Ten, not the fifteen this asserted before: L23's five authored edges left with
 // the lecture when MLOps moved to course/optional/. The count is hardcoded on
