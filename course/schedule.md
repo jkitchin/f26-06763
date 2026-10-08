@@ -19,13 +19,13 @@
 | Lecture 13: 10-07-2026 (Wednesday)                 | Scientific machine learning: PINNs, neural ODEs and neural DAEs                            |
 | 10-12-2026 (Monday)                                | Fall break, no class                                                                       |
 | 10-14-2026 (Wednesday)                             | Fall break, no class                                                                       |
-| Lecture 14: 10-19-2026 (Monday)                    | Uncertainty quantification (UQ), Bayesian optimization (BO) and active learning (AL)       |
-| Lecture 15: 10-21-2026 (Wednesday)                 | Large Language Models (LLMs) - Intro                                                       |
-| Lecture 16: 10-26-2026 (Monday)                    | Large Language Models (LLMs) II                                                            |
-| Lecture 17: 10-28-2026 (Wednesday)                 | Retrieval-augmented generation (RAG) and vector databases                                  |
-| Lecture 18: 11-02-2026 (Monday)                    | Prompting, RAG, or fine-tuning: choosing the right lever                                   |
-| Lecture 19: 11-04-2026 (Wednesday)                 | LLM Agents                                                                                 |
-| Lecture 20: 11-09-2026 (Monday, AIChE)             | Multi-agent systems                                                                        |
+| Lecture 14: 10-19-2026 (Monday)                    | Uncertainty quantification (UQ) for machine learning                                       |
+| Lecture 15: 10-21-2026 (Wednesday)                 | Bayesian optimization (BO)                                                                 |
+| Lecture 16: 10-26-2026 (Monday)                    | Active learning (AL) and reinforcement learning (RL)                                       |
+| Lecture 17: 10-28-2026 (Wednesday)                 | Large language models (LLMs): what they are and how to use one                             |
+| Lecture 18: 11-02-2026 (Monday)                    | Reliable LLM outputs: prompting, structured output and tool calling                        |
+| Lecture 19: 11-04-2026 (Wednesday)                 | Retrieval-augmented generation (RAG): answering from your documents                        |
+| Lecture 20: 11-09-2026 (Monday, AIChE)             | LLM agents: tools, loops and guardrails                                                    |
 | Lecture 21: 11-11-2026 (Wednesday, AIChE)          | Evaluating and observing ML and LLM systems                                                |
 | Lecture 22: 11-16-2026 (Monday)                    | Deployment: serving, containers, latency, and cost                                         |
 | Final presentations, day 1: 11-18-2026 (Wednesday) | Student project presentations                                                              |
