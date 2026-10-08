@@ -776,7 +776,7 @@ params0 = init(jax.random.PRNGKey(0), [1, 32, 32, 32, 1])
 
 </div>
 <div></div>
-<div class="lay" data-marpit-fragment><div class="hl c1" data-lines="1-7" style="top:6px; height:151px"></div><div class="cn c1" style="top:40px">Weights: one (W, b) per layer. W has spread 1/√(inputs), so each weighted sum stays near 1 and tanh starts in its linear range, not saturated (<a href="http://yann.lecun.com/exdb/publis/pdf/lecun-98b.pdf">LeCun et al., 1998</a>)</div></div>
+<div class="lay" data-marpit-fragment><div class="hl c1" data-lines="1-7" style="top:6px; height:151px"></div><div class="cn c1" style="top:40px">Weights: one (W, b) per layer, random, scaled by 1/√(inputs) so tanh does not saturate (<a href="http://yann.lecun.com/exdb/publis/pdf/lecun-98b.pdf">LeCun et al., 1998</a>)</div></div>
 <div class="lay" data-marpit-fragment><div class="hl c2" data-lines="9-14" style="top:174px; height:130px"></div><div class="cn c2" style="top:200px">Forward pass: times in, three tanh layers, displacements out. tanh is smooth, so x″ exists</div></div>
 <div class="lay" data-marpit-fragment><div class="hl c3" data-lines="16-17" style="top:321px; height:46px"></div><div class="cn c3" style="top:316px">One time in, one x out: the form <code>jax.grad</code> needs</div></div>
 <div class="lay" data-marpit-fragment><div class="hl c4" data-lines="19-19" style="top:384px; height:25px"></div><div class="cn c4" style="top:384px">1 input, 3 × 32 hidden units, 1 output</div></div>
@@ -2533,7 +2533,7 @@ The learned term can be any model that fits data. Four families used with physic
 <p class="takeaway" data-marpit-fragment>The physics sits in the loss, the right-hand side or the constraints, whatever the learner.</p>
 
 <!--
-GPs also come with physics built into the prior: Raissi, Perdikaris and Karniadakis 2017 learn the parameters of linear ODEs this way. SINDy and symbolic regression return equations a person can read.
+GPs also come with physics built into the prior: Raissi and Karniadakis 2017 learn the parameters of linear ODEs this way. SINDy and symbolic regression return equations a person can read.
 -->
 
 ---
@@ -2541,7 +2541,7 @@ GPs also come with physics built into the prior: Raissi, Perdikaris and Karniada
 
 ## Limitations and trade-offs
 
-* **PINNs**: a penalty, fragile training, one solution per condition. Good with few data, a known equation, and approximate physics being acceptable
+* **PINNs**: a penalty; can fail on stiff or multiscale problems; one solution per condition. Good with few data and a known equation
 * **Neural ODEs (sequential)**: bounds not enforced; local minima on oscillating dynamics. Scale to big data and GPUs
 * **Neural DAEs (simultaneous)**: the NLP grows with network and data; smooth activations; a fixed time grid. Use when constraints must hold exactly: safety, quality, balances, DAEs
 * **Projection layers**: one prediction at a time; inequalities and nonlinear constraints cost a solve per pass

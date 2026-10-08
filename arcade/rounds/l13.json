@@ -1,7 +1,7 @@
 {
   "lecture": "l13",
   "title": "Scientific machine learning: PINNs, neural ODEs and neural DAEs",
-  "pool_version": 7,
+  "pool_version": 8,
   "source_notes": "lectures/l13/notes.md",
   "generated_by": "tools/arcade_rounds.py",
   "items": [
@@ -250,26 +250,6 @@
         "At every iterate, since each iterate is a simulation",
         "Only at the measured time points",
         "Never exactly; they are penalized like a PINN's residual"
-      ]
-    },
-    {
-      "id": "l13-q13",
-      "kind": "mcq",
-      "lecture": "l13",
-      "context": "At iteration 0 the simultaneous fit of the spring-mass has a sum of squared errors of 0.00.\nWhy is it not finished?",
-      "why": "The states start as an interpolation of the data, so the misfit is zero, but the largest\nviolation of the collocation equations is 7.7. The solver then repairs the physics, ending\nwith a defect of 2.5e-15.",
-      "objectives": [
-        "l13-o5"
-      ],
-      "tags": [
-        "simultaneous-approach",
-        "infeasible-path"
-      ],
-      "true": "Its states sit on the data but break the model equations",
-      "false": [
-        "It has not computed a gradient yet",
-        "The data are noisy, so a perfect fit is suspect",
-        "Interior-point solvers always run a fixed number of iterations"
       ]
     },
     {
