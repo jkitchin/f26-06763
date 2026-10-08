@@ -53,7 +53,7 @@ if (!CHROME) {
 }
 
 const arg = process.argv[2]
-if (!arg || !/^\d+$/.test(arg)) {
+if (!arg || !/^\d+[a-z]?$/.test(arg)) {
   console.error('usage: node tools/snapshot_widgets.mjs <lecture number>')
   process.exit(2)
 }

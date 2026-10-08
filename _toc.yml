@@ -58,6 +58,9 @@ parts:
         sections:
           - file: lectures/l13/l13-pinn-jax
           - file: lectures/l13/l13-neural-dae
+#       - file: lectures/l14a/notes
+#         sections:
+#           - file: lectures/l14a/l14a-uq
 #       - file: lectures/l14/notes
 #         sections:
 #           - file: lectures/l14/l14-uq-bayesopt
