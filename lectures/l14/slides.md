@@ -18,6 +18,9 @@ section table { margin-left: auto; margin-right: auto; font-size: 0.78em; }
 .red { color: #c41230; }
 /* widgets here carry two rows of controls, so give the plot a little less height */
 section .cw.compact svg { max-height: 350px; }
+/* the course-map stops on slide 2 link to their notes */
+section a.jm-stop { cursor: pointer; }
+section a.jm-stop:hover circle { fill: #c41230; }
 section p.takeaway { text-align: center; font-weight: 700; font-size: 0.82em; margin: 0.5em 0 0; }
 </style>
 
@@ -67,32 +70,71 @@ About 84 minutes, then the notebook and questions.
 <text x="420" y="112" font-size="13" fill="#5b4a32" opacity="0.85">L8 to L13: the ML workflow, PyTorch and JAX, architectures, scientific ML</text>
 <path d="M55,420 C64.2,415.3 90.8,392.3 110,392 C129.2,391.7 150.3,419.3 170,418 C189.7,416.7 208.7,385.7 228,384 C247.3,382.3 267.0,410.0 286,408 C305.0,406.0 324.3,385.7 342,372 C359.7,358.3 375.7,340.3 392,326 C408.3,311.7 422.7,297.3 440,286 C457.3,274.7 477.3,265.7 496,258 C514.7,250.3 533.3,247.7 552,240 C570.7,232.3 589.3,220.3 608,212 C626.7,203.7 645.3,192.7 664,190 C682.7,187.3 702.3,189.7 720,196 C737.7,202.3 753.3,217.0 770,228 C786.7,239.0 811.7,256.3 820,262" fill="none" stroke="#8a5a2b" stroke-width="4" stroke-linecap="round" stroke-dasharray="10 6"/>
 <path d="M820,262 C830.0,268.3 858.3,290.3 880,300 C901.7,309.7 927.5,322.0 950,320 C972.5,318.0 995.8,302.7 1015,288 C1034.2,273.3 1049.2,251.7 1065,232 C1080.8,212.3 1102.5,180.3 1110,170" fill="none" stroke="#a89878" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 8"/>
+<a class="jm-stop" href="../../lectures/l01/notes.html" target="_blank"><title>L1: The AI-engineering landscape and the modern toolchain
+The system view of ML, why engineering data is different, and the course stack: Python, uv, Git, notebooks</title>
 <circle cx="55" cy="420" r="11" fill="#8a5a2b" stroke="#fbf7ec" stroke-width="2"/>
 <text x="55" y="424" font-size="11" text-anchor="middle" fill="#fbf7ec" font-family="sans-serif" font-weight="700">1</text>
+</a>
+<a class="jm-stop" href="../../lectures/l02/notes.html" target="_blank"><title>L2: Reproducible environments, version control, and experiment hygiene
+uv lockfiles, project layout, Git for code and DVC for data, notebook to module, MLflow run logging</title>
 <circle cx="110" cy="392" r="11" fill="#8a5a2b" stroke="#fbf7ec" stroke-width="2"/>
 <text x="110" y="396" font-size="11" text-anchor="middle" fill="#fbf7ec" font-family="sans-serif" font-weight="700">2</text>
+</a>
+<a class="jm-stop" href="../../lectures/l03/notes.html" target="_blank"><title>L3: Relational databases and SQL for engineering time-series
+PostgreSQL over the Intel Lab sensor data: schemas, indexes, GROUP BY and window functions</title>
 <circle cx="170" cy="418" r="11" fill="#8a5a2b" stroke="#fbf7ec" stroke-width="2"/>
 <text x="170" y="422" font-size="11" text-anchor="middle" fill="#fbf7ec" font-family="sans-serif" font-weight="700">3</text>
+</a>
+<a class="jm-stop" href="../../lectures/l04/notes.html" target="_blank"><title>L4: Columnar storage, Parquet, and DuckDB
+Row vs column stores, Parquet row groups and predicate pushdown, DuckDB for OLAP queries</title>
 <circle cx="228" cy="384" r="11" fill="#8a5a2b" stroke="#fbf7ec" stroke-width="2"/>
 <text x="228" y="388" font-size="11" text-anchor="middle" fill="#fbf7ec" font-family="sans-serif" font-weight="700">4</text>
+</a>
+<a class="jm-stop" href="../../lectures/l05/notes.html" target="_blank"><title>L5: Dataframes and batch pipelines
+The Tennessee Eastman plant in pandas and Polars: lazy plans and pipelines that are safe to rerun</title>
 <circle cx="286" cy="408" r="11" fill="#8a5a2b" stroke="#fbf7ec" stroke-width="2"/>
 <text x="286" y="412" font-size="11" text-anchor="middle" fill="#fbf7ec" font-family="sans-serif" font-weight="700">5</text>
+</a>
+<a class="jm-stop" href="../../lectures/l06/notes.html" target="_blank"><title>L6: Streaming concepts and data validation
+Event time, windows and watermarks for late data; pandera schemas as a gate that fails loudly</title>
 <circle cx="342" cy="372" r="11" fill="#8a5a2b" stroke="#fbf7ec" stroke-width="2"/>
 <text x="342" y="376" font-size="11" text-anchor="middle" fill="#fbf7ec" font-family="sans-serif" font-weight="700">6</text>
+</a>
+<a class="jm-stop" href="../../lectures/l07/notes.html" target="_blank"><title>L7: Features for time-series models
+Lags, rolling windows and ARX regressors in Polars, fit with numpy.linalg.lstsq</title>
 <circle cx="392" cy="326" r="11" fill="#8a5a2b" stroke="#fbf7ec" stroke-width="2"/>
 <text x="392" y="330" font-size="11" text-anchor="middle" fill="#fbf7ec" font-family="sans-serif" font-weight="700">7</text>
+</a>
+<a class="jm-stop" href="../../lectures/l08/notes.html" target="_blank"><title>L8: The machine learning workflow I, time series
+Forecasting reactor pressure at several horizons, time-ordered splits and honest baselines in scikit-learn</title>
 <circle cx="440" cy="286" r="11" fill="#8a5a2b" stroke="#fbf7ec" stroke-width="2"/>
 <text x="440" y="290" font-size="11" text-anchor="middle" fill="#fbf7ec" font-family="sans-serif" font-weight="700">8</text>
+</a>
+<a class="jm-stop" href="../../lectures/l09/notes.html" target="_blank"><title>L9: The machine learning workflow II, regression
+Model families, cross-validation, capacity and learning curves on concrete strength; NARX forecasts</title>
 <circle cx="496" cy="258" r="11" fill="#8a5a2b" stroke="#fbf7ec" stroke-width="2"/>
 <text x="496" y="262" font-size="11" text-anchor="middle" fill="#fbf7ec" font-family="sans-serif" font-weight="700">9</text>
+</a>
+<a class="jm-stop" href="../../lectures/l10/notes.html" target="_blank"><title>L10: The machine learning workflow III, classification, tracking and search
+A plant fault classifier in scikit-learn, Optuna hyperparameter search, runs recorded in MLflow</title>
 <circle cx="552" cy="240" r="11" fill="#8a5a2b" stroke="#fbf7ec" stroke-width="2"/>
 <text x="552" y="244" font-size="11" text-anchor="middle" fill="#fbf7ec" font-family="sans-serif" font-weight="700">10</text>
+</a>
+<a class="jm-stop" href="../../lectures/l11/notes.html" target="_blank"><title>L11: Tensors, autodiff, training loops, and GPUs
+PyTorch tensors and autograd, a training loop by hand, devices and dtypes, four models that looked fine</title>
 <circle cx="608" cy="212" r="11" fill="#8a5a2b" stroke="#fbf7ec" stroke-width="2"/>
 <text x="608" y="216" font-size="11" text-anchor="middle" fill="#fbf7ec" font-family="sans-serif" font-weight="700">11</text>
+</a>
+<a class="jm-stop" href="../../lectures/l12/notes.html" target="_blank"><title>L12: Architectures for engineering data: MLP, CNN, and sequence models
+Matching architecture to structure: CNNs, RNNs and attention; a 1D-CNN for turbofan RUL vs a tabular baseline</title>
 <circle cx="664" cy="190" r="11" fill="#8a5a2b" stroke="#fbf7ec" stroke-width="2"/>
 <text x="664" y="194" font-size="11" text-anchor="middle" fill="#fbf7ec" font-family="sans-serif" font-weight="700">12</text>
+</a>
+<a class="jm-stop" href="../../lectures/l13/notes.html" target="_blank"><title>L13: Scientific machine learning: PINNs, neural ODEs and neural DAEs
+A PINN in JAX and Optax, a neural ODE in Diffrax and Equinox, a neural DAE with SiNDAE and Pyomo</title>
 <circle cx="720" cy="196" r="11" fill="#8a5a2b" stroke="#fbf7ec" stroke-width="2"/>
 <text x="720" y="200" font-size="11" text-anchor="middle" fill="#fbf7ec" font-family="sans-serif" font-weight="700">13</text>
+</a>
 <path d="M756,234 L770,214 L784,234 Z" fill="#d9a441" stroke="#5b4a32" stroke-width="1.2"/>
 <path d="M770,214 L767,234 L773,234 Z" fill="#5b4a32"/>
 <text x="758" y="252" font-size="12" text-anchor="end" fill="#5b4a32" font-style="italic">fall-break camp</text>
