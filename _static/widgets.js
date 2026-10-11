@@ -2608,6 +2608,435 @@
     draw();
   };
 
+  // ------------------------------------------------------------------ L16
+
+  /* Shared pieces for the generative-model figures. Every one of them computes in the
+   * browser from a seeded data set, so nothing needs a data file. The data set is the
+   * one the notes and the notebook use: y = |x| plus a little noise, with the region
+   * |x| < 0.5 removed, so the question "which x gives y = 0.75?" has two answers. */
+  function absData(n, seed) {
+    var r = mulberry(seed || 16), X = [], Y = [];
+    while (X.length < n) {
+      var x = -1.2 + 2.4 * r();
+      if (Math.abs(x) < 0.5) continue;
+      X.push(x); Y.push(Math.abs(x) + 0.03 * gauss(r));
+    }
+    return { x: X, y: Y };
+  }
+  function npdf(x, m, s) { var z = (x - m) / s; return Math.exp(-0.5 * z * z) / (s * 2.5066282746); }
+
+  // EM for a K-component Gaussian mixture in two dimensions with full covariances. The
+  // means start at K data points spread along the data by a seeded k-means++ draw, the
+  // covariances at the data covariance. Returns the parameters after every iteration.
+  function emFit(X, Y, K, iters, seed) {
+    var n = X.length, r = mulberry(seed || 7), i, k;
+    var mx = mean(X), my = mean(Y);
+    var vxx = mean(X.map(function (v) { return (v - mx) * (v - mx); })),
+      vyy = mean(Y.map(function (v) { return (v - my) * (v - my); })),
+      vxy = mean(X.map(function (v, j) { return (v - mx) * (Y[j] - my); }));
+    var i0 = Math.floor(r() * n), mu = [[X[i0], Y[i0]]];
+    while (mu.length < K) {
+      var d2 = X.map(function (x, j) {
+        var b = Infinity;
+        mu.forEach(function (m) { b = Math.min(b, (x - m[0]) * (x - m[0]) + (Y[j] - m[1]) * (Y[j] - m[1])); });
+        return b;
+      });
+      var tot = d2.reduce(function (a, b) { return a + b; }, 0), u = r() * tot, acc = 0;
+      for (i = 0; i < n; i++) { acc += d2[i]; if (acc >= u) break; }
+      mu.push([X[Math.min(i, n - 1)], Y[Math.min(i, n - 1)]]);
+    }
+    var comps = mu.map(function (m) { return { w: 1 / K, mx: m[0], my: m[1], sxx: vxx / K, syy: vyy / K, sxy: 0 }; });
+    var hist = [], resp = [];
+    function snapshot(ll) { hist.push({ ll: ll, c: comps.map(function (c) { return Object.assign({}, c); }) }); }
+    function logpdf2(c, x, y) {
+      var det = c.sxx * c.syy - c.sxy * c.sxy, dx = x - c.mx, dy = y - c.my;
+      var q = (c.syy * dx * dx - 2 * c.sxy * dx * dy + c.sxx * dy * dy) / det;
+      return -0.5 * q - Math.log(2 * Math.PI) - 0.5 * Math.log(det);
+    }
+    for (var it = 0; it <= iters; it++) {
+      // E-step: responsibilities, and the log likelihood of the current parameters.
+      var ll = 0;
+      for (i = 0; i < n; i++) {
+        var lp = comps.map(function (c) { return Math.log(c.w) + logpdf2(c, X[i], Y[i]); });
+        var m = Math.max.apply(null, lp), s = 0;
+        lp.forEach(function (v) { s += Math.exp(v - m); });
+        resp[i] = lp.map(function (v) { return Math.exp(v - m) / s; });
+        ll += m + Math.log(s);
+      }
+      snapshot(ll / n);
+      if (it === iters) break;
+      // M-step: weights, means and covariances from the responsibilities.
+      for (k = 0; k < K; k++) {
+        var nk = 0, sx = 0, sy = 0;
+        for (i = 0; i < n; i++) { nk += resp[i][k]; sx += resp[i][k] * X[i]; sy += resp[i][k] * Y[i]; }
+        var c = comps[k], ax = sx / nk, ay = sy / nk, cxx = 0, cyy = 0, cxy = 0;
+        for (i = 0; i < n; i++) {
+          var dx = X[i] - ax, dy = Y[i] - ay, g = resp[i][k];
+          cxx += g * dx * dx; cyy += g * dy * dy; cxy += g * dx * dy;
+        }
+        c.w = nk / n; c.mx = ax; c.my = ay;
+        c.sxx = cxx / nk + 1e-5; c.syy = cyy / nk + 1e-5; c.sxy = cxy / nk;
+      }
+    }
+    return hist;
+  }
+
+  // Condition a fitted 2-D mixture on y = y0. Each component becomes a 1-D Gaussian in x
+  // (the Schur complement), reweighted by how well it explains y0.
+  function gmmCondition(comps, y0) {
+    var out = comps.map(function (c) {
+      return {
+        // log N(y0; my, syy), computed directly so a far-off y0 cannot underflow to -Infinity.
+        lw: Math.log(c.w) - 0.5 * (y0 - c.my) * (y0 - c.my) / c.syy - 0.5 * Math.log(2 * Math.PI * c.syy),
+        m: c.mx + c.sxy / c.syy * (y0 - c.my),
+        s: Math.sqrt(Math.max(c.sxx - c.sxy * c.sxy / c.syy, 1e-8))
+      };
+    });
+    var top = Math.max.apply(null, out.map(function (o) { return o.lw; })), tot = 0;
+    out.forEach(function (o) { o.w = isFinite(o.lw) ? Math.exp(o.lw - top) : 0; tot += o.w; });
+    out.forEach(function (o) { o.w /= tot || 1; });
+    return out;
+  }
+
+  // The 2-sigma ellipse of a 2-D Gaussian, as an SVG path in screen coordinates.
+  function ellipsePath(c, sx, sy) {
+    var tr = c.sxx + c.syy, det = c.sxx * c.syy - c.sxy * c.sxy, d = Math.sqrt(Math.max(tr * tr / 4 - det, 0));
+    var l1 = tr / 2 + d, l2 = Math.max(tr / 2 - d, 1e-12), ang = Math.atan2(l1 - c.sxx, c.sxy || 1e-12);
+    var pts = [];
+    for (var j = 0; j <= 48; j++) {
+      var a = 2 * Math.PI * j / 48, u = 2 * Math.sqrt(l1) * Math.cos(a), v = 2 * Math.sqrt(l2) * Math.sin(a);
+      pts.push(sx(c.mx + u * Math.cos(ang) - v * Math.sin(ang)).toFixed(1) + ',' + sy(c.my + u * Math.sin(ang) + v * Math.cos(ang)).toFixed(1));
+    }
+    return 'M' + pts.join('L') + 'Z';
+  }
+
+  /* Fit a Gaussian mixture to (x, y) by EM, then condition it on y = y*. The panel below
+   * is p(x | y*); the orange line is what a least-squares regression of x on y predicts. */
+  WIDGETS['gmm-condition'] = function (root) {
+    var D = absData(240), K = 2, ystar = 0.75, ITERS = 40, hist = null, showReg = true;
+    var W = 720, H = 420, L = 46, R = 706, T = 12, B = 250, T2 = 290, B2 = 392;
+    html('div', { class: 'cw-title' }, root, 'Fit the joint distribution, then condition it');
+    var svg = svgRoot(root, W, H, 'Data from y = |x|, Gaussian mixture components, and the conditional distribution of x given y');
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    var c2 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      '240 points from y = |x| with noise sd 0.03 and nothing in −0.5 < x < 0.5. Expectation maximization, run in your browser, ' +
+      'fits K Gaussians to the (x, y) cloud; the ellipses are their 2-sigma contours. Play steps through the EM iterations. ' +
+      'Drag the y* slider: the lower panel is p(x | y = y*) from the closed-form Gaussian conditioning, and the dotted lines ' +
+      'mark the true answers ±y*. Orange: a straight-line regression of x on y, which predicts one number for both. ' +
+      'The figure draws its own seeded data, so its numbers differ slightly from the static figures and the notebook.');
+    select(c1, 'components K', ['1', '2', '3', '4', '6', '8'], 1, function (v) { K = [1, 2, 3, 4, 6, 8][v]; refit(); });
+    var p = player(c1, ITERS + 1, draw, 120);
+    slider(c2, 'y*', 0.05, 1.2, 0.01, ystar, function (v) { return v.toFixed(2); }, function (v) { ystar = v; draw(p.get()); });
+    var regB = html('label', {}, c2);
+    var cb = html('input', { type: 'checkbox', checked: 'checked' }, regB);
+    regB.appendChild(document.createTextNode(' regression of x on y'));
+    cb.onchange = function () { showReg = cb.checked; draw(p.get()); };
+    // Least squares x = a + b y, the "inverse model" a regression would give you.
+    var my = mean(D.y), mx = mean(D.x), sxy = 0, syy = 0;
+    D.y.forEach(function (y, j) { sxy += (y - my) * (D.x[j] - mx); syy += (y - my) * (y - my); });
+    var rb = sxy / syy, ra = mx - rb * my;
+    var sx = scale(-1.3, 1.3, L, R), sy = scale(-0.1, 1.3, B, T), grid = linspace(-1.3, 1.3, 261);
+    function refit() { hist = emFit(D.x, D.y, K, ITERS, 7); p.set(ITERS); }
+    function draw(i) {
+      if (!hist) return;
+      clear(svg);
+      var fr = hist[i];
+      [-1, -0.5, 0, 0.5, 1].forEach(function (v) {
+        el('line', { x1: sx(v), x2: sx(v), y1: T, y2: B, stroke: 'currentColor', 'stroke-opacity': v === 0 ? 0.18 : 0.07 }, svg);
+        text(svg, sx(v), B + 15, String(v), { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.7 });
+        text(svg, sx(v), B2 + 15, String(v), { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.7 });
+      });
+      [0, 0.5, 1].forEach(function (v) {
+        el('line', { x1: L, x2: R, y1: sy(v), y2: sy(v), stroke: 'currentColor', 'stroke-opacity': 0.07 }, svg);
+        text(svg, L - 6, sy(v) + 4, String(v), { 'text-anchor': 'end', 'font-size': 11, opacity: 0.7 });
+      });
+      text(svg, R, B + 15, 'x', { 'text-anchor': 'end', 'font-size': 11 });
+      text(svg, L - 30, T + 10, 'y', { 'font-size': 11 });
+      el('rect', { x: sx(-0.5), y: T, width: sx(0.5) - sx(-0.5), height: B - T, fill: 'currentColor', 'fill-opacity': 0.04 }, svg);
+      text(svg, sx(0), T + 14, 'no data', { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.6 });
+      D.x.forEach(function (x, j) { el('circle', { cx: sx(x), cy: sy(D.y[j]), r: 2.2, fill: 'currentColor', 'fill-opacity': 0.45 }, svg); });
+      var g = clipRect(svg, L, T, R - L, B - T);
+      fr.c.forEach(function (c) {
+        el('path', { d: ellipsePath(c, sx, sy), fill: 'var(--cw-accent)', 'fill-opacity': 0.08 + 0.4 * c.w,
+          stroke: 'var(--cw-accent)', 'stroke-width': 1.4 }, g);
+      });
+      el('line', { x1: L, x2: R, y1: sy(ystar), y2: sy(ystar), stroke: 'var(--cw-green)', 'stroke-width': 1.8, 'stroke-dasharray': '6 4' }, svg);
+      text(svg, R - 4, sy(ystar) - 5, 'y* = ' + ystar.toFixed(2), { 'text-anchor': 'end', 'font-size': 11, style: 'fill:var(--cw-green)' });
+      var xr = ra + rb * ystar;
+      if (showReg) {
+        polyline(g, [-0.1, 1.3].map(function (y) { return sx(ra + rb * y); }), [-0.1, 1.3].map(sy), { stroke: 'var(--cw-accent2)', 'stroke-width': 2 });
+        el('circle', { cx: sx(xr), cy: sy(ystar), r: 5, fill: 'var(--cw-accent2)' }, svg);
+      }
+      // Lower panel: the conditional density.
+      var cond = gmmCondition(fr.c, ystar);
+      var dens = grid.map(function (x) { var s = 0; cond.forEach(function (o) { s += o.w * npdf(x, o.m, o.s); }); return s; });
+      var peak = Math.max.apply(null, dens), top = Math.max(1, peak), sd = scale(0, top * 1.05, B2, T2);
+      el('line', { x1: L, x2: R, y1: B2, y2: B2, stroke: 'currentColor', 'stroke-opacity': 0.3 }, svg);
+      text(svg, L, T2 - 6, 'p(x | y = ' + ystar.toFixed(2) + ')', { 'font-size': 11 });
+      [-ystar, ystar].forEach(function (v) {
+        el('line', { x1: sx(v), x2: sx(v), y1: T2, y2: B2, stroke: 'currentColor', 'stroke-opacity': 0.6, 'stroke-dasharray': '2 3' }, svg);
+      });
+      var pts = grid.map(function (x, j) { return sx(x).toFixed(1) + ',' + sd(dens[j]).toFixed(1); });
+      el('polygon', { points: sx(-1.3) + ',' + B2 + ' ' + pts.join(' ') + ' ' + sx(1.3) + ',' + B2, fill: 'var(--cw-accent)', 'fill-opacity': 0.25 }, svg);
+      polyline(svg, grid.map(sx), dens.map(sd), { stroke: 'var(--cw-accent)', 'stroke-width': 2 });
+      if (showReg) el('line', { x1: sx(xr), x2: sx(xr), y1: T2, y2: B2, stroke: 'var(--cw-accent2)', 'stroke-width': 2 }, svg);
+      // Readout: the modes, found as local maxima of the density with at least 5% of the peak.
+      var modes = [];
+      for (var j = 1; j < grid.length - 1; j++) {
+        if (dens[j] > dens[j - 1] && dens[j] >= dens[j + 1] && dens[j] > 0.05 * peak) modes.push(grid[j]);
+      }
+      var neg = 0; grid.forEach(function (x, j) { if (x < 0) neg += dens[j]; });
+      var tot = dens.reduce(function (a, b) { return a + b; }, 0);
+      readout.textContent = 'K = ' + K + ', EM iteration ' + i + ', mean log likelihood ' + fr.ll.toFixed(2) + '. p(x | y = ' +
+        ystar.toFixed(2) + ') has ' + modes.length + (modes.length === 1 ? ' mode' : ' modes') + ' at ' +
+        modes.map(function (v) { return v.toFixed(2); }).join(', ') + ' (true ±' + ystar.toFixed(2) + '), with ' +
+        pct(neg / tot) + ' of its mass at x < 0.' + (showReg ? ' The regression predicts x = ' + xr.toFixed(2) + '.' : '') +
+        (ystar < 0.5 ? ' y* < 0.5 asks about the gap, where there is no data.' : '');
+    }
+    refit();
+  };
+
+  /* Inverse-transform sampling: push uniform numbers through the inverse CDF of a target. The
+   * simplest learned-or-not "transform a simple distribution" generator there is. */
+  WIDGETS['inverse-cdf'] = function (root) {
+    var TARGETS = [
+      { name: 'two phases (bimodal)', comps: [[0.35, -1.2, 0.35], [0.65, 1.0, 0.5]] },
+      { name: 'one Gaussian', comps: [[1, 0, 0.7]] },
+      { name: 'skewed', comps: [[0.6, -0.8, 0.3], [0.3, 0.2, 0.6], [0.1, 1.6, 0.6]] }
+    ];
+    var tg = 0, N = 400, W = 720, H = 330, L = 46, R = 706, T = 12, B = 150, T2 = 190, B2 = 300;
+    html('div', { class: 'cw-title' }, root, 'A generator you already know: uniform numbers through an inverse CDF');
+    var svg = svgRoot(root, W, H, 'A cumulative distribution function mapping uniform samples to samples of a target density');
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'Top: the cumulative distribution F(x) of the target. A uniform number u on the vertical axis maps to x = F⁻¹(u). ' +
+      'Bottom: the histogram of the first n mapped samples against the target density. Where F is steep, a given range of u ' +
+      'maps onto a narrow range of x and samples pile up; that stretch factor, |dx/du| = 1/p(x), is the change-of-variables rule.');
+    toggleGroup(c1, TARGETS.map(function (t) { return t.name; }), 0, function (v) { tg = v; draw(p.get()); });
+    var p = player(c1, N, draw, 25);
+    var r = mulberry(5), U = [];
+    for (var i = 0; i < N; i++) U.push(r());
+    var grid = linspace(-3, 3, 301), sx = scale(-3, 3, L, R);
+    function pdf(x) { var s = 0; TARGETS[tg].comps.forEach(function (c) { s += c[0] * npdf(x, c[1], c[2]); }); return s; }
+    function draw(n) {
+      clear(svg);
+      var P = grid.map(pdf), F = [], acc = 0, dx = grid[1] - grid[0];
+      P.forEach(function (v) { acc += v * dx; F.push(acc); });
+      F = F.map(function (v) { return v / acc; });
+      function inv(u) { for (var j = 1; j < F.length; j++) if (F[j] >= u) return lerp(grid[j - 1], grid[j], (u - F[j - 1]) / ((F[j] - F[j - 1]) || 1)); return grid[grid.length - 1]; }
+      var su = scale(0, 1, B, T);
+      [0, 0.5, 1].forEach(function (v) {
+        el('line', { x1: L, x2: R, y1: su(v), y2: su(v), stroke: 'currentColor', 'stroke-opacity': 0.07 }, svg);
+        text(svg, L - 6, su(v) + 4, String(v), { 'text-anchor': 'end', 'font-size': 11, opacity: 0.7 });
+      });
+      text(svg, L - 40, T + 10, 'u', { 'font-size': 11 });
+      polyline(svg, grid.map(sx), F.map(su), { stroke: 'var(--cw-accent)', 'stroke-width': 2 });
+      var u = U[n], x = inv(u);
+      el('line', { x1: L, x2: sx(x), y1: su(u), y2: su(u), stroke: 'var(--cw-accent2)', 'stroke-width': 1.6 }, svg);
+      el('line', { x1: sx(x), x2: sx(x), y1: su(u), y2: B2, stroke: 'var(--cw-accent2)', 'stroke-width': 1.6, 'stroke-dasharray': '4 3' }, svg);
+      el('circle', { cx: L, cy: su(u), r: 4, fill: 'var(--cw-accent2)' }, svg);
+      // Histogram of the mapped samples.
+      var bins = 40, cnt = [], bw = 6 / bins;
+      for (var b = 0; b < bins; b++) cnt.push(0);
+      var xs = U.slice(0, n + 1).map(inv);
+      xs.forEach(function (v) { var k = Math.floor((v + 3) / bw); if (k >= 0 && k < bins) cnt[k]++; });
+      var top = Math.max.apply(null, P) * 1.15, sp = scale(0, top, B2, T2);
+      cnt.forEach(function (c, k) {
+        var h = c / ((n + 1) * bw);
+        el('rect', { x: sx(-3 + k * bw) + 0.5, y: sp(Math.min(h, top)), width: sx(bw) - sx(0) - 1, height: B2 - sp(Math.min(h, top)),
+          fill: 'var(--cw-accent2)', 'fill-opacity': 0.35 }, svg);
+      });
+      polyline(svg, grid.map(sx), P.map(sp), { stroke: 'currentColor', 'stroke-width': 2, 'stroke-opacity': 0.7 });
+      el('line', { x1: L, x2: R, y1: B2, y2: B2, stroke: 'currentColor', 'stroke-opacity': 0.3 }, svg);
+      [-2, -1, 0, 1, 2].forEach(function (v) { text(svg, sx(v), B2 + 15, String(v), { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.7 }); });
+      text(svg, R, B2 + 15, 'x', { 'text-anchor': 'end', 'font-size': 11 });
+      readout.textContent = 'Sample ' + (n + 1) + ' of ' + N + ': u = ' + u.toFixed(3) + ' maps to x = ' + x.toFixed(2) +
+        ', where p(x) = ' + pdf(x).toFixed(3) + ', so a step du there moves x by ' + (1 / Math.max(pdf(x), 1e-6)).toFixed(1) + ' du. ' +
+        'Sample mean so far ' + mean(xs).toFixed(2) + '; target mean ' +
+        TARGETS[tg].comps.reduce(function (a, c) { return a + c[0] * c[1]; }, 0).toFixed(2) + '.';
+    }
+    p.set(N - 1);
+  };
+
+  // The flow-matching velocity field that minimizes the conditional flow-matching loss for a
+  // finite data set {x1_i} with weights c_i, along the path x_t = t x1 + (1 - (1 - smin) t) x0
+  // (Lipman et al. 2023, the path in Alves & Kitchin eq. 10). At (z, t) it is the average of
+  // the per-sample targets u_i = (x1_i - (1 - smin) z) / (1 - (1 - smin) t), weighted by how
+  // likely each sample's path is to pass through z at time t. A trained network approximates
+  // this field; here it is computed exactly.
+  function fmVelocity(data, cw, z, t, smin) {
+    var st = 1 - (1 - smin) * t, num = [], den = 0, dim = z.length, i, d;
+    for (d = 0; d < dim; d++) num.push(0);
+    var lws = [], top = -Infinity;
+    for (i = 0; i < data.length; i++) {
+      if (!cw[i]) { lws.push(-Infinity); continue; }
+      var q = 0;
+      for (d = 0; d < dim; d++) { var e = z[d] - t * data[i][d]; q += e * e; }
+      var lw = Math.log(cw[i]) - 0.5 * q / (st * st);
+      lws.push(lw); if (lw > top) top = lw;
+    }
+    for (i = 0; i < data.length; i++) {
+      if (lws[i] === -Infinity) continue;
+      var w = Math.exp(lws[i] - top);
+      den += w;
+      for (d = 0; d < dim; d++) num[d] += w * (data[i][d] - (1 - smin) * z[d]) / st;
+    }
+    return num.map(function (v) { return v / den; });
+  }
+
+  /* Conditional flow matching in one dimension: noise at t = 0 flows to p(x | y*) at t = 1. */
+  WIDGETS['flow-condition'] = function (root) {
+    var D = absData(240), ystar = 0.75, STEPS = 100, NP = 60, SMIN = 0.02, H_BW = 0.04;
+    var W = 720, H = 330, L0 = 40, L = 150, R = 590, T = 14, B = 290;
+    html('div', { class: 'cw-title' }, root, 'Flow matching: integrate a velocity field from noise to data');
+    var svg = svgRoot(root, W, H, 'Trajectories carrying Gaussian noise to the two solutions of |x| = y*');
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    var c2 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'Same 240 points from y = |x|. Left: 60 draws of x from N(0, 1) at t = 0. Middle: each draw follows dx/dt = v(x, t | y*), ' +
+      'integrated with 100 Euler steps; gray arrows are the field. Right: where they end at t = 1, against the true answers ±y*. ' +
+      'The field here is the exact minimizer of the flow-matching loss for these points, with the condition y* applied as a ' +
+      'kernel of width 0.04 in y; a trained network learns a smooth approximation of it. Because it is exact for the data, its ' +
+      'samples land on training points, which is memorization in its purest form.');
+    var p = player(c1, STEPS + 1, draw, 40);
+    slider(c2, 'y*', 0.05, 1.2, 0.01, ystar, function (v) { return v.toFixed(2); }, function (v) { ystar = v; run(); draw(p.get()); });
+    var r = mulberry(3), Z0 = [];
+    for (var i = 0; i < NP; i++) Z0.push(gauss(r));
+    var data = D.x.map(function (x) { return [x]; }), cw = [], traj = [];
+    var sx = scale(0, 1, L, R), sz = scale(-3, 3, B, T);
+    function run() {
+      cw = D.y.map(function (y) { return Math.exp(-0.5 * Math.pow((y - ystar) / H_BW, 2)); });
+      traj = Z0.map(function (z0) {
+        var z = z0, path = [z];
+        for (var k = 0; k < STEPS; k++) { z += fmVelocity(data, cw, [z], k / STEPS, SMIN)[0] / STEPS; path.push(z); }
+        return path;
+      });
+    }
+    function draw(k) {
+      clear(svg);
+      [-2, -1, 0, 1, 2].forEach(function (v) {
+        el('line', { x1: L, x2: R, y1: sz(v), y2: sz(v), stroke: 'currentColor', 'stroke-opacity': v === 0 ? 0.15 : 0.06 }, svg);
+        text(svg, L - 6, sz(v) + 4, String(v), { 'text-anchor': 'end', 'font-size': 11, opacity: 0.7 });
+      });
+      [0, 0.25, 0.5, 0.75, 1].forEach(function (v) { text(svg, sx(v), B + 16, String(v), { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.7 }); });
+      text(svg, sx(0.5), B + 32, 'time t', { 'text-anchor': 'middle', 'font-size': 11 });
+      text(svg, L - 30, T + 4, 'x', { 'font-size': 11 });
+      // Arrows of the field on a coarse (t, x) grid, scaled to the plot.
+      linspace(0.05, 0.95, 10).forEach(function (t) {
+        linspace(-2.6, 2.6, 14).forEach(function (z) {
+          var v = fmVelocity(data, cw, [z], t, SMIN)[0], dt = 0.035, dz = v * dt;
+          var x1 = sx(t), y1 = sz(z), x2 = sx(t + dt), y2 = sz(z + dz), len = Math.hypot(x2 - x1, y2 - y1), mx = 16;
+          if (len > mx) { x2 = x1 + (x2 - x1) * mx / len; y2 = y1 + (y2 - y1) * mx / len; }
+          el('line', { x1: x1, y1: y1, x2: x2, y2: y2, stroke: 'currentColor', 'stroke-opacity': 0.22, 'stroke-width': 1 }, svg);
+          el('circle', { cx: x2, cy: y2, r: 1.3, fill: 'currentColor', 'fill-opacity': 0.3 }, svg);
+        });
+      });
+      var ts = linspace(0, k / STEPS, k + 1);
+      traj.forEach(function (path) {
+        polyline(svg, ts.map(sx), path.slice(0, k + 1).map(sz), { stroke: 'var(--cw-accent)', 'stroke-width': 1.2, 'stroke-opacity': 0.6 });
+        el('circle', { cx: sx(k / STEPS), cy: sz(path[k]), r: 2.6, fill: 'var(--cw-accent)' }, svg);
+      });
+      // Side histograms: noise on the left, current positions on the right.
+      function histo(vals, x0, dir, color) {
+        var nb = 30, bw = 6 / nb, c = [];
+        for (var b = 0; b < nb; b++) c.push(0);
+        vals.forEach(function (v) { var j = Math.floor((v + 3) / bw); if (j >= 0 && j < nb) c[j]++; });
+        var m = Math.max.apply(null, c) || 1;
+        c.forEach(function (n, j) {
+          var w = 90 * n / m;
+          el('rect', { x: dir > 0 ? x0 : x0 - w, y: sz(-3 + (j + 1) * bw), width: w, height: Math.abs(sz(bw) - sz(0)) - 1,
+            fill: color, 'fill-opacity': 0.4 }, svg);
+        });
+      }
+      histo(Z0, L - 46, -1, 'currentColor');
+      var now = traj.map(function (path) { return path[k]; });
+      histo(now, R + 14, 1, 'var(--cw-accent)');
+      [-ystar, ystar].forEach(function (v) {
+        el('line', { x1: R + 8, x2: W - 6, y1: sz(v), y2: sz(v), stroke: 'var(--cw-green)', 'stroke-width': 1.6, 'stroke-dasharray': '3 3' }, svg);
+      });
+      text(svg, W - 6, sz(ystar) - 5, '+y*', { 'text-anchor': 'end', 'font-size': 11, style: 'fill:var(--cw-green)' });
+      text(svg, W - 6, sz(-ystar) + 14, '−y*', { 'text-anchor': 'end', 'font-size': 11, style: 'fill:var(--cw-green)' });
+      text(svg, L0 - 30, B + 16, 'N(0, 1)', { 'font-size': 11, opacity: 0.8 });
+      var pos = now.filter(function (v) { return v > 0; }), negs = now.filter(function (v) { return v <= 0; });
+      readout.textContent = 't = ' + (k / STEPS).toFixed(2) + ', y* = ' + ystar.toFixed(2) + '. ' + pos.length + ' of ' + NP +
+        ' samples are at x > 0' + (pos.length ? ' (mean ' + mean(pos).toFixed(2) + ')' : '') + ' and ' + negs.length + ' at x ≤ 0' +
+        (negs.length ? ' (mean ' + mean(negs).toFixed(2) + ')' : '') + '; the answers are ±' + ystar.toFixed(2) + '.' +
+        (ystar < 0.5 ? ' y* < 0.5 is in the gap: the nearest data are at y ≈ 0.5, and the flow takes them.' : '');
+    }
+    run();
+    p.set(0);
+  };
+
+  /* The probability path in two dimensions: the straight lines used to train flow matching,
+   * and the curved paths a sampler follows, give the same cloud at every t. */
+  WIDGETS['prob-path'] = function (root) {
+    var D = absData(240), NP = 120, STEPS = 60, SMIN = 0.02;
+    var W = 720, H = 330, PW = 330, GAP = 30, T = 24, B = 300;
+    html('div', { class: 'cw-title' }, root, 'Straight lines in training, curved paths in sampling, the same cloud at every t');
+    var svg = svgRoot(root, W, H, 'Two panels of particles moving from a Gaussian blob to the V-shaped data');
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'Both panels start from the same 120 draws of (x, y) from a standard 2-D normal. Left: each draw is paired with a random ' +
+      'data point and moved along the straight line between them, x_t = (1 − t) x₀ + t x₁ (with a small floor on the noise), which is what a flow-matching ' +
+      'training example looks like. The lines cross. Right: each draw follows the averaged velocity field instead, the exact ' +
+      'field for these 240 data points, integrated with 60 Euler steps. An ODE gives one velocity per point at each time, ' +
+      'so no two particles are ever in the same place at the same time. The two clouds have the same distribution at ' +
+      'every t; the readout compares their means and spreads.');
+    var p = player(c1, STEPS + 1, draw, 60);
+    var r = mulberry(21), Z0 = [], X1 = [];
+    var data = D.x.map(function (x, j) { return [x, D.y[j]]; }), cw = data.map(function () { return 1; });
+    for (var i = 0; i < NP; i++) { Z0.push([gauss(r), gauss(r)]); X1.push(data[Math.floor(r() * data.length)]); }
+    var ode = Z0.map(function (z0) {
+      var z = z0.slice(), path = [z.slice()];
+      for (var k = 0; k < STEPS; k++) {
+        var v = fmVelocity(data, cw, z, k / STEPS, SMIN);
+        z = [z[0] + v[0] / STEPS, z[1] + v[1] / STEPS]; path.push(z.slice());
+      }
+      return path;
+    });
+    var lines = Z0.map(function (z0, j) {
+      return linspace(0, 1, STEPS + 1).map(function (t) {
+        var a = 1 - (1 - SMIN) * t;
+        return [a * z0[0] + t * X1[j][0], a * z0[1] + t * X1[j][1]];
+      });
+    });
+    function panel(x0, title, paths, k) {
+      var sx = scale(-3, 3, x0, x0 + PW), sy = scale(-2.6, 3, B, T);
+      el('rect', { x: x0, y: T, width: PW, height: B - T, fill: 'none', stroke: 'var(--cw-muted)' }, svg);
+      text(svg, x0 + PW / 2, T - 8, title, { 'text-anchor': 'middle', 'font-size': 12 });
+      var g = clipRect(svg, x0, T, PW, B - T);
+      data.forEach(function (d) { el('circle', { cx: sx(d[0]), cy: sy(d[1]), r: 1.6, fill: 'currentColor', 'fill-opacity': 0.18 }, g); });
+      paths.forEach(function (path) {
+        var seg = path.slice(0, k + 1);
+        polyline(g, seg.map(function (q) { return sx(q[0]); }), seg.map(function (q) { return sy(q[1]); }),
+          { stroke: 'var(--cw-accent)', 'stroke-width': 0.8, 'stroke-opacity': 0.35 });
+        el('circle', { cx: sx(path[k][0]), cy: sy(path[k][1]), r: 2.4, fill: 'var(--cw-accent2)' }, g);
+      });
+    }
+    function stats(paths, k) {
+      var xs = paths.map(function (q) { return q[k][0]; }), ys = paths.map(function (q) { return q[k][1]; });
+      var mx = mean(xs), my = mean(ys);
+      return [mx, my, Math.sqrt(mean(xs.map(function (v) { return (v - mx) * (v - mx); }))),
+        Math.sqrt(mean(ys.map(function (v) { return (v - my) * (v - my); })))];
+    }
+    function draw(k) {
+      clear(svg);
+      panel(20, 'training pairs: straight lines', lines, k);
+      panel(20 + PW + GAP, 'sampling: integrate the field', ode, k);
+      var a = stats(lines, k), b = stats(ode, k);
+      readout.textContent = 't = ' + (k / STEPS).toFixed(2) + '. Straight lines: mean (' + a[0].toFixed(2) + ', ' + a[1].toFixed(2) +
+        '), sd (' + a[2].toFixed(2) + ', ' + a[3].toFixed(2) + '). Field: mean (' + b[0].toFixed(2) + ', ' + b[1].toFixed(2) +
+        '), sd (' + b[2].toFixed(2) + ', ' + b[3].toFixed(2) + '). Same distribution, different paths (each from 120 particles, so ' +
+        'they agree to sampling noise).';
+    }
+    p.set(0);
+  };
+
   // ------------------------------------------------------------------ boot
 
   function boot() {

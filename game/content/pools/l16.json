@@ -1,0 +1,172 @@
+{
+  "lecture": "l16",
+  "versions": {
+    "1": {
+      "items": {
+        "l16-q01": {
+          "answer": "About 0, the average of the two answers",
+          "options": [
+            "+0.75, the answer on the branch you happened to picture",
+            "About 0, the average of the two answers",
+            "−0.75, because the fit is pulled toward negative x",
+            "Both −0.75 and +0.75, one per branch"
+          ]
+        },
+        "l16-q02": {
+          "answer": "It still sits near the mean of the two branches",
+          "options": [
+            "It moves to one of the two branches, since the network can bend",
+            "It still sits near the mean of the two branches",
+            "It returns both answers, one per output neuron",
+            "It becomes undefined, since the inverse is not a function"
+          ]
+        },
+        "l16-q03": {
+          "answer": "Every x consistent with an observed y",
+          "options": [
+            "The expected value of y at a new, unseen x",
+            "Every x consistent with an observed y",
+            "The gradient of y with respect to each input x",
+            "The training error of the fit on the observed data"
+          ]
+        },
+        "l16-q04": {
+          "answer": "K = 2",
+          "options": [
+            "K = 1",
+            "K = 2",
+            "K = 4",
+            "The largest K tried, since likelihood always rises"
+          ]
+        },
+        "l16-q05": {
+          "answer": "Condition each component exactly, then reweight components by how well they explain the knowns",
+          "options": [
+            "Refit the mixture by EM using only the rows whose known columns match the given values",
+            "Condition each component exactly, then reweight components by how well they explain the knowns",
+            "Keep the single component whose mean lies closest to the known values and sample it alone",
+            "Draw samples from the joint and discard every sample that does not match the known values"
+          ]
+        },
+        "l16-q06": {
+          "answer": "It is unnecessary; the same mixture conditions on any set of columns",
+          "options": [
+            "Nothing; a mixture can only be conditioned in the direction it was fitted",
+            "It is unnecessary; the same mixture conditions on any set of columns",
+            "The second mixture will need twice as many components as the first one",
+            "Purity has to be standardized before it can serve as a conditioning variable"
+          ]
+        },
+        "l16-q07": {
+          "answer": "The velocity of a straight line from noise to a data sample",
+          "options": [
+            "The probability density of the data at each point in space",
+            "The noise that was added to a data sample at each step",
+            "The velocity of a straight line from noise to a data sample",
+            "Whether a given sample came from the data or from the generator"
+          ]
+        },
+        "l16-q08": {
+          "answer": "Curved, because the field averages the velocities of all lines through a point",
+          "options": [
+            "Straight lines too, because the network was only ever trained on straight lines",
+            "Curved, because the field averages the velocities of all lines through a point",
+            "Random walks, because each integration step adds a fresh draw of Gaussian noise",
+            "Straight, but each one ends at exactly the training point it was paired with"
+          ]
+        },
+        "l16-q09": {
+          "answer": "Train a second model with the inputs as the condition",
+          "options": [
+            "Integrate the same ODE backward from t = 1 to t = 0",
+            "Train a second model with the inputs as the condition",
+            "Condition the existing model with the Schur complement",
+            "Feed the inputs in place of the noise sample"
+          ]
+        },
+        "l16-q10": {
+          "answer": "dC_B/dτ = 0",
+          "options": [
+            "d²C_B/dτ² = 0",
+            "dC_B/dτ = 0",
+            "τ equal to the middle of the sampled range",
+            "C_B = 0, the root of the concentration"
+          ]
+        },
+        "l16-q11": {
+          "answer": "Polish each cluster center with a few Newton steps on the real cubic",
+          "options": [
+            "Report the cluster means, since the surrogate already agrees to two figures",
+            "Polish each cluster center with a few Newton steps on the real cubic",
+            "Refit with more and more components until the liquid root finally matches",
+            "Discard the liquid root as an artifact of sampling a narrow region"
+          ]
+        },
+        "l16-q12": {
+          "answer": "Fit in log Z, which spreads out the small values of Z",
+          "options": [
+            "Fit in log Z, which spreads out the small values of Z",
+            "Use fewer components, so that each one covers more of the data",
+            "Condition on r = 0.001 instead of r = 0, to stay clear of the root",
+            "Sample Z more coarsely, so that the cubic looks smoother to EM"
+          ]
+        },
+        "l16-q13": {
+          "answer": "More, because it also has to model how x is distributed",
+          "options": [
+            "Less, because sampling creates new training data",
+            "The same, because both see the same rows",
+            "More, because it also has to model how x is distributed",
+            "Less, because a mixture has fewer parameters than a network"
+          ]
+        },
+        "l16-q14": {
+          "answer": "Samples, with no warning, shaped by how the model behaves off the data",
+          "options": [
+            "An error, because the condition has zero probability under the model",
+            "Samples, with no warning, shaped by how the model behaves off the data",
+            "The single nearest training point, returned exactly and every time",
+            "Samples from the unconditional distribution, with the condition ignored"
+          ]
+        },
+        "l16-q15": {
+          "answer": "It solves the surrogate, which only knows the regions the plant has operated in",
+          "options": [
+            "It is optimal for the plant, because every row of the data came from that plant",
+            "It solves the surrogate, which only knows the regions the plant has operated in",
+            "It is guaranteed feasible, because the operators always kept the plant feasible",
+            "It is certified optimal as long as the generated samples are tightly clustered"
+          ]
+        },
+        "l16-q16": {
+          "answer": "158 ± 11 GPa: within 20% only at the top of the range, 21% below at its center",
+          "options": [
+            "A central estimate within 5% of the target, from four direct measurements",
+            "158 ± 11 GPa: within 20% only at the top of the range, 21% below at its center",
+            "Agreement between DFT and the experiment at 222 GPa, well within the 20%",
+            "All four synthesized candidates landing within 20% of their own targets"
+          ]
+        },
+        "l16-q17": {
+          "answer": "The generator proposes, and a lab or a physical model verifies",
+          "options": [
+            "They were trained on more data than any discriminative model in their field",
+            "The generator proposes, and a lab or a physical model verifies",
+            "They replaced the physical model of the system entirely, once trained",
+            "Their samples were valid by construction and needed no further checks"
+          ]
+        },
+        "l16-q18": {
+          "answer": "94 generated images counted as extracted training images",
+          "options": [
+            "No generated image matched any image in the training set",
+            "94 generated images counted as extracted training images",
+            "About half of the generated images were copies of training images",
+            "Copies appeared only when a prompt explicitly asked for a known image"
+          ]
+        }
+      },
+      "serve": 9
+    }
+  }
+}

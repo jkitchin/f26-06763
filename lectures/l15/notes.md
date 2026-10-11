@@ -1,4 +1,4 @@
-# Lecture 15: Uncertainty quantification, Bayesian optimization and active learning
+# Lecture 15: Bayesian optimization and active learning
 
 :::{admonition} At a glance
 :class: tip
