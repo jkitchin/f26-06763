@@ -77,3 +77,10 @@ attic/
 # needs them there too, so symlink them and let git ignore the symlinks.
 lectures/*/widgets.js
 lectures/*/*-widget-data.js
+
+# L18 capstone: the chat index is built at deploy time from the released notes, never committed.
+chat/build/
+chat/node_modules/
+# Local authoring of the L18 deck: the capstone module and index, symlinked beside it like the clicker.
+lectures/*/rag-chat.js
+lectures/*/rag-index.json
