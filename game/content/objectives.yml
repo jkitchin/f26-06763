@@ -454,6 +454,45 @@
   text: >-
     Produce and calibrate predictive uncertainty, separating aleatoric from epistemic.
 
+# L16, objectives lifted verbatim from lectures/l16/notes.md (bank status: unwritten until release).
+
+- id: l16-o1
+  lecture: l16
+  text: >-
+    Distinguish a generative model from the regression and classification models of L8–L14, and
+    explain why a regression model gives a wrong answer to an inverse question with more than
+    one solution.
+
+- id: l16-o2
+  lecture: l16
+  text: >-
+    Fit a Gaussian mixture model to the joint distribution of inputs and outputs, choose the
+    number of components, and condition it to sample the inputs that give a target output.
+
+- id: l16-o3
+  lecture: l16
+  text: >-
+    Explain how flow matching turns samples of a simple distribution into samples of the data,
+    train one with a mean-squared-error loss, and sample it by integrating an ODE.
+
+- id: l16-o4
+  lecture: l16
+  text: >-
+    Pose root finding, optimization and parameter estimation as conditional sampling, and check
+    the samples against the physical model.
+
+- id: l16-o5
+  lecture: l16
+  text: >-
+    Place generative models in the machine-learning landscape, and explain why they are as
+    dependent on data, and as limited by it, as any regression model.
+
+- id: l16-o6
+  lecture: l16
+  text: >-
+    Describe how generative models are used for images, molecules, proteins, materials and
+    weather, and the failure modes those uses share.
+
 # L18, published notes and no bank yet (game/content/l18.yml, status: unwritten).
 # Registered so whoever writes that bank maps onto objectives that already exist.
 
