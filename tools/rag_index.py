@@ -4,6 +4,8 @@
     python tools/rag_index.py                      # released lectures -> chat/build/chunks.json
     python tools/rag_index.py --lectures l01-l17   # an explicit range, for local testing
     python tools/rag_index.py --stats              # print counts and sizes, write nothing
+    python tools/rag_index.py --lectures l01-l17 --notes-only --out lectures/l18/data/notes-l01-l17.json
+                                                   # the frozen snapshot the L18 notebook measures
 
 Then `node chat/embed.mjs` adds one embedding per chunk, with the same model and settings the
 browser uses to embed a query, and writes chat/build/rag-index.json. CI runs both at deploy time
@@ -150,11 +152,12 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--lectures", help="explicit range such as l01-l17 instead of _toc.yml")
     ap.add_argument("--stats", action="store_true", help="print counts, write nothing")
+    ap.add_argument("--notes-only", action="store_true", help="skip slides (the L18 notebook's snapshot)")
     ap.add_argument("--out", type=Path, default=OUT)
     args = ap.parse_args()
 
     ids = parse_range(args.lectures) if args.lectures else released_ids()
-    chunks = [c for lid in ids for c in chunk_notes(lid) + chunk_slides(lid)]
+    chunks = [c for lid in ids for c in chunk_notes(lid) + ([] if args.notes_only else chunk_slides(lid))]
     words = [len(c["text"].split()) for c in chunks]
     print(f"{len(ids)} lectures, {len(chunks)} chunks "
           f"({sum(c['kind'] == 'notes' for c in chunks)} notes, {sum(c['kind'] == 'slides' for c in chunks)} slides), "
@@ -163,7 +166,7 @@ def main() -> int:
         return 0
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps({"lectures": ids, "chunks": chunks}, ensure_ascii=False))
-    print(f"wrote {args.out.relative_to(REPO)} ({args.out.stat().st_size / 1e6:.1f} MB)", file=sys.stderr)
+    print(f"wrote {args.out.resolve().relative_to(REPO)} ({args.out.stat().st_size / 1e6:.1f} MB)", file=sys.stderr)
     return 0
 
 

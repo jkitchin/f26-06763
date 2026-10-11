@@ -45,12 +45,14 @@ const MODELS = {
 // where Llama 3.2 1B produced citation markers, an inverted answer, or an invented one.
 const DEFAULT_MODEL = 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC';
 const RRF_K = 60, POOL = 20, RERANK_N = 12, TOP = 5, WORDS_PER_PASSAGE = 220;
-// The abstention gate. A 1B model told to say "Not in the notes" when the passages do not answer
-// will still invent an answer, so the decision is made here, in code, from the retrieval scores:
-// a best cross-encoder logit below 0, or (without the reranker) a best cosine below MIN_COS.
-// MIN_COS is provisional: 0.30 for an out-of-corpus question against 0.53 for an answerable one,
-// two queries. The L18 notebook calibrates it on the gold set.
-const MIN_COS = 0.35;
+// The abstention gate. A small model told to say "Not in the notes" when the passages do not
+// answer will still invent an answer, so the decision is made here, in code, from retrieval
+// scores. The thresholds were calibrated on the L18 gold set (lectures/l18/figures, group
+// ladder): out-of-corpus questions scored a best cosine of 0.28-0.35 and a best cross-encoder
+// logit of -2.7 to -9.4; answerable ones 0.29-0.69 and -4.6 to 8.2. A cosine below 0.285 or a
+// cross-encoder logit below -6 caught 3 of 4 out-of-corpus questions and refused none of the
+// 24 answerable ones. The margins are thin and the values belong to this corpus and these models.
+const MIN_COS = 0.285, MIN_CE = -6;
 
 // Written for a 1B-parameter model, which follows simple, concrete instructions and copies
 // formats it is shown. An earlier version that stressed "cite as [1], [2]" got answers made of
@@ -264,7 +266,7 @@ async function mount(root) {
     // The cross-encoder's score is a logit: below zero it judges the pair more likely irrelevant
     // than relevant. When even the best passage scores below zero, say so before anyone reads an
     // answer built on it.
-    if (ranked[0].ce !== undefined && ranked[0].ce < 0) {
+    if (ranked[0].ce !== undefined && ranked[0].ce < MIN_CE) {
       status.textContent = `Best passage scored ${ranked[0].ce.toFixed(1)} by the cross-encoder: the notes probably do not answer this.`;
     }
     const passages = top.map((f, i) => {
@@ -287,12 +289,12 @@ async function mount(root) {
     });
 
     const bestCos = Math.max(...dense.map(([, c]) => c));
-    const abstain = ranked[0].ce !== undefined ? ranked[0].ce < 0 : bestCos < MIN_COS;
+    const abstain = bestCos < MIN_COS || (ranked[0].ce !== undefined && ranked[0].ce < MIN_CE);
     if (abstain) {
       setStage('generate', 'skip');
-      answer.textContent = 'Not in the notes. ' + (ranked[0].ce !== undefined
-        ? `The best passage scored ${ranked[0].ce.toFixed(1)} with the cross-encoder (below 0), `
-        : `The closest passage has cosine ${bestCos.toFixed(2)} (below ${MIN_COS}), `) +
+      answer.textContent = 'Not in the notes. ' + (bestCos < MIN_COS
+        ? `The closest passage has cosine ${bestCos.toFixed(2)} (below ${MIN_COS}), `
+        : `The best passage scored ${ranked[0].ce.toFixed(1)} with the cross-encoder (below ${MIN_CE}), `) +
         'so the model was not asked: a small model given weak passages invents an answer.';
     } else if (!engine) {
       setStage('generate', 'skip');

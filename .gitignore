@@ -41,6 +41,9 @@ mlflow.db
 
 # Data: keep raw data out of git, track schemas and small samples deliberately
 data/
+# L18: a hand-written gold query set and a frozen 0.6 MB snapshot of the L1-L17 notes, so the
+# notebook's retrieval numbers do not move when an earlier lecture is edited.
+!lectures/l18/data/
 *.parquet
 *.duckdb
 

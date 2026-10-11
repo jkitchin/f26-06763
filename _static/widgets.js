@@ -3037,6 +3037,188 @@
     p.set(0);
   };
 
+  // ------------------------------------------------------------------ L18
+
+  /* BM25 on a toy corpus of equipment-manual passages: the score of each passage as a stack of
+   * per-term contributions, with k1 (term saturation) and b (length normalization) on sliders. */
+  var BM25_DOCS = [
+    ['Pump manual, cavitation', 'Cavitation in a centrifugal pump starts when the suction pressure falls below the vapor pressure of the liquid. Bubbles collapse on the impeller and pit it.'],
+    ['Pump manual, startup', 'Prime the pump before startup. Never run the pump dry. Open the suction valve fully, then open the discharge valve slowly while the pump comes up to speed.'],
+    ['Seal guide', 'A mechanical seal leaks when the faces are scored or the spring has lost tension. Replace the seal kit; do not tighten the gland.'],
+    ['Long troubleshooting chapter', 'Pump noise. Pump vibration. Pump overheating. Pump does not start. Pump starts then stops. Pump runs but delivers no flow. Pump delivers low pressure. Check the pump coupling, the pump bearings, the pump alignment, the motor, the suction strainer, the discharge valve and every pump fastener before calling service. Record every pump reading in the log.'],
+    ['Valve datasheet', 'Globe valve, ASME B16.34 class 300, stainless steel body. Maximum pressure 51 bar at 38 C. Suction and discharge flanges per B16.5.'],
+    ['Heat exchanger note', 'Fouling raises the pressure drop across a heat exchanger and lowers its duty. Clean the tubes when the pressure drop doubles.'],
+  ];
+  var BM25_STOP = { a: 1, an: 1, and: 1, the: 1, of: 1, to: 1, in: 1, is: 1, it: 1, when: 1, then: 1, do: 1, not: 1, does: 1, every: 1, before: 1, per: 1, at: 1, its: 1, on: 1, or: 1, why: 1, my: 1, what: 1, how: 1 };
+  function bm25Tokens(s) {
+    return (s.toLowerCase().match(/[a-z0-9_.]+/g) || []).map(function (t) { return t.replace(/\.$/, ''); })
+      .filter(function (t) { return t && !BM25_STOP[t]; });
+  }
+  WIDGETS['bm25-terms'] = function (root) {
+    var W = 720, H = 300, L = 200, R = 700, T = 10, ROW = 40;
+    var QUERIES = ['pump suction pressure', 'cavitation', 'B16.34 valve pressure', 'why is my pump making noise'];
+    var k1 = 1.2, b = 0.75, query = QUERIES[0];
+    var COLORS = ['var(--cw-accent)', 'var(--cw-accent2)', 'var(--cw-green)', '#7a5195', '#b8860b', '#5f7f8f'];
+    html('div', { class: 'cw-title' }, root, 'BM25, term by term');
+    var svg = svgRoot(root, W, H, 'BM25 scores of six manual passages as stacked bars, one segment per query term');
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    var c2 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'Six short passages from imaginary equipment manuals; the fourth is long and says "pump" twelve times. Each bar is ' +
+      'a passage\'s BM25 score, split into one segment per query term: idf × tf(k1 + 1) / (tf + k1(1 − b + b·len/avg)). ' +
+      'k1 sets how fast repeating a term stops paying (small k1: the first occurrence is nearly everything). b sets how ' +
+      'much a long passage is discounted (b = 0: not at all). SQLite FTS5 uses k1 = 1.2, b = 0.75.');
+    select(c1, 'query', QUERIES, 0, function (v) { query = QUERIES[v]; draw(); });
+    slider(c2, 'k1', 0, 3, 0.05, k1, function (v) { return v.toFixed(2); }, function (v) { k1 = v; draw(); });
+    slider(c2, 'b', 0, 1, 0.05, b, function (v) { return v.toFixed(2); }, function (v) { b = v; draw(); });
+    var docs = BM25_DOCS.map(function (d) { return bm25Tokens(d[1]); });
+    var avg = mean(docs.map(function (d) { return d.length; }));
+    function draw() {
+      clear(svg);
+      var terms = [];
+      bm25Tokens(query).forEach(function (t) { if (terms.indexOf(t) < 0) terms.push(t); });
+      var idf = terms.map(function (t) {
+        var m = docs.filter(function (d) { return d.indexOf(t) >= 0; }).length;
+        return Math.log(1 + (docs.length - m + 0.5) / (m + 0.5));
+      });
+      var parts = docs.map(function (d) {
+        return terms.map(function (t, j) {
+          var f = d.filter(function (x) { return x === t; }).length;
+          return f ? idf[j] * f * (k1 + 1) / (f + k1 * (1 - b + b * d.length / avg)) : 0;
+        });
+      });
+      var tot = parts.map(function (p) { return p.reduce(function (a, c) { return a + c; }, 0); });
+      var top = Math.max(4, Math.max.apply(null, tot)), sx = scale(0, top * 1.08, L, R);
+      var order = tot.map(function (_, i) { return i; }).sort(function (a, c) { return tot[c] - tot[a]; });
+      order.forEach(function (i, r) {
+        var y = T + r * ROW + 6;
+        text(svg, L - 8, y + 16, (r + 1) + '. ' + BM25_DOCS[i][0], { 'text-anchor': 'end', 'font-size': 12 });
+        text(svg, L - 8, y + 30, docs[i].length + ' words', { 'text-anchor': 'end', 'font-size': 10, opacity: 0.6 });
+        var x = L;
+        parts[i].forEach(function (v, j) {
+          if (v <= 0) return;
+          el('rect', { x: x, y: y + 4, width: sx(v) - L, height: 22, fill: COLORS[j % COLORS.length], 'fill-opacity': 0.8 }, svg);
+          x = sx(tot[i] - parts[i].slice(j + 1).reduce(function (a, c) { return a + c; }, 0));
+        });
+        text(svg, Math.max(x, L) + 5, y + 20, tot[i].toFixed(2), { 'font-size': 11 });
+      });
+      terms.forEach(function (t, j) {
+        el('rect', { x: L + 10 + j * 120, y: H - 22, width: 12, height: 12, fill: COLORS[j % COLORS.length] }, svg);
+        text(svg, L + 26 + j * 120, H - 12, t + ' (idf ' + idf[j].toFixed(2) + ')', { 'font-size': 11 });
+      });
+      var long = 3, rank = order.indexOf(long) + 1;
+      readout.textContent = 'Query "' + query + '": top passage "' + BM25_DOCS[order[0]][0] + '" (' + tot[order[0]].toFixed(2) +
+        '). The long troubleshooting chapter ranks ' + rank + ' of 6 with k1 = ' + k1.toFixed(2) + ', b = ' + b.toFixed(2) + '.' +
+        (terms.some(function (t, j) { return idf[j] > 1.5; }) ? ' Rare terms carry most of the weight.' : '');
+    }
+    draw();
+  };
+
+  /* The L1-L17 notes in two dimensions: 516 section chunks embedded with all-MiniLM-L6-v2 and
+   * projected by PCA. Pick a gold question: lines go to its five nearest chunks by cosine in the
+   * full 384 dimensions, rings mark BM25's top five. */
+  var LEC_COLORS = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22',
+    '#17becf', '#393b79', '#637939', '#8c6d31', '#843c39', '#7b4173', '#3182bd', '#e6550d'];
+  WIDGETS['corpus-map'] = function (root, data) {
+    var M = data.corpusMap, W = 720, H = 400, L = 10, R = 560, T = 10, B = 390, qi = 1;
+    html('div', { class: 'cw-title' }, root, 'The course notes as points, and where a question lands');
+    var svg = svgRoot(root, W, H, 'Scatter plot of 516 note sections colored by lecture, with a question and its nearest sections');
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'Each dot is one section of the L1-L17 notes, embedded with all-MiniLM-L6-v2 (384 dimensions) and projected to two ' +
+      'by PCA, which keeps only ' + Math.round(100 * (M.explained[0] + M.explained[1])) + '% of the variance. The star is the ' +
+      'question. Lines go to its five nearest sections by cosine, computed in all 384 dimensions, so a short line is not ' +
+      'required; rings mark BM25\'s top five. Hover a dot for its section.');
+    select(c1, 'question', M.queries.map(function (q) { return q.q.length > 60 ? q.q.slice(0, 58) + '…' : q.q; }), qi,
+      function (v) { qi = v; draw(); });
+    var xs = M.points.map(function (p) { return p[0]; }), ys = M.points.map(function (p) { return p[1]; });
+    M.queries.forEach(function (q) { xs.push(q.xy[0]); ys.push(q.xy[1]); });
+    var ex = extent(xs), ey = extent(ys), sx = scale(ex[0], ex[1], L, R), sy = scale(ey[0], ey[1], B, T);
+    var lecs = [];
+    M.points.forEach(function (p) { if (lecs.indexOf(p[2]) < 0) lecs.push(p[2]); });
+    lecs.sort();
+    function color(lec) { return LEC_COLORS[lecs.indexOf(lec) % LEC_COLORS.length]; }
+    function draw() {
+      clear(svg);
+      M.points.forEach(function (p) {
+        var c = el('circle', { cx: sx(p[0]), cy: sy(p[1]), r: 3, fill: color(p[2]), 'fill-opacity': 0.55 }, svg);
+        el('title', {}, c).textContent = p[2].toUpperCase() + ': ' + p[3];
+      });
+      lecs.forEach(function (lec, k) {
+        var x = 575 + (k % 2) * 72, y = 18 + Math.floor(k / 2) * 17;
+        el('circle', { cx: x, cy: y - 4, r: 4, fill: color(lec) }, svg);
+        text(svg, x + 8, y, lec.toUpperCase(), { 'font-size': 11 });
+      });
+      var q = M.queries[qi], qx = sx(q.xy[0]), qy = sy(q.xy[1]);
+      q.bm25.forEach(function (j) {
+        el('circle', { cx: sx(M.points[j][0]), cy: sy(M.points[j][1]), r: 8, fill: 'none', stroke: 'var(--cw-accent2)', 'stroke-width': 2 }, svg);
+      });
+      q.dense.forEach(function (d) {
+        var p = M.points[d[0]];
+        el('line', { x1: qx, y1: qy, x2: sx(p[0]), y2: sy(p[1]), stroke: 'currentColor', 'stroke-width': 1.2, 'stroke-opacity': 0.8 }, svg);
+      });
+      el('path', { d: 'M' + qx + ',' + (qy - 9) + 'l2.6,6.3 6.8,0.5 -5.2,4.4 1.6,6.6 -5.8,-3.6 -5.8,3.6 1.6,-6.6 -5.2,-4.4 6.8,-0.5z',
+        fill: '#111', stroke: '#fff', 'stroke-width': 1 }, svg);
+      var both = q.dense.filter(function (d) { return q.bm25.indexOf(d[0]) >= 0; }).length;
+      readout.textContent = '"' + q.q + '" (' + q.kind + '). Nearest by cosine: ' + q.dense.map(function (d) {
+        var p = M.points[d[0]]; return p[2].toUpperCase() + ' ' + p[3].split(' / ').pop() + ' (' + d[1].toFixed(2) + ')';
+      }).join('; ') + '. BM25 and cosine agree on ' + both + ' of their top five.';
+    }
+    draw();
+  };
+
+  /* ColBERT's MaxSim for one question and one passage: every question-token vector against every
+   * passage-token vector. Each row keeps its maximum; the passage's score is the sum of the maxima. */
+  WIDGETS['maxsim'] = function (root, data) {
+    var X = data.maxsim, M = X.matrix, nq = M.length, nd = M[0].length, showMask = true, sel = 6;
+    var W = 720, CW = Math.min(11, (W - 110) / nd), CH = 11, L = 100, T = 8;
+    html('div', { class: 'cw-title' }, root, 'Late interaction: one vector per token, and MaxSim');
+    var svg = svgRoot(root, W, T + nq * CH + 60, 'Heatmap of similarities between question tokens and passage tokens');
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'answerai-colbert-small-v1 (96 dimensions per token). Rows: the question\'s tokens, padded with [MASK] to 32 (query ' +
+      'augmentation); [unused0] marks a query. Columns: the passage\'s tokens, punctuation removed. Darker is more similar. ' +
+      'The dot in each row is that token\'s best match; the passage\'s score is the sum of the dots. Click a row.');
+    var mb = html('label', {}, c1);
+    var cb = html('input', { type: 'checkbox', checked: 'checked' }, mb);
+    mb.appendChild(document.createTextNode(' include the [MASK] rows in the score'));
+    cb.onchange = function () { showMask = cb.checked; draw(); };
+    var all = [];
+    M.forEach(function (r) { r.forEach(function (v) { all.push(v); }); });
+    var lo = Math.min.apply(null, all), hi = Math.max.apply(null, all);
+    function shade(v) { var t = (v - lo) / (hi - lo); return 'rgba(31,111,178,' + (0.06 + 0.94 * t * t).toFixed(3) + ')'; }
+    function draw() {
+      clear(svg);
+      var total = 0, real = 0;
+      M.forEach(function (row, i) {
+        var mask = X.q_tokens[i] === '[MASK]', y = T + i * CH;
+        var arg = row.indexOf(Math.max.apply(null, row));
+        if (!mask) real += row[arg];
+        if (!mask || showMask) total += row[arg];
+        var g = el('g', { class: 'hot', opacity: mask && !showMask ? 0.25 : 1 }, svg);
+        g.addEventListener('click', function () { sel = i; draw(); });
+        text(g, L - 4, y + 9, X.q_tokens[i], { 'text-anchor': 'end', 'font-size': 9, 'font-weight': i === sel ? 700 : 400 });
+        row.forEach(function (v, j) {
+          el('rect', { x: L + j * CW, y: y, width: CW - 0.5, height: CH - 0.5, fill: shade(v) }, g);
+        });
+        el('circle', { cx: L + arg * CW + CW / 2, cy: y + CH / 2, r: 2.4, fill: '#c41230' }, g);
+        if (i === sel) el('rect', { x: L - 1, y: y - 0.5, width: nd * CW + 1, height: CH, fill: 'none', stroke: '#c41230' }, svg);
+      });
+      X.d_tokens.forEach(function (t, j) {
+        if (j % 2 === 0 || nd < 30) text(svg, L + j * CW + CW / 2, T + nq * CH + 8, t, {
+          'font-size': 8, transform: 'rotate(60 ' + (L + j * CW + CW / 2) + ' ' + (T + nq * CH + 8) + ')' });
+      });
+      var row = M[sel], arg = row.indexOf(Math.max.apply(null, row));
+      readout.textContent = 'Question token "' + X.q_tokens[sel] + '" best matches passage token "' + X.d_tokens[arg] +
+        '" (similarity ' + row[arg].toFixed(2) + '). Score = ' + total.toFixed(2) + (showMask ? ' including' : ' excluding') +
+        ' the [MASK] rows; the real question tokens contribute ' + real.toFixed(2) + '.';
+    }
+    draw();
+  };
+
   // ------------------------------------------------------------------ boot
 
   function boot() {

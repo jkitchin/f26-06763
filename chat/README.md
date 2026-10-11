@@ -17,7 +17,7 @@ engineering), and every stage of it is a block students met earlier in that lect
 | Fuse | Browser | Reciprocal rank fusion, 1 / (60 + rank), of the two top-20 lists | under 1 ms |
 | Rerank (optional) | Browser | Cross-encoder `Xenova/ms-marco-MiniLM-L-6-v2` over the top 12, 256 tokens each; a top score below zero is reported as "probably not in the notes" | a few seconds on CPU; 23 MB download |
 | Prompt | Browser | Top 5 passages, numbered, between two copies of the question, inside a fixed instruction; shown verbatim | none; about 1,100 to 1,600 tokens |
-| Gate | Browser | If the best cross-encoder score is below 0, or (without the reranker) the best cosine is below 0.35, answer "Not in the notes" and do not call the model | none |
+| Gate | Browser | If the best cosine is below 0.285, or the best cross-encoder score is below −6, answer "Not in the notes" and do not call the model | none |
 | Generate | Browser, WebGPU | WebLLM running `Qwen2.5-1.5B-Instruct-q4f16_1-MLC` (or the `data-model` override), loaded only on a button press | ~1.6 GB of GPU memory; 5 s from cache; ~25 s per answer (Llama 3.2 1B: 7 to 19 s) |
 
 Times were measured in headless Chrome on an Apple-silicon Mac (reranking: 3.2 s for 12 pairs); treat them as orders of magnitude.
@@ -37,9 +37,11 @@ Times were measured in headless Chrome on an Apple-silicon Mac (reranking: 3.2 s
   tuning section says where that changes.
 - **Abstention is code, not a prompt.** Told to reply "Not in the notes" when the passages do not
   answer, Llama 3.2 1B instead defined LoRA, wrongly, from passages about something else. The
-  gate decides from the retrieval scores before the model is called. Its cosine threshold rests
-  on two queries so far (0.30 out of corpus, 0.53 answerable); the L18 notebook calibrates it on
-  the gold set.
+  gate decides from the retrieval scores before the model is called. Its thresholds were
+  calibrated on the L18 gold set (`lectures/l18/figures/make_figures.py`, group ladder): they catch
+  three of four out-of-corpus questions and refuse none of the 24 answerable ones, by margins of a
+  few hundredths. A cross-encoder cutoff of 0, the obvious choice, would have refused seven
+  answerable paraphrases.
 - **A 1B model is a weak reader.** With the right passages it produced a substantively correct
   answer on one run and, after a prompt change, an answer that inverted the passages. The
   capstone is for seeing the pipeline; students should read the passages and the prompt, not
