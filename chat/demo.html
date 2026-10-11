@@ -7,6 +7,11 @@
 <body>
 <h2>Chat with the course notes</h2>
 <div class="rag-chat" data-index="build/rag-index.json"></div>
+<script>
+// ?model=Qwen2.5-1.5B-Instruct-q4f16_1-MLC tries another generator without editing rag-chat.js.
+const m = new URLSearchParams(location.search).get('model');
+if (m) document.querySelector('.rag-chat').dataset.model = m;
+</script>
 <script type="module" src="rag-chat.js"></script>
 <script>
 const q = new URLSearchParams(location.search).get('q');

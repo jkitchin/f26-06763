@@ -35,12 +35,28 @@ const LIB = {
 };
 const TRANSFORMERS_VERSION = '4.3.1';
 const RERANKER = 'Xenova/ms-marco-MiniLM-L-6-v2';
-const LLM = { id: 'Llama-3.2-1B-Instruct-q4f16_1-MLC', label: 'Llama 3.2 1B, about 0.9 GB of GPU memory' };
+// The generator. data-model on the element overrides the default, so a deck or the test page can
+// compare models without editing this file. GPU memory figures are WebLLM's (vram_required_MB).
+const MODELS = {
+  'Llama-3.2-1B-Instruct-q4f16_1-MLC': 'Llama 3.2 1B, about 0.9 GB of GPU memory',
+  'Qwen2.5-1.5B-Instruct-q4f16_1-MLC': 'Qwen2.5 1.5B, about 1.6 GB of GPU memory',
+};
+const DEFAULT_MODEL = 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
 const RRF_K = 60, POOL = 20, RERANK_N = 12, TOP = 5, WORDS_PER_PASSAGE = 220;
+// The abstention gate. A 1B model told to say "Not in the notes" when the passages do not answer
+// will still invent an answer, so the decision is made here, in code, from the retrieval scores:
+// a best cross-encoder logit below 0, or (without the reranker) a best cosine below MIN_COS.
+// MIN_COS is provisional: 0.30 for an out-of-corpus question against 0.53 for an answerable one,
+// two queries. The L18 notebook calibrates it on the gold set.
+const MIN_COS = 0.35;
 
-const SYSTEM = 'You answer questions about the course notes of 06-763, Systems and Toolchains for AI ' +
-  'Engineers, using ONLY the numbered passages provided. Cite the passages you use as [1], [2]. ' +
-  'If the passages do not contain the answer, reply exactly: Not in the notes. Be brief.';
+// Written for a 1B-parameter model, which follows simple, concrete instructions and copies
+// formats it is shown. An earlier version that stressed "cite as [1], [2]" got answers made of
+// nothing but citation markers.
+const SYSTEM = 'You are a teaching assistant for a university course. Answer the question in two ' +
+  'or three plain sentences, using only the passages you are given. End each sentence with the ' +
+  'number of the passage it came from in square brackets, like [2]. ' +
+  'If the passages do not answer the question, reply with exactly: Not in the notes.';
 
 const STAGES = [
   ['index', 'index', 'build time: chunks + embeddings'],
@@ -100,6 +116,8 @@ function words(text, n) {
 }
 
 async function mount(root) {
+  const LLM = { id: root.dataset.model || DEFAULT_MODEL };
+  LLM.label = MODELS[LLM.id] || LLM.id;
   if (!document.getElementById('rag-css')) h('style', { id: 'rag-css' }, document.head, CSS);
   root.classList.add('rag');
   const strip = h('div', { class: 'rag-strip' }, root);
@@ -246,7 +264,7 @@ async function mount(root) {
       const c = index.chunks[f.id];
       return `[${i + 1}] ${c.title}: ${c.section}\n${words(c.text, WORDS_PER_PASSAGE)}`;
     }).join('\n\n');
-    const user = `Passages:\n\n${passages}\n\nQuestion: ${query}`;
+    const user = `Question: ${query}\n\nPassages:\n\n${passages}\n\nQuestion: ${query}\nAnswer in two or three sentences:`;
     await timed('prompt', async () => { promptPre.textContent = `SYSTEM: ${SYSTEM}\n\nUSER: ${user}`; });
 
     hitsEl.textContent = '';
@@ -261,7 +279,15 @@ async function mount(root) {
       h('div', { class: 'snip' }, el, words(c.text.replace(/^.*\n\n/, ''), 30));
     });
 
-    if (!engine) {
+    const bestCos = Math.max(...dense.map(([, c]) => c));
+    const abstain = ranked[0].ce !== undefined ? ranked[0].ce < 0 : bestCos < MIN_COS;
+    if (abstain) {
+      setStage('generate', 'skip');
+      answer.textContent = 'Not in the notes. ' + (ranked[0].ce !== undefined
+        ? `The best passage scored ${ranked[0].ce.toFixed(1)} with the cross-encoder (below 0), `
+        : `The closest passage has cosine ${bestCos.toFixed(2)} (below ${MIN_COS}), `) +
+        'so the model was not asked: a small model given weak passages invents an answer.';
+    } else if (!engine) {
       setStage('generate', 'skip');
       answer.textContent = navigator.gpu
         ? 'Retrieval only: load the model to generate an answer from these passages.'
@@ -270,7 +296,7 @@ async function mount(root) {
       await timed('generate', async () => {
         const chunks = await engine.chat.completions.create({
           messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: user }],
-          temperature: 0, max_tokens: 300, stream: true, stream_options: { include_usage: true },
+          temperature: 0, max_tokens: 160, stream: true, stream_options: { include_usage: true },
         });
         let usage = null;
         for await (const ch of chunks) {

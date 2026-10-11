@@ -16,8 +16,9 @@ engineering), and every stage of it is a block students met earlier in that lect
 | Vector | Browser | Exact cosine against every chunk (int8 dot products) | ~3 ms |
 | Fuse | Browser | Reciprocal rank fusion, 1 / (60 + rank), of the two top-20 lists | under 1 ms |
 | Rerank (optional) | Browser | Cross-encoder `Xenova/ms-marco-MiniLM-L-6-v2` over the top 12, 256 tokens each; a top score below zero is reported as "probably not in the notes" | a few seconds on CPU; 23 MB download |
-| Prompt | Browser | Top 5 passages, numbered, inside a fixed instruction that asks for citations and "Not in the notes"; shown verbatim | none |
-| Generate | Browser, WebGPU | WebLLM running `Llama-3.2-1B-Instruct-q4f16_1-MLC`, loaded only on a button press | ~0.9 GB of GPU memory; first download is slow (see below) |
+| Prompt | Browser | Top 5 passages, numbered, between two copies of the question, inside a fixed instruction; shown verbatim | none; about 1,100 to 1,600 tokens |
+| Gate | Browser | If the best cross-encoder score is below 0, or (without the reranker) the best cosine is below 0.35, answer "Not in the notes" and do not call the model | none |
+| Generate | Browser, WebGPU | WebLLM running `Llama-3.2-1B-Instruct-q4f16_1-MLC` (or the `data-model` override), loaded only on a button press | ~0.9 GB of GPU memory; 5 s from cache; 7 to 19 s per answer |
 
 Times were measured in headless Chrome on an Apple-silicon Mac (reranking: 3.2 s for 12 pairs); treat them as orders of magnitude.
 
@@ -34,6 +35,16 @@ Times were measured in headless Chrome on an Apple-silicon Mac (reranking: 3.2 s
 - **Exact search, on purpose.** 1,200 dot products of length 384 take milliseconds. An
   approximate index would add code and lose recall for nothing at this size; the lecture's
   tuning section says where that changes.
+- **Abstention is code, not a prompt.** Told to reply "Not in the notes" when the passages do not
+  answer, Llama 3.2 1B instead defined LoRA, wrongly, from passages about something else. The
+  gate decides from the retrieval scores before the model is called. Its cosine threshold rests
+  on two queries so far (0.30 out of corpus, 0.53 answerable); the L18 notebook calibrates it on
+  the gold set.
+- **A 1B model is a weak reader.** With the right passages it produced a substantively correct
+  answer on one run and, after a prompt change, an answer that inverted the passages. The
+  capstone is for seeing the pipeline; students should read the passages and the prompt, not
+  trust the answer. Qwen2.5 1.5B (`data-model="Qwen2.5-1.5B-Instruct-q4f16_1-MLC"`) is the
+  next size up.
 - **Generation is optional.** Without WebGPU, or before the model loads, the widget stops after
   the prompt and shows the passages with links. Retrieval is the part worth inspecting.
 
@@ -45,6 +56,9 @@ Hub, the first time each is needed, and the browser caches them. That is deliber
 to this capstone. WebGPU also requires a secure context, which the site has had since HTTPS was
 enforced on 2026-08-08 (CLAUDE.md section 8); a page served over plain HTTP would see no
 `navigator.gpu` and fall back to retrieval only.
+
+**Measured** (headless Chrome, Apple silicon): a 1,529-token prompt and a short answer took
+12.8 s, so prompt processing runs at roughly 100+ tokens per second once the model is warm.
 
 **First load is slow.** On the development machine the Llama 3.2 1B weights downloaded at about
 0.6 MB/s from the Hugging Face CDN (242 MB in 379 s), so a first load takes on the order of
