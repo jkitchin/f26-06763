@@ -41,7 +41,9 @@ const MODELS = {
   'Llama-3.2-1B-Instruct-q4f16_1-MLC': 'Llama 3.2 1B, about 0.9 GB of GPU memory',
   'Qwen2.5-1.5B-Instruct-q4f16_1-MLC': 'Qwen2.5 1.5B, about 1.6 GB of GPU memory',
 };
-const DEFAULT_MODEL = 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
+// Qwen2.5 1.5B by default: in testing it answered the leakage question correctly and briefly,
+// where Llama 3.2 1B produced citation markers, an inverted answer, or an invented one.
+const DEFAULT_MODEL = 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC';
 const RRF_K = 60, POOL = 20, RERANK_N = 12, TOP = 5, WORDS_PER_PASSAGE = 220;
 // The abstention gate. A 1B model told to say "Not in the notes" when the passages do not answer
 // will still invent an answer, so the decision is made here, in code, from the retrieval scores:
@@ -93,6 +95,11 @@ const CSS = `
 .rag-hit .snip{opacity:.85}
 .rag-answer{font-size:14px;max-height:330px;overflow:auto;white-space:pre-wrap}
 .rag details{font-size:12px}.rag pre{white-space:pre-wrap;max-height:200px;overflow:auto;font-size:11px}
+/* on a slide: everything smaller, so the strip, the question and both panels fit in 720 px */
+.rag.compact{font-size:15px;padding:.4em .6em}.rag.compact .rag-stage{min-width:64px;padding:2px 4px}
+.rag.compact .rag-stage b,.rag.compact .rag-stage i{font-size:11.5px}
+.rag.compact .rag-hits,.rag.compact .rag-answer{max-height:330px;font-size:14px}.rag.compact .rag-hit{margin-bottom:3px}
+.rag.compact .rag-out{margin-top:.2em}.rag.compact pre{max-height:140px}
 `;
 
 function h(tag, attrs, parent, text) {
