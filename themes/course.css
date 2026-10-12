@@ -30,6 +30,11 @@ section {
   background: #fff;
 }
 
+/* A slide's spoken script (read aloud by narration.js); never shown on the slide. */
+section .narration {
+  display: none;
+}
+
 h1 {
   color: var(--cmu-red);
   font-size: 1.5em;

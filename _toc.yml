@@ -78,7 +78,7 @@ parts:
 #           - file: lectures/l19/l19-rag
 #       - file: lectures/l20/notes
 #         sections:
-#           - file: lectures/l20/l20-agent
+#           - file: lectures/l20/l20-reinforcement-learning
 #       - file: lectures/l21/notes
 #         sections:
 #           - file: lectures/l21/l21-eval

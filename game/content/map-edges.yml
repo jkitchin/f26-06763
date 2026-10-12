@@ -37,59 +37,16 @@ relations:
   prevents:    the session's mechanism prevents a failure the target named
 
 edges:
-  # --- Lecture 20, agents ---------------------------------------------------------
-  - from: l20
-    to: l19
-    relation: contrasts
-    why: >-
-      The cleanest statement of what an agent is, and it is a negative
-      definition: retrieval always happens, tool use is decided. Walking this
-      corridor should feel like the distinction landing.
-    source:
-      file: lectures/l20/notes.md
-      quote: >-
-        A RAG pipeline in Lecture 19 always retrieves, then always generates; the order
-        and the branching are yours, fixed in code
-
-  - from: l20
-    to: l05
-    relation: reuses
-    why: >-
-      Agent observability is not a new subject; it is the logging from the
-      streaming session pointed at a different kind of run.
-    source:
-      file: lectures/l20/notes.md
-      quote: Reuse the structured logging and MLflow tracking from Lecture 5
-
-  - from: l20
-    to: l03
-    relation: shares-data
-    why: The Intel Lab sensor data, still the spine of the course's examples.
-    source:
-      file: lectures/l20/notes.md
-      quote: against the same Intel Lab sensor Parquet file from Lecture 3 and Lecture 4
-
-  - from: l20
-    to: l04
-    relation: shares-data
-    why: Same file, reached through the columnar path Lecture 4 introduces.
-    source:
-      file: lectures/l20/notes.md
-      quote: against the same Intel Lab sensor Parquet file from Lecture 3 and Lecture 4
-
-  - from: l20
-    to: l13
-    relation: reuses
-    why: >-
-      The agent's tool is a surrogate, so the demo only works if the surrogate
-      session already happened. A genuine prerequisite rather than a callback.
-    source:
-      file: lectures/l20/notes.md
-      quote: >-
-        small surrogate standing in for Lecture 13's airfoil noise model, sharing that
-        model's five inputs
+  # --- Lecture 20 ------------------------------------------------------------------
+  # The five agent corridors that stood here left on 2026-10-12 with the agents draft,
+  # which moved to lectures/l19/agents/ when L20 became reinforcement learning. They
+  # come back, re-quoted, when L19 is rewritten. L20's own corridors are extracted:
+  # its notes cite earlier lectures with markdown links.
 
   # --- Lecture 21, evaluation and observability -----------------------------------
+  # Its edge to l20 ("Lecture 20's harness") was removed on 2026-10-12: that harness is the
+  # agents lecture, now L19, and L20 is reinforcement learning. Re-author it as l21 -> l19
+  # when L21's notes are renumbered.
   - from: l21
     to: l13
     relation: builds-on
@@ -111,18 +68,6 @@ edges:
     source:
       file: lectures/l21/notes.md
       quote: sensor readings above Lecture 3's 2.4-volt trustworthiness threshold
-
-  - from: l21
-    to: l20
-    relation: builds-on
-    why: >-
-      The evaluation session consumes exactly what the agent session already
-      emits, which is why the two are adjacent rather than merely related.
-    source:
-      file: lectures/l21/notes.md
-      quote: >-
-        Lecture 20's harness already logs everything a failure taxonomy needs, every
-        tool call, every result, every stop condition
 
   - from: l21
     to: l19

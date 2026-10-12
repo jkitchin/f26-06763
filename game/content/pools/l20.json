@@ -174,6 +174,191 @@
         }
       },
       "serve": 5
+    },
+    "3": {
+      "items": {
+        "l20-q01": {
+          "answer": "About 20 steps, or 10 time units",
+          "options": [
+            "One step, because Q-learning only ever looks at the next state",
+            "About 20 steps, or 10 time units",
+            "The whole 100-step episode, equally weighted at every step",
+            "About 95 steps, one for each hundredth of the discount"
+          ]
+        },
+        "l20-q02": {
+          "answer": "In each state, take the action with the largest Q*(s, a)",
+          "options": [
+            "Sample actions in proportion to their Q-values in each state",
+            "In each state, take the action with the largest Q*(s, a)",
+            "Take the action with the largest immediate reward in each state",
+            "Keep exploring at random one time in five, forever"
+          ]
+        },
+        "l20-q03": {
+          "answer": "Whether the state leaves out something the dynamics depend on",
+          "options": [
+            "The learning rate, because a deactivating catalyst needs a larger α",
+            "Whether the state leaves out something the dynamics depend on",
+            "The discount factor, which should be 1 for a continuous process",
+            "Whether the reward is scaled to between 0 and 1"
+          ]
+        },
+        "l20-q04": {
+          "answer": "One cell further back per episode, discounted each time",
+          "options": [
+            "All at once, after the first episode that reaches the end",
+            "One cell further back per episode, discounted each time",
+            "Never, because cells far from the reward are never updated",
+            "Only if the reward is moved to the start of the corridor"
+          ]
+        },
+        "l20-q05": {
+          "answer": "Evaluative: it scores B and says nothing about the catalysts not tried",
+          "options": [
+            "Instructive: it names the right catalyst for this reaction",
+            "Evaluative: it scores B and says nothing about the catalysts not tried",
+            "Instructive: it is a labelled data point like any regression target",
+            "Evaluative: it ranks every catalyst relative to B at once"
+          ]
+        },
+        "l20-q06": {
+          "answer": "Actions that change the state the learner faces next",
+          "options": [
+            "A surrogate model linking the choices that were tried",
+            "Actions that change the state the learner faces next",
+            "Noise in the measured outcome of each choice it makes",
+            "An acquisition function trading exploration against exploitation"
+          ]
+        },
+        "l20-q07": {
+          "answer": "A reward model trained to predict which output labelers would prefer",
+          "options": [
+            "Labelers' scores, collected live for every output during training",
+            "A reward model trained to predict which output labelers would prefer",
+            "The next-token loss on a larger set of human-written answers",
+            "The number of tokens in each answer, as a proxy for helpfulness"
+          ]
+        },
+        "l20-q08": {
+          "answer": "It settled on a wrong catalyst in about a quarter of runs",
+          "options": [
+            "It found the best catalyst in every run, faster than ε-greedy did",
+            "It settled on a wrong catalyst in about a quarter of runs",
+            "It spread its runs evenly over all five catalysts",
+            "It had the highest regret of all four strategies"
+          ]
+        },
+        "l20-q09": {
+          "answer": "c has the units of the reward; 2 is small next to a spread of 8",
+          "options": [
+            "UCB cannot work when rewards are noisy, so Thompson sampling is required",
+            "c has the units of the reward; 2 is small next to a spread of 8",
+            "c should shrink over time, and a constant value never converges",
+            "Five arms are too few for UCB's logarithmic bonus to apply"
+          ]
+        },
+        "l20-q10": {
+          "answer": "The TD error: what the step suggests minus what the table says",
+          "options": [
+            "The reward the agent expects at the end of the episode",
+            "The TD error: what the step suggests minus what the table says",
+            "The probability of choosing a random action at this step",
+            "The gradient of the policy with respect to the network weights"
+          ]
+        },
+        "l20-q11": {
+          "answer": "The table only learns about actions that get tried",
+          "options": [
+            "To keep the valve from wearing out in one position",
+            "The table only learns about actions that get tried",
+            "To add noise that makes the learned policy robust to sensors",
+            "Because the PID baseline also uses random perturbations"
+          ]
+        },
+        "l20-q12": {
+          "answer": "The tuned PID wins, by about a factor of seven on average",
+          "options": [
+            "The agent still wins, since it learned from the tank itself",
+            "The tuned PID wins, by about a factor of seven on average",
+            "They tie, because both settle exactly on the setpoint",
+            "The comparison cannot be made, since the agent uses five inflows"
+          ]
+        },
+        "l20-q13": {
+          "answer": "No allowed inflow holds h = 5; that needs F = 1.118",
+          "options": [
+            "Its learning rate is too high, so the table never settles",
+            "No allowed inflow holds h = 5; that needs F = 1.118",
+            "The reward penalizes standing still at any single level",
+            "The 20 level bins are too coarse to see the setpoint at all"
+          ]
+        },
+        "l20-q14": {
+          "answer": "It was 0.99 ± 0.94: 180 entries need more data than 100",
+          "options": [
+            "It fell to match the tuned PID, since 1.0 and 1.25 bracket 1.118 closely",
+            "It was 0.99 ± 0.94: 180 entries need more data than 100",
+            "It was unchanged, because the level bins limit accuracy",
+            "It fell to zero, because one of the nine inflows holds h = 5"
+          ]
+        },
+        "l20-q15": {
+          "answer": "At 1, 4 or 9: a level one constant inflow holds",
+          "options": [
+            "At the setpoint, 5, where a good controller keeps it",
+            "At 1, 4 or 9: a level one constant inflow holds",
+            "Empty, at 0, from every starting level it is given",
+            "Wherever it started, by closing the inflow completely"
+          ]
+        },
+        "l20-q16": {
+          "answer": "SARSA uses the next action it will take; Q-learning the best one",
+          "options": [
+            "SARSA uses a larger learning rate α than Q-learning",
+            "SARSA uses the next action it will take; Q-learning the best one",
+            "SARSA discounts future rewards and Q-learning does not",
+            "SARSA updates only at the end of each complete episode"
+          ]
+        },
+        "l20-q17": {
+          "answer": "SARSA, about −26 against −49: its path keeps away from the edge",
+          "options": [
+            "Q-learning, because it found the shorter 13-step path",
+            "SARSA, about −26 against −49: its path keeps away from the edge",
+            "Neither: both fall off the cliff at the same rate",
+            "Q-learning, because off-policy methods explore less"
+          ]
+        },
+        "l20-q18": {
+          "answer": "Exploring happens on the equipment: random moves in unsafe states",
+          "options": [
+            "Q-learning cannot learn from data it collected itself",
+            "Exploring happens on the equipment: random moves in unsafe states",
+            "ε = 0.1 is too little exploration to converge on a plant",
+            "The plant's state space is too small for reinforcement learning"
+          ]
+        },
+        "l20-q19": {
+          "answer": "The blog never says RL; the paper is a linear model with MPC, about 9%",
+          "options": [
+            "The 2018 paper confirms a 40% saving from a deep RL agent",
+            "The blog never says RL; the paper is a linear model with MPC, about 9%",
+            "The 40% came from replacing PID loops with a tuned PID controller",
+            "The saving was measured on a simulator and never deployed"
+          ]
+        },
+        "l20-q20": {
+          "answer": "Model predictive control",
+          "options": [
+            "Reinforcement learning, because the variables interact",
+            "Model predictive control",
+            "A bandit, one variable at a time, in sequence",
+            "A generative model of past operating data"
+          ]
+        }
+      },
+      "serve": 10
     }
   }
 }

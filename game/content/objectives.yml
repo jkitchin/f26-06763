@@ -92,18 +92,36 @@
 - id: l20-o1
   lecture: l20
   text: >-
-    Implement a minimal tool-using agent from scratch against the tool-calling API, no
-    framework.
+    Define reinforcement learning and its vocabulary: agent, environment, state, action,
+    reward, policy, return, discount factor, value function, Q-function, episode, and
+    exploration against exploitation (ε-greedy).
 
 - id: l20-o2
   lecture: l20
   text: >-
-    Design tool schemas that an LLM can use correctly and a harness can execute safely.
+    Place reinforcement learning in the course's map of machine learning by the feedback the
+    learner gets: a correct answer (supervised), samples of a distribution (generative), a score
+    for one choice with no state (Bayesian optimization and bandits), or a score for a sequence of
+    choices that change the system (reinforcement learning).
 
 - id: l20-o3
   lecture: l20
   text: >-
-    Build in termination, budgets, and error recovery so the loop is bounded and debuggable.
+    Implement tabular Q-learning on tank level control and compare it with a tuned PID
+    controller over several seeds.
+
+- id: l20-o4
+  lecture: l20
+  text: >-
+    Explain why Q-learning and SARSA learn different paths on cliff walking, and what that says
+    about exploring on a real plant.
+
+- id: l20-o5
+  lecture: l20
+  text: >-
+    Say when reinforcement learning is the right tool and when a model with MPC, Bayesian
+    optimization, or a tuned PID loop is, and read a published success claim for its baseline,
+    seeds, sample count and simulator.
 
 - id: l21-o1
   lecture: l21

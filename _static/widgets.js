@@ -3219,6 +3219,793 @@
     draw();
   };
 
+  // ------------------------------------------------------------------ L20
+
+  /* Reinforcement learning. Every figure here runs its learner in the page, seeded, so a run
+   * can be replayed: training happens once when the settings change, snapshots are stored, and
+   * the player scrubs through them. The environments are the ones in
+   * lectures/l20/figures/make_figures.py, with parameters from l20-widget-data.js. */
+
+  // mulberry32: a small seeded generator, so a seed always gives the same run.
+  function rlRng(seed) {
+    var a = seed >>> 0;
+    var r = function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      var t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    r.int = function (n) { return Math.floor(r() * n); };
+    r.normal = function (m, s) {
+      var u = 1 - r(), v = r();
+      return m + s * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+    };
+    return r;
+  }
+
+  function argmax(xs) {
+    var b = 0;
+    for (var i = 1; i < xs.length; i++) if (xs[i] > xs[b]) b = i;
+    return b;
+  }
+
+  // The PyCSE tank: dh/dt = (F - k sqrt(h)) / A, one Euler step of dt per decision.
+  function tankStep(T, h, F) {
+    return Math.max(0, h + T.dt * (F - T.k * Math.sqrt(Math.max(h, 0))) / T.A);
+  }
+  function tankBin(T, h) {
+    var c = Math.min(Math.max(h, 0), T.level_max);
+    return Math.min(Math.floor(c / T.level_max * (T.n_states - 1)), T.n_states - 1);
+  }
+  function tankPid(T, gains, h0) {
+    var h = h0, integ = 0, prev = T.setpoint - h0, hs = [h0], fs = [];
+    for (var t = 0; t < T.steps; t++) {
+      var e = T.setpoint - h;
+      integ += e * T.dt;
+      var F = Math.min(2, Math.max(0, gains[0] * e + gains[1] * integ + gains[2] * (e - prev) / T.dt));
+      prev = e;
+      h = tankStep(T, h, F);
+      hs.push(h);
+      fs.push(F);
+    }
+    return { hs: hs, fs: fs };
+  }
+  function tankMse(T, hs) {
+    var s = 0;
+    hs.forEach(function (h) { s += (h - T.setpoint) * (h - T.setpoint); });
+    return s / hs.length;
+  }
+
+  // A tank drawn at (x, y) with width w and height h; level in [0, level_max]. With flow =
+  // {k, Fmax} it also draws the water: a stream from the faucet as wide as the inflow F, and a jet
+  // from the outlet as wide as the outflow k√h. The streams only flow once something has been
+  // played (callers pass flow only then), and stand still under prefers-reduced-motion.
+  var REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function waterFlow(path) {
+    path.setAttribute('stroke-dasharray', '7 4');
+    if (!REDUCED) el('animate', { attributeName: 'stroke-dashoffset', from: '0', to: '-22', dur: '0.5s', repeatCount: 'indefinite' }, path);
+    return path;
+  }
+  function drawTank(svg, x, y, w, ht, level, lmax, F, sp, flow) {
+    var fill = Math.min(level, lmax) / lmax * ht, WATER = '#4a90d9';
+    el('rect', { x: x, y: y + ht - fill, width: w, height: fill, fill: 'var(--cw-accent)', 'fill-opacity': 0.35 }, svg);
+    if (flow && F > 0) { // the faucet stream, falling to the surface
+      var fx = x + w * 0.3;
+      waterFlow(el('line', { x1: fx, x2: fx, y1: y + 4, y2: y + ht - fill, stroke: WATER, 'stroke-opacity': 0.85,
+        'stroke-width': 1.5 + 6 * F / flow.Fmax }, svg));
+    }
+    el('path', { d: 'M' + x + ',' + y + ' V' + (y + ht) + ' H' + (x + w) + ' V' + y, fill: 'none',
+      stroke: 'currentColor', 'stroke-width': 2 }, svg);
+    if (sp !== undefined) {
+      var ys = y + ht - sp / lmax * ht;
+      el('line', { x1: x - 6, x2: x + w + 6, y1: ys, y2: ys, stroke: '#c41230', 'stroke-dasharray': '4 3' }, svg);
+      text(svg, x + w + 8, ys + 4, 'setpoint', { 'font-size': 10, style: 'fill:#c41230' });
+    }
+    // inflow pipe on top, outlet at the bottom right
+    el('line', { x1: x - 30, x2: x + w * 0.3, y1: y - 10, y2: y - 10, stroke: 'currentColor', 'stroke-width': 3 }, svg);
+    el('line', { x1: x + w * 0.3, x2: x + w * 0.3, y1: y - 10, y2: y + 4, stroke: 'currentColor', 'stroke-width': 3 }, svg);
+    if (F !== undefined) text(svg, x - 30, y - 16, 'in F = ' + F.toFixed(2), { 'font-size': 11 });
+    var ox = x + w + 26, oy = y + ht - 6;
+    el('line', { x1: x + w, x2: ox, y1: oy, y2: oy, stroke: 'currentColor', 'stroke-width': 3 }, svg);
+    if (flow) {
+      var q = flow.k * Math.sqrt(Math.max(level, 0)), qmax = flow.k * Math.sqrt(lmax);
+      if (q > 0.005) { // the outlet jet: faster flow throws it further
+        var reach = 6 + 22 * q / qmax;
+        waterFlow(el('path', { d: 'M' + ox + ',' + oy + ' Q' + (ox + reach) + ',' + oy + ' ' + (ox + reach) + ',' + (oy + 22),
+          fill: 'none', stroke: WATER, 'stroke-opacity': 0.85, 'stroke-width': 1.5 + 6 * q / qmax }, svg));
+      }
+      text(svg, ox + 4, oy - 8, 'out k√h = ' + q.toFixed(2), { 'font-size': 10 });
+    }
+    text(svg, x + w / 2, y + ht + 15, 'h = ' + level.toFixed(2), { 'text-anchor': 'middle', 'font-size': 11 });
+  }
+
+  /* What each kind of learner is told, on the same tank. The point is the feedback, so the
+   * learner here never improves: the choices are scripted and only the information shown to the
+   * learner differs between the three modes. */
+  WIDGETS['rl-feedback'] = function (root, data) {
+    var T = data.tank, W = 720, H = 300, N = 12, mode = 0;
+    var MODES = ['Supervised', 'Bayesian optimization or bandit', 'Reinforcement learning'];
+    html('div', { class: 'cw-title' }, root, 'What each kind of learner is told, on the same tank');
+    var svg = svgRoot(root, W, H, 'The information a supervised, a bandit and a reinforcement learner receive');
+    var row1 = html('div', { class: 'cw-controls cw-modes' }, root);
+    var row2 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'The PyCSE tank (A = ' + T.A + ', k = ' + T.k + ', setpoint ' + T.setpoint + ', one decision every ' + T.dt +
+      ' time units), parameters from lectures/l20/figures/make_figures.py. The choices are scripted so the ' +
+      'three modes differ only in what the learner is told. The inflow that holds a level h is k√h, so the ' +
+      '"right answer" a supervised learner gets is that number.');
+    var start = { supervised: 0, bandit: 1, rl: 2 }[root.getAttribute('data-mode')] || 0;
+    mode = start;
+
+    // Supervised: independent examples, each with its label.
+    var levels = [3.2, 6.1, 1.5, 8.4, 5.0, 2.7, 7.3, 4.1, 9.2, 0.8, 5.6, 3.8];
+    var sup = levels.map(function (h) { return { h: h, y: T.k * Math.sqrt(h) }; });
+    // Bandit: one constant inflow per trial, the tank reset to h = 2 every time, one score back.
+    var tries = [0.5, 1.5, 1.0, 2.0, 1.5, 1.0, 1.0, 1.5, 1.0, 1.0, 1.5, 1.0];
+    var ban = tries.map(function (F) {
+      var h = 2, hs = [h];
+      for (var t = 0; t < T.steps; t++) { h = tankStep(T, h, F); hs.push(h); }
+      return { F: F, h: h, score: -tankMse(T, hs) };
+    });
+    // RL: one run that carries over; the reward arrives every step.
+    var acts = [2, 2, 2, 2, 2, 2, 1, 1, 1.5, 1, 1, 1];
+    var rl = [], h = 2;
+    acts.forEach(function (F) {
+      var h2 = tankStep(T, h, F);
+      rl.push({ F: F, h0: h, h: h2, r: -(h2 - T.setpoint) * (h2 - T.setpoint) - T.effort * F * F });
+      h = h2;
+    });
+
+    toggleGroup(row1, MODES, mode, function (m) { mode = m; p.set(0); });
+    var p = player(row2, N + 1, draw, 650);
+
+    function logRow(i, y, s, bold) {
+      text(svg, 300, y, s, { 'font-size': 12, 'font-weight': bold ? 600 : 400, opacity: bold ? 1 : 0.65 });
+    }
+
+    function draw(pos) {
+      clear(svg);
+      text(svg, 300, 18, 'what the learner has received so far', { 'font-size': 12, 'font-weight': 600 });
+      var i, first = Math.max(0, pos - 9);
+      if (mode === 0) {
+        var cur = sup[Math.max(pos - 1, 0)];
+        drawTank(svg, 70, 60, 110, 200, pos ? cur.h : 0, T.level_max, pos ? cur.y : undefined, undefined, pos ? { k: T.k, Fmax: 2 } : undefined);
+        text(svg, 125, 290, 'each example is a separate tank', { 'text-anchor': 'middle', 'font-size': 10, opacity: 0.7 });
+        for (i = first; i < pos; i++) {
+          logRow(i, 44 + (i - first) * 22, 'example ' + (i + 1) + ':  level ' + sup[i].h.toFixed(1) +
+            '  →  right answer F* = ' + sup[i].y.toFixed(2), i === pos - 1);
+        }
+        readout.textContent = pos === 0 ? 'Press Play or Step: a supervised learner is handed examples with their answers.' :
+          'Example ' + pos + ': the learner sees level ' + cur.h.toFixed(1) + ' and is told the right inflow, ' +
+          cur.y.toFixed(2) + '. Its error is exact, so it knows which way to move. Nothing it does changes the next example.';
+      } else if (mode === 1) {
+        var b = ban[Math.max(pos - 1, 0)];
+        drawTank(svg, 70, 60, 110, 200, pos ? b.h : 2, T.level_max, pos ? b.F : undefined, T.setpoint, pos ? { k: T.k, Fmax: 2 } : undefined);
+        text(svg, 125, 290, 'reset to h = 2 before every trial', { 'text-anchor': 'middle', 'font-size': 10, opacity: 0.7 });
+        var best = -Infinity, bestF = null;
+        for (i = 0; i < pos; i++) if (ban[i].score > best) { best = ban[i].score; bestF = ban[i].F; }
+        for (i = first; i < pos; i++) {
+          logRow(i, 44 + (i - first) * 22, 'trial ' + (i + 1) + ':  chose F = ' + ban[i].F.toFixed(1) +
+            '  →  score ' + ban[i].score.toFixed(2) + '   (tank reset)', i === pos - 1);
+        }
+        readout.textContent = pos === 0 ? 'Press Play or Step: a bandit or BO learner picks one setting and gets one score.' :
+          'Trial ' + pos + ': it chose F = ' + b.F.toFixed(1) + ' and got a score of ' + b.score.toFixed(2) +
+          ' (minus the mean squared error over a run). Nobody says what the best setting was; so far its best is F = ' +
+          bestF.toFixed(1) + '. The tank starts at h = 2 every time, so one choice cannot affect the next.';
+      } else {
+        var s = rl[Math.max(pos - 1, 0)];
+        drawTank(svg, 70, 60, 110, 200, pos ? s.h : 2, T.level_max, pos ? s.F : undefined, T.setpoint, pos ? { k: T.k, Fmax: 2 } : undefined);
+        text(svg, 125, 290, 'one tank, the level carries over', { 'text-anchor': 'middle', 'font-size': 10, opacity: 0.7 });
+        // a level trace under the log, so the carried-over state is visible
+        var sx = scale(0, N, 300, 700), sy = scale(0, 10, 290, 200);
+        el('line', { x1: 300, x2: 700, y1: sy(T.setpoint), y2: sy(T.setpoint), stroke: '#c41230', 'stroke-dasharray': '4 3' }, svg);
+        var xs = [sx(0)], ys = [sy(2)];
+        for (i = 0; i < pos; i++) { xs.push(sx(i + 1)); ys.push(sy(rl[i].h)); }
+        polyline(svg, xs, ys, { stroke: 'var(--cw-accent)', 'stroke-width': 2 });
+        text(svg, 300, 196, 'level, carried from step to step', { 'font-size': 10, opacity: 0.7 });
+        first = Math.max(0, pos - 6);
+        for (i = first; i < pos; i++) {
+          logRow(i, 44 + (i - first) * 22, 'step ' + (i + 1) + ':  F = ' + rl[i].F.toFixed(1) + '  →  h = ' +
+            rl[i].h.toFixed(2) + ',  reward ' + rl[i].r.toFixed(2), i === pos - 1);
+        }
+        if (pos === 0) readout.textContent = 'Press Play or Step: a reinforcement learner acts, and the level it leaves is where the next step starts.';
+        else if (pos < N) readout.textContent = 'Step ' + pos + ': it chose F = ' + s.F.toFixed(1) + ', the level moved from ' +
+          s.h0.toFixed(2) + ' to ' + s.h.toFixed(2) + ', and it got a reward of ' + s.r.toFixed(2) +
+          '. The reward scores this step, not the choice, and the next step starts from this level.';
+        else readout.textContent = 'Step ' + N + ': the reward of ' + s.r.toFixed(2) + ' now depends on every inflow since step 1, ' +
+          'because each one set the level the next started from. Which early action earns the credit is the problem reinforcement learning solves.';
+      }
+    }
+    draw(0);
+  };
+
+  /* A five-armed bandit: five catalysts, one noisy yield measurement per pull. The learner
+   * never sees the true means; they are drawn as ticks so the reader can. */
+  WIDGETS.bandit = function (root, data) {
+    var B = data.bandit, K = B.arms.length, TT = B.pulls, W = 720, H = 360;
+    var METHODS = ['greedy', 'ε-greedy (ε = ' + B.epsilon + ')', 'UCB (c = ' + B.c + ')', 'Thompson sampling'];
+    var method = { greedy: 0, eps: 1, ucb: 2, thompson: 3 }[root.getAttribute('data-method')];
+    if (method === undefined) method = 2;
+    var seed = 1, run;
+    html('div', { class: 'cw-title' }, root, 'Five catalysts, one yield measurement at a time');
+    var svg = svgRoot(root, W, H, 'Bandit estimates of five catalyst yields and the cumulative regret');
+    var row = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'True mean yields ' + B.means.join(', ') + '% with a measurement spread of ' + B.sd + ' points, from ' +
+      'lectures/l20/figures/make_figures.py. Regret is the yield given up by not pulling the best catalyst (Cat C) ' +
+      'every time. UCB adds c√(ln t / n) to each estimate, and c has the units of the yield: Sutton & Barto\'s c = 2 ' +
+      'assumes rewards of unit spread. Thompson sampling draws one plausible mean per arm from a Gaussian posterior ' +
+      '(prior ' + B.prior[0] + ' ± ' + B.prior[1] + ') and pulls the largest.');
+
+    function simulate() {
+      var rng = rlRng(seed * 7919 + method * 31), n = [], q = [], best = Math.max.apply(null, B.means);
+      var out = [], cum = 0, k, t;
+      for (k = 0; k < K; k++) { n.push(0); q.push(0); }
+      for (t = 0; t < TT; t++) {
+        var a, bound = null, samp = null;
+        if (method === 0) a = t < K ? t : argmax(q);
+        else if (method === 1) a = rng() < B.epsilon ? rng.int(K) : argmax(q);
+        else if (method === 2) {
+          if (t < K) a = t;
+          else {
+            bound = q.map(function (v, i) { return v + B.c * Math.sqrt(Math.log(t + 1) / n[i]); });
+            a = argmax(bound);
+          }
+        } else {
+          samp = q.map(function (v, i) {
+            var prec = 1 / (B.prior[1] * B.prior[1]) + n[i] / (B.sd * B.sd);
+            var mean = (B.prior[0] / (B.prior[1] * B.prior[1]) + v * n[i] / (B.sd * B.sd)) / prec;
+            return rng.normal(mean, 1 / Math.sqrt(prec));
+          });
+          a = argmax(samp);
+        }
+        var r = rng.normal(B.means[a], B.sd);
+        n[a] += 1;
+        q[a] += (r - q[a]) / n[a];
+        cum += best - B.means[a];
+        out.push({ a: a, r: r, q: q.slice(), n: n.slice(), bound: bound, samp: samp, cum: cum });
+      }
+      return out;
+    }
+
+    var p = player(row, TT + 1, draw, 40);
+    select(row, 'method', METHODS, method, function (v) { method = v; run = simulate(); draw(p.get()); });
+    var nb = html('button', { type: 'button' }, row, 'New seed');
+    nb.onclick = function () { seed += 1; run = simulate(); draw(p.get()); };
+
+    function draw(pos) {
+      clear(svg);
+      var s = pos > 0 ? run[pos - 1] : null;
+      var L = 60, R = 700, top = 16, bot = 196;
+      var sy = scale(40, 95, bot, top), bw = (R - L) / K;
+      [40, 50, 60, 70, 80, 90].forEach(function (v) {
+        el('line', { x1: L, x2: R, y1: sy(v), y2: sy(v), stroke: 'currentColor', 'stroke-opacity': 0.08 }, svg);
+        text(svg, L - 6, sy(v) + 4, String(v), { 'text-anchor': 'end', 'font-size': 10, opacity: 0.7 });
+      });
+      text(svg, 14, (top + bot) / 2, 'yield %', { 'font-size': 10, opacity: 0.7, transform: 'rotate(-90 14 ' + (top + bot) / 2 + ')', 'text-anchor': 'middle' });
+      for (var k = 0; k < K; k++) {
+        var cx = L + bw * (k + 0.5), est = s ? s.q[k] : 0, cnt = s ? s.n[k] : 0;
+        if (cnt > 0) {
+          el('rect', { x: cx - bw * 0.28, y: sy(Math.max(est, 40)), width: bw * 0.56, height: Math.max(0, bot - sy(Math.max(est, 40))),
+            fill: s.a === k ? 'var(--cw-accent2)' : 'var(--cw-accent)', 'fill-opacity': s.a === k ? 0.75 : 0.4 }, svg);
+        }
+        el('line', { x1: cx - bw * 0.36, x2: cx + bw * 0.36, y1: sy(B.means[k]), y2: sy(B.means[k]),
+          stroke: 'currentColor', 'stroke-width': 2, 'stroke-dasharray': '5 3' }, svg);
+        if (s && s.bound) {
+          var ub = Math.min(s.bound[k], 95);
+          el('line', { x1: cx, x2: cx, y1: sy(Math.max(est, 40)), y2: sy(ub), stroke: 'var(--cw-green)', 'stroke-width': 2 }, svg);
+          el('line', { x1: cx - 8, x2: cx + 8, y1: sy(ub), y2: sy(ub), stroke: 'var(--cw-green)', 'stroke-width': 2 }, svg);
+        }
+        if (s && s.samp) {
+          el('circle', { cx: cx + bw * 0.18, cy: sy(Math.max(40, Math.min(95, s.samp[k]))), r: 5, fill: 'var(--cw-green)' }, svg);
+        }
+        text(svg, cx, bot + 15, B.arms[k], { 'text-anchor': 'middle', 'font-size': 11 });
+        text(svg, cx, bot + 28, cnt + ' pulls', { 'text-anchor': 'middle', 'font-size': 10, opacity: 0.7 });
+      }
+      text(svg, R, top + 2, '- - -  true mean, hidden from the learner', { 'text-anchor': 'end', 'font-size': 10, opacity: 0.75 });
+      if (method === 2) text(svg, R, top + 15, 'green whisker: estimate + c√(ln t / n)', { 'text-anchor': 'end', 'font-size': 10, style: 'fill:var(--cw-green)' });
+      if (method === 3) text(svg, R, top + 15, 'green dot: this pull\'s posterior draw', { 'text-anchor': 'end', 'font-size': 10, style: 'fill:var(--cw-green)' });
+
+      // regret panel
+      var t0 = 246, t1 = 340, sx = scale(0, TT, L, R), maxc = Math.max(run[TT - 1].cum, 50);
+      var sr = scale(0, maxc, t1, t0);
+      el('line', { x1: L, x2: R, y1: t1, y2: t1, stroke: 'currentColor', 'stroke-opacity': 0.3 }, svg);
+      text(svg, L, t0 - 6, 'cumulative regret (yield points given up)', { 'font-size': 11 });
+      text(svg, L - 6, t0 + 4, String(Math.round(maxc)), { 'text-anchor': 'end', 'font-size': 10, opacity: 0.7 });
+      text(svg, L - 6, t1 + 4, '0', { 'text-anchor': 'end', 'font-size': 10, opacity: 0.7 });
+      [0, 100, 200, 300, 400, 500].forEach(function (v) { text(svg, sx(v), t1 + 13, String(v), { 'text-anchor': 'middle', 'font-size': 9, opacity: 0.6 }); });
+      polyline(svg, run.map(function (_, i) { return sx(i + 1); }), run.map(function (o) { return sr(o.cum); }),
+        { stroke: 'var(--cw-accent)', 'stroke-opacity': 0.18, 'stroke-width': 1 });
+      if (pos > 0) {
+        var part = run.slice(0, pos);
+        polyline(svg, part.map(function (_, i) { return sx(i + 1); }), part.map(function (o) { return sr(o.cum); }),
+          { stroke: 'var(--cw-accent)', 'stroke-width': 2 });
+      }
+      if (!s) {
+        readout.textContent = 'Press Play or Step. ' + METHODS[method] + ' will pull ' + TT + ' times; the dashed ticks are the true means it is trying to find.';
+        return;
+      }
+      readout.textContent = 'Pull ' + pos + ': ' + B.arms[s.a] + ', measured ' + s.r.toFixed(1) + '%. Regret so far ' +
+        s.cum.toFixed(0) + ' points. Pulls per arm: ' + B.arms.map(function (nm, i) { return nm.slice(4) + ' ' + s.n[i]; }).join(', ') +
+        (pos === TT ? '. Share of the last 100 pulls on Cat C: ' +
+          Math.round(run.slice(TT - 100).filter(function (o) { return o.a === 2; }).length) + '%.' : '.');
+    }
+    run = simulate();
+    draw(0);
+  };
+
+  /* Credit assignment along a corridor. The only reward is +1 for stepping onto the goal at the
+   * right end. A one-step backup (alpha = 1) can only pass news back one cell per episode; a
+   * Monte Carlo update waits for the episode to end and credits every cell with the whole
+   * discounted return at once. */
+  WIDGETS['rl-credit'] = function (root, data) {
+    var n = data.credit.cells, gamma = data.credit.gamma, W = 720, H = 220, E = n, mc = false;
+    var M = n - 1; // moves per episode, from cell 0 to the goal at cell n - 1
+    html('div', { class: 'cw-title' }, root, 'A reward at the end reaches the start one episode at a time');
+    var svg = svgRoot(root, W, H, 'Values propagating back along a corridor toward the start');
+    var row1 = html('div', { class: 'cw-controls' }, root);
+    var row2 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'A corridor of ' + n + ' cells; the agent always steps right, and the only reward is +1 for reaching the goal. ' +
+      'One-step (temporal-difference) backups with α = 1 set V(s) = r + γV(s′) as the agent leaves s, so the news moves ' +
+      'one cell back per episode. Monte Carlo waits for the episode to end and gives every cell γ^(steps to go) at once. ' +
+      'The same corridor as credit.png in lectures/l20/figures.');
+
+    var hist;
+    function simulate() {
+      var V = [], s, e, k, out = [];
+      for (s = 0; s < n; s++) V.push(0);
+      out.push({ V: V.slice(), at: 0, e: 0, upd: -1 });
+      for (e = 0; e < E; e++) {
+        for (k = 0; k < M; k++) {
+          var upd = -1;
+          if (!mc) {
+            var r = k + 1 === n - 1 ? 1 : 0;
+            V[k] = r + (k + 1 < n - 1 ? gamma * V[k + 1] : 0);
+            upd = k;
+          } else if (k === M - 1) {
+            for (s = 0; s < n - 1; s++) V[s] = Math.pow(gamma, n - 2 - s);
+            upd = 99;
+          }
+          out.push({ V: V.slice(), at: k + 1, e: e + 1, upd: upd });
+        }
+      }
+      return out;
+    }
+    toggleGroup(row1, ['one-step (TD)', 'Monte Carlo (whole return)'], 0, function (i) { mc = i === 1; hist = simulate(); p.set(0); });
+    slider(row1, 'γ', 0.5, 0.99, 0.01, gamma, function (v) { return v.toFixed(2); },
+      function (v) { gamma = v; hist = simulate(); draw(p.get()); });
+    var p = player(row2, E * M + 1, draw, 260);
+
+    function draw(pos) {
+      clear(svg);
+      var st = hist[pos], cw = 640 / n, x0 = 40, by = 150;
+      for (var s = 0; s < n; s++) {
+        var x = x0 + s * cw, v = st.V[s];
+        el('rect', { x: x + 3, y: by, width: cw - 6, height: 44, rx: 4, fill: s === n - 1 ? 'var(--cw-green)' : 'var(--cw-accent)',
+          'fill-opacity': s === n - 1 ? 0.35 : 0.08 + 0.6 * v, stroke: 'currentColor', 'stroke-opacity': 0.3 }, svg);
+        if (s < n - 1) {
+          var bh = v * 100;
+          el('rect', { x: x + cw * 0.25, y: by - 8 - bh, width: cw * 0.5, height: bh,
+            fill: st.upd === s || st.upd === 99 ? 'var(--cw-accent2)' : 'var(--cw-accent)' }, svg);
+          text(svg, x + cw / 2, by - 12 - bh, v.toFixed(2), { 'text-anchor': 'middle', 'font-size': 11 });
+          text(svg, x + cw / 2, by + 27, 'cell ' + s, { 'text-anchor': 'middle', 'font-size': 10, opacity: 0.7 });
+        } else {
+          text(svg, x + cw / 2, by + 27, 'goal +1', { 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 600 });
+        }
+      }
+      el('line', { x1: x0, x2: x0 + 640, y1: by - 8, y2: by - 8, stroke: 'currentColor', 'stroke-opacity': 0.3 }, svg);
+      text(svg, x0, 16, 'value of each cell, V(s)', { 'font-size': 11 });
+      // the agent
+      el('circle', { cx: x0 + st.at * cw + cw / 2, cy: by + 12, r: 7, fill: 'var(--cw-accent2)' }, svg);
+      var reached = n - 1;
+      for (s = 0; s < n - 1; s++) if (st.V[s] > 0) { reached = s; break; }
+      if (pos === 0) {
+        readout.textContent = 'Press Play or Step. Every value starts at zero; the agent walks right and is rewarded only at the goal.';
+        return;
+      }
+      readout.textContent = 'Episode ' + st.e + ', step ' + st.at + ' of ' + M + '. ' +
+        (reached < n - 1 ? 'The value has reached cell ' + reached + '; ' : 'No value has moved yet; ') +
+        'the start cell\'s value is ' + st.V[0].toFixed(3) + (st.V[0] > 0 ? ' = γ^' + (n - 2) + ' with γ = ' + gamma.toFixed(2) : '') +
+        (mc ? '. Monte Carlo credits every cell at the end of the first episode.' :
+          '. A one-step backup needs ' + (n - 1) + ' episodes to carry the reward to the start.');
+    }
+    hist = simulate();
+    draw(0);
+  };
+
+  /* Q-learning by hand on a three-level tank: the table is a 3 × 2 matrix, and every update is
+   * shown with its arithmetic. The updates (a scripted first episode, then epsilon-greedy steps)
+   * and Q* come from lectures/l20/figures/make_figures.py, so the numbers match the slides. */
+  WIDGETS['q-hand'] = function (root, data) {
+    var D = data.qhand, tr = D.trace, W = 720, H = 300, S = D.states, A = D.actions, nScript = D.script.length;
+    html('div', { class: 'cw-title' }, root, 'One Q-learning update at a time, on a 3 × 2 table');
+    var svg = svgRoot(root, W, H, 'A three-level tank, its Q matrix, and the arithmetic of each update');
+    var row = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'Levels low, ok and high. Open raises the level one step and shut lowers it one step. Landing at ok earns +1 and ' +
+      'opening costs ' + D.effort + ', so r = 1[s′ = ok] − ' + D.effort + '·1[open]. α = ' + D.alpha + ', γ = ' + D.gamma +
+      '. The first ' + nScript + ' updates are a scripted episode; the rest are ε-greedy. Like the real tank, no action holds the level at ok. ' +
+      'Updates and Q* (by value iteration) from lectures/l20/figures/make_figures.py.');
+    var f3 = function (v) { return (v < 0 ? '−' : '') + Math.abs(v).toFixed(3); };
+    var WATER = '#4a90d9';
+
+    function tableAt(k) {
+      var Q = [[0, 0], [0, 0], [0, 0]];
+      for (var i = 0; i < k; i++) Q[tr[i].s][tr[i].a] = tr[i].new;
+      return Q;
+    }
+    function matrix(Q, x, y, title, hi, cw) {
+      cw = cw || 70;
+      var ch = 30;
+      text(svg, x, y - 26, title, { 'font-size': 12, 'font-weight': 700 });
+      A.forEach(function (a, j) { text(svg, x + j * cw + cw / 2, y - 6, a, { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.8 }); });
+      for (var r = 2; r >= 0; r--) {
+        var yy = y + (2 - r) * ch, g = Q[r][0] === Q[r][1] ? -1 : (Q[r][1] > Q[r][0] ? 1 : 0);
+        text(svg, x - 6, yy + ch / 2 + 4, S[r], { 'text-anchor': 'end', 'font-size': 11, opacity: 0.8 });
+        for (var j = 0; j < 2; j++) {
+          var isHi = hi && hi[0] === r && hi[1] === j;
+          el('rect', { x: x + j * cw, y: yy, width: cw - 2, height: ch - 2, fill: 'var(--cw-accent)', 'fill-opacity': 0.06 + 0.1 * Math.max(0, Q[r][j]),
+            stroke: isHi ? 'var(--cw-accent2)' : 'currentColor', 'stroke-opacity': isHi ? 1 : 0.2, 'stroke-width': isHi ? 2.5 : 1 }, svg);
+          text(svg, x + j * cw + cw / 2 - 1, yy + ch / 2 + 4, f3(Q[r][j]), { 'text-anchor': 'middle', 'font-size': 12,
+            'font-weight': g === j ? 700 : 400 });
+        }
+      }
+    }
+    function tank(u) {
+      var x = 40, y = 40, w = 90, ht = 168, band = ht / 3;
+      var lev = u ? u.s2 : 0, from = u ? u.s : 0;
+      el('rect', { x: x, y: y + ht - (lev + 0.5) * band, width: w, height: (lev + 0.5) * band, fill: 'var(--cw-accent)', 'fill-opacity': 0.35 }, svg);
+      if (u) el('line', { x1: x - 4, x2: x + w + 4, y1: y + ht - (from + 0.5) * band, y2: y + ht - (from + 0.5) * band,
+        stroke: 'currentColor', 'stroke-dasharray': '3 3', 'stroke-opacity': 0.6 }, svg);
+      for (var b = 1; b < 3; b++) el('line', { x1: x, x2: x + w, y1: y + b * band, y2: y + b * band, stroke: 'currentColor', 'stroke-opacity': 0.15 }, svg);
+      el('path', { d: 'M' + x + ',' + y + ' V' + (y + ht) + ' H' + (x + w) + ' V' + y, fill: 'none', stroke: 'currentColor', 'stroke-width': 2 }, svg);
+      S.forEach(function (nm, r) { text(svg, x + w + 6, y + ht - (r + 0.5) * band + 4, nm, { 'font-size': 11, 'font-weight': u && r === lev ? 700 : 400 }); });
+      el('line', { x1: x - 24, x2: x + 26, y1: y - 10, y2: y - 10, stroke: 'currentColor', 'stroke-width': 3 }, svg);
+      el('line', { x1: x + 26, x2: x + 26, y1: y - 10, y2: y + 2, stroke: 'currentColor', 'stroke-width': 3 }, svg);
+      el('line', { x1: x + w, x2: x + w + 16, y1: y + ht - 6, y2: y + ht - 6, stroke: 'currentColor', 'stroke-width': 3 }, svg);
+      if (u && u.a === 1) waterFlow(el('line', { x1: x + 26, x2: x + 26, y1: y + 2, y2: y + ht - (lev + 0.5) * band, stroke: WATER, 'stroke-width': 6, 'stroke-opacity': 0.85 }, svg));
+      if (u && u.a === 0) waterFlow(el('path', { d: 'M' + (x + w + 16) + ',' + (y + ht - 6) + ' q20,0 20,24', fill: 'none', stroke: WATER, 'stroke-width': 6, 'stroke-opacity': 0.85 }, svg));
+      if (u) text(svg, x + w / 2, y + ht + 18, S[u.s] + ' → ' + A[u.a] + ' → ' + S[u.s2] + ',  r = ' + f3(u.r), { 'text-anchor': 'middle', 'font-size': 11 });
+    }
+
+    function draw(k) {
+      clear(svg);
+      var Q = tableAt(k), u = k ? tr[k - 1] : null;
+      tank(u);
+      matrix(Q, 290, 60, 'Q after ' + k + ' update' + (k === 1 ? '' : 's'), u ? [u.s, u.a] : null);
+      matrix(D.qstar, 520, 60, 'Q* (value iteration)', null, 62);
+      var err = 0;
+      for (var r = 0; r < 3; r++) for (var j = 0; j < 2; j++) err = Math.max(err, Math.abs(Q[r][j] - D.qstar[r][j]));
+      text(svg, 520, 168, 'largest |Q − Q*| = ' + err.toFixed(3), { 'font-size': 11 });
+      text(svg, 290, 168, 'bold = greedy action in that row', { 'font-size': 10, opacity: 0.7 });
+      var mono = { 'font-size': 12.5, 'font-family': 'ui-monospace, Menlo, monospace' };
+      if (u) {
+        var q = 'Q(' + S[u.s] + ', ' + A[u.a] + ')';
+        text(svg, 230, 214, 'target   = r + γ · max Q(' + S[u.s2] + ', ·) = ' + f3(u.r) + ' + ' + D.gamma + ' × ' + f3(u.best) + ' = ' + f3(u.target), mono);
+        text(svg, 230, 236, 'TD error = target − ' + q + ' = ' + f3(u.target) + ' − ' + f3(u.old) + ' = ' + f3(u.target - u.old), mono);
+        text(svg, 230, 258, q + ' ← ' + f3(u.old) + ' + ' + D.alpha + ' × ' + f3(u.target - u.old) + ' = ' + f3(u.new), mono);
+      } else {
+        text(svg, 230, 236, 'Q(s, a) ← Q(s, a) + α [ r + γ max Q(s′, ·) − Q(s, a) ]', mono);
+      }
+      if (!k) readout.textContent = 'The table starts at zero. Press Step to make the first update by hand, or Play to run all ' + tr.length + '.';
+      else if (k <= nScript) readout.textContent = 'Update ' + k + ' of ' + tr.length + ', in the scripted episode. Only the outlined entry changes: one transition updates one number.' +
+        (k === 4 ? ' The target uses max Q(low, ·) = 0.45, learned in update 1: value from a later reward is moving back.' : '');
+      else readout.textContent = 'Update ' + k + ' of ' + tr.length + ' (ε-greedy). ' + (err < 0.05 ? 'The table is close to Q*.' :
+        'Entries the agent rarely tries, like Q(high, open), are the last to reach Q*; the greedy actions are already right.');
+    }
+    var p = player(row, tr.length + 1, draw, 90);
+    draw(0);
+  };
+
+  /* Q-learning on the PyCSE tank, trained in the page. The player scrubs training progress: each
+   * position is the Q-table after another ten episodes, and the panels show what that table
+   * would do from a chosen starting level, next to the tuned PID loop. */
+  WIDGETS['tank-q'] = function (root, data) {
+    var T = data.tank, TR = data.tankTrain, gains = data.pid.tuned, W = 720, H = 380;
+    var nS = T.n_states, nA = T.flows.length, EVERY = 10, SNAP = TR.episodes / EVERY + 1;
+    var REWARDS = ['squared error from 5 (PyCSE)', '"keep it steady": −|Δh|', '+1 inside 5 ± 1'];
+    var reward = { steady: 1, band: 2 }[root.getAttribute('data-reward')] || 0, seed = 1, h0 = 2, run;
+    html('div', { class: 'cw-title' }, root, 'Q-learning on the tank, trained in this page');
+    var svg = svgRoot(root, W, H, 'Q-table, learning curve, and the learned policy against PID on the tank');
+    var row1 = html('div', { class: 'cw-controls' }, root);
+    var row2 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'Tabular Q-learning with PyCSE\'s settings (' + TR.episodes + ' episodes of ' + T.steps + ' steps, α = ' + TR.alpha +
+      ', γ = ' + TR.gamma + ', ε = ' + TR.epsilon + ', starts uniform on [1, 9]) on a ' + nS + ' × ' + nA + ' table, against a PID loop ' +
+      'with gains (' + gains.join(', ') + ') tuned on eight starting levels in lectures/l20/figures/make_figures.py. ' +
+      'None of the five inflows holds h = 5: the steady level for inflow F is (F/k)² = ' +
+      T.flows.map(function (f) { return +(f / T.k * f / T.k).toFixed(2); }).join(', ') +
+      ', so the agent has to switch between inflows to hover near the setpoint.');
+
+    function reward_(h2, h, F) {
+      if (reward === 0) return -(h2 - T.setpoint) * (h2 - T.setpoint) - T.effort * F * F;
+      if (reward === 1) return -Math.abs(h2 - h);
+      return Math.abs(h2 - T.setpoint) <= 1 ? 1 : 0;
+    }
+    function train() {
+      var rng = rlRng(seed * 104729 + reward * 17), Q = new Float64Array(nS * nA), snaps = [], totals = [];
+      snaps.push(Q.slice());
+      for (var ep = 0; ep < TR.episodes; ep++) {
+        var h = 1 + 8 * rng(), s = tankBin(T, h), tot = 0;
+        for (var t = 0; t < T.steps; t++) {
+          var a, row = Q.subarray(s * nA, s * nA + nA);
+          a = rng() < TR.epsilon ? rng.int(nA) : argmax(row);
+          var h2 = tankStep(T, h, T.flows[a]), r = reward_(h2, h, T.flows[a]), s2 = tankBin(T, h2);
+          var best = -Infinity;
+          for (var b = 0; b < nA; b++) if (Q[s2 * nA + b] > best) best = Q[s2 * nA + b];
+          Q[s * nA + a] += TR.alpha * (r + TR.gamma * best - Q[s * nA + a]);
+          s = s2; h = h2; tot += r;
+        }
+        totals.push(tot);
+        if ((ep + 1) % EVERY === 0) snaps.push(Q.slice());
+      }
+      return { snaps: snaps, totals: totals };
+    }
+    function rollout(Q) {
+      var h = h0, hs = [h], fs = [];
+      for (var t = 0; t < T.steps; t++) {
+        var s = tankBin(T, h), F = T.flows[argmax(Array.prototype.slice.call(Q, s * nA, s * nA + nA))];
+        h = tankStep(T, h, F);
+        hs.push(h);
+        fs.push(F);
+      }
+      return { hs: hs, fs: fs };
+    }
+
+    var p = player(row1, SNAP, draw, 120);
+    select(row1, 'reward', REWARDS, reward, function (v) { reward = v; run = train(); draw(p.get()); });
+    select(row2, 'test start h₀', ['1', '2', '3', '4', '6', '7', '8', '9'], 1, function (v) {
+      h0 = [1, 2, 3, 4, 6, 7, 8, 9][v]; stopTest(); draw(p.get());
+    });
+    var nb = html('button', { type: 'button' }, row2, 'New seed');
+    nb.onclick = function () { stopTest(); seed += 1; run = train(); draw(p.get()); };
+    // Watch the greedy policy fill the tank from h₀, one decision every 60 ms.
+    var tb = html('button', { type: 'button' }, row2, 'Watch the test run'), tStep = null, tTimer = null;
+    function stopTest() { clearInterval(tTimer); tTimer = null; tStep = null; tb.textContent = 'Watch the test run'; }
+    tb.onclick = function () {
+      if (tTimer) { stopTest(); draw(p.get()); return; }
+      tStep = 0; tb.textContent = 'Stop';
+      tTimer = setInterval(function () { if (tStep >= T.steps) { clearInterval(tTimer); tTimer = null; tb.textContent = 'Watch the test run'; } else { tStep += 1; } draw(p.get()); }, 60);
+      draw(p.get());
+    };
+
+    function draw(pos) {
+      clear(svg);
+      var Q = run.snaps[pos], ep = pos * EVERY, s, a;
+      // (a) Q-table: rows are level bins (high at the top), columns the five inflows.
+      var qx = 56, qy = 26, cw = 34, chh = 15.5;
+      text(svg, qx, 14, 'Q(s, a): rows = level bin, columns = inflow', { 'font-size': 11 });
+      for (s = 0; s < nS; s++) {
+        var row = Array.prototype.slice.call(Q, s * nA, s * nA + nA), mx = Math.max.apply(null, row), mn = Math.min.apply(null, row);
+        var g = argmax(row), y = qy + (nS - 1 - s) * chh;
+        for (a = 0; a < nA; a++) {
+          var rel = mx > mn ? (row[a] - mn) / (mx - mn) : 0;
+          el('rect', { x: qx + a * cw, y: y, width: cw - 1, height: chh - 1, fill: 'var(--cw-accent)',
+            'fill-opacity': mx === mn ? 0.04 : 0.08 + 0.7 * rel }, svg);
+        }
+        if (mx !== mn) el('rect', { x: qx + g * cw + 0.5, y: y + 0.5, width: cw - 2, height: chh - 2, fill: 'none',
+          stroke: 'var(--cw-accent2)', 'stroke-width': 2 }, svg);
+        if (s % 4 === 0 || s === nS - 1) {
+          text(svg, qx - 5, y + chh - 4, (s * T.level_max / (nS - 1)).toFixed(1), { 'text-anchor': 'end', 'font-size': 9, opacity: 0.7 });
+        }
+      }
+      var spY = qy + (nS - 1 - tankBin(T, T.setpoint)) * chh;
+      el('line', { x1: qx - 2, x2: qx + nA * cw + 2, y1: spY + chh / 2, y2: spY + chh / 2, stroke: '#c41230', 'stroke-dasharray': '3 3' }, svg);
+      T.flows.forEach(function (f, i) { text(svg, qx + i * cw + cw / 2, qy + nS * chh + 12, String(f), { 'text-anchor': 'middle', 'font-size': 10 }); });
+      text(svg, qx + nA * cw / 2, qy + nS * chh + 25, 'inflow F', { 'text-anchor': 'middle', 'font-size': 10, opacity: 0.7 });
+      text(svg, 12, qy + nS * chh / 2, 'level h', { 'font-size': 10, opacity: 0.7, transform: 'rotate(-90 12 ' + (qy + nS * chh / 2) + ')', 'text-anchor': 'middle' });
+      text(svg, qx, qy + nS * chh + 40, 'orange box = greedy action', { 'font-size': 9, opacity: 0.75 });
+
+      // (b) learning curve
+      var lx0 = 290, lx1 = 706, ly0 = 22, ly1 = 120, tot = run.totals;
+      var lo = Math.min.apply(null, tot), hi = Math.max.apply(null, tot);
+      var sx = scale(0, TR.episodes, lx0, lx1), sy = scale(lo, hi, ly1, ly0);
+      text(svg, lx0, 14, 'total reward per training episode (smoothed over 20)', { 'font-size': 11 });
+      var sm = [], acc = 0;
+      for (var i = 0; i < tot.length; i++) { acc += tot[i]; if (i >= 20) acc -= tot[i - 20]; sm.push(acc / Math.min(i + 1, 20)); }
+      polyline(svg, sm.map(function (_, j) { return sx(j + 1); }), sm.map(sy), { stroke: 'var(--cw-green)', 'stroke-opacity': 0.25, 'stroke-width': 1.2 });
+      var part = sm.slice(0, Math.max(ep, 1));
+      polyline(svg, part.map(function (_, j) { return sx(j + 1); }), part.map(sy), { stroke: 'var(--cw-green)', 'stroke-width': 2 });
+      el('line', { x1: sx(ep), x2: sx(ep), y1: ly0, y2: ly1, stroke: 'currentColor', 'stroke-opacity': 0.4, 'stroke-dasharray': '3 3' }, svg);
+      text(svg, lx0 - 4, ly0 + 4, hi.toFixed(0), { 'text-anchor': 'end', 'font-size': 9, opacity: 0.7 });
+      text(svg, lx0 - 4, ly1, lo.toFixed(0), { 'text-anchor': 'end', 'font-size': 9, opacity: 0.7 });
+
+      // (c) rollout from h0, agent against PID
+      var ag = rollout(Q), pid = tankPid(T, gains, h0);
+      var rx0 = 290, rx1 = 620, ry0 = 168, ry1 = 330;
+      var tx = scale(0, T.steps, rx0, rx1), ty = scale(0, 10, ry1, ry0);
+      text(svg, rx0, ry0 - 12, 'test run from h₀ = ' + h0 + ' with the table at episode ' + ep, { 'font-size': 11 });
+      [0, 5, 10].forEach(function (v) { text(svg, rx0 - 4, ty(v) + 4, String(v), { 'text-anchor': 'end', 'font-size': 9, opacity: 0.7 }); });
+      el('line', { x1: rx0, x2: rx1, y1: ty(T.setpoint), y2: ty(T.setpoint), stroke: '#c41230', 'stroke-dasharray': '4 3' }, svg);
+      el('line', { x1: rx0, x2: rx1, y1: ry1, y2: ry1, stroke: 'currentColor', 'stroke-opacity': 0.3 }, svg);
+      polyline(svg, pid.hs.map(function (_, j) { return tx(j); }), pid.hs.map(function (v) { return ty(Math.min(v, 10)); }),
+        { stroke: 'var(--cw-accent)', 'stroke-width': 1.6 });
+      polyline(svg, ag.hs.map(function (_, j) { return tx(j); }), ag.hs.map(function (v) { return ty(Math.min(v, 10)); }),
+        { stroke: 'var(--cw-accent2)', 'stroke-width': 2 });
+      text(svg, rx1, ry1 + 14, 'time step', { 'text-anchor': 'end', 'font-size': 9, opacity: 0.7 });
+      el('line', { x1: rx0 + 4, x2: rx0 + 22, y1: ry1 + 22, y2: ry1 + 22, stroke: 'var(--cw-accent2)', 'stroke-width': 2 }, svg);
+      text(svg, rx0 + 26, ry1 + 26, 'Q-learning agent', { 'font-size': 10 });
+      el('line', { x1: rx0 + 130, x2: rx0 + 148, y1: ry1 + 22, y2: ry1 + 22, stroke: 'var(--cw-accent)', 'stroke-width': 2 }, svg);
+      text(svg, rx0 + 152, ry1 + 26, 'tuned PID', { 'font-size': 10 });
+      var hEnd = ag.hs[ag.hs.length - 1], tNow = tStep === null ? T.steps : tStep;
+      if (tStep !== null) {
+        el('line', { x1: tx(tNow), x2: tx(tNow), y1: ry0, y2: ry1, stroke: 'currentColor', 'stroke-opacity': 0.5 }, svg);
+        el('circle', { cx: tx(tNow), cy: ty(Math.min(ag.hs[tNow], 10)), r: 4, fill: 'var(--cw-accent2)' }, svg);
+      }
+      drawTank(svg, 648, 196, 44, 120, Math.min(ag.hs[tNow], 10), T.level_max, pos || tStep !== null ? ag.fs[Math.max(tNow - 1, 0)] : undefined,
+        undefined, pos || tStep !== null ? { k: T.k, Fmax: 2 } : undefined);
+      var spT = 196 + 120 - T.setpoint / T.level_max * 120;
+      el('line', { x1: 642, x2: 698, y1: spT, y2: spT, stroke: '#c41230', 'stroke-dasharray': '4 3' }, svg);
+
+      var mA = tankMse(T, ag.hs), mP = tankMse(T, pid.hs);
+      var gs = argmax(Array.prototype.slice.call(Q, tankBin(T, T.setpoint) * nA, tankBin(T, T.setpoint) * nA + nA));
+      var msg = 'After ' + ep + ' episodes (' + (ep * T.steps).toLocaleString() + ' transitions): from h₀ = ' + h0 +
+        ' the agent\'s mean squared error is ' + mA.toFixed(3) + ' against ' + mP.toFixed(3) + ' for the tuned PID. ' +
+        'At the setpoint bin the policy chooses F = ' + T.flows[gs] + '.';
+      if (reward === 0 && Math.abs(hEnd - T.setpoint) > 1) msg += ' From this start it ends at h = ' + hEnd.toFixed(2) +
+        ', far from the setpoint: a level it rarely visited in training, where the table is still poor. Try another seed.';
+      if (reward === 1) msg += ' Rewarded only for not moving, it parks at h = ' + hEnd.toFixed(2) + ', the steady level of the inflow nearest where it started.';
+      if (reward === 2) msg += ' Rewarded for being anywhere in 4 to 6, it ends at h = ' + hEnd.toFixed(2) + ' and has no reason to aim for 5.';
+      if (ep === 0) msg = 'Episode 0: the table is all zeros, so the greedy choice is the first inflow, F = 0, and the tank drains. Press Play to train.';
+      if (tStep !== null) msg = 'Test run, step ' + tNow + ' of ' + T.steps + ': the table chose F = ' + ag.fs[Math.max(tNow - 1, 0)] +
+        ' and the level is ' + ag.hs[tNow].toFixed(2) + '. The outlet drains k√h = ' + (T.k * Math.sqrt(ag.hs[tNow])).toFixed(2) +
+        ', so the level rises only while the inflow is larger.';
+      readout.textContent = msg;
+    }
+    run = train();
+    draw(0);
+  };
+
+  /* Cliff walking, Sutton & Barto Example 6.6. SARSA and Q-learning learn from the same kind of
+   * experience with the same epsilon; the difference is which next action the update assumes. */
+  WIDGETS.cliff = function (root, data) {
+    var C = data.cliff, R4 = C.rows, C12 = C.cols, W = 720, H = 360, EVERY = 5, seed = 1, explore = false, runs;
+    var MOVES = [[-1, 0], [0, 1], [1, 0], [0, -1]];
+    html('div', { class: 'cw-title' }, root, 'Cliff walking: what exploring costs on the way');
+    var svg = svgRoot(root, W, H, 'Greedy paths of SARSA and Q-learning on the cliff grid and their returns during learning');
+    var row1 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'Sutton & Barto Example 6.6: a ' + R4 + ' × ' + C12 + ' grid, ' + C.step + ' per step, ' + C.fall +
+      ' and back to the start for stepping into the cliff. Both learners use α = ' + C.alpha + ', ε = ' + C.epsilon +
+      ', γ = 1, ' + C.episodes + ' episodes, ties broken at random, as in lectures/l20/figures/make_figures.py. ' +
+      'Q-learning updates toward the best next action and learns the edge; SARSA updates toward the action it will ' +
+      'actually take, exploration included, and learns to keep its distance.');
+
+    function stepC(r, c, a) {
+      r = Math.min(Math.max(r + MOVES[a][0], 0), R4 - 1);
+      c = Math.min(Math.max(c + MOVES[a][1], 0), C12 - 1);
+      if (r === R4 - 1 && c > 0 && c < C12 - 1) return { r: R4 - 1, c: 0, rew: C.fall, done: false, fell: true };
+      return { r: r, c: c, rew: C.step, done: r === R4 - 1 && c === C12 - 1, fell: false };
+    }
+    function learn(method) {
+      var rng = rlRng(seed * 6007 + (method === 'q' ? 1 : 2)), Q = new Float64Array(R4 * C12 * 4), rets = [], snaps = [Q.slice()];
+      function pick(r, c) {
+        if (rng() < C.epsilon) return rng.int(4);
+        var base = (r * C12 + c) * 4, mx = -Infinity, ties = [];
+        for (var a = 0; a < 4; a++) {
+          if (Q[base + a] > mx) { mx = Q[base + a]; ties = [a]; } else if (Q[base + a] === mx) ties.push(a);
+        }
+        return ties[rng.int(ties.length)];
+      }
+      for (var ep = 0; ep < C.episodes; ep++) {
+        var r = R4 - 1, c = 0, a = pick(r, c), G = 0, n = 0, done = false;
+        while (!done && n < 1000) {
+          var o = stepC(r, c, a), a2 = pick(o.r, o.c), base2 = (o.r * C12 + o.c) * 4, nxt;
+          if (method === 'q') nxt = Math.max(Q[base2], Q[base2 + 1], Q[base2 + 2], Q[base2 + 3]);
+          else nxt = Q[base2 + a2];
+          var target = o.done ? o.rew : o.rew + nxt, i = (r * C12 + c) * 4 + a;
+          Q[i] += C.alpha * (target - Q[i]);
+          r = o.r; c = o.c; a = a2; G += o.rew; n++; done = o.done;
+        }
+        rets.push(G);
+        if ((ep + 1) % EVERY === 0) snaps.push(Q.slice());
+      }
+      return { snaps: snaps, rets: rets };
+    }
+    function greedy(Q) {
+      var r = R4 - 1, c = 0, path = [[r, c]], fell = false;
+      for (var k = 0; k < 60; k++) {
+        var base = (r * C12 + c) * 4, a = argmax([Q[base], Q[base + 1], Q[base + 2], Q[base + 3]]);
+        var o = stepC(r, c, a);
+        if (o.fell) { fell = true; path.push([R4 - 1, Math.min(Math.max(c + MOVES[a][1], 0), C12 - 1)]); break; }
+        r = o.r; c = o.c; path.push([r, c]);
+        if (o.done) break;
+      }
+      return { path: path, done: r === R4 - 1 && c === C12 - 1, fell: fell };
+    }
+    function exploring(Q) {
+      // one ε-greedy walk with the table frozen, the walk the agent would actually take while still learning
+      var rng = rlRng(seed * 31 + 5), r = R4 - 1, c = 0, path = [[r, c]], falls = [], G = 0;
+      for (var k = 0; k < 200; k++) {
+        var base = (r * C12 + c) * 4, a = rng() < C.epsilon ? rng.int(4) : argmax([Q[base], Q[base + 1], Q[base + 2], Q[base + 3]]);
+        var o = stepC(r, c, a);
+        G += o.rew;
+        if (o.fell) falls.push([R4 - 1, Math.min(Math.max(c + MOVES[a][1], 0), C12 - 1)]);
+        r = o.r; c = o.c; path.push([r, c]);
+        if (o.done) break;
+      }
+      return { path: path, falls: falls, G: G };
+    }
+    function trainBoth() { runs = { sarsa: learn('sarsa'), q: learn('q') }; }
+
+    var p = player(row1, C.episodes / EVERY + 1, draw, 120);
+    var ex = html('button', { type: 'button', 'aria-pressed': 'false' }, row1, 'Show one exploring episode (Q-learning)');
+    ex.onclick = function () { explore = !explore; ex.setAttribute('aria-pressed', String(explore)); draw(p.get()); };
+    var nb = html('button', { type: 'button' }, row1, 'New seed');
+    nb.onclick = function () { seed += 1; trainBoth(); draw(p.get()); };
+
+    function mean(xs) { var s = 0; xs.forEach(function (v) { s += v; }); return xs.length ? s / xs.length : NaN; }
+
+    function draw(pos) {
+      clear(svg);
+      var ep = pos * EVERY, gx = 120, gy = 22, cs = 40;
+      function cx(c) { return gx + c * cs + cs / 2; }
+      function cy(r) { return gy + r * cs + cs / 2; }
+      for (var r = 0; r < R4; r++) for (var c = 0; c < C12; c++) {
+        var cliffCell = r === R4 - 1 && c > 0 && c < C12 - 1;
+        el('rect', { x: gx + c * cs, y: gy + r * cs, width: cs, height: cs, fill: cliffCell ? '#c41230' : 'none',
+          'fill-opacity': cliffCell ? 0.25 : 0, stroke: 'currentColor', 'stroke-opacity': 0.18 }, svg);
+      }
+      text(svg, cx(5.5), cy(R4 - 1) + 4, 'cliff  ' + C.fall, { 'text-anchor': 'middle', 'font-size': 11, style: 'fill:#c41230' });
+      text(svg, cx(0), cy(R4 - 1) + 5, 'S', { 'text-anchor': 'middle', 'font-size': 14, 'font-weight': 700 });
+      text(svg, cx(C12 - 1), cy(R4 - 1) + 5, 'G', { 'text-anchor': 'middle', 'font-size': 14, 'font-weight': 700 });
+      var gS = greedy(runs.sarsa.snaps[pos]), gQ = greedy(runs.q.snaps[pos]);
+      function drawPath(g, col, off, dash) {
+        polyline(svg, g.path.map(function (q) { return cx(q[1]) + off; }), g.path.map(function (q) { return cy(q[0]) + off; }),
+          { stroke: col, 'stroke-width': 3, 'stroke-dasharray': dash || '', 'stroke-linejoin': 'round', 'stroke-opacity': 0.9 });
+      }
+      if (explore) {
+        var w = exploring(runs.q.snaps[pos]);
+        drawPath({ path: w.path }, 'var(--cw-accent2)', -4, '2 4');
+        w.falls.forEach(function (f) { text(svg, cx(f[1]), cy(f[0]) + 16, '✕', { 'text-anchor': 'middle', 'font-size': 14, style: 'fill:#c41230' }); });
+      } else {
+        drawPath(gS, 'var(--cw-accent)', -5);
+        drawPath(gQ, 'var(--cw-accent2)', 5);
+      }
+      text(svg, gx + C12 * cs + 8, gy + 14, 'SARSA', { 'font-size': 11, style: 'fill:var(--cw-accent)' });
+      text(svg, gx + C12 * cs + 8, gy + 30, 'Q-learning', { 'font-size': 11, style: 'fill:var(--cw-accent2)' });
+      text(svg, gx - 8, gy + 14, explore ? 'one ε-greedy walk' : 'greedy paths', { 'font-size': 10, 'text-anchor': 'end', opacity: 0.75 });
+
+      // returns during learning
+      var x0 = 70, x1 = 700, y0 = 210, y1 = 330, sx = scale(0, C.episodes, x0, x1), sy = scale(-110, 0, y1, y0);
+      text(svg, x0, y0 - 8, 'return per episode while learning (ε = ' + C.epsilon + '), averaged over 20 episodes', { 'font-size': 11 });
+      [-100, -50, 0].forEach(function (v) {
+        el('line', { x1: x0, x2: x1, y1: sy(v), y2: sy(v), stroke: 'currentColor', 'stroke-opacity': 0.08 }, svg);
+        text(svg, x0 - 6, sy(v) + 4, String(v), { 'text-anchor': 'end', 'font-size': 9, opacity: 0.7 });
+      });
+      [0, 100, 200, 300, 400, 500].forEach(function (v) { text(svg, sx(v), y1 + 13, String(v), { 'text-anchor': 'middle', 'font-size': 9, opacity: 0.6 }); });
+      [['sarsa', 'var(--cw-accent)'], ['q', 'var(--cw-accent2)']].forEach(function (m) {
+        var rets = runs[m[0]].rets, sm = [];
+        for (var i = 0; i < Math.max(ep, 1); i++) {
+          sm.push(Math.max(-110, mean(rets.slice(Math.max(0, i - 19), i + 1))));
+        }
+        polyline(svg, sm.map(function (_, i) { return sx(i + 1); }), sm.map(sy), { stroke: m[1], 'stroke-width': 2 });
+      });
+      el('line', { x1: sx(ep), x2: sx(ep), y1: y0, y2: y1, stroke: 'currentColor', 'stroke-opacity': 0.35, 'stroke-dasharray': '3 3' }, svg);
+
+      if (pos === 0) {
+        readout.textContent = 'Press Play or Step. Both tables start at zero, so the greedy paths are arbitrary; watch them settle.';
+        return;
+      }
+      var lo = Math.max(0, ep - 50);
+      var mS = mean(runs.sarsa.rets.slice(lo, ep)), mQ = mean(runs.q.rets.slice(lo, ep));
+      function len(g) { return g.done ? (g.path.length - 1) + ' steps' : (g.fell ? 'falls in' : 'does not reach the goal'); }
+      readout.textContent = 'Episode ' + ep + ': greedy path, SARSA ' + len(gS) + ', Q-learning ' + len(gQ) +
+        '. Average return over the last ' + (ep - lo) + ' episodes while exploring: SARSA ' + mS.toFixed(1) +
+        ', Q-learning ' + mQ.toFixed(1) + '.' + (explore ? ' The dotted walk is Q-learning with exploration on; each ✕ is a fall.' : '');
+    }
+    trainBoth();
+    draw(0);
+  };
+
   // ------------------------------------------------------------------ boot
 
   function boot() {

@@ -2,7 +2,7 @@
   "generated_by": "tools/world.py",
   "note": "Rooms are the sessions in course/schedule.md, regions are the arcs the notes declare, corridors are the edges tools/graph.py verified. Nothing is placed by hand.",
   "grid": {
-    "width": 16,
+    "width": 19,
     "height": 7,
     "cols_per_region": 2
   },
@@ -55,13 +55,20 @@
       "rooms": [
         "l17",
         "l18",
-        "l19",
+        "l19"
+      ]
+    },
+    {
+      "name": "Machine learning and deep learning",
+      "x0": 13,
+      "rows": 1,
+      "rooms": [
         "l20"
       ]
     },
     {
       "name": "Production and responsibility",
-      "x0": 13,
+      "x0": 16,
       "rows": 1,
       "rooms": [
         "l21",
@@ -324,10 +331,10 @@
       "title": "(Optional) reinforcement learning",
       "written": false,
       "arc_source": "declared",
-      "arc": "LLM and agentic engineering",
-      "region": 3,
-      "x": 11,
-      "y": 2,
+      "arc": "Machine learning and deep learning",
+      "region": 4,
+      "x": 13,
+      "y": 1,
       "notes": null
     },
     {
@@ -338,8 +345,8 @@
       "written": false,
       "arc_source": "declared",
       "arc": "Production and responsibility",
-      "region": 4,
-      "x": 13,
+      "region": 5,
+      "x": 16,
       "y": 1,
       "notes": null
     },
@@ -351,8 +358,8 @@
       "written": false,
       "arc_source": "inherited",
       "arc": "Production and responsibility",
-      "region": 4,
-      "x": 14,
+      "region": 5,
+      "x": 17,
       "y": 1,
       "notes": null
     }
@@ -640,43 +647,59 @@
     },
     {
       "from": "l20",
-      "to": "l03",
-      "origin": "authored",
-      "relation": "shares-data",
-      "why": "The Intel Lab sensor data, still the spine of the course's examples.",
-      "where": "against the same Intel Lab sensor Parquet file from Lecture 3 and Lecture 4"
+      "to": "l07",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "purest form. It runs straight into the problem [Lecture 7](../l07/notes.md) called"
     },
     {
       "from": "l20",
-      "to": "l04",
-      "origin": "authored",
-      "relation": "shares-data",
-      "why": "Same file, reached through the columnar path Lecture 4 introduces.",
-      "where": "against the same Intel Lab sensor Parquet file from Lecture 3 and Lecture 4"
+      "to": "l09",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "Machine learning methods differ most in what the learner is told. [Lecture 9](../l09/notes.md)"
     },
     {
       "from": "l20",
-      "to": "l05",
-      "origin": "authored",
-      "relation": "reuses",
-      "why": "Agent observability is not a new subject; it is the logging from the streaming session pointed at a different kind of run.",
-      "where": "Reuse the structured logging and MLflow tracking from Lecture 5"
+      "to": "l10",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "[Lecture 9](../l09/notes.md) and [Lecture 10](../l10/notes.md) learned from it: the label is the"
     },
     {
       "from": "l20",
-      "to": "l13",
-      "origin": "authored",
-      "relation": "reuses",
-      "why": "The agent's tool is a surrogate, so the demo only works if the surrogate session already happened. A genuine prerequisite rather than a callback.",
-      "where": "small surrogate standing in for Lecture 13's airfoil noise model, sharing that model's five inputs"
+      "to": "l11",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "table with a neural network of the kind built in [Lecture 11](../l11/notes.md). The deep"
     },
     {
       "from": "l20",
-      "to": "l19",
-      "origin": "authored",
-      "relation": "contrasts",
-      "why": "The cleanest statement of what an agent is, and it is a negative definition: retrieval always happens, tool use is decided. Walking this corridor should feel like the distinction landing.",
-      "where": "A RAG pipeline in Lecture 19 always retrieves, then always generates; the order and the branching are yours, fixed in code"
+      "to": "l15",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "to match the data. [Lecture 15](../l15/notes.md) moved to evaluative feedback: Bayesian"
+    },
+    {
+      "from": "l20",
+      "to": "l16",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "Read down the table and the problem gets harder in three distinct ways. [Lecture 16](../l16/notes.md)"
+    },
+    {
+      "from": "l20",
+      "to": "l17",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "[Lecture 17](../l17/notes.md) is a next-token predictor fitted by supervised learning on text."
     },
     {
       "from": "l21",
@@ -709,14 +732,6 @@
       "relation": "reuses",
       "why": "The eval harness is built against the RAG system Lecture 19 leaves behind.",
       "where": "eval harness for a small RAG assistant in the spirit of Lecture 19's system"
-    },
-    {
-      "from": "l21",
-      "to": "l20",
-      "origin": "authored",
-      "relation": "builds-on",
-      "why": "The evaluation session consumes exactly what the agent session already emits, which is why the two are adjacent rather than merely related.",
-      "where": "Lecture 20's harness already logs everything a failure taxonomy needs, every tool call, every result, every stop condition"
     }
   ],
   "signs": []

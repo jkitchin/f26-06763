@@ -71,13 +71,14 @@ check(world.signs.every((s) => roomById(s.lecture)?.written === false),
 // game/content/map-edges.yml.
 check(!world.doors.some((d) => d.from === 'l19'), 'L19 is still the dead end')
 
-// Ten, not the fifteen this asserted before: L23's five authored edges left with
-// the lecture when MLOps moved to course/optional/. The count is hardcoded on
+// Four. Fifteen became ten when L23's five authored edges left with the lecture
+// (MLOps moved to course/optional/), and ten became four on 2026-10-12 when the
+// agents draft left L20 (five edges) and L21's edge to it went too. The count is hardcoded on
 // purpose. Authored edges are hand-written content, each with the sentence that
 // justifies it, and a regeneration that silently dropped some would otherwise
 // look like a clean run.
 const authored = world.doors.filter((d) => d.origin === 'authored')
-check(authored.length === 10, 'the ten authored corridors made it through',
+check(authored.length === 4, 'the four authored corridors made it through',
   `${authored.length}`)
 check(authored.every((d) => d.why !== null && d.relation !== null),
   'and each carries the relation and the reason it exists')
@@ -112,7 +113,9 @@ check(world.rooms.every((r) => seenCells.has(`${r.x},${r.y}`)),
 // --- what the map reveals --------------------------------------------------
 
 const l21 = doorsOf('l21')
-check(l21.length >= 5, 'standing in L21 shows what it builds on', `${l21.length} corridors`)
+// Four since 2026-10-12: L21's edge to the agents lecture left when that draft moved from L20
+// to lectures/l19/agents/, and returns as l21 -> l19 when L21 is renumbered.
+check(l21.length >= 4, 'standing in L21 shows what it builds on', `${l21.length} corridors`)
 check(l21.some((d) => d.other.id === 'l13' && d.outbound),
   'including the strongest claim in the back half, L21 -> L13')
 
