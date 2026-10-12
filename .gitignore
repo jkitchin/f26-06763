@@ -20,6 +20,8 @@ _build/
 # And once more for the arcade's development harness, which is the page you open
 # to play a game against a local Worker. Source, not build output.
 !arcade/local.html
+# The chat capstone's local test page (chat/README.md). Source, not build output.
+!chat/demo.html
 # The plant stream's browser view. A hand-written page you open as a file, so it
 # is source too, and the fourth thing the blanket rule above would have eaten.
 !stream/viewer.html
@@ -39,6 +41,9 @@ mlflow.db
 
 # Data: keep raw data out of git, track schemas and small samples deliberately
 data/
+# L18: a hand-written gold query set and a frozen 0.6 MB snapshot of the L1-L17 notes, so the
+# notebook's retrieval numbers do not move when an earlier lecture is edited.
+!lectures/l18/data/
 *.parquet
 *.duckdb
 
@@ -77,3 +82,11 @@ attic/
 # needs them there too, so symlink them and let git ignore the symlinks.
 lectures/*/widgets.js
 lectures/*/*-widget-data.js
+
+# L18 capstone: the chat index is built at deploy time from the released notes, never committed.
+chat/build/
+chat/node_modules/
+# Local authoring of the L18 deck: the capstone module and index, symlinked beside it like the clicker.
+lectures/*/rag-chat.js
+lectures/*/rag-index.json
+lectures/*/rag-index.js

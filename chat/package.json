@@ -1,0 +1,9 @@
+{
+  "name": "course-chat-index",
+  "private": true,
+  "type": "module",
+  "description": "Build-time embedding of the course notes for the L18 chat capstone. The browser embeds queries with the same model and dtype.",
+  "dependencies": {
+    "@huggingface/transformers": "4.3.1"
+  }
+}

@@ -499,17 +499,40 @@
 - id: l18-o1
   lecture: l18
   text: >-
-    Call a hosted LLM API robustly and account for cost and latency as first-class engineering metrics.
+    Explain context engineering: an LLM answers from what is in its context window, so deciding
+    what goes there, and how it gets there, determines the answer.
 
 - id: l18-o2
   lecture: l18
   text: >-
-    Get validated, schema-constrained output out of an LLM and handle the cases where it fails.
+    Give a model a tool, explain the tool-call exchange, and recognize when fetching context on
+    demand (reading files, searching the web) is the right design, and the prompt-injection risk
+    it brings.
 
 - id: l18-o3
   lecture: l18
   text: >-
-    Apply a disciplined prompting method and measure prompt quality on a small labeled set.
+    Build keyword search (an inverted index with BM25) and semantic search (embeddings), combine
+    them, and rerank the result with a cross-encoder; explain where late interaction (ColBERT)
+    sits between them.
+
+- id: l18-o4
+  lecture: l18
+  text: >-
+    Choose chunk size, embedding model and index from measured trade-offs in hit rate, memory
+    and search time, and say what changes when the index moves to a server.
+
+- id: l18-o5
+  lecture: l18
+  text: >-
+    Assemble a grounded prompt with citations within a token budget, and measure retrieval with
+    hit@k and MRR on a gold set of queries.
+
+- id: l18-o6
+  lecture: l18
+  text: >-
+    Trace each stage of a retrieval pipeline running in the browser: what runs at build time,
+    what runs on the page, and what each costs.
 
 # L19, published notes and no bank yet (game/content/l19.yml, status: unwritten).
 # Registered so whoever writes that bank maps onto objectives that already exist.

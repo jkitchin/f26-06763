@@ -4,6 +4,191 @@
     "1": {
       "items": {},
       "serve": 0
+    },
+    "2": {
+      "items": {
+        "l18-q01": {
+          "answer": "The right passage existed, and the answer was not built from it",
+          "options": [
+            "Chatbots should never answer policy questions under any circumstances",
+            "The right passage existed, and the answer was not built from it",
+            "The model was too small to understand a bereavement policy",
+            "The policy page was out of date and the chatbot was right"
+          ]
+        },
+        "l18-q02": {
+          "answer": "It fell, for one model below its accuracy with no documents at all",
+          "options": [
+            "It rose, because the model reads the whole window evenly",
+            "It was unchanged, because position does not matter to attention",
+            "It fell, for one model below its accuracy with no documents at all",
+            "It fell only when the documents were longer than the context window"
+          ]
+        },
+        "l18-q03": {
+          "answer": "It returns a tool request, and your code runs it",
+          "options": [
+            "It opens the file itself and reads its contents into the context window",
+            "It returns a tool request, and your code runs it",
+            "It asks the user to paste the whole file into the chat window",
+            "It searches its training data for a file with that name"
+          ]
+        },
+        "l18-q04": {
+          "answer": "The model cannot reliably tell your instructions from planted ones",
+          "options": [
+            "Nothing; models always give the system prompt priority over any document text",
+            "The model cannot reliably tell your instructions from planted ones",
+            "System prompts stop applying once the model has called any tool in the conversation",
+            "The line should be repeated at the end of every fetched page instead"
+          ]
+        },
+        "l18-q05": {
+          "answer": "Identifiers are exact and the files keep changing",
+          "options": [
+            "Vector indexes cannot store source code or other text with symbols in it",
+            "Identifiers are exact and the files keep changing",
+            "Embedding models refuse to embed programming languages",
+            "Repositories are always small enough to fit in a single prompt"
+          ]
+        },
+        "l18-q06": {
+          "answer": "Higher, but each extra occurrence adds less than the one before",
+          "options": [
+            "Ten times higher, because term frequency is linear",
+            "Higher, but each extra occurrence adds less than the one before",
+            "The same, because BM25 only checks whether a word is present",
+            "Lower, because repetition is penalized as spam"
+          ]
+        },
+        "l18-q07": {
+          "answer": "Questions naming an identifier, such as zero_grad or GroupKFold",
+          "options": [
+            "Paraphrased questions written in everyday words",
+            "Questions naming an identifier, such as zero_grad or GroupKFold",
+            "Questions the notes cannot answer",
+            "All kinds equally, since BM25 reads every word"
+          ]
+        },
+        "l18-q08": {
+          "answer": "Few shared words; embeddings match meaning",
+          "options": [
+            "Embedding search reads more of each passage than BM25 is able to",
+            "Few shared words; embeddings match meaning",
+            "BM25 cannot handle questions that are longer than about five words",
+            "The section was indexed only in the vector store"
+          ]
+        },
+        "l18-q09": {
+          "answer": "BM25 scores and cosines live on unrelated scales",
+          "options": [
+            "Ranks are faster to compute than scores",
+            "BM25 scores and cosines live on unrelated scales",
+            "Scores are not available from SQLite",
+            "Adding scores always favors the embedding results"
+          ]
+        },
+        "l18-q10": {
+          "answer": "Better order (MRR up), same hit rate",
+          "options": [
+            "The hit rate rose because the reranker found passages the retrievers had missed",
+            "Better order (MRR up), same hit rate",
+            "Both fell, because the reranker was trained on other data",
+            "Nothing changed for any of the questions in the gold set"
+          ]
+        },
+        "l18-q11": {
+          "answer": "One vector for every token of the passage",
+          "options": [
+            "One vector for the whole passage",
+            "One vector for every token of the passage",
+            "The passage text only, embedded at query time",
+            "A BM25 posting list"
+          ]
+        },
+        "l18-q12": {
+          "answer": "47 times the storage of one vector per chunk",
+          "options": [
+            "It used about the same storage as one embedding vector per chunk",
+            "47 times the storage of one vector per chunk",
+            "It needed a GPU to answer a question at all",
+            "It was slower per question than reranking with the cross-encoder"
+          ]
+        },
+        "l18-q13": {
+          "answer": "They overran the model's input limit and diluted the topic",
+          "options": [
+            "There were too few chunks left to search, so many questions had no match",
+            "They overran the model's input limit and diluted the topic",
+            "512 is not a power of two in tokens",
+            "Overlap was missing, so ideas were cut at every chunk boundary"
+          ]
+        },
+        "l18-q14": {
+          "answer": "The defaults are in different units: characters against tokens",
+          "options": [
+            "Both libraries ignore the chunk size setting",
+            "The defaults are in different units: characters against tokens",
+            "LlamaIndex counts in words, so its chunks are larger",
+            "Neither library supports overlap"
+          ]
+        },
+        "l18-q15": {
+          "answer": "The filter runs after the approximate scan",
+          "options": [
+            "Row-level security disables the HNSW index and forces an exact scan",
+            "The filter runs after the approximate scan",
+            "An HNSW index cannot store the per-document metadata needed for filtering",
+            "The users' queries are embedded with a different model"
+          ]
+        },
+        "l18-q16": {
+          "answer": "Recall rises and each query takes longer",
+          "options": [
+            "Recall rises and each query takes longer",
+            "Recall rises and queries get faster",
+            "Recall falls and queries get faster",
+            "Nothing; efSearch only matters while the index is built"
+          ]
+        },
+        "l18-q17": {
+          "answer": "Refused several answerable paraphrase questions",
+          "options": [
+            "Caught every unanswerable question and nothing else",
+            "Refused several answerable paraphrase questions",
+            "Never triggered, because scores are always positive",
+            "Refused only the identifier questions"
+          ]
+        },
+        "l18-q18": {
+          "answer": "They differ by one question, which a set this small cannot separate",
+          "options": [
+            "A is clearly better and should be adopted",
+            "They differ by one question, which a set this small cannot separate",
+            "B is better, because lower hit rates mean stricter retrieval",
+            "The gold set is wrong, because the numbers should be equal"
+          ]
+        },
+        "l18-q19": {
+          "answer": "To match the library and settings the browser uses for the query",
+          "options": [
+            "Python cannot run embedding models inside a continuous-integration job",
+            "To match the library and settings the browser uses for the query",
+            "JavaScript embeddings are more accurate than Python embeddings of the same model",
+            "CI cannot run Python"
+          ]
+        },
+        "l18-q20": {
+          "answer": "Shows the passages and the prompt, without an answer",
+          "options": [
+            "Sends the question to a hosted LLM API instead, using the course key",
+            "Shows the passages and the prompt, without an answer",
+            "Refuses to load at all",
+            "Runs the same model on the CPU instead, at about the same speed"
+          ]
+        }
+      },
+      "serve": 10
     }
   }
 }
