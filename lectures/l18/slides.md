@@ -576,22 +576,9 @@ Every block from today, running with no server and no API key. Two run once, in 
 
 ---
 
-## Capstone, live
-
-<div class="rag-chat compact" data-index="rag-index.json" data-examples="what does forgetting zero_grad do|why can't I shuffle sensor data before splitting it|what is LoRA fine-tuning|how does a Kalman filter update its state">
-
-**The chat runs here when this deck is served over HTTP**: on the course site at `/slides/l18/`, or locally with `python3 -m http.server -d lectures/l18`. Opened from disk or in an editor preview, the browser blocks its scripts.
-
-</div>
-
-<!-- Try, in order: "what does forgetting zero_grad do" (keyword wins), "why can't I shuffle
-     sensor data before splitting" (paraphrase: vectors find it), the same with rerank on, then
-     "what is LoRA fine-tuning" (not in the notes: the gate stops it). Open "the exact prompt". -->
-
----
-
 ## Capstone, what to look at
 
+- The live chat follows this section's last slide
 - **The strip**: which blocks ran, and how long each took
 - **The ranks**: BM25 rank, vector rank, and RRF for every passage
   - `zero_grad`: keyword rank 1; a paraphrase question: vector rank 1
@@ -622,6 +609,19 @@ Same passages and question ("why can't I shuffle sensor data before splitting?")
 - <span class="pt">▶</span> each choice is a tuning trade-off, made for 1,200 chunks and one user
 
 <span class="source">[WebLLM](https://github.com/mlc-ai/web-llm) · [transformers.js](https://huggingface.co/docs/transformers.js/index) · [MiniSearch](https://github.com/lucaong/minisearch) · [all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) · [Cormack et al. 2009, RRF](http://cormack.uwaterloo.ca/cormacksigir09-rrf.pdf)</span>
+
+---
+
+## Capstone, live
+
+<div class="rag-chat compact" data-examples="what does forgetting zero_grad do|why can't I shuffle sensor data before splitting it|what is LoRA fine-tuning|how does a Kalman filter update its state">
+
+**The chat runs here when scripts can run**: in a browser, from the course site or opened from disk. An editor preview or a PDF export shows this text instead.
+
+</div>
+
+<!-- Load the model before class: ~13 min the first time, ~5 s from the browser cache. Then try
+     the buttons in order: keyword wins, paraphrase, the gate stops LoRA, Kalman slips past it. -->
 
 ---
 
@@ -693,10 +693,11 @@ Nicknames only. Everyone who skipped one still counted in every bar you saw.
 
 - Practice module for this session: on the course site
 - Run the worked example; it downloads three small models on first run
-- Try the chat on this deck with your own questions, and read the prompts
+- Try the chat on slide 49 with your own questions, and read the prompts
 - Notes: `lectures/l18/notes.md`
 
 <script src="l18-widget-data.js"></script>
 <script src="widgets.js"></script>
 <script src="clicker-slide.js"></script>
-<script type="module" src="rag-chat.js"></script>
+<script src="rag-index.js"></script>
+<script src="rag-chat.js"></script>

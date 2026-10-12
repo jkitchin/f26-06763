@@ -57,8 +57,15 @@ Times were measured in headless Chrome on an Apple-silicon Mac (reranking: 3.2 s
 transformers.js, MiniSearch and WebLLM from jsDelivr, and model weights from the Hugging Face
 Hub, the first time each is needed, and the browser caches them. That is deliberate and limited
 to this capstone. WebGPU also requires a secure context, which the site has had since HTTPS was
-enforced on 2026-08-08 (CLAUDE.md section 8); a page served over plain HTTP would see no
-`navigator.gpu` and fall back to retrieval only.
+enforced on 2026-08-08 (CLAUDE.md section 8), and which Chrome also grants a page opened from
+disk; a page served over plain HTTP would see no `navigator.gpu` and fall back to retrieval only.
+
+**No server is needed.** `rag-chat.js` is a classic script and the index ships as
+`rag-index.js` (`window.RAG_INDEX = ...`), because browsers refuse module scripts and `fetch()` of
+local files on a `file://` page but run classic scripts, and `import()` from a CORS-enabled CDN
+still works there. So the rendered deck runs the chat whether it comes from the course site or is
+double-clicked from disk. `data-index="rag-index.json"` fetches the JSON instead, for a page
+that is served.
 
 **Measured** (headless Chrome, Apple silicon): a 1,529-token prompt and a short answer took
 12.8 s, so prompt processing runs at roughly 100+ tokens per second once the model is warm.
@@ -72,17 +79,16 @@ machine before class, and do not ask a room of students to download it at once o
 
 ```bash
 python tools/rag_index.py --lectures l01-l17      # or no flag: whatever _toc.yml releases
-(cd chat && npm ci && node embed.mjs)            # writes chat/build/rag-index.json
-python3 -m http.server -d chat 8016              # modules and fetch do not work from file://
-# open http://localhost:8016/demo.html; demo.html?q=... runs one query on load
+(cd chat && npm ci && node embed.mjs)            # writes chat/build/rag-index.{json,js}
+open chat/demo.html                              # from disk; demo.html?q=... runs one query on load
 ```
 
-To author the L18 deck locally, symlink the module and the index beside it (both are
-gitignored, like the clicker's):
+To author the L18 deck locally, symlink the script and the index beside it (gitignored, like the
+clicker's), render from the repo root with `--html`, and open the HTML from disk:
 
 ```bash
 ln -s ../../chat/rag-chat.js lectures/l18/rag-chat.js
-ln -s ../../chat/build/rag-index.json lectures/l18/rag-index.json
+ln -s ../../chat/build/rag-index.js lectures/l18/rag-index.js
 ```
 
 ## Changing things

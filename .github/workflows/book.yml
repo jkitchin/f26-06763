@@ -549,7 +549,7 @@ jobs:
             cp arcade/rounds/*.json "$out/rounds/"
             # The L18 capstone: its module and the index built in the step above.
             if grep -q 'class="rag-chat"' "$deck"; then
-              cp chat/rag-chat.js chat/build/rag-index.json "$out/"
+              cp chat/rag-chat.js chat/build/rag-index.json chat/build/rag-index.js "$out/"
             fi
           done
 

@@ -89,3 +89,4 @@ chat/node_modules/
 # Local authoring of the L18 deck: the capstone module and index, symlinked beside it like the clicker.
 lectures/*/rag-chat.js
 lectures/*/rag-index.json
+lectures/*/rag-index.js

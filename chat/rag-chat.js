@@ -1,15 +1,20 @@
 /* Chat with the course notes: the L18 capstone, a retrieval-augmented generation pipeline that
  * runs entirely in the browser tab.
  *
- *     <div class="rag-chat" data-index="rag-index.json"
- *          data-examples="what does forgetting zero_grad do|what is LoRA fine-tuning">
- *       fallback text, shown only where the script cannot run
+ *     <div class="rag-chat" data-examples="what does forgetting zero_grad do|what is LoRA fine-tuning">
+ *       fallback text, shown only where scripts do not run
  *     </div>
- *     <script type="module" src="rag-chat.js"></script>
+ *     <script src="rag-index.js"></script>
+ *     <script src="rag-chat.js"></script>
+ *
+ * Plain scripts, not modules, so the page works opened straight from disk (file://) as well as
+ * from a web server: browsers refuse module scripts and fetch() of local files on file:// pages,
+ * but run classic scripts, and import() from a CORS-enabled CDN still works there. The index is
+ * read from window.RAG_INDEX (rag-index.js); data-index="rag-index.json" fetches it instead.
  *
  * data-examples (optional, separated by |) adds one-click example questions; data-model picks
- * the generator. Anything inside the element is a fallback for viewers that cannot run module
- * scripts (a deck opened from disk, an editor preview, a PDF export) and is removed on mount.
+ * the generator. Anything inside the element is a fallback for viewers that do not run scripts
+ * (an editor preview, a PDF export) and is removed on mount.
  *
  * Every stage is drawn as a block in a strip at the top of the widget, lit while it runs and
  * labeled with its time, because the point of the capstone is to see the pipeline, not only the
@@ -34,6 +39,9 @@
  * caches them. Versions are pinned here, and the embedding model must match the build's, which
  * the index records and this file checks.
  */
+
+(function () {
+'use strict';
 
 const LIB = {
   transformers: 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.1',
@@ -171,7 +179,7 @@ async function mount(root) {
     h('span', { class: 'rag-status' }, ex, 'Try:');
     root.dataset.examples.split('|').forEach((q) => {
       const b = h('button', { type: 'button' }, ex, q.trim());
-      b.onclick = () => { if (ask.disabled) return; input.value = q.trim(); run(); };
+      b.onclick = () => { input.value = q.trim(); if (!ask.disabled) run(); };
     });
   }
   const row2 = h('div', { class: 'rag-row' }, root);
@@ -193,7 +201,8 @@ async function mount(root) {
   // --- index, keyword index, embedder: everything retrieval needs, at mount time ---------------
   let index, vec, mini, embedder, reranker, engine = null;
   try {
-    index = await timed('index', async () => (await fetch(root.dataset.index || 'rag-index.json')).json());
+    index = await timed('index', async () => window.RAG_INDEX ||
+      (await fetch(root.dataset.index || 'rag-index.json')).json());
     if (index.transformers !== TRANSFORMERS_VERSION) {
       status.textContent = `Index built with transformers.js ${index.transformers}, page uses ${TRANSFORMERS_VERSION}: rebuild the index.`;
       return;
@@ -207,6 +216,7 @@ async function mount(root) {
     embedder = await tf.pipeline('feature-extraction', index.model, { dtype: index.dtype });
     status.textContent = `${index.chunks.length} passages from ${index.lectures.length} lectures, built ${index.built}. Ask a question.`;
     ask.disabled = false;
+    if (input.value.trim()) run(); // an example clicked while the models were still loading
     rerankBox.onchange = async () => {
       if (!rerankBox.checked || reranker) return;
       status.textContent = 'Loading the cross-encoder (about 23 MB)…';
@@ -338,7 +348,7 @@ async function mount(root) {
 }
 
 function boot() {
-  document.querySelectorAll('.rag-chat[data-index]').forEach((n) => {
+  document.querySelectorAll('.rag-chat').forEach((n) => {
     if (n.dataset.ready) return;
     n.dataset.ready = '1';
     mount(n);
@@ -346,3 +356,4 @@ function boot() {
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
 else boot();
+})();
