@@ -1,8 +1,15 @@
 /* Chat with the course notes: the L18 capstone, a retrieval-augmented generation pipeline that
  * runs entirely in the browser tab.
  *
- *     <div class="rag-chat" data-index="rag-index.json"></div>
+ *     <div class="rag-chat" data-index="rag-index.json"
+ *          data-examples="what does forgetting zero_grad do|what is LoRA fine-tuning">
+ *       fallback text, shown only where the script cannot run
+ *     </div>
  *     <script type="module" src="rag-chat.js"></script>
+ *
+ * data-examples (optional, separated by |) adds one-click example questions; data-model picks
+ * the generator. Anything inside the element is a fallback for viewers that cannot run module
+ * scripts (a deck opened from disk, an editor preview, a PDF export) and is removed on mount.
  *
  * Every stage is drawn as a block in a strip at the top of the widget, lit while it runs and
  * labeled with its time, because the point of the capstone is to see the pipeline, not only the
@@ -128,6 +135,7 @@ async function mount(root) {
   const LLM = { id: root.dataset.model || DEFAULT_MODEL };
   LLM.label = MODELS[LLM.id] || LLM.id;
   if (!document.getElementById('rag-css')) h('style', { id: 'rag-css' }, document.head, CSS);
+  root.textContent = '';
   root.classList.add('rag');
   const strip = h('div', { class: 'rag-strip' }, root);
   const stage = {};
@@ -158,6 +166,14 @@ async function mount(root) {
   const rr = h('label', {}, row);
   const rerankBox = h('input', { type: 'checkbox' }, rr);
   rr.append(' rerank');
+  if (root.dataset.examples) {
+    const ex = h('div', { class: 'rag-row' }, root);
+    h('span', { class: 'rag-status' }, ex, 'Try:');
+    root.dataset.examples.split('|').forEach((q) => {
+      const b = h('button', { type: 'button' }, ex, q.trim());
+      b.onclick = () => { if (ask.disabled) return; input.value = q.trim(); run(); };
+    });
+  }
   const row2 = h('div', { class: 'rag-row' }, root);
   const loadBtn = h('button', { type: 'button' }, row2, `Load the model (${LLM.label})`);
   const status = h('div', { class: 'rag-status', 'aria-live': 'polite' }, row2, 'Loading the index…');

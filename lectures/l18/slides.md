@@ -578,7 +578,11 @@ Every block from today, running with no server and no API key. Two run once, in 
 
 ## Capstone, live
 
-<div class="rag-chat compact" data-index="rag-index.json"></div>
+<div class="rag-chat compact" data-index="rag-index.json" data-examples="what does forgetting zero_grad do|why can't I shuffle sensor data before splitting it|what is LoRA fine-tuning|how does a Kalman filter update its state">
+
+**The chat runs here when this deck is served over HTTP**: on the course site at `/slides/l18/`, or locally with `python3 -m http.server -d lectures/l18`. Opened from disk or in an editor preview, the browser blocks its scripts.
+
+</div>
 
 <!-- Try, in order: "what does forgetting zero_grad do" (keyword wins), "why can't I shuffle
      sensor data before splitting" (paraphrase: vectors find it), the same with rerank on, then
