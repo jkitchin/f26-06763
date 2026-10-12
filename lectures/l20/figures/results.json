@@ -1,0 +1,293 @@
+{
+ "bandit": {
+  "greedy": {
+   "regret_500": 663.7,
+   "best_last100": 0.734,
+   "stuck_runs": 0.266
+  },
+  "eps": {
+   "regret_500": 883.9,
+   "best_last100": 0.899,
+   "stuck_runs": 0.022
+  },
+  "ucb2": {
+   "regret_500": 422.6,
+   "best_last100": 0.838,
+   "stuck_runs": 0.162
+  },
+  "ucb": {
+   "regret_500": 211.4,
+   "best_last100": 0.982,
+   "stuck_runs": 0.006
+  },
+  "thompson": {
+   "regret_500": 269.3,
+   "best_last100": 0.984,
+   "stuck_runs": 0.0
+  }
+ },
+ "tank": {
+  "rl_mse_h2": {
+   "mean": 0.221,
+   "min": 0.22,
+   "max": 0.232
+  },
+  "rl_mse_8starts": {
+   "mean": 1.4,
+   "sd": 1.313,
+   "min": 0.187,
+   "max": 4.085
+  },
+  "pid_pycse_mse_h2": 0.268,
+  "pid_pycse_mse_8starts": 0.323,
+  "pid_tuned_gains": [
+   3.6,
+   0.3,
+   0.0
+  ],
+  "pid_tuned_mse_h2": 0.196,
+  "pid_tuned_mse_8starts": 0.189,
+  "pid_tuned_quantized_mse_8starts": 0.222,
+  "steady_levels": [
+   0.0,
+   1.0,
+   4.0,
+   9.0,
+   16.0
+  ],
+  "chatter_last40_seed0": {
+   "1.0": 35,
+   "2.0": 5
+  },
+  "switches_last40_seed0": 10,
+  "fine_flows": [
+   0.0,
+   0.25,
+   0.5,
+   0.75,
+   1.0,
+   1.25,
+   1.5,
+   1.75,
+   2.0
+  ],
+  "rl_fine_mse_8starts": {
+   "mean": 0.989,
+   "sd": 0.943
+  },
+  "transitions_trained": 100000,
+  "q_table": [
+   20,
+   5
+  ],
+  "curve_first50": -33.8,
+  "curve_last50": -13.7,
+  "hacks": {
+   "steady": {
+    "final_levels_seed0": [
+     1.0,
+     1.0,
+     4.0,
+     4.0,
+     4.0,
+     8.97,
+     8.99,
+     9.0
+    ],
+    "mean_final_level": 5.12,
+    "mse_mean": 9.69
+   },
+   "band": {
+    "final_levels_seed0": [
+     4.27,
+     4.42,
+     4.22,
+     4.58,
+     4.35,
+     4.22,
+     4.39,
+     4.2
+    ],
+    "mean_final_level": 4.4,
+    "mse_mean": 0.55
+   }
+  }
+ },
+ "cliff": {
+  "sarsa": {
+   "online_return_last100": -26.4,
+   "greedy_path_len_mode": 17,
+   "greedy_path_lens": [
+    17,
+    19,
+    60
+   ]
+  },
+  "q": {
+   "online_return_last100": -49.3,
+   "greedy_path_len_mode": 13,
+   "greedy_path_lens": [
+    13
+   ]
+  }
+ },
+ "qhand": {
+  "after_script": [
+   [
+    0.0,
+    0.766
+   ],
+   [
+    0.202,
+    0.15
+   ],
+   [
+    0.5,
+    0.0
+   ]
+  ],
+  "final": [
+   [
+    4.261,
+    4.735
+   ],
+   [
+    4.261,
+    4.238
+   ],
+   [
+    4.831,
+    2.479
+   ]
+  ],
+  "qstar": [
+   [
+    4.263,
+    4.737
+   ],
+   [
+    4.263,
+    4.253
+   ],
+   [
+    4.837,
+    4.253
+   ]
+  ],
+  "policy": [
+   "open",
+   "shut",
+   "shut"
+  ],
+  "max_err_final": 1.7742,
+  "updates_to_0p01": null,
+  "policy_settled_at": 3,
+  "visits": [
+   [
+    18,
+    117
+   ],
+   [
+    123,
+    21
+   ],
+   [
+    25,
+    2
+   ]
+  ],
+  "err_by_entry": [
+   [
+    0.002,
+    0.002
+   ],
+   [
+    0.002,
+    0.015
+   ],
+   [
+    0.006,
+    1.774
+   ]
+  ]
+ },
+ "actions": {
+  "thetas": [
+   [
+    1.185,
+    10.451
+   ],
+   [
+    1.109,
+    1.144
+   ],
+   [
+    1.125,
+    1.56
+   ],
+   [
+    1.02,
+    2.983
+   ],
+   [
+    1.199,
+    2.609
+   ],
+   [
+    2.029,
+    15.077
+   ],
+   [
+    1.257,
+    2.528
+   ],
+   [
+    1.187,
+    3.332
+   ],
+   [
+    1.197,
+    2.666
+   ],
+   [
+    1.134,
+    1.429
+   ]
+  ],
+  "mse_8starts": {
+   "mean": 0.176,
+   "sd": 0.025,
+   "min": 0.163,
+   "max": 0.227
+  },
+  "mse_h2_mean": 0.208,
+  "theta0_mean": 1.244,
+  "holding_inflow": 1.118,
+  "transitions": 300000,
+  "median_seed": 4,
+  "curve_first10": -947.5,
+  "curve_last20": -11.4,
+  "q_row_setpoint": {
+   "bin_level": 4.74,
+   "q": [
+    -1.2,
+    -0.91,
+    -0.75,
+    -0.79,
+    -0.89
+   ],
+   "softmax": [
+    0.005,
+    0.093,
+    0.473,
+    0.316,
+    0.113
+   ],
+   "argmax_F": 1.0
+  },
+  "gaussian_at_h48": {
+   "mu": 1.72,
+   "sigma": 0.3
+  }
+ }
+}

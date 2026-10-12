@@ -1,326 +1,565 @@
-# L20 has no figures and almost no bolded numbers. It is not item-poor, it is
-# number-poor: only three of the ten kinds need a number, and this bank is built
-# from the mechanism paragraphs, the pitfall admonition, and the pushback
-# section instead.
+# L20 item bank for reinforcement learning: where it sits by the feedback the learner gets,
+# bandits as the bridge from Bayesian optimization, the Markov decision process, Q-learning on
+# the PyCSE tank against a tuned PID, rewards the agent games, cliff walking, deep RL and the
+# tools, the case studies, and the limitations. Every item quotes lectures/l20/notes.md; the
+# numbers come from lectures/l20/figures/make_figures.py.
+#
+# Version 3 replaces versions 1 and 2, which were the agents lecture that used to be L20 (it is
+# in lectures/l19/agents/ until the L19 rewrite). The archive in pools/l20.json keeps them, so
+# PDFs issued against them still verify.
 
 schema: 1
 lecture: l20
-title: "Agent fundamentals: tool use, function calling, planning loops"
+title: "Reinforcement learning: learning to act from rewards"
 source_notes: lectures/l20/notes.md
+# Held until release: tools/release_lecture.py flips this to published.
 status: unwritten
-# Ten items and a serve of 8 means two students share most of their draw, which
-# weakens the item-set half of the evidence design. Serving 6 until the bank
-# grows past 15. GROWTH TARGET: 15+ items.
-serve: 5
-pool_version: 2
+# serve = pool // 2, so a retake can be served a disjoint set (CLAUDE.md section 9c).
+serve: 10
+pool_version: 3
 provenance:
-  drafted_by: hand
-  reviewed_by: jkitchin
-  reviewed_at: 2026-08-08
+  drafted_by: claude
+  reviewed_by: none
+  reviewed_at: 2026-10-12
 
 items:
 
-  - id: l20-q01
-    kind: locus_of_control
-    rung: 3
-    difficulty: 2
-    objectives: [l20-o3]
-    prompt: |
-      Your agent calls `query_sensor_db` with mote 5, gets "no data for this
-      mote", calls it again with mote 5, gets the same error, and calls it a
-      third time.
+  # --- o1: vocabulary ------------------------------------------------------------------------------
 
-      Where does the fix belong?
+  - id: l20-q01
+    kind: mcq
+    rung: 1
+    difficulty: 1
+    objectives: [l20-o1]
+    prompt: |
+      The tank agent uses a discount factor γ = 0.95, one decision every 0.5 time units. Roughly
+      how far ahead does it look?
     options:
-      - "In the model: raise the temperature so it explores a different tool instead of repeating itself"
-      - "In the tool: raise an exception on a bad mote id so the loop stops on the first failed call"
-      - "In the harness: break after the third identical failing call, with an explicit message"
-      - "In the prompt: instruct the model to keep track of calls it has already made and never repeat one that failed"
-    answer: "In the harness: break after the third identical failing call, with an explicit message"
+      - "One step, because Q-learning only ever looks at the next state"
+      - "About 20 steps, or 10 time units"
+      - "The whole 100-step episode, equally weighted at every step"
+      - "About 95 steps, one for each hundredth of the discount"
+    answer: "About 20 steps, or 10 time units"
     evidence: |
-      The harness does not wait for the model to notice it is stuck, because a
-      model that has not noticed after two identical failures is not about to
-      notice on the third. It decides, on the model's behalf, that this line of
-      attempts is over. Note what the second option gets wrong: a tool that
-      crashes on bad input does not fail safely, it stops the entire agent on the
-      first mistake, which is strictly worse than handing back an error a caller
-      can act on.
+      A reward k steps away counts γ^k as much as one now, so the effective horizon is roughly
+      1/(1 − γ) = 20 steps. That is four times as long as the tank takes to fill from 2 to 5 at
+      full inflow, long enough to see the overshoot an early valve opening causes.
     source:
       file: lectures/l20/notes.md
-      heading: "Bounding the loop"
-      quote: "third identical failing call, with an explicit message rather than a silent stop"
-    verify: {mode: quote, needle: "third identical failing call", volatility: stable}
-    tags: [agents, harness, loop-detection]
+      heading: "The Markov decision process"
+      quote: |
+        that is 20 steps, or 10 time units
+    verify: {mode: quote, needle: "20 steps, or 10 time units", volatility: stable}
+    tags: [discount, horizon]
 
   - id: l20-q02
+    kind: mcq
+    rung: 1
+    difficulty: 1
+    objectives: [l20-o1]
+    prompt: |
+      If you knew the Q-function of the best policy, Q*(s, a), how would you act?
+    options:
+      - "Sample actions in proportion to their Q-values in each state"
+      - "In each state, take the action with the largest Q*(s, a)"
+      - "Take the action with the largest immediate reward in each state"
+      - "Keep exploring at random one time in five, forever"
+    answer: "In each state, take the action with the largest Q*(s, a)"
+    evidence: |
+      Q*(s, a) is the expected return from taking a in s and then acting optimally. With it in hand,
+      acting well is a lookup: the best action is the one with the largest value.
+    source:
+      file: lectures/l20/notes.md
+      heading: "Values and the Bellman equation"
+      quote: |
+        acting well would be
+        trivial: in each state, take the action with the largest $Q^\ast(s,a)$.
+    verify: {mode: quote, needle: "acting well would be trivial", volatility: stable}
+    tags: [q-function]
+
+  - id: l20-q03
     kind: spot_the_defect
     rung: 3
     difficulty: 2
-    objectives: [l20-o2]
+    objectives: [l20-o1]
     prompt: |
-      A tool is registered with the description `"queries the sensor database"`
-      and a single free-text `query` argument. The model calls it with the wrong
-      arguments most of the time.
-
-      What is wrong?
+      A team's learned reactor controller behaves strangely. Its state is the reactor temperature
+      alone, and the catalyst has been deactivating for a week. What is the first thing to check?
     options:
-      - "The model is too small for tool use; a larger model would infer the argument format from the tool name"
-      - "The description was written for a human reader, not for the model that has to call it"
-      - "The tool should be split into four narrower tools, one per variable, so that no argument is needed"
-      - "Tool descriptions should be short so they do not crowd the context window; the fault is in the arguments alone"
-    answer: "The description was written for a human reader, not for the model that has to call it"
+      - "The learning rate, because a deactivating catalyst needs a larger α"
+      - "Whether the state leaves out something the dynamics depend on"
+      - "The discount factor, which should be 1 for a continuous process"
+      - "Whether the reward is scaled to between 0 and 1"
+    answer: "Whether the state leaves out something the dynamics depend on"
     evidence: |
-      Nothing in "queries the sensor database" tells the model what a valid mote
-      id looks like, what variables exist, or when to call this tool rather than
-      another. The version that works says what it reads, over what range of
-      inputs, and what it returns on failure. A tool description is a prompt in
-      every meaningful sense and deserves the same care. The model never sees
-      your docstring's intent, only the string in the schema.
+      The Markov property is a modelling choice. Temperature alone does not determine the next
+      temperature when the catalyst is changing, so the state has to include the deactivation, or
+      something that tracks it.
     source:
       file: lectures/l20/notes.md
-      heading: "Designing tools an LLM can use correctly"
-      quote: "The model never sees your docstring's intent, only the string in the schema."
-    verify: {mode: quote, needle: "only the string in the schema", volatility: stable}
-    tags: [agents, tool-design]
-
-  - id: l20-q03
-    kind: mcq
-    rung: 2
-    difficulty: 2
-    objectives: [l20-o2]
-    prompt: |
-      What should a tool do when the model calls it with an invalid argument, for
-      example a mote id that has no data?
-    options:
-      - "Raise an exception, so the failure is loud and the agent stops before it can compound the mistake"
-      - "Return a plain, informative result the model can read and react to"
-      - "Return an empty result, so the model infers that nothing matched and moves on"
-      - "Retry internally with a nearby valid id, so the agent makes progress without a wasted turn"
-    answer: "Return a plain, informative result the model can read and react to"
-    evidence: |
-      This is called out as the single most consequential design decision in tool
-      design, and the answer is never an uncaught exception. The demo tests it by
-      asking for a mote that genuinely has no data in the real Intel Lab file,
-      and the model reads the error and tries a different mote instead of the
-      loop dying. An empty result is nearly as bad as a crash: it is
-      indistinguishable from a successful query that found nothing.
-    source:
-      file: lectures/l20/notes.md
-      heading: "Designing tools an LLM can use correctly"
-      quote: "Return a **plain, informative result**"
-    verify: {mode: quote, needle: "plain, informative result", volatility: stable}
-    tags: [agents, tool-design, error-handling]
+      heading: "The Markov decision process"
+      quote: |
+        When a learned controller behaves strangely, a state that leaves out something
+        the dynamics depend on is one of the first things to check.
+    verify: {mode: quote, needle: "a state that leaves out something", volatility: stable}
+    tags: [markov-property]
 
   - id: l20-q04
     kind: mcq
-    rung: 3
-    difficulty: 3
-    objectives: [l20-o3]
+    rung: 2
+    difficulty: 2
+    objectives: [l20-o1]
     prompt: |
-      You have added a max-step budget, a cost cap, and loop detection to your
-      agent. What have you *not* achieved?
+      A corridor of eight cells pays +1 only at the right end. With one-step Q-learning updates,
+      how does that reward reach the first cell?
     options:
-      - "Nothing further is needed; those three bounds are what makes an agent production-ready"
-      - "Safety. The loop is limited, not safe: three tool calls is plenty to delete something if a tool can delete something"
-      - "Debuggability, which requires structured logging of every step in addition to the bounds"
-      - "Determinism, which requires pinning the temperature to zero as well as bounding the loop"
-    answer: "Safety. The loop is limited, not safe: three tool calls is plenty to delete something if a tool can delete something"
+      - "All at once, after the first episode that reaches the end"
+      - "One cell further back per episode, discounted each time"
+      - "Never, because cells far from the reward are never updated"
+      - "Only if the reward is moved to the start of the corridor"
+    answer: "One cell further back per episode, discounted each time"
     evidence: |
-      A well-bounded loop is not a safe loop, only a limited one. Bounds stop an
-      agent running forever or repeating a failure indefinitely, and none of them
-      says anything about whether the actions it does take are ones you wanted.
-      Logging and determinism are both real concerns and both appear elsewhere in
-      this session, but neither is what the bounds fail to buy. Safety is a
-      question about tool capability, and that is L20's subject.
+      Each update reads the next cell's estimate through the max term, which is bootstrapping. So
+      the news travels back one cell per episode. Monte Carlo, which waits for the whole return,
+      fills the corridor in one episode at the price of variance.
     source:
       file: lectures/l20/notes.md
-      heading: "Where this pushes back"
-      quote: "none of them stop it from doing something genuinely harmful within those bounds, three tool calls is plenty to delete something if the tool it calls can delete something"
-    verify: {mode: quote, needle: "stop it from doing something genuinely harmful within those bounds", volatility: stable}
-    tags: [agents, safety, bounds]
+      heading: "Values and the Bellman equation"
+      quote: |
+        Each
+        episode carries the news back one more cell, discounted by $\gamma$ each time.
+    verify: {mode: quote, needle: "carries the news back one more cell", volatility: stable}
+    tags: [credit-assignment, bootstrapping]
+
+  # --- o2: where reinforcement learning sits -----------------------------------------------------
 
   - id: l20-q05
-    kind: claim_vs_source
-    rung: 2
-    difficulty: 3
-    objectives: [l20-o1]
+    kind: mcq
+    rung: 1
+    difficulty: 1
+    objectives: [l20-o2]
     prompt: |
-      This session's demo proves the harness works against a scripted model that
-      cannot reason.
-
-      What does that demonstration establish, and what does it leave open?
+      A run with catalyst B gives a yield of 70%. What kind of feedback is that, and what does it
+      leave out?
     options:
-      - "It establishes that the agent works end to end, leaving only latency and cost to tune"
-      - "It establishes that the harness is correct, and leaves entirely open whether a real model chooses the right tool, with the right arguments, at the right time"
-      - "It establishes nothing useful, because a model that cannot reason is not a meaningful test of a system built around reasoning"
-      - "It establishes that the tool schemas are well formed, and leaves the harness logic untested"
-    answer: "It establishes that the harness is correct, and leaves entirely open whether a real model chooses the right tool, with the right arguments, at the right time"
+      - "Instructive: it names the right catalyst for this reaction"
+      - "Evaluative: it scores B and says nothing about the catalysts not tried"
+      - "Instructive: it is a labelled data point like any regression target"
+      - "Evaluative: it ranks every catalyst relative to B at once"
+    answer: "Evaluative: it scores B and says nothing about the catalysts not tried"
     evidence: |
-      The split is deliberate: the harness is the part you can fully verify
-      without a live API call, so it is verified, and the much harder question is
-      named rather than quietly folded into the demo's success. That harder
-      question is what A10 and L20's evaluation section actually measure. The
-      general habit is worth more than the example: know which half of a system
-      your test covers, and say so.
+      Instructive feedback names the right answer whatever the learner did; every label in L9 and
+      L10 is one. Evaluative feedback scores the choice made and nothing else, which is what forces
+      a reinforcement learner to explore.
     source:
       file: lectures/l20/notes.md
-      heading: "Where this pushes back"
-      quote: "It tells you nothing about\nwhether a real model will decide well."
-    verify: {mode: quote, needle: "whether a real model will decide well", volatility: stable}
-    tags: [agents, evaluation, testing]
+      heading: "Where reinforcement learning sits in machine learning"
+      quote: |
+        A yield of 70% tells you that
+        catalyst B gave 70%. It does not tell you whether catalyst C would have given 74%.
+    verify: {mode: quote, needle: "catalyst B gave 70%", volatility: stable}
+    tags: [feedback, landscape]
 
   - id: l20-q06
-    kind: mcq
-    rung: 3
-    difficulty: 2
-    objectives: [l20-o1]
-    prompt: |
-      An agent that worked reliably in testing starts failing differently in
-      production, on the same prompts, with no change to your code.
-
-      What is the most likely explanation, and what can you do about it?
-    options:
-      - "Temperature drift in your own configuration; pin it to zero and the behaviour becomes identical"
-      - "A silent model update on the provider's side; determinism is a preference, not a guarantee"
-      - "Context-window exhaustion, which changes behaviour once conversations grow past a threshold"
-      - "Rate limiting, which causes retries that present as different tool choices"
-    answer: "A silent model update on the provider's side; determinism is a preference, not a guarantee"
-    evidence: |
-      Low temperature makes tool choices more consistent, not identical, and a
-      provider-side update can change behaviour on the exact same prompt with no
-      warning and no version bump you control. The notes are explicit that there
-      is no clean engineering fix for this beyond monitoring and pinning. That is
-      an unusual thing for a course to say and it is worth remembering: some
-      operational risks are managed rather than solved.
-    source:
-      file: lectures/l20/notes.md
-      heading: "Where this pushes back"
-      quote: "a model update on the provider's side can change its behavior on the exact same prompt with no warning and no version bump you control"
-    verify: {mode: quote, needle: "change its behavior on the exact same prompt with no warning", volatility: stable}
-    tags: [agents, determinism, operations]
-
-  - id: l20-q07
-    kind: locus_of_control
-    rung: 2
-    difficulty: 2
-    objectives: [l20-o1]
-    prompt: |
-      A task can be written as a fixed sequence of four steps that always run in
-      the same order. Should it be an agent?
-    options:
-      - "Yes; an agent handles the fixed case too and gives you room to grow"
-      - "No. Reach for an agent only once a fixed pipeline has stopped being sufficient"
-      - "Yes, provided the loop is bounded, since bounds remove the cost objection"
-      - "It makes no difference; the two compile to the same sequence of API calls"
-    answer: "No. Reach for an agent only once a fixed pipeline has stopped being sufficient"
-    evidence: |
-      A four-step agent loop is at minimum four round trips to a model, plus tool
-      execution, and that adds up in a way one well-designed prompt does not. The
-      distinction that matters is where control flow lives: in a workflow you
-      decide the order, in an agent the model does. Paying for the model to
-      decide something you already know is the commonest way an agent turns out
-      to be worse than the pipeline it replaced.
-    source:
-      file: lectures/l20/notes.md
-      heading: "Where this pushes back"
-      quote: "not as a default architecture"
-    verify: {mode: quote, needle: "not as a default architecture", volatility: stable}
-    tags: [agents, architecture]
-
-  - id: l20-q08
-    kind: mechanism_recall
-    rung: 5
-    difficulty: 3
-    objectives: [l20-o1]
-    prompt: |
-      Close the notes. Write out the tool-calling loop from memory, step by step,
-      and say what ends it. Stop when you stall, and note where.
-    checklist:
-      - text: "Send the prompt plus the tool schemas to the model"
-        needle: "tool"
-      - text: "The model returns either an answer or a request to call a tool"
-        needle: "call"
-      - text: "The harness executes the tool and appends the result to the conversation"
-        needle: "result"
-      - text: "Repeat, with the model now seeing what the tool returned"
-        needle: "loop"
-      - text: "It ends on an answer, or on a bound: max steps, cost, timeout, or loop detection"
-        needle: "budget"
-    answer: null
-    evidence: |
-      The part people leave out is the last one, and it is the one the session
-      most wants you unable to forget: an agent loop with no bound is not a
-      feature, it is an unmanaged liability. If your loop ended only when the
-      model decided to stop, you have described a program whose termination
-      condition is a language model's judgement.
-    source:
-      file: lectures/l20/notes.md
-      heading: "Bounding the loop"
-      quote: "An agent loop with no bound is an unmanaged liability"
-    verify:
-      mode: manual
-      needle: "unmanaged liability"
-      volatility: stable
-      exempt_reason: >-
-        Free-text recall; each checklist entry is verified against the source
-        individually rather than the answer being matched as a whole.
-    tags: [agents, self-test]
-
-  - id: l20-q09
     kind: mcq
     rung: 2
     difficulty: 2
     objectives: [l20-o2]
     prompt: |
-      Why type and validate tool arguments with a real JSON Schema rather than
-      accepting a free-text string the tool parses itself?
+      Bayesian optimization (L15) and reinforcement learning both learn from scores. What does
+      reinforcement learning have that Bayesian optimization does not?
     options:
-      - "It makes the tool faster, since parsing is done by the provider rather than in your code"
-      - "A malformed call can be rejected before your tool code runs, rather than crashing inside it"
-      - "It is required by the tool-calling API, which rejects tools without typed arguments"
-      - "It reduces token usage, because a schema is more compact than a prose description"
-    answer: "A malformed call can be rejected before your tool code runs, rather than crashing inside it"
+      - "A surrogate model linking the choices that were tried"
+      - "Actions that change the state the learner faces next"
+      - "Noise in the measured outcome of each choice it makes"
+      - "An acquisition function trading exploration against exploitation"
+    answer: "Actions that change the state the learner faces next"
     evidence: |
-      A schema does two jobs at once. It tells the model what a valid call looks
-      like, which reduces malformed calls; and where the provider supports strict
-      validation, it rejects the ones that still happen at the boundary rather
-      than inside your code. That is the same principle as declaring a dtype at
-      the boundary in L11: check where the value enters, not after it has already
-      travelled.
+      Running a reaction at 80 °C today does not change what 90 °C will give tomorrow, so each
+      experiment is a fresh decision. In reinforcement learning the action changes the state, and
+      through it every later reward.
     source:
       file: lectures/l20/notes.md
-      heading: "Designing tools an LLM can use correctly"
-      quote: "rather than trusting the model to spell \"temperature\"\nconsistently"
-    verify: {mode: quote, needle: "trusting the model to spell", volatility: stable}
-    tags: [agents, tool-design, validation]
+      heading: "Where reinforcement learning sits in machine learning"
+      quote: |
+        Its choices do not
+        change the system, though.
+    verify: {mode: quote, needle: "change the system, though", volatility: stable}
+    tags: [landscape, bayesian-optimization]
+
+  - id: l20-q07
+    kind: claim_vs_source
+    rung: 3
+    difficulty: 2
+    objectives: [l20-o2]
+    prompt: |
+      "Reinforcement learning from human feedback lets a person grade every output the model
+      writes." What did InstructGPT actually optimize with PPO?
+    options:
+      - "Labelers' scores, collected live for every output during training"
+      - "A reward model trained to predict which output labelers would prefer"
+      - "The next-token loss on a larger set of human-written answers"
+      - "The number of tokens in each answer, as a proxy for helpfulness"
+    answer: "A reward model trained to predict which output labelers would prefer"
+    evidence: |
+      The paper trains a reward model on labelers' comparisons and then uses it as the reward for
+      PPO. The environment is a learned stand-in for a person's judgement, so it can be gamed like
+      any other reward.
+    source:
+      file: lectures/l20/notes.md
+      heading: "Where it meets language models"
+      quote: |
+        The environment is a learned reward
+        model standing in for a person's judgement
+    verify: {mode: quote, needle: "standing in for a person's judgement", volatility: stable}
+    tags: [rlhf]
+
+  - id: l20-q08
+    kind: direction
+    rung: 2
+    difficulty: 2
+    objectives: [l20-o2]
+    prompt: |
+      Five catalysts, 500 runs. Greedy choice (always the best average so far) against ε-greedy
+      with ε = 0.1: what happened to greedy?
+    options:
+      - "It found the best catalyst in every run, faster than ε-greedy did"
+      - "It settled on a wrong catalyst in about a quarter of runs"
+      - "It spread its runs evenly over all five catalysts"
+      - "It had the highest regret of all four strategies"
+    answer: "It settled on a wrong catalyst in about a quarter of runs"
+    evidence: |
+      One unlucky early yield from catalyst C convinced it that C was poor, and it never tried C
+      again: stuck in 27% of runs. ε-greedy never got stuck but had the highest regret, 884 points,
+      because it kept pulling random arms.
+    source:
+      file: lectures/l20/notes.md
+      heading: "Bandits: the bridge from Bayesian optimization"
+      quote: |
+        Greedy settles on a wrong catalyst in 27% of runs
+    verify: {mode: quote, needle: "wrong catalyst in 27% of runs", volatility: measured}
+    tags: [bandit, exploration]
+
+  - id: l20-q09
+    kind: spot_the_defect
+    rung: 3
+    difficulty: 3
+    objectives: [l20-o2]
+    prompt: |
+      Yields spread by about 8 points per run. A student copies UCB's c = 2 from Sutton and
+      Barto's examples. In 16% of runs it locks onto a wrong catalyst. What is wrong?
+    options:
+      - "UCB cannot work when rewards are noisy, so Thompson sampling is required"
+      - "c has the units of the reward; 2 is small next to a spread of 8"
+      - "c should shrink over time, and a constant value never converges"
+      - "Five arms are too few for UCB's logarithmic bonus to apply"
+    answer: "c has the units of the reward; 2 is small next to a spread of 8"
+    evidence: |
+      The textbook's rewards have a spread of about 1. Setting c to the noise standard deviation,
+      8, cut the stuck runs to under 1%. L15 wrote UCB as μ + κσ so the model's uncertainty
+      carries the units.
+    source:
+      file: lectures/l20/notes.md
+      heading: "Bandits: the bridge from Bayesian optimization"
+      quote: |
+        The constant has
+        the units of the reward
+    verify: {mode: quote, needle: "the units of the reward", volatility: stable}
+    tags: [bandit, ucb, hyperparameters]
+
+  # --- o3: Q-learning on the tank ----------------------------------------------------------------
 
   - id: l20-q10
-    kind: notebook_run
-    rung: 4
+    kind: mcq
+    rung: 1
+    difficulty: 1
+    objectives: [l20-o3]
+    prompt: |
+      In the Q-learning update, what is the bracket r + γ max Q(s', a') − Q(s, a)?
+    options:
+      - "The reward the agent expects at the end of the episode"
+      - "The TD error: what the step suggests minus what the table says"
+      - "The probability of choosing a random action at this step"
+      - "The gradient of the policy with respect to the network weights"
+    answer: "The TD error: what the step suggests minus what the table says"
+    evidence: |
+      The temporal-difference error compares the one-step target with the current estimate, and
+      the learning rate α sets how far each sample moves the entry toward it.
+    source:
+      file: lectures/l20/notes.md
+      heading: "Q-learning on a tank"
+      quote: |
+        what the step suggested the value should
+        be, minus what the table said.
+    verify: {mode: quote, needle: "minus what the table said", volatility: stable}
+    tags: [q-learning, td-error]
+
+  - id: l20-q11
+    kind: mcq
+    rung: 2
     difficulty: 2
     objectives: [l20-o3]
     prompt: |
-      Open [`l20-agent.ipynb`](../lectures/l20/l20-agent.ipynb) and run the
-      loop-detection case, where the scripted model asks repeatedly for a mote
-      with no data.
-
-      What ends the loop, and what would have happened without that bound?
+      Why does the tank agent pick a random inflow one time in five (ε-greedy, ε = 0.2)?
     options:
-      - "The model gives up on its own after reading the error twice, so the bound is a formality"
-      - "The harness breaks after the third identical failing call, not the model noticing"
-      - "The tool raises an exception on the second call, which propagates and stops the run"
-      - "The max-step budget expires, which is why loop detection is redundant when a step budget exists"
-    answer: "The harness breaks after the third identical failing call, not the model noticing"
+      - "To keep the valve from wearing out in one position"
+      - "The table only learns about actions that get tried"
+      - "To add noise that makes the learned policy robust to sensors"
+      - "Because the PID baseline also uses random perturbations"
+    answer: "The table only learns about actions that get tried"
     evidence: |
-      Loop detection and the step budget are different bounds and both are worth
-      having: a step budget stops a loop that is making no progress, but only
-      after it has spent the whole budget doing so. Loop detection catches the
-      specific case of a model that is wrong the same way twice, and stops it
-      three calls in rather than twenty. Watching it fire is the point of running
-      the cell.
+      An entry for an action that is never taken never moves. Watkins and Dayan's convergence proof
+      requires all actions to be sampled repeatedly in all states, so exploration is a mathematical
+      requirement as well as a practical one.
     source:
       file: lectures/l20/notes.md
-      heading: "Bounding the loop"
-      quote: "breaking the loop after the\nthird identical failing call"
-    verify: {mode: quote, needle: "third identical failing call", volatility: stable}
-    tags: [agents, notebook, loop-detection]
+      heading: "Q-learning on a tank"
+      quote: |
+        because the table can only learn about actions that get
+        tried.
+    verify: {mode: quote, needle: "only learn about actions that get tried", volatility: stable}
+    tags: [epsilon-greedy, exploration]
+
+  - id: l20-q12
+    kind: predict_measure
+    rung: 2
+    difficulty: 3
+    objectives: [l20-o3]
+    prompt: |
+      From one start (h = 2), the trained agent beats a PID loop with hand-picked gains. Then the
+      PID is tuned, and both are tested from eight starting levels with ten training seeds. What
+      happens?
+    predict:
+      common_prior: "The agent still wins, since it learned from the tank itself"
+    options:
+      - "The agent still wins, since it learned from the tank itself"
+      - "The tuned PID wins, by about a factor of seven on average"
+      - "They tie, because both settle exactly on the setpoint"
+      - "The comparison cannot be made, since the agent uses five inflows"
+    answer: "The tuned PID wins, by about a factor of seven on average"
+    evidence: |
+      Over eight starts the agent's error was 1.40 ± 1.31 against 0.19 for the tuned PID. Half the
+      seeds matched the tuned PID; the other half failed from at least one start they rarely saw in
+      training.
+    source:
+      file: lectures/l20/notes.md
+      heading: "Against PID, compared fairly"
+      quote: |
+        beats it by a factor of seven on average over the
+        eight starts
+    verify: {mode: quote, needle: "beats it by a factor of seven", volatility: measured}
+    tags: [baseline, pid, seeds]
+
+  - id: l20-q13
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l20-o3]
+    prompt: |
+      The tank's outflow is k√h with k = 0.5, and the agent chooses inflow from {0, 0.5, 1, 1.5,
+      2}. Why does it switch back and forth near the setpoint of 5?
+    options:
+      - "Its learning rate is too high, so the table never settles"
+      - "No allowed inflow holds h = 5; that needs F = 1.118"
+      - "The reward penalizes standing still at any single level"
+      - "The 20 level bins are too coarse to see the setpoint at all"
+    answer: "No allowed inflow holds h = 5; that needs F = 1.118"
+    evidence: |
+      At steady state F = k√h, so the five inflows hold levels 0, 1, 4, 9 and 16. No policy over
+      this action set can hold 5; the best it can do is alternate, which is what the saw-tooth is.
+    source:
+      file: lectures/l20/notes.md
+      heading: "Against PID, compared fairly"
+      quote: |
+        No policy over this action set can hold the setpoint.
+    verify: {mode: quote, needle: "No policy over this action set can hold the setpoint", volatility: stable}
+    tags: [action-set, discretization]
+
+  - id: l20-q14
+    kind: direction
+    rung: 3
+    difficulty: 3
+    objectives: [l20-o3]
+    prompt: |
+      To fix the switching, the action set grows from five inflows to nine, with the same 1,000
+      training episodes. What happened to the error over eight starts?
+    options:
+      - "It fell to match the tuned PID, since 1.0 and 1.25 bracket 1.118 closely"
+      - "It was 0.99 ± 0.94: 180 entries need more data than 100"
+      - "It was unchanged, because the level bins limit accuracy"
+      - "It fell to zero, because one of the nine inflows holds h = 5"
+    answer: "It was 0.99 ± 0.94: 180 entries need more data than 100"
+    evidence: |
+      A bigger table needs more experience to fill, and the budget did not change. Discretization
+      has a cost on each side, and a continuous action is one reason deep RL methods exist.
+    source:
+      file: lectures/l20/notes.md
+      heading: "Against PID, compared fairly"
+      quote: |
+        because 180 table entries need
+        more experience than 100 and the training budget did not change.
+    verify: {mode: quote, needle: "180 table entries need more experience than 100", volatility: measured}
+    tags: [action-set, sample-cost]
+
+  - id: l20-q15
+    kind: predict_measure
+    rung: 2
+    difficulty: 2
+    objectives: [l20-o3]
+    prompt: |
+      The tank's reward becomes −|h(t+1) − h(t)|, "keep the level steady". Where does the trained
+      agent leave the level?
+    predict:
+      common_prior: "At the setpoint, 5, where a good controller keeps it"
+    options:
+      - "At the setpoint, 5, where a good controller keeps it"
+      - "At 1, 4 or 9: a level one constant inflow holds"
+      - "Empty, at 0, from every starting level it is given"
+      - "Wherever it started, by closing the inflow completely"
+    answer: "At 1, 4 or 9: a level one constant inflow holds"
+    evidence: |
+      The reward only penalizes movement, so the agent parks the tank at the nearest
+      constant-inflow steady state and leaves it there. The level is steady, the setpoint was never
+      in the reward, and the error from 5 is 9.69. This is specification gaming.
+    source:
+      file: lectures/l20/notes.md
+      heading: "Changing the reward"
+      quote: |
+        it parks the
+        tank at whichever constant-inflow steady state is nearest, 1, 4 or 9, and leaves it there.
+    verify: {mode: quote, needle: "steady state is nearest, 1, 4 or 9", volatility: measured}
+    tags: [specification-gaming, reward]
+
+  # --- o4: cliff walking -------------------------------------------------------------------------
+
+  - id: l20-q16
+    kind: mcq
+    rung: 1
+    difficulty: 2
+    objectives: [l20-o4]
+    prompt: |
+      SARSA and Q-learning differ in one term of the update. Which?
+    options:
+      - "SARSA uses a larger learning rate α than Q-learning"
+      - "SARSA uses the next action it will take; Q-learning the best one"
+      - "SARSA discounts future rewards and Q-learning does not"
+      - "SARSA updates only at the end of each complete episode"
+    answer: "SARSA uses the next action it will take; Q-learning the best one"
+    evidence: |
+      SARSA's target is r + γQ(s', a') for the action a' it will actually take, exploration
+      included, so it is on-policy. Q-learning's target uses max over a', the greedy action, so it is
+      off-policy.
+    source:
+      file: lectures/l20/notes.md
+      heading: "Exploration has a cost: cliff walking"
+      quote: |
+        That makes SARSA **on-policy**: it learns the value of the policy it is following, random
+        exploratory moves included.
+    verify: {mode: quote, needle: "random exploratory moves included", volatility: stable}
+    tags: [sarsa, on-policy]
+
+  - id: l20-q17
+    kind: direction
+    rung: 2
+    difficulty: 2
+    objectives: [l20-o4]
+    prompt: |
+      On cliff walking with ε = 0.1, which method earned more reward per episode while it was
+      still learning, and why?
+    options:
+      - "Q-learning, because it found the shorter 13-step path"
+      - "SARSA, about −26 against −49: its path keeps away from the edge"
+      - "Neither: both fall off the cliff at the same rate"
+      - "Q-learning, because off-policy methods explore less"
+    answer: "SARSA, about −26 against −49: its path keeps away from the edge"
+    evidence: |
+      Q-learning learns the shortest path, along the edge, and its exploratory moves knock it off.
+      SARSA learns the value of what it actually does, random moves included, and takes the 17-step
+      path across the top.
+    source:
+      file: lectures/l20/notes.md
+      heading: "Exploration has a cost: cliff walking"
+      quote: |
+        Q-learning earns an average of −49 per episode over the last 100 episodes and SARSA
+        −26
+    verify: {mode: quote, needle: "over the last 100 episodes and SARSA", volatility: measured}
+    tags: [cliff-walking, exploration]
+
+  - id: l20-q18
+    kind: spot_the_defect
+    rung: 3
+    difficulty: 3
+    objectives: [l20-o4]
+    prompt: |
+      A team proposes training a Q-learning controller directly on a running plant, with ε = 0.1,
+      learning from its own mistakes. What is the main problem?
+    options:
+      - "Q-learning cannot learn from data it collected itself"
+      - "Exploring happens on the equipment: random moves in unsafe states"
+      - "ε = 0.1 is too little exploration to converge on a plant"
+      - "The plant's state space is too small for reinforcement learning"
+    answer: "Exploring happens on the equipment: random moves in unsafe states"
+    evidence: |
+      A control system cannot step off a cliff ten percent of the time to find out how far the edge
+      is. That is the main reason RL for real equipment is trained in a simulator.
+    source:
+      file: lectures/l20/notes.md
+      heading: "Exploration has a cost: cliff walking"
+      quote: |
+        and this is the main reason RL for real equipment is trained in a simulator.
+    verify: {mode: quote, needle: "trained in a simulator", volatility: stable}
+    tags: [safety, simulation]
+
+  # --- o5: when to use it, and reading claims ----------------------------------------------------
+
+  - id: l20-q19
+    kind: claim_vs_source
+    rung: 3
+    difficulty: 3
+    objectives: [l20-o5]
+    prompt: |
+      "DeepMind used reinforcement learning to cut Google's data-centre cooling energy by 40%."
+      What do the sources say?
+    options:
+      - "The 2018 paper confirms a 40% saving from a deep RL agent"
+      - "The blog never says RL; the paper is a linear model with MPC, about 9%"
+      - "The 40% came from replacing PID loops with a tuned PID controller"
+      - "The saving was measured on a simulator and never deployed"
+    answer: "The blog never says RL; the paper is a linear model with MPC, about 9%"
+    evidence: |
+      The 2016 blog reports "up to 40 percent" from neural-network predictions and never uses the
+      words. Lazic et al. (2018) learned a linear model from three hours of exploration and used MPC,
+      with "the potential to save about 9%".
+    source:
+      file: lectures/l20/notes.md
+      heading: "Data-centre cooling: a number that drifted"
+      quote: |
+        The post never uses the words "reinforcement learning".
+    verify: {mode: quote, needle: "never uses the words", volatility: stable}
+    tags: [case-study, reading-claims]
+
+  - id: l20-q20
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l20-o5]
+    prompt: |
+      A unit has several interacting variables and constraints, and you can fit a dynamic model of
+      it. Which tool is usually right?
+    options:
+      - "Reinforcement learning, because the variables interact"
+      - "Model predictive control"
+      - "A bandit, one variable at a time, in sequence"
+      - "A generative model of past operating data"
+    answer: "Model predictive control"
+    evidence: |
+      MPC fits a model, optimizes the actions over a horizon, applies the first and repeats. With
+      a usable model it needs far fewer samples than model-free RL; Recht found policy gradient
+      needed thousands of times as many samples as simple nominal control on LQR.
+    source:
+      file: lectures/l20/notes.md
+      heading: "Limitations and trade-offs"
+      quote: |
+        Several interacting variables, constraints, a model you can fit | MPC
+    verify: {mode: quote, needle: "a model you can fit", volatility: stable}
+    tags: [mpc, choosing-a-tool]

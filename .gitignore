@@ -82,6 +82,7 @@ attic/
 # needs them there too, so symlink them and let git ignore the symlinks.
 lectures/*/widgets.js
 lectures/*/*-widget-data.js
+lectures/*/narration.js
 
 # L18 capstone: the chat index is built at deploy time from the released notes, never committed.
 chat/build/
