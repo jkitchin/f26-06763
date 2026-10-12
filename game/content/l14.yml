@@ -11,7 +11,7 @@ lecture: l14
 title: "Uncertainty quantification in machine learning"
 source_notes: lectures/l14/notes.md
 # Held until release: tools/release_lecture.py flips this to published.
-status: unwritten
+status: published
 serve: 7
 pool_version: 1
 provenance:
