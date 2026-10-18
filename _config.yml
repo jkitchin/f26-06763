@@ -95,6 +95,10 @@ sphinx:
       - course/assignments/a03-evidence.py.sha256
       - course/assignments/a04-evidence.py
       - course/assignments/a04-evidence.py.sha256
+      - course/assignments/a05-bioreactor.csv
+      - course/assignments/a05-bioreactor.csv.sha256
+      - course/assignments/a05-evidence.py
+      - course/assignments/a05-evidence.py.sha256
       - course/assignments/miniproject-evidence.py
       - course/assignments/miniproject-evidence.py.sha256
     # Do NOT add html_theme_options here. Jupyter Book merges sphinx.config into

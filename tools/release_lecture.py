@@ -42,14 +42,15 @@ TOC = REPO / "_toc.yml"
 
 #: Which assignment is released with which lecture, from course/schedule.md's
 #: "Assignment N released" markers. A4 moved from L7 to L8 when L8 became the ML
-#: workflow session: A4 asks for an ML model, and L7 fits without ever scoring. A5 moved
-#: from L9 to L10 (2026-09-22): it asks for tracking and a search, which are L10's. The miniproject launches at L10 and
+#: workflow session: A4 asks for an ML model, and L7 fits without ever scoring. A5 is the
+#: bioreactor assignment (2026-10-18), released with L14 once L13's scientific ML is out; the
+#: model-selection A5 once planned for L10 was dropped. The miniproject launches at L10 and
 #: lives in the Projects part, so it is not listed here. A lecture with no entry
 #: releases no assignment. On 2026-10-08 the LLM arc moved two sessions later (UQ, BO and
 #: AL/RL now fill L14 to L16), so A8 to A10 follow their lectures: A8 with L18 (structured
 #: output), A9 with L19 (RAG), A10 with L20 (agents); A11 stays with L21.
 LECTURE_ASSIGNMENTS = {
-    1: ["a01"], 4: ["a02"], 6: ["a03"], 8: ["a04"],   # a05: not released at L10; date open
+    1: ["a01"], 4: ["a02"], 6: ["a03"], 8: ["a04"], 14: ["a05"],
     18: ["a08"], 19: ["a09"], 20: ["a10"], 21: ["a11"],   # a06: not released at L11; date open
 }
 
