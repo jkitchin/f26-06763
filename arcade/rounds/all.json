@@ -3599,6 +3599,315 @@
         "The neural DAE in the network; the projection layer in the solver",
         "Both after training, by clipping the outputs"
       ]
+    },
+    {
+      "id": "l14-q01",
+      "kind": "mcq",
+      "lecture": "l14",
+      "context": "You re-test fifty more cylinders of concrete mixes you have already tested. Which part of\nthe uncertainty in the strength prediction for those mixes goes down?",
+      "why": "Repeats pin down the strength of those mixes, so what the model does not know shrinks.\nThe scatter between repeat specimens is the noise itself, and no number of repeats\nremoves it from the next specimen.",
+      "objectives": [
+        "l14-o1"
+      ],
+      "tags": [
+        "aleatoric",
+        "epistemic"
+      ],
+      "true": "Epistemic: the model learns those mixes better",
+      "false": [
+        "Aleatoric: repeated tests average the scatter away",
+        "Both, by the same amount",
+        "Neither, because the mixes are not new"
+      ]
+    },
+    {
+      "id": "l14-q02",
+      "kind": "mcq",
+      "lecture": "l14",
+      "context": "You need to know whether the next cylinder of a mix will pass a strength specification.\nWhich interval answers that?",
+      "why": "The cylinder that gets tested is a new measurement, carrying the noise as well as the\nmodel's uncertainty about the mean. A confidence or credible interval covers only the true\nfunction value, so it is narrower than what the specimen will do.",
+      "objectives": [
+        "l14-o1"
+      ],
+      "tags": [
+        "prediction-interval",
+        "confidence-interval"
+      ],
+      "true": "A prediction interval, which includes the scatter of a new specimen",
+      "false": [
+        "A confidence interval on the mean strength of the mix",
+        "A credible interval on the model's parameters",
+        "Any of them, since all three are the same width"
+      ]
+    },
+    {
+      "id": "l14-q03",
+      "kind": "mcq",
+      "lecture": "l14",
+      "context": "A forecaster ignores the mix and issues the same interval for every cylinder, the 5% to 95%\nrange of all past strengths. Its 90% intervals cover about 90% of new cylinders. What is\nwrong with it?",
+      "why": "This is the climatological forecaster. Calibration alone can be bought with width; the goal\nis the sharpest intervals that stay calibrated. On the concrete data it covered 91% with\nintervals 55.9 MPa wide, against 22.2 MPa for the rescaled ensemble.",
+      "objectives": [
+        "l14-o2"
+      ],
+      "tags": [
+        "sharpness",
+        "calibration",
+        "climatology"
+      ],
+      "true": "It is calibrated but not sharp: its intervals are too wide to be useful",
+      "false": [
+        "Nothing; it is calibrated, so it is a good forecast",
+        "It is miscalibrated, because it ignores the inputs",
+        "It is sharp but not calibrated"
+      ]
+    },
+    {
+      "id": "l14-q04",
+      "kind": "direction",
+      "lecture": "l14",
+      "context": "On the calibration mixes, the z-scores (y − μ)/σ of an ensemble have a mean square well\nabove 1. You rescale every σ by the factor that minimizes the negative log likelihood.\nWhat happens to the intervals?",
+      "why": "The best factor is the root mean square of the calibration z-scores. A mean square above 1\nmeans the errors are larger than the stated σ, so the model was overconfident and the\nfactor widens every interval.",
+      "objectives": [
+        "l14-o2"
+      ],
+      "tags": [
+        "recalibration",
+        "scale-factor"
+      ],
+      "true": "They get wider, because the factor is above 1",
+      "false": [
+        "They get narrower, because the factor is below 1",
+        "They stay the same width and shift toward the data",
+        "Nothing, because rescaling cannot change coverage"
+      ]
+    },
+    {
+      "id": "l14-q05",
+      "kind": "mcq",
+      "lecture": "l14",
+      "context": "With its kernel settings held fixed, what does a Gaussian process's predictive variance\ndepend on?",
+      "why": "The variance formula contains the kernel values between inputs and no y at all. At fixed\nsettings a GP that fits badly reports the same band as one that fits well; y reaches the\nband only through fitted hyperparameters.",
+      "objectives": [
+        "l14-o3"
+      ],
+      "tags": [
+        "gaussian-process",
+        "posterior-variance"
+      ],
+      "true": "Only the inputs and the kernel, not the observed targets",
+      "false": [
+        "The training targets, so a poor fit widens the band",
+        "The residuals of the mean on the training points",
+        "The number of points only, not where they are"
+      ]
+    },
+    {
+      "id": "l14-q06",
+      "kind": "spot_the_defect",
+      "lecture": "l14",
+      "context": "A team adds more simulation runs to an RBF Gaussian process and notices the fitted length\nscale falls every time: 0.09, then 0.06, then 0.03. They conclude the model is resolving\nfiner detail. What did they miss?",
+      "why": "To bend at a discontinuity, a smooth kernel shortens its length scale everywhere, and more\ndata push it further. Duvenaud's cookbook calls this a classic sign of misspecification;\nnear the step the 95% band covered 72%.",
+      "objectives": [
+        "l14-o3"
+      ],
+      "tags": [
+        "gaussian-process",
+        "kernel-misspecification",
+        "practitioner"
+      ],
+      "true": "A length scale that keeps shrinking signals a kernel that does not fit the function, such as a step",
+      "false": [
+        "Nothing; a shorter length scale always means a better model",
+        "The optimizer is failing to converge as the data grow",
+        "The noise level is too high for an RBF kernel"
+      ]
+    },
+    {
+      "id": "l14-q07",
+      "kind": "mcq",
+      "lecture": "l14",
+      "context": "Why is a Gaussian process fitted to five points, with its settings chosen by maximum\nlikelihood, often overconfident?",
+      "why": "Short and long length scales fit five points about equally, and the uncertainty about which\nis right never reaches the band. Over 200 data sets of five points, the median coverage of\na nominal 95% band was 78%.",
+      "objectives": [
+        "l14-o3"
+      ],
+      "tags": [
+        "gaussian-process",
+        "few-data",
+        "hyperparameters"
+      ],
+      "true": "Many settings explain five points equally well, and maximum likelihood keeps one as if known",
+      "false": [
+        "Five points are too few to compute a posterior at all",
+        "Maximum likelihood always overestimates the noise",
+        "The band cannot widen beyond the data with so few points"
+      ]
+    },
+    {
+      "id": "l14-q08",
+      "kind": "mcq",
+      "lecture": "l14",
+      "context": "Noise in a data set grows with x. A Gaussian process with one noise level covers 95% over\nthe whole range. What does checking coverage by region show?",
+      "why": "One fitted noise level sits between the small and the large noise, so the band is too wide\non the quiet side and too narrow on the noisy side. By third of the range the toy problem\ngave 100%, 98% and 88%.",
+      "objectives": [
+        "l14-o3"
+      ],
+      "tags": [
+        "heteroscedastic-noise",
+        "gaussian-process"
+      ],
+      "true": "Too wide where the noise is small, too narrow where it is large",
+      "false": [
+        "95% everywhere, since the overall number is right",
+        "Too narrow where the noise is small, too wide where it is large",
+        "Too narrow everywhere, hidden by rounding"
+      ]
+    },
+    {
+      "id": "l14-q09",
+      "kind": "mcq",
+      "lecture": "l14",
+      "context": "Ten networks trained from different seeds agree closely inside the training range, and a\n95% interval built from their spread alone covers far less than 95% there. Why?",
+      "why": "Members disagree about the function, not about a new measurement. Inside the data they\nagreed to 0.021 while the noise was 0.1, so the spread alone covered 29%; adding a noise\nestimate brought it to 93%.",
+      "objectives": [
+        "l14-o4"
+      ],
+      "tags": [
+        "ensemble",
+        "epistemic",
+        "noise-term"
+      ],
+      "true": "The spread measures only the epistemic part and leaves out the noise",
+      "false": [
+        "The networks were not trained long enough",
+        "Ten members are too few for a stable spread",
+        "The spread is too large and overshoots the data"
+      ]
+    },
+    {
+      "id": "l14-q10",
+      "kind": "mcq",
+      "lecture": "l14",
+      "context": "What does the spread of models refit on bootstrap resamples estimate?",
+      "why": "Resampling shows how the fit would change with a new data set of the same size. If every\nresample makes the same mistake, the spread is small and the error large, so the bias is\nmissed, and so is the noise.",
+      "objectives": [
+        "l14-o4"
+      ],
+      "tags": [
+        "bootstrap",
+        "variance",
+        "bias"
+      ],
+      "true": "How much the fitted function varies with the data: the variance part of the error",
+      "false": [
+        "The noise in a new measurement",
+        "The bias of the model, including its errors far from the data",
+        "The total prediction error, noise included"
+      ]
+    },
+    {
+      "id": "l14-q11",
+      "kind": "spot_the_defect",
+      "lecture": "l14",
+      "context": "An optimizer searches a surrogate for the strongest mix it can find, and the team reports\neach proposed mix with a split conformal 90% interval, citing the method's finite-sample\nguarantee. What is wrong?",
+      "why": "The guarantee needs only exchangeability, and an optimizer breaks it on purpose. On the\nstrongest mixes, held out because they differ, split conformal covered 56% at a nominal 90%.",
+      "objectives": [
+        "l14-o5"
+      ],
+      "tags": [
+        "conformal-prediction",
+        "exchangeability",
+        "design-loop",
+        "practitioner"
+      ],
+      "true": "Proposed mixes are chosen for being different, so they are not exchangeable with the calibration mixes",
+      "false": [
+        "Split conformal needs Gaussian errors, which strengths are not",
+        "The calibration set must be larger than the training set",
+        "Conformal intervals cannot be used with neural networks"
+      ]
+    },
+    {
+      "id": "l14-q12",
+      "kind": "mcq",
+      "lecture": "l14",
+      "context": "How does the width of a plain split conformal interval vary across inputs?",
+      "why": "Plain split conformal adds one quantile of the calibration residuals to every prediction.\nCoverage is marginal, so on a problem with growing noise it was 100%, 95% and 82% by third;\nnormalized scores or CQR make the width adapt.",
+      "objectives": [
+        "l14-o5"
+      ],
+      "tags": [
+        "conformal-prediction",
+        "marginal-coverage"
+      ],
+      "true": "It is the same everywhere; the guarantee holds on average over inputs",
+      "false": [
+        "It grows where the training data are sparse",
+        "It follows the noise level at each input",
+        "It shrinks as the model becomes more confident"
+      ]
+    },
+    {
+      "id": "l14-q13",
+      "kind": "mcq",
+      "lecture": "l14",
+      "context": "What coverage does the jackknife+ guarantee for a target level of 1 − α?",
+      "why": "Barber et al. prove 1 − 2α and show the factor of 2 cannot be removed in general, while\nreporting near 1 − α in practice. The plain jackknife has no guarantee, and its coverage can\nvanish.",
+      "objectives": [
+        "l14-o5"
+      ],
+      "tags": [
+        "jackknife-plus",
+        "cv-plus",
+        "guarantee"
+      ],
+      "true": "At least 1 − 2α in the worst case, and close to 1 − α in practice",
+      "false": [
+        "Exactly 1 − α, like split conformal",
+        "At least 1 − α, but only with Gaussian errors",
+        "No guarantee at all, like the plain jackknife"
+      ]
+    },
+    {
+      "id": "l14-q14",
+      "kind": "mcq",
+      "lecture": "l14",
+      "context": "LinearRegressionUQ with a cubic basis, fitted to a sine on [0, 1], covers about 95% inside\nthe data and almost nothing beyond it, although its band widens there. Why?",
+      "why": "The parameter term says how unsure the coefficients of a cubic are, not whether a cubic is\nthe right shape. That is model inadequacy, and nothing inside the training range reveals it.",
+      "objectives": [
+        "l14-o6"
+      ],
+      "tags": [
+        "pycse",
+        "model-inadequacy"
+      ],
+      "true": "The cubic basis is wrong for a sine, and its uncertainty only covers fits within that basis",
+      "false": [
+        "The noise estimate is too small",
+        "Linear regression cannot produce prediction intervals",
+        "The band widens too fast and overshoots"
+      ]
+    },
+    {
+      "id": "l14-q15",
+      "kind": "mcq",
+      "lecture": "l14",
+      "context": "While fitting, a pycse model prints \"Model is well-calibrated\", then covers well under 95%\nbeyond its training range. What did the message check?",
+      "why": "The validation points came from the same range as the training points, so the check is an\nin-distribution statement. It says nothing about inputs beyond the data.",
+      "objectives": [
+        "l14-o6"
+      ],
+      "tags": [
+        "pycse",
+        "calibration",
+        "practitioner"
+      ],
+      "true": "The rescaling factor on validation points from inside the training range",
+      "false": [
+        "Coverage on a held-out region beyond the training data",
+        "That the network converged",
+        "That the residuals are Gaussian"
+      ]
     }
   ]
 }
