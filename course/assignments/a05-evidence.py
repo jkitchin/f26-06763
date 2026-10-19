@@ -25,18 +25,17 @@ of them and prints the total on the first page; the fifth is your answers in
 `REPORT.md`, which a person reads. Within a group the checks are equally
 weighted.
 
-It does not take your numbers on trust. It solves the bioreactor model itself,
-and it fits the discrete-time model the assignment fixes, from the same data
-file you used. Then it checks:
+It does not take your numbers on trust. It fits the discrete-time model the
+assignment fixes, from the same data file you used, and checks:
 
-  * your true model and your discrete-time model for run 5 against its own,
-    which is exact, because both have one answer;
-  * your PINN and neural ODE for run 5 against the true model, within a
-    tolerance. A trained network is not exact: the same code gives slightly
-    different numbers on different computers;
+  * your discrete-time prediction of experiment 5 against its own, which is
+    exact, because a ridge regression has one answer;
+  * the RMSE of your PINN and neural ODE against the measurements of
+    experiment 5, within a limit. A trained network is not exact: the same
+    code gives slightly different numbers on different computers;
   * your learned growth rate against the true one;
   * the RMSEs in your `REPORT.md` against the ones it computes from your
-    `run5.csv`.
+    `experiment5.csv`.
 
 It also reads your code for `jax.grad` and `diffeqsolve`.
 
@@ -44,11 +43,11 @@ IT DOES NOT CHANGE YOUR FILES. It reads the data, the results and the code,
 and writes `evidence.pdf` (and `evidence.html` with --html). It does not re-run
 your code and does not download anything.
 
-NAMES. The assignment names its deliverables (`results/run5.csv`,
-`results/mu.csv`, `results/run5.png`, `REPORT.md`) and this script looks for
-those first. When it does not find them it goes looking by what the files
-contain. What it found is printed at the top, and every guess can be
-overridden with --data, --run5, --mu and --report.
+NAMES. The assignment names its deliverables (`results/experiment5.csv`,
+`results/mu.csv`, `results/experiment5.png`, `REPORT.md`) and this script
+looks for those first. When it does not find them it goes looking by what the
+files contain. What it found is printed at the top, and every guess can be
+overridden with --data, --predictions, --mu and --report.
 """
 
 from __future__ import annotations
@@ -74,7 +73,7 @@ SKIP_DIRS = {".venv", ".git", "node_modules", "__pycache__", ".ipynb_checkpoints
 OURS = ("a05-evidence.py", "a05-make-data.py", "evidence.html", "evidence.pdf")
 
 DATA_FILE = "a05-bioreactor.csv"
-DATA_SHA256 = "b079d36b419c02d9001b3fd794a8245c934b4bf23ceea4140f7b2b0500d4137c"
+DATA_SHA256 = "0c9d489b362457f071333a605ab4bcce5500cdff2d1398c7397ee14566d83ef4"
 
 # The model, as the assignment gives it.
 V = math.pi * 3.0**2 * 5.7     # m3
@@ -82,26 +81,24 @@ F = 5.02597                    # m3/s
 SF = 300.0                     # mol/m3
 
 TRAIN = (1, 2, 3, 4)
-IC5 = (3.0, 80.0)                            # run 5, the new start-up
+TEST = 5                                     # experiment 5, the test set
+IC5 = (3.0, 80.0)                            # its initial condition
 T = np.arange(0, 301, 5).astype(float)       # s, 61 samples
 ALPHA = 1.0                                  # Ridge(alpha=1.0)
 S_GRID = np.arange(10, 131, 5).astype(float)
 MU_RANGE = (20.0, 130.0)                     # where the training data pin mu down
 
-MODELS = ("true", "discrete", "pinn", "node")
+MODELS = ("discrete", "pinn", "node")
 COLUMNS = ["t"] + [f"{v}_{m}" for m in MODELS for v in ("x", "s")]
 
-# Tolerances. The true model and the ridge model have one answer each, so their
-# tolerances only absorb solver and rounding differences; the true-model one
-# also passes V rounded to 161.16 m3 (S off by 0.044) and fails solve_ivp's
-# default tolerances (S off by 0.36). The trained networks get limits from the
-# reference solution run several ways (float64 and float32, seeds 0 to 3, two
-# learning-rate schedules for the PINN), with about three times the worst run
-# to spare: a network that trained passes, and one that did not train fails.
-TRUE_TOL = (2e-3, 5e-2)                      # max |error| in X (kg/m3), S (mol/m3)
-DISCRETE_TOL = (1e-3, 1e-2)
-PINN_LIMIT = (0.10, 2.5)                     # RMSE X, S against the true model
-NODE_LIMIT = (0.05, 1.5)
+# Limits. The ridge model has one answer, so its tolerance only absorbs
+# rounding. The trained networks are scored by RMSE against the measurements of
+# experiment 5, whose noise alone gives 0.048 on X and 1.08 on S. The reference
+# solution, run several ways (float64 and float32, seeds 0 to 3, two
+# learning-rate schedules for the PINN, V rounded to 161.16), scores at most
+# 0.052 and 1.20; a neural ODE off by 3 mol/m3 scores 3.2.
+DISCRETE_TOL = (1e-3, 1e-2)                  # max |difference| in X (kg/m3), S (mol/m3)
+LIMIT = (0.08, 2.0)                          # RMSE X, S against experiment 5
 MU_REL_TOL = 0.05                            # 5 % of the true mu
 
 # --------------------------------------------------------------------------
@@ -205,10 +202,11 @@ def discover(root, args):
         named = walk(root, [DATA_FILE])
         data = named[0] if named else None
     found["data"] = data
-    found["run5"] = csv_with(args.run5, {"t", "x_node", "s_node"}, ["results/run5", "run5"])
+    found["predictions"] = csv_with(args.predictions, {"t", "x_node", "s_node"},
+                                    ["results/experiment5", "experiment5"])
     found["mu"] = csv_with(args.mu, {"s", "mu"}, ["results/mu", "mu"])
-    found["png"] = by_name(walk(root, ["*.png"]), ["results/run5", "run5", "run_5"])
-    if found["png"] is not None and not re.search(r"run.?5", found["png"].name, re.I):
+    found["png"] = by_name(walk(root, ["*.png"]), ["results/experiment5", "experiment5"])
+    if found["png"] is not None and not re.search(r"(experiment|exp|run).?5", found["png"].name, re.I):
         found["png"] = None
 
     report = given_path(root, args.report)
@@ -233,7 +231,7 @@ def bioreactor(t, y):
     return [-F / V * X + mu * X, F / V * (SF - S) - mu / (5.4e-3 + 1.8e-4 * S) * X]
 
 
-def true_run5():
+def true_experiment5():
     sol = solve_ivp(bioreactor, (0, T[-1]), IC5, t_eval=T, rtol=1e-10, atol=1e-12)
     return sol.y.T
 
@@ -259,22 +257,22 @@ def load_data(path, steps):
     rows = {}
     with open(path, newline="") as f:
         for r in csv.DictReader(f):
-            rows.setdefault(int(r["run"]), []).append((float(r["t"]), float(r["X"]), float(r["S"])))
-    data = {run: np.array([v[1:] for v in sorted(vals)]) for run, vals in rows.items()}
-    lines.append(f"runs {sorted(data)}, {sum(len(v) for v in data.values())} rows")
+            rows.setdefault(int(r["experiment"]), []).append((float(r["t"]), float(r["X"]), float(r["S"])))
+    data = {exp: np.array([v[1:] for v in sorted(vals)]) for exp, vals in rows.items()}
+    lines.append(f"experiments {sorted(data)}, {sum(len(v) for v in data.values())} rows")
     steps.append(Step("data", "\n".join(lines)))
     return data
 
 
-def ridge_run5(data):
+def ridge_experiment5(data):
     """make_pipeline(StandardScaler(), Ridge(alpha=1.0)), written out in NumPy,
-    then simulated from run 5's initial condition.
+    then simulated from experiment 5's initial condition.
 
     StandardScaler divides by the population standard deviation (ddof=0), and
     Ridge fits an intercept, which is the mean of the targets once the inputs
     are centred. The result is scikit-learn's to rounding.
     """
-    A = np.vstack([data[r][:-1] for r in TRAIN])     # x[k], inside each run
+    A = np.vstack([data[r][:-1] for r in TRAIN])     # x[k], inside each experiment
     B = np.vstack([data[r][1:] for r in TRAIN])      # x[k+1]
     mean, std = A.mean(axis=0), A.std(axis=0)
     Z = (A - mean) / std
@@ -303,12 +301,12 @@ def read_csv(path):
     return [{(k or "").strip().lower(): (v or "").strip() for k, v in r.items()} for r in rows]
 
 
-def inspect_run5(path, steps):
-    """{model: (61, 2) array} from run5.csv."""
+def inspect_predictions(path, steps):
+    """{model: (61, 2) array} from experiment5.csv."""
     info = {"present": path is not None, "curves": {}}
     rows = read_csv(path)
     if rows is None:
-        steps.append(Step("run5.csv", "not found or unreadable", ok=False))
+        steps.append(Step("experiment5.csv", "not found or unreadable", ok=False))
         info["present"] = False
         return info
     cols = list(rows[0]) if rows else []
@@ -330,7 +328,7 @@ def inspect_run5(path, steps):
         if info["grid_ok"] and np.all(np.isfinite(curve)):
             info["curves"][m] = curve
     info["ok"] = not missing and info["grid_ok"] and len(info["curves"]) == len(MODELS)
-    steps.append(Step("run5.csv", "\n".join(lines), ok=info["ok"]))
+    steps.append(Step("experiment5.csv", "\n".join(lines), ok=info["ok"]))
     return info
 
 
@@ -417,7 +415,7 @@ def quoted(value, numbers):
 
 
 def analyse_report(path, errors, steps):
-    """errors: {(model, state): RMSE recomputed from run5.csv}."""
+    """errors: {(model, state): RMSE recomputed from experiment5.csv}."""
     if path is None:
         steps.append(Step("REPORT.md", "no report found", ok=False))
         return {"present": False}
@@ -426,7 +424,7 @@ def analyse_report(path, errors, steps):
     hits = {key: quoted(value, numbers) for key, value in errors.items()}
     heads = re.findall(r"(?m)^#{1,3}\s+(.+)$", text)
     lines = [f"{len(re.findall(r'[A-Za-z]+', text))} words, {len(heads)} headings: {heads[:10]}", "",
-             "RMSE recomputed from run5.csv, and whether REPORT.md quotes it:"]
+             "RMSE against experiment 5, from experiment5.csv, and whether REPORT.md quotes it:"]
     lines += [f"  {m:<9} {v}  {errors[(m, v)]:.4f}  {'quoted' if hits[(m, v)] else 'NOT FOUND'}"
               for (m, v) in errors]
     lines.append(f"AI-use line: {'yes' if AI_LINE.search(text) else 'not found'}")
@@ -439,25 +437,35 @@ def analyse_report(path, errors, steps):
 
 def collect(root, args, found, steps):
     notes = []
-    truth = true_run5()
+    truth = true_experiment5()
     data = load_data(found["data"], steps)
-    ridge = ridge_run5(data) if data is not None else None
-    lines = [f"true model, run 5: X(300) {truth[-1, 0]:.4f}, S(300) {truth[-1, 1]:.3f}"]
-    if ridge is not None:
-        e = rmse(ridge, truth)
-        lines.append(f"discrete-time model refitted here, run 5: RMSE X {e[0]:.4f}, S {e[1]:.4f}")
-    steps.append(Step("the script's own true model and discrete-time model", "\n".join(lines)))
+    meas = data.get(TEST) if data is not None else None
+    ridge = ridge_experiment5(data) if data is not None else None
 
-    run5 = inspect_run5(found["run5"], steps)
+    preds = inspect_predictions(found["predictions"], steps)
     mu = inspect_mu(found["mu"], steps)
     code = analyse_code(root, found["code"], steps)
-    curves = run5["curves"]
-    own_truth = curves.get("true", truth)
+    curves = preds["curves"]
+
+    # Every RMSE against the measurements of experiment 5, as the assignment asks.
     errors = {}
-    for m in ("discrete", "pinn", "node"):
-        if m in curves:
-            e = rmse(curves[m], own_truth)
-            errors[(m, "X")], errors[(m, "S")] = e[0], e[1]
+    lines = []
+    if meas is not None:
+        lines.append(f"the noise alone (true model against the measurements): "
+                     f"X {rmse(truth, meas)[0]:.4f}, S {rmse(truth, meas)[1]:.4f}")
+        if ridge is not None:
+            e = rmse(ridge, meas)
+            lines.append(f"the script's own discrete-time model: X {e[0]:.4f}, S {e[1]:.4f}")
+        for m in MODELS:
+            if m in curves:
+                e = rmse(curves[m], meas)
+                errors[(m, "X")], errors[(m, "S")] = e[0], e[1]
+                t = rmse(curves[m], truth)
+                lines.append(f"your {m}: X {e[0]:.4f}, S {e[1]:.4f}   "
+                             f"(against the noise-free model: X {t[0]:.4f}, S {t[1]:.4f})")
+    else:
+        lines.append("no published data file, so no RMSE against experiment 5")
+    steps.append(Step("RMSE against the measurements of experiment 5", "\n".join(lines)))
     report = analyse_report(found["report"], errors, steps)
 
     checks = []
@@ -471,67 +479,64 @@ def collect(root, args, found, steps):
     def coded(flag):
         return decided(code[flag]) if code["files"] else SKIP
 
-    def within(model, limit):
-        got = curves.get(model)
-        if got is None:
-            return FAIL, f"no {model} columns in run5.csv"
-        e = rmse(got, truth)
-        return decided(e[0] <= limit[0] and e[1] <= limit[1]), f"RMSE X {e[0]:.4f}, S {e[1]:.4f}"
+    no_data = "the data file is missing or is not the published one"
 
-    # 1. the discrete-time model, and the true model it is compared with
-    add("discrete", "run5.csv with the nine columns and t = 0, 5, ..., 300", decided(run5.get("ok")))
-    if "true" in curves:
-        d = np.max(np.abs(curves["true"] - truth), axis=0)
-        add("discrete", "your true model matches the script's",
-            decided(d[0] <= TRUE_TOL[0] and d[1] <= TRUE_TOL[1]),
-            f"largest difference X {d[0]:.2e}, S {d[1]:.2e}; allowed {TRUE_TOL[0]:g}, {TRUE_TOL[1]:g}")
-    else:
-        add("discrete", "your true model matches the script's", FAIL, "no true-model columns")
+    def within(group, model):
+        label = f"RMSE on experiment 5 below {LIMIT[0]} on X and {LIMIT[1]:g} on S"
+        if meas is None:
+            add(group, label, SKIP, no_data)
+        elif model not in curves:
+            add(group, label, FAIL, f"no {model} columns in experiment5.csv")
+        else:
+            e = (errors[(model, "X")], errors[(model, "S")])
+            add(group, label, decided(e[0] <= LIMIT[0] and e[1] <= LIMIT[1]),
+                f"RMSE X {e[0]:.4f}, S {e[1]:.4f}")
+
+    # 1. the discrete-time model
+    add("discrete", "experiment5.csv with the seven columns and t = 0, 5, ..., 300",
+        decided(preds.get("ok")))
+    label = "your discrete-time prediction matches the script's fit"
     if ridge is None:
-        add("discrete", "your discrete-time model matches the script's fit", SKIP,
-            "the data file is missing or is not the published one, so the fit cannot be redone")
+        add("discrete", label, SKIP, no_data + ", so the fit cannot be redone")
     elif "discrete" in curves:
         d = np.max(np.abs(curves["discrete"] - ridge), axis=0)
-        add("discrete", "your discrete-time model matches the script's fit",
-            decided(d[0] <= DISCRETE_TOL[0] and d[1] <= DISCRETE_TOL[1]),
+        add("discrete", label, decided(d[0] <= DISCRETE_TOL[0] and d[1] <= DISCRETE_TOL[1]),
             f"largest difference X {d[0]:.2e}, S {d[1]:.2e}; allowed {DISCRETE_TOL[0]:g}, {DISCRETE_TOL[1]:g}")
     else:
-        add("discrete", "your discrete-time model matches the script's fit", FAIL, "no discrete columns")
+        add("discrete", label, FAIL, "no discrete columns")
 
     # 2. the PINN
-    state, note = within("pinn", PINN_LIMIT)
-    add("pinn", f"run 5 within an RMSE of {PINN_LIMIT[0]} on X and {PINN_LIMIT[1]} on S", state, note)
+    within("pinn", "pinn")
     add("pinn", "jax.grad in the code", coded("grad"))
 
     # 3. the neural ODE
-    state, note = within("node", NODE_LIMIT)
-    add("node", f"run 5 within an RMSE of {NODE_LIMIT[0]} on X and {NODE_LIMIT[1]} on S", state, note)
+    within("node", "node")
     add("node", f"learned mu within {MU_REL_TOL:.0%} of the true mu from S = "
                 f"{MU_RANGE[0]:.0f} to {MU_RANGE[1]:.0f}",
         decided(mu.get("present") and mu.get("mu_ok")))
     add("node", "diffeqsolve in the code", coded("diffeqsolve"))
 
     # 4. the comparison
-    add("compare", "results/run5.png", decided(found["png"] is not None))
+    add("compare", "results/experiment5.png", decided(found["png"] is not None))
+    label = "REPORT.md quotes the six RMSEs"
     if not report.get("present"):
-        add("compare", "REPORT.md quotes the RMSE of X and S of each model", FAIL, "no report")
-    elif not errors:
-        add("compare", "REPORT.md quotes the RMSE of X and S of each model", FAIL,
-            "run5.csv had no predictions to compute them from")
+        add("compare", label, FAIL, "no report")
+    elif meas is None:
+        add("compare", label, SKIP, no_data + ", so the RMSEs cannot be computed")
+    elif len(errors) < 6:
+        add("compare", label, FAIL, "some models are missing from experiment5.csv")
     else:
         missing = [f"{m} {v}" for (m, v), hit in report["hits"].items() if not hit]
-        add("compare", "REPORT.md quotes the RMSE of X and S of each model",
-            decided(len(errors) == 6 and not missing),
-            "all six quoted" if not missing and len(errors) == 6 else
-            "not found: " + ", ".join(missing) if missing else "some models are missing from run5.csv")
+        add("compare", label, decided(not missing),
+            "all six quoted" if not missing else "not found: " + ", ".join(missing))
 
-    add("report", "answers to 5(c) and 5(d), and the AI-use line", SKIP, "read by your TA")
+    add("report", "answers (b) and (c), and the AI-use line", SKIP, "read by your TA")
 
     if code["files"] and not code["x64"]:
-        notes.append("jax_enable_x64 is not in your code. The worked examples turn it on.")
+        notes.append("jax_enable_x64 is not in your code. The assignment and the worked examples turn it on.")
     if mu.get("present"):
-        notes.append("mu.csv is checked from S = 20 up. Below that the training runs have only a "
-                     "few samples, so the learned mu there is loosely pinned.")
+        notes.append("mu.csv is checked from S = 20 up. Below that the training experiments have only "
+                     "a few samples, so the learned mu there is loosely pinned.")
     return {"checks": checks, "notes": notes, "steps": steps}
 
 
@@ -792,7 +797,7 @@ def rel(root, path):
         return str(path)
 
 
-LABELS = ("data", "run5", "mu", "png", "report")
+LABELS = ("data", "predictions", "mu", "png", "report")
 
 
 def report_lines(root, args, found, result):
@@ -902,7 +907,7 @@ def main():
     parser.add_argument("--andrew-id", required=True)
     parser.add_argument("--name", default="")
     parser.add_argument("--data", default=None, help=f"data/{DATA_FILE}")
-    parser.add_argument("--run5", default=None, help="results/run5.csv")
+    parser.add_argument("--predictions", default=None, help="results/experiment5.csv")
     parser.add_argument("--mu", default=None, help="results/mu.csv")
     parser.add_argument("--report", default=None, help="REPORT.md")
     parser.add_argument("--out", default="evidence.pdf")
@@ -911,8 +916,8 @@ def main():
 
     root = Path.cwd()
     found = discover(root, args)
-    if not any([found["run5"], found["mu"], found["report"]]):
-        raise SystemExit(f"Found no run5.csv, no mu.csv and no report in {root}. "
+    if not any([found["predictions"], found["mu"], found["report"]]):
+        raise SystemExit(f"Found no experiment5.csv, no mu.csv and no report in {root}. "
                          f"Run this from your A5 project root.")
 
     print(f"Building evidence for {args.andrew_id} in {root}")
