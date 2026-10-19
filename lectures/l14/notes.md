@@ -1045,8 +1045,7 @@ where it was checked, and none of them can check itself outside that range.
 
 ## Assignment
 
-A5, [three models of a bioreactor](../../course/assignments/a05.md), is released today and is
-due Monday 10-26.
+No assignment is released today.
 
 ## Practice module
 

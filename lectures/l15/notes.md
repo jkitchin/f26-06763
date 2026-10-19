@@ -510,7 +510,8 @@ Median test RMSE over 8 seeds.
 
 ## Assignment
 
-No assignment is released today.
+A5, [three models of a bioreactor](../../course/assignments/a05.md), is released today and is
+due Wednesday 10-28.
 
 ## Practice module
 
