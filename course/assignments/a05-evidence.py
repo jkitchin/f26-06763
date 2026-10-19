@@ -20,41 +20,35 @@ stale lockfile in *your* project cannot leave you with no report at all.
 
 It writes `evidence.pdf`. Upload that to Canvas. Read it before you send it.
 
-WHAT IT DOES. A5 is worth six points, in six groups. This script decides five
-of them and prints the total on the first page; the sixth is your `REPORT.md`,
-which a person reads. Within a group the checks are equally weighted, so
-passing three of four checks in a one-point group is 0.75.
+WHAT IT DOES. A5 is worth six points, in five groups. This script decides four
+of them and prints the total on the first page; the fifth is your answers in
+`REPORT.md`, which a person reads. Within a group the checks are equally
+weighted.
 
 It does not take your numbers on trust. It solves the bioreactor model itself,
 and it fits the discrete-time model the assignment fixes, from the same data
 file you used. Then it checks:
 
-  * your true-model curves against its own solution;
-  * your discrete-time predictions against its own fit, which is exact,
-    because a ridge regression has one answer;
-  * your PINN and neural ODE curves against the true model, within a
+  * your true model and your discrete-time model for run 5 against its own,
+    which is exact, because both have one answer;
+  * your PINN and neural ODE for run 5 against the true model, within a
     tolerance. A trained network is not exact: the same code gives slightly
-    different numbers on different computers. The tolerances come from
-    running the fixed recipe several ways;
+    different numbers on different computers;
   * your learned growth rate against the true one;
-  * your `metrics.csv` against RMSE recomputed from your predictions, and your
-    `REPORT.md` against your `metrics.csv`.
+  * the RMSEs in your `REPORT.md` against the ones it computes from your
+    `run5.csv`.
 
-It also reads your code for the tools the assignment asks for.
-
-Nothing is invented. If something fails, the failure goes in the report, which
-is better for you than a report that quietly omits it.
+It also reads your code for `jax.grad` and `diffeqsolve`.
 
 IT DOES NOT CHANGE YOUR FILES. It reads the data, the results and the code,
 and writes `evidence.pdf` (and `evidence.html` with --html). It does not re-run
 your code and does not download anything.
 
-NAMES. The assignment names its deliverables (`results/predictions.csv`,
-`results/metrics.csv`, `results/mu.csv`, `results/training.png`,
-`results/new_startup.png`, `REPORT.md`) and this script looks for those first.
-When it does not find them it goes looking by what the files contain. What it
-found is printed at the top, and every guess can be overridden with --data,
---predictions, --metrics, --mu and --report.
+NAMES. The assignment names its deliverables (`results/run5.csv`,
+`results/mu.csv`, `results/run5.png`, `REPORT.md`) and this script looks for
+those first. When it does not find them it goes looking by what the files
+contain. What it found is printed at the top, and every guess can be
+overridden with --data, --run5, --mu and --report.
 """
 
 from __future__ import annotations
@@ -86,49 +80,40 @@ DATA_SHA256 = "b079d36b419c02d9001b3fd794a8245c934b4bf23ceea4140f7b2b0500d4137c"
 V = math.pi * 3.0**2 * 5.7     # m3
 F = 5.02597                    # m3/s
 SF = 300.0                     # mol/m3
-D = F / V                      # 1/s
 
-ICS = {1: (5.0, 10.0), 2: (2.0, 20.0), 3: (4.0, 120.0), 4: (2.5, 60.0), 5: (3.0, 80.0)}
 TRAIN = (1, 2, 3, 4)
-NEW = 5
+IC5 = (3.0, 80.0)                            # run 5, the new start-up
 T = np.arange(0, 301, 5).astype(float)       # s, 61 samples
 ALPHA = 1.0                                  # Ridge(alpha=1.0)
 S_GRID = np.arange(10, 131, 5).astype(float)
 MU_RANGE = (20.0, 130.0)                     # where the training data pin mu down
 
-# What each model must predict.
-MODELS = {"true": (1, 2, 3, 4, 5), "discrete": (1, 2, 3, 4, 5),
-          "pinn": (1, 5), "node": (1, 2, 3, 4, 5)}
-SCORED = ("discrete", "pinn", "node")
+MODELS = ("true", "discrete", "pinn", "node")
+COLUMNS = ["t"] + [f"{v}_{m}" for m in MODELS for v in ("x", "s")]
 
 # Tolerances. The true model and the ridge model have one answer each, so their
-# tolerances only absorb solver and rounding differences. The trained networks
-# get limits from the reference solution run several ways (float64 and float32,
-# seeds 0 to 3, two learning-rate schedules), with room to spare: a run that
-# trained properly passes, and one that did not train does not.
-# The true-model tolerance passes V rounded to 161.16 m3 (S off by 0.044) and fails
-# solve_ivp's default tolerances (S off by 0.36), which the assignment fixes.
+# tolerances only absorb solver and rounding differences; the true-model one
+# also passes V rounded to 161.16 m3 (S off by 0.044) and fails solve_ivp's
+# default tolerances (S off by 0.36). The trained networks get limits from the
+# reference solution run several ways (float64 and float32, seeds 0 to 3, two
+# learning-rate schedules for the PINN), with about three times the worst run
+# to spare: a network that trained passes, and one that did not train fails.
 TRUE_TOL = (2e-3, 5e-2)                      # max |error| in X (kg/m3), S (mol/m3)
 DISCRETE_TOL = (1e-3, 1e-2)
-PINN_LIMIT = {1: (0.10, 2.5), 5: (0.10, 2.5)}            # RMSE X, S against the true model
-NODE_LIMIT = {"train": (0.05, 1.5), NEW: (0.05, 1.5)}
+PINN_LIMIT = (0.10, 2.5)                     # RMSE X, S against the true model
+NODE_LIMIT = (0.05, 1.5)
 MU_REL_TOL = 0.05                            # 5 % of the true mu
-REL_TOL = 0.005                              # 0.5 % on an RMSE
-
-PRED_COLUMNS = ["model", "run", "t", "x", "s"]
-METRIC_COLUMNS = ["model", "run", "x_rmse", "s_rmse"]
 
 # --------------------------------------------------------------------------
-# The six groups. Five are scored here; group 6 is the report, and a TA reads
+# The five groups. Four are scored here; group 5 is the report, and a TA reads
 # it. Within a group the checks are equally weighted. Points sum to 6.
 # --------------------------------------------------------------------------
 GROUPS = [
-    ("discrete", "True and discrete",   1.0,  "script"),
-    ("pinn",     "PINN",                1.0,  "script"),
-    ("node",     "Neural ODE",          1.25, "script"),
-    ("compare",  "Comparison",          1.25, "script"),
-    ("numbers",  "Report numbers",      0.5,  "script"),
-    ("report",   "REPORT.md",           1.0,  "your TA"),
+    ("discrete", "Discrete-time model", 1.0, "script"),
+    ("pinn",     "PINN",                1.0, "script"),
+    ("node",     "Neural ODE",          1.5, "script"),
+    ("compare",  "Comparison",          1.5, "script"),
+    ("report",   "REPORT.md",           1.0, "your TA"),
 ]
 TOTAL = sum(g[2] for g in GROUPS)
 AUTO_TOTAL = sum(g[2] for g in GROUPS if g[3] == "script")
@@ -218,21 +203,13 @@ def discover(root, args):
     data = given_path(root, args.data)
     if data is None:
         named = walk(root, [DATA_FILE])
-        data = named[0] if named else csv_with(None, {"run", "t", "x", "s"}, ["data/", "bioreactor"])
-        if data is not None and "model" in csv_header(data):
-            data = None
+        data = named[0] if named else None
     found["data"] = data
-    found["predictions"] = csv_with(args.predictions, {"model", "run", "t", "x", "s"},
-                                    ["results/predictions", "prediction"])
-    found["metrics"] = csv_with(args.metrics, {"model", "run", "x_rmse", "s_rmse"},
-                                ["results/metrics", "metric"])
+    found["run5"] = csv_with(args.run5, {"t", "x_node", "s_node"}, ["results/run5", "run5"])
     found["mu"] = csv_with(args.mu, {"s", "mu"}, ["results/mu", "mu"])
-
-    pngs = walk(root, ["*.png"])
-    found["new_png"] = by_name([p for p in pngs if re.search(r"new|start", p.name, re.I)],
-                               ["results/new_startup", "new_startup", "new"])
-    found["train_png"] = by_name([p for p in pngs if re.search(r"train", p.name, re.I)],
-                                 ["results/training", "training"])
+    found["png"] = by_name(walk(root, ["*.png"]), ["results/run5", "run5", "run_5"])
+    if found["png"] is not None and not re.search(r"run.?5", found["png"].name, re.I):
+        found["png"] = None
 
     report = given_path(root, args.report)
     if report is None:
@@ -256,12 +233,9 @@ def bioreactor(t, y):
     return [-F / V * X + mu * X, F / V * (SF - S) - mu / (5.4e-3 + 1.8e-4 * S) * X]
 
 
-def true_curves():
-    out = {}
-    for run, ic in ICS.items():
-        sol = solve_ivp(bioreactor, (0, T[-1]), ic, t_eval=T, rtol=1e-10, atol=1e-12)
-        out[run] = sol.y.T
-    return out
+def true_run5():
+    sol = solve_ivp(bioreactor, (0, T[-1]), IC5, t_eval=T, rtol=1e-10, atol=1e-12)
+    return sol.y.T
 
 
 def sha(path):
@@ -292,70 +266,31 @@ def load_data(path, steps):
     return data
 
 
-class Ridge:
-    """make_pipeline(StandardScaler(), Ridge(alpha=1.0)), written out in NumPy.
+def ridge_run5(data):
+    """make_pipeline(StandardScaler(), Ridge(alpha=1.0)), written out in NumPy,
+    then simulated from run 5's initial condition.
 
     StandardScaler divides by the population standard deviation (ddof=0), and
     Ridge fits an intercept, which is the mean of the targets once the inputs
     are centred. The result is scikit-learn's to rounding.
     """
-
-    def __init__(self, data):
-        A = np.vstack([data[r][:-1] for r in TRAIN])     # x[k], inside each run
-        B = np.vstack([data[r][1:] for r in TRAIN])      # x[k+1]
-        self.mean, self.std = A.mean(axis=0), A.std(axis=0)
-        Z = (A - self.mean) / self.std
-        self.b = B.mean(axis=0)
-        self.W = np.linalg.solve(Z.T @ Z + ALPHA * np.eye(Z.shape[1]), Z.T @ (B - self.b))
-
-    def predict(self, x):
-        return ((np.atleast_2d(x) - self.mean) / self.std) @ self.W + self.b
-
-    def simulate(self, ic):
-        path = [np.array(ic, dtype=float)]
-        while len(path) < len(T):
-            path.append(self.predict(path[-1])[0])
-        return np.array(path)
+    A = np.vstack([data[r][:-1] for r in TRAIN])     # x[k], inside each run
+    B = np.vstack([data[r][1:] for r in TRAIN])      # x[k+1]
+    mean, std = A.mean(axis=0), A.std(axis=0)
+    Z = (A - mean) / std
+    b = B.mean(axis=0)
+    W = np.linalg.solve(Z.T @ Z + ALPHA * np.eye(Z.shape[1]), Z.T @ (B - b))
+    path = [np.array(IC5)]
+    while len(path) < len(T):
+        path.append(((path[-1] - mean) / std) @ W + b)
+    return np.array(path)
 
 
 def rmse(a, b):
     return np.sqrt(np.mean((np.asarray(a) - np.asarray(b)) ** 2, axis=0))
 
 
-def close(a, b, rel=REL_TOL):
-    if a is None or b is None:
-        return False
-    try:
-        a, b = float(a), float(b)
-    except (TypeError, ValueError):
-        return False
-    if not (math.isfinite(a) and math.isfinite(b)):
-        return False
-    return abs(a - b) <= rel * max(abs(b), 1e-12)
-
-
-def _num(value):
-    try:
-        return math.isfinite(float(value))
-    except (TypeError, ValueError):
-        return False
-
-
 # ------------------------------------------------------------- your files
-
-def model_key(name):
-    """Map the many ways of writing a model's name onto the four the assignment uses."""
-    n = re.sub(r"[\s_\-]+", "", str(name).lower())
-    if "true" in n or "truth" in n or "mechanistic" in n:
-        return "true"
-    if "pinn" in n or "physicsinformed" in n:
-        return "pinn"
-    if "node" in n or "neural" in n or "ude" == n:
-        return "node"
-    if "discrete" in n or "ridge" in n or "arx" in n:
-        return "discrete"
-    return n
-
 
 def read_csv(path):
     if path is None:
@@ -368,106 +303,34 @@ def read_csv(path):
     return [{(k or "").strip().lower(): (v or "").strip() for k, v in r.items()} for r in rows]
 
 
-def inspect_predictions(path, truth, steps):
-    """{model: {run: (61, 2) array}} from predictions.csv, and what was wrong with it."""
+def inspect_run5(path, steps):
+    """{model: (61, 2) array} from run5.csv."""
     info = {"present": path is not None, "curves": {}}
     rows = read_csv(path)
     if rows is None:
-        steps.append(Step("predictions.csv", "not found or unreadable", ok=False))
+        steps.append(Step("run5.csv", "not found or unreadable", ok=False))
         info["present"] = False
         return info
     cols = list(rows[0]) if rows else []
-    missing = [c for c in PRED_COLUMNS if c not in cols]
-    info["columns_ok"] = not missing
+    missing = [c for c in COLUMNS if c not in cols]
     lines = [f"{len(rows)} rows, columns {cols}" + (f"; missing {missing}" if missing else "")]
-    if missing:
-        steps.append(Step("predictions.csv", "\n".join(lines), ok=False))
-        return info
-    raw, bad = {}, 0
-    for r in rows:
+    try:
+        rows = sorted(rows, key=lambda r: float(r["t"]))
+        t = np.array([float(r["t"]) for r in rows])
+    except (KeyError, TypeError, ValueError):
+        t = np.array([])
+    info["grid_ok"] = len(t) == len(T) and np.allclose(t, T)
+    if not info["grid_ok"]:
+        lines.append("t is not 0, 5, ..., 300")
+    for m in MODELS:
         try:
-            key = (model_key(r["model"]), int(float(r["run"])))
-            raw.setdefault(key, []).append((float(r["t"]), float(r["x"]), float(r["s"])))
-        except (TypeError, ValueError):
-            bad += 1
-    if bad:
-        lines.append(f"{bad} rows did not read as numbers")
-    complete = {}
-    for model, runs in MODELS.items():
-        for run in runs:
-            vals = raw.get((model, run))
-            if not vals:
-                complete[(model, run)] = "missing"
-                continue
-            times = sorted(v[0] for v in vals)
-            if len(vals) != len(T) or not np.allclose(times, T):
-                complete[(model, run)] = f"{len(vals)} rows, not t = 0, 5, ..., 300"
-                continue
-            curve = np.array([v[1:] for v in sorted(vals)])
-            if not np.all(np.isfinite(curve)):
-                complete[(model, run)] = "holds NaN or inf"
-                continue
-            info["curves"].setdefault(model, {})[run] = curve
-            complete[(model, run)] = "ok"
-    info["complete"] = complete
-    info["models_ok"] = {m: all(complete[(m, r)] == "ok" for r in runs) for m, runs in MODELS.items()}
-    lines += ["", f"{'model':<10}{'run':>4}   rows"]
-    lines += [f"{m:<10}{r:>4}   {state}" for (m, r), state in complete.items()]
-    extra = sorted({k[0] for k in raw} - set(MODELS))
-    if extra:
-        lines.append(f"other model names, not used: {extra}")
-    steps.append(Step("predictions.csv", "\n".join(lines), ok=all(info["models_ok"].values())))
-    return info
-
-
-def inspect_metrics(path, pred, truth, steps):
-    info = {"present": path is not None, "rows": {}}
-    rows = read_csv(path)
-    if rows is None:
-        steps.append(Step("metrics.csv", "not found or unreadable", ok=False))
-        info["present"] = False
-        return info
-    cols = list(rows[0]) if rows else []
-    missing = [c for c in METRIC_COLUMNS if c not in cols]
-    info["columns_ok"] = not missing
-    lines = [f"{len(rows)} rows, columns {cols}" + (f"; missing {missing}" if missing else "")]
-    if missing:
-        steps.append(Step("metrics.csv", "\n".join(lines), ok=False))
-        return info
-    for r in rows:
-        try:
-            info["rows"][(model_key(r["model"]), int(float(r["run"])))] = (r["x_rmse"], r["s_rmse"])
-        except (TypeError, ValueError):
-            pass
-    wanted = [(m, r) for m in SCORED for r in MODELS[m]]
-    info["complete"] = all(k in info["rows"] for k in wanted)
-    curves = pred.get("curves", {})
-    # Against your own true curves when you saved them, so that a small slip in the
-    # true model is counted once, by its own check, and not again here.
-    own = curves.get("true", {})
-    matches = []
-    lines += ["", f"{'model':<10}{'run':>4}  {'X_rmse yours / recomputed':>28}  {'S_rmse yours / recomputed':>28}"]
-    for key in wanted:
-        mine = info["rows"].get(key)
-        curve = curves.get(key[0], {}).get(key[1])
-        base = own.get(key[1], truth[key[1]])
-        ref = rmse(curve, base) if curve is not None else None
-
-        def pair(m, t):
-            return f"{float(m):.4f}" if _num(m) else "-", f"{t:.4f}" if t is not None else "-"
-
-        xm, xt = pair(mine[0] if mine else None, ref[0] if ref is not None else None)
-        sm, st = pair(mine[1] if mine else None, ref[1] if ref is not None else None)
-        ok = bool(mine) and ref is not None and close(mine[0], ref[0]) and close(mine[1], ref[1])
-        matches.append(ok)
-        lines.append(f"{key[0]:<10}{key[1]:>4}  {xm + ' / ' + xt:>28}  {sm + ' / ' + st:>28}"
-                     + ("" if ok else "   <- differs"))
-    info["match"] = bool(matches) and all(matches)
-    lines.append("")
-    lines.append("recomputed against your own true-model rows" if own else
-                 "recomputed against the script's true model (yours is missing)")
-    steps.append(Step("metrics.csv against RMSE recomputed from your predictions",
-                      "\n".join(lines), ok=info["complete"] and info["match"]))
+            curve = np.array([[float(r[f"x_{m}"]), float(r[f"s_{m}"])] for r in rows])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if info["grid_ok"] and np.all(np.isfinite(curve)):
+            info["curves"][m] = curve
+    info["ok"] = not missing and info["grid_ok"] and len(info["curves"]) == len(MODELS)
+    steps.append(Step("run5.csv", "\n".join(lines), ok=info["ok"]))
     return info
 
 
@@ -486,9 +349,7 @@ def inspect_mu(path, steps):
         return info
     S = np.array([p[0] for p in pts])
     mu = np.array([p[1] for p in pts])
-    info["grid_ok"] = len(S) == len(S_GRID) and np.allclose(S, S_GRID)
-    lines = [f"{len(S)} rows" + ("" if info["grid_ok"] else ", not S = 10, 15, ..., 130"),
-             "", f"{'S':>6}  {'yours':>9}  {'true':>9}  {'error':>7}"]
+    lines = [f"{len(S)} rows", "", f"{'S':>6}  {'yours':>9}  {'true':>9}  {'error':>7}"]
     within = []
     for s, m in zip(S, mu):
         ref = mu_true(s)
@@ -497,10 +358,11 @@ def inspect_mu(path, steps):
         if inside:
             within.append(err <= MU_REL_TOL)
         lines.append(f"{s:6.1f}  {m:9.5f}  {ref:9.5f}  {err:7.1%}" + ("" if inside else "   (not checked)"))
-    info["mu_ok"] = bool(within) and all(within)
-    info["n_checked"] = len(within)
-    steps.append(Step("mu.csv against the true growth rate", "\n".join(lines),
-                      ok=info["grid_ok"] and info["mu_ok"]))
+    covered = all(any(abs(s - g) < 1e-9 for s in S) for g in S_GRID if MU_RANGE[0] <= g <= MU_RANGE[1])
+    if not covered:
+        lines.append("not every S from 20 to 130 in steps of 5 is in the file")
+    info["mu_ok"] = bool(within) and all(within) and covered
+    steps.append(Step("mu.csv against the true growth rate", "\n".join(lines), ok=info["mu_ok"]))
     return info
 
 
@@ -516,23 +378,13 @@ def analyse_code(root, files, steps):
     everything = "\n".join(b for _, b in parts)
     out = {
         "files": [p for p, _ in parts],
-        "solve_ivp": bool(re.search(r"solve_ivp\s*\(", everything)),
-        "pipeline": bool(re.search(r"make_pipeline|Pipeline\s*\(", everything))
-                    and bool(re.search(r"StandardScaler", everything))
-                    and bool(re.search(r"Ridge\s*\(", everything)),
-        "autodiff": bool(re.search(r"jax\.(grad|jacfwd|jacrev|jvp)\b|\b(grad|jacfwd|jacrev)\s*\(", everything)),
-        "optax": bool(re.search(r"optax\.\w+\s*\(", everything)),
+        "grad": bool(re.search(r"jax\.(grad|jacfwd|jacrev)\b|\b(grad|jacfwd|jacrev)\s*\(", everything)),
         "diffeqsolve": bool(re.search(r"diffeqsolve\s*\(", everything)),
-        "equinox": bool(re.search(r"eqx\.Module|equinox\.Module|eqx\.nn\.MLP", everything)),
         "x64": bool(re.search(r"jax_enable_x64", everything)),
     }
     lines = [f"{len(files)} code files: {', '.join(str(p.relative_to(root)) for p in files[:12])}", "",
-             f"solve_ivp: {'yes' if out['solve_ivp'] else 'no'}",
-             f"StandardScaler and Ridge in a pipeline: {'yes' if out['pipeline'] else 'no'}",
-             f"JAX derivatives (jax.grad, jacfwd or jacrev): {'yes' if out['autodiff'] else 'no'}",
-             f"an Optax optimizer: {'yes' if out['optax'] else 'no'}",
+             f"jax.grad: {'yes' if out['grad'] else 'no'}",
              f"diffrax.diffeqsolve: {'yes' if out['diffeqsolve'] else 'no'}",
-             f"an Equinox module: {'yes' if out['equinox'] else 'no'}",
              f"jax_enable_x64: {'yes' if out['x64'] else 'no'}"]
     steps.append(Step("read the code", "\n".join(lines)))
     return out
@@ -564,29 +416,22 @@ def quoted(value, numbers):
     return False
 
 
-def analyse_report(path, metrics, one_step, steps):
+def analyse_report(path, errors, steps):
+    """errors: {(model, state): RMSE recomputed from run5.csv}."""
     if path is None:
         steps.append(Step("REPORT.md", "no report found", ok=False))
         return {"present": False}
     text = text_of(path)
     numbers = decimals_in(text)
-    new_hits = {}
-    for model in SCORED:
-        value = metrics.get("rows", {}).get((model, NEW))
-        if value and _num(value[1]):
-            new_hits[model] = quoted(float(value[1]), numbers)
-    one_hit = quoted(float(one_step[1]), numbers) if one_step is not None else None
+    hits = {key: quoted(value, numbers) for key, value in errors.items()}
     heads = re.findall(r"(?m)^#{1,3}\s+(.+)$", text)
-    words = len(re.findall(r"\w+", text))
-    lines = [f"{words} words, {len(heads)} headings: {heads[:10]}",
-             "run 5 S_rmse quoted: " + (", ".join(f"{k} {'yes' if v else 'no'}" for k, v in new_hits.items())
-                                         or "none to look for"),
-             "one-step S RMSE of the discrete-time model quoted: "
-             + ("cannot tell, no data" if one_hit is None else "yes" if one_hit else "no")
-             + (f" (the script's value is {one_step[1]:.4f})" if one_step is not None else ""),
-             f"AI-use line: {'yes' if AI_LINE.search(text) else 'not found'}"]
+    lines = [f"{len(re.findall(r'[A-Za-z]+', text))} words, {len(heads)} headings: {heads[:10]}", "",
+             "RMSE recomputed from run5.csv, and whether REPORT.md quotes it:"]
+    lines += [f"  {m:<9} {v}  {errors[(m, v)]:.4f}  {'quoted' if hits[(m, v)] else 'NOT FOUND'}"
+              for (m, v) in errors]
+    lines.append(f"AI-use line: {'yes' if AI_LINE.search(text) else 'not found'}")
     steps.append(Step("REPORT.md", "\n".join(lines)))
-    return {"present": True, "new_hits": new_hits, "one_hit": one_hit, "words": words}
+    return {"present": True, "hits": hits}
 
 
 # ------------------------------------------------------------------- checks
@@ -594,33 +439,26 @@ def analyse_report(path, metrics, one_step, steps):
 
 def collect(root, args, found, steps):
     notes = []
-    truth = true_curves()
+    truth = true_run5()
     data = load_data(found["data"], steps)
-    ridge = Ridge(data) if data is not None else None
-    one_step = None
+    ridge = ridge_run5(data) if data is not None else None
+    lines = [f"true model, run 5: X(300) {truth[-1, 0]:.4f}, S(300) {truth[-1, 1]:.3f}"]
     if ridge is not None:
-        pred1 = np.vstack([ridge.predict(data[r][:-1]) for r in TRAIN])
-        one_step = rmse(pred1, np.vstack([truth[r][1:] for r in TRAIN]))
-        sims = {run: ridge.simulate(ic) for run, ic in ICS.items()}
-        lines = ["the script's own fit of make_pipeline(StandardScaler(), Ridge(alpha=1.0)) "
-                 "on the pairs (x[k], x[k+1]) of runs 1 to 4",
-                 f"one-step RMSE over runs 1 to 4: X {one_step[0]:.4f}, S {one_step[1]:.4f}"]
-        lines += [f"simulated from the initial condition, run {r}: RMSE X {e[0]:.4f}, S {e[1]:.4f}"
-                  for r in ICS for e in [rmse(sims[r], truth[r])]]
-        steps.append(Step("the discrete-time model, refitted here", "\n".join(lines)))
-    else:
-        sims = None
-    steps.append(Step("the true model, solved here",
-                      "\n".join([f"F/V = {D:.5f} 1/s"] +
-                                [f"run {r}: X0 {ICS[r][0]}, S0 {ICS[r][1]} -> X(300) {truth[r][-1, 0]:.4f}, "
-                                 f"S(300) {truth[r][-1, 1]:.3f}" for r in ICS])))
+        e = rmse(ridge, truth)
+        lines.append(f"discrete-time model refitted here, run 5: RMSE X {e[0]:.4f}, S {e[1]:.4f}")
+    steps.append(Step("the script's own true model and discrete-time model", "\n".join(lines)))
 
-    pred = inspect_predictions(found["predictions"], truth, steps)
-    metrics = inspect_metrics(found["metrics"], pred, truth, steps)
+    run5 = inspect_run5(found["run5"], steps)
     mu = inspect_mu(found["mu"], steps)
     code = analyse_code(root, found["code"], steps)
-    report = analyse_report(found["report"], metrics, one_step, steps)
-    curves = pred.get("curves", {})
+    curves = run5["curves"]
+    own_truth = curves.get("true", truth)
+    errors = {}
+    for m in ("discrete", "pinn", "node"):
+        if m in curves:
+            e = rmse(curves[m], own_truth)
+            errors[(m, "X")], errors[(m, "S")] = e[0], e[1]
+    report = analyse_report(found["report"], errors, steps)
 
     checks = []
 
@@ -633,115 +471,67 @@ def collect(root, args, found, steps):
     def coded(flag):
         return decided(code[flag]) if code["files"] else SKIP
 
-    def worst(model, runs):
-        got = curves.get(model, {})
-        if not all(r in got for r in runs):
-            return None
-        return np.max([np.max(np.abs(got[r] - truth[r]), axis=0) for r in runs], axis=0)
+    def within(model, limit):
+        got = curves.get(model)
+        if got is None:
+            return FAIL, f"no {model} columns in run5.csv"
+        e = rmse(got, truth)
+        return decided(e[0] <= limit[0] and e[1] <= limit[1]), f"RMSE X {e[0]:.4f}, S {e[1]:.4f}"
 
-    # 1. the true model and the discrete-time model
-    add("discrete", "predictions.csv with every model, run and time step",
-        decided(pred.get("present") and pred.get("columns_ok") and all(pred.get("models_ok", {}).values())))
-    w = worst("true", MODELS["true"])
-    add("discrete", "your true model matches the script's solution",
-        decided(w is not None and w[0] <= TRUE_TOL[0] and w[1] <= TRUE_TOL[1]),
-        f"largest difference X {w[0]:.2e}, S {w[1]:.2e}; allowed {TRUE_TOL[0]:g}, {TRUE_TOL[1]:g}"
-        if w is not None else "the true model is missing from predictions.csv")
-    if sims is None:
-        add("discrete", "your discrete-time model matches the fixed ridge fit", SKIP,
-            "the data file is missing or is not the published one, so the fit cannot be redone")
+    # 1. the discrete-time model, and the true model it is compared with
+    add("discrete", "run5.csv with the nine columns and t = 0, 5, ..., 300", decided(run5.get("ok")))
+    if "true" in curves:
+        d = np.max(np.abs(curves["true"] - truth), axis=0)
+        add("discrete", "your true model matches the script's",
+            decided(d[0] <= TRUE_TOL[0] and d[1] <= TRUE_TOL[1]),
+            f"largest difference X {d[0]:.2e}, S {d[1]:.2e}; allowed {TRUE_TOL[0]:g}, {TRUE_TOL[1]:g}")
     else:
-        got = curves.get("discrete", {})
-        if all(r in got for r in ICS):
-            d = np.max([np.max(np.abs(got[r] - sims[r]), axis=0) for r in ICS], axis=0)
-            add("discrete", "your discrete-time model matches the fixed ridge fit",
-                decided(d[0] <= DISCRETE_TOL[0] and d[1] <= DISCRETE_TOL[1]),
-                f"largest difference X {d[0]:.2e}, S {d[1]:.2e}; allowed {DISCRETE_TOL[0]:g}, {DISCRETE_TOL[1]:g}")
-        else:
-            add("discrete", "your discrete-time model matches the fixed ridge fit", FAIL,
-                "discrete-time predictions are missing for some runs")
-    add("discrete", "StandardScaler and Ridge in a pipeline in the code", coded("pipeline"))
+        add("discrete", "your true model matches the script's", FAIL, "no true-model columns")
+    if ridge is None:
+        add("discrete", "your discrete-time model matches the script's fit", SKIP,
+            "the data file is missing or is not the published one, so the fit cannot be redone")
+    elif "discrete" in curves:
+        d = np.max(np.abs(curves["discrete"] - ridge), axis=0)
+        add("discrete", "your discrete-time model matches the script's fit",
+            decided(d[0] <= DISCRETE_TOL[0] and d[1] <= DISCRETE_TOL[1]),
+            f"largest difference X {d[0]:.2e}, S {d[1]:.2e}; allowed {DISCRETE_TOL[0]:g}, {DISCRETE_TOL[1]:g}")
+    else:
+        add("discrete", "your discrete-time model matches the script's fit", FAIL, "no discrete columns")
 
     # 2. the PINN
-    for run in (1, NEW):
-        got = curves.get("pinn", {}).get(run)
-        lim = PINN_LIMIT[run]
-        label = (f"PINN on run {run}, " + ("trained with its data" if run != NEW else "the new start-up")
-                 + f", within RMSE X {lim[0]}, S {lim[1]} of the true model")
-        if got is None:
-            add("pinn", label, FAIL, "no PINN predictions for this run")
-        else:
-            e = rmse(got, truth[run])
-            add("pinn", label, decided(e[0] <= lim[0] and e[1] <= lim[1]),
-                f"RMSE X {e[0]:.4f}, S {e[1]:.4f}")
-    add("pinn", "JAX derivatives and an Optax optimizer in the code",
-        decided(code["autodiff"] and code["optax"]) if code["files"] else SKIP)
+    state, note = within("pinn", PINN_LIMIT)
+    add("pinn", f"run 5 within an RMSE of {PINN_LIMIT[0]} on X and {PINN_LIMIT[1]} on S", state, note)
+    add("pinn", "jax.grad in the code", coded("grad"))
 
     # 3. the neural ODE
-    add("node", "diffeqsolve and an Equinox network in the code",
-        decided(code["diffeqsolve"] and code["equinox"]) if code["files"] else SKIP)
-    add("node", "mu.csv on the grid S = 10, 15, ..., 130", decided(mu.get("present") and mu.get("grid_ok")))
-    add("node", f"learned mu within {MU_REL_TOL:.0%} of the true mu for S from "
+    state, note = within("node", NODE_LIMIT)
+    add("node", f"run 5 within an RMSE of {NODE_LIMIT[0]} on X and {NODE_LIMIT[1]} on S", state, note)
+    add("node", f"learned mu within {MU_REL_TOL:.0%} of the true mu from S = "
                 f"{MU_RANGE[0]:.0f} to {MU_RANGE[1]:.0f}",
         decided(mu.get("present") and mu.get("mu_ok")))
-    got = curves.get("node", {})
-    lim = NODE_LIMIT["train"]
-    if all(r in got for r in TRAIN):
-        e = np.max([rmse(got[r], truth[r]) for r in TRAIN], axis=0)
-        add("node", f"neural ODE on runs 1 to 4 within RMSE X {lim[0]}, S {lim[1]} of the true model",
-            decided(e[0] <= lim[0] and e[1] <= lim[1]), f"worst run: RMSE X {e[0]:.4f}, S {e[1]:.4f}")
-    else:
-        add("node", f"neural ODE on runs 1 to 4 within RMSE X {lim[0]}, S {lim[1]} of the true model",
-            FAIL, "neural ODE predictions are missing for some training runs")
-    lim = NODE_LIMIT[NEW]
-    if NEW in got:
-        e = rmse(got[NEW], truth[NEW])
-        add("node", f"neural ODE on the new start-up within RMSE X {lim[0]}, S {lim[1]} of the true model",
-            decided(e[0] <= lim[0] and e[1] <= lim[1]), f"RMSE X {e[0]:.4f}, S {e[1]:.4f}")
-    else:
-        add("node", f"neural ODE on the new start-up within RMSE X {lim[0]}, S {lim[1]} of the true model",
-            FAIL, "no neural ODE predictions for run 5")
+    add("node", "diffeqsolve in the code", coded("diffeqsolve"))
 
     # 4. the comparison
-    add("compare", "metrics.csv with every model and run, and the four columns",
-        decided(metrics.get("present") and metrics.get("columns_ok") and metrics.get("complete")))
-    add("compare", "metrics.csv matches RMSE recomputed from your predictions",
-        decided(metrics.get("match")), "within 0.5 %, against your own true-model rows")
-    disc, node = curves.get("discrete", {}).get(NEW), curves.get("node", {}).get(NEW)
-    if disc is not None and node is not None:
-        ed, en = rmse(disc, truth[NEW]), rmse(node, truth[NEW])
-        add("compare", "the neural ODE beats the discrete-time model on the new start-up",
-            decided(en[0] < ed[0] and en[1] < ed[1]),
-            f"S RMSE: neural ODE {en[1]:.4f}, discrete-time {ed[1]:.4f}")
-    else:
-        add("compare", "the neural ODE beats the discrete-time model on the new start-up", FAIL,
-            "one of the two is missing for run 5")
-    add("compare", "results/training.png and results/new_startup.png",
-        decided(found["train_png"] is not None and found["new_png"] is not None))
-
-    # 5. report numbers
+    add("compare", "results/run5.png", decided(found["png"] is not None))
     if not report.get("present"):
-        add("numbers", "REPORT.md quotes the run 5 S_rmse of all three models", FAIL, "no report")
-        add("numbers", "REPORT.md quotes the one-step S RMSE of the discrete-time model", FAIL, "no report")
+        add("compare", "REPORT.md quotes the RMSE of X and S of each model", FAIL, "no report")
+    elif not errors:
+        add("compare", "REPORT.md quotes the RMSE of X and S of each model", FAIL,
+            "run5.csv had no predictions to compute them from")
     else:
-        hits = report["new_hits"]
-        add("numbers", "REPORT.md quotes the run 5 S_rmse of all three models",
-            decided(len(hits) == len(SCORED) and all(hits.values())),
-            ", ".join(f"{k} {'yes' if v else 'no'}" for k, v in hits.items()) or "metrics.csv had no run 5 rows")
-        if report["one_hit"] is None:
-            add("numbers", "REPORT.md quotes the one-step S RMSE of the discrete-time model", SKIP,
-                "the data file is missing, so the script cannot compute it")
-        else:
-            add("numbers", "REPORT.md quotes the one-step S RMSE of the discrete-time model",
-                decided(report["one_hit"]), f"the script's value is {one_step[1]:.4f}")
-    add("report", "six sections and the AI-use line", SKIP, "read by your TA")
+        missing = [f"{m} {v}" for (m, v), hit in report["hits"].items() if not hit]
+        add("compare", "REPORT.md quotes the RMSE of X and S of each model",
+            decided(len(errors) == 6 and not missing),
+            "all six quoted" if not missing and len(errors) == 6 else
+            "not found: " + ", ".join(missing) if missing else "some models are missing from run5.csv")
+
+    add("report", "answers to 5(c) and 5(d), and the AI-use line", SKIP, "read by your TA")
 
     if code["files"] and not code["x64"]:
-        notes.append("jax_enable_x64 is not in your code. The fixed choices ask for it; "
-                     "float32 is usually close here, but say so if you left it out.")
+        notes.append("jax_enable_x64 is not in your code. The worked examples turn it on.")
     if mu.get("present"):
-        notes.append("mu.csv is checked from S = 20 up. Below that the training runs spend only a "
-                     "few samples, so the learned mu there is loosely pinned. Worth a sentence in section 4.")
+        notes.append("mu.csv is checked from S = 20 up. Below that the training runs have only a "
+                     "few samples, so the learned mu there is loosely pinned.")
     return {"checks": checks, "notes": notes, "steps": steps}
 
 
@@ -1002,7 +792,7 @@ def rel(root, path):
         return str(path)
 
 
-LABELS = ("data", "predictions", "metrics", "mu", "train_png", "new_png", "report")
+LABELS = ("data", "run5", "mu", "png", "report")
 
 
 def report_lines(root, args, found, result):
@@ -1112,8 +902,7 @@ def main():
     parser.add_argument("--andrew-id", required=True)
     parser.add_argument("--name", default="")
     parser.add_argument("--data", default=None, help=f"data/{DATA_FILE}")
-    parser.add_argument("--predictions", default=None, help="results/predictions.csv")
-    parser.add_argument("--metrics", default=None, help="results/metrics.csv")
+    parser.add_argument("--run5", default=None, help="results/run5.csv")
     parser.add_argument("--mu", default=None, help="results/mu.csv")
     parser.add_argument("--report", default=None, help="REPORT.md")
     parser.add_argument("--out", default="evidence.pdf")
@@ -1122,8 +911,8 @@ def main():
 
     root = Path.cwd()
     found = discover(root, args)
-    if not any([found["predictions"], found["metrics"], found["report"]]):
-        raise SystemExit(f"Found no predictions, no metrics table and no report in {root}. "
+    if not any([found["run5"], found["mu"], found["report"]]):
+        raise SystemExit(f"Found no run5.csv, no mu.csv and no report in {root}. "
                          f"Run this from your A5 project root.")
 
     print(f"Building evidence for {args.andrew_id} in {root}")
