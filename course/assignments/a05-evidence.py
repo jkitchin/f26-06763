@@ -94,9 +94,10 @@ COLUMNS = ["t"] + [f"{v}_{m}" for m in MODELS for v in ("x", "s")]
 # Limits. The ridge model has one answer, so its tolerance only absorbs
 # rounding. The trained networks are scored by RMSE against the measurements of
 # experiment 5, whose noise alone gives 0.048 on X and 1.08 on S. The reference
-# solution, run several ways (float64 and float32, seeds 0 to 3, two
-# learning-rate schedules for the PINN, V rounded to 161.16), scores at most
-# 0.052 and 1.20; a neural ODE off by 3 mol/m3 scores 3.2.
+# solution, run several ways (float64 and float32; seeds 0 to 4 for the neural
+# ODE and 0 to 3 for the PINN; two learning-rate schedules for the PINN; V
+# rounded to 161.16), scores at most 0.052 and 1.20; a neural ODE off by
+# 3 mol/m3 scores 3.4.
 DISCRETE_TOL = (1e-3, 1e-2)                  # max |difference| in X (kg/m3), S (mol/m3)
 LIMIT = (0.08, 2.0)                          # RMSE X, S against experiment 5
 MU_REL_TOL = 0.05                            # 5 % of the true mu
