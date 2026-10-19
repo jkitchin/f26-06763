@@ -11,7 +11,8 @@
                      for continuous operation: feed in, outflow out, constant volume.
                      Needs attic/cmu-seminar.pptx, which is not in the repository;
                      without it the committed PNG is kept.
-    a05-data.png     The five experiments of a05-bioreactor.csv.
+    a05-data.png     The five experiments of a05-bioreactor.csv: experiments 1 to 4
+                     for 100 s (training) and experiment 5 for 300 s (test).
 """
 import csv
 import io
@@ -98,22 +99,30 @@ def data():
     colors = {1: "#1f77b4", 2: "#2ca02c", 3: "#9467bd", 4: "#e377c2"}
 
     with plt.rc_context(STYLE):
-        fig, axes = plt.subplots(1, 2, figsize=(13, 4.6))
+        fig, axes = plt.subplots(1, 2, figsize=(13, 4.8))
         for ax, j, name, unit, ss in [(axes[0], 1, "biomass $X$", "kg/m³", X_SS),
                                       (axes[1], 2, "substrate $S$", "mol/m³", S_SS)]:
+            ax.axvspan(0, 100, color="#1f77b4", alpha=0.07, lw=0)
             for exp, vals in rows.items():
                 v = np.array(vals)
                 if exp == 5:
                     ax.plot(v[:, 0], v[:, j], "-o", color=INK, lw=0.8, mfc="white", mec=INK,
                             ms=5, mew=1.3, label="experiment 5 (test)", zorder=3)
                 else:
-                    ax.plot(v[:, 0], v[:, j], "-o", color=colors[exp], lw=0.8, ms=3.5,
+                    ax.plot(v[:, 0], v[:, j], "-o", color=colors[exp], lw=0.9, ms=3.5,
                             label=f"experiment {exp}")
             ax.axhline(ss, color=MUTED, lw=1.2, ls="--", label="steady state", zorder=0)
             ax.set_xlabel("time $t$ (s)")
             ax.set_ylabel(f"{name} ({unit})")
             ax.set_xlim(-5, 305)
-        axes[1].legend(loc="upper right", fontsize=11, ncol=1)
+            lo, hi = ax.get_ylim()
+            ax.set_ylim(lo, hi + 0.22 * (hi - lo))
+            top = hi + 0.2 * (hi - lo)
+            ax.text(50, top, "training data\n(experiments 1 to 4)", ha="center", va="top",
+                    fontsize=12, color="#1f5c99")
+            ax.text(200, top, "beyond the training data\n(experiment 5 only)", ha="center",
+                    va="top", fontsize=12, color=INK)
+        axes[1].legend(loc="center right", fontsize=11, ncol=1)
         fig.tight_layout()
         save(fig, "a05-data.png")
 

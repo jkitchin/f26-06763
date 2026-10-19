@@ -73,7 +73,7 @@ SKIP_DIRS = {".venv", ".git", "node_modules", "__pycache__", ".ipynb_checkpoints
 OURS = ("a05-evidence.py", "a05-make-data.py", "evidence.html", "evidence.pdf")
 
 DATA_FILE = "a05-bioreactor.csv"
-DATA_SHA256 = "0c9d489b362457f071333a605ab4bcce5500cdff2d1398c7397ee14566d83ef4"
+DATA_SHA256 = "f69097e9a686f2d448cde684f5db17cca065db9cf339a9eb6fc5c576069d69fd"
 
 # The model, as the assignment gives it.
 V = math.pi * 3.0**2 * 5.7     # m3
@@ -96,7 +96,7 @@ COLUMNS = ["t"] + [f"{v}_{m}" for m in MODELS for v in ("x", "s")]
 # experiment 5, whose noise alone gives 0.048 on X and 1.08 on S. The reference
 # solution, run several ways (float64 and float32; seeds 0 to 4 for the neural
 # ODE and 0 to 3 for the PINN; two learning-rate schedules for the PINN; V
-# rounded to 161.16), scores at most 0.052 and 1.20; a neural ODE off by
+# rounded to 161.16), scores at most 0.053 and 1.27; a neural ODE off by
 # 3 mol/m3 scores 3.4.
 DISCRETE_TOL = (1e-3, 1e-2)                  # max |difference| in X (kg/m3), S (mol/m3)
 LIMIT = (0.08, 2.0)                          # RMSE X, S against experiment 5
@@ -265,7 +265,7 @@ def load_data(path, steps):
     return data
 
 
-def ridge_experiment5(data):
+def ridge_experiment5(data):  # experiments 1 to 4 hold 0 to 100 s, 21 samples each
     """make_pipeline(StandardScaler(), Ridge(alpha=1.0)), written out in NumPy,
     then simulated from experiment 5's initial condition.
 
@@ -531,7 +531,7 @@ def collect(root, args, found, steps):
         add("compare", label, decided(not missing),
             "all six quoted" if not missing else "not found: " + ", ".join(missing))
 
-    add("report", "answers (b) and (c), and the AI-use line", SKIP, "read by your TA")
+    add("report", "answers to 1(d), 2(d), 3(f) and 4(c), and the AI-use line", SKIP, "read by your TA")
 
     if code["files"] and not code["x64"]:
         notes.append("jax_enable_x64 is not in your code. The assignment and the worked examples turn it on.")
