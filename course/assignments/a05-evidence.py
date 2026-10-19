@@ -203,8 +203,14 @@ def discover(root, args):
         named = walk(root, [DATA_FILE])
         data = named[0] if named else None
     found["data"] = data
-    found["predictions"] = csv_with(args.predictions, {"t", "x_node", "s_node"},
-                                    ["results/experiment5", "experiment5"])
+    preds = given_path(root, args.predictions)
+    if preds is None:
+        named = [p for p in walk(root, ["experiment5.csv"])]
+        cands = named or [c for c in walk(root, ["*.csv"])
+                          if "t" in csv_header(c)
+                          and any(f"x_{m}" in csv_header(c) for m in MODELS)]
+        preds = by_name(cands, ["results/experiment5", "experiment5"])
+    found["predictions"] = preds
     found["mu"] = csv_with(args.mu, {"s", "mu"}, ["results/mu", "mu"])
     found["png"] = by_name(walk(root, ["*.png"]), ["results/experiment5", "experiment5"])
     if found["png"] is not None and not re.search(r"(experiment|exp|run).?5", found["png"].name, re.I):
@@ -212,8 +218,8 @@ def discover(root, args):
 
     report = given_path(root, args.report)
     if report is None:
-        report = by_name(walk(root, ["REPORT.md", "report.md", "*.md"]),
-                         ["report.md", "report", "readme"])
+        report = by_name([p for p in walk(root, ["*.md"]) if p.stem.lower() == "report"],
+                         ["report.md", "report"])
     found["report"] = report
 
     found["code"] = [p for p in walk(root, ["*.py", "*.ipynb"]) if p.name not in OURS]
@@ -328,6 +334,9 @@ def inspect_predictions(path, steps):
             continue
         if info["grid_ok"] and np.all(np.isfinite(curve)):
             info["curves"][m] = curve
+    # Each group checks its own model's columns, so a model that fails costs points
+    # only in its own group.
+    info["discrete_ok"] = info["grid_ok"] and "discrete" in info["curves"]
     info["ok"] = not missing and info["grid_ok"] and len(info["curves"]) == len(MODELS)
     steps.append(Step("experiment5.csv", "\n".join(lines), ok=info["ok"]))
     return info
@@ -494,8 +503,8 @@ def collect(root, args, found, steps):
                 f"RMSE X {e[0]:.4f}, S {e[1]:.4f}")
 
     # 1. the discrete-time model
-    add("discrete", "experiment5.csv with the seven columns and t = 0, 5, ..., 300",
-        decided(preds.get("ok")))
+    add("discrete", "experiment5.csv with t = 0, 5, ..., 300 and the discrete-time columns",
+        decided(preds.get("discrete_ok")))
     label = "your discrete-time prediction matches the script's fit"
     if ridge is None:
         add("discrete", label, SKIP, no_data + ", so the fit cannot be redone")
@@ -519,17 +528,17 @@ def collect(root, args, found, steps):
 
     # 4. the comparison
     add("compare", "results/experiment5.png", decided(found["png"] is not None))
-    label = "REPORT.md quotes the six RMSEs"
+    label = "REPORT.md quotes the RMSEs of every model in experiment5.csv"
     if not report.get("present"):
         add("compare", label, FAIL, "no report")
     elif meas is None:
         add("compare", label, SKIP, no_data + ", so the RMSEs cannot be computed")
-    elif len(errors) < 6:
-        add("compare", label, FAIL, "some models are missing from experiment5.csv")
+    elif not errors:
+        add("compare", label, FAIL, "experiment5.csv has no model to compute an RMSE for")
     else:
         missing = [f"{m} {v}" for (m, v), hit in report["hits"].items() if not hit]
         add("compare", label, decided(not missing),
-            "all six quoted" if not missing else "not found: " + ", ".join(missing))
+            f"all {len(errors)} quoted" if not missing else "not found: " + ", ".join(missing))
 
     add("report", "answers to 1(d), 2(d), 3(f) and 4(c), and the AI-use line", SKIP, "read by your TA")
 
