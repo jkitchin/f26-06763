@@ -33,7 +33,7 @@ reported and explained, loses no points. It checks:
   * your learned growth rate in `mu.csv`, on its grid;
   * your code, for `MLPRegressor`, `jax.grad` and `diffeqsolve`;
   * the RMSEs in your `REPORT.md`, against the ones it computes from your
-    `experiment5.csv` and the measurements of experiment 5.
+    `experiment5.csv` and the measurements of experiment 5 after 40 s.
 
 It also prints every RMSE, and your learned growth rate next to the true one,
 for whoever reads the PDF.
@@ -83,11 +83,13 @@ TRAIN = (1, 2, 3, 4)
 TEST = 5                                     # experiment 5, the test set
 IC5 = (3.0, 80.0)                            # its initial condition
 T = np.arange(0, 301, 5).astype(float)       # s, 61 samples
+T_FIT = 40.0                                 # problems 2 and 3 train on experiment 5 up to here
+AFTER = T > T_FIT                            # the 52 samples no model trained on
 S_GRID = np.arange(0, 301, 10).astype(float)
 
-# The four predictions: problem 1, problem 2 (a) and (b), problem 3.
-MODELS = ("nnts", "pinn_a", "pinn_b", "node")
-NAMES = {"nnts": "time-series model", "pinn_a": "first PINN", "pinn_b": "second PINN",
+# The four predictions, one per problem 1 to 4.
+MODELS = ("ts", "nn", "pinn", "node")
+NAMES = {"ts": "time-series model", "nn": "neural network", "pinn": "PINN",
          "node": "neural ODE"}
 COLUMNS = ["t"] + [f"{v}_{m}" for m in MODELS for v in ("x", "s")]
 
@@ -96,8 +98,8 @@ COLUMNS = ["t"] + [f"{v}_{m}" for m in MODELS for v in ("x", "s")]
 # it. Within a group the checks are equally weighted. Points sum to 6.
 # --------------------------------------------------------------------------
 GROUPS = [
-    ("nnts",    "Time-series model", 1.0, "script"),
-    ("pinn",    "PINN",              1.5, "script"),
+    ("ts",      "Time-series model", 1.0, "script"),
+    ("pinn",    "Network and PINN",  1.5, "script"),
     ("node",    "Neural ODE",        1.5, "script"),
     ("compare", "Comparison",        1.0, "script"),
     ("report",  "REPORT.md",         1.0, "your TA"),
@@ -400,7 +402,7 @@ def analyse_report(path, errors, steps):
     hits = {key: quoted(value, numbers) for key, value in errors.items()}
     heads = re.findall(r"(?m)^#{1,3}\s+(.+)$", text)
     lines = [f"{len(re.findall(r'[A-Za-z]+', text))} words, {len(heads)} headings: {heads[:10]}", "",
-             "RMSE against experiment 5, from experiment5.csv, and whether REPORT.md quotes it:"]
+             "RMSE against experiment 5 after 40 s, from experiment5.csv, and whether REPORT.md quotes it:"]
     lines += [f"  {m:<9} {v}  {errors[(m, v)]:.4f}  {'quoted' if hits[(m, v)] else 'NOT FOUND'}"
               for (m, v) in errors]
     lines.append(f"AI-use line: {'yes' if AI_LINE.search(text) else 'not found'}")
@@ -422,20 +424,20 @@ def collect(root, args, found, steps):
     code = analyse_code(root, found["code"], steps)
     curves = preds["curves"]
 
-    # Every RMSE against the measurements of experiment 5, as the assignment asks.
+    # Every RMSE against the measurements of experiment 5 after 40 s, as the assignment asks.
     errors = {}
     lines = []
     if meas is not None:
-        e = rmse(truth, meas)
+        e = rmse(truth[AFTER], meas[AFTER])
         lines.append(f"the noise alone (true model against the measurements): X {e[0]:.4f}, S {e[1]:.4f}")
         for m in MODELS:
             if m in curves:
-                e = rmse(curves[m], meas)
+                e = rmse(curves[m][AFTER], meas[AFTER])
                 errors[(m, "X")], errors[(m, "S")] = e[0], e[1]
                 lines.append(f"{NAMES[m]:<18} X {e[0]:.4f}, S {e[1]:.4f}")
     else:
         lines.append("no published data file, so no RMSE against experiment 5")
-    steps.append(Step("RMSE against the measurements of experiment 5 (not graded on accuracy)",
+    steps.append(Step("RMSE against the measurements of experiment 5 after 40 s (not graded on accuracy)",
                       "\n".join(lines)))
     report = analyse_report(found["report"], errors, steps)
 
@@ -455,20 +457,20 @@ def collect(root, args, found, steps):
             decided(preds.get("grid_ok") and m in curves))
 
     # 1. the time-series model
-    columns("nnts", "nnts")
-    add("nnts", "MLPRegressor in the code", coded("mlp"))
+    columns("ts", "ts")
+    add("ts", "MLPRegressor in the code", coded("mlp"))
 
-    # 2. the two PINNs
-    columns("pinn", "pinn_a")
-    columns("pinn", "pinn_b")
+    # 2 and 3. the neural network and the PINN
+    columns("pinn", "nn")
+    columns("pinn", "pinn")
     add("pinn", "jax.grad in the code", coded("grad"))
 
-    # 3. the neural ODE
+    # 4. the neural ODE
     columns("node", "node")
     add("node", "mu.csv on S = 0, 10, ..., 300", decided(mu.get("present") and mu.get("grid_ok")))
     add("node", "diffeqsolve in the code", coded("diffeqsolve"))
 
-    # 4. the comparison
+    # 5. the comparison
     add("compare", "results/experiment5.png", decided(found["png"] is not None))
     label = "REPORT.md quotes the RMSEs of every model in experiment5.csv"
     if not report.get("present"):

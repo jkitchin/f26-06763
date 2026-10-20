@@ -12,7 +12,8 @@
                      Needs attic/cmu-seminar.pptx, which is not in the repository;
                      without it the committed PNG is kept.
     a05-data.png     The five experiments of a05-bioreactor.csv: experiments 1 to 4
-                     for 100 s (training) and experiment 5 for 300 s (test).
+                     for 100 s (training) and experiment 5 for 300 s (test), with the
+                     first 40 s of experiment 5, which Problems 2 and 3 train on, filled.
 """
 import csv
 import io
@@ -108,10 +109,14 @@ def data():
                 if exp == 5:
                     ax.plot(v[:, 0], v[:, j], "-o", color=INK, lw=0.8, mfc="white", mec=INK,
                             ms=5, mew=1.3, label="experiment 5 (test)", zorder=3)
+                    first = v[:, 0] <= 40
+                    ax.plot(v[first, 0], v[first, j], "o", color=INK, ms=5, zorder=4,
+                            label="experiment 5, first 40 s\n(Problems 2 and 3 train on it)")
                 else:
                     ax.plot(v[:, 0], v[:, j], "-o", color=colors[exp], lw=0.9, ms=3.5,
                             label=f"experiment {exp}")
             ax.axhline(ss, color=MUTED, lw=1.2, ls="--", label="steady state", zorder=0)
+            ax.axvline(40, color=INK, lw=0.8, ls=":", zorder=0)
             ax.set_xlabel("time $t$ (s)")
             ax.set_ylabel(f"{name} ({unit})")
             ax.set_xlim(-5, 305)
