@@ -25,19 +25,18 @@ of them and prints the total on the first page; the fifth is your answers in
 `REPORT.md`, which a person reads. Within a group the checks are equally
 weighted.
 
-It does not take your numbers on trust. It fits the discrete-time model the
-assignment fixes, from the same data file you used, and checks:
+It checks that the work is there, not how accurate it is: a model that fails,
+reported and explained, loses no points. It checks:
 
-  * your discrete-time prediction of experiment 5 against its own, which is
-    exact, because a ridge regression has one answer;
-  * the RMSE of your PINN and neural ODE against the measurements of
-    experiment 5, within a limit. A trained network is not exact: the same
-    code gives slightly different numbers on different computers;
-  * your learned growth rate against the true one;
-  * the RMSEs in your `REPORT.md` against the ones it computes from your
-    `experiment5.csv`.
+  * the four predictions of experiment 5 in your `experiment5.csv`, on the
+    time grid the assignment fixes;
+  * your learned growth rate in `mu.csv`, on its grid;
+  * your code, for `MLPRegressor`, `jax.grad` and `diffeqsolve`;
+  * the RMSEs in your `REPORT.md`, against the ones it computes from your
+    `experiment5.csv` and the measurements of experiment 5.
 
-It also reads your code for `jax.grad` and `diffeqsolve`.
+It also prints every RMSE, and your learned growth rate next to the true one,
+for whoever reads the PDF.
 
 IT DOES NOT CHANGE YOUR FILES. It reads the data, the results and the code,
 and writes `evidence.pdf` (and `evidence.html` with --html). It does not re-run
@@ -84,34 +83,24 @@ TRAIN = (1, 2, 3, 4)
 TEST = 5                                     # experiment 5, the test set
 IC5 = (3.0, 80.0)                            # its initial condition
 T = np.arange(0, 301, 5).astype(float)       # s, 61 samples
-ALPHA = 1.0                                  # Ridge(alpha=1.0)
-S_GRID = np.arange(10, 131, 5).astype(float)
-MU_RANGE = (20.0, 130.0)                     # where the training data pin mu down
+S_GRID = np.arange(0, 301, 10).astype(float)
 
-MODELS = ("discrete", "pinn", "node")
+# The four predictions: problem 1, problem 2 (a) and (b), problem 3.
+MODELS = ("nnts", "pinn_a", "pinn_b", "node")
+NAMES = {"nnts": "time-series model", "pinn_a": "first PINN", "pinn_b": "second PINN",
+         "node": "neural ODE"}
 COLUMNS = ["t"] + [f"{v}_{m}" for m in MODELS for v in ("x", "s")]
-
-# Limits. The ridge model has one answer, so its tolerance only absorbs
-# rounding. The trained networks are scored by RMSE against the measurements of
-# experiment 5, whose noise alone gives 0.048 on X and 1.08 on S. The reference
-# solution, run several ways (float64 and float32; seeds 0 to 4 for the neural
-# ODE and 0 to 3 for the PINN; two learning-rate schedules for the PINN; V
-# rounded to 161.16), scores at most 0.053 and 1.27; a neural ODE off by
-# 3 mol/m3 scores 3.4.
-DISCRETE_TOL = (1e-3, 1e-2)                  # max |difference| in X (kg/m3), S (mol/m3)
-LIMIT = (0.08, 2.0)                          # RMSE X, S against experiment 5
-MU_REL_TOL = 0.05                            # 5 % of the true mu
 
 # --------------------------------------------------------------------------
 # The five groups. Four are scored here; group 5 is the report, and a TA reads
 # it. Within a group the checks are equally weighted. Points sum to 6.
 # --------------------------------------------------------------------------
 GROUPS = [
-    ("discrete", "Discrete-time model", 1.0, "script"),
-    ("pinn",     "PINN",                1.0, "script"),
-    ("node",     "Neural ODE",          1.5, "script"),
-    ("compare",  "Comparison",          1.5, "script"),
-    ("report",   "REPORT.md",           1.0, "your TA"),
+    ("nnts",    "Time-series model", 1.0, "script"),
+    ("pinn",    "PINN",              1.5, "script"),
+    ("node",    "Neural ODE",        1.5, "script"),
+    ("compare", "Comparison",        1.0, "script"),
+    ("report",  "REPORT.md",         1.0, "your TA"),
 ]
 TOTAL = sum(g[2] for g in GROUPS)
 AUTO_TOTAL = sum(g[2] for g in GROUPS if g[3] == "script")
@@ -271,26 +260,6 @@ def load_data(path, steps):
     return data
 
 
-def ridge_experiment5(data):  # experiments 1 to 4 hold 0 to 100 s, 21 samples each
-    """make_pipeline(StandardScaler(), Ridge(alpha=1.0)), written out in NumPy,
-    then simulated from experiment 5's initial condition.
-
-    StandardScaler divides by the population standard deviation (ddof=0), and
-    Ridge fits an intercept, which is the mean of the targets once the inputs
-    are centred. The result is scikit-learn's to rounding.
-    """
-    A = np.vstack([data[r][:-1] for r in TRAIN])     # x[k], inside each experiment
-    B = np.vstack([data[r][1:] for r in TRAIN])      # x[k+1]
-    mean, std = A.mean(axis=0), A.std(axis=0)
-    Z = (A - mean) / std
-    b = B.mean(axis=0)
-    W = np.linalg.solve(Z.T @ Z + ALPHA * np.eye(Z.shape[1]), Z.T @ (B - b))
-    path = [np.array(IC5)]
-    while len(path) < len(T):
-        path.append(((path[-1] - mean) / std) @ W + b)
-    return np.array(path)
-
-
 def rmse(a, b):
     return np.sqrt(np.mean((np.asarray(a) - np.asarray(b)) ** 2, axis=0))
 
@@ -331,18 +300,21 @@ def inspect_predictions(path, steps):
         try:
             curve = np.array([[float(r[f"x_{m}"]), float(r[f"s_{m}"])] for r in rows])
         except (KeyError, TypeError, ValueError):
+            lines.append(f"{NAMES[m]}: columns X_{m} and S_{m} missing or not numbers")
             continue
-        if info["grid_ok"] and np.all(np.isfinite(curve)):
+        if not np.all(np.isfinite(curve)):
+            lines.append(f"{NAMES[m]}: holds NaN or inf; a model that diverged still needs finite numbers")
+        elif info["grid_ok"]:
             info["curves"][m] = curve
     # Each group checks its own model's columns, so a model that fails costs points
     # only in its own group.
-    info["discrete_ok"] = info["grid_ok"] and "discrete" in info["curves"]
     info["ok"] = not missing and info["grid_ok"] and len(info["curves"]) == len(MODELS)
     steps.append(Step("experiment5.csv", "\n".join(lines), ok=info["ok"]))
     return info
 
 
 def inspect_mu(path, steps):
+    """mu.csv on the grid S = 0, 10, ..., 300, printed next to the true mu. Not graded on accuracy."""
     info = {"present": path is not None}
     rows = read_csv(path)
     if rows is None:
@@ -357,20 +329,12 @@ def inspect_mu(path, steps):
         return info
     S = np.array([p[0] for p in pts])
     mu = np.array([p[1] for p in pts])
-    lines = [f"{len(S)} rows", "", f"{'S':>6}  {'yours':>9}  {'true':>9}  {'error':>7}"]
-    within = []
-    for s, m in zip(S, mu):
-        ref = mu_true(s)
-        err = abs(m - ref) / ref if ref > 0 else float("inf")
-        inside = MU_RANGE[0] <= s <= MU_RANGE[1]
-        if inside:
-            within.append(err <= MU_REL_TOL)
-        lines.append(f"{s:6.1f}  {m:9.5f}  {ref:9.5f}  {err:7.1%}" + ("" if inside else "   (not checked)"))
-    covered = all(any(abs(s - g) < 1e-9 for s in S) for g in S_GRID if MU_RANGE[0] <= g <= MU_RANGE[1])
-    if not covered:
-        lines.append("not every S from 20 to 130 in steps of 5 is in the file")
-    info["mu_ok"] = bool(within) and all(within) and covered
-    steps.append(Step("mu.csv against the true growth rate", "\n".join(lines), ok=info["mu_ok"]))
+    info["grid_ok"] = len(S) == len(S_GRID) and np.allclose(S, S_GRID) and bool(np.all(np.isfinite(mu)))
+    lines = [f"{len(S)} rows" + ("" if info["grid_ok"] else ", not S = 0, 10, ..., 300 with finite mu"),
+             "", f"{'S':>6}  {'yours':>9}  {'true':>9}"]
+    lines += [f"{s_:6.1f}  {m:9.5f}  {mu_true(s_):9.5f}" for s_, m in zip(S, mu)]
+    steps.append(Step("mu.csv, next to the true growth rate (not graded on accuracy)", "\n".join(lines),
+                      ok=info["grid_ok"]))
     return info
 
 
@@ -386,11 +350,13 @@ def analyse_code(root, files, steps):
     everything = "\n".join(b for _, b in parts)
     out = {
         "files": [p for p, _ in parts],
-        "grad": bool(re.search(r"jax\.(grad|jacfwd|jacrev)\b|\b(grad|jacfwd|jacrev)\s*\(", everything)),
+        "mlp": bool(re.search(r"MLPRegressor\s*\(", everything)),
+        "grad": bool(re.search(r"jax\.(grad|jacfwd|jacrev|jacobian)\b|\b(grad|jacfwd|jacrev|jacobian)\s*\(", everything)),
         "diffeqsolve": bool(re.search(r"diffeqsolve\s*\(", everything)),
         "x64": bool(re.search(r"jax_enable_x64", everything)),
     }
     lines = [f"{len(files)} code files: {', '.join(str(p.relative_to(root)) for p in files[:12])}", "",
+             f"MLPRegressor: {'yes' if out['mlp'] else 'no'}",
              f"jax.grad: {'yes' if out['grad'] else 'no'}",
              f"diffrax.diffeqsolve: {'yes' if out['diffeqsolve'] else 'no'}",
              f"jax_enable_x64: {'yes' if out['x64'] else 'no'}"]
@@ -450,7 +416,6 @@ def collect(root, args, found, steps):
     truth = true_experiment5()
     data = load_data(found["data"], steps)
     meas = data.get(TEST) if data is not None else None
-    ridge = ridge_experiment5(data) if data is not None else None
 
     preds = inspect_predictions(found["predictions"], steps)
     mu = inspect_mu(found["mu"], steps)
@@ -461,21 +426,17 @@ def collect(root, args, found, steps):
     errors = {}
     lines = []
     if meas is not None:
-        lines.append(f"the noise alone (true model against the measurements): "
-                     f"X {rmse(truth, meas)[0]:.4f}, S {rmse(truth, meas)[1]:.4f}")
-        if ridge is not None:
-            e = rmse(ridge, meas)
-            lines.append(f"the script's own discrete-time model: X {e[0]:.4f}, S {e[1]:.4f}")
+        e = rmse(truth, meas)
+        lines.append(f"the noise alone (true model against the measurements): X {e[0]:.4f}, S {e[1]:.4f}")
         for m in MODELS:
             if m in curves:
                 e = rmse(curves[m], meas)
                 errors[(m, "X")], errors[(m, "S")] = e[0], e[1]
-                t = rmse(curves[m], truth)
-                lines.append(f"your {m}: X {e[0]:.4f}, S {e[1]:.4f}   "
-                             f"(against the noise-free model: X {t[0]:.4f}, S {t[1]:.4f})")
+                lines.append(f"{NAMES[m]:<18} X {e[0]:.4f}, S {e[1]:.4f}")
     else:
         lines.append("no published data file, so no RMSE against experiment 5")
-    steps.append(Step("RMSE against the measurements of experiment 5", "\n".join(lines)))
+    steps.append(Step("RMSE against the measurements of experiment 5 (not graded on accuracy)",
+                      "\n".join(lines)))
     report = analyse_report(found["report"], errors, steps)
 
     checks = []
@@ -489,41 +450,22 @@ def collect(root, args, found, steps):
     def coded(flag):
         return decided(code[flag]) if code["files"] else SKIP
 
-    no_data = "the data file is missing or is not the published one"
+    def columns(group, m):
+        add(group, f"the {m} columns of experiment5.csv, on t = 0, 5, ..., 300",
+            decided(preds.get("grid_ok") and m in curves))
 
-    def within(group, model):
-        label = f"RMSE on experiment 5 below {LIMIT[0]} on X and {LIMIT[1]:g} on S"
-        if meas is None:
-            add(group, label, SKIP, no_data)
-        elif model not in curves:
-            add(group, label, FAIL, f"no {model} columns in experiment5.csv")
-        else:
-            e = (errors[(model, "X")], errors[(model, "S")])
-            add(group, label, decided(e[0] <= LIMIT[0] and e[1] <= LIMIT[1]),
-                f"RMSE X {e[0]:.4f}, S {e[1]:.4f}")
+    # 1. the time-series model
+    columns("nnts", "nnts")
+    add("nnts", "MLPRegressor in the code", coded("mlp"))
 
-    # 1. the discrete-time model
-    add("discrete", "experiment5.csv with t = 0, 5, ..., 300 and the discrete-time columns",
-        decided(preds.get("discrete_ok")))
-    label = "your discrete-time prediction matches the script's fit"
-    if ridge is None:
-        add("discrete", label, SKIP, no_data + ", so the fit cannot be redone")
-    elif "discrete" in curves:
-        d = np.max(np.abs(curves["discrete"] - ridge), axis=0)
-        add("discrete", label, decided(d[0] <= DISCRETE_TOL[0] and d[1] <= DISCRETE_TOL[1]),
-            f"largest difference X {d[0]:.2e}, S {d[1]:.2e}; allowed {DISCRETE_TOL[0]:g}, {DISCRETE_TOL[1]:g}")
-    else:
-        add("discrete", label, FAIL, "no discrete columns")
-
-    # 2. the PINN
-    within("pinn", "pinn")
+    # 2. the two PINNs
+    columns("pinn", "pinn_a")
+    columns("pinn", "pinn_b")
     add("pinn", "jax.grad in the code", coded("grad"))
 
     # 3. the neural ODE
-    within("node", "node")
-    add("node", f"learned mu within {MU_REL_TOL:.0%} of the true mu from S = "
-                f"{MU_RANGE[0]:.0f} to {MU_RANGE[1]:.0f}",
-        decided(mu.get("present") and mu.get("mu_ok")))
+    columns("node", "node")
+    add("node", "mu.csv on S = 0, 10, ..., 300", decided(mu.get("present") and mu.get("grid_ok")))
     add("node", "diffeqsolve in the code", coded("diffeqsolve"))
 
     # 4. the comparison
@@ -532,21 +474,18 @@ def collect(root, args, found, steps):
     if not report.get("present"):
         add("compare", label, FAIL, "no report")
     elif meas is None:
-        add("compare", label, SKIP, no_data + ", so the RMSEs cannot be computed")
+        add("compare", label, SKIP, "the data file is missing or is not the published one")
     elif not errors:
         add("compare", label, FAIL, "experiment5.csv has no model to compute an RMSE for")
     else:
-        missing = [f"{m} {v}" for (m, v), hit in report["hits"].items() if not hit]
+        missing = [f"{NAMES[m]} {v}" for (m, v), hit in report["hits"].items() if not hit]
         add("compare", label, decided(not missing),
             f"all {len(errors)} quoted" if not missing else "not found: " + ", ".join(missing))
 
-    add("report", "answers to 1(d), 2(d), 3(f) and 4(c), and the AI-use line", SKIP, "read by your TA")
+    add("report", "your answers and the AI-use line", SKIP, "read by your TA")
 
     if code["files"] and not code["x64"]:
-        notes.append("jax_enable_x64 is not in your code. The assignment and the worked examples turn it on.")
-    if mu.get("present"):
-        notes.append("mu.csv is checked from S = 20 up. Below that the training experiments have only "
-                     "a few samples, so the learned mu there is loosely pinned.")
+        notes.append("jax_enable_x64 is not in your code. The assignment asks for it.")
     return {"checks": checks, "notes": notes, "steps": steps}
 
 
