@@ -20,7 +20,7 @@
 | 10-12-2026 (Monday)                                | Fall break, no class                                                                                         |
 | 10-14-2026 (Wednesday)                             | Fall break, no class                                                                                         |
 | Lecture 14: 10-19-2026 (Monday)                    | Uncertainty quantification (UQ) for machine learning                                                         |
-| Lecture 15: 10-21-2026 (Wednesday)                 | Bayesian optimization and active learning                                                                    |
+| Lecture 15: 10-21-2026 (Wednesday)                 | Bayesian optimization                                                                                        |
 | Lecture 16: 10-26-2026 (Monday)                    | Generative AI                                                                                                |
 | Lecture 17: 10-28-2026 (Wednesday)                 | Large language models (LLMs): what they are and how to use one                                               |
 | Lecture 18: 11-02-2026 (Monday)                    | Retrieval-augmented generation (RAG): answering from your documents                                          |
