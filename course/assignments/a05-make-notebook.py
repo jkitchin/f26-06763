@@ -48,13 +48,18 @@ def student(key):
     return {"type": "code", "source": ADD, "key": key}
 
 
+def answer(key):
+    # a markdown cell for a written answer; the solution builder replaces it by its key
+    return {"type": "markdown", "source": "*Your answer (double-click this cell to edit it):*", "key": key}
+
+
 CELLS = [
     md("""
 # Assignment 5: Four models of a bioreactor
 **Released:** L15 (2026-10-21) · **Due:** Wednesday 2026-10-28 · **6 points on Canvas.**
 """),
     md(f"""
-Exporting and submitting your homework
+## Exporting and submitting your homework
 
 0. Work in Google Colab. Open this notebook from [this link]({COLAB}) (or "Open in Colab" on the course page), then File > Save a copy in Drive, and work in your copy.
 
@@ -74,7 +79,7 @@ The four models are of two kinds, each without and with physics:
 | | Data only | Data and physics |
 |---|---|---|
 | **A model of one trajectory**: time $\\mapsto (X, S)$ | Problem 1: neural network of time ({L13}, {PINN_NB}) | Problem 2: physics-informed neural network, PINN ({L13}, {PINN_NB}) |
-| **A model of the reactor**: state $\\mapsto$ its change | Problem 3: neural-network time-series model ({L8}, {L9}) | Problem 4: neural ODE, ordinary differential equation ({L13}, {NODE_NB}) |
+| **A model of the reactor**: state $\\mapsto$ its next value or its rate of change | Problem 3: neural-network time-series model ({L8}, {L9}) | Problem 4: neural ODE, ordinary differential equation ({L13}, {NODE_NB}) |
 
 - A model of one trajectory takes the time as its input, so it describes one experiment, and it can learn only from that experiment. Problems 1 and 2 train on the first 40 s of experiment 5 and predict the rest.
 - A model of the reactor takes the state as its input. Its rule, from the state now to how the state changes, is the same in every experiment, because every experiment runs the same reactor. So Problems 3 and 4 learn from experiments 1 to 4 and predict experiment 5 from its initial condition.
@@ -135,10 +140,10 @@ The constants are those of the original model. In $\\mu$: $10^{{-3}}$ m³/(mol·
 
 | Experiment | $X_0$ (kg/m³) | $S_0$ (mol/m³) | Measured | Use |
 |---|---|---|---|---|
-| 1 | 5.0 | 10 | 0 to 100 s | Training |
-| 2 | 2.0 | 20 | 0 to 100 s | Training |
-| 3 | 4.0 | 120 | 0 to 100 s | Training |
-| 4 | 2.5 | 60 | 0 to 100 s | Training |
+| 1 | 5.0 | 10 | 0 to 100 s | Training for Problems 3 and 4 |
+| 2 | 2.0 | 20 | 0 to 100 s | Training for Problems 3 and 4 |
+| 3 | 4.0 | 120 | 0 to 100 s | Training for Problems 3 and 4 |
+| 4 | 2.5 | 60 | 0 to 100 s | Training for Problems 3 and 4 |
 | 5 | 3.0 | 80 | 0 to 300 s | First 40 s: training for Problems 1 and 2. After 40 s: **test** |
 
 {image("a05-data.png", "X and S of the five experiments against time. Experiments 1 to 4 run from 0 to 100 s; experiment 5 runs from 0 to 300 s, with its first 40 s filled. All approach the steady state, X near 3.46 and S near 45.6.")}
@@ -148,7 +153,7 @@ The training data: experiments 1 to 4 (0 to 100 s), and the first 40 s of experi
     md("""
 ## Set-up
 
-Run the two cells below first. The first installs the two packages Colab does not have. The second loads the libraries, the data and the model's parameters.
+Run the two cells below first. The first installs the packages Colab may not have: Equinox, Diffrax and Optax. The second loads the libraries, the data and the model's parameters. Training takes from a few seconds to a few minutes per model on a CPU.
 """),
     code("""
 !pip install -q equinox diffrax optax
@@ -195,10 +200,10 @@ def Y(S):
 - **Problems 1 and 2**, the models of one trajectory, train on experiment 5 from 0 to 40 s, its first 9 samples.
 - **Problems 3 and 4**, the models of the reactor, train on experiments 1 to 4. From experiment 5 they use only its initial condition, $(X_0, S_0) = (3.0, 80)$.
 - Every model predicts experiment 5 at $t = 0, 5, \\ldots, 300$ s. Its measurements after 40 s are the test, in Problem 5.
-- JAX takes NumPy arrays, not pandas columns. Read the times as floats with `df["t"].astype(float).to_numpy()`, because `jax.grad` refuses integers and the column `t` holds integers. Read `X` and `S` with `.to_numpy()` too.
+- JAX takes NumPy arrays, not pandas columns. The column `t` holds integers, so read the times as floats with `df["t"].astype(float).to_numpy()`, like every other time array in the notebook (`jax.grad` refuses integer inputs). Read `X` and `S` with `.to_numpy()` too.
 - Build time grids with `np.linspace` (Lecture 13), which gives floats.
 - Inside a function that JAX differentiates or integrates, write the math with `jnp` (`jnp.exp`), not `np`.
-- The L13 notebooks import packages A5 does not need (`pyomo`, `sindae`). Copy only the cells you need.
+- `l13-neural-dae.ipynb` imports packages A5 does not need (`pyomo`, `sindae`). Copy only the cells you need.
 - A model is allowed to fail. Report what you get and explain it.
 """),
     # ------------------------------------------------------------------ problem 1
@@ -248,7 +253,7 @@ where:
 
 The cell defines this loss, `loss_nn`, and a training function, and trains the network:
 - `jax.vmap` (JAX; Lectures 11 and 13) evaluates `model` at all 9 times at once.
-- `train` is the training step of `l13-neural-dae.ipynb` (Equinox and Optax; Lecture 13) inside a function, so that Problems 2 and 4 can call it with their own loss. The step of `l13-pinn-jax.ipynb` does not work on an Equinox network.
+- `train` is the training step of `l13-neural-dae.ipynb` (Equinox and Optax; Lecture 13) inside a function, so that Problems 1, 2 and 4 can call it with their own loss. The step of `l13-pinn-jax.ipynb` does not work on an Equinox network.
 """),
     code("""
 def loss_nn(net):
@@ -283,7 +288,9 @@ def train(loss, net, steps, opt):
 
     for i in range(steps):
         net, state, value = step(net, state)
-    print(f"final loss after {steps} steps: {float(value):.3g}")
+
+    # the loss of the trained network, after the last update
+    print(f"final loss after {steps} steps: {float(loss(net)):.3g}")
     return net
 
 
@@ -294,6 +301,7 @@ net_nn = train(loss_nn, net, 20_000, optax.adam(1e-3))
 c) Evaluate `net_nn` at $t = 0, 5, \\ldots, 300$ s with `jax.vmap(model, in_axes=(None, 0))`. Plot $X$ and $S$ with the measurements, marking the 40 s it trained on. How good is it before 40 s, and after? Why?
 """),
     student("1c"),
+    answer("1c-answer"),
     # ------------------------------------------------------------------ problem 2
     md("""
 ## 2. PINN
@@ -352,7 +360,7 @@ where:
 - $M = 301$: the number of collocation points, $t_j = 0, 1, 2, \\ldots, 300$ s, one every second over the whole prediction;
 - $r_X$ (kg/m³/s) and $r_S$ (mol/m³/s): the residuals at $t_j$;
 - the factor $1/M$: $\\mathcal{L}_\\text{physics}$ is the mean of $r_X^2 + r_S^2$ over the 301 points;
-- $\\lambda = 1$: the weight of the physics loss against the data loss (`lam` in the code). Lecture 13 used $\\lambda = 10^{-4}$, because its residual was in newtons.
+- $\\lambda = 1$: the weight of the physics loss against the data loss (`lam` in the code). Here the two losses come out of the same order, so neither needs rescaling. Lecture 13 used $\\lambda = 10^{-4}$, because its residual was in newtons and much larger than its data loss.
 
 The cell defines this loss, `loss_pinn`.
 """),
@@ -382,6 +390,7 @@ net_pinn = train(loss_pinn, net, 20_000, optax.adam(1e-3))
 c) Evaluate `net_pinn` at $t = 0, 5, \\ldots, 300$ s and plot it with the measurements and the prediction of Problem 1. How good is it after 40 s, compared with Problem 1? Why does the physics help? Why is the prediction still off?
 """),
     student("2c"),
+    answer("2c-answer"),
     # ------------------------------------------------------------------ problem 3
     md(f"""
 ## 3. Neural-network time-series model
@@ -416,6 +425,7 @@ c) Predict experiment 5 recursively (Lecture 8, "Direct and recursive forecastin
 d) Plot $X$ and $S$ of your prediction with the measurements of experiment 5. How good is the prediction? Why?
 """),
     student("3d"),
+    answer("3d-answer"),
     # ------------------------------------------------------------------ problem 4
     md(f"""
 ## 4. Neural ODE
@@ -484,8 +494,8 @@ b) Run the cell below. It simulates with `diffrax.diffeqsolve` (Diffrax; Lecture
     code("""
 def simulate(nets, x0, ts):
     # Integrate the neural ODE from the initial condition x0 = [X0, S0], and return X and S
-    # at the times ts: an array of shape (number of times, 2). It is the same function as
-    # in l13-neural-dae.ipynb. Diffrax is written in JAX, so the gradient of anything
+    # at the times ts: an array of shape (number of times, 2). It is adapted from
+    # l13-neural-dae.ipynb. Diffrax is written in JAX, so the gradient of anything
     # computed from this solution can be taken with respect to the networks' weights.
     sol = diffrax.diffeqsolve(
         diffrax.ODETerm(balances),          # the right-hand side: dx/dt = balances(t, x, nets)
@@ -539,7 +549,7 @@ where:
 
 `simulate` solves the balances, so every evaluation of the objective simulates the four experiments. In the cell below, define:
 - `x0s`, their four initial conditions, `ts`, their 21 sample times, and `ys`, their measurements, of shape (4, 21, 2);
-- `sigma`, the standard deviations $\\sigma_X$ and $\\sigma_S$;
+- `sigma`, the standard deviations $\\sigma_X$ and $\\sigma_S$, with `np.std` as in Lecture 13;
 - `loss_node(nets)`: simulate the four experiments at once with `jax.vmap(simulate, in_axes=(None, 0, None))(nets, x0s, ts)`, and return the objective above.
 """),
     student("4c"),
@@ -553,16 +563,19 @@ opt = optax.adam(optax.cosine_decay_schedule(1e-2, 10_000, alpha=0.05))
 
 # Train the pair of networks. train works on the pair because eqx.filter and
 # eqx.filter_value_and_grad accept a tuple of networks.
+# nets is replaced by the trained networks: to train again from the start, for example
+# after changing loss_node, run the cell of 4(a) again first.
 nets = train(loss_node, nets, 10_000, opt)
 """),
     md("""
-d) Predict experiment 5 by integrating from its initial condition with `simulate`. It is a new initial-value problem: do not retrain, and use only its initial condition. Plot it with the measurements.
+d) Predict experiment 5 by integrating from its initial condition with `simulate`, passing the initial condition as an array, `jnp.array([3.0, 80.0])` (a Python list fails inside Diffrax). It is a new initial-value problem: do not retrain, and use only its initial condition. Plot it with the measurements.
 """),
     student("4d"),
     md("""
 e) Evaluate `mu_nn` with the trained growth-rate network, `nets[0]`, at $S = 0, 10, \\ldots, 300$ mol/m³: `jax.vmap(mu_nn, in_axes=(None, 0))(nets[0], S)` (JAX; Lectures 11 and 13). Plot it with the true $\\mu(S)$ on the same grid. Where do they agree? Where not, and why?
 """),
     student("4e"),
+    answer("4e-answer"),
     # ------------------------------------------------------------------ problem 5
     md("""
 ## 5. Compare
@@ -584,10 +597,13 @@ Note: the measurement noise sets a floor. No model can score much below 0.05 kg/
     md("""
 c) Which model would you use to predict a sixth experiment from its initial condition only? Why can the models of the reactor (Problems 3 and 4) do it, while the models of one trajectory (Problems 1 and 2) cannot?
 """),
-    student("5c"),
+    answer("5c-answer"),
     # ------------------------------------------------------------------ end
     md("""
 ## Generative AI statement (please indicate if you used generative AI, where and how):
+"""),
+    md("""
+*Write your statement here (double-click this cell to edit it): which tool you used, for which problems, and how. If you did not use generative AI, write "None".*
 """),
     md("""
 ## End of homework.
