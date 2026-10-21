@@ -11,7 +11,7 @@ lecture: l15
 title: "Bayesian optimization"
 source_notes: lectures/l15/notes.md
 # Held until release: tools/release_lecture.py flips this to published.
-status: unwritten
+status: published
 serve: 8
 pool_version: 6
 provenance:
