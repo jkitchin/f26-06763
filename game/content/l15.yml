@@ -1,447 +1,480 @@
-# L15 item bank for uncertainty quantification on the concrete strength dataset (aleatoric and
-# epistemic uncertainty, a Gaussian process, a deep ensemble, split conformal prediction and
-# their calibration), Bayesian optimization (the loop, acquisition functions, a mix design
-# against random search) and active learning. Version 2 replaces the empty version 1.
+# L15 item bank for Bayesian optimization on a reactor (A -> B -> C in a stirred tank, yield of B
+# against temperature and residence time): why BO and why "Bayesian", the loop, exploration and
+# exploitation, acquisition functions (PI, EI, LogEI, UCB), BoTorch, the
+# comparison with gradient-based and simplex methods, and the extensions. Version 3 replaced
+# version 2, which tested the uncertainty-quantification lecture this session no longer is;
+# versions 4 to 6 follow the notes' revisions of 2026-10-21 (6 drops Thompson sampling). None of
+# versions 3 to 6 had been served.
 
 schema: 1
 lecture: l15
-title: "Uncertainty quantification, Bayesian optimization and active learning"
+title: "Bayesian optimization"
 source_notes: lectures/l15/notes.md
 # Held until release: tools/release_lecture.py flips this to published.
 status: unwritten
 serve: 8
-pool_version: 2
+pool_version: 6
 provenance:
   drafted_by: hand
   reviewed_by: none
-  reviewed_at: 2026-10-06
+  reviewed_at: 2026-10-21
 
 items:
 
-  # --- o4: aleatoric and epistemic uncertainty, intervals and calibration ----------------------
+  # --- o1: what BO is, why it is called Bayesian, and when it beats other optimizers ----------
 
   - id: l15-q01
     kind: mcq
     rung: 1
     difficulty: 1
-    objectives: [l15-o4]
+    objectives: [l15-o1]
     prompt: |
-      Which kind of uncertainty shrinks if you test more mixes in the right place?
+      What makes the reactor's yield a black-box objective?
     options:
-      - "Epistemic: what the model does not know yet"
-      - "Aleatoric: the scatter between specimens of the same mix"
-      - "Both shrink equally with more data"
-      - "Neither; uncertainty is a property of the model family"
-    answer: "Epistemic: what the model does not know yet"
+      - "You can only evaluate it: set the inputs, run it, read one noisy number"
+      - "It comes from a neural network whose weights nobody can inspect or interpret"
+      - "Its formula is known, but it is too long to differentiate by hand in the lab"
+      - "It returns several outputs at once, so no single one of them can be optimized"
+    answer: "You can only evaluate it: set the inputs, run it, read one noisy number"
     evidence: |
-      Epistemic uncertainty comes from missing data, so testing where the model is unsure
-      reduces it. Aleatoric uncertainty is the scatter in the measurements themselves; more
-      tests measure it better but do not remove it.
+      In the lab there is no formula and no gradient. You choose a temperature, run the
+      experiment for hours, and get one measured yield back, with noise. The kinetics formula in
+      the notes only plays the role of the lab.
     source:
       file: lectures/l15/notes.md
-      heading: "Two kinds of uncertainty"
+      heading: "Why the budget matters"
       quote: |
-        **Epistemic** uncertainty is what the model does not know yet, which more data in the right place
-        reduces.
-    verify: {mode: quote, needle: "what the model does not know yet", volatility: stable}
-    tags: [epistemic, aleatoric]
+        A **black-box objective** is a function you can only evaluate: set the inputs, run the
+        experiment or simulation, read one (noisy) number. No formula, no gradient.
+    verify: {mode: quote, needle: "a function you can only evaluate", volatility: stable}
+    tags: [black-box, definition]
 
   - id: l15-q02
     kind: mcq
     rung: 2
     difficulty: 2
-    objectives: [l15-o4]
+    objectives: [l15-o1]
     prompt: |
-      Specimens of the same mix tested at the same age scatter by 5.0 MPa. What does that number
-      tell you about any model of this data?
+      Why is it called *Bayesian* optimization?
     options:
-      - "No model can predict better than about 5.0 MPa: that scatter is aleatoric"
-      - "A model with enough capacity can bring its error below 5.0 MPa"
-      - "The test set needs more mixes before the error can be trusted"
-      - "The specimens were mislabeled, and the replicates should be removed"
-    answer: "No model can predict better than about 5.0 MPa: that scatter is aleatoric"
+      - "It updates a belief about the unknown curve with every experiment, and decides on that belief"
+      - "It applies Bayes' rule to estimate the gradient of the yield from noisy finite differences"
+      - "Its objective has to be a probability, such as a yield, so the method is named after Bayes"
+      - "Thomas Bayes first used it to choose experiments, and the name stayed with the method"
+    answer: "It updates a belief about the unknown curve with every experiment, and decides on that belief"
     evidence: |
-      Two specimens with the same inputs get the same prediction from any model, so their
-      scatter is a floor on the error. The GP's fitted noise term, 3.9 MPa, estimates the same
-      floor on its own.
+      The unknown is the whole function. A GP prior over it is updated by each experiment into a
+      posterior, and the next experiment is chosen on that posterior. Bayesian statistics for the
+      belief, plus a decision on it.
     source:
       file: lectures/l15/notes.md
-      heading: "Two kinds of uncertainty"
+      heading: "Why it is called Bayesian"
       quote: |
-        Their strengths scatter by **5.0 MPa** (pooled standard deviation). No model predicts
-        better than that.
-    verify: {mode: quote, needle: "no model predicts", volatility: measured}
-    tags: [aleatoric, replicates]
+        **Then the decision is taken on the posterior:** where to experiment next, given what we now
+          believe.
+    verify: {mode: quote, needle: "decision is taken on the posterior", volatility: stable}
+    tags: [bayesian, posterior]
 
   - id: l15-q03
     kind: mcq
-    rung: 2
+    rung: 3
     difficulty: 2
-    objectives: [l15-o4]
+    objectives: [l15-o1]
     prompt: |
-      Intervals from the spread of five networks claimed 95% and covered 76% of the test mixes.
-      Why?
+      You are fitting thousands of weights in a model whose loss and gradient take a millisecond to
+      compute. A colleague suggests Bayesian optimization. What do you answer?
     options:
-      - "The spread measures only epistemic uncertainty, and misses the scatter between specimens"
-      - "Five networks are too few; fifty would cover 95%"
-      - "The networks were overfitted, so their mean is wrong"
-      - "The test mixes were outside the training range"
-    answer: "The spread measures only epistemic uncertainty, and misses the scatter between specimens"
+      - "Use a gradient-based method: evaluations are cheap, gradients exist, and there are too many inputs"
+      - "Use BO: it searches globally, so it is always safer than a local gradient-based method"
+      - "Use BO with a batch acquisition, so that it can run thousands of evaluations at once"
+      - "Use random search: with that many weights, no surrogate model of the loss can help"
+    answer: "Use a gradient-based method: evaluations are cheap, gradients exist, and there are too many inputs"
     evidence: |
-      Networks trained on the same data agree wherever the data pin the function down, noisy or
-      not. Their spread grows only where data are missing, so it leaves out the 5 MPa of
-      aleatoric scatter that every test mix carries.
+      BO pays off when an evaluation is expensive, noisy and without gradients, with a budget of
+      tens and up to about 20 inputs. Cheap evaluations with gradients and many variables are
+      what gradient-based methods are built for.
     source:
       file: lectures/l15/notes.md
-      heading: "A deep ensemble"
+      heading: "Bayesian optimization against gradient-based optimization"
       quote: |
-        So the spread measures **epistemic** uncertainty only.
-    verify: {mode: quote, needle: "so the spread measures", volatility: stable}
-    tags: [deep-ensemble, epistemic, calibration]
+        **Gradient-based** (Newton, L-BFGS, IPOPT): cheap evaluations, smooth functions, gradients
+          available (from a model, by automatic differentiation or adjoints), and many variables, up to
+          millions. It finds a local optimum fast.
+    verify: {mode: quote, needle: "cheap evaluations, smooth functions", volatility: stable}
+    tags: [gradient-based, when-to-use, practitioner]
 
   - id: l15-q04
     kind: mcq
-    rung: 2
-    difficulty: 2
-    objectives: [l15-o4]
+    rung: 3
+    difficulty: 3
+    objectives: [l15-o1]
     prompt: |
-      Split conformal prediction guarantees its coverage under one condition. Which?
+      On the two-knob reactor, starting from the cold side, L-BFGS-B with finite-difference
+      gradients often stopped where it started. Why?
     options:
-      - "The calibration and test points are exchangeable: drawn the same way from the same population"
-      - "The model's errors are Gaussian"
-      - "The model is a Gaussian process"
-      - "The calibration set has at least 1,000 points"
-    answer: "The calibration and test points are exchangeable: drawn the same way from the same population"
+      - "Each gradient costs experiments, and the noise swamps the small differences on the flat cold side"
+      - "The yield surface has many local optima, and L-BFGS-B was trapped in the nearest of them"
+      - "L-BFGS-B needs exact second derivatives, which a noisy experiment can never provide"
+      - "The temperature bounds stopped every step before it could get near the optimum"
+    answer: "Each gradient costs experiments, and the noise swamps the small differences on the flat cold side"
     evidence: |
-      Conformal makes no assumption about the model or the error distribution. It does assume
-      the test points look like the calibration points, which is exactly what a design loop
-      pushing into new mixes breaks.
+      A finite difference compares two noisy measurements. Where the true change is tiny, as on
+      the cold plateau, the difference is mostly noise, so the gradient points nowhere useful.
+      The surface has one optimum; the problem is the noise, not local optima.
     source:
       file: lectures/l15/notes.md
-      heading: "Split conformal prediction"
+      heading: "Bayesian optimization against gradient-based optimization"
       quote: |
-        **The guarantee**: if the calibration and test points are **exchangeable** (their order does not
-        matter: drawn the same way from the same population), the interval contains the truth with
-        probability at least $1 - \alpha$.
-    verify: {mode: quote, needle: "the interval contains the truth with", volatility: stable}
-    tags: [conformal-prediction, exchangeability]
+        estimates gradients by nudging each input. Each gradient
+          costs experiments, and the measurement noise swamps the small differences in the flat, cold
+          region. It often stops where it started.
+    verify: {mode: quote, needle: "measurement noise swamps the small differences", volatility: stable}
+    tags: [gradient-based, finite-differences, noise]
+
+  # --- o2: the loop, and exploration against exploitation ------------------------------------
 
   - id: l15-q05
     kind: mcq
     rung: 1
     difficulty: 1
-    objectives: [l15-o4]
+    objectives: [l15-o2]
     prompt: |
-      What does the prediction interval coverage probability (PICP) measure?
+      Which is one pass of the Bayesian optimization loop?
     options:
-      - "The fraction of test points whose interval contains the true value"
-      - "The average width of the intervals"
-      - "The probability the model's mean is within 1 MPa of the truth"
-      - "The fraction of training points used to calibrate the interval"
-    answer: "The fraction of test points whose interval contains the true value"
+      - "Fit the GP to all data, maximize the acquisition, run that experiment, add it to the data"
+      - "Maximize the acquisition, fit the GP to the newest point only, run it, discard the older data"
+      - "Run a batch of random experiments, fit the GP once, and report the maximum of its mean"
+      - "Fit the GP, run the experiment where its mean is highest, then refit the acquisition function"
+    answer: "Fit the GP to all data, maximize the acquisition, run that experiment, add it to the data"
     evidence: |
-      PICP counts hits: for each test point, is the measured value inside its interval? For a
-      calibrated 95% interval it should be about 0.95. It says nothing about width, which is
-      reported alongside it.
+      Fit, score, run, add. The GP is refitted to every experiment so far on each pass, and the
+      next experiment is the maximizer of the acquisition function, not of the GP mean alone.
     source:
       file: lectures/l15/notes.md
-      heading: "Is the uncertainty right? Calibration"
+      heading: "The Bayesian optimization loop"
       quote: |
-        The check is the **prediction interval coverage probability** (PICP), the fraction of test
-        points whose interval contains the true value:
-    verify: {mode: quote, needle: "the fraction of test", volatility: stable}
-    tags: [calibration, picp]
+        1. **Fit** the GP to every experiment so far.
+        2. **Score** every candidate with the acquisition function.
+        3. **Run** the experiment where the score is largest.
+        4. **Add** the result to the data, and repeat until the budget is spent.
+    verify: {mode: quote, needle: "repeat until the budget is spent", volatility: stable}
+    tags: [loop]
 
   - id: l15-q06
-    kind: spot_the_defect
-    rung: 3
-    difficulty: 3
-    objectives: [l15-o4]
-    prompt: |
-      A team checks their surrogate's 95% intervals on a random split of their mixes, finds 95%
-      coverage, and then uses the intervals to search for mixes stronger than any they have
-      tested. What is missing?
-    options:
-      - "A coverage check on mixes like the ones the search will reach; on the strongest mixes coverage fell to between 70% and 89%"
-      - "A larger random split; 95% on 195 points is not significant"
-      - "A second surrogate, to average the two intervals"
-      - "Nothing: a calibrated interval stays calibrated everywhere"
-    answer: "A coverage check on mixes like the ones the search will reach; on the strongest mixes coverage fell to between 70% and 89%"
-    evidence: |
-      Calibration on mixes like the training mixes says little about the strongest mixes, where
-      a design search goes. Holding those out, the GP covered 89%, the ensemble 86% and split
-      conformal 70% of what each claimed as 95%.
-    source:
-      file: lectures/l15/notes.md
-      heading: "Two test sets"
-      quote: |
-        Check coverage on a test set that looks like where the model will be **used**, not only like
-        where it was trained.
-    verify: {mode: quote, needle: "check coverage on a test set", volatility: stable}
-    tags: [calibration, extrapolation, practitioner]
-
-  # --- o1: the Bayesian optimization loop ------------------------------------------------------------
-
-  - id: l15-q07
-    kind: mcq
-    rung: 1
-    difficulty: 1
-    objectives: [l15-o1]
-    prompt: |
-      What does Bayesian optimization fit before choosing each new experiment?
-    options:
-      - "A probabilistic surrogate of the evaluations so far, whose mean and uncertainty feed an acquisition function"
-      - "A gradient of the objective, estimated by finite differences"
-      - "A grid over the design space, refined around the best point"
-      - "A model of the measurement noise only"
-    answer: "A probabilistic surrogate of the evaluations so far, whose mean and uncertainty feed an acquisition function"
-    evidence: |
-      Each step fits a GP to every evaluation so far, scores candidates with an acquisition
-      function of its mean and uncertainty, and evaluates the best-scoring one. No gradient of
-      the objective is ever needed.
-    source:
-      file: lectures/l15/notes.md
-      heading: "The problem"
-      quote: |
-        **Bayesian optimization** fits a probabilistic surrogate to the evaluations so far and uses an
-        **acquisition function** of its mean and uncertainty to choose the next point to evaluate.
-    verify: {mode: quote, needle: "fits a probabilistic surrogate", volatility: stable}
-    tags: [bayesian-optimization, surrogate]
-
-  - id: l15-q08
-    kind: mcq
-    rung: 2
-    difficulty: 2
-    objectives: [l15-o1]
-    prompt: |
-      The mix-design comparison ran Bayesian optimization and random search 30 times each, with
-      different seeds. Why not once?
-    options:
-      - "Both are random; one run of either could be luck"
-      - "The emulator gives a different answer each time it is called"
-      - "Thirty runs make the optimizer converge faster"
-      - "Each seed tests a different design variable"
-    answer: "Both are random; one run of either could be luck"
-    evidence: |
-      Both methods start from random mixes, and BO's later choices depend on them. A single run
-      can win or lose by chance, so the comparison reports how often each method gets close
-      across seeds: 29 of 30 for BO, 0 of 30 for random search.
-    source:
-      file: lectures/l15/notes.md
-      heading: "On the concrete strength dataset: BO against random search"
-      quote: |
-        Each gets **30 seeds**, because one run of either is luck.
-    verify: {mode: quote, needle: "because one run of either is luck", volatility: stable}
-    tags: [bayesian-optimization, seeds, random-search]
-
-  - id: l15-q09
-    kind: spot_the_defect
-    rung: 3
-    difficulty: 3
-    objectives: [l15-o1]
-    prompt: |
-      A report says: "Bayesian optimization on our emulator found a 91.6 MPa mix, stronger than
-      anything we have tested. We will specify it." What is wrong with that?
-    options:
-      - "91.6 MPa is the emulator's prediction, ±18 MPa, far from any tested mix; the next step is to cast and test it"
-      - "Bayesian optimization cannot find mixes stronger than the training data"
-      - "The optimizer needed more than 25 evaluations to be sure"
-      - "Nothing; the emulator was fitted to all 1,030 rows"
-    answer: "91.6 MPa is the emulator's prediction, ±18 MPa, far from any tested mix; the next step is to cast and test it"
-    evidence: |
-      An optimizer run on a fixed surrogate goes where the surrogate is most optimistic. Here
-      that is a corner of the design box, 9 MPa above the strongest specimen ever tested, with a
-      95% interval of ±18 MPa. It is a proposal to test.
-    source:
-      file: lectures/l15/notes.md
-      heading: "On the concrete strength dataset: BO against random search"
-      quote: |
-        This is BO on a fixed surrogate. In a real campaign, the next step is to cast that mix: the
-        measurement updates the GP, and the loop continues.
-    verify: {mode: quote, needle: "the next step is to cast that mix", volatility: measured}
-    tags: [bayesian-optimization, surrogate, practitioner]
-
-  # --- o2: acquisition functions -----------------------------------------------------------------------
-
-  - id: l15-q10
     kind: mcq
     rung: 2
     difficulty: 2
     objectives: [l15-o2]
     prompt: |
-      When is expected improvement large?
+      On the reactor, BO climbed from the cold side toward 80 °C, then experiment 8 jumped to
+      140 °C. What was that jump?
     options:
-      - "When the mean is above the best so far, or the uncertainty is large, or both"
-      - "Only when the mean is above the best value found so far"
-      - "Only where the uncertainty is largest"
-      - "Only at points that have not been evaluated before"
-    answer: "When the mean is above the best so far, or the uncertainty is large, or both"
+      - "Exploration: the GP was still unsure there, so expected improvement there was not zero"
+      - "Exploitation: the GP mean predicted its highest yield of all at the hot end"
+      - "A bug: expected improvement should never pick a point on the edge of the bounds"
+      - "Chance: optimize_acqf returned one of its random candidates instead of the best"
+    answer: "Exploration: the GP was still unsure there, so expected improvement there was not zero"
     evidence: |
-      EI adds an exploitation term, large where the mean beats the best so far, to an
-      exploration term, large where the GP is unsure. A point can score highly for either
-      reason.
+      The band was still wide at the hot end, so expected improvement there was not zero. That
+      experiment cost one run and collapsed the band; BO never went back there and settled at
+      80 °C.
     source:
       file: lectures/l15/notes.md
-      heading: "Acquisition functions"
+      heading: "The loop on the reactor"
       quote: |
-        Large when the mean is above $f^*$, or when $\sigma$ is large, or both.
-    verify: {mode: quote, needle: "large when the mean is above", volatility: stable}
-    tags: [expected-improvement, exploration-exploitation]
+        Experiment 8 jumped to 140 °C: the GP was still unsure there, so the expected improvement there
+          was not zero.
+    verify: {mode: quote, needle: "the GP was still unsure there", volatility: measured}
+    tags: [exploration, reactor]
+
+  - id: l15-q07
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l15-o2]
+    prompt: |
+      What goes wrong with pure exploitation?
+    options:
+      - "It keeps sampling next to the best point so far, and can sit on a local optimum forever"
+      - "It samples wherever the band is widest, and spends the whole budget learning the curve"
+      - "It needs the gradient of the objective, which a laboratory experiment cannot provide"
+      - "It can only use the GP's standard deviation, and has to ignore the mean altogether"
+    answer: "It keeps sampling next to the best point so far, and can sit on a local optimum forever"
+    evidence: |
+      Exploitation goes where the mean is high, which is next to the incumbent. It never looks
+      elsewhere, so it cannot find a better region. Sampling where the band is widest is the
+      other extreme, pure exploration.
+    source:
+      file: lectures/l15/notes.md
+      heading: "Exploration and exploitation"
+      quote: |
+        **Pure exploitation** keeps sampling next to the best point so far. It can sit on a local
+          optimum forever, because it never looks elsewhere.
+    verify: {mode: quote, needle: "sit on a local", volatility: stable}
+    tags: [exploitation, local-optimum]
+
+  # --- o3: the acquisition functions -----------------------------------------------------------
+
+  - id: l15-q08
+    kind: direction
+    rung: 2
+    difficulty: 2
+    objectives: [l15-o3, l15-o2]
+    prompt: |
+      You raise κ in the upper confidence bound μ(x) + κσ(x). What changes in where it samples?
+    options:
+      - "It weights uncertainty more, so it samples more where the GP is unsure: it explores"
+      - "It weights the mean more, so it samples closer to the best point so far: it exploits"
+      - "Nothing changes, because κ only rescales the acquisition and not its maximizer"
+      - "It samples where the measurement noise is lowest, because κ divides the noise"
+    answer: "It weights uncertainty more, so it samples more where the GP is unsure: it explores"
+    evidence: |
+      κ multiplies σ. With κ = 0, UCB is the GP mean and exploits; as κ grows, uncertain regions
+      outscore regions with a high mean. On the reactor, κ = 2 picked the furthest point into
+      the unknown of the four acquisitions.
+    source:
+      file: lectures/l15/notes.md
+      heading: "Upper and lower confidence bounds (UCB, LCB)"
+      quote: |
+        $\kappa$ is the knob. $\kappa = 0$: the mean only, pure exploitation. Large $\kappa$: the band
+          wins, exploration.
+    verify: {mode: quote, needle: "is the knob", volatility: stable}
+    tags: [upper-confidence-bound, exploration]
+
+  - id: l15-q09
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l15-o3]
+    prompt: |
+      Expected improvement is EI = (μ − f*)Φ(z) + σφ(z). Which part rewards exploration?
+    options:
+      - "The second term, σφ(z): it grows where the GP is uncertain"
+      - "The first term, (μ − f*)Φ(z): it grows where the GP mean is high above the incumbent"
+      - "Neither term: EI only exploits, which is the reason UCB was invented afterwards"
+      - "Both terms equally: splitting EI into two terms is only algebra, with no meaning"
+    answer: "The second term, σφ(z): it grows where the GP is uncertain"
+    evidence: |
+      The first term is large where the mean beats the incumbent, which is exploitation. The
+      second is large where σ is large, which is exploration. EI carries both in one number.
+    source:
+      file: lectures/l15/notes.md
+      heading: "Expected improvement (EI)"
+      quote: |
+        The first term grows where the mean is high, the second where the uncertainty is high.
+    verify: {mode: quote, needle: "the second where the uncertainty is high", volatility: stable}
+    tags: [expected-improvement, exploration]
+
+  - id: l15-q10
+    kind: mcq
+    rung: 3
+    difficulty: 3
+    objectives: [l15-o3]
+    prompt: |
+      With ξ = 0, probability of improvement keeps picking points just above the best so far.
+      Why?
+    options:
+      - "It scores only the chance of beating the best, not by how much"
+      - "It uses the GP's standard deviation but ignores the GP's mean completely"
+      - "It is computed by sampling, so its value is too noisy near the incumbent"
+      - "Its margin ξ is negative by default, which pulls it toward the incumbent"
+    answer: "It scores only the chance of beating the best, not by how much"
+    evidence: |
+      A point just next to the incumbent beats it with high probability, by a tiny amount. PI
+      cannot tell that from a likely large gain, so it exploits. EI fixes this by weighting each
+      improvement by its size.
+    source:
+      file: lectures/l15/notes.md
+      heading: "Probability of improvement (PI)"
+      quote: |
+        Con: it ignores **how much** better. With $\xi = 0$ it picks a point just above the incumbent,
+          with a high chance of a tiny gain: it exploits.
+    verify: {mode: quote, needle: "a point just above the incumbent", volatility: stable}
+    tags: [probability-of-improvement, exploitation]
 
   - id: l15-q11
     kind: mcq
     rung: 2
     difficulty: 2
-    objectives: [l15-o2]
+    objectives: [l15-o3]
     prompt: |
-      On the two-peak test function, one acquisition picked 0.66, 0.67, 0.68 and so on to 0.72,
-      and stopped at 5.26 of a possible 6.02. Which?
+      Without measurement noise, what is expected improvement at a temperature you already ran?
     options:
-      - "Probability of improvement"
-      - "Expected improvement"
-      - "Upper confidence bound with κ = 3"
-      - "Thompson sampling"
-    answer: "Probability of improvement"
+      - "Zero: no uncertainty there, and no improvement to expect"
+      - "Its maximum, because the GP is most confident at a measured point"
+      - "The measured yield itself, because the GP passes through the data"
+      - "A negative number, which is how the loop avoids repeating experiments"
+    answer: "Zero: no uncertainty there, and no improvement to expect"
     evidence: |
-      PI scores only the chance of beating the best so far, by any margin, so it prefers points
-      right next to the best one and climbs in tiny steps. EI and UCB with κ = 3 both found the
-      global maximum.
+      At a measured point σ = 0 and μ is the measured value, at most the incumbent. The
+      improvement is then zero for sure, so its expected value is zero. EI grows away from the
+      data.
     source:
       file: lectures/l15/notes.md
-      heading: "The loop on a test function"
+      heading: "Expected improvement (EI)"
       quote: |
-        **PI** creeps uphill from its best point in tiny steps: it exploits.
-    verify: {mode: quote, needle: "creeps uphill from its best point", volatility: measured}
-    tags: [probability-of-improvement, exploitation]
+        EI is zero at an experiment already run (no uncertainty, no improvement) and grows away from
+          the data.
+    verify: {mode: quote, needle: "ei is zero at an experiment already run", volatility: stable}
+    tags: [expected-improvement]
 
   - id: l15-q12
-    kind: direction
-    rung: 2
-    difficulty: 2
-    objectives: [l15-o2]
-    prompt: |
-      You raise κ in the upper confidence bound μ(x) + κσ(x). What changes in where it samples?
-    options:
-      - "It weights uncertainty more, so it samples more where the GP is unsure: it explores"
-      - "It weights the mean more, so it samples closer to the best point: it exploits"
-      - "Nothing; κ only rescales the acquisition"
-      - "It samples where the measurement noise is lowest"
-    answer: "It weights uncertainty more, so it samples more where the GP is unsure: it explores"
-    evidence: |
-      κ multiplies the standard deviation. A larger κ lets uncertain regions outscore regions
-      with a high mean, which is exploration; with κ = 3 the first picks went to the far side of
-      the test function before the peak.
-    source:
-      file: lectures/l15/notes.md
-      heading: "Acquisition functions"
-      quote: |
-        **Upper confidence bound (UCB)**: $\mu(x) + \kappa\,\sigma(x)$. The weight $\kappa$ sets the
-        trade-off directly: large $\kappa$ explores.
-    verify: {mode: quote, needle: "trade-off directly", volatility: stable}
-    tags: [upper-confidence-bound, exploration]
-
-  - id: l15-q13
     kind: mcq
-    rung: 1
-    difficulty: 2
-    objectives: [l15-o2]
+    rung: 2
+    difficulty: 3
+    objectives: [l15-o3, l15-o4]
     prompt: |
-      How does Thompson sampling choose the next point?
+      Why does the worked example use LogExpectedImprovement instead of plain EI?
     options:
-      - "It draws one random function from the GP posterior and evaluates where that draw is highest"
-      - "It evaluates where the GP's standard deviation is largest"
-      - "It evaluates where the GP's mean is highest"
-      - "It samples a point uniformly at random"
-    answer: "It draws one random function from the GP posterior and evaluates where that draw is highest"
+      - "Far from the data, EI and its gradient underflow to zero, and the search stalls"
+      - "Taking the log moves the maximizer, so that the loop explores more than plain EI does"
+      - "BoTorch can only minimize, so the acquisition has to be turned negative with a log"
+      - "The log turns EI into a probability that sums to one over all the candidate inputs"
+    answer: "Far from the data, EI and its gradient underflow to zero, and the search stalls"
     evidence: |
-      A draw from the posterior is high where the mean is high, and sometimes high where the GP
-      is unsure. The randomness of the draw does the exploring, with no explicit trade-off
-      parameter.
+      A double-precision number below about 10^-324 is stored as exactly 0. Far from the data EI
+      is that small, so EI and its slope are both 0 there, and the optimizer that follows the
+      slope has nowhere to go. LogEI computes log EI directly, with the same maximizer.
     source:
       file: lectures/l15/notes.md
-      heading: "Acquisition functions"
+      heading: "Log expected improvement (LogEI)"
       quote: |
-        **Thompson sampling**: draw one random function from the GP posterior, and evaluate where that
-        draw is highest.
-    verify: {mode: quote, needle: "draw one random function from the gp posterior", volatility: stable}
-    tags: [thompson-sampling]
+        **Red**: the temperatures where the computer stores EI as exactly 0 (12% of them). There EI is
+          flat, so the optimizer of the acquisition, which follows its slope, has no direction to move.
+    verify: {mode: quote, needle: "has no direction to move", volatility: measured}
+    tags: [log-expected-improvement, numerics]
 
-  # --- o3: active learning -----------------------------------------------------------------------------
+  # --- o4: BoTorch, and an honest comparison ---------------------------------------------------
 
   - id: l15-q14
     kind: mcq
-    rung: 1
-    difficulty: 1
-    objectives: [l15-o3]
+    rung: 2
+    difficulty: 2
+    objectives: [l15-o4]
     prompt: |
-      Bayesian optimization looks for one best point. What does active learning aim for?
+      Why does the worked example build the SingleTaskGP with Normalize and Standardize?
     options:
-      - "A model that is accurate everywhere it will be used, with as few labels as possible"
-      - "The best point, found with fewer evaluations than BO"
-      - "A calibrated interval on the training data"
-      - "The point of largest measurement noise"
-    answer: "A model that is accurate everywhere it will be used, with as few labels as possible"
+      - "Temperature to [0, 1], yields to mean 0 and standard deviation 1, so the kernel defaults fit"
+      - "Without the two transforms the GP is only an approximation, and with them it becomes exact"
+      - "The transforms remove the measurement noise from the yields before the GP is fitted"
+      - "LogExpectedImprovement accepts inputs only between 0 and 1, so the transforms are required"
+    answer: "Temperature to [0, 1], yields to mean 0 and standard deviation 1, so the kernel defaults fit"
     evidence: |
-      Both loops choose the next expensive measurement, but for different goals. BO wants one
-      excellent design; active learning wants a surrogate good across the region it will be
-      queried in.
+      The kernel's default length scale and the GP's priors assume inputs of order 1 and outputs
+      of order 1. Temperature in degrees and yields near 0.4 are neither, so BoTorch rescales both
+      and the defaults become sensible.
     source:
       file: lectures/l15/notes.md
-      heading: "Active learning"
+      heading: "Bayesian optimization in BoTorch"
       quote: |
-        Bayesian optimization looks for **one** best point. Active learning wants a model that is good
-        **everywhere** you will use it.
-    verify: {mode: quote, needle: "active learning wants a model that is good", volatility: stable}
-    tags: [active-learning]
+        `Normalize` maps the
+          temperature to [0, 1]; `Standardize` gives the yields mean 0 and standard deviation 1. The
+          kernel's settings are then sensible defaults.
+    verify: {mode: quote, needle: "sensible defaults", volatility: stable}
+    tags: [botorch, transforms]
 
   - id: l15-q15
     kind: mcq
-    rung: 2
+    rung: 3
     difficulty: 2
-    objectives: [l15-o3]
+    objectives: [l15-o4]
     prompt: |
-      On the concrete strength dataset, labeling where the GP is least sure was compared with
-      labeling at random. After 40 labeled rows, which model had the lower test error?
+      The lab gives no gradients, yet optimize_acqf runs gradient-based searches inside the loop.
+      Why is that fine?
     options:
-      - "Random labeling: 9.5 MPa against 12.7"
-      - "Least-sure labeling: 9.5 MPa against 12.7"
-      - "They were identical, since both used the same GP"
-      - "Neither improved on the 20-row starting model"
-    answer: "Random labeling: 9.5 MPa against 12.7"
+      - "It searches the acquisition, a cheap formula from the GP; the experiment runs once per pass"
+      - "BoTorch estimates gradients of the yield itself from the experiments it has already run"
+      - "It is not fine, and it is the reason BO only works on smooth, noise-free objectives"
+      - "The gradients come from the Arrhenius formula inside the run_experiment function"
+    answer: "It searches the acquisition, a cheap formula from the GP; the experiment runs once per pass"
     evidence: |
-      Uncertainty sampling lost here. Its queries went to the edges of the data, where the test
-      mixes rarely are, while random queries covered the middle, where they mostly are.
+      Maximizing the acquisition is an optimization over the GP, which is a formula with exact
+      gradients from automatic differentiation. Only the chosen point is run in the lab.
     source:
       file: lectures/l15/notes.md
-      heading: "On the concrete strength dataset"
+      heading: "Bayesian optimization in BoTorch"
       quote: |
-        **Here, uncertainty sampling loses to random.**
-    verify: {mode: quote, needle: "uncertainty sampling loses to random", volatility: measured}
-    tags: [active-learning, uncertainty-sampling]
+        Optimizing the acquisition function is itself an optimization, but a cheap one: the GP is a
+          formula, so gradient-based search works there.
+    verify: {mode: quote, needle: "but a cheap one", volatility: stable}
+    tags: [botorch, optimize-acqf]
 
   - id: l15-q16
     kind: spot_the_defect
     rung: 3
     difficulty: 3
-    objectives: [l15-o3]
+    objectives: [l15-o4]
     prompt: |
-      A team labels whichever pool row their GP is least sure about, expecting the fastest drop in
-      test error. On the concrete strength dataset it did worse than random. What did they miss?
+      A team runs BO once on their reactor, reaches the best yield at experiment 6, and reports
+      "BO finds the optimum in 6 experiments". What is missing?
     options:
-      - "The least-sure rows are extreme mixes and ages at the edges, not where the test mixes are"
-      - "The GP should be refitted less often"
-      - "Uncertainty sampling only works with neural networks"
-      - "The pool was too small to choose from"
-    answer: "The least-sure rows are extreme mixes and ages at the edges, not where the test mixes are"
+      - "Several seeds and a baseline: BO is random, and one run proves nothing"
+      - "A larger budget: BO results can only be trusted after many dozens of experiments"
+      - "A gradient check: the optimum must be confirmed afterwards with L-BFGS-B"
+      - "Nothing: once the GP is fitted, BO is deterministic and one run is enough"
+    answer: "Several seeds and a baseline: BO is random, and one run proves nothing"
     evidence: |
-      A GP is least sure at the edges of its data. 45% of its queries were at an age of 3 days or
-      180 days and more, against 19% of the pool. Labels there teach the model about inputs it
-      will rarely be asked about.
+      The noise and the random candidates make every run different. The notes report 10 seeds,
+      random search and two classic optimizers as baselines, the best-so-far curve with its
+      spread, and the budget counted.
     source:
       file: lectures/l15/notes.md
-      heading: "On the concrete strength dataset"
+      heading: "Comparing optimizers over several seeds"
       quote: |
-        Measured: 45% of the least-sure queries are at an age of 3 days or 180 days and more, against
-        19% of the pool.
-    verify: {mode: quote, needle: "45% of the least-sure queries", volatility: measured}
-    tags: [active-learning, practitioner]
+        One run proves nothing: BO is random (the noise, the random candidates).
+    verify: {mode: quote, needle: "one run proves nothing", volatility: stable}
+    tags: [seeds, baseline, practitioner]
+
+  # --- o5: extensions and applications ---------------------------------------------------------
+
+  - id: l15-q17
+    kind: mcq
+    rung: 2
+    difficulty: 1
+    objectives: [l15-o5]
+    prompt: |
+      The lab has four reactors that can run at the same time. Which extension of BO fits?
+    options:
+      - "Batch BO: choose four experiments at once, with q=4 and a batch acquisition"
+      - "Multi-fidelity BO, because four reactors give four different fidelities"
+      - "Constrained BO, with one feasibility constraint for each of the reactors"
+      - "Four independent BO loops, one per reactor, each with its own random seed"
+    answer: "Batch BO: choose four experiments at once, with q=4 and a batch acquisition"
+    evidence: |
+      A batch acquisition such as qLogEI scores a set of four points jointly, so the four picks
+      spread out instead of piling onto the same spot. Four independent loops would each pick
+      nearly the same experiment.
+    source:
+      file: lectures/l15/notes.md
+      heading: "Extensions engineers need"
+      quote: |
+        **Batches:** the lab has four reactors. Choose four experiments at once (`q=4`, with a batch
+          acquisition such as qLogEI).
+    verify: {mode: quote, needle: "the lab has four reactors", volatility: stable}
+    tags: [batch, extensions]
+
+  - id: l15-q18
+    kind: mcq
+    rung: 3
+    difficulty: 2
+    objectives: [l15-o5, l15-o1]
+    prompt: |
+      Which of these problems fits Bayesian optimization best?
+    options:
+      - "Choosing a fast-charging protocol, when each test cycles a battery for days"
+      - "Training an image classifier with millions of weights and cheap exact gradients"
+      - "Solving a steady-state flowsheet whose Jacobian is analytic and takes milliseconds"
+      - "Sorting a table of past experiments by their measured yields, highest yield first"
+    answer: "Choosing a fast-charging protocol, when each test cycles a battery for days"
+    evidence: |
+      Each evaluation is slow, noisy and has no gradient, and only a few dozen are affordable.
+      Attia et al. (2020) combined BO with early predictions of battery life for exactly this.
+      The other two problems have cheap evaluations and gradients.
+    source:
+      file: lectures/l15/notes.md
+      heading: "Where Bayesian optimization is used"
+      quote: |
+        Attia et al. (2020) combined BO with early predictions of battery life, and
+          ranked 224 fast-charging protocols in 16 days.
+    verify: {mode: quote, needle: "early predictions of battery life", volatility: stable}
+    tags: [applications, batteries, when-to-use]

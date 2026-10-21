@@ -63,7 +63,7 @@ parts:
           - file: lectures/l14/l14-uq
 #       - file: lectures/l15/notes
 #         sections:
-#           - file: lectures/l15/l15-uq-bayesopt
+#           - file: lectures/l15/l15-bayesian-optimization
 #       - file: lectures/l16/notes
 #         sections:
 #           - file: lectures/l16/l16-generative-optimization

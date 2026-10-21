@@ -52,6 +52,9 @@
     '.cw-readout{font-variant-numeric:tabular-nums;margin-top:.35em;min-height:2.6em}',
     '.cw-note{opacity:.75;font-size:.9em;margin-top:.3em}',
     '.cw-missing{opacity:.7;font-style:italic}',
+    '.cw-legend{display:flex;flex-wrap:wrap;gap:.4em 1.4em;margin:.1em 0 .2em}',
+    '.cw-legend span{display:inline-flex;align-items:center;gap:.4em}',
+    '.cw-legend i{display:inline-block;width:24px;height:10px;box-sizing:border-box}',
     '.cw .hot{cursor:pointer}',
     // On a slide the heading names the figure and the notes carry the fine
     // print, so the compact form drops both and caps the height to fit 720px.
@@ -2047,118 +2050,244 @@
   var NORM_Z = { 0.1: 0.1257, 0.2: 0.2533, 0.3: 0.3853, 0.4: 0.5244, 0.5: 0.6745, 0.6: 0.8416,
     0.7: 1.0364, 0.8: 1.2816, 0.9: 1.6449, 0.95: 1.96 };
 
-  /* Prediction intervals on the concrete strength dataset's test mixes, for three
-   * methods and two test sets, at any nominal level. Each mix is a bar from its
-   * interval; red where the interval misses the measured strength. The right
-   * panel is the reliability diagram for the chosen method and test set. */
-  WIDGETS.coverage = function (root, data) {
-    var d = data.uq, LV = d.levels, split = 0, method = 0;
-    var METHODS = ['GP', 'ensemble', 'conformal'];
-    var NAMES = ['Gaussian process', 'ensemble spread', 'split conformal'];
-    var W = 720, H = 320, L = 46, PR = 470, T0 = 14, B = 270;
-    html('div', { class: 'cw-title' }, root, 'Do the intervals contain the truth as often as they claim?');
-    var svg = svgRoot(root, W, H, 'Prediction intervals on the test mixes and the reliability diagram');
+  /* L15, Bayesian optimization on a reactor: A -> B -> C in a stirred tank, the yield of B
+   * against temperature (and residence time). Every curve comes from
+   * lectures/l15/figures/make_figures.py, which prints the numbers the readouts quote. */
+  var GOLDC = '#b07d12';
+  function l15Axes(svg, sx, sy, L, R, T, B, yTicks, yLabel, xLabel) {
+    el('line', { x1: L, x2: R, y1: B, y2: B, stroke: 'currentColor', 'stroke-opacity': 0.35 }, svg);
+    yTicks.forEach(function (v) {
+      el('line', { x1: L, x2: R, y1: sy(v), y2: sy(v), stroke: 'currentColor', 'stroke-opacity': 0.07 }, svg);
+      text(svg, L - 6, sy(v) + 4, String(v), { 'text-anchor': 'end', 'font-size': 11, opacity: 0.7 });
+    });
+    if (xLabel) {
+      [20, 40, 60, 80, 100, 120, 140].forEach(function (v) {
+        text(svg, sx(v), B + 15, String(v), { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.7 });
+      });
+      text(svg, (L + R) / 2, B + 30, xLabel, { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.85 });
+    }
+    text(svg, 13, (T + B) / 2, yLabel, { 'font-size': 11, opacity: 0.85, transform: 'rotate(-90 13 ' + (T + B) / 2 + ')', 'text-anchor': 'middle' });
+  }
+  function bandPts(xs, mu, sd, sx, sy) {
+    var up = xs.map(function (x, j) { return sx(x).toFixed(1) + ',' + sy(mu[j] + 1.96 * sd[j]).toFixed(1); });
+    var lo = xs.slice().reverse().map(function (x, j) { var k = xs.length - 1 - j; return sx(x).toFixed(1) + ',' + sy(mu[k] - 1.96 * sd[k]).toFixed(1); });
+    return up.concat(lo).join(' ');
+  }
+  function argmax(a) { var k = 0; for (var i = 1; i < a.length; i++) if (a[i] > a[k]) k = i; return k; }
+
+  /* The prior over yield curves, then the posterior after 1 to 5 experiments: the band
+   * pinches where an experiment was run, and three sample curves show which functions the
+   * GP still believes possible. */
+  WIDGETS['bo-posterior'] = function (root, data) {
+    var d = data.posterior, F = d.frames, g = d.grid;
+    var W = 720, H = 318, L = 50, R = W - 16, T = 14, B = 270;
+    html('div', { class: 'cw-title' }, root, 'From prior to posterior, one experiment at a time');
+    var svg = svgRoot(root, W, H, 'A Gaussian process prior over yield curves, updated by experiments');
     var c1 = html('div', { class: 'cw-controls' }, root);
-    var c2 = html('div', { class: 'cw-controls' }, root);
     var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
     html('div', { class: 'cw-note' }, root,
-      'Concrete strength dataset, Lecture 9\'s grouped split (195 test rows) and an extrapolation split that holds out the ' +
-      '20% of mixes with the lowest water/cement ratio (265 rows, the strongest mixes). Test mixes are sorted by measured ' +
-      'strength. Ensemble: five of Lecture 9\'s networks, interval from their spread alone. Conformal: width set on 210 calibration rows.');
-    toggleGroup(c1, ['Grouped split', 'Extrapolation split'], 0, function (v) { split = v; draw(p.get()); });
-    toggleGroup(c2, NAMES, 0, function (v) { method = v; draw(p.get()); });
-    var p = player(c1, LV.length, draw, 500);
-
-    function halfwidths(s, lv) {
-      var i = LV.indexOf(lv), z = NORM_Z[lv];
-      if (method === 0) return s.gp_sd_pts.map(function (v) { return z * v; });
-      if (method === 1) return s.ens_sd_pts.map(function (v) { return z * v; });
-      return s.y.map(function () { return s.q[i]; });
-    }
-    function centers(s) { return method === 0 ? s.gp_mu : method === 1 ? s.ens_mu : s.conf_mu; }
-
-    function draw(li) {
-      clear(svg);
-      var s = d.splits[split], lv = LV[li], hw = halfwidths(s, lv), c = centers(s);
-      var order = s.y.map(function (_, i) { return i; }).sort(function (a, b) { return s.y[a] - s.y[b]; });
-      var sx = scale(0, order.length - 1, L, PR), sy = scale(-10, 100, B, T0);
-      [0, 20, 40, 60, 80].forEach(function (v) {
-        el('line', { x1: L, x2: PR, y1: sy(v), y2: sy(v), stroke: 'currentColor', 'stroke-opacity': 0.08 }, svg);
-        text(svg, L - 6, sy(v) + 4, String(v), { 'text-anchor': 'end', 'font-size': 11, opacity: 0.7 });
+      'Prior: yield about ' + d.prior.mean + ', give or take ' + (1.96 * d.prior.sd).toFixed(2) + ' (95%), changing smoothly over about ' +
+      d.prior.ell + ' °C. Blue: the GP mean and its 95% band. Thin lines: three functions drawn from the GP. Gray: the true yield, ' +
+      'hidden from the GP. Black dots: experiments, with noise 0.01.');
+    var sx = scale(20, 140, L, R), sy = scale(-0.2, 0.75, B, T), xs = g.map(sx);
+    var clip = clipTo(svg, L, T, R - L, B - T);
+    l15Axes(svg, sx, sy, L, R, T, B, [0, 0.2, 0.4, 0.6], 'yield of B', 'temperature (°C)');
+    polyline(svg, xs, d.truth.map(sy), { stroke: 'currentColor', 'stroke-opacity': 0.28, 'stroke-width': 3, 'clip-path': clip });
+    var band = el('polygon', { fill: 'var(--cw-accent)', 'fill-opacity': 0.16, 'clip-path': clip }, svg);
+    var cols = ['var(--cw-accent2)', 'var(--cw-green)', GOLDC];
+    var samp = cols.map(function (c) { return el('polyline', { fill: 'none', stroke: c, 'stroke-width': 1.3, 'stroke-opacity': 0.85, 'clip-path': clip }, svg); });
+    var mean = el('polyline', { fill: 'none', stroke: 'var(--cw-accent)', 'stroke-width': 2.4, 'clip-path': clip }, svg);
+    var dots = el('g', {}, svg);
+    var i80 = g.indexOf(80);
+    function draw(q) {
+      var i = Math.min(F.length - 2, Math.floor(q)), w = q - i, a = F[i], b = F[i + 1];
+      if (q >= F.length - 1) { i = F.length - 2; w = 1; a = F[i]; b = F[i + 1]; }
+      var mu = lerpArr(a.mu, b.mu, w), sd = lerpArr(a.sd, b.sd, w);
+      band.setAttribute('points', bandPts(g, mu, sd, sx, sy));
+      mean.setAttribute('points', pts(xs, mu.map(sy)));
+      samp.forEach(function (s, k) { s.setAttribute('points', pts(xs, lerpArr(a.samples[k], b.samples[k], w).map(sy))); });
+      clear(dots);
+      b.x.forEach(function (x, k) {
+        var op = k < a.x.length ? 1 : w;
+        el('circle', { cx: sx(x), cy: sy(b.y[k]), r: 5, fill: 'currentColor', 'fill-opacity': op }, dots);
       });
-      text(svg, 12, (T0 + B) / 2, 'MPa', { 'font-size': 11, opacity: 0.8 });
-      text(svg, (L + PR) / 2, B + 18, 'test mixes, sorted by measured strength', { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.8 });
-      var hit = 0;
-      order.forEach(function (i, k) {
-        var ok = Math.abs(s.y[i] - c[i]) < hw[i];
-        if (ok) hit++;
-        var col = ok ? 'var(--cw-accent)' : RED;
-        el('line', { x1: sx(k), x2: sx(k), y1: sy(c[i] - hw[i]), y2: sy(c[i] + hw[i]), stroke: col, 'stroke-opacity': ok ? 0.35 : 0.7, 'stroke-width': 1.5 }, svg);
-        el('circle', { cx: sx(k), cy: sy(s.y[i]), r: 1.8, fill: ok ? 'currentColor' : RED }, svg);
-      });
-      // Reliability diagram.
-      var rx = scale(0, 1, 520, 700), ry = scale(0, 1, 230, 50);
-      el('rect', { x: 520, y: 50, width: 180, height: 180, fill: 'none', stroke: 'currentColor', 'stroke-opacity': 0.25 }, svg);
-      el('line', { x1: rx(0), y1: ry(0), x2: rx(1), y2: ry(1), stroke: 'currentColor', 'stroke-dasharray': '4 3', 'stroke-opacity': 0.6 }, svg);
-      var cov = s.coverage[METHODS[method]];
-      polyline(svg, LV.map(rx), cov.map(ry), { stroke: 'var(--cw-accent2)', 'stroke-width': 2 });
-      LV.forEach(function (v, i) { el('circle', { cx: rx(v), cy: ry(cov[i]), r: i === li ? 6 : 2.5, fill: 'var(--cw-accent2)' }, svg); });
-      text(svg, 610, 40, 'reliability diagram', { 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 600 });
-      text(svg, 610, 250, 'nominal coverage', { 'text-anchor': 'middle', 'font-size': 10, opacity: 0.8 });
-      text(svg, 512, 140, 'observed', { 'text-anchor': 'end', 'font-size': 10, opacity: 0.8 });
-      text(svg, 690, 222, 'below: overconfident', { 'text-anchor': 'end', 'font-size': 10, style: 'fill:' + RED });
-      var width = hw.reduce(function (a, b) { return a + b; }, 0) / hw.length * 2;
-      readout.textContent = NAMES[method] + ', ' + (split ? 'extrapolation split' : 'grouped split') + ', nominal ' +
-        Math.round(lv * 100) + '%: ' + hit + ' of ' + order.length + ' test mixes inside their interval (' +
-        Math.round(100 * hit / order.length) + '%); mean width ' + width.toFixed(1) + ' MPa.';
+      var n = w > 0.5 ? b.x.length : a.x.length;
+      var f = w > 0.5 ? b : a;
+      readout.textContent = n === 0
+        ? 'Prior, no experiments: every temperature has the same belief, ' + f.mu[i80].toFixed(2) + ' ± ' + (1.96 * f.sd[i80]).toFixed(2) + '.'
+        : n + (n === 1 ? ' experiment' : ' experiments') + ' (' + f.x.join(', ') + ' °C). At 80 °C the GP now says ' +
+          f.mu[i80].toFixed(2) + ' ± ' + (1.96 * f.sd[i80]).toFixed(2) + '. The band pinches at each experiment and stays wide far from them.';
     }
-    p.set(LV.length - 1);
+    smoothPlayer(c1, F.length, draw, 1.0).set(0);
   };
 
-  /* Bayesian optimization on a 1-D test function with two peaks. Pick the
-   * acquisition; each step fits the GP to the points so far, maximizes the
-   * acquisition and evaluates there. All eight iterations of each run were
-   * recorded by lectures/l14/figures/make_figures.py. */
+  /* The Bayesian optimization loop on the reactor, as in the worked example: fit the GP,
+   * compute expected improvement, run the experiment where it is largest, repeat. */
   WIDGETS['bo-loop'] = function (root, data) {
-    var d = data.bo, kinds = ['EI', 'PI', 'UCB'], kind = 0;
-    var NAMES = ['expected improvement', 'probability of improvement', 'upper confidence bound, κ = 3'];
-    var W = 720, H = 330, L = 46, R = 16;
-    html('div', { class: 'cw-title' }, root, 'The Bayesian optimization loop, one evaluation at a time');
-    var svg = svgRoot(root, W, H, 'Gaussian process, acquisition function and next evaluation at each iteration');
+    var d = data.loop, F = d.frames, g = d.grid;
+    var W = 720, H = 372, L = 50, R = W - 16, T = 14, B = 214, AT = 232, AB = 312;
+    html('div', { class: 'cw-title' }, root, 'The loop: fit the GP, score with expected improvement, run the best, repeat');
+    var svg = svgRoot(root, W, H, 'Gaussian process, expected improvement and next experiment at each step of Bayesian optimization');
     var c1 = html('div', { class: 'cw-controls' }, root);
-    var c2 = html('div', { class: 'cw-controls' }, root);
     var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
     html('div', { class: 'cw-note' }, root,
-      'Maximize g(x) = −(6x − 2)² sin(12x − 4) on [0, 1] (the Forrester et al. benchmark, flipped). Global maximum 6.02 at ' +
-      'x = 0.758, a smaller peak near 0.15. Start: four points at 0, 0.33, 0.66 and 1. Gray: the true function, hidden from the ' +
-      'optimizer. Blue: the GP mean and 95% band. Green: the acquisition, scaled to its maximum.');
-    toggleGroup(c2, NAMES, 0, function (v) { kind = v; draw(p.get()); });
-    var p = player(c1, 8, draw, 900);
-    function g(x) { return -Math.pow(6 * x - 2, 2) * Math.sin(12 * x - 4); }
-
-    function draw(i) {
-      clear(svg);
-      var fr = d.runs[kinds[kind]][i], grid = d.grid;
-      var sx = scale(0, 1, L, W - R), sy = scale(-22, 12, 200, 12), sa = scale(0, 1, 300, 222);
-      el('line', { x1: L, x2: W - R, y1: sy(0), y2: sy(0), stroke: 'currentColor', 'stroke-opacity': 0.12 }, svg);
-      [-20, -10, 0, 10].forEach(function (v) { text(svg, L - 6, sy(v) + 4, String(v), { 'text-anchor': 'end', 'font-size': 10, opacity: 0.7 }); });
-      var up = fr.mu.map(function (m, j) { return m + 1.96 * fr.sd[j]; }), lo = fr.mu.map(function (m, j) { return m - 1.96 * fr.sd[j]; });
-      var pts = grid.map(function (x, j) { return sx(x).toFixed(1) + ',' + sy(up[j]).toFixed(1); })
-        .concat(grid.slice().reverse().map(function (x, j) { var k = grid.length - 1 - j; return sx(x).toFixed(1) + ',' + sy(lo[k]).toFixed(1); }));
-      el('polygon', { points: pts.join(' '), fill: 'var(--cw-accent)', 'fill-opacity': 0.15 }, svg);
-      polyline(svg, grid.map(sx), d.truth.map(sy), { stroke: 'currentColor', 'stroke-opacity': 0.35, 'stroke-width': 2.5 });
-      polyline(svg, grid.map(sx), fr.mu.map(sy), { stroke: 'var(--cw-accent)', 'stroke-width': 2 });
-      fr.x.forEach(function (x, j) { el('circle', { cx: sx(x), cy: sy(fr.y[j]), r: 4, fill: 'currentColor' }, svg); });
-      el('line', { x1: sx(fr.next), x2: sx(fr.next), y1: 12, y2: 300, stroke: RED, 'stroke-dasharray': '5 3', 'stroke-width': 1.5 }, svg);
-      polyline(svg, grid.map(sx), fr.acq.map(sa), { stroke: 'var(--cw-green)', 'stroke-width': 2 });
-      el('line', { x1: L, x2: W - R, y1: sa(0), y2: sa(0), stroke: 'currentColor', 'stroke-opacity': 0.25 }, svg);
-      text(svg, L, 216, 'acquisition', { 'font-size': 11, style: 'fill:var(--cw-green)' });
-      [0, 0.25, 0.5, 0.75, 1].forEach(function (v) { text(svg, sx(v), 316, String(v), { 'text-anchor': 'middle', 'font-size': 10, opacity: 0.7 }); });
-      var best = Math.max.apply(null, fr.y);
-      readout.textContent = NAMES[kind] + ', iteration ' + (i + 1) + ': ' + fr.x.length + ' points evaluated, best so far ' +
-        best.toFixed(2) + ' (true maximum 6.02). Next x = ' + fr.next.toFixed(3) + ', where g = ' + g(fr.next).toFixed(2) + '.';
+      'Start: two old runs at 30 and 50 °C. Top: the GP mean and 95% band (blue), the experiments (black) and the true yield ' +
+      '(gray, hidden from the optimizer). Bottom: expected improvement (green), scaled to its maximum; the red line is the next experiment. ' +
+      'Best possible yield ' + d.y_star.toFixed(3) + ' at ' + d.t_star.toFixed(1) + ' °C.');
+    var sx = scale(20, 140, L, R), sy = scale(-0.1, 0.65, B, T), sa = scale(0, 1, AB, AT), xs = g.map(sx);
+    var clip = clipTo(svg, L, T, R - L, B - T);
+    l15Axes(svg, sx, sy, L, R, T, B, [0, 0.2, 0.4, 0.6], 'yield of B', null);
+    el('line', { x1: L, x2: R, y1: AB, y2: AB, stroke: 'currentColor', 'stroke-opacity': 0.35 }, svg);
+    [20, 40, 60, 80, 100, 120, 140].forEach(function (v) { text(svg, sx(v), AB + 15, String(v), { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.7 }); });
+    text(svg, (L + R) / 2, AB + 30, 'temperature (°C)', { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.85 });
+    text(svg, L + 4, AT + 4, 'expected improvement', { 'font-size': 11, style: 'fill:var(--cw-green)' });
+    polyline(svg, xs, d.truth.map(sy), { stroke: 'currentColor', 'stroke-opacity': 0.28, 'stroke-width': 3, 'clip-path': clip });
+    var band = el('polygon', { fill: 'var(--cw-accent)', 'fill-opacity': 0.16, 'clip-path': clip }, svg);
+    var mean = el('polyline', { fill: 'none', stroke: 'var(--cw-accent)', 'stroke-width': 2.4, 'clip-path': clip }, svg);
+    var acq = el('polyline', { fill: 'none', stroke: 'var(--cw-green)', 'stroke-width': 2.2 }, svg);
+    var nextLine = el('line', { y1: T, y2: AB, stroke: RED, 'stroke-width': 1.6, 'stroke-dasharray': '6 4' }, svg);
+    var nextLab = text(svg, 0, T + 12, '', { 'font-size': 12, style: 'fill:' + RED });
+    var dots = el('g', {}, svg);
+    function draw(q) {
+      var i = Math.min(F.length - 2, Math.floor(q)), w = q - i, a = F[i], b = F[i + 1];
+      if (q >= F.length - 1) { i = F.length - 2; w = 1; a = F[i]; b = F[i + 1]; }
+      var mu = lerpArr(a.mu, b.mu, w), sd = lerpArr(a.sd, b.sd, w), ac = lerpArr(a.acq, b.acq, w);
+      band.setAttribute('points', bandPts(g, mu, sd, sx, sy));
+      mean.setAttribute('points', pts(xs, mu.map(sy)));
+      acq.setAttribute('points', pts(xs, ac.map(sa)));
+      var f = w > 0.5 ? b : a;
+      nextLine.setAttribute('x1', sx(f.next));
+      nextLine.setAttribute('x2', sx(f.next));
+      nextLab.setAttribute('x', sx(f.next) + (f.next > 110 ? -6 : 6));
+      nextLab.setAttribute('text-anchor', f.next > 110 ? 'end' : 'start');
+      nextLab.textContent = 'next: ' + f.next.toFixed(0) + ' °C';
+      clear(dots);
+      b.x.forEach(function (x, k) {
+        var op = k < a.x.length ? 1 : w, newest = k === b.x.length - 1 && w > 0.5;
+        el('circle', { cx: sx(x), cy: sy(b.y[k]), r: newest ? 6 : 4.5, fill: newest ? RED : 'currentColor', 'fill-opacity': op }, dots);
+      });
+      var n = f.x.length;
+      readout.textContent = 'Step ' + (Math.round(q) + 1) + ': ' + n + ' experiments so far, best measured yield ' + f.best.toFixed(3) +
+        '. Expected improvement is largest at ' + f.next.toFixed(1) + ' °C, so that is the next experiment.';
     }
-    p.set(0);
+    smoothPlayer(c1, F.length, draw, 1.1).set(0);
+  };
+
+  /* One GP state and an upper confidence bound, mu + kappa sigma: the slider moves the next
+   * experiment from next to the best so far (exploitation) to where the GP is unsure
+   * (exploration). */
+  WIDGETS['bo-explore'] = function (root, data) {
+    var s = data.loop.state, g = data.loop.grid, kappa = 0;
+    var W = 720, H = 270, L = 50, R = W - 16, T = 14, B = 222;
+    html('div', { class: 'cw-title' }, root, 'Exploitation or exploration: one knob, κ');
+    var leg = html('div', { class: 'cw-legend' }, root);
+    [['border-top:3px solid var(--cw-accent)', 'GP mean μ'],
+     ['background:var(--cw-accent);opacity:.25', 'uncertainty band μ ± 2σ'],
+     ['border-top:3px solid var(--cw-green)', 'score μ + κσ (UCB)'],
+     ['border-top:3px dashed ' + RED, 'its maximum: the next experiment']].forEach(function (e) {
+      var sp = html('span', {}, leg);
+      html('i', { style: e[0] }, sp);
+      sp.appendChild(document.createTextNode(e[1]));
+    });
+    var svg = svgRoot(root, W, H, 'The upper confidence bound mu plus kappa sigma and its maximum, as kappa changes');
+    svg.style.maxHeight = '320px';
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    var lab = html('label', {}, c1, 'κ ');
+    var kr = html('input', { type: 'range', min: 0, max: 5, step: 0.1, value: 0, 'aria-label': 'kappa' }, lab);
+    var kv = html('span', { class: 'cw-val' }, lab, ' 0.0');
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'The GP after three experiments (30, 50 and 54 °C). Green: the upper confidence bound μ + κσ. Red: its maximum, the next ' +
+      'experiment. κ = 0 trusts the mean only; a large κ rewards uncertainty.');
+    var sx = scale(20, 140, L, R), sy = scale(-0.1, 1.2, B, T), xs = g.map(sx);
+    var clip = clipTo(svg, L, T, R - L, B - T);
+    l15Axes(svg, sx, sy, L, R, T, B, [0, 0.4, 0.8, 1.2], 'yield of B', 'temperature (°C)');
+    el('polygon', { points: bandPts(g, s.mu, s.sd, sx, sy), fill: 'var(--cw-accent)', 'fill-opacity': 0.16, 'clip-path': clip }, svg);
+    polyline(svg, xs, s.mu.map(sy), { stroke: 'var(--cw-accent)', 'stroke-width': 2.2, 'clip-path': clip });
+    var ucb = el('polyline', { fill: 'none', stroke: 'var(--cw-green)', 'stroke-width': 2.4, 'clip-path': clip }, svg);
+    var line = el('line', { y1: T, y2: B, stroke: RED, 'stroke-width': 1.8, 'stroke-dasharray': '6 4' }, svg);
+    var lab2 = text(svg, 0, T + 14, '', { 'font-size': 12, style: 'fill:' + RED });
+    s.x.forEach(function (x, k) { el('circle', { cx: sx(x), cy: sy(s.y[k]), r: 5, fill: 'currentColor' }, svg); });
+    var xBest = s.x[argmax(s.y)];
+    function draw() {
+      var u = s.mu.map(function (m, j) { return m + kappa * s.sd[j]; });
+      ucb.setAttribute('points', pts(xs, u.map(sy)));
+      var k = argmax(u), xn = g[k];
+      line.setAttribute('x1', sx(xn));
+      line.setAttribute('x2', sx(xn));
+      lab2.setAttribute('x', sx(xn) + (xn > 110 ? -6 : 6));
+      lab2.setAttribute('text-anchor', xn > 110 ? 'end' : 'start');
+      lab2.textContent = 'next: ' + xn.toFixed(0) + ' °C';
+      kv.textContent = ' ' + kappa.toFixed(1);
+      var what = Math.abs(xn - xBest) <= 6 ? 'right next to the best experiment so far (' + xBest.toFixed(0) + ' °C): exploitation'
+        : (s.sd[k] > 0.6 * Math.max.apply(null, s.sd) ? 'where the GP is most unsure: exploration' : 'between the two: a balance');
+      readout.textContent = 'κ = ' + kappa.toFixed(1) + ': score = mean + ' + kappa.toFixed(1) + ' standard deviations. Next: ' +
+        xn.toFixed(0) + ' °C, ' + what + '.';
+    }
+    kr.oninput = function () { kappa = +kr.value; draw(); };
+    draw();
+  };
+
+  /* Four optimizers, the same reactor with two knobs (temperature and residence time), the
+   * same noise and 30 experiments each. One seed animated; the readout gives ten seeds. */
+  WIDGETS['bo-race'] = function (root, data) {
+    var d = data.race, N = d.n_eval, names = Object.keys(d.runs);
+    var cols = ['var(--cw-accent)', GOLDC, 'var(--cw-green)', RED];
+    var W = 760, H = 380, PW = 168, PH = 150, PT = 34, GAP = 22, L0 = 30;
+    html('div', { class: 'cw-title' }, root, 'Four optimizers, one reactor, thirty experiments each');
+    var svg = svgRoot(root, W, H, 'Bayesian optimization, Nelder-Mead, L-BFGS-B and random search choosing experiments on a yield map');
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    var st = d.stats;
+    html('div', { class: 'cw-note' }, root,
+      'Each map: temperature 20 to 140 °C across, residence time 1 to 30 min up; darker contours mean more B; the gold star is the ' +
+      'best point. Over 10 seeds, 98% of the best yield was reached by Bayesian optimization in ' + st['Bayesian optimization'].reached +
+      ' (median ' + st['Bayesian optimization'].median + ' experiments), L-BFGS-B in ' + st['L-BFGS-B'].reached + ', Nelder–Mead in ' +
+      st['Nelder-Mead'].reached + ' and random search in ' + st['random search'].reached + '.');
+    var panels = names.map(function (nm, j) {
+      var x0 = L0 + j * (PW + GAP);
+      var sx = scale(d.lo[0], d.hi[0], x0, x0 + PW), sy = scale(d.lo[1], d.hi[1], PT + PH, PT);
+      el('rect', { x: x0, y: PT, width: PW, height: PH, fill: 'none', stroke: 'currentColor', 'stroke-opacity': 0.3 }, svg);
+      var clip = clipTo(svg, x0, PT, PW, PH);
+      d.contours.forEach(function (c) {
+        polyline(svg, c.pts.map(function (p) { return sx(p[0]); }), c.pts.map(function (p) { return sy(p[1]); }),
+          { stroke: 'currentColor', 'stroke-opacity': 0.1 + 0.6 * c.level / 0.55, 'stroke-width': 1, 'clip-path': clip });
+      });
+      text(svg, sx(d.star[0]), sy(d.star[1]) + 5, '★', { 'text-anchor': 'middle', 'font-size': 15, style: 'fill:' + GOLDC });
+      var title = text(svg, x0, PT - 18, nm, { 'font-size': 12, 'font-weight': 700, style: 'fill:' + cols[j] });
+      var count = text(svg, x0, PT - 5, '', { 'font-size': 11, opacity: 0.85 });
+      return { sx: sx, sy: sy, g: el('g', {}, svg), count: count, run: d.runs[nm], col: cols[j] };
+    });
+    var CT = 222, CB = 340, CL = 60, CR = W - 16;
+    var cx = scale(1, N, CL, CR), cy = scale(0, 0.6, CB, CT);
+    [0, 0.2, 0.4, 0.6].forEach(function (v) {
+      el('line', { x1: CL, x2: CR, y1: cy(v), y2: cy(v), stroke: 'currentColor', 'stroke-opacity': 0.07 }, svg);
+      text(svg, CL - 6, cy(v) + 4, String(v), { 'text-anchor': 'end', 'font-size': 11, opacity: 0.7 });
+    });
+    el('line', { x1: CL, x2: CR, y1: cy(d.y_star), y2: cy(d.y_star), stroke: GOLDC, 'stroke-dasharray': '4 3' }, svg);
+    [1, 5, 10, 15, 20, 25, 30].forEach(function (v) { text(svg, cx(v), CB + 15, String(v), { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.7 }); });
+    text(svg, (CL + CR) / 2, CB + 30, 'experiments run', { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.85 });
+    text(svg, 14, (CT + CB) / 2, 'best yield', { 'font-size': 11, opacity: 0.85, transform: 'rotate(-90 14 ' + (CT + CB) / 2 + ')', 'text-anchor': 'middle' });
+    var curves = names.map(function (nm, j) { return el('polyline', { fill: 'none', stroke: cols[j], 'stroke-width': 2.4 }, svg); });
+    function draw(q) {
+      var n = Math.min(N, Math.floor(q) + 1), w = q - Math.floor(q);
+      panels.forEach(function (p, j) {
+        clear(p.g);
+        var m = Math.min(n, p.run.x.length);
+        for (var k = 0; k < m; k++) {
+          var newest = k === m - 1;
+          el('circle', { cx: p.sx(p.run.x[k][0]), cy: p.sy(p.run.x[k][1]), r: newest ? 5 : 3.2, fill: p.col,
+            'fill-opacity': newest ? Math.max(0.35, w) : 0.75, stroke: newest ? 'currentColor' : 'none' }, p.g);
+        }
+        var bs = d.seed0[names[j]], b = bs[Math.min(n, bs.length) - 1];
+        p.count.textContent = m + ' runs, best ' + b.toFixed(2) + ' (' + Math.round(100 * b / d.y_star) + '%)';
+        var c = bs.slice(0, Math.min(n, bs.length));
+        curves[j].setAttribute('points', pts(c.map(function (v, k) { return cx(k + 1); }), c.map(cy)));
+      });
+      readout.textContent = n + (n === 1 ? ' experiment' : ' experiments') + ' each. Best possible yield ' + d.y_star.toFixed(2) +
+        ' (gold). Gradient and simplex methods start in the flat, noisy cold corner and stall; random search never focuses.';
+    }
+    smoothPlayer(c1, N, draw, 0.38).set(N - 1);
   };
 
   // ------------------------------------------------------------------ L14
