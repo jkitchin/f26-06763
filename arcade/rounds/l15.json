@@ -1,0 +1,354 @@
+{
+  "lecture": "l15",
+  "title": "Bayesian optimization",
+  "pool_version": 6,
+  "source_notes": "lectures/l15/notes.md",
+  "generated_by": "tools/arcade_rounds.py",
+  "items": [
+    {
+      "id": "l15-q01",
+      "kind": "mcq",
+      "lecture": "l15",
+      "context": "What makes the reactor's yield a black-box objective?",
+      "why": "In the lab there is no formula and no gradient. You choose a temperature, run the\nexperiment for hours, and get one measured yield back, with noise. The kinetics formula in\nthe notes only plays the role of the lab.",
+      "objectives": [
+        "l15-o1"
+      ],
+      "tags": [
+        "black-box",
+        "definition"
+      ],
+      "true": "You can only evaluate it: set the inputs, run it, read one noisy number",
+      "false": [
+        "It comes from a neural network whose weights nobody can inspect or interpret",
+        "Its formula is known, but it is too long to differentiate by hand in the lab",
+        "It returns several outputs at once, so no single one of them can be optimized"
+      ]
+    },
+    {
+      "id": "l15-q02",
+      "kind": "mcq",
+      "lecture": "l15",
+      "context": "Why is it called *Bayesian* optimization?",
+      "why": "The unknown is the whole function. A GP prior over it is updated by each experiment into a\nposterior, and the next experiment is chosen on that posterior. Bayesian statistics for the\nbelief, plus a decision on it.",
+      "objectives": [
+        "l15-o1"
+      ],
+      "tags": [
+        "bayesian",
+        "posterior"
+      ],
+      "true": "It updates a belief about the unknown curve with every experiment, and decides on that belief",
+      "false": [
+        "It applies Bayes' rule to estimate the gradient of the yield from noisy finite differences",
+        "Its objective has to be a probability, such as a yield, so the method is named after Bayes",
+        "Thomas Bayes first used it to choose experiments, and the name stayed with the method"
+      ]
+    },
+    {
+      "id": "l15-q03",
+      "kind": "mcq",
+      "lecture": "l15",
+      "context": "You are fitting thousands of weights in a model whose loss and gradient take a millisecond to\ncompute. A colleague suggests Bayesian optimization. What do you answer?",
+      "why": "BO pays off when an evaluation is expensive, noisy and without gradients, with a budget of\ntens and up to about 20 inputs. Cheap evaluations with gradients and many variables are\nwhat gradient-based methods are built for.",
+      "objectives": [
+        "l15-o1"
+      ],
+      "tags": [
+        "gradient-based",
+        "when-to-use",
+        "practitioner"
+      ],
+      "true": "Use a gradient-based method: evaluations are cheap, gradients exist, and there are too many inputs",
+      "false": [
+        "Use BO: it searches globally, so it is always safer than a local gradient-based method",
+        "Use BO with a batch acquisition, so that it can run thousands of evaluations at once",
+        "Use random search: with that many weights, no surrogate model of the loss can help"
+      ]
+    },
+    {
+      "id": "l15-q04",
+      "kind": "mcq",
+      "lecture": "l15",
+      "context": "On the two-knob reactor, starting from the cold side, L-BFGS-B with finite-difference\ngradients often stopped where it started. Why?",
+      "why": "A finite difference compares two noisy measurements. Where the true change is tiny, as on\nthe cold plateau, the difference is mostly noise, so the gradient points nowhere useful.\nThe surface has one optimum; the problem is the noise, not local optima.",
+      "objectives": [
+        "l15-o1"
+      ],
+      "tags": [
+        "gradient-based",
+        "finite-differences",
+        "noise"
+      ],
+      "true": "Each gradient costs experiments, and the noise swamps the small differences on the flat cold side",
+      "false": [
+        "The yield surface has many local optima, and L-BFGS-B was trapped in the nearest of them",
+        "L-BFGS-B needs exact second derivatives, which a noisy experiment can never provide",
+        "The temperature bounds stopped every step before it could get near the optimum"
+      ]
+    },
+    {
+      "id": "l15-q05",
+      "kind": "mcq",
+      "lecture": "l15",
+      "context": "Which is one pass of the Bayesian optimization loop?",
+      "why": "Fit, score, run, add. The GP is refitted to every experiment so far on each pass, and the\nnext experiment is the maximizer of the acquisition function, not of the GP mean alone.",
+      "objectives": [
+        "l15-o2"
+      ],
+      "tags": [
+        "loop"
+      ],
+      "true": "Fit the GP to all data, maximize the acquisition, run that experiment, add it to the data",
+      "false": [
+        "Maximize the acquisition, fit the GP to the newest point only, run it, discard the older data",
+        "Run a batch of random experiments, fit the GP once, and report the maximum of its mean",
+        "Fit the GP, run the experiment where its mean is highest, then refit the acquisition function"
+      ]
+    },
+    {
+      "id": "l15-q06",
+      "kind": "mcq",
+      "lecture": "l15",
+      "context": "On the reactor, BO climbed from the cold side toward 80 °C, then experiment 8 jumped to\n140 °C. What was that jump?",
+      "why": "The band was still wide at the hot end, so expected improvement there was not zero. That\nexperiment cost one run and collapsed the band; BO never went back there and settled at\n80 °C.",
+      "objectives": [
+        "l15-o2"
+      ],
+      "tags": [
+        "exploration",
+        "reactor"
+      ],
+      "true": "Exploration: the GP was still unsure there, so expected improvement there was not zero",
+      "false": [
+        "Exploitation: the GP mean predicted its highest yield of all at the hot end",
+        "A bug: expected improvement should never pick a point on the edge of the bounds",
+        "Chance: optimize_acqf returned one of its random candidates instead of the best"
+      ]
+    },
+    {
+      "id": "l15-q07",
+      "kind": "mcq",
+      "lecture": "l15",
+      "context": "What goes wrong with pure exploitation?",
+      "why": "Exploitation goes where the mean is high, which is next to the incumbent. It never looks\nelsewhere, so it cannot find a better region. Sampling where the band is widest is the\nother extreme, pure exploration.",
+      "objectives": [
+        "l15-o2"
+      ],
+      "tags": [
+        "exploitation",
+        "local-optimum"
+      ],
+      "true": "It keeps sampling next to the best point so far, and can sit on a local optimum forever",
+      "false": [
+        "It samples wherever the band is widest, and spends the whole budget learning the curve",
+        "It needs the gradient of the objective, which a laboratory experiment cannot provide",
+        "It can only use the GP's standard deviation, and has to ignore the mean altogether"
+      ]
+    },
+    {
+      "id": "l15-q08",
+      "kind": "direction",
+      "lecture": "l15",
+      "context": "You raise κ in the upper confidence bound μ(x) + κσ(x). What changes in where it samples?",
+      "why": "κ multiplies σ. With κ = 0, UCB is the GP mean and exploits; as κ grows, uncertain regions\noutscore regions with a high mean. On the reactor, κ = 2 picked the furthest point into\nthe unknown of the four acquisitions.",
+      "objectives": [
+        "l15-o3",
+        "l15-o2"
+      ],
+      "tags": [
+        "upper-confidence-bound",
+        "exploration"
+      ],
+      "true": "It weights uncertainty more, so it samples more where the GP is unsure: it explores",
+      "false": [
+        "It weights the mean more, so it samples closer to the best point so far: it exploits",
+        "Nothing changes, because κ only rescales the acquisition and not its maximizer",
+        "It samples where the measurement noise is lowest, because κ divides the noise"
+      ]
+    },
+    {
+      "id": "l15-q09",
+      "kind": "mcq",
+      "lecture": "l15",
+      "context": "Expected improvement is EI = (μ − f*)Φ(z) + σφ(z). Which part rewards exploration?",
+      "why": "The first term is large where the mean beats the incumbent, which is exploitation. The\nsecond is large where σ is large, which is exploration. EI carries both in one number.",
+      "objectives": [
+        "l15-o3"
+      ],
+      "tags": [
+        "expected-improvement",
+        "exploration"
+      ],
+      "true": "The second term, σφ(z): it grows where the GP is uncertain",
+      "false": [
+        "The first term, (μ − f*)Φ(z): it grows where the GP mean is high above the incumbent",
+        "Neither term: EI only exploits, which is the reason UCB was invented afterwards",
+        "Both terms equally: splitting EI into two terms is only algebra, with no meaning"
+      ]
+    },
+    {
+      "id": "l15-q10",
+      "kind": "mcq",
+      "lecture": "l15",
+      "context": "With ξ = 0, probability of improvement keeps picking points just above the best so far.\nWhy?",
+      "why": "A point just next to the incumbent beats it with high probability, by a tiny amount. PI\ncannot tell that from a likely large gain, so it exploits. EI fixes this by weighting each\nimprovement by its size.",
+      "objectives": [
+        "l15-o3"
+      ],
+      "tags": [
+        "probability-of-improvement",
+        "exploitation"
+      ],
+      "true": "It scores only the chance of beating the best, not by how much",
+      "false": [
+        "It uses the GP's standard deviation but ignores the GP's mean completely",
+        "It is computed by sampling, so its value is too noisy near the incumbent",
+        "Its margin ξ is negative by default, which pulls it toward the incumbent"
+      ]
+    },
+    {
+      "id": "l15-q11",
+      "kind": "mcq",
+      "lecture": "l15",
+      "context": "Without measurement noise, what is expected improvement at a temperature you already ran?",
+      "why": "At a measured point σ = 0 and μ is the measured value, at most the incumbent. The\nimprovement is then zero for sure, so its expected value is zero. EI grows away from the\ndata.",
+      "objectives": [
+        "l15-o3"
+      ],
+      "tags": [
+        "expected-improvement"
+      ],
+      "true": "Zero: no uncertainty there, and no improvement to expect",
+      "false": [
+        "Its maximum, because the GP is most confident at a measured point",
+        "The measured yield itself, because the GP passes through the data",
+        "A negative number, which is how the loop avoids repeating experiments"
+      ]
+    },
+    {
+      "id": "l15-q12",
+      "kind": "mcq",
+      "lecture": "l15",
+      "context": "Why does the worked example use LogExpectedImprovement instead of plain EI?",
+      "why": "A double-precision number below about 10^-324 is stored as exactly 0. Far from the data EI\nis that small, so EI and its slope are both 0 there, and the optimizer that follows the\nslope has nowhere to go. LogEI computes log EI directly, with the same maximizer.",
+      "objectives": [
+        "l15-o3",
+        "l15-o4"
+      ],
+      "tags": [
+        "log-expected-improvement",
+        "numerics"
+      ],
+      "true": "Far from the data, EI and its gradient underflow to zero, and the search stalls",
+      "false": [
+        "Taking the log moves the maximizer, so that the loop explores more than plain EI does",
+        "BoTorch can only minimize, so the acquisition has to be turned negative with a log",
+        "The log turns EI into a probability that sums to one over all the candidate inputs"
+      ]
+    },
+    {
+      "id": "l15-q14",
+      "kind": "mcq",
+      "lecture": "l15",
+      "context": "Why does the worked example build the SingleTaskGP with Normalize and Standardize?",
+      "why": "The kernel's default length scale and the GP's priors assume inputs of order 1 and outputs\nof order 1. Temperature in degrees and yields near 0.4 are neither, so BoTorch rescales both\nand the defaults become sensible.",
+      "objectives": [
+        "l15-o4"
+      ],
+      "tags": [
+        "botorch",
+        "transforms"
+      ],
+      "true": "Temperature to [0, 1], yields to mean 0 and standard deviation 1, so the kernel defaults fit",
+      "false": [
+        "Without the two transforms the GP is only an approximation, and with them it becomes exact",
+        "The transforms remove the measurement noise from the yields before the GP is fitted",
+        "LogExpectedImprovement accepts inputs only between 0 and 1, so the transforms are required"
+      ]
+    },
+    {
+      "id": "l15-q15",
+      "kind": "mcq",
+      "lecture": "l15",
+      "context": "The lab gives no gradients, yet optimize_acqf runs gradient-based searches inside the loop.\nWhy is that fine?",
+      "why": "Maximizing the acquisition is an optimization over the GP, which is a formula with exact\ngradients from automatic differentiation. Only the chosen point is run in the lab.",
+      "objectives": [
+        "l15-o4"
+      ],
+      "tags": [
+        "botorch",
+        "optimize-acqf"
+      ],
+      "true": "It searches the acquisition, a cheap formula from the GP; the experiment runs once per pass",
+      "false": [
+        "BoTorch estimates gradients of the yield itself from the experiments it has already run",
+        "It is not fine, and it is the reason BO only works on smooth, noise-free objectives",
+        "The gradients come from the Arrhenius formula inside the run_experiment function"
+      ]
+    },
+    {
+      "id": "l15-q16",
+      "kind": "spot_the_defect",
+      "lecture": "l15",
+      "context": "A team runs BO once on their reactor, reaches the best yield at experiment 6, and reports\n\"BO finds the optimum in 6 experiments\". What is missing?",
+      "why": "The noise and the random candidates make every run different. The notes report 10 seeds,\nrandom search and two classic optimizers as baselines, the best-so-far curve with its\nspread, and the budget counted.",
+      "objectives": [
+        "l15-o4"
+      ],
+      "tags": [
+        "seeds",
+        "baseline",
+        "practitioner"
+      ],
+      "true": "Several seeds and a baseline: BO is random, and one run proves nothing",
+      "false": [
+        "A larger budget: BO results can only be trusted after many dozens of experiments",
+        "A gradient check: the optimum must be confirmed afterwards with L-BFGS-B",
+        "Nothing: once the GP is fitted, BO is deterministic and one run is enough"
+      ]
+    },
+    {
+      "id": "l15-q17",
+      "kind": "mcq",
+      "lecture": "l15",
+      "context": "The lab has four reactors that can run at the same time. Which extension of BO fits?",
+      "why": "A batch acquisition such as qLogEI scores a set of four points jointly, so the four picks\nspread out instead of piling onto the same spot. Four independent loops would each pick\nnearly the same experiment.",
+      "objectives": [
+        "l15-o5"
+      ],
+      "tags": [
+        "batch",
+        "extensions"
+      ],
+      "true": "Batch BO: choose four experiments at once, with q=4 and a batch acquisition",
+      "false": [
+        "Multi-fidelity BO, because four reactors give four different fidelities",
+        "Constrained BO, with one feasibility constraint for each of the reactors",
+        "Four independent BO loops, one per reactor, each with its own random seed"
+      ]
+    },
+    {
+      "id": "l15-q18",
+      "kind": "mcq",
+      "lecture": "l15",
+      "context": "Which of these problems fits Bayesian optimization best?",
+      "why": "Each evaluation is slow, noisy and has no gradient, and only a few dozen are affordable.\nAttia et al. (2020) combined BO with early predictions of battery life for exactly this.\nThe other two problems have cheap evaluations and gradients.",
+      "objectives": [
+        "l15-o5",
+        "l15-o1"
+      ],
+      "tags": [
+        "applications",
+        "batteries",
+        "when-to-use"
+      ],
+      "true": "Choosing a fast-charging protocol, when each test cycles a battery for days",
+      "false": [
+        "Training an image classifier with millions of weights and cheap exact gradients",
+        "Solving a steady-state flowsheet whose Jacobian is analytic and takes milliseconds",
+        "Sorting a table of past experiments by their measured yields, highest yield first"
+      ]
+    }
+  ]
+}

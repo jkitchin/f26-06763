@@ -61,9 +61,9 @@ parts:
       - file: lectures/l14/notes
         sections:
           - file: lectures/l14/l14-uq
-#       - file: lectures/l15/notes
-#         sections:
-#           - file: lectures/l15/l15-bayesian-optimization
+      - file: lectures/l15/notes
+        sections:
+          - file: lectures/l15/l15-bayesian-optimization
 #       - file: lectures/l16/notes
 #         sections:
 #           - file: lectures/l16/l16-generative-optimization
@@ -92,7 +92,7 @@ parts:
       - file: course/assignments/a02
       - file: course/assignments/a03
       - file: course/assignments/a04
-#       - file: course/assignments/a05
+      - file: course/assignments/a05
 #       - file: course/assignments/a06
 #       - file: course/assignments/a08
 #       - file: course/assignments/a09
