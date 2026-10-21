@@ -1,5 +1,6 @@
 ---
 marp: true
+presenter: true
 theme: course
 paginate: true
 header: "06-763 · L16"
