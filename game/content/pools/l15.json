@@ -153,6 +153,665 @@
         }
       },
       "serve": 8
+    },
+    "3": {
+      "items": {
+        "l15-q01": {
+          "answer": "You can only evaluate it: set the inputs, run it, read one noisy number",
+          "options": [
+            "You can only evaluate it: set the inputs, run it, read one noisy number",
+            "It comes from a neural network whose weights nobody can inspect or interpret",
+            "Its formula is known, but it is too long to differentiate by hand in the lab",
+            "It returns several outputs at once, so no single one of them can be optimized"
+          ]
+        },
+        "l15-q02": {
+          "answer": "It updates a belief about the unknown curve with every experiment, and decides on that belief",
+          "options": [
+            "It updates a belief about the unknown curve with every experiment, and decides on that belief",
+            "It applies Bayes' rule to estimate the gradient of the yield from noisy finite differences",
+            "Its objective has to be a probability, such as a yield, so the method is named after Bayes",
+            "Thomas Bayes first used it to choose experiments, and the name stayed with the method"
+          ]
+        },
+        "l15-q03": {
+          "answer": "Use a gradient-based method: evaluations are cheap, gradients exist, and there are too many inputs",
+          "options": [
+            "Use a gradient-based method: evaluations are cheap, gradients exist, and there are too many inputs",
+            "Use BO: it searches globally, so it is always safer than a local gradient-based method",
+            "Use BO with a batch acquisition, so that it can run thousands of evaluations at once",
+            "Use random search: with that many weights, no surrogate model of the loss can help"
+          ]
+        },
+        "l15-q04": {
+          "answer": "Each gradient costs experiments, and the noise swamps the small differences on the flat cold side",
+          "options": [
+            "Each gradient costs experiments, and the noise swamps the small differences on the flat cold side",
+            "The yield surface has many local optima, and L-BFGS-B was trapped in the nearest of them",
+            "L-BFGS-B needs exact second derivatives, which a noisy experiment can never provide",
+            "The temperature bounds stopped every step before it could get near the optimum"
+          ]
+        },
+        "l15-q05": {
+          "answer": "Fit the GP to all data, maximize the acquisition, run that experiment, add it to the data",
+          "options": [
+            "Fit the GP to all data, maximize the acquisition, run that experiment, add it to the data",
+            "Maximize the acquisition, fit the GP to the newest point only, run it, discard the older data",
+            "Run a batch of random experiments, fit the GP once, and report the maximum of its mean",
+            "Fit the GP, run the experiment where its mean is highest, then refit the acquisition function"
+          ]
+        },
+        "l15-q06": {
+          "answer": "Exploration: the GP was still unsure there, so the acquisition paid for a look",
+          "options": [
+            "Exploration: the GP was still unsure there, so the acquisition paid for a look",
+            "Exploitation: the GP mean predicted its highest yield of all at the hot end",
+            "A bug: expected improvement should never pick a point on the edge of the bounds",
+            "Chance: optimize_acqf returned one of its random candidates instead of the best"
+          ]
+        },
+        "l15-q07": {
+          "answer": "It keeps sampling next to the best point so far, and can sit on a local optimum forever",
+          "options": [
+            "It keeps sampling next to the best point so far, and can sit on a local optimum forever",
+            "It samples wherever the band is widest, and spends the whole budget learning the curve",
+            "It needs the gradient of the objective, which a laboratory experiment cannot provide",
+            "It can only use the GP's standard deviation, and has to ignore the mean altogether"
+          ]
+        },
+        "l15-q08": {
+          "answer": "It weights uncertainty more, so it samples more where the GP is unsure: it explores",
+          "options": [
+            "It weights uncertainty more, so it samples more where the GP is unsure: it explores",
+            "It weights the mean more, so it samples closer to the best point so far: it exploits",
+            "Nothing changes, because κ only rescales the acquisition and not its maximizer",
+            "It samples where the measurement noise is lowest, because κ divides the noise"
+          ]
+        },
+        "l15-q09": {
+          "answer": "The second term, σφ(z): it grows where the GP is uncertain",
+          "options": [
+            "The second term, σφ(z): it grows where the GP is uncertain",
+            "The first term, (μ − f*)Φ(z): it grows where the GP mean is high above the incumbent",
+            "Neither term: EI only exploits, which is the reason UCB was invented afterwards",
+            "Both terms equally: splitting EI into two terms is only algebra, with no meaning"
+          ]
+        },
+        "l15-q10": {
+          "answer": "It scores only the chance of beating the best, not by how much",
+          "options": [
+            "It scores only the chance of beating the best, not by how much",
+            "It uses the GP's standard deviation but ignores the GP's mean completely",
+            "It is computed by sampling, so its value is too noisy near the incumbent",
+            "Its margin ξ is negative by default, which pulls it toward the incumbent"
+          ]
+        },
+        "l15-q11": {
+          "answer": "Zero: no uncertainty there, and no improvement to expect",
+          "options": [
+            "Zero: no uncertainty there, and no improvement to expect",
+            "Its maximum, because the GP is most confident at a measured point",
+            "The measured yield itself, because the GP passes through the data",
+            "A negative number, which is how the loop avoids repeating experiments"
+          ]
+        },
+        "l15-q12": {
+          "answer": "Far from the data, EI and its gradient underflow to zero, and the search stalls",
+          "options": [
+            "Far from the data, EI and its gradient underflow to zero, and the search stalls",
+            "Taking the log moves the maximizer, so that the loop explores more than plain EI does",
+            "BoTorch can only minimize, so the acquisition has to be turned negative with a log",
+            "The log turns EI into a probability that sums to one over all the candidate inputs"
+          ]
+        },
+        "l15-q13": {
+          "answer": "Draws from the posterior agree where the GP is sure and differ where it is not",
+          "options": [
+            "Draws from the posterior agree where the GP is sure and differ where it is not",
+            "It alternates strictly: one exploring experiment, then one exploiting experiment",
+            "It draws a new value of κ at random each step and then maximizes the UCB with it",
+            "It picks a temperature uniformly at random and keeps it only if EI there is positive"
+          ]
+        },
+        "l15-q14": {
+          "answer": "Temperature to [0, 1], yields to mean 0 and standard deviation 1, so the kernel defaults fit",
+          "options": [
+            "Temperature to [0, 1], yields to mean 0 and standard deviation 1, so the kernel defaults fit",
+            "Without the two transforms the GP is only an approximation, and with them it becomes exact",
+            "The transforms remove the measurement noise from the yields before the GP is fitted",
+            "LogExpectedImprovement accepts inputs only between 0 and 1, so the transforms are required"
+          ]
+        },
+        "l15-q15": {
+          "answer": "It searches the acquisition, a cheap formula from the GP; the experiment runs once per pass",
+          "options": [
+            "It searches the acquisition, a cheap formula from the GP; the experiment runs once per pass",
+            "BoTorch estimates gradients of the yield itself from the experiments it has already run",
+            "It is not fine, and it is the reason BO only works on smooth, noise-free objectives",
+            "The gradients come from the Arrhenius formula inside the run_experiment function"
+          ]
+        },
+        "l15-q16": {
+          "answer": "Several seeds and a baseline: BO is random, and one run proves nothing",
+          "options": [
+            "Several seeds and a baseline: BO is random, and one run proves nothing",
+            "A larger budget: BO results can only be trusted after many dozens of experiments",
+            "A gradient check: the optimum must be confirmed afterwards with L-BFGS-B",
+            "Nothing: once the GP is fitted, BO is deterministic and one run is enough"
+          ]
+        },
+        "l15-q17": {
+          "answer": "Batch BO: choose four experiments at once, with q=4 and a batch acquisition",
+          "options": [
+            "Batch BO: choose four experiments at once, with q=4 and a batch acquisition",
+            "Multi-fidelity BO, because four reactors give four different fidelities",
+            "Constrained BO, with one feasibility constraint for each of the reactors",
+            "Four independent BO loops, one per reactor, each with its own random seed"
+          ]
+        },
+        "l15-q18": {
+          "answer": "Choosing a fast-charging protocol, when each test cycles a battery for days",
+          "options": [
+            "Choosing a fast-charging protocol, when each test cycles a battery for days",
+            "Training an image classifier with millions of weights and cheap exact gradients",
+            "Solving a steady-state flowsheet whose Jacobian is analytic and takes milliseconds",
+            "Sorting a table of past experiments by their measured yields, highest yield first"
+          ]
+        }
+      },
+      "serve": 9
+    },
+    "4": {
+      "items": {
+        "l15-q01": {
+          "answer": "You can only evaluate it: set the inputs, run it, read one noisy number",
+          "options": [
+            "You can only evaluate it: set the inputs, run it, read one noisy number",
+            "It comes from a neural network whose weights nobody can inspect or interpret",
+            "Its formula is known, but it is too long to differentiate by hand in the lab",
+            "It returns several outputs at once, so no single one of them can be optimized"
+          ]
+        },
+        "l15-q02": {
+          "answer": "It updates a belief about the unknown curve with every experiment, and decides on that belief",
+          "options": [
+            "It updates a belief about the unknown curve with every experiment, and decides on that belief",
+            "It applies Bayes' rule to estimate the gradient of the yield from noisy finite differences",
+            "Its objective has to be a probability, such as a yield, so the method is named after Bayes",
+            "Thomas Bayes first used it to choose experiments, and the name stayed with the method"
+          ]
+        },
+        "l15-q03": {
+          "answer": "Use a gradient-based method: evaluations are cheap, gradients exist, and there are too many inputs",
+          "options": [
+            "Use a gradient-based method: evaluations are cheap, gradients exist, and there are too many inputs",
+            "Use BO: it searches globally, so it is always safer than a local gradient-based method",
+            "Use BO with a batch acquisition, so that it can run thousands of evaluations at once",
+            "Use random search: with that many weights, no surrogate model of the loss can help"
+          ]
+        },
+        "l15-q04": {
+          "answer": "Each gradient costs experiments, and the noise swamps the small differences on the flat cold side",
+          "options": [
+            "Each gradient costs experiments, and the noise swamps the small differences on the flat cold side",
+            "The yield surface has many local optima, and L-BFGS-B was trapped in the nearest of them",
+            "L-BFGS-B needs exact second derivatives, which a noisy experiment can never provide",
+            "The temperature bounds stopped every step before it could get near the optimum"
+          ]
+        },
+        "l15-q05": {
+          "answer": "Fit the GP to all data, maximize the acquisition, run that experiment, add it to the data",
+          "options": [
+            "Fit the GP to all data, maximize the acquisition, run that experiment, add it to the data",
+            "Maximize the acquisition, fit the GP to the newest point only, run it, discard the older data",
+            "Run a batch of random experiments, fit the GP once, and report the maximum of its mean",
+            "Fit the GP, run the experiment where its mean is highest, then refit the acquisition function"
+          ]
+        },
+        "l15-q06": {
+          "answer": "Exploration: the GP was still unsure there, so expected improvement there was not zero",
+          "options": [
+            "Exploration: the GP was still unsure there, so expected improvement there was not zero",
+            "Exploitation: the GP mean predicted its highest yield of all at the hot end",
+            "A bug: expected improvement should never pick a point on the edge of the bounds",
+            "Chance: optimize_acqf returned one of its random candidates instead of the best"
+          ]
+        },
+        "l15-q07": {
+          "answer": "It keeps sampling next to the best point so far, and can sit on a local optimum forever",
+          "options": [
+            "It keeps sampling next to the best point so far, and can sit on a local optimum forever",
+            "It samples wherever the band is widest, and spends the whole budget learning the curve",
+            "It needs the gradient of the objective, which a laboratory experiment cannot provide",
+            "It can only use the GP's standard deviation, and has to ignore the mean altogether"
+          ]
+        },
+        "l15-q08": {
+          "answer": "It weights uncertainty more, so it samples more where the GP is unsure: it explores",
+          "options": [
+            "It weights uncertainty more, so it samples more where the GP is unsure: it explores",
+            "It weights the mean more, so it samples closer to the best point so far: it exploits",
+            "Nothing changes, because κ only rescales the acquisition and not its maximizer",
+            "It samples where the measurement noise is lowest, because κ divides the noise"
+          ]
+        },
+        "l15-q09": {
+          "answer": "The second term, σφ(z): it grows where the GP is uncertain",
+          "options": [
+            "The second term, σφ(z): it grows where the GP is uncertain",
+            "The first term, (μ − f*)Φ(z): it grows where the GP mean is high above the incumbent",
+            "Neither term: EI only exploits, which is the reason UCB was invented afterwards",
+            "Both terms equally: splitting EI into two terms is only algebra, with no meaning"
+          ]
+        },
+        "l15-q10": {
+          "answer": "It scores only the chance of beating the best, not by how much",
+          "options": [
+            "It scores only the chance of beating the best, not by how much",
+            "It uses the GP's standard deviation but ignores the GP's mean completely",
+            "It is computed by sampling, so its value is too noisy near the incumbent",
+            "Its margin ξ is negative by default, which pulls it toward the incumbent"
+          ]
+        },
+        "l15-q11": {
+          "answer": "Zero: no uncertainty there, and no improvement to expect",
+          "options": [
+            "Zero: no uncertainty there, and no improvement to expect",
+            "Its maximum, because the GP is most confident at a measured point",
+            "The measured yield itself, because the GP passes through the data",
+            "A negative number, which is how the loop avoids repeating experiments"
+          ]
+        },
+        "l15-q12": {
+          "answer": "Far from the data, EI and its gradient underflow to zero, and the search stalls",
+          "options": [
+            "Far from the data, EI and its gradient underflow to zero, and the search stalls",
+            "Taking the log moves the maximizer, so that the loop explores more than plain EI does",
+            "BoTorch can only minimize, so the acquisition has to be turned negative with a log",
+            "The log turns EI into a probability that sums to one over all the candidate inputs"
+          ]
+        },
+        "l15-q13": {
+          "answer": "Draws from the posterior agree where the GP is sure and differ where it is not",
+          "options": [
+            "Draws from the posterior agree where the GP is sure and differ where it is not",
+            "It alternates strictly: one exploring experiment, then one exploiting experiment",
+            "It draws a new value of κ at random each step and then maximizes the UCB with it",
+            "It picks a temperature uniformly at random and keeps it only if EI there is positive"
+          ]
+        },
+        "l15-q14": {
+          "answer": "Temperature to [0, 1], yields to mean 0 and standard deviation 1, so the kernel defaults fit",
+          "options": [
+            "Temperature to [0, 1], yields to mean 0 and standard deviation 1, so the kernel defaults fit",
+            "Without the two transforms the GP is only an approximation, and with them it becomes exact",
+            "The transforms remove the measurement noise from the yields before the GP is fitted",
+            "LogExpectedImprovement accepts inputs only between 0 and 1, so the transforms are required"
+          ]
+        },
+        "l15-q15": {
+          "answer": "It searches the acquisition, a cheap formula from the GP; the experiment runs once per pass",
+          "options": [
+            "It searches the acquisition, a cheap formula from the GP; the experiment runs once per pass",
+            "BoTorch estimates gradients of the yield itself from the experiments it has already run",
+            "It is not fine, and it is the reason BO only works on smooth, noise-free objectives",
+            "The gradients come from the Arrhenius formula inside the run_experiment function"
+          ]
+        },
+        "l15-q16": {
+          "answer": "Several seeds and a baseline: BO is random, and one run proves nothing",
+          "options": [
+            "Several seeds and a baseline: BO is random, and one run proves nothing",
+            "A larger budget: BO results can only be trusted after many dozens of experiments",
+            "A gradient check: the optimum must be confirmed afterwards with L-BFGS-B",
+            "Nothing: once the GP is fitted, BO is deterministic and one run is enough"
+          ]
+        },
+        "l15-q17": {
+          "answer": "Batch BO: choose four experiments at once, with q=4 and a batch acquisition",
+          "options": [
+            "Batch BO: choose four experiments at once, with q=4 and a batch acquisition",
+            "Multi-fidelity BO, because four reactors give four different fidelities",
+            "Constrained BO, with one feasibility constraint for each of the reactors",
+            "Four independent BO loops, one per reactor, each with its own random seed"
+          ]
+        },
+        "l15-q18": {
+          "answer": "Choosing a fast-charging protocol, when each test cycles a battery for days",
+          "options": [
+            "Choosing a fast-charging protocol, when each test cycles a battery for days",
+            "Training an image classifier with millions of weights and cheap exact gradients",
+            "Solving a steady-state flowsheet whose Jacobian is analytic and takes milliseconds",
+            "Sorting a table of past experiments by their measured yields, highest yield first"
+          ]
+        }
+      },
+      "serve": 9
+    },
+    "5": {
+      "items": {
+        "l15-q01": {
+          "answer": "You can only evaluate it: set the inputs, run it, read one noisy number",
+          "options": [
+            "You can only evaluate it: set the inputs, run it, read one noisy number",
+            "It comes from a neural network whose weights nobody can inspect or interpret",
+            "Its formula is known, but it is too long to differentiate by hand in the lab",
+            "It returns several outputs at once, so no single one of them can be optimized"
+          ]
+        },
+        "l15-q02": {
+          "answer": "It updates a belief about the unknown curve with every experiment, and decides on that belief",
+          "options": [
+            "It updates a belief about the unknown curve with every experiment, and decides on that belief",
+            "It applies Bayes' rule to estimate the gradient of the yield from noisy finite differences",
+            "Its objective has to be a probability, such as a yield, so the method is named after Bayes",
+            "Thomas Bayes first used it to choose experiments, and the name stayed with the method"
+          ]
+        },
+        "l15-q03": {
+          "answer": "Use a gradient-based method: evaluations are cheap, gradients exist, and there are too many inputs",
+          "options": [
+            "Use a gradient-based method: evaluations are cheap, gradients exist, and there are too many inputs",
+            "Use BO: it searches globally, so it is always safer than a local gradient-based method",
+            "Use BO with a batch acquisition, so that it can run thousands of evaluations at once",
+            "Use random search: with that many weights, no surrogate model of the loss can help"
+          ]
+        },
+        "l15-q04": {
+          "answer": "Each gradient costs experiments, and the noise swamps the small differences on the flat cold side",
+          "options": [
+            "Each gradient costs experiments, and the noise swamps the small differences on the flat cold side",
+            "The yield surface has many local optima, and L-BFGS-B was trapped in the nearest of them",
+            "L-BFGS-B needs exact second derivatives, which a noisy experiment can never provide",
+            "The temperature bounds stopped every step before it could get near the optimum"
+          ]
+        },
+        "l15-q05": {
+          "answer": "Fit the GP to all data, maximize the acquisition, run that experiment, add it to the data",
+          "options": [
+            "Fit the GP to all data, maximize the acquisition, run that experiment, add it to the data",
+            "Maximize the acquisition, fit the GP to the newest point only, run it, discard the older data",
+            "Run a batch of random experiments, fit the GP once, and report the maximum of its mean",
+            "Fit the GP, run the experiment where its mean is highest, then refit the acquisition function"
+          ]
+        },
+        "l15-q06": {
+          "answer": "Exploration: the GP was still unsure there, so expected improvement there was not zero",
+          "options": [
+            "Exploration: the GP was still unsure there, so expected improvement there was not zero",
+            "Exploitation: the GP mean predicted its highest yield of all at the hot end",
+            "A bug: expected improvement should never pick a point on the edge of the bounds",
+            "Chance: optimize_acqf returned one of its random candidates instead of the best"
+          ]
+        },
+        "l15-q07": {
+          "answer": "It keeps sampling next to the best point so far, and can sit on a local optimum forever",
+          "options": [
+            "It keeps sampling next to the best point so far, and can sit on a local optimum forever",
+            "It samples wherever the band is widest, and spends the whole budget learning the curve",
+            "It needs the gradient of the objective, which a laboratory experiment cannot provide",
+            "It can only use the GP's standard deviation, and has to ignore the mean altogether"
+          ]
+        },
+        "l15-q08": {
+          "answer": "It weights uncertainty more, so it samples more where the GP is unsure: it explores",
+          "options": [
+            "It weights uncertainty more, so it samples more where the GP is unsure: it explores",
+            "It weights the mean more, so it samples closer to the best point so far: it exploits",
+            "Nothing changes, because κ only rescales the acquisition and not its maximizer",
+            "It samples where the measurement noise is lowest, because κ divides the noise"
+          ]
+        },
+        "l15-q09": {
+          "answer": "The second term, σφ(z): it grows where the GP is uncertain",
+          "options": [
+            "The second term, σφ(z): it grows where the GP is uncertain",
+            "The first term, (μ − f*)Φ(z): it grows where the GP mean is high above the incumbent",
+            "Neither term: EI only exploits, which is the reason UCB was invented afterwards",
+            "Both terms equally: splitting EI into two terms is only algebra, with no meaning"
+          ]
+        },
+        "l15-q10": {
+          "answer": "It scores only the chance of beating the best, not by how much",
+          "options": [
+            "It scores only the chance of beating the best, not by how much",
+            "It uses the GP's standard deviation but ignores the GP's mean completely",
+            "It is computed by sampling, so its value is too noisy near the incumbent",
+            "Its margin ξ is negative by default, which pulls it toward the incumbent"
+          ]
+        },
+        "l15-q11": {
+          "answer": "Zero: no uncertainty there, and no improvement to expect",
+          "options": [
+            "Zero: no uncertainty there, and no improvement to expect",
+            "Its maximum, because the GP is most confident at a measured point",
+            "The measured yield itself, because the GP passes through the data",
+            "A negative number, which is how the loop avoids repeating experiments"
+          ]
+        },
+        "l15-q12": {
+          "answer": "Far from the data, EI and its gradient underflow to zero, and the search stalls",
+          "options": [
+            "Far from the data, EI and its gradient underflow to zero, and the search stalls",
+            "Taking the log moves the maximizer, so that the loop explores more than plain EI does",
+            "BoTorch can only minimize, so the acquisition has to be turned negative with a log",
+            "The log turns EI into a probability that sums to one over all the candidate inputs"
+          ]
+        },
+        "l15-q13": {
+          "answer": "Draws from the posterior agree where the GP is sure and differ where it is not",
+          "options": [
+            "Draws from the posterior agree where the GP is sure and differ where it is not",
+            "It alternates strictly: one exploring experiment, then one exploiting experiment",
+            "It draws a new value of κ at random each step and then maximizes the UCB with it",
+            "It picks a temperature uniformly at random and keeps it only if EI there is positive"
+          ]
+        },
+        "l15-q14": {
+          "answer": "Temperature to [0, 1], yields to mean 0 and standard deviation 1, so the kernel defaults fit",
+          "options": [
+            "Temperature to [0, 1], yields to mean 0 and standard deviation 1, so the kernel defaults fit",
+            "Without the two transforms the GP is only an approximation, and with them it becomes exact",
+            "The transforms remove the measurement noise from the yields before the GP is fitted",
+            "LogExpectedImprovement accepts inputs only between 0 and 1, so the transforms are required"
+          ]
+        },
+        "l15-q15": {
+          "answer": "It searches the acquisition, a cheap formula from the GP; the experiment runs once per pass",
+          "options": [
+            "It searches the acquisition, a cheap formula from the GP; the experiment runs once per pass",
+            "BoTorch estimates gradients of the yield itself from the experiments it has already run",
+            "It is not fine, and it is the reason BO only works on smooth, noise-free objectives",
+            "The gradients come from the Arrhenius formula inside the run_experiment function"
+          ]
+        },
+        "l15-q16": {
+          "answer": "Several seeds and a baseline: BO is random, and one run proves nothing",
+          "options": [
+            "Several seeds and a baseline: BO is random, and one run proves nothing",
+            "A larger budget: BO results can only be trusted after many dozens of experiments",
+            "A gradient check: the optimum must be confirmed afterwards with L-BFGS-B",
+            "Nothing: once the GP is fitted, BO is deterministic and one run is enough"
+          ]
+        },
+        "l15-q17": {
+          "answer": "Batch BO: choose four experiments at once, with q=4 and a batch acquisition",
+          "options": [
+            "Batch BO: choose four experiments at once, with q=4 and a batch acquisition",
+            "Multi-fidelity BO, because four reactors give four different fidelities",
+            "Constrained BO, with one feasibility constraint for each of the reactors",
+            "Four independent BO loops, one per reactor, each with its own random seed"
+          ]
+        },
+        "l15-q18": {
+          "answer": "Choosing a fast-charging protocol, when each test cycles a battery for days",
+          "options": [
+            "Choosing a fast-charging protocol, when each test cycles a battery for days",
+            "Training an image classifier with millions of weights and cheap exact gradients",
+            "Solving a steady-state flowsheet whose Jacobian is analytic and takes milliseconds",
+            "Sorting a table of past experiments by their measured yields, highest yield first"
+          ]
+        }
+      },
+      "serve": 9
+    },
+    "6": {
+      "items": {
+        "l15-q01": {
+          "answer": "You can only evaluate it: set the inputs, run it, read one noisy number",
+          "options": [
+            "You can only evaluate it: set the inputs, run it, read one noisy number",
+            "It comes from a neural network whose weights nobody can inspect or interpret",
+            "Its formula is known, but it is too long to differentiate by hand in the lab",
+            "It returns several outputs at once, so no single one of them can be optimized"
+          ]
+        },
+        "l15-q02": {
+          "answer": "It updates a belief about the unknown curve with every experiment, and decides on that belief",
+          "options": [
+            "It updates a belief about the unknown curve with every experiment, and decides on that belief",
+            "It applies Bayes' rule to estimate the gradient of the yield from noisy finite differences",
+            "Its objective has to be a probability, such as a yield, so the method is named after Bayes",
+            "Thomas Bayes first used it to choose experiments, and the name stayed with the method"
+          ]
+        },
+        "l15-q03": {
+          "answer": "Use a gradient-based method: evaluations are cheap, gradients exist, and there are too many inputs",
+          "options": [
+            "Use a gradient-based method: evaluations are cheap, gradients exist, and there are too many inputs",
+            "Use BO: it searches globally, so it is always safer than a local gradient-based method",
+            "Use BO with a batch acquisition, so that it can run thousands of evaluations at once",
+            "Use random search: with that many weights, no surrogate model of the loss can help"
+          ]
+        },
+        "l15-q04": {
+          "answer": "Each gradient costs experiments, and the noise swamps the small differences on the flat cold side",
+          "options": [
+            "Each gradient costs experiments, and the noise swamps the small differences on the flat cold side",
+            "The yield surface has many local optima, and L-BFGS-B was trapped in the nearest of them",
+            "L-BFGS-B needs exact second derivatives, which a noisy experiment can never provide",
+            "The temperature bounds stopped every step before it could get near the optimum"
+          ]
+        },
+        "l15-q05": {
+          "answer": "Fit the GP to all data, maximize the acquisition, run that experiment, add it to the data",
+          "options": [
+            "Fit the GP to all data, maximize the acquisition, run that experiment, add it to the data",
+            "Maximize the acquisition, fit the GP to the newest point only, run it, discard the older data",
+            "Run a batch of random experiments, fit the GP once, and report the maximum of its mean",
+            "Fit the GP, run the experiment where its mean is highest, then refit the acquisition function"
+          ]
+        },
+        "l15-q06": {
+          "answer": "Exploration: the GP was still unsure there, so expected improvement there was not zero",
+          "options": [
+            "Exploration: the GP was still unsure there, so expected improvement there was not zero",
+            "Exploitation: the GP mean predicted its highest yield of all at the hot end",
+            "A bug: expected improvement should never pick a point on the edge of the bounds",
+            "Chance: optimize_acqf returned one of its random candidates instead of the best"
+          ]
+        },
+        "l15-q07": {
+          "answer": "It keeps sampling next to the best point so far, and can sit on a local optimum forever",
+          "options": [
+            "It keeps sampling next to the best point so far, and can sit on a local optimum forever",
+            "It samples wherever the band is widest, and spends the whole budget learning the curve",
+            "It needs the gradient of the objective, which a laboratory experiment cannot provide",
+            "It can only use the GP's standard deviation, and has to ignore the mean altogether"
+          ]
+        },
+        "l15-q08": {
+          "answer": "It weights uncertainty more, so it samples more where the GP is unsure: it explores",
+          "options": [
+            "It weights uncertainty more, so it samples more where the GP is unsure: it explores",
+            "It weights the mean more, so it samples closer to the best point so far: it exploits",
+            "Nothing changes, because κ only rescales the acquisition and not its maximizer",
+            "It samples where the measurement noise is lowest, because κ divides the noise"
+          ]
+        },
+        "l15-q09": {
+          "answer": "The second term, σφ(z): it grows where the GP is uncertain",
+          "options": [
+            "The second term, σφ(z): it grows where the GP is uncertain",
+            "The first term, (μ − f*)Φ(z): it grows where the GP mean is high above the incumbent",
+            "Neither term: EI only exploits, which is the reason UCB was invented afterwards",
+            "Both terms equally: splitting EI into two terms is only algebra, with no meaning"
+          ]
+        },
+        "l15-q10": {
+          "answer": "It scores only the chance of beating the best, not by how much",
+          "options": [
+            "It scores only the chance of beating the best, not by how much",
+            "It uses the GP's standard deviation but ignores the GP's mean completely",
+            "It is computed by sampling, so its value is too noisy near the incumbent",
+            "Its margin ξ is negative by default, which pulls it toward the incumbent"
+          ]
+        },
+        "l15-q11": {
+          "answer": "Zero: no uncertainty there, and no improvement to expect",
+          "options": [
+            "Zero: no uncertainty there, and no improvement to expect",
+            "Its maximum, because the GP is most confident at a measured point",
+            "The measured yield itself, because the GP passes through the data",
+            "A negative number, which is how the loop avoids repeating experiments"
+          ]
+        },
+        "l15-q12": {
+          "answer": "Far from the data, EI and its gradient underflow to zero, and the search stalls",
+          "options": [
+            "Far from the data, EI and its gradient underflow to zero, and the search stalls",
+            "Taking the log moves the maximizer, so that the loop explores more than plain EI does",
+            "BoTorch can only minimize, so the acquisition has to be turned negative with a log",
+            "The log turns EI into a probability that sums to one over all the candidate inputs"
+          ]
+        },
+        "l15-q14": {
+          "answer": "Temperature to [0, 1], yields to mean 0 and standard deviation 1, so the kernel defaults fit",
+          "options": [
+            "Temperature to [0, 1], yields to mean 0 and standard deviation 1, so the kernel defaults fit",
+            "Without the two transforms the GP is only an approximation, and with them it becomes exact",
+            "The transforms remove the measurement noise from the yields before the GP is fitted",
+            "LogExpectedImprovement accepts inputs only between 0 and 1, so the transforms are required"
+          ]
+        },
+        "l15-q15": {
+          "answer": "It searches the acquisition, a cheap formula from the GP; the experiment runs once per pass",
+          "options": [
+            "It searches the acquisition, a cheap formula from the GP; the experiment runs once per pass",
+            "BoTorch estimates gradients of the yield itself from the experiments it has already run",
+            "It is not fine, and it is the reason BO only works on smooth, noise-free objectives",
+            "The gradients come from the Arrhenius formula inside the run_experiment function"
+          ]
+        },
+        "l15-q16": {
+          "answer": "Several seeds and a baseline: BO is random, and one run proves nothing",
+          "options": [
+            "Several seeds and a baseline: BO is random, and one run proves nothing",
+            "A larger budget: BO results can only be trusted after many dozens of experiments",
+            "A gradient check: the optimum must be confirmed afterwards with L-BFGS-B",
+            "Nothing: once the GP is fitted, BO is deterministic and one run is enough"
+          ]
+        },
+        "l15-q17": {
+          "answer": "Batch BO: choose four experiments at once, with q=4 and a batch acquisition",
+          "options": [
+            "Batch BO: choose four experiments at once, with q=4 and a batch acquisition",
+            "Multi-fidelity BO, because four reactors give four different fidelities",
+            "Constrained BO, with one feasibility constraint for each of the reactors",
+            "Four independent BO loops, one per reactor, each with its own random seed"
+          ]
+        },
+        "l15-q18": {
+          "answer": "Choosing a fast-charging protocol, when each test cycles a battery for days",
+          "options": [
+            "Choosing a fast-charging protocol, when each test cycles a battery for days",
+            "Training an image classifier with millions of weights and cheap exact gradients",
+            "Solving a steady-state flowsheet whose Jacobian is analytic and takes milliseconds",
+            "Sorting a table of past experiments by their measured yields, highest yield first"
+          ]
+        }
+      },
+      "serve": 8
     }
   }
 }

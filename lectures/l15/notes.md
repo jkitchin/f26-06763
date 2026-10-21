@@ -1,516 +1,758 @@
-# Lecture 15: Bayesian optimization and active learning
+# Lecture 15: Bayesian optimization
 
 :::{admonition} At a glance
 :class: tip
 
-- **Session** Lecture 15, Week 7
+- **Session** Lecture 15, Week 8
 - **Arc** Machine learning and deep learning
 - **Slides** <a href="../../slides/l15/">Deck for this session</a>
 - **Practice** <a href="../../game/#/l15">Practice module for this session</a>
-- **Demo** [`l15-uq-bayesopt.ipynb`](l15-uq-bayesopt.ipynb), prediction intervals and their
-  calibration on the concrete strength dataset, then a Bayesian optimization of a mix design
-- **Tools** scikit-learn for the Gaussian process and the networks, Optuna for Bayesian
-  optimization
+- **Demo** [`l15-bayesian-optimization.ipynb`](l15-bayesian-optimization.ipynb), Bayesian
+  optimization of a reactor in BoTorch: one knob, then two, against random search
+- **Tools** [BoTorch](https://botorch.org), on PyTorch and GPyTorch
 :::
 
 ## Why this matters
 
-A concrete cylinder is tested for strength after **28 days** of curing.
-
-- Every new mix you want to try costs a month of waiting, plus the materials and the lab.
-- [Lecture 9](../l09/notes.md) fitted a Gaussian process (GP) to the concrete strength dataset. It
-  predicts a strength **and** an uncertainty for any mix.
-- So the model can choose which mixes to cast next. Whether that works depends on whether its
-  uncertainty is right.
-
-Two numbers from this session:
-
-- On the strongest mixes, held out from training, one popular method's "95%" intervals contain
-  the true strength only **70%** of the time.
-- An optimizer searching the GP's predictions finds a mix it scores at **91.6 ± 18.0 MPa**. The
-  strongest specimen in the whole dataset is 82.6 MPa.
-
-This session: measure uncertainty, check it, then spend it on choosing experiments.
+- Some functions cost a lot to evaluate. One evaluation is a lab experiment, a pilot-plant run,
+  a day of simulation, a battery cycled to failure.
+- You can afford tens of evaluations, not thousands.
+- There is no formula and no gradient: you set the inputs, you wait, you get one number back,
+  with noise.
+- Gradient-based optimizers need many cheap evaluations. Grid search and random search waste the
+  few you have.
+- **Bayesian optimization** (BO) uses every past evaluation to decide the next one. On today's
+  reactor it finds the best operating point in about 8 experiments; random search does not get
+  there in 30.
 
 ## Learning objectives
 
 By the end of this session you should be able to:
 
-- Produce and calibrate predictive uncertainty, separating aleatoric from epistemic.
-- Explain the Bayesian-optimization loop and the role of the surrogate + acquisition.
-- Choose and compare acquisition functions for exploration vs. exploitation.
-- Set up an active-learning loop that chooses the next expensive query.
+- Explain what Bayesian optimization (BO) is, why it is called Bayesian, and when it beats
+  gradient-based and other derivative-free optimizers: expensive, noisy, black-box objectives
+  with a budget of tens of evaluations.
+- Explain the BO loop (a Gaussian-process surrogate, an acquisition function, evaluate, update)
+  and the trade-off between exploration and exploitation.
+- Write and compute the common acquisition functions: probability of improvement (PI), expected
+  improvement (EI) and upper and lower confidence bounds (UCB, LCB), and
+  explain how their parameters set the balance between exploration and exploitation.
+- Run BO in BoTorch on an engineering problem and compare it with random search over several
+  seeds.
+- Name the extensions engineers need (constraints, batches, several objectives, several
+  fidelities) and recognize where BO is used across engineering and science.
 
-## Two kinds of uncertainty
+## The problem: a few expensive experiments
 
-```{index} aleatoric uncertainty, epistemic uncertainty
+```{index} black-box optimization
 ```
 
-:::{admonition} Definition: aleatoric and epistemic uncertainty
-:class: tip
-**Aleatoric** uncertainty is the scatter in the data itself, which no amount of data removes.
-**Epistemic** uncertainty is what the model does not know yet, which more data in the right place
-reduces.
-:::
+### The example: making B, not C
 
-```{figure} figures/aleatoric-epistemic.png
-:alt: A Gaussian process fitted to noisy points on a smooth curve, with data from 0 to 0.35 and from 0.7 to 1 and a gap between. A wide light-blue band shows the total uncertainty and a narrower orange band the epistemic part only. Near the data the orange band is thin and the blue band stays wide, labeled near data the noise (aleatoric) remains. In the gap the orange band swells, labeled no data, epistemic uncertainty grows.
-:width: 100%
-
-Total uncertainty (blue) is aleatoric plus epistemic (orange). Only the epistemic part shrinks
-with more data.
-```
-
-On the concrete strength dataset:
-
-- **Aleatoric**: 19 settings (the same mix at the same age) were tested more than once, 53 rows
-  in all. Their strengths scatter by **5.0 MPa** (pooled standard deviation). No model predicts
-  better than that.
-- The GP of Lecture 9 estimates the same thing on its own: its noise term, fitted to the
-  training mixes, is **3.9 MPa**.
-- **Epistemic**: the rest of the GP's predictive standard deviation. On test mixes like the
-  training mixes it averages **3.2 MPa**. On the strongest mixes, held out (below), it
-  averages **10.8 MPa**.
-- Why the split matters: epistemic uncertainty tells you **where new data would help**.
-  Bayesian optimization and active learning both use it.
-
-## Three ways to get a prediction interval
-
-```{index} deep ensemble, conformal prediction, exchangeability
-```
-
-A **prediction interval** is a range that should contain the true value with a stated
-probability, for example 95%.
-
-### The Gaussian process
-
-- Lecture 9's GP returns a mean $\mu(x)$ and a standard deviation $\sigma(x)$ at every input.
-- The 95% interval is $\mu(x) \pm 1.96\,\sigma(x)$, assuming the error is Gaussian.
-- $\sigma$ includes both parts: the noise term (aleatoric) and the posterior spread
-  (epistemic).
-
-### A deep ensemble
-
-:::{admonition} Definition: deep ensemble
-:class: tip
-A **deep ensemble** trains several networks that differ only in their random starting weights,
-and uses the spread of their predictions as the uncertainty.
-:::
-
-- Here: five copies of Lecture 9's network (one hidden layer of 16 tanh units), seeds 0 to 4.
-- The mean of the five is the prediction; their standard deviation is the spread.
-- Where the data pin the function down, the networks agree. Where they do not, the networks
-  disagree. So the spread measures **epistemic** uncertainty only.
-- [Lakshminarayanan, Pritzel and Blundell (2017)](https://arxiv.org/abs/1612.01474) introduced
-  the method; they also train each network to predict its own noise, which adds the aleatoric
-  part. The spread alone does not.
-
-### Split conformal prediction
-
-:::{admonition} Definition: split conformal prediction
-:class: tip
-**Split conformal prediction** sets the interval width from the errors the model makes on a
-held-out calibration set, with no assumption about their distribution.
-:::
-
-1. Split the training data into a **fitting** set and a **calibration** set (here by mix: 625
-   and 210 rows).
-2. Fit any model on the fitting set. Here, the mean of the five networks.
-3. On the calibration set, compute the absolute errors $s_i = |y_i - \hat y(x_i)|$, for
-   $i = 1, \dots, n$.
-4. Take $q$, the $\lceil (n+1)(1-\alpha) \rceil / n$ quantile of the $s_i$.
-5. The interval for a new input is $\hat y(x) \pm q$.
-
-- **The guarantee**: if the calibration and test points are **exchangeable** (their order does not
-  matter: drawn the same way from the same population), the interval contains the truth with
-  probability at least $1 - \alpha$.
-- It works around any model, and it needs no Gaussian assumption.
-- The interval has the same width everywhere: it does not grow where the model is unsure.
-- [Angelopoulos and Bates](https://arxiv.org/abs/2107.07511) give a gentle introduction.
-
-## Is the uncertainty right? Calibration
-
-```{index} calibration, reliability diagram, prediction interval coverage probability
-```
-```{index} see: PICP; prediction interval coverage probability
-```
-```{index} pair: failure mode; conformal prediction under covariate shift
-```
-
-:::{admonition} Definition: calibration
-:class: tip
-An uncertainty is **calibrated** when its stated probabilities match what happens: 95% intervals
-contain the truth 95% of the time.
-:::
-
-The check is the **prediction interval coverage probability** (PICP), the fraction of test
-points whose interval contains the true value:
+- A raw material **A** turns into the product we sell, **B**.
+- B is not the end of the road: left in the hot tank, it keeps reacting into a waste, **C**.
 
 $$
-\text{PICP} = \frac{1}{N}\sum_{i=1}^{N} \mathbf{1}\big[\, y_i \in [\,L(x_i),\, U(x_i)\,] \big]
+\text{A} \;\xrightarrow{\;k_1\;}\; \text{B} \;\xrightarrow{\;k_2\;}\; \text{C}
 $$
 
-- $L$ and $U$ are the lower and upper ends of the interval; $\mathbf{1}[\cdot]$ is 1 when the
-  condition holds, 0 otherwise.
-- A **reliability diagram** plots the PICP against the nominal level (10%, 20%, ..., 95%). On
-  the diagonal: calibrated. Below it: **overconfident** (intervals too narrow). Above:
-  underconfident.
-- Coverage alone is not enough. An interval from 0 to 100 MPa always covers. Report the
-  **width** too: the narrowest intervals that still cover.
+- Heat speeds up both steps, but it speeds up the second one more.
+  - **Too cold:** A barely reacts. Little B.
+  - **Too hot:** B forms fast and burns into C even faster. Little B.
+  - **In between:** a best temperature.
+- Think of toast, or of roasting coffee: heat turns raw into good, then good into burnt.
 
-### Two test sets
+```{figure} figures/yield-curve.png
+:alt: Yield of B against temperature from 20 to 140 degrees Celsius. A smooth hump, near zero at both ends, peaking at 0.46 near 80 degrees. The left end is shaded blue and labeled too cold, A barely reacts; the right end is shaded red and labeled too hot, B burns into C. A gold dot marks the best point, 80 degrees and yield 0.46.
+:width: 90%
 
-- **Grouped split**: Lecture 9's split, 20% of the mixes held out at random (195 rows).
-- **Extrapolation split**: the 20% of mixes with the lowest water/cement ratio held out (265
-  rows). These are the strongest mixes: 49.5 MPa on average, against 31.1 MPa for the mixes
-  kept. A design loop pushes a surrogate exactly here.
-
-```{figure} figures/calibration.png
-:alt: Two reliability diagrams of observed coverage against nominal coverage. Left, grouped split: the Gaussian process and split conformal lines run along the diagonal, while the ensemble spread line falls well below it, reaching 0.76 at 0.95. Right, extrapolation split: all three lines fall below the diagonal; the Gaussian process reaches 0.89 at 0.95, the ensemble 0.86, and split conformal only 0.70.
-:width: 100%
-
-Observed against nominal coverage. Below the dashed line: overconfident.
+The yield of B against temperature, with 10 minutes in the tank. The best is 0.46 at 80 °C.
+In the lab nobody sees this curve: each point on it is one experiment.
 ```
 
-| 95% intervals | Grouped: coverage | Grouped: width | Extrapolation: coverage | Extrapolation: width |
-|---|---|---|---|---|
-| Gaussian process | 95% | 20.4 MPa | 89% | 43.8 MPa |
-| Ensemble spread | **76%** | 12.1 MPa | 86% | 30.9 MPa |
-| Split conformal | 96% | 26.9 MPa | **70%** | 18.1 MPa |
+- The **yield** is the fraction of A that leaves the tank as B. At steady state in a stirred tank:
 
-- **Grouped split**: the GP and conformal are calibrated. The ensemble's spread is
-  overconfident: it measures epistemic uncertainty only, and misses the 5 MPa of scatter.
-- **Extrapolation split**: every method is overconfident.
-  - The GP comes closest (89%), because its $\sigma$ grows away from the data: its intervals
-    double in width.
-  - Conformal falls to **70%**. Its width was set on calibration mixes that look like the
-    training mixes. The strongest mixes are not exchangeable with them, so the guarantee no
-    longer holds, and its constant width does not grow.
+$$
+y = \frac{k_1 \tau}{(1 + k_1 \tau)(1 + k_2 \tau)}
+$$
 
-Set the nominal level and watch which test mixes fall outside their interval:
+- $\tau$: the **residence time**, how long the liquid stays in the tank (min).
+- $k_1$, $k_2$: rate constants (1/min), from Arrhenius' law,
+  $k_i = k_{i,\text{ref}}\, e^{-E_i/R\,(1/T - 1/T_\text{ref})}$.
+- The second step has the larger activation energy: $E_2 = 110$ kJ/mol against
+  $E_1 = 60$ kJ/mol. That is what makes heat hurt eventually.
+- We use the formula only to play the role of the lab and to check answers. The optimizer never
+  sees it.
 
-<div class="cw" data-widget="coverage" data-source="l15"></div>
+### The same shape in industry
 
-```{figure} figures/intervals.png
-:alt: Two panels of predicted against measured strength with 95% Gaussian-process intervals. Left, grouped split, 95% covered: points cluster on the diagonal with a few red misses. Right, extrapolation split, 89% covered: the points scatter widely, the intervals are long, and the red misses sit mostly at high measured strength, where the model predicts too low.
-:width: 100%
+The product is made in the middle of a chain and destroyed by going further:
 
-The GP's 95% intervals on each test set. Red: the interval misses the measured strength.
-```
+- **Ethylene oxide**, the raw material for antifreeze and many plastics: ethylene is partly
+  oxidized on a silver catalyst, and over-oxidation burns it to CO₂ and water. The selectivity
+  to ethylene oxide is the number the operators watch
+  ([Pu et al., 2019](https://par.nsf.gov/servlets/purl/10189546)).
+- **Sugar from wood:** acid breaks cellulose into glucose, and the glucose breaks down further
+  into waste. [Saeman (1945)](https://doi.org/10.1021/ie50421a009) modeled it as two
+  consecutive first-order reactions, exactly A → B → C, so the sugar yield has a maximum.
+- **Drug synthesis:** the drug is often an intermediate, and over-reaction makes impurities.
+  Choosing the conditions that maximize the yield is exactly what BO was used for by Shields et
+  al. (2021), below.
 
-:::{admonition} What a practitioner should take from this
+### Why the budget matters
+
+- Each experiment takes hours: heat the tank, wait for steady state, take a sample, analyze it.
+- With one knob (temperature), a grid of 1 °C steps from 20 to 140 °C is 121 experiments.
+- With two knobs (temperature and residence time) on a modest grid, thousands.
+- Random search spends experiments where nothing interesting happens.
+
+:::{admonition} Definition: black-box objective
 :class: tip
-- Check coverage on a test set that looks like where the model will be **used**, not only like
-  where it was trained.
-- An ensemble's spread is epistemic only. Add an estimate of the noise before calling it an
-  interval.
-- Conformal's guarantee is real, and it needs exchangeability. A design loop breaks that on
-  purpose.
+A **black-box objective** is a function you can only evaluate: set the inputs, run the
+experiment or simulation, read one (noisy) number. No formula, no gradient.
 :::
 
-## Bayesian optimization
+### Gen 0 and Gen 1: machine learning with intention
 
-```{index} Bayesian optimization, acquisition function, surrogate model, black-box optimization
+In [Lecture 13](../l13/notes.md) we met generations of machine learning in engineering:
+
+- **Gen 0:** a surrogate model replaces an expensive simulator. It predicts. That is all.
+- **Gen 1:** the surrogate "knows what it does not know": it also says how **uncertain** it is,
+  and that uncertainty decides where to run the next experiment or simulation. Machine learning
+  with intention.
+
+**Bayesian optimization is Gen 1.** The idea goes back to
+[Kushner (1964)](https://doi.org/10.1115/1.3653121) and
+[Močkus (1975)](https://doi.org/10.1007/3-540-07165-2_55), and became standard with
+[Jones, Schonlau and Welch (1998)](https://www.stat.ubc.ca/~will/docs/JonSchWel1998_global_optimization.pdf).
+
+## Why it is called Bayesian
+
+```{index} prior distribution, posterior distribution
 ```
 
-### The problem
+- **Bayesian** statistics treats what we do not know as a probability distribution, and updates
+  it with data.
+- Here, what we do not know is the **function** itself: the yield at every temperature.
 
-- Find the input $x$ (a mix design) that maximizes an **expensive** function $f(x)$ (the 28-day
-  strength).
-- No formula, no gradient: you can only evaluate $f$, a few dozen times at most. That is
-  **black-box optimization**.
-- A grid is hopeless: 10 levels of 4 ingredients is 10,000 mixes, 770 years of 28-day tests
-  run one after another.
+$$
+\underbrace{p(f \mid \text{data})}_{\text{posterior}}
+\;\propto\;
+\underbrace{p(\text{data} \mid f)}_{\text{likelihood}}
+\;\cdot\;
+\underbrace{p(f)}_{\text{prior}}
+$$
+
+- **Prior** $p(f)$: what we believe before any experiment. "The yield is somewhere around 0.25,
+  and it changes smoothly over about 20 °C."
+- **Likelihood** $p(\text{data} \mid f)$: how well a candidate curve $f$ explains the
+  measurements, given the noise (0.01). We measured 0.181 at 50 °C: a curve through 0.18 there
+  fits, a curve through 0.40 does not.
+- **Posterior** $p(f \mid \text{data})$: what we believe after the experiments. Only curves that
+  fit the data remain: after 30 and 50 °C, every curve passes near 0.05 and 0.18; at 110 °C,
+  anything is still possible.
+- A **Gaussian process** (GP) is a prior over functions for which this update is exact and cheap.
+  [Lecture 14](../l14/notes.md) built it: a mean $\mu(x)$ and an uncertainty $\sigma(x)$ at every
+  input.
+- Every experiment pinches the band where it was run. Far from the data, the band stays wide.
+
+```{figure} figures/gp-schematic.png
+:alt: Two panels over temperature. Left, the prior before any experiment: a flat mean at 0.25, a wide band, and three wiggly sample curves. Right, the posterior after three experiments at 30, 50 and 110 degrees: the band pinches at each experiment, the sample curves pass through the points, and the band stays wide between them.
+:width: 95%
+
+A GP before and after three experiments, with fixed settings (mean 0.25, standard deviation
+0.15, length scale 20 °C). Thin lines: sample curves from each.
+```
+- **Then the decision is taken on the posterior:** where to experiment next, given what we now
+  believe.
+- Bayesian optimization = a Bayesian belief about the function + a decision on that belief. "The
+  term Bayesian optimization was coined in the seventies", citing Močkus, Tiesis and Žilinskas
+  (1978) ([Shahriari et al., 2016, p. 17](https://www.cs.ox.ac.uk/people/nando.defreitas/publications/BayesOptLoop.pdf#page=17)).
+
+:::{admonition} Definition: surrogate model
+:class: tip
+A **surrogate model** is a cheap model of the objective, fitted to the evaluations so far. In BO
+it is usually a GP, because it returns both a prediction $\mu(x)$ and an uncertainty $\sigma(x)$.
+:::
+
+## The Bayesian optimization loop
+
+```{index} Bayesian optimization, acquisition function, surrogate model
+```
+```{index} regret
+```
 
 :::{admonition} Definition: Bayesian optimization (BO)
 :class: tip
-**Bayesian optimization** fits a probabilistic surrogate to the evaluations so far and uses an
-**acquisition function** of its mean and uncertainty to choose the next point to evaluate.
+**Bayesian optimization** maximizes a black-box objective in few evaluations: fit a surrogate to
+every evaluation so far, choose the next input by maximizing an acquisition function, evaluate
+it, and repeat.
+:::
+
+:::{admonition} Definition: acquisition function
+:class: tip
+An **acquisition function** $a(x)$ scores every candidate input by how useful it would be to
+evaluate it next. It is computed from the surrogate, so it is cheap. The next experiment is its
+maximizer.
 :::
 
 The loop:
 
-<div class="flow" style="display:flex;gap:.4em;flex-wrap:wrap;align-items:center;justify-content:center;margin:.8em 0">
-<span style="border:2px solid #5c5c5c;border-radius:8px;padding:.3em .7em">1. Fit a GP to the data so far</span> →
-<span style="border:2px solid #5c5c5c;border-radius:8px;padding:.3em .7em">2. Maximize the acquisition</span> →
-<span style="border:2px solid #5c5c5c;border-radius:8px;padding:.3em .7em">3. Evaluate f there</span> →
-<span style="border:2px solid #5c5c5c;border-radius:8px;padding:.3em .7em">4. Add the result, repeat</span>
-</div>
+1. **Fit** the GP to every experiment so far.
+2. **Score** every candidate with the acquisition function.
+3. **Run** the experiment where the score is largest.
+4. **Add** the result to the data, and repeat until the budget is spent.
 
-### Acquisition functions
+### Terminology
 
-```{index} expected improvement, upper confidence bound, probability of improvement, Thompson sampling
+- **Incumbent** $f^*$: the best value measured so far.
+- **Budget**: the number of evaluations you can afford.
+- **Regret**: the gap between the best possible value and the best one found. BO tries to make it
+  small with few evaluations.
+
+```{figure} figures/terminology.png
+:alt: The best measured yield so far against the experiment number, 1 to 12, as a rising step curve that reaches 0.47 at experiment 7. A dashed gold line marks the best possible yield, 0.46. A red arrow at experiment 4 marks the regret, the gap between 0.46 and 0.31. A green arrow along the bottom marks the budget, 12 experiments.
+:width: 80%
+
+The worked example's twelve experiments. The incumbent (blue) is the best measured yield so far.
+After 4 experiments the regret is 0.46 − 0.31 = 0.16; after 7 it is about zero.
 ```
+
+### The loop on the reactor
+
+- Start: two old runs from the lab notebook, both on the cold side, at 30 and 50 °C.
+- BO with expected improvement then picked, one at a time: 54, 61, 72, 87, 81 °C.
+- Experiment 8 jumped to 140 °C: the GP was still unsure there, so the expected improvement there
+  was not zero. The yield was 0.02, and the band collapsed there.
+- Then it settled at 80 °C. It reached 98% of the best possible yield at experiment 7.
+
+```{figure} figures/acquisitions.png
+:alt: Four stacked panels. Top, a Gaussian process with three experiments at 30, 50 and 54 degrees, its mean and 95 percent band against the true yield curve. Below, three acquisition functions over temperature: probability of improvement peaking at 56 degrees, expected improvement at 61 and upper confidence bound with kappa 2 at 65, each with a dashed line at its maximum.
+:width: 85%
+
+One GP after three experiments, and three acquisition functions. Each picks a different next
+temperature: 56, 61 and 65 °C.
+```
+
+## Exploration and exploitation
+
 ```{index} exploration-exploitation trade-off
 ```
 
-Each acquisition trades **exploitation** (sample where the mean is high) against **exploration**
-(sample where the uncertainty is high). With $f^*$ the best value found so far:
+:::{admonition} Definition: exploitation and exploration
+:class: tip
+**Exploitation** runs the next experiment where the surrogate predicts a good value (high
+$\mu$). **Exploration** runs it where the surrogate is unsure (high $\sigma$).
+:::
 
-**Expected improvement (EI)**: how much, on average, the new point beats $f^*$:
+- **Pure exploitation** keeps sampling next to the best point so far. It can sit on a local
+  optimum forever, because it never looks elsewhere.
+- **Pure exploration** samples wherever the band is widest. That is close to a careful random
+  search: it learns the whole curve and ignores the goal.
+- Every acquisition function is a recipe for the balance between the two, with a knob:
+  $\kappa$ in UCB, $\xi$ in PI and EI.
+
+## Acquisition functions
+
+```{index} expected improvement, upper confidence bound, probability of improvement
+```
+```{index} log expected improvement
+```
+```{index} see: EGO; efficient global optimization
+```
+```{index} efficient global optimization
+```
+
+All of them use the GP's mean $\mu(x)$ and standard deviation $\sigma(x)$, and the incumbent
+$f^*$.
+
+:::{admonition} Definition: z-score
+:class: tip
+The **z-score** is how many GP standard deviations the predicted value $\mu(x)$ sits above the
+best so far. $z > 0$: the GP expects to beat $f^*$. $z < 0$: it expects to fall short.
+:::
 
 $$
-\text{EI}(x) =
-\underbrace{\big(\mu(x) - f^*\big)\,\Phi(z)}_{\text{exploit: mean above the best}}
-+ \underbrace{\sigma(x)\,\phi(z)}_{\text{explore: room to be better}},
-\qquad z = \frac{\mu(x) - f^*}{\sigma(x)}
+z = \frac{\mu(x) - f^* - \xi}{\sigma(x)}
 $$
 
-- $\Phi$ is the standard normal cumulative distribution; $\phi$ its density.
-- Large when the mean is above $f^*$, or when $\sigma$ is large, or both.
+- $\xi \ge 0$ (xi): a margin, the smallest gain that counts. With $\xi = 0.01$, a temperature
+  counts as an improvement only if it beats the best yield by more than 0.01.
+- A larger $\xi$ ignores tiny gains right next to $f^*$, so the search moves away from it: more
+  exploration. The worked example uses $\xi = 0$.
+- Reactor, at 60 °C after 3 experiments: $\mu = 0.242$, $\sigma = 0.046$, $f^* = 0.236$, so
+  $z = 0.13$.
 
-**Probability of improvement (PI)**: $\Phi(z)$, the chance of beating $f^*$ at all, by any margin.
-It favors small sure gains, so it tends to stay near the best point.
+### Probability of improvement (PI)
 
-**Upper confidence bound (UCB)**: $\mu(x) + \kappa\,\sigma(x)$. The weight $\kappa$ sets the
-trade-off directly: large $\kappa$ explores.
+:::{admonition} Definition: probability of improvement
+:class: tip
+**Probability of improvement** (PI) is the probability that the value at $x$ beats the best so
+far by more than $\xi$.
+:::
 
-**Thompson sampling**: draw one random function from the GP posterior, and evaluate where that
-draw is highest. The randomness of the draw does the exploring.
+$$
+\text{PI}(x) = P\big(f(x) > f^* + \xi\big) = \Phi(z)
+$$
 
-### The loop on a test function
+PI in four steps, on the reactor at 60 °C after three experiments:
 
-The test function is $g(x) = -(6x - 2)^2 \sin(12x - 4)$ on $[0, 1]$, the
-[Forrester et al. (2008)](https://www.wiley.com/en-us/Engineering+Design+via+Surrogate+Modelling%3A+A+Practical+Guide-p-9780470060681)
-benchmark turned into a maximization. Its global maximum is 6.02 at $x = 0.758$, with a
-smaller peak near $x = 0.15$. Four starting points (0, 0.33, 0.66 and 1) all miss the big peak.
+1. The GP does not give one yield at 60 °C but a **bell** of possible yields: normal, with mean
+   $\mu = 0.242$ and standard deviation $\sigma = 0.046$.
+2. The best yield so far is $f^* = 0.236$.
+3. PI is the **share of the bell above $f^*$**: 0.55, so a 55% chance that 60 °C beats the best
+   so far.
+4. The same number from $z$: $z = (0.242 - 0.236)/0.046 = 0.13$, and $\Phi(0.13) = 0.55$.
+   $\Phi(z)$, the standard normal cumulative distribution, is the share of a standard bell to
+   the left of $z$, a number from 0 to 1.
 
-<div class="cw" data-widget="bo-loop" data-source="l15"></div>
+- Pro: a probability, easy to read.
+- In short: PI runs the experiment most likely to beat the best so far, however small the gain.
+- Con: it ignores **how much** better. With $\xi = 0$ it picks a point just above the incumbent,
+  with a high chance of a tiny gain: it exploits. A point next to $f^*$ with a narrow bell gets PI
+  near 1 for a gain of almost nothing.
 
-```{figure} figures/acquisitions.png
-:alt: Top, a Gaussian process fitted to five points of a test function with two peaks, with its 95% band, and three dashed vertical lines. Bottom, three scaled acquisition curves. Expected improvement peaks at x = 0.73, near the true global maximum; probability of improvement peaks at 0.67, right next to the best point found; the upper confidence bound with kappa = 3 peaks at 0.17, in a wide-band region far from the data.
-:width: 100%
+```{figure} figures/pi-picture.png
+:alt: A bell curve over the possible yield at 60 degrees, centered at 0.242. A vertical black line marks the best so far, 0.236. The area to the right of it is shaded gold and labeled PI = 0.55.
+:width: 65%
 
-One GP state, three acquisitions, three different next experiments.
+The GP's belief about the yield at 60 °C after three experiments: a bell with mean 0.242 and
+standard deviation 0.046. PI is the share of the bell above the best so far, 0.236: 0.55.
 ```
 
-After 8 picks from the same start:
+### Expected improvement (EI)
 
-| Acquisition | Picks | Best found (true max 6.02) |
-|---|---|---|
-| EI | 0.63, 0.73, 0.78, 0.18, 0.76, ... | 6.02 (from the 5th pick) |
-| PI | 0.66, 0.67, 0.68, 0.68, 0.69, ... 0.72 | 5.26 |
-| UCB, $\kappa = 3$ | 0.59, 0.18, 0.78, 0.45, 0.73, 0.76, ... | 6.02 |
+:::{admonition} Definition: expected improvement
+:class: tip
+**Expected improvement** (EI) is the average amount by which the value at $x$ beats the best so
+far, counting a miss as zero.
+:::
 
-- **PI** creeps uphill from its best point in tiny steps: it exploits.
-- **UCB** with $\kappa = 3$ checks the far side first: it explores, then finds the peak.
-- **EI** balances the two, and gets there fastest here.
+The improvement at $x$ is $I(x) = \max(f(x) - f^*, 0)$: zero if we do not beat the incumbent. EI
+is its expected value under the GP:
 
-### On the concrete strength dataset: BO against random search
+$$
+\text{EI}(x) = \mathbb{E}\big[I(x)\big]
+= \underbrace{(\mu - f^*)\,\Phi(z)}_{\text{exploitation: high } \mu}
++ \underbrace{\sigma\,\phi(z)}_{\text{exploration: high } \sigma}
+$$
 
-```{index} pair: failure mode; single-seed Bayesian optimization
+- $I(x)$, **the gain**: if the yield at $x$ turns out to be $f$, the gain is $f - f^*$; below
+  $f^*$, the gain is 0.
+- $\mathbb{E}$, **the average**: average the gain over the GP's bell of possible yields.
+- $(\mu - f^*)\,\Phi(z)$, **the exploitation term**: how far the mean is above $f^*$, times
+  $\Phi(z)$, the chance of beating $f^*$ (as in PI). Large where $\mu$ is high.
+- $\sigma\,\phi(z)$, **the exploration term**: the bell's width $\sigma$ times $\phi(z)$, the height
+  of the standard bell at $z$ (the standard normal density). Large where $\sigma$ is large.
+- With $\xi = 0$, $z = (\mu - f^*)/\sigma$.
+- The first term grows where the mean is high, the second where the uncertainty is high.
+- EI is zero at an experiment already run (no uncertainty, no improvement) and grows away from
+  the data.
+- It is usually credited to Močkus and colleagues in the 1970s; Garnett (2023) traces it to
+  Šaltenis (1971). Jones, Schonlau and Welch (1998) made it the default (see EGO, below).
+
+```{figure} figures/ei-picture.png
+:alt: Two panels sharing the possible yield at 60 degrees on the horizontal axis. Top, the GP's bell of possible yields, with the part above the best so far shaded green. Bottom, the gain: zero below the best so far, then rising in a straight line; an arrow shows that a yield of 0.30 would give a gain of 0.064.
+:width: 70%
+
+EI at 60 °C after three experiments. Top: how likely each possible yield is. Bottom: the gain each
+possible yield would bring, zero below $f^*$. EI is the gain averaged over the bell: 0.022.
 ```
 
-The "lab" is a GP fitted to all 1,030 rows, which plays the role of the 28-day test.
+### Log expected improvement (LogEI)
 
-- **Design**: cement, slag, water and superplasticizer (kg/m³), each within the 5th to 95th
-  percentile of the 28-day mixes; the other ingredients fixed at their medians.
-- **Goal**: the strongest mix at 28 days.
-- **BO**: 5 random mixes, then 20 chosen by EI (a GP refitted after every test). **Random
-  search**: 25 random mixes. Each gets **30 seeds**, because one run of either is luck.
-
-```{figure} figures/bo-vs-random.png
-:alt: Best strength found so far against the number of mixes tested, from 1 to 25, with the median and the 25th to 75th percentile band over 30 seeds. Bayesian optimization in blue rises steeply after the five random starting mixes, passes 87 MPa by the 10th mix, and reaches the red dashed line at 91.4 MPa labeled the emulator's best. Random search in gray climbs slowly to about 81 MPa.
-:width: 100%
-
-Median and middle 50% over 30 seeds.
+```{index} underflow
 ```
 
-| After the same 25 tests | BO (EI) | Random search |
-|---|---|---|
-| Median best strength | **91.3 MPa** | 81.1 MPa |
-| Seeds within 1 MPa of the emulator's best | **29 of 30** (median: 16 tests) | 0 of 30 |
+:::{admonition} Definition: LogEI
+:class: tip
+**LogEI** computes $\log \text{EI}$ directly, with formulas that stay accurate where EI is tiny.
+It has the same maximizer as EI: the logarithm does not move the peak.
+:::
 
-**Now check that answer with the uncertainty.** The emulator's best mix (472 kg/m³ cement, 235
-slag, 162 water, 11 superplasticizer) is predicted at **91.6 ± 18.0 MPa** (95%). The strongest
-specimen in the data is **82.6 MPa**.
+Why it was created: far from the data, EI is so small that the computer rounds it to exactly 0
+(**underflow**). Ament et al. (2023) found that EI's values "vanish numerically in many regions",
+which makes EI hard to maximize ([paper](https://arxiv.org/abs/2310.20708)). What the figure
+below shows, on the reactor after its 12 experiments:
 
-- The optimizer went where the emulator is most **optimistic**, at the corner of the design box,
-  far from any mix ever tested. The ±18 MPa says so.
-- This is BO on a fixed surrogate. In a real campaign, the next step is to cast that mix: the
-  measurement updates the GP, and the loop continues.
+- **Top**: EI. One narrow peak near 80 °C, about $10^{-8}$ high.
+- **Red**: the temperatures where the computer stores EI as exactly 0 (12% of them). There EI is
+  flat, so the optimizer of the acquisition, which follows its slope, has no direction to move.
+- **Bottom**: $\log \text{EI}$. A finite number everywhere, down to about $-1100$, sloping up
+  toward 80 °C.
+- Both peak at the same temperature, so both pick the same next experiment. BoTorch's
+  `LogExpectedImprovement` is what the worked example uses.
 
-### Bayesian optimization in Optuna
+```{figure} figures/logei.png
+:alt: Two panels over temperature. Top, expected improvement after 12 experiments: a single narrow peak near 80 degrees, and flat elsewhere, with red marks where it is exactly zero in the computer. Bottom, log expected improvement: a smooth curve between about minus 1100 and 0, with a slope everywhere.
+:width: 80%
 
-**Optuna** ([Lecture 10](../l10/notes.md)) ran the hyperparameter search with its default sampler,
-TPE. It also has `GPSampler`, which runs Bayesian optimization with a GP surrogate
-([documentation](https://optuna.readthedocs.io/en/stable/reference/samplers/generated/optuna.samplers.GPSampler.html)).
+The GP after the worked example's twelve experiments. Plain EI (top) is exactly zero in the red
+regions; log EI (bottom) is finite everywhere.
+```
+
+### Upper and lower confidence bounds (UCB, LCB)
+
+:::{admonition} Definition: upper confidence bound
+:class: tip
+The **upper confidence bound** (UCB) is an optimistic score: the GP mean plus $\kappa$ standard
+deviations. The **lower confidence bound** (LCB), $\mu - \kappa\sigma$, is the same idea for
+minimizing.
+:::
+
+$$
+\text{UCB}(x) = \underbrace{\mu(x)}_{\text{expected value}} + \underbrace{\kappa}_{\text{knob}}\,\underbrace{\sigma(x)}_{\text{uncertainty}}
+\qquad
+\text{LCB}(x) = \mu(x) - \kappa\,\sigma(x)
+$$
+
+- $\kappa$ (kappa): how many standard deviations of optimism. UCB scores each input by the top
+  of its band, $\mu + \kappa\sigma$.
+- $\kappa$ is the knob. $\kappa = 0$: the mean only, pure exploitation. Large $\kappa$: the band
+  wins, exploration.
+- $\kappa = 2$ is the top of the 95% band. On the reactor it picks 65 °C.
+
+```{figure} figures/ucb.png
+:alt: The GP after three experiments, its mean in blue, the upper confidence bound mu plus 2 sigma in red and the lower bound mu minus 2 sigma dashed in gray. The red curve peaks at 65 degrees, marked as the next experiment. An arrow marks the distance kappa sigma between the mean and the upper bound.
+:width: 75%
+
+UCB with $\kappa = 2$ on the GP after three experiments. Its maximum, 65 °C, is the next
+experiment.
+```
+
+### One GP, three choices
+
+- After three experiments (30, 50 and 54 °C), the three acquisitions pick 56 (PI), 61 (EI) and
+  65 °C (UCB, $\kappa = 2$).
+- PI stays closest to the incumbent; UCB with $\kappa = 2$ reaches furthest into the unknown.
+- Same data, same GP: the acquisition function alone sets the next experiment.
+
+### Donald Jones and EGO
+
+```{index} kriging
+```
+
+:::{admonition} Definition: efficient global optimization (EGO)
+:class: tip
+**Efficient global optimization** (EGO) fits a kriging model (a GP) to a space-filling set of
+samples, then samples where expected improvement is largest, refits, and repeats
+([Jones, Schonlau and Welch, 1998](https://www.stat.ubc.ca/~will/docs/JonSchWel1998_global_optimization.pdf)).
+:::
+
+As the paper describes it:
+
+- **Start** from a space-filling design, about 10 points per input.
+- **Fit** the kriging model by maximum likelihood, and check it once by cross-validation.
+- **Loop**: maximize EI; sample there; re-estimate the model.
+- **Stop** when the expected improvement is less than 1% of the best current value.
+- **Kriging** is the GP of geostatistics. It is named after Danie Krige, a South African mining
+  engineer who estimated gold ore grades in the Witwatersrand mines from samples
+  ([NAE memorial tribute](https://www.nationalacademies.org/read/21785/chapter/35)).
+
+```{figure} figures/ego.png
+:alt: Top, a function of x from 0 to 12 with five samples, three clustered near x = 2, its kriging prediction and a band of two standard errors; the prediction peaks near x = 3, a local peak. Bottom, expected improvement, with its largest peak in the unexplored gap near x = 9.
+:width: 75%
+
+The idea of the paper's 1-D example, redrawn on a function of our own. The prediction alone peaks
+at a local peak near the cluster of samples; EI is largest in the unexplored gap.
+```
+
+### Where the ideas come from
+
+- **Kushner (1964):** probability of improvement, for "a multipeak curve in the presence of
+  noise".
+- **Šaltenis (1971), Močkus (1970s):** expected improvement, and the Bayesian approach to
+  seeking an extremum.
+- **Jones, Schonlau and Welch (1998):** EGO, expected improvement on a kriging (GP) model. The
+  paper that made BO standard in engineering design.
+- **Jones (2001):** a taxonomy of response-surface methods for global optimization, and when each
+  one fails.
+- **Snoek, Larochelle and Adams (2012):** BO for tuning machine learning models, the start of its
+  boom in machine learning.
+
+## Bayesian optimization in BoTorch
+
+```{index} BoTorch
+```
+
+- [BoTorch](https://botorch.org) is a library for Bayesian optimization built on PyTorch, from
+  Meta (Balandat et al., 2020).
+- Its GPs come from [GPyTorch](https://gpytorch.ai).
+- `optimize_acqf` maximizes the acquisition with L-BFGS-B (from SciPy), a gradient-based method.
+  The gradients come from PyTorch's automatic differentiation.
+- Its UCB is `UpperConfidenceBound(gp, beta)`, which computes $\mu + \sqrt{\beta}\,\sigma$. So
+  BoTorch's `beta` is $\kappa^2$: `beta=4.0` is $\kappa = 2$.
+- Documentation and tutorials: [botorch.org/docs](https://botorch.org/docs/introduction).
+
+The pieces of the worked example, in order:
+
+- `SingleTaskGP(T, y, input_transform=..., outcome_transform=...)`: the GP. `Normalize` maps the
+  temperature to [0, 1]; `Standardize` gives the yields mean 0 and standard deviation 1. The
+  kernel's settings are then sensible defaults.
+- `ExactMarginalLogLikelihood` and `fit_gpytorch_mll`: fit the GP's settings (length scale,
+  noise) by maximizing the marginal likelihood, as in Lecture 14.
+- `LogExpectedImprovement(gp, best_f=y.max())`: the acquisition function, with the incumbent.
+- `optimize_acqf(acq, bounds, q=1, num_restarts=10, raw_samples=200)`: find the input that
+  maximizes it. It scores 200 random candidates, starts 10 gradient-based searches from the best,
+  and returns the winner. `q=1`: one experiment at a time.
 
 ```python
-import optuna
+for i in range(10):
+    # 1. the surrogate: a GP fitted to every experiment so far
+    gp = SingleTaskGP(
+        T,
+        y,
+        input_transform=Normalize(d=1),
+        outcome_transform=Standardize(m=1),
+    )
+    mll = ExactMarginalLogLikelihood(gp.likelihood, gp)
+    fit_gpytorch_mll(mll)
 
-def objective(trial):
-    mix = {
-        "cement": trial.suggest_float("cement", 141, 475),
-        "slag": trial.suggest_float("slag", 0, 237),
-        "water": trial.suggest_float("water", 152, 216),
-        "superplasticizer": trial.suggest_float("superplasticizer", 0, 16),
-    }
-    return lab(mix)                       # the 28-day strength of this mix
+    # 2. the acquisition: expected improvement over the best yield so far
+    acq = LogExpectedImprovement(gp, best_f=y.max())
 
-study = optuna.create_study(
-    direction="maximize",
-    sampler=optuna.samplers.GPSampler(seed=0, n_startup_trials=5),
-)
-study.optimize(objective, n_trials=25)
+    # 3. the next experiment: where the acquisition is largest
+    T_next, _ = optimize_acqf(
+        acq,
+        bounds=bounds,
+        q=1,
+        num_restarts=10,
+        raw_samples=200,
+    )
+
+    # 4. run it, and add it to the data
+    y_next = run_experiment(T_next)
+    T = torch.cat([T, T_next])
+    y = torch.cat([y, y_next])
 ```
 
-- `suggest_float(name, low, high)` lets the sampler choose a value in the range.
-- `GPSampler(n_startup_trials=5)` samples 5 points at random, then lets the GP choose.
-- `direction="maximize"`: higher strength is better.
+- Optimizing the acquisition function is itself an optimization, but a cheap one: the GP is a
+  formula, so gradient-based search works there. The expensive part, the experiment, happens once
+  per pass.
 
-### Case study: Bayesian optimization against fifty chemists
+### A second knob: the time in the tank
+
+- The feed pump sets the flow $q$, so the time in the tank is $\tau = V/q$, with $V$ the volume of
+  the tank. Now $\tau$ is a knob too, from 1 to 30 min.
+- Same loop, two inputs: `Normalize(d=2)` scales both temperature and $\tau$ to [0, 1].
+- The two knobs interact: with 30 minutes in the tank, the best temperature drops from 80 to
+  67 °C, and the best yield rises from 0.46 to 0.55.
+
+```{figure} figures/reactor-pump.png
+:alt: The stirred tank again, with a pump on the feed line circled in red and labeled pump: flow q, and the label time in the tank: tau = V / q in red above the tank.
+:width: 55%
+
+The second knob. The pump sets the flow $q$, and so the time in the tank $\tau = V/q$.
+```
+
+```{figure} figures/landscape.png
+:alt: A shaded contour map of the yield of B over temperature, 20 to 140 degrees, and residence time, 1 to 30 minutes. A dark curved ridge runs from the top near 67 degrees down to the lower right. A gold star marks the best point at 67 degrees and 30 minutes, yield 0.55. A dashed blue line at 10 minutes is labeled the 1-D problem.
+:width: 85%
+
+The yield over both knobs. The 1-D problem is the dashed line; the best point (gold) needs the
+longest residence time and a lower temperature.
+```
+
+### Comparing optimizers over several seeds
+
+- One run proves nothing: BO is random (the noise, the random candidates). Report:
+  - **several seeds** (here 10);
+  - a **baseline** (random search, and two classic optimizers);
+  - the **best-so-far curve** against experiments, with its spread;
+  - the **budget**, counted.
+
+```{figure} figures/bo-vs-random.png
+:alt: True yield of the best experiment so far against the number of experiments, 1 to 30, median of ten seeds with a band from the worst to the best seed. Bayesian optimization in blue climbs to the best possible yield, 0.55, by about 8 experiments. Random search in red rises slowly to about 0.51. L-BFGS-B in green jumps to about 0.41 then creeps up; Nelder-Mead in gold stays flat near 0.11.
+:width: 85%
+
+Best-so-far over 10 seeds (median, with the range). BO reached 98% of the best possible yield in
+all 10 seeds, in 8 experiments (median).
+```
+
+## Bayesian optimization against gradient-based optimization
+
+```{index} derivative-free optimization, Nelder-Mead method
+```
+
+Same reactor, same two knobs, same noise, 30 experiments, 10 seeds. Each method starts from the
+lab's cold side:
+
+| Method | Reached 98% of the best yield | After 30 experiments (median) |
+|---|---|---|
+| Bayesian optimization (LogEI) | 10 of 10 seeds, median 8 experiments | 100% |
+| L-BFGS-B, finite-difference gradients | 2 of 10 seeds | 86% |
+| Nelder–Mead | 0 of 10 | 20% |
+| Random search | 0 of 10 | 93% |
+
+- **L-BFGS-B** (a quasi-Newton method) estimates gradients by nudging each input. Each gradient
+  costs experiments, and the measurement noise swamps the small differences in the flat, cold
+  region. It often stops where it started.
+  - At 40 °C and 10 min, its step of 1.2 °C changes the true yield by 0.008. The noise in the
+    difference of two experiments has a standard deviation of 0.014, almost twice as large.
+
+```{figure} figures/finite-diff.png
+:alt: The true yield against temperature from 25 to 60 degrees at 10 minutes, a slowly rising curve. Two measurements, at 40 and 41.2 degrees, with error bars of plus or minus 0.02 that overlap. An annotation reads: two experiments 1.2 degrees apart, true change 0.008, noise in the difference plus or minus 0.028.
+:width: 65%
+
+A finite-difference gradient on the cold side. The change it tries to measure is smaller than the
+noise.
+```
+- **Nelder–Mead** (a simplex method) needs no gradients, but it is local and it stalls on the flat,
+  noisy plateau.
+- **Random search** never gets stuck, but it never focuses either.
+
+When to use which:
+
+- **Gradient-based** (Newton, L-BFGS, IPOPT): cheap evaluations, smooth functions, gradients
+  available (from a model, by automatic differentiation or adjoints), and many variables, up to
+  millions. It finds a local optimum fast.
+- **Bayesian optimization:** expensive evaluations (minutes to weeks), no gradients, noise, a
+  budget of tens to hundreds, and few inputs (up to about 20). It explores the whole range, but
+  with no guarantee of finding the global optimum. Its overhead, seconds per step, is small
+  compared with an experiment.
+- **Other derivative-free methods** (Nelder–Mead, evolutionary algorithms): no gradients, but
+  enough budget for hundreds or thousands of evaluations.
+
+```{figure} figures/decision-map.png
+:alt: A sketch with the number of inputs on a log axis from 1 to 10 million, and the cost of one evaluation on a log axis from 1 millisecond to about a month. A blue region at the top left, up to about 20 inputs and from minutes to weeks, is Bayesian optimization. A green band along the bottom, cheap evaluations up to millions of inputs, is gradient-based. A gold region in between is other derivative-free methods. A red star at 2 inputs and hours marks the reactor. A legend in the empty upper right names each region.
+:width: 75%
+
+A sketch of where each kind of optimizer fits. The reactor (red star) has two knobs and hours per
+experiment.
+```
+
+## Where Bayesian optimization is used
 
 ```{index} pair: case study; Bayesian reaction optimization
 ```
-
-- [Shields and colleagues (2021)](https://b-shields.github.io/files/2021-02-03-Nature.pdf),
-  in *Nature*, framed a palladium-catalyzed reaction as a black box: inputs were ligand, base,
-  solvent, temperature and concentration; the output was yield; each evaluation was a real
-  reaction.
-- They ran a GP with expected improvement (their tool, EDBO) against fifty expert chemists and
-  engineers playing the same optimization as a game.
-- Bayesian optimization outperformed the experts in both average efficiency and consistency.
-- Unaided search is inconsistent, and inconsistency is expensive when each trial is an
-  experiment. The optimizer applies the same rule every time and never forgets a result.
-
-## Active learning
-
-```{index} active learning, uncertainty sampling, query-by-committee
+```{index} pair: case study; mobile robotic chemist
+```
+```{index} pair: case study; battery fast charging
 ```
 
-:::{admonition} Definition: active learning
-:class: tip
-**Active learning** chooses which data points to label (measure) next, to make the model as
-accurate as possible with as few labels as possible.
-:::
-
-- Bayesian optimization looks for **one** best point. Active learning wants a model that is good
-  **everywhere** you will use it.
-- **Uncertainty sampling**: label the point where the model is least sure, the largest GP
-  $\sigma$. **Query-by-committee**: label where an ensemble disagrees most.
-
-### On the concrete strength dataset
-
-Start with 20 labeled rows of the training pool, then label 40 more, one at a time: where the GP
-is least sure, or at random. Score each model on the grouped test mixes (median of 8 seeds).
-
-```{figure} figures/active-learning.png
-:alt: Test RMSE against the number of labeled rows, from 20 to 60. Querying at random, in gray, drops quickly from 14 to about 10 MPa by 22 rows and ends near 8.6. Querying where the GP is least sure, in blue, stays near 12 to 15 MPa until about 50 rows, then drops to about 8.7 at 60, labeled least-sure queries go to extreme mixes at the edges.
-:width: 100%
-
-Median test RMSE over 8 seeds.
-```
-
-| Test RMSE | 20 rows | 40 rows | 60 rows |
-|---|---|---|---|
-| Least-sure queries | 13.9 MPa | 12.7 MPa | 8.7 MPa |
-| Random queries | 13.9 MPa | **9.5 MPa** | 8.6 MPa |
-
-**Here, uncertainty sampling loses to random.** Why:
-
-- The GP is least sure at the **edges** of the data: the most extreme mixes, ages and doses.
-- Measured: 45% of the least-sure queries are at an age of 3 days or 180 days and more, against
-  19% of the pool. The test mixes, like the pool, are mostly in the middle.
-- Random queries cover where the test mixes are. The least-sure queries cover where nobody will
-  predict.
-- Active learning helps when the queries go where the model will be **used**: weight the
-  uncertainty by how likely an input is, or restrict the pool to the operating region.
-
-### Case study: an autonomous lab
-
-```{index} pair: case study; A-Lab
-```
-
-- The A-Lab ([Szymanski and colleagues, 2023](https://pmc.ncbi.nlm.nih.gov/articles/PMC10700133/),
-  *Nature*) plans syntheses of inorganic materials, runs them with robots, characterizes the
-  products, and uses an active-learning loop to choose the next recipe when an attempt fails.
-- The paper first reported 41 of 58 targets made in 17 days of continuous operation.
-- Other researchers questioned how the products were identified and whether they were new. In a
-  2026 [author correction](https://doi.org/10.1038/s41586-025-09992-y), a manual re-analysis
-  confirmed 36 of the 40 reported successes and left 4 inconclusive, one target was removed
-  because it was in the training data, and the materials were described as "new to the
-  prediction platform, not necessarily new to science".
-- An autonomous loop needs the same check as any other model: whether its measurements say
-  what it concluded.
+- **Chemical synthesis.** Shields et al. (2021) had 50 expert chemists and engineers play a
+  reaction optimization game against BO. BO needed fewer experiments on average, and was more
+  consistent.
+- **Self-driving laboratories.** A mobile robotic chemist (Burger et al., 2020) ran 688
+  experiments over eight days, in a space of ten variables, with batched BO choosing them. It
+  found a photocatalyst six times more active than the starting formulations.
+- **Batteries.** Attia et al. (2020) combined BO with early predictions of battery life, and
+  ranked 224 fast-charging protocols in 16 days. Exhaustive testing without early prediction
+  would have taken over 500 days.
+- **Process design.** Kriging surrogates, the GPs of engineering, choose which flowsheet
+  simulations to run when each one is expensive (Caballero and Grossmann, 2008).
+- **Engineering design.** Wing shapes and other designs evaluated by expensive simulations
+  (Forrester, Sóbester and Keane, 2008).
+- **Machine learning.** Choosing a model's settings, such as the learning rate, when each training
+  run takes hours (Snoek et al., 2012). BO tuned the settings of the Go program AlphaGo before
+  its 2016 match, where each test is many games: its win rate against its old self rose from 50%
+  to 66.5% (Chen et al., 2018).
+- **Control.** Tuning the controller of an automotive throttle valve on the real test bench: as
+  good as or better than hand tuning, in about ten experiments (Neumann-Brosig et al., 2020).
+- **Online experiments.** Facebook tuned the settings of a ranking system and of its server
+  software (compiler flags). Each try is a live test with noisy results (Letham et al., 2019).
+- **Food.** Google tuned a chocolate chip cookie recipe (sugar, salt, vanilla, chips) by taste
+  tests, over 144 experiments (Solnik et al., 2017).
 
 ## Extensions engineers need
 
 ```{index} constrained Bayesian optimization, multi-objective optimization, Pareto front, batch Bayesian optimization, multi-fidelity optimization
 ```
 
-- **Constrained BO**: a second GP models a constraint (cost, CO₂, slump), and the acquisition is
-  multiplied by the probability that it holds.
-- **Multi-objective BO**: strength **and** cost. The answer is a **Pareto front**, the set of
-  mixes where no objective improves without another getting worse.
-- **Batch BO**: choose several experiments at once, for a lab that casts eight cylinders a day.
-- **Multi-fidelity BO**: mix cheap evaluations (a 7-day test, a coarse simulation) with
-  expensive ones (a 28-day test, a fine simulation).
-- [BoTorch](https://botorch.org/) and [Ax](https://ax.dev/) implement all four.
+All four are in BoTorch:
+
+- **Constraints:** the best yield may need a temperature the reactor cannot take. A second GP
+  learns that limit (the temperature of a hot spot, say) from the same experiments, and the
+  acquisition is multiplied by the probability of respecting it, so BO proposes only runs likely
+  to stay within the limit.
+- **Batches:** the lab has four reactors. Choose four experiments at once (`q=4`, with a batch
+  acquisition such as qLogEI).
+- **Several objectives:** yield and cost, or yield and energy. BO maps the **Pareto front**, the
+  set of best trade-offs (qEHVI, expected hypervolume improvement).
+- **Several fidelities:** a cheap, rough simulation and an expensive, exact one. BO decides which
+  to run, and where.
 
 ## Limitations and trade-offs
 
-| | Gaussian process | Deep ensemble | Split conformal |
-|---|---|---|---|
-| Uncertainty it reports | aleatoric + epistemic | epistemic only | total, constant width |
-| Guarantee | if the GP's assumptions hold | none | coverage, if exchangeable |
-| Grows away from data | yes | yes | no |
-| Scales to large data | poorly ($O(n^3)$ to fit) | yes | yes, wraps any model |
+```{index} pair: failure mode; single-seed Bayesian optimization
+```
 
-- **Bayesian optimization** works for a few dozen to a few hundred evaluations and up to about
-  15 to 20 design variables; beyond that the GP and the acquisition search both struggle.
-- It is **stochastic**: report several seeds and a random-search baseline, never one run.
-- On a fixed surrogate it **exploits the surrogate's errors**. Its answer is a proposal to test,
-  not a result.
-- **Active learning** queries where the model is unsure, which may not be where it will be used.
-- **Count the expensive evaluations**. A method that spent 10,000 surrogate calls is fine; one that
-  spent 10,000 experiments is not.
+- **Dimension.** BO works best up to about 20 inputs. Beyond that the GP needs far more data to
+  be useful.
+- **Cost of the GP.** Fitting grows as $n^3$ with the number of evaluations $n$. Fine for
+  hundreds, slow for many thousands. With thousands of cheap evaluations, use something else.
+- **The prior matters.** The kernel assumes a smoothness. A function with jumps or cliffs breaks
+  it, and the band is then wrong.
+- **Cold start.** With two or three points the GP's uncertainty is not trustworthy yet. Seed the
+  loop with a small, spread-out set of experiments.
+- **Noise and the incumbent.** With noisy measurements, the best measured value is partly luck
+  (the reactor's best measured yield, 0.474, had a true yield of 0.461). Report the model's best,
+  or repeat the best experiment.
+- **One run is not evidence.** BO is random. Use several seeds and a baseline.
+
+## Active learning: the same loop, a different goal
+
+```{index} active learning
+```
+
+:::{admonition} Definition: active learning
+:class: tip
+**Active learning** chooses each next experiment to make the **model** good everywhere, usually
+where it is most uncertain: $x_{n+1} = \arg\max_x \sigma(x)$.
+:::
+
+- $x_{n+1} = \arg\max_x \sigma(x)$ reads: the next experiment is the input where the GP's
+  uncertainty $\sigma(x)$ is largest, the widest point of the band.
+- Same GP, same loop. Only the acquisition function changes: the goal is a model, not one
+  optimum.
+- On the reactor, from the same two old runs, six more experiments each: BO (EI) crowds around
+  80 °C; active learning spreads from 20 to 140 °C and leaves a narrow band everywhere.
+
+```{figure} figures/al-vs-bo.png
+:alt: Two panels over temperature. Left, Bayesian optimization: six new experiments in red crowd between 54 and 87 degrees plus one at 140, and the band stays wide between 100 and 130 degrees. Right, active learning: six new experiments spread from 20 to 140 degrees, and the band is narrow everywhere.
+:width: 90%
+
+Six more experiments each, from the same two old runs (black). Left: chosen by expected
+improvement. Right: chosen where the GP is most uncertain.
+```
 
 ## In-class demo
 
-- [`l15-uq-bayesopt.ipynb`](l15-uq-bayesopt.ipynb): Lecture 9's GP, a five-network ensemble and
-  split conformal on the concrete strength dataset; their coverage on the grouped and the
-  extrapolation splits; then Bayesian optimization of the mix with expected improvement written
-  out by hand, against random search, and the same search in Optuna's `GPSampler`.
+- [`l15-bayesian-optimization.ipynb`](l15-bayesian-optimization.ipynb): BoTorch on the reactor.
+  One knob (temperature) from two old runs, the loop printed experiment by experiment, and the
+  answer checked against the true curve. Then two knobs (temperature and residence time), against
+  random search over five seeds.
 
 ## Summary
 
-- **Aleatoric** uncertainty is the scatter in the data (5.0 MPa between replicate specimens);
-  **epistemic** is what the model does not know yet, and shrinks with data.
-- **Gaussian process** intervals carry both; an **ensemble's spread** carries only the epistemic
-  part; **split conformal** intervals come with a coverage guarantee, if the test data are
-  exchangeable with the calibration data.
-- **Calibration** is checked with the PICP and a reliability diagram, on a test set like the one
-  you will use the model on. On the strongest mixes, conformal's 95% covered 70%.
-- **Bayesian optimization** fits a GP and maximizes an **acquisition function**: EI, PI, UCB or
-  Thompson sampling, each trading exploration against exploitation differently.
-- On a mix design, BO got within 1 MPa of the emulator's best in 29 of 30 seeds; random search in
-  none. The emulator's best (91.6 ± 18.0 MPa) is a proposal to test.
-- **Active learning** queries where the model is least sure. On the concrete strength dataset that
-  meant the edges, and random queries did better.
+Bayesian optimization is for objectives that are expensive, noisy and without gradients, when
+the budget is tens of evaluations. It fits a Gaussian process to every evaluation so far, and an
+acquisition function turns the GP's mean and uncertainty into the next experiment, balancing
+exploitation (go where it looks good) against exploration (go where it is unsure). PI, EI and
+UCB are three recipes for that balance; LogEI is the numerically safe EI that BoTorch uses. Gradient-based methods need cheap, noise-free evaluations; when each evaluation is
+an experiment, BO spends the budget where it can still learn or gain.
 
 ## Resources
 
-- [Lakshminarayanan, Pritzel and Blundell (2017), deep ensembles](https://arxiv.org/abs/1612.01474).
-  The ensemble method, with the noise term that the spread alone lacks.
-- [Angelopoulos and Bates, A Gentle Introduction to Conformal Prediction](https://arxiv.org/abs/2107.07511).
-  Split conformal from scratch, with code and the exchangeability condition.
 - [Frazier, A Tutorial on Bayesian Optimization](https://arxiv.org/abs/1807.02811). The loop,
-  expected improvement and the extensions, in one readable tutorial.
+  the acquisition functions and the extensions, in one readable tutorial.
+- [Garnett, Bayesian Optimization](https://bayesoptbook.com). The textbook, free online.
 - [Shahriari et al. (2016), Taking the Human Out of the Loop](https://www.cs.ox.ac.uk/people/nando.defreitas/publications/BayesOptLoop.pdf).
-  The standard review of Bayesian optimization (author's copy).
-- [Optuna's GPSampler](https://optuna.readthedocs.io/en/stable/reference/samplers/generated/optuna.samplers.GPSampler.html).
-  Bayesian optimization with a GP, in the tool of Lecture 10.
-- [Settles, Active Learning Literature Survey](https://burrsettles.com/pub/settles.activelearning.pdf).
-  Query strategies and the settings they suit (author's copy).
-- [Shields et al. (2021), Bayesian reaction optimization](https://b-shields.github.io/files/2021-02-03-Nature.pdf).
-  The fifty-chemists contest (author's copy).
-- [BoTorch](https://botorch.org/) and [Ax](https://ax.dev/). Production tooling for constrained,
-  multi-objective, batch and multi-fidelity BO.
+  The standard review (author's copy).
+- [Jones, Schonlau and Welch (1998), Efficient Global Optimization of Expensive Black-Box Functions](https://www.stat.ubc.ca/~will/docs/JonSchWel1998_global_optimization.pdf).
+  EGO: expected improvement on a GP, the paper that made BO standard in engineering design
+  (published version, on Welch's page).
+- [Jones (2001), A Taxonomy of Global Optimization Methods Based on Response Surfaces](https://research.cs.wisc.edu/areas/ai/airg/jones01taxonomy.pdf).
+  Which surrogate-based methods work, which can fail, and why (mirror copy).
+- [BoTorch tutorials](https://botorch.org/docs/tutorials/). Worked examples of every piece used
+  today, and of the extensions.
+- [Shields et al. (2021), Bayesian reaction optimization as a tool for chemical synthesis](https://doyle.chem.ucla.edu/wp-content/uploads/2021/02/58.-Bayesian-reaction-optimization-as-a-tool-for-chemical-synthesis.pdf).
+  BO against 50 expert chemists and engineers (author lab's copy of the published paper).
 
 ## Assignment
 
-No assignment is released today.
+[Assignment 5](../../course/assignments/a05.ipynb), four models of a bioreactor, is released
+today and due Wednesday 10-28.
 
 ## Practice module
 

@@ -455,22 +455,34 @@
 - id: l15-o1
   lecture: l15
   text: >-
-    Explain the Bayesian-optimization loop and the role of the surrogate + acquisition.
+    Explain what Bayesian optimization (BO) is, why it is called Bayesian, and when it beats
+    gradient-based and other derivative-free optimizers: expensive, noisy, black-box objectives
+    with a budget of tens of evaluations.
 
 - id: l15-o2
   lecture: l15
   text: >-
-    Choose and compare acquisition functions for exploration vs. exploitation.
+    Explain the BO loop (a Gaussian-process surrogate, an acquisition function, evaluate, update)
+    and the trade-off between exploration and exploitation.
 
 - id: l15-o3
   lecture: l15
   text: >-
-    Set up an active-learning loop that chooses the next expensive query.
+    Write and compute the common acquisition functions: probability of improvement (PI), expected
+    improvement (EI) and upper and lower confidence bounds (UCB, LCB), and
+    explain how their parameters set the balance between exploration and exploitation.
 
 - id: l15-o4
   lecture: l15
   text: >-
-    Produce and calibrate predictive uncertainty, separating aleatoric from epistemic.
+    Run BO in BoTorch on an engineering problem and compare it with random search over several
+    seeds.
+
+- id: l15-o5
+  lecture: l15
+  text: >-
+    Name the extensions engineers need (constraints, batches, several objectives, several
+    fidelities) and recognize where BO is used across engineering and science.
 
 # L16, objectives lifted verbatim from lectures/l16/notes.md (bank status: unwritten until release).
 

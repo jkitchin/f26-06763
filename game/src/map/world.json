@@ -263,7 +263,7 @@
       "session": "L15",
       "id": "l15",
       "date": "2026-10-21",
-      "title": "Bayesian optimization and active learning",
+      "title": "Bayesian optimization",
       "written": false,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
@@ -559,19 +559,19 @@
     },
     {
       "from": "l15",
-      "to": "l09",
+      "to": "l13",
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "- [Lecture 9](../l09/notes.md) fitted a Gaussian process (GP) to the concrete strength dataset. It"
+      "where": "In [Lecture 13](../l13/notes.md) we met generations of machine learning in engineering:"
     },
     {
       "from": "l15",
-      "to": "l10",
+      "to": "l14",
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "**Optuna** ([Lecture 10](../l10/notes.md)) ran the hyperparameter search with its default sampler,"
+      "where": "[Lecture 14](../l14/notes.md) built it: a mean $\\mu(x)$ and an uncertainty $\\sigma(x)$ at every"
     },
     {
       "from": "l16",
