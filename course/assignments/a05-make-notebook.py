@@ -3,9 +3,9 @@
     python3 course/assignments/a05-make-notebook.py
 
 A5 is handed out as a notebook, in the format of the 06-325 homework: the problem text in
-markdown cells, the code the assignment gives as runnable cells, an "ADD YOUR CODE HERE" cell
-after each item, and the pycse cells that export the notebook as a PDF at the end. Students
-open it in Google Colab, and the PDF is what they submit.
+markdown cells, the code the assignment gives as runnable cells, and an "ADD YOUR CODE HERE"
+cell after each item. Students work in Google Colab, export the notebook with Colab's
+File > Print > Save as PDF, and submit the PDF.
 
 The two figures are embedded as data URIs, so they show in Colab, in a local Jupyter and on the
 course site without any file next to the notebook. Edit this script, not the .ipynb: the
@@ -53,11 +53,6 @@ CELLS = [
 # Assignment 5: Four models of a bioreactor
 **Released:** L15 (2026-10-21) · **Due:** Wednesday 2026-10-28 · **6 points on Canvas.**
 """),
-    md("""
-## Names of peers/colleagues you collaborated with (if applicable):
-
-## Generative AI statement (please indicate if you used generative AI, where and how):
-"""),
     md(f"""
 Exporting and submitting your homework
 
@@ -65,17 +60,11 @@ Exporting and submitting your homework
 
 1. Run every cell from top to bottom (Runtime > Run all), so that all outputs and plots are in the notebook.
 
-2. Press ctrl + s (or command + s on a Mac) to save your notebook.
+2. Export the notebook as a PDF: File > Print, then choose "Save as PDF" as the destination.
 
-3. Run the export commands at the end of this notebook to generate your homework as a PDF.
+3. Check the PDF before you submit it. It is your responsibility to make sure the PDF exported correctly: every code cell, output, plot and answer must be in it and readable. Equations from the problem statement need not render perfectly, as long as your answers are clear.
 
-4. Authenticate when prompted by selecting your Google account and allowing access.
-
-5. Wait a couple of minutes for the PDF to be generated and downloaded.
-
-6. Verify the PDF: ensure no images, equations, code or plots are missing. Don't worry if equations from the problem statement are not perfectly rendered, as long as your answers are clear.
-
-7. Submit the PDF to Canvas.
+4. Submit the PDF to Canvas.
 """),
     md(f"""
 Consider a continuous bioreactor in which the biomass (cells) grows by consuming substrate. Five experiments were run on it, each from a different initial condition. Build four models, use each one to predict experiment 5, and compare the predictions:
@@ -440,22 +429,13 @@ Note: the measurement noise sets a floor. No model can score much below 0.05 kg/
 c) Which model would you use to predict a sixth experiment from its initial condition only? Why can the neural ODE do it while the PINN cannot?
 """),
     student("5c"),
-    # ------------------------------------------------------------------ export, as in 06-325
+    # ------------------------------------------------------------------ end
+    md("""
+## Generative AI statement (please indicate if you used generative AI, where and how):
+"""),
     md("""
 ## End of homework.
 """),
-    md("""
-## Run the code below to export your HW as a PDF:
-"""),
-    code("""
-!pip install pycse &> /dev/null
-""", tags=["skip-execution"]),
-    code("""
-from pycse.colab import pdf
-""", tags=["skip-execution"]),
-    code("""
-%pdf -h
-""", tags=["skip-execution"]),
 ]
 
 
@@ -472,7 +452,7 @@ def notebook(cells):
         out.append(cell)
     return {"cells": out, "metadata": {
         "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
-        # ipython3, so the !pip and %pdf cells highlight without a lexer error
+        # ipython3, so the !pip cell highlights without a lexer error
         "language_info": {"name": "python", "pygments_lexer": "ipython3"}},
         "nbformat": 4, "nbformat_minor": 5}
 
