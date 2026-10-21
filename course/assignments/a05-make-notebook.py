@@ -85,6 +85,8 @@ The four models are of two kinds, each without and with physics:
 - A model of the reactor takes the state as its input. Its rule, from the state now to how the state changes, is the same in every experiment, because every experiment runs the same reactor. So Problems 3 and 4 learn from experiments 1 to 4 and predict experiment 5 from its initial condition.
 - Problem 5 compares the four.
 
+Only the top row isolates the effect of the physics: Problems 1 and 2 differ only in the physics term. Problems 3 and 4 also differ in how they model time (discrete steps against a continuous ODE) and in what they fit (one step against whole trajectories).
+
 {image("a05-physics.png", "Two cards from Lecture 13. PINN, labeled Problem 2: L = L_data + lambda L_physics, physics in the loss, a penalty, small, not zero. Neural ODE, labeled Problem 4: dx/dt = f(x, NN(x; theta)), physics in the equations, the network sits inside them.")}
 
 Where the physics goes in this homework, from Lecture 13: the PINN puts it in the loss (Problem 2), and the neural ODE puts it in the equations (Problem 4).
