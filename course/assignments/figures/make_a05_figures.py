@@ -13,7 +13,7 @@
                      without it the committed PNG is kept.
     a05-data.png     The five experiments of a05-bioreactor.csv: experiments 1 to 4
                      for 100 s (training) and experiment 5 for 300 s (test), with the
-                     first 40 s of experiment 5, which Problems 2 and 3 train on, filled.
+                     first 40 s of experiment 5, which Problems 1 and 2 train on, filled.
 """
 import csv
 import io
@@ -111,7 +111,7 @@ def data():
                             ms=5, mew=1.3, label="experiment 5 (test)", zorder=3)
                     first = v[:, 0] <= 40
                     ax.plot(v[first, 0], v[first, j], "o", color=INK, ms=5, zorder=4,
-                            label="experiment 5, first 40 s\n(Problems 2 and 3 train on it)")
+                            label="experiment 5, first 40 s\n(Problems 1 and 2 train on it)")
                 else:
                     ax.plot(v[:, 0], v[:, j], "-o", color=colors[exp], lw=0.9, ms=3.5,
                             label=f"experiment {exp}")

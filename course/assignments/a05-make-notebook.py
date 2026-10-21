@@ -67,17 +67,20 @@ Exporting and submitting your homework
 4. Submit the PDF to Canvas.
 """),
     md(f"""
-Consider a continuous bioreactor in which the biomass (cells) grows by consuming substrate. Five experiments were run on it, each from a different initial condition. Build four models, use each one to predict experiment 5, and compare the predictions:
+Consider a continuous bioreactor in which the biomass (cells) grows by consuming substrate. Five experiments were run on it, each from a different initial condition. Build four models, use each one to predict experiment 5, and compare the predictions.
 
-| Problem | Model | Learns from | Taught in | Points |
-|---|---|---|---|---|
-| 1 | Neural-network time-series model | Experiments 1 to 4 | {L8}, {L9} | 1 |
-| 2 | Neural network of time, $t \\mapsto (X, S)$ | The first 40 s of experiment 5 | {L13}, {PINN_NB} | 1 |
-| 3 | Physics-informed neural network (PINN) | The first 40 s of experiment 5, and the two balances | {L13}, {PINN_NB} | 1.5 |
-| 4 | Neural ODE (ordinary differential equation) | Experiments 1 to 4, and the biomass balance | {L13}, {NODE_NB} | 1.5 |
-| 5 | Comparison | | | 1 |
+The four models are of two kinds, each without and with physics:
 
-Your TA grades the PDF. A model that fails, reported and explained, loses no points.
+| | Data only | Data and physics |
+|---|---|---|
+| **A model of one trajectory**: time $\\mapsto (X, S)$ | Problem 1: neural network of time ({L13}, {PINN_NB}) | Problem 2: physics-informed neural network, PINN ({L13}, {PINN_NB}) |
+| **A model of the reactor**: state $\\mapsto$ its change | Problem 3: neural-network time-series model ({L8}, {L9}) | Problem 4: neural ODE, ordinary differential equation ({L13}, {NODE_NB}) |
+
+- A model of one trajectory takes the time as its input, so it describes one experiment, and it can learn only from that experiment. Problems 1 and 2 train on the first 40 s of experiment 5 and predict the rest.
+- A model of the reactor takes the state as its input. Its rule, from the state now to how the state changes, is the same in every experiment, because every experiment runs the same reactor. So Problems 3 and 4 learn from experiments 1 to 4 and predict experiment 5 from its initial condition.
+- Problem 5 compares the four.
+
+Points: Problem 1, 1; Problem 2, 1.5; Problem 3, 1; Problem 4, 1.5; Problem 5, 1. Your TA grades the PDF. A model that fails, reported and explained, loses no points.
 """),
     md(f"""
 ## The bioreactor
@@ -117,7 +120,7 @@ $$
 
 - Columns: `experiment` (1 to 5), `t` (s), `X` (kg/m³), `S` (mol/m³). One sample every 5 s.
 - Experiments 1 to 4: 0 to 100 s, 21 samples each.
-- Experiment 5: 0 to 300 s, 61 samples. Problems 2 and 3 train on its first 40 s. Its measurements after 40 s are the test.
+- Experiment 5: 0 to 300 s, 61 samples. Problems 1 and 2 train on its first 40 s. Its measurements after 40 s are the test.
 - The first sample of each experiment ($t = 0$) is the exact initial condition. The others are measurements with Gaussian noise: standard deviation 0.05 kg/m³ on $X$ and 1 mol/m³ on $S$.
 
 | Experiment | $X_0$ (kg/m³) | $S_0$ (mol/m³) | Measured | Use |
@@ -126,11 +129,11 @@ $$
 | 2 | 2.0 | 20 | 0 to 100 s | Training |
 | 3 | 4.0 | 120 | 0 to 100 s | Training |
 | 4 | 2.5 | 60 | 0 to 100 s | Training |
-| 5 | 3.0 | 80 | 0 to 300 s | First 40 s: training for Problems 2 and 3. After 40 s: **test** |
+| 5 | 3.0 | 80 | 0 to 300 s | First 40 s: training for Problems 1 and 2. After 40 s: **test** |
 
 {image("a05-data.png", "X and S of the five experiments against time. Experiments 1 to 4 run from 0 to 100 s; experiment 5 runs from 0 to 300 s, with its first 40 s filled. All approach the steady state, X near 3.46 and S near 45.6.")}
 
-The training data: experiments 1 to 4 (0 to 100 s), and the first 40 s of experiment 5 for Problems 2 and 3. The test: experiment 5 after 40 s.
+The training data: experiments 1 to 4 (0 to 100 s), and the first 40 s of experiment 5 for Problems 1 and 2. The test: experiment 5 after 40 s.
 """),
     md("""
 ## Set-up
@@ -176,8 +179,8 @@ def Y(S):
 """),
     md("""
 ## Notes for all problems
-- **Problems 1 and 4** train on experiments 1 to 4. From experiment 5 they use only its initial condition, $(X_0, S_0) = (3.0, 80)$.
-- **Problems 2 and 3** train on experiment 5 from 0 to 40 s, its first 9 samples. A network of $t$ describes one trajectory, so its data must come from the trajectory it predicts.
+- **Problems 1 and 2**, the models of one trajectory, train on experiment 5 from 0 to 40 s, its first 9 samples.
+- **Problems 3 and 4**, the models of the reactor, train on experiments 1 to 4. From experiment 5 they use only its initial condition, $(X_0, S_0) = (3.0, 80)$.
 - Every model predicts experiment 5 at $t = 0, 5, \\ldots, 300$ s. Its measurements after 40 s are the test, in Problem 5.
 - JAX takes NumPy arrays, not pandas columns. Read the times as floats with `df["t"].astype(float).to_numpy()`, because `jax.grad` refuses integers and the column `t` holds integers. Read `X` and `S` with `.to_numpy()` too.
 - Build time grids with `np.linspace` (Lecture 13), which gives floats.
@@ -186,38 +189,8 @@ def Y(S):
 - A model is allowed to fail. Report what you get and explain it.
 """),
     # ------------------------------------------------------------------ problem 1
-    md(f"""
-## 1. Neural-network time-series model
-Consider a model that predicts the next sample from the current one:
-
-$$
-X_{{k+1}} = f_X(X_k, S_k), \\qquad S_{{k+1}} = f_S(X_k, S_k)
-$$
-
-It is the recursive time-series model of {L8}, with a neural network ({L9}) as the regression.
-
-Using experiments 1 to 4, do the following:
-
-a) Build the training table: features $X_k$ and $S_k$, targets $X_{{k+1}}$ and $S_{{k+1}}$. That is 20 rows per experiment, 80 in total.
-
-Hint: one experiment at a time. For an array `arr` of its 21 samples, the features are `arr[:-1]` and the targets are `arr[1:]`.
-"""),
-    student("1a"),
     md("""
-b) Fit $f_X$ and $f_S$, each with `make_pipeline(StandardScaler(), MLPRegressor(solver="lbfgs", random_state=0, max_iter=5000))` (scikit-learn; Lectures 8 and 9).
-"""),
-    student("1b"),
-    md("""
-c) Predict experiment 5 recursively (Lecture 8, "Direct and recursive forecasting"). Start from $(3.0, 80)$. At each step, predict $X_{k+1}$ and $S_{k+1}$ from the same $(X_k, S_k)$, then use the pair as the next features. Repeat 60 times.
-"""),
-    student("1c"),
-    md("""
-d) Plot $X$ and $S$ of your prediction with the measurements of experiment 5. How good is the prediction? Why?
-"""),
-    student("1d"),
-    # ------------------------------------------------------------------ problem 2
-    md("""
-## 2. Neural network of time
+## 1. Neural network of time
 Consider the plain network of Lecture 13: a neural network that maps time to the states, $t \\mapsto (X, S)$, trained on data only.
 
 a) Run the cell below. It codes the network:
@@ -240,11 +213,11 @@ def model(net, t):
     md("""
 b) Train it on the 9 samples of experiment 5 from 0 to 40 s. In the cell below, build `t_fit`, their 9 times, and `y_fit`, their 9 rows of $(X, S)$, as NumPy arrays.
 """),
-    student("2b"),
+    student("1b"),
     md("""
 Then run the cell below. It defines the loss, the mean squared error against the 9 samples, and a training function, and trains the network:
 - `jax.vmap` (JAX; Lectures 11 and 13) evaluates `model` at all 9 times at once.
-- `train` is the training step of `l13-neural-dae.ipynb` (Equinox and Optax; Lecture 13) inside a function, so that Problems 3 and 4 can call it with their own loss. The step of `l13-pinn-jax.ipynb` does not work on an Equinox network.
+- `train` is the training step of `l13-neural-dae.ipynb` (Equinox and Optax; Lecture 13) inside a function, so that Problems 2 and 4 can call it with their own loss. The step of `l13-pinn-jax.ipynb` does not work on an Equinox network.
 """),
     code("""
 def loss_nn(net):
@@ -273,11 +246,11 @@ net_nn = train(loss_nn, net, 20_000, optax.adam(1e-3))
     md("""
 c) Evaluate `net_nn` at $t = 0, 5, \\ldots, 300$ s with `jax.vmap(model, in_axes=(None, 0))`. Plot $X$ and $S$ with the measurements, marking the 40 s it trained on. How good is it before 40 s, and after? Why?
 """),
-    student("2c"),
-    # ------------------------------------------------------------------ problem 3
+    student("1c"),
+    # ------------------------------------------------------------------ problem 2
     md("""
-## 3. PINN
-Consider the PINN of Lecture 13: the network of Problem 2, trained on the same data and on the residuals of the model's equations. For this reactor the residuals are
+## 2. PINN
+Consider the PINN of Lecture 13: the network of Problem 1, trained on the same data and on the residuals of the model's equations. For this reactor the residuals are
 
 $$
 r_X = \\frac{dX}{dt} + \\frac{F}{V}\\,X - \\mu(S)\\,X, \\qquad
@@ -299,7 +272,7 @@ def residuals(net, t):
     return jnp.array([rX, rS])
 """),
     md("""
-b) Run the cell below. It trains the PINN with `train`, from the same starting network `net`, on data plus physics. The loss is $\\mathcal{L}_\\text{data} + \\mathcal{L}_\\text{physics}$: the loss of Problem 2, plus the mean of $r_X^2 + r_S^2$ at 301 collocation points from 0 to 300 s.
+b) Run the cell below. It trains the PINN with `train`, from the same starting network `net`, on data plus physics. The loss is $\\mathcal{L}_\\text{data} + \\mathcal{L}_\\text{physics}$: the loss of Problem 1, plus the mean of $r_X^2 + r_S^2$ at 301 collocation points from 0 to 300 s.
 """),
     code("""
 t_phys = np.linspace(0, 300, 301)       # 301 collocation points (s)
@@ -314,9 +287,39 @@ def loss_pinn(net):
 net_pinn = train(loss_pinn, net, 20_000, optax.adam(1e-3))
 """),
     md("""
-c) Evaluate `net_pinn` at $t = 0, 5, \\ldots, 300$ s and plot it with the measurements and the prediction of Problem 2. How good is it after 40 s, compared with Problem 2? Why does the physics help? Why is the prediction still off?
+c) Evaluate `net_pinn` at $t = 0, 5, \\ldots, 300$ s and plot it with the measurements and the prediction of Problem 1. How good is it after 40 s, compared with Problem 1? Why does the physics help? Why is the prediction still off?
+"""),
+    student("2c"),
+    # ------------------------------------------------------------------ problem 3
+    md(f"""
+## 3. Neural-network time-series model
+Consider a model that predicts the next sample from the current one:
+
+$$
+X_{{k+1}} = f_X(X_k, S_k), \\qquad S_{{k+1}} = f_S(X_k, S_k)
+$$
+
+It is the recursive time-series model of {L8}, with a neural network ({L9}) as the regression.
+
+Using experiments 1 to 4, do the following:
+
+a) Build the training table: features $X_k$ and $S_k$, targets $X_{{k+1}}$ and $S_{{k+1}}$. That is 20 rows per experiment, 80 in total.
+
+Hint: one experiment at a time. For an array `arr` of its 21 samples, the features are `arr[:-1]` and the targets are `arr[1:]`.
+"""),
+    student("3a"),
+    md("""
+b) Fit $f_X$ and $f_S$, each with `make_pipeline(StandardScaler(), MLPRegressor(solver="lbfgs", random_state=0, max_iter=5000))` (scikit-learn; Lectures 8 and 9).
+"""),
+    student("3b"),
+    md("""
+c) Predict experiment 5 recursively (Lecture 8, "Direct and recursive forecasting"). Start from $(3.0, 80)$. At each step, predict $X_{k+1}$ and $S_{k+1}$ from the same $(X_k, S_k)$, then use the pair as the next features. Repeat 60 times.
 """),
     student("3c"),
+    md("""
+d) Plot $X$ and $S$ of your prediction with the measurements of experiment 5. How good is the prediction? Why?
+"""),
+    student("3d"),
     # ------------------------------------------------------------------ problem 4
     md(f"""
 ## 4. Neural ODE
@@ -395,7 +398,7 @@ c) Train on experiments 1 to 4. In the cell below, define:
 """),
     student("4c"),
     md("""
-Then run the cell below. It trains for 10,000 steps with `train` and a cosine schedule (Optax; Lecture 13). `train` accepts the pair `nets`, because `eqx.filter` and `eqx.filter_value_and_grad` work on a tuple of networks.
+Then run the cell below. It trains for 10,000 steps with `train` (Problem 1) and a cosine schedule (Optax; Lecture 13). `train` accepts the pair `nets`, because `eqx.filter` and `eqx.filter_value_and_grad` work on a tuple of networks.
 """),
     code("""
 opt = optax.adam(optax.cosine_decay_schedule(1e-2, 10_000, alpha=0.05))
@@ -412,7 +415,7 @@ e) Evaluate `mu_nn` with the trained growth-rate network, `nets[0]`, at $S = 0, 
     # ------------------------------------------------------------------ problem 5
     md("""
 ## 5. Compare
-a) Plot $X$ and $S$ of experiment 5 in one figure: the measurements and your four predictions, with the 40 s of Problems 2 and 3 marked.
+a) Plot $X$ and $S$ of experiment 5 in one figure: the measurements and your four predictions, with the 40 s of Problems 1 and 2 marked.
 """),
     student("5a"),
     md("""
@@ -426,7 +429,7 @@ Note: the measurement noise sets a floor. No model can score much below 0.05 kg/
 """),
     student("5b"),
     md("""
-c) Which model would you use to predict a sixth experiment from its initial condition only? Why can the neural ODE do it while the PINN cannot?
+c) Which model would you use to predict a sixth experiment from its initial condition only? Why can the models of the reactor (Problems 3 and 4) do it, while the models of one trajectory (Problems 1 and 2) cannot?
 """),
     student("5c"),
     # ------------------------------------------------------------------ end
