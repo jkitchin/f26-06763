@@ -80,6 +80,10 @@ The four models are of two kinds, each without and with physics:
 - A model of the reactor takes the state as its input. Its rule, from the state now to how the state changes, is the same in every experiment, because every experiment runs the same reactor. So Problems 3 and 4 learn from experiments 1 to 4 and predict experiment 5 from its initial condition.
 - Problem 5 compares the four.
 
+{image("a05-physics.png", "Four cards from Lecture 13, one per way to add the physics to a network: PINN, physics in the loss; neural ODE, physics in the equations; neural DAE, physics as constraints; projection layer, physics in the last layer. The PINN and neural ODE cards are framed in blue and labeled Problem 2 and Problem 4; the other two are greyed out, not in this homework.")}
+
+The four ways to add the physics to a network, from Lecture 13. This homework uses two: the PINN puts the physics in the loss (Problem 2), and the neural ODE puts it in the equations (Problem 4).
+
 Points: Problem 1, 1; Problem 2, 1.5; Problem 3, 1; Problem 4, 1.5; Problem 5, 1. Your TA grades the PDF. A model that fails, reported and explained, loses no points.
 """),
     md(f"""
@@ -102,7 +106,11 @@ $$
 where $\\mu(S)$ is the specific growth rate and $Y(S)$ the yield:
 
 $$
-\\mu(S) = 10^{{-3}}\\,S\\,e^{{-S/120}}, \\qquad Y(S) = 5.4 \\cdot 10^{{-3}} + 1.8 \\cdot 10^{{-4}}\\,S
+\\mu(S) = 10^{{-3}}\\,S\\,e^{{-S/120}}
+$$
+
+$$
+Y(S) = 5.4 \\cdot 10^{{-3}} + 1.8 \\cdot 10^{{-4}}\\,S
 $$
 
 | Symbol | Meaning | Value | Units |
@@ -215,7 +223,17 @@ b) Train it on the 9 samples of experiment 5 from 0 to 40 s. In the cell below, 
 """),
     student("1b"),
     md("""
-Then run the cell below. It defines the loss, the mean squared error against the 9 samples, and a training function, and trains the network:
+Then run the cell below. As in Lecture 13, training the network solves
+
+$$
+\\min_\\theta \\; \\mathcal{L}_\\text{data}(\\theta)
+$$
+
+$$
+\\mathcal{L}_\\text{data}(\\theta) = \\frac{1}{2N} \\sum_{i=1}^{N} \\Big[\\big(X_\\text{NN}(t_i;\\theta) - X_i\\big)^2 + \\big(S_\\text{NN}(t_i;\\theta) - S_i\\big)^2\\Big]
+$$
+
+with $\\theta$ the network's weights and $(t_i, X_i, S_i)$ the $N = 9$ samples. The cell defines this loss, `loss_nn`, and a training function, and trains the network:
 - `jax.vmap` (JAX; Lectures 11 and 13) evaluates `model` at all 9 times at once.
 - `train` is the training step of `l13-neural-dae.ipynb` (Equinox and Optax; Lecture 13) inside a function, so that Problems 2 and 4 can call it with their own loss. The step of `l13-pinn-jax.ipynb` does not work on an Equinox network.
 """),
@@ -253,7 +271,10 @@ c) Evaluate `net_nn` at $t = 0, 5, \\ldots, 300$ s with `jax.vmap(model, in_axes
 Consider the PINN of Lecture 13: the network of Problem 1, trained on the same data and on the residuals of the model's equations. For this reactor the residuals are
 
 $$
-r_X = \\frac{dX}{dt} + \\frac{F}{V}\\,X - \\mu(S)\\,X, \\qquad
+r_X = \\frac{dX}{dt} + \\frac{F}{V}\\,X - \\mu(S)\\,X
+$$
+
+$$
 r_S = \\frac{dS}{dt} - \\frac{F}{V}\\,(S_F - S) + \\frac{\\mu(S)}{Y(S)}\\,X
 $$
 
@@ -272,7 +293,17 @@ def residuals(net, t):
     return jnp.array([rX, rS])
 """),
     md("""
-b) Run the cell below. It trains the PINN with `train`, from the same starting network `net`, on data plus physics. The loss is $\\mathcal{L}_\\text{data} + \\mathcal{L}_\\text{physics}$: the loss of Problem 1, plus the mean of $r_X^2 + r_S^2$ at 301 collocation points from 0 to 300 s.
+b) Run the cell below. It trains the PINN with `train`, from the same starting network `net`. As in Lecture 13, the PINN solves
+
+$$
+\\min_\\theta \\; \\mathcal{L}_\\text{data}(\\theta) + \\lambda\\, \\mathcal{L}_\\text{physics}(\\theta)
+$$
+
+$$
+\\mathcal{L}_\\text{physics}(\\theta) = \\frac{1}{M} \\sum_{j=1}^{M} \\Big[r_X(t_j;\\theta)^2 + r_S(t_j;\\theta)^2\\Big]
+$$
+
+with $\\mathcal{L}_\\text{data}$ from Problem 1, the $M = 301$ collocation points $t_j$ from 0 to 300 s, and $\\lambda = 1$. The cell defines this loss, `loss_pinn`.
 """),
     code("""
 t_phys = np.linspace(0, 300, 301)       # 301 collocation points (s)
@@ -296,7 +327,11 @@ c) Evaluate `net_pinn` at $t = 0, 5, \\ldots, 300$ s and plot it with the measur
 Consider a model that predicts the next sample from the current one:
 
 $$
-X_{{k+1}} = f_X(X_k, S_k), \\qquad S_{{k+1}} = f_S(X_k, S_k)
+X_{{k+1}} = f_X(X_k, S_k)
+$$
+
+$$
+S_{{k+1}} = f_S(X_k, S_k)
 $$
 
 It is the recursive time-series model of {L8}, with a neural network ({L9}) as the regression.
@@ -326,7 +361,10 @@ d) Plot $X$ and $S$ of your prediction with the measurements of experiment 5. Ho
 Consider the same balances with two networks: $\\mu_\\text{{NN}}(S)$, the growth rate in the biomass balance, and $f_\\text{{NN}}(X, S)$, the whole right-hand side of the substrate balance:
 
 $$
-\\frac{{dX}}{{dt}} = -\\frac{{F}}{{V}}\\,X + \\mu_\\text{{NN}}(S)\\,X, \\qquad
+\\frac{{dX}}{{dt}} = -\\frac{{F}}{{V}}\\,X + \\mu_\\text{{NN}}(S)\\,X
+$$
+
+$$
 \\frac{{dS}}{{dt}} = f_\\text{{NN}}(X, S)
 $$
 
@@ -391,10 +429,34 @@ def simulate(nets, x0, ts):
     return sol.ys
 """),
     md("""
-c) Train on experiments 1 to 4. In the cell below, define:
+c) Train on experiments 1 to 4. As in Lecture 13, the neural ODE solves
+
+$$
+\\min_\\theta \\; \\frac{1}{2 \\cdot 4 \\cdot 21} \\sum_{e=1}^{4} \\sum_{k=1}^{21} \\left[\\left(\\frac{X_e(t_k;\\theta) - X_{e,k}}{\\sigma_X}\\right)^2 + \\left(\\frac{S_e(t_k;\\theta) - S_{e,k}}{\\sigma_S}\\right)^2\\right]
+$$
+
+where $X_e(t;\\theta)$ and $S_e(t;\\theta)$ solve the balances from the initial condition of experiment $e$:
+
+$$
+\\frac{dX_e}{dt} = -\\frac{F}{V}\\,X_e + \\mu_\\text{NN}(S_e;\\theta)\\,X_e
+$$
+
+$$
+\\frac{dS_e}{dt} = f_\\text{NN}(X_e, S_e;\\theta)
+$$
+
+$$
+X_e(0) = X_{0,e}
+$$
+
+$$
+S_e(0) = S_{0,e}
+$$
+
+Here $\\theta$ holds the weights of both networks, $X_{e,k}$ and $S_{e,k}$ are the measurements of experiment $e$ at its 21 sample times $t_k$, and $\\sigma_X$ and $\\sigma_S$ are the standard deviations of $X$ and of $S$ over all samples of experiments 1 to 4. `simulate` solves the balances, so every evaluation of the loss simulates the four experiments. In the cell below, define:
 - `x0s`, their four initial conditions, `ts`, their 21 sample times, and `ys`, their measurements, of shape (4, 21, 2);
-- `sigma`, the standard deviation of $X$ and of $S$ over all samples of experiments 1 to 4;
-- `loss_node(nets)`: simulate the four experiments at once with `jax.vmap(simulate, in_axes=(None, 0, None))(nets, x0s, ts)`, and return the mean of $\\left((\\text{prediction} - \\text{data}) / \\sigma\\right)^2$.
+- `sigma`, the standard deviations $\\sigma_X$ and $\\sigma_S$;
+- `loss_node(nets)`: simulate the four experiments at once with `jax.vmap(simulate, in_axes=(None, 0, None))(nets, x0s, ts)`, and return the objective above.
 """),
     student("4c"),
     md("""
