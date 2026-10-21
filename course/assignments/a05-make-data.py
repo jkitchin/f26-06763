@@ -7,13 +7,12 @@
     uv run --no-project course/assignments/a05-make-data.py
 
 writes course/assignments/a05-bioreactor.csv and its .sha256. Both are published
-beside a05-evidence.py, which checks a student's copy against the same hash.
+at the site root, where the A5 notebook reads the CSV by URL.
 
 Run this once. The CSV is the data, and the committed copy is the reference:
 NumPy does not promise the same random stream across versions, so a rerun on a
-newer NumPy may not reproduce it bit for bit. If you rerun it on purpose,
-update DATA_SHA256 in a05-evidence.py to the new hash and regenerate that
-script's own .sha256.
+newer NumPy may not reproduce it bit for bit, and the reference solution's
+numbers would move with it.
 
 The model is the chemostat of the 06-325 homework 3 (fall 2025), at the
 nominal feed. Every experiment starts in the basin of the productive steady
