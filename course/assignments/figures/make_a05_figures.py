@@ -14,9 +14,9 @@
     a05-data.png     The five experiments of a05-bioreactor.csv: experiments 1 to 4
                      for 100 s (training) and experiment 5 for 300 s (test), with the
                      first 40 s of experiment 5, which Problems 1 and 2 train on, filled.
-    a05-physics.png  Lecture 13's four ways to add the physics to a network (PINN, neural ODE,
-                     neural DAE, projection layer), redrawn from its slide with its own figures,
-                     and the two this homework uses highlighted.
+    a05-physics.png  The two of Lecture 13's ways to add the physics to a network that this
+                     homework uses, the PINN and the neural ODE, redrawn from its slide "four
+                     ways to add the physics" with its own figures.
 """
 import csv
 import io
@@ -138,18 +138,13 @@ def data():
 GREEN = "#2e7d32"
 L13_FIGURES = REPO / "lectures" / "l13" / "figures"
 
-# Lecture 13's four ways to add the physics to a network, as on its slide "Scientific machine
-# learning, four ways to add the physics", with the two this homework uses highlighted.
+# Lecture 13's ways to add the physics to a network, as on its slide "Scientific machine learning,
+# four ways to add the physics": the two this homework uses, the PINN and the neural ODE.
 CARDS = [
     ("PINN", "pinn-vs-nn.png", r"$L = L_{\mathrm{data}} + \lambda\, L_{\mathrm{physics}}$",
      "physics in the loss:\na penalty, small, not zero", "Problem 2"),
     ("Neural ODE", "card-neural-ode.png", r"$\dfrac{dx}{dt} = f\left(x,\ \mathrm{NN}(x;\theta)\right)$",
      "physics in the equations:\nthe network sits inside them", "Problem 4"),
-    ("Neural DAE", "fedbatch-inference.png",
-     r"$\min_\theta\, L_{\mathrm{data}}$  s.t.  $\dot{x} = f,\ h = 0,\ g \leq 0$",
-     "physics as constraints:\nenforced at the solution", None),
-    ("Projection layer", "projection.png", r"$y = P_{\{Ay = b\}}\left(\mathrm{NN}(u;\theta)\right)$",
-     "physics in the last layer:\none output at a time", None),
 ]
 
 
@@ -157,40 +152,30 @@ def physics():
     from matplotlib.patches import FancyBboxPatch
 
     with plt.rc_context(STYLE):
-        fig = plt.figure(figsize=(12, 10.5))
-        w, h = 0.48, 0.47                      # one card; two by two
+        fig = plt.figure(figsize=(12, 5.6))
+        w = 0.48                                   # width of one card, in figure units
         for k, (title, img, formula, where, problem) in enumerate(CARDS):
-            x0 = 0.01 + (k % 2) * (w + 0.02)
-            y0 = 0.52 - (k // 2) * (h + 0.03)
-            used = problem is not None
-            edge = BLUE if used else "#c8c8c8"
+            x0 = 0.01 + k * (w + 0.02)
             fig.patches.append(FancyBboxPatch(
-                (x0, y0), w, h,
+                (x0, 0.08), w, 0.9,
                 boxstyle="round,pad=0.004,rounding_size=0.015",
                 transform=fig.transFigure,
-                facecolor="white" if used else "#f2f2f2",
-                edgecolor=edge,
-                linewidth=3.5 if used else 1.5,
+                facecolor="white",
+                edgecolor=BLUE,
+                linewidth=3.5,
                 zorder=-10,
             ))
-            ax = fig.add_axes([x0 + 0.02, y0 + 0.20, w - 0.04, 0.215])
+            ax = fig.add_axes([x0 + 0.02, 0.47, w - 0.04, 0.40])
             ax.set_zorder(5)
             ax.imshow(plt.imread(L13_FIGURES / img))
             ax.axis("off")
-            if not used:
-                ax.images[0].set_alpha(0.35)
-            colour = INK if used else "#9a9a9a"
-            fig.text(x0 + w / 2, y0 + 0.44, title, ha="center", va="center", fontsize=17,
-                     fontweight="bold", color=colour)
-            fig.text(x0 + w / 2, y0 + 0.165, formula, ha="center", va="center", fontsize=15, color=colour)
-            fig.text(x0 + w / 2, y0 + 0.10, where, ha="center", va="center", fontsize=13,
-                     color=GREEN if used else "#9a9a9a")
-            badge = f"In this homework: {problem}" if used else "Not in this homework"
-            fig.text(x0 + w / 2, y0 + 0.035, badge, ha="center", va="center", fontsize=14,
-                     fontweight="bold" if used else "normal", color=BLUE if used else "#9a9a9a",
-                     bbox=dict(boxstyle="round,pad=0.35", facecolor="#e8f0f8" if used else "#f2f2f2",
-                               edgecolor=BLUE if used else "#c8c8c8"))
-        fig.text(0.5, 0.0, "Problems 1 and 3 use no physics: the neural network of time and the "
+            fig.text(x0 + w / 2, 0.925, title, ha="center", va="center", fontsize=18, fontweight="bold")
+            fig.text(x0 + w / 2, 0.38, formula, ha="center", va="center", fontsize=16)
+            fig.text(x0 + w / 2, 0.255, where, ha="center", va="center", fontsize=14, color=GREEN)
+            fig.text(x0 + w / 2, 0.14, problem, ha="center", va="center", fontsize=15,
+                     fontweight="bold", color=BLUE,
+                     bbox=dict(boxstyle="round,pad=0.35", facecolor="#e8f0f8", edgecolor=BLUE))
+        fig.text(0.5, 0.025, "Problems 1 and 3 use no physics: the neural network of time and the "
                  "time-series model learn from data only.", ha="center", va="center", fontsize=13,
                  color=MUTED)
         save(fig, "a05-physics.png")
