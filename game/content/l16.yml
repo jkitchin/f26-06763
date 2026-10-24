@@ -12,7 +12,7 @@ lecture: l16
 title: "Generative AI: learning a distribution and sampling from it"
 source_notes: lectures/l16/notes.md
 # Held until release: tools/release_lecture.py flips this to published.
-status: unwritten
+status: published
 # serve = pool // 2, so a retake can be served a disjoint set (CLAUDE.md section 9c).
 serve: 9
 pool_version: 1
