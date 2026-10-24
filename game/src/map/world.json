@@ -277,13 +277,13 @@
       "id": "l16",
       "date": "2026-10-26",
       "title": "Generative AI",
-      "written": false,
+      "written": true,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
       "region": 2,
       "x": 7,
       "y": 5,
-      "notes": null
+      "notes": "../lectures/l16/notes.html"
     },
     {
       "session": "L17",
