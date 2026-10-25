@@ -195,6 +195,14 @@ Three to four pages, as a PDF, covering what the talk cannot fit: the question, 
 model, how they fit together, the LLM if used, the results, and the limitations. Include the numbers
 behind every claim you make in the talk, and the figures you showed.
 
+Include a section titled **Systems and toolchains** of about half a page, explaining how the
+project demonstrates what you learned in this course. Name the specific tools and practices you
+used (for example a reproducible `uv` environment, version control, a database or Parquet store,
+data validation, an honest split, experiment tracking, uncertainty, an LLM), say where in the
+project each one did real work, and give at least one place where a practice from the course
+changed a result or caught a mistake. A list of tools with no account of what they did does not
+meet this.
+
 End with a **contributions** paragraph saying who led and who worked on each part. It does not
 count toward the page limit.
 
@@ -241,7 +249,7 @@ The project is scored out of 100.
 | **Model**                    | 25     | A model compared against a trivial baseline on held-out data; a split appropriate to the data; results reported with enough detail to reproduce                                             |
 | **Integration and judgment** | 15     | Data decisions that visibly shape the model; an honest failure case; limits stated plainly; if an LLM is used, a specific job that passes the deletion test, checked against labelled cases |
 | **Presentation**             | 20     | What the project is, how the team went about it, and the results, in 7 minutes; clear figures; answers in questions that show the whole team understands the whole project                  |
-| **Written document**         | 10     | The numbers behind every claim in the talk; clear writing; a contributions paragraph                                                                                                        |
+| **Written document**         | 10     | The numbers behind every claim in the talk; a systems and toolchains section tied to real work in the project; clear writing; a contributions paragraph                                    |
 | **Reproducibility**          | 5      | The zip regenerates the reported numbers from its README; no secrets                                                                                                                        |
 
 Every member receives the team's score, which may be adjusted for an individual's contribution
