@@ -53,9 +53,10 @@ encouraged but not required.
 
 ### How the two fit together
 
-Most of the engineering judgment the project shows is in the join. Examples of what that looks
-like: a cleaning decision that changed the model's error, and you measured how much; a feature
-that only exists because of how you aligned two sources; a split chosen because of how the data
+Most of the engineering judgment the project shows is in the decisions you make
+in executing it. Examples of what that looks like: a cleaning decision that
+changed the model's error, and you measured how much; a feature that only exists
+because of how you aligned two sources; a split chosen because of how the data
 was collected; a model whose failures trace back to a gap in the data.
 
 ### The optional LLM component
@@ -95,17 +96,17 @@ proposal names a different lead for each part, and the data owner does not lead 
 
 ## Timeline
 
-| Date | Milestone |
-|---|---|
-| Wed 2026-10-28 (L17) | Project released, teams posted, first team meeting in class |
-| Fri 2026-10-30 | Team agreement due on Canvas |
-| Wed 2026-11-04 (L19) | **Proposal due**, one page, using the form below |
-| Fri 2026-11-06 | Proposal feedback returned: approved, or approved with changes |
-| Wed 2026-11-11 | **Status check** posted on Canvas: data done, baseline number, model number, open problems |
-| Tue 2026-11-17, 11:59 pm | **Slides due for every team**, whichever day you present |
-| Wed 2026-11-18 | Presentations, day 1; **day-1 feedback due at 11:59 pm** |
-| Mon 2026-11-23 | Presentations, day 2; **day-2 feedback due at 11:59 pm** |
-| Mon 2026-11-23, 11:59 pm | **Written document, zip file, and peer evaluations due** for every team |
+| Date                     | Milestone                                                                                  |
+|--------------------------|--------------------------------------------------------------------------------------------|
+| Wed 2026-10-28 (L17)     | Project released, teams posted, first team meeting in class                                |
+| Fri 2026-10-30           | Team agreement due on Canvas                                                               |
+| Wed 2026-11-04 (L19)     | **Proposal due**, one page, using the form below                                           |
+| Fri 2026-11-06           | Proposal feedback returned: approved, or approved with changes                             |
+| Wed 2026-11-11           | **Status check** posted on Canvas: data done, baseline number, model number, open problems |
+| Tue 2026-11-17, 11:59 pm | **Slides due for every team**, whichever day you present                                   |
+| Wed 2026-11-18           | Presentations, day 1; **day-1 feedback due at 11:59 pm**                                   |
+| Mon 2026-11-23           | Presentations, day 2; **day-2 feedback due at 11:59 pm**                                   |
+| Mon 2026-11-23, 11:59 pm | **Written document and zip file due** for every team                                       |
 
 Slides are due before the first presentation so that teams on day 2 do not get five extra days.
 The document is due after both days so every team can answer what it was asked in questions.
@@ -149,11 +150,11 @@ Team members, and the lead for each part:
 Each team has a 10-minute slot: 7 minutes of talk with a hard stop, then 3 minutes of questions.
 The talk covers three things, in this order:
 
-| Minutes | Content |
-|---|---|
-| 2 | **What the project is.** The question, why an engineer would care about the answer, and the data and model you used to answer it |
-| 2 | **How you went about it as a team.** How you split the work, the decisions that shaped the project, and what you changed when something did not work |
-| 3 | **The results.** Your model against the baseline on held-out data, what the data did to the result, one case where it fails, and what that tells you |
+| Minutes | Content                                                                                                                                              |
+|---------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 2       | **What the project is.** The question, why an engineer would care about the answer, and the data and model you used to answer it                     |
+| 2       | **How you went about it as a team.** How you split the work, the decisions that shaped the project, and what you changed when something did not work |
+| 3       | **The results.** Your model against the baseline on held-out data, what the data did to the result, one case where it fails, and what that tells you |
 
 The middle section is about process, not a list of who did what. Good material for it: the plan
 in your proposal against what you actually did, a dead end and how you noticed it, how the data
@@ -234,18 +235,17 @@ without those cannot be reproduced.
 
 The project is scored out of 100.
 
-| Part | Points | What we look for |
-|---|---|---|
-| **Data** | 25 | A real dataset acquired by the team; cleaning and validation with the losses counted and justified; measured and filled values kept apart; counts a reader can reproduce |
-| **Model** | 25 | A model compared against a trivial baseline on held-out data; a split appropriate to the data; results reported with enough detail to reproduce |
-| **Integration and judgment** | 15 | Data decisions that visibly shape the model; an honest failure case; limits stated plainly; if an LLM is used, a specific job that passes the deletion test, checked against labelled cases |
-| **Presentation** | 20 | What the project is, how the team went about it, and the results, in 7 minutes; clear figures; answers in questions that show the whole team understands the whole project |
-| **Written document** | 10 | The numbers behind every claim in the talk; clear writing; a contributions paragraph |
-| **Reproducibility** | 5 | The zip regenerates the reported numbers from its README; no secrets |
+| Part                         | Points | What we look for                                                                                                                                                                            |
+|------------------------------|--------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Data**                     | 25     | A real dataset acquired by the team; cleaning and validation with the losses counted and justified; measured and filled values kept apart; counts a reader can reproduce                    |
+| **Model**                    | 25     | A model compared against a trivial baseline on held-out data; a split appropriate to the data; results reported with enough detail to reproduce                                             |
+| **Integration and judgment** | 15     | Data decisions that visibly shape the model; an honest failure case; limits stated plainly; if an LLM is used, a specific job that passes the deletion test, checked against labelled cases |
+| **Presentation**             | 20     | What the project is, how the team went about it, and the results, in 7 minutes; clear figures; answers in questions that show the whole team understands the whole project                  |
+| **Written document**         | 10     | The numbers behind every claim in the talk; clear writing; a contributions paragraph                                                                                                        |
+| **Reproducibility**          | 5      | The zip regenerates the reported numbers from its README; no secrets                                                                                                                        |
 
-Every member receives the team's score, adjusted for individual contribution using the
-contributions paragraph and a confidential **peer evaluation** that each student submits on
-Canvas. The adjustment can raise or lower an individual score. The proposal, team agreement,
+Every member receives the team's score, which may be adjusted for an individual's contribution
+based on the contributions paragraph. The proposal, team agreement,
 and status check are required, and a missing one costs 5 points from the team score.
 
 Over-claiming costs more than a modest result measured well. A model that beats the baseline by
