@@ -103,8 +103,8 @@ proposal names a different lead for each part, and the data owner does not lead 
 | Fri 2026-11-06 | Proposal feedback returned: approved, or approved with changes |
 | Wed 2026-11-11 | **Status check** posted on Canvas: data done, baseline number, model number, open problems |
 | Tue 2026-11-17, 11:59 pm | **Slides due for every team**, whichever day you present |
-| Wed 2026-11-18 | Presentations, day 1 |
-| Mon 2026-11-23 | Presentations, day 2 |
+| Wed 2026-11-18 | Presentations, day 1; **day-1 feedback due at 11:59 pm** |
+| Mon 2026-11-23 | Presentations, day 2; **day-2 feedback due at 11:59 pm** |
 | Mon 2026-11-23, 11:59 pm | **Written document, zip file, and peer evaluations due** for every team |
 
 Slides are due before the first presentation so that teams on day 2 do not get five extra days.
@@ -165,6 +165,29 @@ have an easy answer.
 
 Everyone on the team should be able to answer questions about any part of the project. Not
 everyone has to speak during the talk.
+
+## Feedback on other teams' presentations
+
+Each presentation day has its own participation assignment on Canvas, **Presentation feedback,
+day 1** and **Presentation feedback, day 2**, because the order of talks is not known in advance.
+On each day, give feedback on every team that presents except your own. Each assignment is due
+at 11:59 pm on its presentation day, and it counts toward participation.
+
+For each team, record the **team number** and the **project title**, then answer three questions
+in two or three sentences each:
+
+1. **What question is this project answering, and why would an engineer care about the answer?**
+   Put it in your own words. If you cannot, say what was missing from the talk.
+2. **What was the main result, and what was it compared against?** Give the number if the team
+   showed one, and say whether you found it convincing, and why.
+3. **What is the weakest point in the project, and what would you check next to test it?** Name
+   something specific: a choice in the data, the split, the model, or a claim the results do not
+   yet support.
+
+Take notes during the talks; ten projects run together by the evening. The feedback is shared
+with each team without your name attached, so write what you would want to hear about your own
+project. It is graded complete or incomplete, and an answer that
+could apply to any project ("great talk, clear slides") does not count as complete.
 
 ## The written document
 
