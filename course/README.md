@@ -13,7 +13,7 @@ dedicated mini-project week.
 | `modules/wk01.md … wk14.md` | Per-module lecture outlines: objectives, topics, live demos, engineering framing, readings (Wk 8 is the mini-project week; Wk 14 is final presentations) |
 | `assignments/a01.md … a11.md` | One focused assignment per module, with rubrics |
 | `miniproject.md` | Integrative surrogate-model mini-project (Weeks 7–8) |
-| `final-project.md` | Open, student-chosen capstone (proposed Week 11, presented Week 14) |
+| `final-project.md` | Open, student-chosen team project (released L17, presented 11-18 and 11-23) |
 
 ## Design at a glance
 

@@ -1,97 +1,258 @@
-# Final Project — AI-in-Engineering system: build, evaluate, deploy
-**Arc:** Capstone · **Weight:** 30% of course grade · **Proposed:** Week 11 · **Presented & due:** Week 14 (L25–L26)
+# Final project: an engineering question, answered with data and a model
 
-## Overview & goals
-Design, build, evaluate, and deploy a complete **AI-in-engineering system** of your own choosing. This is where the back half of the course comes together: an LLM/agentic (or surrogate-integrated) system that solves a real engineering-flavored task, is measured with a **real evaluation harness**, and is **deployed** behind an API. The project is open — you pick the problem — but it must clear the constraints below. You may (and are encouraged to) build on your A9 (RAG), A10 (agent), or Week-7 surrogate work.
+**Released:** Lecture 17 (2026-10-28) · **Proposal due:** Wednesday 2026-11-04 · **Presented:** 2026-11-18 and 2026-11-23 · **Teams:** 4, randomly assigned · **Points:** 100 · **Weight:** 40 % of the course grade
 
-Goals:
-- Prove you can take an AI system from prototype to a measured, deployed artifact.
-- Make and defend engineering trade-offs (accuracy vs. latency vs. cost; automation vs. human-in-the-loop).
-- Communicate the system, its evaluation, and its limitations honestly to a technical audience.
+## Overview
 
-## Constraints (required)
-Your system **must** integrate all three:
-1. **LLM/agentic component** — at least one of: an agent that uses tools, a RAG system, structured-output extraction/reasoning over natural language, or an LLM orchestrating a surrogate/optimizer. (A pure surrogate with no LLM/agent element does not satisfy this; wrap it in an agent, a natural-language interface, or an LLM-driven design loop.)
-2. **Real evaluation** — a frozen, versioned eval set and a harness producing defensible metrics (programmatic checks + LLM-as-judge with human validation, or ML metrics with per-slice error bars). Results logged to MLflow. Cherry-picked demos do not count.
-3. **Deployment** — the system runs behind a FastAPI + Docker service on the cloud, with reported latency (p50/p95) and cost per request.
+Your team picks an engineering question, finds data that bears on it, builds a model that answers
+it, and shows honestly how well the answer holds up. You have three weeks. The main deliverable
+is a 7-minute talk followed by 3 minutes of questions, backed by a short written document and a
+zip file holding your data and code.
 
-**Engineering flavor is strongly encouraged** (process, mechanical, materials, energy, controls, manufacturing, reliability, design). Non-engineering projects are allowed only with instructor sign-off at proposal time and still must satisfy all three constraints.
+The question is yours to choose. It can come from process, mechanical, materials, energy,
+environmental, biomedical, or manufacturing engineering, or from your own research. What it
+must have is a real **data component** and a real **modeling component** that fit together: the
+decisions you make about the data should visibly shape the model, and the model should answer
+something the raw data cannot.
 
-Also expected: reproducibility (uv, pinned deps, runs from a clean clone), secrets handled properly (no keys in git/images), and at least one explicit **safety guardrail** appropriate to the system (bounds check, allow-list, retrieval grounding, human sign-off, loop limit).
+A large language model (LLM) is an **optional** third component. Use one if it does a job your
+project needs. A project without an LLM can earn full marks, and a project with one earns no
+credit for the LLM's presence alone.
 
-## Example project ideas (concrete, engineering-flavored)
-1. **Design-loop agent over a surrogate.** An agent that takes a natural-language design goal ("maximize yield subject to T < 450 K"), queries a **sensor/operating-conditions database**, calls your **Wk7 surrogate** as a tool (served as its own microservice), runs a small optimization loop, and returns a recommended operating point with predicted uncertainty. Evaluate: does it respect constraints, how good are its recommendations vs. a brute-force baseline, tool-call correctness, cost per query. Deploy the agent and the surrogate as two services.
-2. **Maintenance/troubleshooting RAG assistant.** A RAG system over **equipment manuals, P&IDs text, and maintenance logs** that answers operator questions and cites the source procedure. Evaluate: retrieval faithfulness, answer quality (LLM-as-judge validated against expert labels), must-cite compliance, refusal on out-of-scope questions. Deploy behind an API with a `/healthz` check and per-request cost reporting.
-3. **Spec/datasheet extraction agent.** An agent that ingests component **datasheets or material spec PDFs** and produces validated structured records (schema-checked), flags out-of-range or inconsistent values, and answers comparison queries. Evaluate: extraction accuracy vs. a labeled gold set, schema-validity rate, and hallucination rate on absent fields. Deploy as a batch + query API.
-4. **Anomaly-triage agent for sensor streams.** An agent that watches a **time-series sensor feed** (provided), calls a detector/surrogate tool to flag anomalies, retrieves relevant procedures, and drafts a triage recommendation with a required human-sign-off step. Evaluate: detection precision/recall, recommendation quality (judge), and an input-**drift** monitor. Deploy the scoring + triage endpoint.
-5. **Simulation/optimization copilot.** An LLM interface that translates a natural-language engineering question into a call to a **physics simulation or optimization** (or your surrogate of one), runs it, and explains the result with caveats about validity range. Evaluate: correctness of the generated call/params against a test suite, plausibility of explanations (judge), and guardrails that block extrapolation outside the valid domain. Deploy behind an API.
-6. **Compliance/standards checker.** A RAG + reasoning system over a **standards/code corpus** (e.g., pressure-vessel or electrical-code excerpts, provided) that checks a described design against relevant clauses and cites them. Evaluate: clause-retrieval accuracy, correctness of pass/fail judgments vs. labeled cases, and citation faithfulness. Deploy with a report-generating endpoint.
+## Learning outcomes
 
-You are not limited to these — a different engineering problem is welcome if it meets the constraints.
+By the end of the project you should be able to:
 
-## Building on prior work
-- **From A9 (RAG):** extend your corpus, add a proper eval suite (faithfulness + validated judge), and deploy it. The "system" grows from a notebook into a service.
-- **From A10 (agent):** add tool-call evaluation, a failure taxonomy, guardrails, and deployment; consider giving it a surrogate or database tool to add engineering depth.
-- **From Wk7 (surrogate):** serve it as a microservice and put an **LLM/agent layer** on top (a design-loop agent or a natural-language interface) so it satisfies the LLM/agent constraint, then evaluate the combined system.
-- Reusing prior code is expected and encouraged; the grade rewards the *integration, evaluation, and deployment* you add, not novelty of the base model. Cite what you carried over.
+- turn an open engineering question into one a dataset and a model can answer in three weeks;
+- acquire, clean, and validate a dataset you did not receive from a course assignment, and report what you removed and why;
+- build a model, compare it against a trivial baseline on data it never saw, and defend the split;
+- state the limits of your result, including at least one case where it fails;
+- explain what you built, how your team built it, and what it found, to a technical audience in seven minutes.
 
-## Deliverables
-1. **Written proposal (Week 11)** — see the template below. ~1–2 pages. Instructor feedback returned before you build.
-2. **Repository** — uv-managed, runs from a clean clone; contains the system code, the versioned eval set, the eval harness, the FastAPI app, the `Dockerfile`, and a `README` with exact setup/run/deploy commands. Reproducibility is graded.
-3. **Recorded demo** — 3–5 minutes showing the deployed system working end-to-end (real requests hitting the live/containerized service). Due **before** your Week-14 presentation slot so grading does not depend on a live demo surviving.
-4. **Short report (~4–6 pages)** — problem & engineering framing; system architecture (diagram); evaluation (eval set, metrics, results with error bars/agreement, at least one honest failure case); deployment (architecture, latency p50/p95, cost/request); safety/guardrails & responsible-AI considerations; limitations & next steps.
-5. **In-class presentation (Week 14, L25–L26)** — 8-minute talk + 3-minute Q&A (see `modules/wk14.md` for format and the required content beats). Peer feedback submitted for others' talks.
+## What the project must contain
+
+### The data component
+
+You acquire a real dataset, clean it, validate it, and store it in a form someone else can
+query, such as Parquet files or a DuckDB database. The habits from A2 and A3 apply. Say how many
+records arrived and how many survived, what was dropped and why, and which values are measured
+and which you filled in. A reader should be able to reproduce the counts you report.
+
+Course datasets (the Tennessee Eastman plant, the bioreactor) are allowed as a starting point,
+but you must add either a new source of data or a question the course did not ask of them.
+
+### The modeling component
+
+You train a model and compare it against the free answer: persistence, the mean, a linear fit,
+or whatever the trivial baseline is for your problem. The comparison must be made on data the
+model never saw, with a split you can defend for your data. A shuffled split on a time series
+does not count, for the reasons A4 showed. The model can be anything from the course or outside
+it: a regression, a classifier, a forecaster, a neural network, a scientific ML model, a
+surrogate inside a Bayesian optimization loop. Uncertainty on the predictions (Lecture 14) is
+encouraged but not required.
+
+### How the two fit together
+
+Most of the engineering judgment the project shows is in the join. Examples of what that looks
+like: a cleaning decision that changed the model's error, and you measured how much; a feature
+that only exists because of how you aligned two sources; a split chosen because of how the data
+was collected; a model whose failures trace back to a gap in the data.
+
+### The optional LLM component
+
+If you use an LLM inside your system, it must do a specific job, and you must check how well it
+does it. Three patterns cover most good uses:
+
+- **Upstream, as a source of data.** The LLM extracts structured records from text such as
+  papers, reports, datasheets, or logs, and your model is trained on the result. Check the
+  extraction against a hand-labelled sample, and ask how its errors propagate into the model.
+- **Downstream, as an interface.** Your model becomes a tool that an LLM calls, for example to
+  turn a plain-language request into a query, a prediction, or an optimization. Check that the
+  calls are correct and that the system refuses requests outside the model's valid range.
+- **Alongside, for context.** Your model flags something, and the LLM retrieves documents that
+  explain it, with citations. Check that the citations say what the answer claims.
+
+Apply one test before you commit: **if you deleted the LLM, what specific thing would your system
+no longer be able to do?** "It explains the results in English" does not pass unless the
+explanation is checked against something.
+
+An LLM used as a coding assistant is not this component. That use is covered by the course's
+generative-AI policy below, and it does not belong on your architecture slide.
+
+## Teams
+
+Teams of four are assigned at random and posted before Lecture 17. When enrollment is not a
+multiple of four, the extra students join teams of five. Use the end of Lecture 17 to meet.
+
+By **Friday 2026-10-30**, submit a short **team agreement** on Canvas, one paragraph is enough:
+how you will communicate, when you will meet, and who leads which part. Each part needs a lead,
+but everyone should be able to explain every part.
+
+**Research data is welcome.** If a team member brings data from their own research, two rules
+apply. First, the member needs permission from their advisor to share the data with the course
+staff, because it goes in the zip file. Second, the project must stay a team project: the
+proposal names a different lead for each part, and the data owner does not lead all of them.
 
 ## Timeline
-- **Week 11 — Proposal due.** Submit the filled proposal template; get scoped and approved (feasibility, that it meets the three constraints, data availability).
-- **Week 12 — Build + evaluate + deploy.** Lectures cover exactly what you need (eval harness, observability, FastAPI/Docker/cloud, latency/cost). A11 can be done *as* your project's eval + deployment slice.
-- **Week 13 — Finalize & harden.** Have the build substantially complete by the last week of lectures; add an eval gate, and a drift-monitoring or safety element if your system warrants one, drawing on the optional [MLOps and responsible AI](optional/mlops.md) page.
-- **Week 14 — Present & submit.** Submit repo + recorded demo + report before your slot; present across L25–L26.
 
-## Rubric (100 pts) — 30% of course grade
+| Date | Milestone |
+|---|---|
+| Wed 2026-10-28 (L17) | Project released, teams posted, first team meeting in class |
+| Fri 2026-10-30 | Team agreement due on Canvas |
+| Wed 2026-11-04 (L19) | **Proposal due**, one page, using the form below |
+| Fri 2026-11-06 | Proposal feedback returned: approved, or approved with changes |
+| Wed 2026-11-11 | **Status check** posted on Canvas: data done, baseline number, model number, open problems |
+| Tue 2026-11-17, 11:59 pm | **Slides due for every team**, whichever day you present |
+| Wed 2026-11-18 | Presentations, day 1 |
+| Mon 2026-11-23 | Presentations, day 2 |
+| Mon 2026-11-23, 11:59 pm | **Written document, zip file, and peer evaluations due** for every team |
 
-| Criterion | Pts | What we look for |
-|---|---|---|
-| Problem framing & engineering relevance | 12 | A real, well-scoped engineering task; clear why AI is the right tool and what decision it supports |
-| System engineering & integration | 20 | LLM/agentic (or surrogate-integrated) system that actually works end-to-end; sensible architecture, tools, data handling; guardrail present |
-| Evaluation rigor | 22 | Frozen versioned eval set; valid metrics; error bars / judge–human agreement; honest failure analysis; MLflow logging |
-| Deployment | 16 | FastAPI + Docker on cloud; typed schemas + health check; model loaded once; secrets handled; p50/p95 latency + cost/request reported; harness run against the live endpoint |
-| Demo & presentation | 15 | Clear talk hitting the required beats; working recorded demo; time discipline; useful Q&A; quality peer reviews given |
-| Reproducibility & responsibility | 15 | Runs from clean clone (uv, pinned); README; no secrets in git/images; responsible-AI/safety discussion tied to the system's actual decision and consequence |
+Slides are due before the first presentation so that teams on day 2 do not get five extra days.
+The document is due after both days so every team can answer what it was asked in questions.
 
-Missing a hard constraint (LLM/agent element, real evaluation, or deployment) caps the relevant sections and the overall grade.
+The two biggest risks in a three-week project are a dataset that turns out to be unusable and a
+team that starts building in week two. Both are why the proposal asks for data you have
+already opened.
 
-## Proposal template (fill in — Week 11, ~1–2 pages)
+## The proposal
+
+One page, submitted on Canvas by one member, with every member's name on it. It is graded
+complete or incomplete, and its purpose is to get you useful feedback while there is still time
+to act on it.
+
 ```
 Title:
-Team (names) / solo:
+Team members, and the lead for each part:
 
-1. Problem & engineering context
-   - What engineering task/decision does this support? Who is the user?
-   - Why is an AI/LLM/agent system appropriate here?
+1. The question
+   What engineering question are you answering, and who would use the answer?
 
-2. System design
-   - LLM/agentic (or surrogate-integrated) component(s) and tools/data used
-   - Which constraint does the LLM/agent element satisfy? (agent / RAG / structured extraction / LLM-orchestrated surrogate)
-   - Architecture sketch (1–2 sentences or a small diagram)
-   - Building on prior work? (A9 / A10 / Wk7 / new)
+2. The data
+   Where it comes from, its license or permission, and its size.
+   Proof you have it: the number of rows (or files) you loaded, and one thing
+   you have already found wrong with it.
 
-3. Data / system under test
-   - Where the data comes from; what your eval set will be and how you'll freeze/version it
+3. The model
+   What you will predict or decide, the model you plan to try first,
+   and the trivial baseline it has to beat. How you will split the data.
 
-4. Evaluation plan
-   - Metrics and why they're valid for this system; judge + validation OR ML metrics + slices/CI
-   - What "good enough" looks like; a baseline to compare against
+4. LLM (optional)
+   The job the LLM does, and what your system would lose without it.
+   How you will check it (for example: 30 hand-labelled cases).
 
-5. Deployment plan
-   - Service shape (endpoints/schemas); CPU vs. GPU; expected latency/cost sensitivity
-
-6. Safety / guardrails / responsible-AI
-   - Key failure mode(s) and the concrete guardrail; any human-in-the-loop step
-
-7. Risks & scope
-   - Biggest feasibility risk and fallback; what's in scope vs. out for the Week 12–13 build
+5. Risk
+   The thing most likely to go wrong, and your fallback if it does.
 ```
 
-## Allowed tools & AI-use note
-Use the standardized toolchain: Python + uv, PyTorch, MLflow, FastAPI + Docker + course cloud (GPU available where justified). LLM/agent work is framework- and provider-agnostic — pick what fits. AI coding assistants are permitted and expected, but **you own and must be able to explain every part of your system**, especially the evaluation logic, the deployment configuration, and the guardrails. Cite external code, datasets, and any prior-assignment code you reuse. The evaluation section is graded on honesty as much as numbers: report real metrics, real error bars, and at least one real failure case — over-claiming costs more points than a modest, well-measured result.
+## The presentation
+
+Each team has a 10-minute slot: 7 minutes of talk with a hard stop, then 3 minutes of questions.
+The talk covers three things, in this order:
+
+| Minutes | Content |
+|---|---|
+| 2 | **What the project is.** The question, why an engineer would care about the answer, and the data and model you used to answer it |
+| 2 | **How you went about it as a team.** How you split the work, the decisions that shaped the project, and what you changed when something did not work |
+| 3 | **The results.** Your model against the baseline on held-out data, what the data did to the result, one case where it fails, and what that tells you |
+
+The middle section is about process, not a list of who did what. Good material for it: the plan
+in your proposal against what you actually did, a dead end and how you noticed it, how the data
+and model halves of the team handed work to each other, and what you would do differently with
+another three weeks.
+
+Expect one question to be "show us a case where it fails." Teams that went looking for one will
+have an easy answer.
+
+Everyone on the team should be able to answer questions about any part of the project. Not
+everyone has to speak during the talk.
+
+## The written document
+
+Three to four pages, as a PDF, covering what the talk cannot fit: the question, the data, the
+model, how they fit together, the LLM if used, the results, and the limitations. Include the numbers
+behind every claim you make in the talk, and the figures you showed.
+
+End with a **contributions** paragraph saying who led and who worked on each part. It does not
+count toward the page limit.
+
+## The zip file
+
+One member uploads a single zip file to Canvas. It must let a grader check your numbers without
+contacting you and without an API key. It contains:
+
+- `README.md` with the exact commands to set up the environment and regenerate your results;
+- `pyproject.toml` and `uv.lock`, so the environment is reproducible with `uv`;
+- your code, plus one notebook or script that regenerates the numbers and figures in your talk;
+- `data/raw/` with the data as you received it, and `data/clean/` with the data your model was trained on;
+- if you used an LLM: `llm/calls.jsonl` with every call behind a reported number (prompt, provider, exact model version, date, and raw response), and the hand-labelled cases you checked it against.
+
+Keep the zip under 500 MB. If your raw data is larger, include a download script and a
+`SHA256SUMS` file for the raw files instead of the files themselves, the way the course
+distributes its own data.
+
+**No secrets.** Do not include `.env` files, API keys, or tokens. A zip file containing a key loses
+points under Reproducibility, and you should revoke the key at once.
+
+## LLM access
+
+If you use an LLM, you may use Gemini through your CMU account or any provider you pay for
+yourself. Two practical points:
+
+- **Calling an LLM from code needs an API key.** Chat subscriptions often do not include API
+  access, which is usually set up and billed separately. Find out how you will get a key before
+  the proposal.
+- **Read your provider's data terms before sending it research data.** Some free tiers may use
+  what you send them to improve their products. Unpublished or confidential data should not go
+  there.
+
+Report the provider, the exact model version, and the date of your runs, because an LLM result
+without those cannot be reproduced.
+
+## Grading
+
+The project is scored out of 100.
+
+| Part | Points | What we look for |
+|---|---|---|
+| **Data** | 25 | A real dataset acquired by the team; cleaning and validation with the losses counted and justified; measured and filled values kept apart; counts a reader can reproduce |
+| **Model** | 25 | A model compared against a trivial baseline on held-out data; a split appropriate to the data; results reported with enough detail to reproduce |
+| **Integration and judgment** | 15 | Data decisions that visibly shape the model; an honest failure case; limits stated plainly; if an LLM is used, a specific job that passes the deletion test, checked against labelled cases |
+| **Presentation** | 20 | What the project is, how the team went about it, and the results, in 7 minutes; clear figures; answers in questions that show the whole team understands the whole project |
+| **Written document** | 10 | The numbers behind every claim in the talk; clear writing; a contributions paragraph |
+| **Reproducibility** | 5 | The zip regenerates the reported numbers from its README; no secrets |
+
+Every member receives the team's score, adjusted for individual contribution using the
+contributions paragraph and a confidential **peer evaluation** that each student submits on
+Canvas. The adjustment can raise or lower an individual score. The proposal, team agreement,
+and status check are required, and a missing one costs 5 points from the team score.
+
+Over-claiming costs more than a modest result measured well. A model that beats the baseline by
+a small margin, with an honest account of why it is not larger, is a good project.
+
+Projects are group work, and the course's automatic grace days do not apply.
+
+## Starting points
+
+These are to get a team thinking. They are not a list to choose from, and your own idea is
+welcome.
+
+- **From the literature to a model.** Extract reported property or performance values from a set
+  of open-access papers, check a sample by hand, and fit a model to them. Then ask whether the
+  model's conclusions survive correcting the extraction errors.
+- **An operator assistant for the Tennessee Eastman plant.** Start from a miniproject detector,
+  and add a component that suggests which known fault an alarm most resembles, scored against the
+  fault labels.
+- **A design question over a surrogate.** Build a surrogate for a simulation or a set of
+  experiments, and use Bayesian optimization to answer a design question under a fixed budget of
+  evaluations, compared against random search on the same budget.
+- **Public sensor data.** Air quality, weather, building energy, or river gauges: data with real
+  gaps and real drift, and a forecasting or detection question someone would pay to have
+  answered.
+- **Your research.** Data from a member's lab, with a question the lab actually has.
+
+## AI use
+
+Generative AI is allowed and encouraged as an engineering tool, with the disclosure the syllabus
+asks for. Say in the document where you used AI assistants. Every member must be able to explain
+the code they wrote and the team's results, and questions in the presentation are where that
+gets tested.
