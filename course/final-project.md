@@ -184,9 +184,8 @@ in two or three sentences each:
    something specific: a choice in the data, the split, the model, or a claim the results do not
    yet support.
 
-Take notes during the talks; ten projects run together by the evening. The feedback is shared
-with each team without your name attached, so write what you would want to hear about your own
-project. It is graded complete or incomplete, and an answer that
+Take notes during the talks; ten projects run together by the evening. The feedback goes to the
+instructors only and is not shared with the teams, so be candid. It is graded complete or incomplete, and an answer that
 could apply to any project ("great talk, clear slides") does not count as complete.
 
 ## The written document
