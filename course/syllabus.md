@@ -94,9 +94,11 @@ There is **no proctored final exam**, and assessment is based on projects, quizz
   that builds and compares two unsupervised fault detectors for a chemical plant, trained on
   normal operation only, and ends in a short report. Released with Lecture 9, due before
   fall break.
-- **Final project:** **student-chosen**. Must
-  integrate remaining topics: an **LLM/agentic system** with real **evaluation and
-  deployment**. Deliverables: proposal, build (repo), and presentation.
+- **Final project:** **student-chosen**, in randomly assigned teams of four, over the last
+  three weeks of the semester. It answers an engineering question with a data component and a
+  modeling component, and may add an LLM component. Deliverables: a one-page proposal, a
+  7-minute presentation with questions, a short written document, and a zip file of the data
+  and code.
 - **Participation & quizzes:** one short practice module per week, tied to that week's lectures and notes. Completing a module produces a PDF that you upload to Canvas.
 
   
