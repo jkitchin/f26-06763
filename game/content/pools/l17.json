@@ -562,6 +562,173 @@
         }
       },
       "serve": 10
+    },
+    "5": {
+      "items": {
+        "l17-q01": {
+          "answer": "One token at a time, each given the tokens before it",
+          "options": [
+            "One token at a time, each given the tokens before it",
+            "Every token at once, like one sample from a Gaussian mixture",
+            "Word by word, with each word drawn independently",
+            "As one whole sentence, picked from a list of candidates"
+          ]
+        },
+        "l17-q02": {
+          "answer": "The chain rule splits p(text) into next-token probabilities",
+          "options": [
+            "The chain rule splits p(text) into next-token probabilities",
+            "Each word depends only on the word right before it",
+            "It is a rough approximation that works for short texts",
+            "The model memorizes every text it was trained on"
+          ]
+        },
+        "l17-q03": {
+          "answer": "Each output is fed back in, so early errors carry forward",
+          "options": [
+            "Each output is fed back in, so early errors carry forward",
+            "Both can look back only a fixed 10 steps",
+            "Both are linear models of their inputs",
+            "Both must be trained on labels written by people"
+          ]
+        },
+        "l17-q04": {
+          "answer": "Fewer tokens per text: more fits, and writing is faster",
+          "options": [
+            "Fewer tokens per text: more fits, and writing is faster",
+            "Exactly one token for every word ever written",
+            "A model that no longer needs a vocabulary",
+            "Rare words are dropped, so the text gets cleaner"
+          ]
+        },
+        "l17-q06": {
+          "answer": "Do them in code, not in the model",
+          "options": [
+            "Do them in code, not in the model",
+            "Write every number in scientific notation",
+            "Raise the temperature so it tries more digits",
+            "Nothing: the model computes them exactly"
+          ]
+        },
+        "l17-q07": {
+          "answer": "The model never sees it",
+          "options": [
+            "The model never sees it",
+            "It is read, but with lower attention weights",
+            "It is summarized automatically before answering",
+            "It is stored and read on your next question"
+          ]
+        },
+        "l17-q08": {
+          "answer": "Each token sees only itself and earlier tokens",
+          "options": [
+            "Each token sees only itself and earlier tokens",
+            "There is no attention, only the MLP",
+            "Each token sees only the token right before it",
+            "The tokens are read from right to left"
+          ]
+        },
+        "l17-q09": {
+          "answer": "The text itself, shifted by one token",
+          "options": [
+            "The text itself, shifted by one token",
+            "People who label a small sample of it",
+            "A smaller model that labels it first",
+            "The tokenizer, which marks tokens right or wrong"
+          ]
+        },
+        "l17-q14": {
+          "answer": "Far more text, and a bigger model",
+          "options": [
+            "Far more text, and a bigger model",
+            "Training longer on the same notes",
+            "A higher sampling temperature",
+            "A longer context window"
+          ]
+        },
+        "l17-q16": {
+          "answer": "More training on good answers and on people's preferences",
+          "options": [
+            "More training on good answers and on people's preferences",
+            "More pretraining on web text",
+            "A larger context window",
+            "A lower temperature"
+          ]
+        },
+        "l17-q17": {
+          "answer": "Safer and more repetitive: it sticks to the likeliest tokens",
+          "options": [
+            "Safer and more repetitive: it sticks to the likeliest tokens",
+            "More varied: unlikely tokens get a real chance",
+            "Nothing changes; only the speed goes up",
+            "It switches to a smaller vocabulary"
+          ]
+        },
+        "l17-q19": {
+          "answer": "Training rewards likely text; nothing checks facts",
+          "options": [
+            "Training rewards likely text; nothing checks facts",
+            "Numbers are hidden from the model during training",
+            "A low temperature forces it to guess",
+            "It was trained on simulated data only"
+          ]
+        },
+        "l17-q20": {
+          "answer": "The output you used, with the model's name and the date",
+          "options": [
+            "The output you used, with the model's name and the date",
+            "Only the prompt; the output can always be regenerated",
+            "The temperature setting, which fixes the output",
+            "Nothing: rerun the prompt when you need it"
+          ]
+        },
+        "l17-q21": {
+          "answer": "Gives a probability for the next token, then repeats",
+          "options": [
+            "Gives a probability for the next token, then repeats",
+            "Looks up the answer in a database of facts",
+            "Searches the web and summarizes what it finds",
+            "Runs a program written for each kind of question"
+          ]
+        },
+        "l17-q22": {
+          "answer": "It continues a hidden script that holds your message",
+          "options": [
+            "It continues a hidden script that holds your message",
+            "It retrieves a stored answer that matches your question",
+            "It writes the whole answer at once, then checks it",
+            "It turns your question into a database query"
+          ]
+        },
+        "l17-q23": {
+          "answer": "A piece of text: a character, a word or part of a word",
+          "options": [
+            "A piece of text: a character, a word or part of a word",
+            "One full sentence of the prompt",
+            "One parameter of the model",
+            "One layer of the transformer"
+          ]
+        },
+        "l17-q24": {
+          "answer": "It guesses next tokens; all parameters are nudged toward the truth",
+          "options": [
+            "It guesses next tokens; all parameters are nudged toward the truth",
+            "A person corrects its answers and rewrites its rules",
+            "It saves the text in a database to look up when asked later",
+            "It picks the best of several models trained side by side"
+          ]
+        },
+        "l17-q25": {
+          "answer": "It knows only its training data: nothing recent or private",
+          "options": [
+            "It knows only its training data: nothing recent or private",
+            "Measurements are too numeric for any LLM to read",
+            "It refuses every question about a specific plant",
+            "A week of data is always too long for its context window"
+          ]
+        }
+      },
+      "serve": 9
     }
   }
 }
