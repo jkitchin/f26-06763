@@ -290,13 +290,13 @@
       "id": "l17",
       "date": "2026-10-28",
       "title": "Large language models (LLMs): what they are and how they are trained",
-      "written": false,
+      "written": true,
       "arc_source": "declared",
       "arc": "LLM and agentic engineering",
       "region": 3,
       "x": 10,
       "y": 1,
-      "notes": null
+      "notes": "../lectures/l17/notes.html"
     },
     {
       "session": "L18",

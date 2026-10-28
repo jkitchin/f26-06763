@@ -67,7 +67,7 @@ parts:
       - file: lectures/l16/notes
         sections:
           - file: lectures/l16/l16-generative-optimization
-#       - file: lectures/l17/notes
+      - file: lectures/l17/notes
 #       - file: lectures/l18/notes
 #         sections:
 #           - file: lectures/l18/l18-context-engineering
