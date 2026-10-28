@@ -38,7 +38,18 @@ def bank():
 @pytest.fixture
 def item():
     data = yaml.safe_load((GAME / "content" / "l17.yml").read_text(encoding="utf-8"))
-    return copy.deepcopy(data["items"][0])   # l17-q01, a predict_measure
+    return copy.deepcopy(data["items"][0])   # the first L17 item, which passes every check
+
+
+def first_of_kind(kind):
+    # the first committed item of a kind, from any bank: tests of kind-specific rules should
+    # not depend on which kinds one lecture happens to use
+    for f in sorted((GAME / "content").glob("l*.yml")):
+        data = yaml.safe_load(f.read_text(encoding="utf-8")) or {}
+        for i in data.get("items") or []:
+            if i.get("kind") == kind:
+                return copy.deepcopy(i)
+    pytest.fail(f"no {kind} item in any bank")
 
 
 def errors_for(check, item, *args):
@@ -119,7 +130,7 @@ def test_duplicate_options_fail(item):
 
 def test_near_duplicate_option_is_rejected(item):
     """Trailing punctuation is not a distractor. Containment is what catches it."""
-    item["options"][1] = "1,263, about 63% more than the local count."
+    item["options"][1] = item["options"][0] + "."
     msgs = errors_for(V.check_choices, item)
     assert msgs, "a near-duplicate option must be rejected by some rule"
     assert any("contained in" in m for m in msgs)
@@ -150,7 +161,7 @@ def test_same_values_in_a_different_order_are_distinct(item):
 
 
 def test_option_contained_in_another_fails(item):
-    item["options"][1] = "1,263"
+    item["options"][1] = item["options"][0].split()[0]
     msgs = errors_for(V.check_choices, item)
     assert any("contained in" in m for m in msgs)
 
@@ -167,7 +178,8 @@ def test_too_few_options_fails(item):
     assert any("at least 3 options" in m for m in msgs)
 
 
-def test_predict_measure_without_common_prior_fails(item):
+def test_predict_measure_without_common_prior_fails():
+    item = first_of_kind("predict_measure")
     del item["predict"]["common_prior"]
     msgs = errors_for(V.check_choices, item)
     assert any("common_prior" in m for m in msgs)
@@ -179,14 +191,12 @@ def test_rank_permutations_are_not_flagged_as_duplicates():
     A ranking item offers the same values in different orders. Comparing on
     numbers alone rejected every one of them.
     """
-    data = yaml.safe_load((GAME / "content" / "l17.yml").read_text(encoding="utf-8"))
-    rank = next(i for i in data["items"] if i["kind"] == "rank")
+    rank = first_of_kind("rank")
     assert not errors_for(V.check_choices, rank)
 
 
 def test_direction_options_sharing_a_magnitude_are_not_flagged():
-    data = yaml.safe_load((GAME / "content" / "l17.yml").read_text(encoding="utf-8"))
-    nb = next(i for i in data["items"] if i["id"] == "l17-q12")
+    nb = first_of_kind("direction")
     assert not errors_for(V.check_choices, nb)
 
 

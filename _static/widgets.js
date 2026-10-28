@@ -56,6 +56,42 @@
     '.cw-legend span{display:inline-flex;align-items:center;gap:.4em}',
     '.cw-legend i{display:inline-block;width:24px;height:10px;box-sizing:border-box}',
     '.cw .hot{cursor:pointer}',
+    '.cw-toks{display:flex;flex-wrap:wrap;gap:4px;margin:.4em 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}',
+    '.cw-toks span{padding:2px 5px;border-radius:4px;white-space:pre;transition:background .3s}',
+    '.cw-toks .new{outline:2px solid #c41230}',
+    '.cw-text{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre-wrap;background:rgba(128,128,128,.08);border-radius:6px;padding:.5em .7em;margin:.4em 0;min-height:4.2em;line-height:1.35}',
+    '.cw-text b{color:#c41230}',
+    '.cw-learn{display:flex;flex-wrap:wrap;gap:3px 2px;margin:.5em 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}',
+    '.cw-learn .cl{display:inline-flex;flex-direction:column;align-items:center;min-width:1.15em}',
+    '.cw-learn .cl b{display:block;width:100%;text-align:center;padding:3px 1px;border-radius:3px;color:#111;font-weight:600;transition:background .35s}',
+    '.cw-learn .cl em{font-style:normal;color:#c41230;font-size:.85em;min-height:1.2em}',
+    '.cw-learn .cl.focus b{outline:3px solid #1f6fb2;outline-offset:1px}',
+    '.cw-learn.pick .cl{cursor:pointer}',
+    '.cw-learn.small{font-size:.85em;gap:2px 1px;margin:.3em 0}',
+    '.cw-chat{display:grid;grid-template-columns:1fr 1.7fr 1fr;gap:.7em;align-items:start}',
+    '.cw-pane{background:rgba(128,128,128,.07);border-radius:6px;padding:.45em .6em;min-height:9.5em}',
+    '.cw-ph{font-weight:700;margin-bottom:.35em;opacity:.8}',
+    '.cw-bub{border-radius:12px;padding:.35em .65em;margin:.25em 0;max-width:95%}',
+    '.cw-bub.user{background:#1f6fb2;color:#fff;margin-left:auto;width:fit-content}',
+    '.cw-bub.bot{background:rgba(128,128,128,.18);min-height:1.4em}',
+    '.cw-script{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre-wrap;line-height:1.3;font-size:.82em}',
+    '.cw-script .sp{background:rgba(128,128,128,.25);border-radius:3px;padding:0 2px;color:#5c5c5c;font-size:.85em}',
+    '.cw-script .gen{color:#c41230;font-weight:700}',
+    '.cw-key{font-size:.8em;opacity:.75;margin-top:.4em}',
+    '.cw-script .cur{color:#c41230;animation:cwblink 1s steps(1) infinite}',
+    '@keyframes cwblink{50%{opacity:0}}',
+    '.cw-nexts .cw-nh{font-weight:700;margin-bottom:.3em;opacity:.8}',
+    '.cw-nrow{display:grid;grid-template-columns:5.2em 1fr 3.3em;gap:.4em;align-items:center;margin:.12em 0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}',
+    '.cw-nrow .tok{text-align:right;white-space:pre;overflow:hidden;text-overflow:ellipsis}',
+    '.cw-nrow .bar{display:block;height:.8em;border-radius:2px;background:#1f6fb2;transition:width .35s}',
+    '.cw-nrow.pick .bar{background:#c41230}',
+    '.cw-nrow.true .bar{background:#2b8a3e}',
+    '.cw-nrow .val{font-variant-numeric:tabular-nums;font-size:.9em}',
+    '.cw-ctx{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:1.15em;margin:.2em 0 .4em}',
+    '.cw-ctx .q{display:inline-block;min-width:1.1em;text-align:center;border:2px dashed #2b8a3e;border-radius:4px;color:#2b8a3e;font-weight:700}',
+    '.cw-side{display:grid;grid-template-columns:1.1fr 1fr;gap:1em;align-items:center}',
+    '.cw-tri{display:grid;grid-template-columns:1fr 1.1fr 1fr;gap:1em;align-items:start}',
+    '.cw-tri .cw-ph{margin-bottom:.25em}',
     // On a slide the heading names the figure and the notes carry the fine
     // print, so the compact form drops both and caps the height to fit 720px.
     '.cw.compact{margin:.3em 0 0;padding:.4em .7em;font-size:.62em}',
@@ -2384,6 +2420,665 @@
     xt.forEach(function (v) { text(svg, sx(v), B + 16, String(v), { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.7 }); });
   }
   function pct(v) { return isFinite(v) ? Math.round(100 * v) + '%' : '–'; }
+
+  /* ---------------------------------------------------------------- L17: LLMs
+   * Data: _static/l17-widget-data.js, written by lectures/l17/figures/make_figures.py. */
+  var TOKC = ['rgba(31,111,178,.18)', 'rgba(194,65,12,.18)', 'rgba(43,138,62,.2)', 'rgba(196,18,48,.15)',
+    'rgba(120,80,170,.18)', 'rgba(20,140,150,.2)'];
+  function tokRow(parent, toks, isNew) {
+    clear(parent);
+    toks.forEach(function (t, j) {
+      var sp = html('span', { style: 'background:' + TOKC[j % TOKC.length] }, parent, t.replace(/ /g, '␣'));
+      if (isNew && isNew(j)) sp.setAttribute('class', 'new');
+    });
+  }
+
+  /* Byte-pair encoding, merge by merge, on one engineering sentence. The merges were learned
+   * from the course's own notes: the most frequent adjacent pair first. */
+  WIDGETS['llm-bpe'] = function (root, data) {
+    var d = data.bpe, F = d.frames, n0 = F[0].tokens.length;
+    html('div', { class: 'cw-title' }, root, 'Byte-pair encoding: merge the most frequent pair, repeat');
+    var merge = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    var row = html('div', { class: 'cw-toks' }, root);
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    var cmp = html('div', {}, root);
+    var cmpLab = html('div', { class: 'cw-readout' }, cmp);
+    var cmpRow = html('div', { class: 'cw-toks' }, cmp);
+    html('div', { class: 'cw-note' }, root,
+      d.n_merges + ' merges learned from the notes of Lectures 1 to 16 (' + d.corpus_chars.toLocaleString() +
+      ' characters). Each step applies the next merge that changes this sentence. ␣ is a space.');
+    var last = -1;
+    function draw(q) {
+      var i = Math.round(q);
+      if (i === last) return;
+      last = i;
+      var f = F[i], prev = i > 0 ? F[i - 1].tokens : null;
+      var joined = f.merge ? f.merge[0] + f.merge[1] : null;
+      tokRow(row, f.tokens, function (j) { return joined !== null && f.tokens[j] === joined; });
+      merge.textContent = i === 0
+        ? 'Start: every character is a token. ' + n0 + ' tokens.'
+        : 'Merge ' + f.rank + ': "' + f.merge[0].replace(/ /g, '␣') + '" + "' + f.merge[1].replace(/ /g, '␣') +
+          '" → "' + joined.replace(/ /g, '␣') + '", a pair seen ' + f.count.toLocaleString() + ' times in our notes. ' +
+          f.tokens.length + ' tokens.';
+      if (i === F.length - 1) {
+        cmpLab.textContent = 'For comparison, GPT-4o\'s tokenizer (about 200,000 tokens): ' + d.gpt4o.length + ' tokens.';
+        tokRow(cmpRow, d.gpt4o);
+      } else { cmpLab.textContent = ''; clear(cmpRow); }
+    }
+    smoothPlayer(c1, F.length, draw, 0.9).set(0);
+  };
+
+  /* The generation loop: logits for the next token, divided by the temperature, softmax,
+   * pick one, append it, repeat. GPT-2's top 20 tokens at each step of a greedy continuation. */
+  WIDGETS['llm-sample'] = function (root, data) {
+    var d = data.sample, S = d.steps, temp = 1, K = 10;
+    var W = 720, H = 300, L = 130, R = W - 60, T = 8, rowH = (H - T - 8) / K;
+    html('div', { class: 'cw-title' }, root, 'Generation: predict, pick, append, repeat');
+    var ctx = html('div', { class: 'cw-text' }, root);
+    var svg = svgRoot(root, W, H, 'Probabilities of the next token, at the chosen temperature');
+    svg.style.maxHeight = '300px';
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    var c2 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root, d.model + '. Bars: the ' + K + ' most likely next tokens, with their probabilities ' +
+      'softmax(logits / temperature) over the whole vocabulary. The red bar is the one appended (the most likely).');
+    var sx = scale(0, 1, L, R);
+    var bars = [], labs = [], vals = [];
+    function rescale(pmax) { sx = scale(0, Math.max(0.05, Math.min(1, pmax * 1.15)), L, R); }
+    for (var k = 0; k < K; k++) {
+      var y = T + k * rowH;
+      labs.push(text(svg, L - 8, y + rowH * 0.62, '', { 'text-anchor': 'end', 'font-size': 14 }));
+      bars.push(el('rect', { x: L, y: y + 3, height: rowH - 6, width: 0, rx: 3 }, svg));
+      vals.push(text(svg, L, y + rowH * 0.62, '', { 'font-size': 13 }));
+    }
+    var step = 0;
+    function probs(s) {
+      // exact over the whole vocabulary: exp(z / T - logsumexp(z / T)), from the stored normalizer
+      var j = Math.round(temp * 10) - 1;
+      return s.logits.map(function (v) { return Math.exp(v / temp - s.lse[j]); });
+    }
+    function draw() {
+      var s = S[step], p = probs(s);
+      var prompt = d.prompt, gen = s.context.slice(prompt.length);
+      ctx.innerHTML = '';
+      ctx.appendChild(document.createTextNode(prompt));
+      var b = document.createElement('b');
+      b.textContent = gen + s.tokens[0];
+      ctx.appendChild(b);
+      rescale(p[0]);
+      for (var k = 0; k < K; k++) {
+        labs[k].textContent = JSON.stringify(s.tokens[k]).replace(/ /g, '␣');
+        bars[k].setAttribute('width', Math.max(1, sx(p[k]) - L));
+        bars[k].setAttribute('fill', k === 0 ? RED : 'var(--cw-accent)');
+        vals[k].setAttribute('x', sx(p[k]) + 6);
+        vals[k].textContent = (100 * p[k]).toFixed(1) + '%';
+      }
+      readout.textContent = 'Step ' + (step + 1) + ' of ' + S.length + ', temperature ' + temp.toFixed(1) + ': the top token gets ' +
+        (100 * p[0]).toFixed(0) + '%. ' + (temp < 0.6 ? 'Low temperature: nearly always the top token.' :
+          temp > 1.4 ? 'High temperature: unlikely tokens get a real chance.' : 'Temperature near 1: the model\'s own probabilities.');
+    }
+    smoothPlayer(c1, S.length, function (q) { var i = Math.round(q); if (i !== step) { step = i; draw(); } }, 1.4).set(0);
+    slider(c2, 'temperature', 0.1, 2, 0.1, 1, function (v) { return (+v).toFixed(1); }, function (v) { temp = v; draw(); });
+    draw();
+  };
+
+  /* The tiny GPT of the worked example learning: the loss, and what it writes, every 250 steps. */
+  WIDGETS['llm-train'] = function (root, data) {
+    var d = data.train, N = d.steps.length, last = d.steps[N - 1];
+    var W = 720, H = 210, L = 52, R = W - 16, T = 10, B = 172;
+    html('div', { class: 'cw-title' }, root, 'A tiny GPT learning to write like our notes');
+    var svg = svgRoot(root, W, H, 'Training loss and held-out loss of the tiny GPT');
+    svg.style.maxHeight = '230px';
+    var sample = html('div', { class: 'cw-text' }, root);
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root, d.params.toLocaleString() + ' parameters, ' + d.vocab + ' characters as tokens. ' +
+      'Blue: loss on each training batch. Red: loss on held-out text. Below: what it writes after "The model ", at temperature 0.8.');
+    var sx = scale(0, last, L, R), sy = scale(0, 5.5, B, T);
+    [0, 1, 2, 3, 4, 5].forEach(function (v) {
+      el('line', { x1: L, x2: R, y1: sy(v), y2: sy(v), stroke: 'currentColor', 'stroke-opacity': 0.07 }, svg);
+      text(svg, L - 6, sy(v) + 4, String(v), { 'text-anchor': 'end', 'font-size': 11, opacity: 0.7 });
+    });
+    [0, 500, 1000, 1500, 2000].forEach(function (v) { text(svg, sx(v), B + 16, String(v), { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.7 }); });
+    text(svg, (L + R) / 2, B + 32, 'training step', { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.85 });
+    text(svg, 14, (T + B) / 2, 'loss', { 'text-anchor': 'middle', 'font-size': 11, transform: 'rotate(-90 14 ' + (T + B) / 2 + ')' });
+    el('line', { x1: L, x2: R, y1: sy(d.uniform), y2: sy(d.uniform), stroke: 'currentColor', 'stroke-opacity': 0.35, 'stroke-dasharray': '3 4' }, svg);
+    text(svg, R, sy(d.uniform) - 5, 'knows nothing: 1/' + d.vocab + ' for every character', { 'text-anchor': 'end', 'font-size': 11, opacity: 0.7 });
+    var curve = el('polyline', { fill: 'none', stroke: 'var(--cw-accent)', 'stroke-width': 1.4, 'stroke-opacity': 0.6 }, svg);
+    var val = el('polyline', { fill: 'none', stroke: RED, 'stroke-width': 2.2 }, svg);
+    var dot = el('circle', { r: 5, fill: RED }, svg);
+    var lastI = -1;
+    function draw(q) {
+      var now = q / (N - 1) * last;
+      var m = Math.min(d.loss.length, Math.floor(now / d.every) + 1);
+      curve.setAttribute('points', pts(d.loss.slice(0, m).map(function (v, j) { return sx(j * d.every); }), d.loss.slice(0, m).map(sy)));
+      var i = Math.round(q);
+      val.setAttribute('points', pts(d.steps.slice(0, i + 1).map(sx), d.val.slice(0, i + 1).map(sy)));
+      dot.setAttribute('cx', sx(d.steps[i]));
+      dot.setAttribute('cy', sy(d.val[i]));
+      if (i !== lastI) {
+        lastI = i;
+        // line breaks shown as ↵ and the text capped, so a long sample keeps the widget's height
+        var txt = d.samples[i].replace(/\n+/g, ' ↵ ');
+        sample.textContent = txt.length > 150 ? txt.slice(0, 150) + ' …' : txt;
+        readout.textContent = 'Step ' + d.steps[i] + ', held-out loss ' + d.val[i].toFixed(2) + ': ' + (d.notes ? d.notes[i] : '');
+      }
+    }
+    smoothPlayer(c1, N, draw, 1.2).set(0);
+  };
+
+  /* One window, T predictions: the causal mask, one position at a time. Row t holds the tokens
+   * position t may look at, the ones the mask hides, and the token it must predict. */
+  WIDGETS['llm-causal'] = function (root, data) {
+    var toks = data.examples.causal, N = toks.length, P = N - 1;
+    var W = 760, H = 250, L = 62, R = W - 6, T = 6, cw = (R - L) / N, ch = (H - T - 6) / P;
+    html('div', { class: 'cw-title' }, root, 'One window, ' + P + ' predictions');
+    var svg = svgRoot(root, W, H, 'The causal mask: which tokens each position can see, and what it must predict');
+    svg.style.maxHeight = '250px';
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    var leg = html('div', { class: 'cw-legend' }, root);
+    [['rgba(31,92,153,.75)', 'it can see: the text so far'], ['rgba(128,128,128,.22)', 'it cannot see: the rest'],
+     ['rgba(46,125,50,.85)', 'it must guess: the real next token, taken from the text']].forEach(function (e) {
+      var sp = html('span', {}, leg); html('i', { style: 'background:' + e[0] }, sp); sp.appendChild(document.createTextNode(e[1]));
+    });
+    html('div', { class: 'cw-note' }, root, 'GPT-2\'s tokens of one sentence. ␣ is a space. Training computes every row at once, ' +
+      'from one pass over the window.');
+    function show(t) { return t.replace(/ /g, '␣'); }
+    var cells = [], words = [];
+    for (var i = 0; i < P; i++) {
+      var row = [], wr = [];
+      text(svg, L - 8, T + (i + 0.64) * ch, 'guess ' + (i + 1), { 'text-anchor': 'end', 'font-size': 12, opacity: 0.75 });
+      for (var j = 0; j < N; j++) {
+        row.push(el('rect', { x: L + j * cw + 1.5, y: T + i * ch + 1.5, width: cw - 3, height: ch - 3, rx: 4 }, svg));
+        wr.push(text(svg, L + (j + 0.5) * cw, T + (i + 0.66) * ch, show(toks[j]),
+          { 'text-anchor': 'middle', 'font-size': 13, 'font-family': 'ui-monospace, Menlo, monospace' }));
+      }
+      cells.push(row);
+      words.push(wr);
+    }
+    function draw(q) {
+      var k = Math.round(q);
+      for (var i = 0; i < P; i++) {
+        var on = i <= k, cur = i === k;
+        for (var j = 0; j < N; j++) {
+          var kind = j <= i ? 'see' : j === i + 1 ? 'target' : 'hidden';
+          var fill = kind === 'see' ? 'rgb(31,92,153)' : kind === 'target' ? 'rgb(46,125,50)' : 'rgb(128,128,128)';
+          var op = kind === 'hidden' ? (on ? 0.16 : 0.07) : cur ? 0.85 : on ? 0.35 : 0.1;
+          cells[i][j].setAttribute('fill', fill);
+          cells[i][j].setAttribute('fill-opacity', op);
+          words[i][j].setAttribute('opacity', !on ? 0.25 : kind === 'hidden' ? 0.3 : 1);
+          words[i][j].setAttribute('fill', on && cur && kind !== 'hidden' ? '#fff' : 'currentColor');
+          words[i][j].setAttribute('font-weight', cur && kind === 'target' ? 700 : 400);
+        }
+      }
+      readout.textContent = 'Guess ' + (k + 1) + ': the model sees "' + toks.slice(0, k + 1).join('') + '" and must guess what comes next. ' +
+        'The answer is just the next token of the text: "' + show(toks[k + 1]) + '".' +
+        (k === P - 1 ? ' One sentence of ' + N + ' tokens gave ' + P + ' guesses to learn from.' : '');
+    }
+    smoothPlayer(c1, P, draw, 0.9).set(0);
+  };
+
+  /* The tiny GPT watched while it trains: for one held-out sentence, the probability it gives
+   * each true next character (the color) and its own top guess (below), every 250 steps. */
+  WIDGETS['llm-learn'] = function (root, data) {
+    var d = data.learn, F = d.frames, S = d.sentence;
+    html('div', { class: 'cw-title' }, root, 'Watching the predictions sharpen');
+    var head = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    var row = html('div', { class: 'cw-learn' }, root);
+    var leg = html('div', { class: 'cw-legend' }, root);
+    [['#d64545', 'true next character: probability near 0'], ['#e9c46a', 'about 0.5'], ['#3a9d5d', 'near 1'],
+     ['transparent;border:1px solid #c41230', 'red letter below: the model\'s own top guess, when it is wrong']].forEach(function (e) {
+      var sp = html('span', {}, leg); html('i', { style: 'background:' + e[0] }, sp); sp.appendChild(document.createTextNode(e[1]));
+    });
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    html('div', { class: 'cw-note' }, root, 'A sentence that is not in the training text. Each box is one prediction: ' +
+      'the character, colored by the probability the model gave it from the characters before it.');
+    function color(p) {
+      var a = [214, 69, 69], b = [233, 196, 106], c = [58, 157, 93], u = p < 0.5 ? p / 0.5 : (p - 0.5) / 0.5, x = p < 0.5 ? a : b, y = p < 0.5 ? b : c;
+      return 'rgb(' + x.map(function (v, i) { return Math.round(v + u * (y[i] - v)); }).join(',') + ')';
+    }
+    var boxes = [];
+    for (var i = 0; i < S.length; i++) {
+      var col = html('span', { class: 'cl' }, row);
+      var top = html('b', {}, col, S[i] === ' ' ? '␣' : S[i]);
+      var bot = html('em', {}, col, '');
+      boxes.push([top, bot]);
+    }
+    var last = -1;
+    function draw(q) {
+      var k = Math.round(q);
+      if (k === last) return;
+      last = k;
+      var f = F[k], good = 0;
+      boxes[0][0].style.background = 'rgba(128,128,128,.25)';
+      for (var i = 1; i < S.length; i++) {
+        var p = f.p[i - 1], g = f.top[i - 1];
+        boxes[i][0].style.background = color(p);
+        boxes[i][1].textContent = g === S[i] ? '' : (g === ' ' ? '␣' : g === '\n' ? '↵' : g);
+        if (p > 0.5) good++;
+      }
+      head.textContent = 'Step ' + f.step + ': loss on this sentence ' + f.loss.toFixed(2) + '. The model gives more than 50% ' +
+        'to the right next character at ' + good + ' of ' + (S.length - 1) + ' positions.';
+    }
+    smoothPlayer(c1, F.length, draw, 1.1).set(0);
+  };
+
+  /* A chatbot is a next-token loop over a hidden script, after 3Blue1Brown's "Large Language
+   * Models explained briefly". Left: what the user sees. Middle: the text the model completes.
+   * Right: its five most likely next tokens at the current step, the red one appended. */
+  WIDGETS['llm-chat'] = function (root, data) {
+    var a = data.chat.chat, S = a.steps, N = S.length;
+    html('div', { class: 'cw-title' }, root, 'A chatbot completes a script, one token at a time');
+    var grid = html('div', { class: 'cw-chat' }, root);
+    var left = html('div', { class: 'cw-pane' }, grid);
+    html('div', { class: 'cw-ph' }, left, 'What you see');
+    html('div', { class: 'cw-bub user' }, left, a.question);
+    var bot = html('div', { class: 'cw-bub bot' }, left);
+    var mid = html('div', { class: 'cw-pane' }, grid);
+    html('div', { class: 'cw-ph' }, mid, 'What the model reads and continues');
+    var scr = html('div', { class: 'cw-script' }, mid);
+    a.script.split(/(<\|im_start\|>|<\|im_end\|>)/).forEach(function (part) {
+      if (!part) return;
+      if (part.charAt(0) === '<') html('span', { class: 'sp' }, scr, part);
+      else scr.appendChild(document.createTextNode(part));
+    });
+    var gen = html('span', { class: 'gen' }, scr);
+    html('span', { class: 'cur' }, scr, '▍');
+    html('div', { class: 'cw-key' }, mid, 'gray: special tokens that open and close each message');
+    var nexts = html('div', { class: 'cw-pane cw-nexts' }, grid);
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root, data.chat.model + ', a small open chat model, answering greedily. ' +
+      'The gray tags mark who is speaking; the app hides them and shows only the answer.');
+    function show(t) { return t === '<|im_end|>' ? '⟨end⟩' : t.replace(/ /g, '␣').replace(/\n/g, '↵'); }
+    var last = -1;
+    function draw(q) {
+      var k = Math.round(q);
+      if (k === last) return;
+      last = k;
+      var txt = S.slice(0, k).map(function (st) { return st[0][0]; }).join('');
+      gen.textContent = txt;
+      bot.textContent = txt || '…';
+      clear(nexts);
+      html('div', { class: 'cw-nh' }, nexts, 'Next token, step ' + (k + 1));
+      var st = S[k], top = st[0][1];
+      st.forEach(function (e, j) {
+        var row = html('div', { class: 'cw-nrow' + (j === 0 ? ' pick' : '') }, nexts);
+        html('span', { class: 'tok' }, row, show(e[0]));
+        var bw = html('span', {}, row);
+        var bar = html('span', { class: 'bar' }, bw);
+        bar.style.width = Math.max(1, 100 * e[1] / top).toFixed(1) + '%';
+        html('span', { class: 'val' }, row, (100 * e[1]).toFixed(e[1] < 0.1 ? 1 : 0) + '%');
+      });
+      readout.textContent = k === N - 1
+        ? 'Step ' + (k + 1) + ': the top guess is the end tag (' + (100 * top).toFixed(0) + '%). The answer is done.'
+        : 'Step ' + (k + 1) + ': "' + show(st[0][0]) + '" (' + (100 * top).toFixed(0) + '%) is appended; the model runs again.';
+    }
+    smoothPlayer(c1, N, draw, 0.7).set(0);
+  };
+
+  /* The model at a glance, after 3Blue1Brown's "Transformers, the tech behind LLMs": tokens become
+   * vectors, attention lets the vectors exchange information, an MLP updates each one alone, the
+   * pair repeats, and the last vector becomes next-token probabilities. The vectors' numbers and
+   * the 2-D meaning map are a sketch; the final probabilities are GPT-2's. */
+  WIDGETS['llm-flow'] = function (root, data) {
+    var f = data.examples.flow, T = f.tokens, n = T.length, D = 8;
+    var W = 760, H = 322, x0 = 40, gap = 80, cw = 34, ch = 15, top = 46;
+    html('div', { class: 'cw-title' }, root, 'Inside the model: vectors that talk, then think, many times over');
+    var svg = svgRoot(root, W, H, 'Tokens become vectors, attention mixes them, an MLP updates each, and the last vector gives probabilities');
+    svg.style.maxHeight = '322px';
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root, 'The numbers in the vectors and the meaning map are a sketch. The final ' +
+      'probabilities are real: GPT-2 (124M), run on the prompt "' + f.text + '".');
+    function show(t) { return t.replace(/ /g, '␣'); }
+    var rng = mulberry(17), base = [], vals = [];
+    for (var i = 0; i < n; i++) { var v = []; for (var d = 0; d < D; d++) v.push(rng() * 2 - 1); base.push(v); }
+    var tgt = base[1].map(function (v, d) { return 0.35 * v + 0.65 * (0.6 * base[5][d] + 0.4 * base[2][d]); });
+    var mlpShift = base.map(function () { var v = []; for (var d = 0; d < D; d++) v.push((rng() - 0.5) * 0.5); return v; });
+    function col(v) {
+      var a = Math.max(-1, Math.min(1, v)), r = a < 0 ? 31 : 196, g = a < 0 ? 111 : 65, b = a < 0 ? 178 : 12;
+      return 'rgba(' + r + ',' + g + ',' + b + ',' + (0.15 + 0.8 * Math.abs(a)).toFixed(2) + ')';
+    }
+    var stageLab = text(svg, 8, H - 8, '', { 'font-size': 14, 'font-weight': 700 });
+    var chips = [], cells = [], mlps = [];
+    for (i = 0; i < n; i++) {
+      var cx = x0 + i * gap;
+      chips.push(text(svg, cx + cw / 2, 22, show(T[i]), { 'text-anchor': 'middle', 'font-size': 13, 'font-weight': i === 1 ? 700 : 400 }));
+      var cs = [];
+      for (d = 0; d < D; d++) cs.push(el('rect', { x: cx, y: top + d * ch, width: cw, height: ch - 2, rx: 2 }, svg));
+      cells.push(cs);
+      mlps.push(el('rect', { x: cx - 4, y: top + D * ch + 56, width: cw + 8, height: 20, rx: 4, fill: 'none', stroke: '#2b8a3e', 'stroke-width': 2 }, svg));
+    }
+    var mlpLab = text(svg, x0, top + D * ch + 116, 'MLP: the same small network on each vector, alone', { 'font-size': 12, style: 'fill:' + '#2b8a3e' });
+    var arcs = [[5, 1, 4], [2, 1, 2.5], [3, 1, 2]].map(function (a) {
+      var xa = x0 + a[0] * gap + cw / 2, xb = x0 + a[1] * gap + cw / 2, yb = top + D * ch + 4;
+      return el('path', { d: 'M' + xa + ',' + yb + ' Q' + (xa + xb) / 2 + ',' + (yb + 48 + a[0] * 4) + ' ' + xb + ',' + yb,
+        fill: 'none', stroke: '#c41230', 'stroke-width': a[2], 'stroke-linecap': 'round' }, svg);
+    });
+    var attLab = text(svg, x0, top + D * ch + 98, 'attention: "plant" reads "shut down" and "maintenance"', { 'font-size': 12, style: 'fill:' + '#c41230' });
+    var layerLab = text(svg, 420, H - 8, '', { 'font-size': 14, 'font-weight': 700, style: 'fill:' + '#1f6fb2' });
+    // the right panel: a sketch of meaning, then the probabilities
+    var px = 520, map = el('g', {}, svg), bars = el('g', {}, svg);
+    el('rect', { x: px, y: 30, width: 225, height: 190, rx: 8, fill: 'rgba(128,128,128,.07)' }, map);
+    text(svg, px + 112, 48, 'meaning, sketched in 2-D', { 'text-anchor': 'middle', 'font-size': 12, opacity: 0.75 }).setAttribute('class', 'm');
+    var words = [['factory', 708, 74], ['refinery', 712, 98], ['pump', 704, 122], ['tree', 548, 190], ['flower', 592, 207], ['leaf', 552, 166]];
+    words.forEach(function (w) { text(map, w[1], w[2], w[0], { 'text-anchor': 'middle', 'font-size': 12, opacity: 0.7 }); });
+    var dot = el('circle', { r: 7, fill: '#c41230' }, map);
+    var dotLab = text(map, 0, 0, '"plant"', { 'font-size': 13, 'font-weight': 700, style: 'fill:' + '#c41230' });
+    var arrow = el('path', { d: 'M' + (x0 + (n - 1) * gap + cw + 6) + ',' + (top + 60) + ' L' + (px - 8) + ',' + (top + 60),
+      stroke: 'currentColor', 'stroke-width': 1.5, opacity: 0.6 }, svg);
+    var bx = px + 64, bw = 150, rows = [];
+    f.next.forEach(function (e, j) {
+      var y = 44 + j * 27;
+      rows.push([text(bars, bx - 6, y + 13, show(e[0]), { 'text-anchor': 'end', 'font-size': 13, 'font-family': 'ui-monospace, Menlo, monospace' }),
+        el('rect', { x: bx, y: y + 2, height: 15, width: 0, rx: 2, fill: j === 0 ? '#c41230' : '#1f6fb2' }, bars),
+        text(bars, bx, y + 14, '', { 'font-size': 12 })]);
+    });
+    var pmax = f.next[0][1];
+    function clamp(v) { return Math.max(0, Math.min(1, v)); }
+    var STAGES = ['1. Text → tokens', '2. Each token → a vector (a lookup table)', '3. Attention: the vectors exchange information',
+      '4. MLP: each vector is updated on its own', '5. Repeat: 4 times in our tiny GPT, 96 in GPT-3', '6. The last vector → probabilities for the next token'];
+    var TEXT = ['The prompt "' + f.text + '" is cut into tokens.',
+      'Each token becomes a list of numbers, its vector. On its own, "plant" could be a tree or a factory.',
+      'Attention: each vector takes information from the ones before it. "plant" reads "shut down" and "maintenance" and moves toward "factory".',
+      'MLP: each vector is then updated on its own, by the same small network.',
+      'Attention, then MLP, again and again: 4 times in our tiny GPT, 96 in GPT-3.',
+      'The last vector gives the next token. GPT-2\'s top guess: "' + show(f.next[0][0]) + '" (' + (100 * f.next[0][1]).toFixed(0) +
+        '%), as in "…for maintenance in March".'];
+    function draw(q) {
+      // each stage fades in over the step that leads to it, so the last one shows at the end
+      var k = Math.min(5, Math.round(q));
+      var eVis = clamp(q), att = clamp(q - 1), mlp = clamp(q - 2), rep = clamp(q - 3), out = clamp(q - 4);
+      for (var i = 0; i < n; i++) {
+        for (var d = 0; d < D; d++) {
+          var v = base[i][d];
+          if (i === 1) v = lerp(v, tgt[d], att);
+          v += mlpShift[i][d] * mlp * (1 + rep);
+          cells[i][d].setAttribute('fill', col(v));
+          cells[i][d].setAttribute('opacity', eVis.toFixed(2));
+        }
+        mlps[i].setAttribute('opacity', (q > 2 && q < 4.5 ? 0.9 : 0).toString());
+      }
+      var arcsOn = (q > 1 && q < 2.5) || (q > 3 && q < 4.5);
+      arcs.forEach(function (a) { a.setAttribute('opacity', arcsOn ? 0.85 : 0); });
+      attLab.setAttribute('opacity', arcsOn ? 1 : 0);
+      mlpLab.setAttribute('opacity', q > 2 && q < 4.5 ? 1 : 0);
+      layerLab.textContent = q > 1 && q < 4.5 ? 'layer ' + Math.max(1, Math.min(4, Math.round(1 + 3 * rep))) + ' of 4' : '';
+      var mx = lerp(605, 655, att), my = lerp(150, 100, att);
+      dot.setAttribute('cx', mx); dot.setAttribute('cy', my);
+      dotLab.setAttribute('x', mx - 58); dotLab.setAttribute('y', my + 4);
+      map.setAttribute('opacity', (q < 0.5 ? 0 : 1 - out).toFixed(2));
+      svg.querySelector('text.m').setAttribute('opacity', q >= 0.5 && q < 4.5 ? 0.75 : 0);
+      bars.setAttribute('opacity', out.toFixed(2));
+      arrow.setAttribute('opacity', (0.6 * out).toFixed(2));
+      rows.forEach(function (r, j) {
+        var w = bw * f.next[j][1] / pmax * out;
+        r[1].setAttribute('width', w.toFixed(1));
+        r[2].setAttribute('x', (bx + w + 5).toFixed(1));
+        r[2].textContent = out > 0.5 ? (100 * f.next[j][1]).toFixed(0) + '%' : '';
+      });
+      for (i = 0; i < n; i++) chips[i].setAttribute('fill', k === 5 && i === n - 1 ? '#c41230' : 'currentColor');
+      stageLab.textContent = STAGES[k];
+      readout.textContent = TEXT[k];
+    }
+    smoothPlayer(c1, 6, draw, 1.6).set(0);
+  };
+
+  /* Training as tuning dials. The dials are a drawing of the parameters; the guesses are real:
+   * the tiny GPT of the lecture at every 250th training step, predicting the character after
+   * "A generative model learns the proba". The chart follows the probability of the true one. */
+  WIDGETS['llm-dials'] = function (root, data) {
+    var d = data.learn, F = d.frames, S = d.sentence, pos = d.focus || 34, truth = S[pos + 1];
+    html('div', { class: 'cw-title' }, root, 'Training: nudge every dial so the true next character gets more likely');
+    var ctx = html('div', { class: 'cw-ctx' }, root);
+    ctx.appendChild(document.createTextNode(S.slice(0, pos + 1)));
+    html('span', { class: 'q' }, ctx, '?');
+    var tri = html('div', { class: 'cw-tri' }, root);
+    var p1 = html('div', {}, tri), p2 = html('div', {}, tri), p3 = html('div', {}, tri);
+    html('div', { class: 'cw-ph' }, p1, '1. The dials (a drawing)');
+    html('div', { class: 'cw-ph' }, p2, '2. Its five best guesses');
+    html('div', { class: 'cw-ph' }, p3, '3. Chance it gives the true "' + truth + '"');
+    var svg = svgRoot(p1, 300, 128, 'A grid of dials standing for the parameters');
+    var nexts = html('div', { class: 'cw-nexts' }, p2);
+    var chart = svgRoot(p3, 260, 150, 'The probability of the true next character at each training checkpoint');
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root, 'The guesses and the chart are the tiny GPT of the lecture, saved every 250 training ' +
+      'steps. The dials only stand for its 842,881 parameters.');
+    var rng = mulberry(5), dials = [], R = 10, nx = 12, ny = 5;
+    for (var j = 0; j < ny; j++) for (var i = 0; i < nx; i++) {
+      var cx = 14 + i * 24.5, cy = 14 + j * 24;
+      el('circle', { cx: cx, cy: cy, r: R, fill: 'none', stroke: 'currentColor', 'stroke-opacity': 0.35 }, svg);
+      var nd = el('line', { x1: cx, y1: cy, x2: cx, y2: cy - R + 2, stroke: '#1f6fb2', 'stroke-width': 2, 'stroke-linecap': 'round' }, svg);
+      dials.push([nd, cx, cy, rng() * 360, (rng() - 0.5) * 300]);
+    }
+    // the chart: probability of the true character against training step
+    var L = 34, Rr = 252, T = 10, B = 122, last = F[F.length - 1].step;
+    var sx = scale(0, last, L, Rr), sy = scale(0, 1, B, T);
+    [0, 0.5, 1].forEach(function (v) {
+      el('line', { x1: L, x2: Rr, y1: sy(v), y2: sy(v), stroke: 'currentColor', 'stroke-opacity': 0.12 }, chart);
+      text(chart, L - 5, sy(v) + 4, (100 * v) + '%', { 'text-anchor': 'end', 'font-size': 11, opacity: 0.75 });
+    });
+    [0, 1000, 2000].forEach(function (v) { text(chart, sx(v), B + 15, String(v), { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.75 }); });
+    text(chart, (L + Rr) / 2, B + 28, 'training step', { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.8 });
+    var line = el('polyline', { fill: 'none', stroke: '#2b8a3e', 'stroke-width': 2.5 }, chart);
+    var dot = el('circle', { r: 5, fill: '#2b8a3e' }, chart);
+    function show(t) { return t === ' ' ? '␣' : t === '\n' ? '↵' : t; }
+    var lastK = -1;
+    function draw(q) {
+      var g = q / (F.length - 1), ease = 1 - Math.pow(1 - g, 3);
+      dials.forEach(function (dl) {
+        var a = (dl[3] + dl[4] * ease) * Math.PI / 180;
+        dl[0].setAttribute('x2', (dl[1] + (R - 2) * Math.sin(a)).toFixed(1));
+        dl[0].setAttribute('y2', (dl[2] - (R - 2) * Math.cos(a)).toFixed(1));
+      });
+      var k0 = Math.floor(q), k1 = Math.min(F.length - 1, k0 + 1), u = q - k0;
+      var ps = F.map(function (f) { return f.p[pos]; });
+      var xs = [], ys = [];
+      for (var k = 0; k <= k0; k++) { xs.push(sx(F[k].step)); ys.push(sy(ps[k])); }
+      var xq = lerp(F[k0].step, F[k1].step, u), pq = lerp(ps[k0], ps[k1], u);
+      xs.push(sx(xq)); ys.push(sy(pq));
+      line.setAttribute('points', pts(xs, ys));
+      dot.setAttribute('cx', sx(xq)); dot.setAttribute('cy', sy(pq));
+      var kq = Math.round(q);
+      if (kq === lastK) return;
+      lastK = kq;
+      var f = F[kq], t5 = f.top5[pos], top = t5[0][1], hit = false;
+      clear(nexts);
+      t5.forEach(function (e) {
+        var isT = e[0] === truth; hit = hit || isT;
+        var r = html('div', { class: 'cw-nrow' + (isT ? ' true' : '') }, nexts);
+        html('span', { class: 'tok' }, r, show(e[0]));
+        var bw = html('span', {}, r), bar = html('span', { class: 'bar' }, bw);
+        bar.style.width = Math.max(1, 100 * e[1] / Math.max(top, 0.05)).toFixed(1) + '%';
+        html('span', { class: 'val' }, r, (100 * e[1]).toFixed(e[1] < 0.1 ? 1 : 0) + '%');
+      });
+      if (!hit) {
+        var r = html('div', { class: 'cw-nrow true' }, nexts);
+        html('span', { class: 'tok' }, r, show(truth));
+        html('span', {}, r, 'not in the top 5');
+        html('span', { class: 'val' }, r, (100 * f.p[pos]).toFixed(1) + '%');
+      }
+      var pt = (100 * f.p[pos]).toFixed(f.p[pos] < 0.1 ? 1 : 0) + '%';
+      readout.textContent = kq === 0
+        ? 'Step 0: the dials are random, so it guesses almost blindly. The true next character, "' + truth + '", gets ' + pt + '.'
+        : 'Step ' + f.step + ': after ' + f.step + ' nudges, "' + truth + '" gets ' + pt + '. Each step nudged every dial a little toward the true characters of the training text.';
+    }
+    smoothPlayer(c1, F.length, draw, 1.1).set(0);
+  };
+
+  /* Language models over the years: release date against parameter count, log scale. A cursor
+   * sweeps the years and each model appears as it is released. Mixture-of-experts models also
+   * mark the parameters used per token (hollow). Closed models publish no size: they sit on a
+   * strip at the top, OpenAI and Anthropic in separate rows. */
+  WIDGETS['llm-sizes'] = function (root, data) {
+    var d = data.sizes, W = 760, H = 330, L = 78, R = 740, T = 92, B = 300;
+    html('div', { class: 'cw-title' }, root, 'Language models over the years');
+    var svg = svgRoot(root, W, H, 'Parameters of language models against release year');
+    svg.style.maxHeight = '305px';
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root, 'Parameter counts from each model\'s paper, model card or announcement. ' +
+      'Hollow: parameters used for each token in a mixture-of-experts model. Closed models do not publish their size.');
+    var sx = scale(2018, 2027, L, R), sy = scale(5, 13, B, T);
+    function lg(v) { return Math.log(v) / Math.LN10; }
+    [5, 6, 7, 8, 9, 10, 11, 12, 13].forEach(function (e) {
+      el('line', { x1: L, x2: R, y1: sy(e), y2: sy(e), stroke: 'currentColor', 'stroke-opacity': e % 3 === 0 ? 0.14 : 0.06 }, svg);
+    });
+    [[6, '1 million'], [9, '1 billion'], [12, '1 trillion']].forEach(function (e) {
+      text(svg, L - 6, sy(e[0]) + 4, e[1], { 'text-anchor': 'end', 'font-size': 11, opacity: 0.8 });
+    });
+    for (var y = 2018; y <= 2026; y++) text(svg, sx(y + 0.5), B + 18, String(y), { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.8 });
+    text(svg, 12, (T + B) / 2, 'parameters', { 'text-anchor': 'middle', 'font-size': 11, transform: 'rotate(-90 12 ' + (T + B) / 2 + ')', opacity: 0.85 });
+    // the strip of closed models
+    el('rect', { x: L, y: 6, width: R - L, height: 64, rx: 6, fill: 'rgba(128,128,128,.08)' }, svg);
+    text(svg, L + 6, 20, 'closed models: size not published', { 'font-size': 11, opacity: 0.75 });
+    text(svg, L - 6, 41, 'OpenAI', { 'text-anchor': 'end', 'font-size': 11, opacity: 0.8 });
+    text(svg, L - 6, 63, 'Anthropic', { 'text-anchor': 'end', 'font-size': 11, opacity: 0.8 });
+    var items = [];
+    d.closed.forEach(function (c) {
+      var row = /^Claude/.test(c[0]) ? 59 : 37, g = el('g', { opacity: 0 }, svg), x = sx(c[1]);
+      el('path', { d: 'M' + x + ',' + (row - 6) + ' l6,6 l-6,6 l-6,-6 z', fill: '#8a8a8a' }, g);
+      var SHORT = { 'Claude 3.5 Sonnet': '3.5 Sonnet', 'Claude Opus 4': 'Opus 4', 'Claude Opus 5.5': 'Opus 5.5', 'GPT-6 Astra': 'GPT-6' };
+      var lab = SHORT[c[0]] || c[0], up = c[0] === 'Claude 3';
+      text(g, up ? x - 8 : x + 8, row + 4, lab, { 'font-size': 11, 'text-anchor': up ? 'end' : 'start' });
+      items.push([c[1], g]);
+    });
+    var OFF = { 'GPT-1': [8, 4], 'GPT-2': [8, 4], 'GPT-3': [-8, -6, 'end'], 'Gopher': [-8, -6, 'end'], 'Chinchilla': [8, 14],
+      'PaLM': [8, -8], 'Llama 2': [8, 14], 'Llama 3.1': [-8, -7, 'end'], 'DeepSeek-V3': [0, 50, 'middle'], 'Kimi K2': [0, -10, 'middle'],
+      'DeepSeek-V4-Pro': [0, 56, 'middle'], 'Kimi K3': [8, -9] };
+    d.open.forEach(function (m) {
+      var g = el('g', { opacity: 0 }, svg), x = sx(m[1]), y = sy(lg(m[2])), o = OFF[m[0]] || [8, 4];
+      if (m[3]) {
+        el('line', { x1: x, x2: x, y1: y, y2: sy(lg(m[3])), stroke: '#1f5c99', 'stroke-opacity': 0.45, 'stroke-dasharray': '3 3' }, g);
+        el('circle', { cx: x, cy: sy(lg(m[3])), r: 4, fill: 'none', stroke: '#1f5c99', 'stroke-width': 1.5 }, g);
+      }
+      el('circle', { cx: x, cy: y, r: 6, fill: '#1f5c99', stroke: '#fff' }, g);
+      text(g, x + o[0], y + o[1], m[0], { 'font-size': 12, 'text-anchor': o[2] || 'start' });
+      items.push([m[1], g]);
+    });
+    var tg = el('g', { opacity: 0 }, svg), tx = sx(d.tiny[1]), ty = sy(lg(d.tiny[2]));
+    el('path', { d: 'M' + tx + ',' + (ty - 9) + ' l2.6,6 6.4,0.6 -4.9,4.2 1.5,6.3 -5.6,-3.4 -5.6,3.4 1.5,-6.3 -4.9,-4.2 6.4,-0.6 z', fill: '#c41230' }, tg);
+    text(tg, tx - 10, ty + 4, 'our tiny GPT', { 'font-size': 12, 'text-anchor': 'end', style: 'fill:#c41230', 'font-weight': 700 });
+    items.push([d.tiny[1], tg]);
+    var cursor = el('line', { y1: 6, y2: B, stroke: '#c41230', 'stroke-opacity': 0.5, 'stroke-width': 1.5 }, svg);
+    var NEWS = [[2018, 'GPT-1: 117 million parameters.'], [2019, 'GPT-2: 1.5 billion, about 13 times more.'],
+      [2020, 'GPT-3: 175 billion, about 100 times more again.'], [2021, 'Gopher: 280 billion.'],
+      [2022, 'PaLM: 540 billion. Chinchilla: only 70 billion, trained on far more text, and better than much larger models.'],
+      [2023, 'GPT-4: from here on, OpenAI no longer publishes model sizes. Anthropic does not publish them either.'],
+      [2024, 'Open models grow past 400 billion: Llama 3.1, 405 billion; DeepSeek-V3, 671 billion.'],
+      [2025, 'Open models pass a trillion parameters, but as mixtures of experts: Kimi K2 uses 32 billion of its trillion for each token.'],
+      [2026, 'Kimi K3: 2.8 trillion parameters. Our tiny GPT, bottom right: 842,881.']];
+    function draw(q) {
+      var yr = 2018 + q;
+      cursor.setAttribute('x1', sx(Math.min(2027, yr))); cursor.setAttribute('x2', sx(Math.min(2027, yr)));
+      items.forEach(function (it) { it[1].setAttribute('opacity', Math.max(0, Math.min(1, (yr - it[0]) * 4)).toFixed(2)); });
+      var msg = NEWS[0][1];
+      NEWS.forEach(function (n) { if (yr >= n[0]) msg = n[1]; });
+      readout.textContent = Math.floor(Math.min(yr, 2026.99)) + ': ' + msg;
+    }
+    smoothPlayer(c1, 10, draw, 0.9).set(0);
+  };
+
+  /* Sampling as spinning a wheel: each slice is a next token, sized by its probability at the
+   * chosen temperature. GPT-2 after "...the water was too": its top 8 tokens and the rest. */
+  WIDGETS['llm-wheel'] = function (root, data) {
+    var s = data.sample.steps[3], K = 8, temp = 1;
+    var W = 560, H = 290, cx = 150, cy = 145, R = 122;
+    html('div', { class: 'cw-title' }, root, 'Sampling: spin a wheel sized by the probabilities');
+    var svg = svgRoot(root, W, H, 'A wheel with one slice per next token, sized by its probability');
+    svg.style.maxHeight = '290px';
+    var c1 = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root, 'GPT-2, next token after "' + s.context + '". Gray: the other 50,249 tokens together.');
+    var wheel = el('g', {}, svg), tally = el('g', {}, svg);
+    el('path', { d: 'M' + (cx - 10) + ',' + (cy - R - 14) + ' L' + (cx + 10) + ',' + (cy - R - 14) + ' L' + cx + ',' + (cy - R + 4) + 'Z', fill: '#2b2b2b' }, svg);
+    var COLS = ['#c41230', '#1f6fb2', '#b07d12', '#2e7d32', '#7a3db8', '#148c96', '#c2410c', '#5b9bd5'];
+    var angle = 0, counts = {}, total = 0, rng = mulberry(11);
+    function probs() {
+      var j = Math.round(temp * 10) - 1, p = s.logits.slice(0, K).map(function (v) { return Math.exp(v / temp - s.lse[j]); });
+      var rest = Math.max(0, 1 - p.reduce(function (a, b) { return a + b; }, 0));
+      return { p: p, rest: rest };
+    }
+    function show(t) { return t.replace(/ /g, '␣'); }
+    function drawWheel() {
+      clear(wheel);
+      var pr = probs(), a0 = 0, all = pr.p.concat([pr.rest]);
+      all.forEach(function (p, i) {
+        var a1 = a0 + p * 2 * Math.PI;
+        if (p > 0.0005) {
+          var large = a1 - a0 > Math.PI ? 1 : 0;
+          var x0 = cx + R * Math.sin(a0), y0 = cy - R * Math.cos(a0), x1 = cx + R * Math.sin(a1), y1 = cy - R * Math.cos(a1);
+          el('path', { d: 'M' + cx + ',' + cy + ' L' + x0.toFixed(1) + ',' + y0.toFixed(1) + ' A' + R + ',' + R + ' 0 ' + large + ' 1 ' + x1.toFixed(1) + ',' + y1.toFixed(1) + ' Z',
+            fill: i < K ? COLS[i] : 'rgba(128,128,128,.35)', stroke: '#fff', 'stroke-width': 1 }, wheel);
+          if (p > 0.045) {
+            var am = (a0 + a1) / 2, lx = cx + 0.66 * R * Math.sin(am), ly = cy - 0.66 * R * Math.cos(am);
+            text(wheel, lx, ly + 4, i < K ? show(s.tokens[i]) : 'other', { 'text-anchor': 'middle', 'font-size': 12, style: 'fill:' + '#fff', 'font-weight': 700 });
+          }
+        }
+        a0 = a1;
+      });
+      wheel.style.transformOrigin = cx + 'px ' + cy + 'px';
+      wheel.style.transform = 'rotate(' + angle + 'deg)';
+      drawTally();
+    }
+    function drawTally() {
+      clear(tally);
+      var pr = probs();
+      text(tally, 320, 26, 'token: wheel share, your spins', { 'font-size': 12, opacity: 0.8 });
+      s.tokens.slice(0, K).concat(['other']).forEach(function (t, i) {
+        var y = 48 + i * 24, p = i < K ? pr.p[i] : pr.rest, c = counts[i] || 0;
+        el('rect', { x: 300, y: y - 11, width: 12, height: 12, rx: 2, fill: i < K ? COLS[i] : 'rgba(128,128,128,.35)' }, tally);
+        text(tally, 320, y, (i < K ? show(t) : 'other') + ': ' + (100 * p).toFixed(p < 0.1 ? 1 : 0) + '%' + (total ? ',  ' + c + ' of ' + total : ''), { 'font-size': 13 });
+      });
+    }
+    var busy = null;
+    // one spin: draw a token, turn the wheel so the pointer (at the top) lands in its slice
+    function spinOnce(dur) {
+      var pr = probs(), all = pr.p.concat([pr.rest]), u = rng(), acc = 0, pick;
+      for (pick = 0; pick < all.length - 1; pick++) { acc += all[pick]; if (u < acc) break; }
+      counts[pick] = (counts[pick] || 0) + 1; total++;
+      var a0 = 0;
+      for (var i = 0; i < pick; i++) a0 += all[i] * 360;
+      var mid = a0 + all[pick] * 360 * (0.25 + 0.5 * rng());
+      angle = angle - (angle % 360) - 360 * (dur > 1 ? 2 : 1) - mid;
+      wheel.style.transition = REDUCED ? 'none' : 'transform ' + dur + 's cubic-bezier(.15,.7,.2,1)';
+      wheel.style.transform = 'rotate(' + angle + 'deg)';
+      drawTally();
+      return pick < K ? show(s.tokens[pick]) : 'another token';
+    }
+    function spin(times) {
+      if (busy) return;
+      if (times === 1) {
+        readout.textContent = 'τ = ' + temp + ': the wheel landed on "' + spinOnce(1.6) + '".';
+        return;
+      }
+      var left = times;
+      busy = setInterval(function () {
+        var got = spinOnce(0.5);
+        left--;
+        readout.textContent = 'τ = ' + temp + ': spin ' + (times - left) + ' of ' + times + ', "' + got + '". Compare the counts with the wheel shares.';
+        if (!left) { clearInterval(busy); busy = null; }
+      }, REDUCED ? 60 : 560);
+    }
+    function setT(t) {
+      if (busy) { clearInterval(busy); busy = null; }
+      temp = t; counts = {}; total = 0; angle = 0;
+      wheel.style.transition = 'none'; wheel.style.transform = '';
+      drawWheel();
+      readout.textContent = 'τ = ' + t + ': "' + show(s.tokens[0]) + '" has ' + (100 * probs().p[0]).toFixed(0) + '% of the wheel. ' +
+        (t < 1 ? 'Low temperature: one slice takes almost all of it.' : t > 1 ? 'High temperature: the slices even out.' : 'These are the model\'s own probabilities.');
+    }
+    var tg = html('span', {}, c1);
+    toggleGroup(tg, ['τ = 0.5', 'τ = 1', 'τ = 2'], 1, function (i) { setT([0.5, 1, 2][i]); });
+    var b1 = html('button', { type: 'button' }, c1, 'Spin');
+    var b2 = html('button', { type: 'button' }, c1, 'Spin 20 times');
+    b1.onclick = function () { spin(1); };
+    b2.onclick = function () { spin(20); };
+    setT(1);
+  };
 
   /* Aleatoric and epistemic uncertainty. A GP with the true noise level and fixed kernel
    * settings, fitted to the first n of a fixed sequence of noisy points, so moving the n

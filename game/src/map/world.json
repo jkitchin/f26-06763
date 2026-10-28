@@ -289,7 +289,7 @@
       "session": "L17",
       "id": "l17",
       "date": "2026-10-28",
-      "title": "Large language models (LLMs): what they are and how to use one",
+      "title": "Large language models (LLMs): what they are and how they are trained",
       "written": false,
       "arc_source": "declared",
       "arc": "LLM and agentic engineering",
@@ -623,11 +623,35 @@
     },
     {
       "from": "l17",
+      "to": "l01",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "[Lecture 1](../l01/notes.md)."
+    },
+    {
+      "from": "l17",
+      "to": "l08",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "- The word is the one from [Lecture 8](../l08/notes.md): \"**Autoregressive** models predict the"
+    },
+    {
+      "from": "l17",
       "to": "l09",
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "[Lecture 9](../l09/notes.md) and [Lecture 13](../l13/notes.md); this is the report itself. It is 146"
+      "where": "fit in [Lecture 9](../l09/notes.md) has 2; our tiny GPT has 842,881; GPT-3 has 175 billion."
+    },
+    {
+      "from": "l17",
+      "to": "l10",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "[Lecture 10](../l10/notes.md)."
     },
     {
       "from": "l17",
@@ -635,7 +659,15 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "Nothing in that stack is new to this course. [Lecture 11](../l11/notes.md) covered tensors,"
+      "where": "[Lecture 11](../l11/notes.md), gives the gradient for every dial in one backward pass."
+    },
+    {
+      "from": "l17",
+      "to": "l12",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "- This is the transformer of [Lecture 12](../l12/notes.md), where the tokens were cycles of a"
     },
     {
       "from": "l17",
@@ -643,7 +675,23 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "[Lecture 9](../l09/notes.md) and [Lecture 13](../l13/notes.md); this is the report itself. It is 146"
+      "where": "$\\min_\\theta L_\\text{data}$ of [Lecture 13](../l13/notes.md)."
+    },
+    {
+      "from": "l17",
+      "to": "l15",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "[Lecture 15](../l15/notes.md)'s map of where each optimizer fits, with our tiny GPT added. The"
+    },
+    {
+      "from": "l17",
+      "to": "l16",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "- [Lecture 16](../l16/notes.md) built generative models: learn a distribution, then sample from"
     },
     {
       "from": "l20",

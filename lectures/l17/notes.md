@@ -1,719 +1,852 @@
-# Lecture 17: Foundation models and LLMs at a systems level: architecture, tokenization, embeddings
+# Lecture 17: Large language models, what they are and how they are trained
 
-:::{admonition} Overview
+:::{admonition} At a glance
 :class: tip
 
 - **Session** Lecture 17, Week 9
 - **Arc** LLM and agentic engineering
 - **Slides** <a href="../../slides/l17/">Deck for this session</a>
 - **Practice** <a href="../../game/#/l17">Practice module for this session</a>
-- **Demo** [`l17-tokens-embeddings.ipynb`](l17-tokens-embeddings.ipynb), what a datasheet costs and what a log book clusters into
-- **Assignment 8** released this session
 :::
 
 ## Why this matters
 
-Here is a string from a pump datasheet: `±0.05 mm`. Eight characters, one tolerance,
-one number. Here is what the model receives when you send it:
+- You will use large language models (LLMs) at work: to draft, summarize, extract from
+  documents and write code.
+- Under the hood, an LLM does one thing: it gives a probability for the next token, and one token
+  is picked. Then it does it again.
+- Picture a movie script whose AI reply has been torn off, and a machine that predicts the next
+  word. Feed it the script, append its prediction, repeat, and the reply writes itself.
+- A chatbot works this way. The app wraps your question in a hidden script: a system message,
+  your message, and the start of the assistant's turn.
+- Special tokens open and close each message, `<|im_start|>` and `<|im_end|>` in the model below,
+  so the model knows who is speaking. It was trained on chats written this way; the app hides them.
+- We ran a small open chat model on a laptop: Qwen2.5-0.5B-Instruct from Alibaba (0.49 billion
+  parameters, built like a GPT). We asked it "In one sentence, what does a heat exchanger do?".
+  Below: the chat app (left), the text the model really reads and continues (middle), and its top
+  guesses for each token (right). Press play.
 
-```
-'±'  '0'  '.'  '05'  ' mm'
-```
+<div class="cw" data-widget="llm-chat" data-source="l17"></div>
 
-Five tokens, and not one of them is `0.05`. The number the specification is about does
-not exist anywhere in the model's input. It exists as three fragments that the model has
-to reassemble, and the fragment `05` is the same fragment it would see in `2005`, in
-`0.5`, and in a serial number. This is not a corner case. It is what happens to almost
-every quantity in almost every engineering document, and it is the reason that an
-extraction pipeline which handles prose beautifully starts quietly returning `2.5` where
-the datasheet said `25.0`.
-
-The second thing that happens to that datasheet is that it costs different amounts
-depending on who you ask. The two-page pump specification in these notes is 2,365
-characters. `tiktoken`, the tokenizer most engineers reach for because it is the one that
-installs locally, counts **776 tokens**. Claude Haiku 4.5 counts **924**. Claude Opus 5
-counts **1,263**, which is **63% more than the local estimate and 37% more than another
-model from the same vendor**. Scale that to a real corpus and the difference between the
-number you planned with and the number you were billed for is not a rounding error; on the
-146-page report these notes measure, estimating with `tiktoken` understates the Opus 5
-input bill by **31%**.
-
-Both of those failures come from the same place: not knowing what the model actually
-consumes. That is what this session is about. An LLM is not a black box that reads
-English, it is a next-token predictor over a fixed vocabulary of subword fragments, and
-almost every engineering constraint you will meet with these models (what fits, what
-it costs, how long it takes, what it gets wrong about numbers) falls out of that one
-sentence. The point of building the mental model is not theoretical interest. It is that
-once you have it, the failures become predictable in advance instead of surprising in
-production.
+- It wrote "A heat exchanger transfers heat from one medium to another." Its first token, "A", got
+  76%.
+- That one operation explains most of what you will see: why the text is fluent, why a number
+  can be invented, why long documents get cut off, and what you pay for.
+- [Lecture 16](../l16/notes.md) built generative models: learn a distribution, then sample from
+  it. An LLM is a generative model of text.
 
 ## Learning objectives
 
 By the end of this session you should be able to:
 
-- Build a correct-enough mental model of a decoder-only LLM to reason about failure modes
-  (truncation, hallucination, context limits) rather than treat it as a black box.
-- Understand tokenization concretely: subword units, why "10.5 MPa" or "SS316L" may split
-  oddly, and how token counts drive cost/latency.
-- Understand embeddings as vectors and use cosine similarity to cluster/retrieve
-  engineering text.
+- Describe an LLM as a generative model of text: the chain rule turns the probability of a text
+  into a product of next-token probabilities, and generation samples from them one token at a
+  time.
+- Explain what tokens are, how byte-pair encoding builds them, and why the context window is a
+  budget counted in tokens.
+- Explain pretraining: next-token cross-entropy at every position of every context window, on
+  the transformer of L12 with a causal mask.
+- Relate model size, training data and compute across language models, and explain what
+  post-training adds to a pretrained model.
+- Explain what temperature does to the next-token distribution, and why hallucination follows
+  from next-token prediction.
 
-## The shape of a decoder-only model
+## Our running example: a tiny GPT
 
-```{index} decoder-only transformer, self-attention, feed-forward network, foundation model
+- **GPT** stands for generative pretrained transformer, the model family behind ChatGPT.
+- We trained a tiny one from scratch for this lecture, on the notes of Lectures 1 to 16: 668,651
+  characters. It appears in many sections below.
+- It reads and writes one character at a time.
+- It has 842,881 parameters and trains in about two minutes on a laptop graphics card (GPU,
+  graphics processing unit).
+- The recipe is the same as GPT-3's. The size is about 200,000 times smaller.
+- Before training, it writes `The model l₂4zé'-(u↑Ly°⁷)aQ8d¹₆−wZ²t,>zü4i{₂YG`.
+- After 2,000 steps, it knows our vocabulary: given the first 60% of one term from each of
+  Lectures 1 to 16, it finishes 15 of the 16 correctly ("Parqu" → "et", "Bayesian opti" →
+  "mization"). Its sentences still mean nothing; meaning takes far more scale.
+- The code that trained it and drew this lecture's figures is
+  `lectures/l17/figures/make_figures.py` in the course repository.
+
+## From generative models to text
+
+```{index} language model, large language model, autoregressive model
 ```
 
-At the level that matters for engineering, a modern LLM is five stages in a loop.
+- In [Lecture 16](../l16/notes.md), a generative model learned the distribution of the data,
+  $p(x)$, and drew new samples from it. You fix the variables you know and sample the rest.
+- There, $x$ was a point in two dimensions: a Gaussian mixture, a flow or a diffusion model
+  returned all of $(x, y)$ in one draw.
+- Today, $x$ is a text: a sequence of tokens, $x_1, x_2, \dots, x_T$. For now, a token is a word or
+  a piece of a word.
+- **An LLM is a generative model of text.** Your prompt is the part you fix; it samples the rest.
 
-**Tokenize.** The input string is cut into subword units drawn from a fixed vocabulary,
-typically 50,000 to 200,000 entries. This is the stage that will get its own section
-below, because it is where engineering text goes wrong.
+### One variable at a time
 
-**Embed and position.** Each token id indexes a row of a learned matrix, turning a
-sequence of integers into a sequence of vectors. Position information is injected here
-(originally as a sinusoidal encoding, and in many current models as a rotary transformation
-of the query and key vectors), because everything downstream is otherwise order-blind.
+- The same distribution can be sampled one variable at a time: draw $x$ from $p(x)$, then $y$
+  from $p(y \mid x)$. This is exact, because $p(x, y) = p(x)\,p(y \mid x)$.
 
-**Stack of blocks.** Each block does two things. **Self-attention** lets every position
-look at every earlier position: each token emits a *query*, every token exposes a *key* and
-a *value*, the query is compared against the keys to produce weights, and the values are
-mixed in those proportions. This is the mechanism that lets "it" three sentences later
-refer to the pump. Then a **feed-forward network** transforms each position independently.
-Both are wrapped in residual connections and normalization. Dozens to over a hundred of
-these blocks are stacked.
+```{figure} figures/two-ways.png
+:alt: Two panels over Lecture 16's V-shaped data, y equals the absolute value of x plus noise, with the two-component Gaussian mixture drawn as gray contours. Left, titled Lecture 16, a whole point at once: 150 black points drawn from the mixture, along both arms of the V. Right, titled autoregressive, one at a time: above the panel, the marginal density p(x), with two bumps near minus 0.9 and plus 0.9, and a red vertical line at x = 0.8 labeled 1, x from p(x). In the panel, along that red line, the conditional density p(y given x = 0.8) is drawn in red, peaked at y = 0.8, with a red star at the drawn point, labeled 2, y from p(y given x = 0.8), and p(x, y) = p(x) p(y given x).
+:width: 85%
 
-**Logits.** The final vector at the last position is multiplied by an output matrix to
-produce one real number per vocabulary entry. A softmax turns those into a probability
-distribution over "what comes next."
+Lecture 16's |x| data and its two-component Gaussian mixture, sampled two ways. Left: a whole
+point at a time, as in Lecture 16. Right: one variable at a time. First $x$ from the blue curve,
+$p(x)$; here $x = 0.8$. Then $y$ from the red curve, $p(y \mid x = 0.8)$, which puts $y$ near
+0.8. Both ways draw from the same distribution.
+```
 
-**Sample and repeat.** One token is drawn from that distribution, appended to the
-sequence, and the whole thing runs again. This is what *autoregressive* means, and it is
-worth pausing on: generating 500 tokens is 500 forward passes, in strict sequence, and no
-amount of hardware makes step 200 start before step 199 finishes.
+- **Text has too many possibilities to draw at once.** A 10-token text has 10 slots, and each slot
+  can hold any of 50,257 tokens, so there are $50{,}257 \times 50{,}257 \times \dots$ (ten times)
+  $= 50{,}257^{10} \approx 10^{47}$ possible texts: far too many to list or model directly.
+- One token at a time, each step is one choice among 50,257.
 
-That last point is the reason the latency measurement later in these notes comes out the
-way it does, and it is the most useful structural fact in the whole architecture. Reading
-the input is a *parallel* operation: all of it can be processed at once. Writing the output
-is a *serial* one.
+### The chain rule
 
-:::{admonition} You have already built the pieces
+- The chain rule of probability writes the probability of a text as a product of next-token
+  probabilities, with no approximation:
+
+$$
+\underbrace{p(x_1, \dots, x_T)}_{\text{the whole text}}
+= \underbrace{\prod_{t=1}^{T}}_{\text{one factor per token}}
+\underbrace{p(x_t \mid x_1, \dots, x_{t-1})}_{\text{next-token probability}}
+$$
+
+- **The whole text:** how likely this exact text is, all $T$ tokens together.
+- **One factor per token:** multiply the probability of the 1st token, times the 2nd given the
+  1st, times the 3rd given the first two, and so on to the last.
+- **Next-token probability:** how likely token $t$ is, given all the tokens before it. This is the
+  only thing an LLM learns.
+
+:::{admonition} Example: the chain rule with GPT-2
 :class: note
+GPT-2 is a language model OpenAI released in 2019: 124 million parameters, small enough to run
+on a laptop. We ran it on "The pump stopped" and read its probability for each token, given the
+ones before it:
 
-Nothing in that stack is new to this course. [Lecture 11](../l11/notes.md) covered tensors,
-matrix multiplication on a GPU, autodiff, and why batch dimensions exist. A transformer
-block is those operations arranged in a particular order and repeated. What is new is the
-scale and the training objective, not the machinery.
+$$
+p(\text{The pump stopped}) = \underbrace{0.038}_{p(\text{The})} \times
+\underbrace{8.5 \times 10^{-6}}_{p(\text{␣pump} \mid \text{The})} \times
+\underbrace{0.0019}_{p(\text{␣stopped} \mid \text{The pump})} = 5.9 \times 10^{-10}
+$$
+
+- ␣ marks a space: GPT-2's tokens carry their leading space.
+- The product is tiny because so many texts are possible.
+- The smallest factor is "␣pump" after "The", about 8 in a million: thousands of words can follow
+  "The", and "pump" is a rare one.
 :::
 
-The term **foundation model** comes from Bommasani et al.'s 2021 report, and it names the
-economic fact rather than the architecture: a single model is trained once on broad data
-at enormous cost and then adapted to many downstream tasks. For you, the consequence is
-that you are not going to train one. You are going to *call* one, which makes the
-interface, the budget, and the failure modes your engineering problem rather than the
-architecture.
+- So a model that gives the probability of the next token, from the tokens before it, is a
+  complete generative model of text. It can score a text, and it can write one.
 
-## Prediction, fluency, and hallucination
+:::{admonition} Definition: language model
+:class: tip
+A **language model** gives the probability of the next token, $p(x_t \mid x_1, \dots, x_{t-1})$,
+from the tokens before it. By the chain rule, that is enough to score a whole text, and to write
+one. A **large language model** (LLM) is a language model with billions of parameters, trained on
+trillions of tokens.
+:::
+
+### The generation loop
+
+Sampling a text from $p(x_1, \dots, x_T)$ goes one token at a time:
+
+1. **Predict:** compute $p(x_{t+1} \mid x_{\le t})$ for every token in the vocabulary. This is
+   the last factor of the chain rule.
+2. **Pick:** choose one token from that distribution: the most likely one, or a random draw
+   (see Sampling, below).
+3. **Append** it to the end of the text.
+4. **Repeat** from the longer text, until a stop token or a length limit.
+
+We ran GPT-2 on "The pump stopped because the" and, five times, took its most likely next token
+and appended it:
+
+| Step | Text so far | Most likely next tokens | Appended |
+|---|---|---|---|
+| 1 | The pump stopped because the | ␣water 3.7%, ␣pump 2.9%, ␣gas 2.2% | ␣water |
+| 2 | … because the water | ␣was 21%, ␣level 6.5%, ␣had 6.4% | ␣was |
+| 3 | … the water was | ␣too 28%, ␣so 5.4%, ␣leaking 4.6% | ␣too |
+| 4 | … the water was too | ␣hot 42%, ␣cold 9.9%, ␣high 8.5% | ␣hot |
+| 5 | … the water was too hot | . 35%, ␣and 17%, ␣to 15% | . |
+
+- A model that generates this way, each output feeding the next input, is **autoregressive**.
+
+### Autoregressive, as in Lecture 8
+
+- The word is the one from [Lecture 8](../l08/notes.md): "**Autoregressive** models predict the
+  next value as a weighted sum of past values."
+- An LLM does the same with tokens: it predicts the next token from the tokens before it.
+- Both make long outputs the same way: feed each prediction back as an input. Lecture 8 called
+  this **recursive** forecasting; for an LLM it is the generation loop.
+
+```{figure} figures/ar-recursive.png
+:alt: Reactor pressure in kPa against minutes from now, from minus 120 to plus 120, on one test run. The measured pressure, a black line, swings between about 2692 and 2707 kPa up to time zero. A shaded band over the last 30 minutes is labeled last 10 values, inputs. After zero, a gray dashed line shows what happened, staying mostly between 2693 and 2702 kPa. A blue line with dots, the recursive AR(10) forecast, starts near 2702, dips, then rises smoothly toward 2705, the dotted gold mean of the training runs, labeled each forecast becomes an input for the next.
+:width: 85%
+
+Lecture 8's AR(10) on reactor pressure, on one test run (the median of 100 by error), forecast
+2 hours ahead. Each blue point was predicted from the 10 before it, most of them earlier
+forecasts. The forecast drifts toward the training mean while the pressure keeps swinging.
+```
+
+| | Lecture 8: AR(10) | An LLM |
+|---|---|---|
+| Predicts | the next pressure | the next token |
+| From | the last 10 values | all the text so far, up to its context window |
+| Output | one number | a probability for every token in the vocabulary |
+| Model | linear, 11 coefficients | a transformer, billions of parameters |
+| Trained | one step ahead, on measured values | one token ahead, on real text |
+| Long outputs | feed each forecast back in | append each token: the same |
+
+- **The same weakness:** both feed their own outputs back in, so an early mistake becomes an input
+  for every later step. In Lecture 8, after two hours the recursive forecast was worse than
+  predicting the mean. In an LLM, one wrong token early in an answer steers every token after it.
+- The comparison is between Lecture 8's forecaster and an LLM. Bengio et al. (2015) saw the same
+  effect in recurrent neural networks, an earlier kind of text generator: trained on true previous
+  tokens and then run on their own, "this discrepancy between training and inference can yield
+  errors that can accumulate quickly along the generated sequence"
+  ([Bengio et al., 2015](https://arxiv.org/abs/1506.03099)).
+
+## Tokens
+
+```{index} token, byte-pair encoding, context window
+```
+
+:::{admonition} Definition: token
+:class: tip
+A **token** is a piece of text the model reads and writes: a character, a word, or part of a word.
+The **vocabulary** is the list of every token the model knows, each with a number, its **token
+id**. The **tokenizer** is the program that cuts text into tokens and looks up their ids.
+:::
+
+GPT-2's tokenizer on one sentence:
+
+| Text | The pump stopped. | | | |
+|---|---|---|---|---|
+| **Tokens** | `The` | `␣pump` | `␣stopped` | `.` |
+| **Token ids** | 464 | 8901 | 5025 | 13 |
+
+- These are GPT-2's real ids. Its vocabulary has 50,257 tokens; the model never sees letters,
+  only ids.
+- The vocabulary is a lookup table: id 0 is "!", 13 is ".", 464 is "The", 8901 is "␣pump". The
+  last, 50256, is `<|endoftext|>`, a special token like the chat tags above: it marks the end of a
+  document.
+
+### Three ways to cut a text
+
+"The pump overheated at 85 °C.", cut three ways:
+
+- **Characters:** 29 tokens, one per letter, digit, space or symbol. A tiny vocabulary (our tiny
+  GPT has 129), but long sequences: one prediction per character.
+- **Words:** 6 tokens, one per word. Short sequences, but the vocabulary needs every word ever
+  written, and a new one has no token: a pump tag such as P-101A, or a steel grade such as
+  AISI 4140.
+- **Subwords:** pieces of words. GPT-2 needs 9 tokens here:
+  `The | ␣pump | ␣overhe | ated | ␣at | ␣85 | ␣° | C | .`. Common words stay whole ("␣pump"),
+  rarer ones split ("␣overhe" + "ated"), so any new word can still be built. This is what LLMs
+  use: GPT-2 has 50,257 tokens, GPT-4o about 200,000.
+
+### Byte-pair encoding
+
+:::{admonition} Definition: byte-pair encoding
+:class: tip
+**Byte-pair encoding** (BPE) is how a subword vocabulary is built. Find the pair of neighboring
+tokens that appears most often, merge it into one new token, repeat
+([Sennrich et al., 2016](https://aclanthology.org/P16-1162/)).
+:::
+
+Wikipedia's example ([Byte-pair encoding](https://en.wikipedia.org/wiki/Byte-pair_encoding)),
+on the text "aaabdaaabac":
+
+| Step | Most frequent pair | Tokens | Count |
+|---|---|---|---|
+| start | | a a a b d a a a b a c | 11 |
+| 1 | a + a (4 times) | aa a b d aa a b a c | 9 |
+| 2 | a + b (2 times) | aa ab d aa ab a c | 7 |
+| 3 | aa + ab (2 times) | aaab d aaab a c | 5 |
+
+- Step 2 is a tie: "aa" + "a" also appears twice. Wikipedia's example takes "a" + "b".
+
+Why this is useful:
+
+- **Fewer tokens.** Frequent pieces become one token, so sequences get shorter: more text fits in
+  the context window, and writing it takes fewer steps.
+- **Nothing is unknown.** A new word can always be built from smaller pieces, down to single
+  characters; GPT-2 starts from bytes, so it can write any text.
+- **Learned from data.** The merges come from the training text, so its frequent words become
+  single tokens. A tokenizer learns its merges once and applies them, in order, to any new text.
+
+The algorithm is Philip Gage's, a data-compression method from 1994, adapted to building subword
+vocabularies by Sennrich et al. (2016). GPT-2 starts from bytes and stops after 50,000 merges.
+
+### Byte-pair encoding learned from our notes
+
+- We learned 600 merges by BPE from our notes (Lectures 1 to 16), then applied them, in order, to
+  one sentence. Press play to watch the merges.
+- The last row is GPT-4o's tokenizer, learned the same way from far more text and loaded with
+  OpenAI's `tiktoken` library.
+
+<div class="cw" data-widget="llm-bpe" data-source="l17"></div>
+
+- **Each merge makes tokens longer and fewer.** 35 characters become 18 tokens with our 600
+  merges, and 10 with GPT-4o's tokenizer.
+- Fewer tokens means more text fits in the context window, and writing it takes fewer steps.
+
+### Numbers and units cost more than words
+
+- Common words are one token each. Numbers, units, part numbers and formulas split into many.
+- Same length, very different cost: "heat exchanger" is 14 characters and 2 tokens.
+  "Q = 1.5e-3 m³/s" is 15 characters and 12 tokens.
+
+```{figure} figures/tokens.png
+:alt: Five rows of colored token boxes, one per string, split by GPT-4o's tokenizer. "heat exchanger" is two tokens; "±0.05 mm AISI 4140 bearing" is eleven; "Pump P-101A trips at 12.5 bar" splits the part number into pieces; "Q = 1.5e-3 m³/s" splits into many short tokens; "CH3CH2OH" splits into pieces.
+:width: 100%
+
+Each box is one token of GPT-4o's tokenizer (o200k_base, in `tiktoken`); the left column gives
+characters and tokens per string. Words cost one token; numbers and symbols cost one token
+every few characters. "AISI" becomes " A" and "ISI", and "4140" becomes "414" and "0".
+```
+
+- **The model reads numbers in pieces.** The tokenizer cuts "4140" (the steel grade in the
+  figure) into two tokens, "414" and "0", the way it cuts a word into pieces, and "12.5" into
+  "12", "." and "5". The model sees text pieces, never the quantity four thousand one hundred
+  forty. P-101A in the figure is a pump tag; it splits the same way.
+- **So numbers, units and part numbers are where LLMs slip.** Check them, and do the arithmetic
+  in code.
+
+### The context window
+
+:::{admonition} Definition: context window
+:class: tip
+The **context window** is the most tokens a model can take in at once: your prompt, any
+documents, and everything it has written so far.
+:::
+
+- Our tiny GPT: 128 characters, about one sentence.
+- GPT-3: "a context window of nctx = 2048 tokens", a few pages
+  ([Brown et al., 2020](https://arxiv.org/abs/2005.14165)).
+- Llama 3: "a context window of up to 128K tokens", a long report
+  ([Llama Team, 2024](https://arxiv.org/abs/2407.21783)).
+- Our notes of Lectures 1 to 16 are 164,779 tokens with GPT-4o's tokenizer: they do not fit in
+  a 128,000-token window.
+- Text beyond the window is not seen at all. Long documents must be cut, summarized or searched.
+- Cost and time are counted in tokens, so the context window is a budget.
+
+## The model: a transformer that only looks back
+
+```{index} decoder-only transformer, causal mask
+```
+
+### The big picture
+
+- We gave GPT-2 the prompt "The plant shut down for maintenance" and asked for the next token.
+- Watch "plant": on its own, it could be a tree or a factory. Press play.
+- The final probabilities are GPT-2's; the vectors and the meaning map are a sketch.
+
+<div class="cw" data-widget="llm-flow" data-source="l17"></div>
+
+1. **Tokens become vectors:** each token becomes a list of numbers. On its own, "plant" could be
+   a tree or a factory.
+2. **Attention:** each vector takes information from the ones before it. "plant" reads "shut
+   down" and "maintenance" and moves toward "factory".
+3. **MLP:** each vector is then updated on its own, by the same small network.
+4. **Repeat:** attention, then MLP, 4 times in our tiny GPT and 96 times in GPT-3.
+5. **The last vector gives the next token.** GPT-2's top guess is "␣in", 19%, as in "…for
+   maintenance in March".
+
+- This is the transformer of [Lecture 12](../l12/notes.md), where the tokens were cycles of a
+  sensor window. The machinery is the same.
+
+### Attention looks back
+
+- One change from Lecture 12: a token may attend only to itself and the tokens before it.
+
+```{figure} figures/look-back.png
+:alt: The words The, pump, stopped, because, the, water, was, too and hot in boxes. "too" is outlined in red; arrows curve from it back to every earlier word, thickest to "water" (45%), with weights under each word: The 4%, pump 10%, stopped 12%, because 6%, the 8%, water 45%, was 10%, too 5%. "hot", after "too", is gray and marked hidden.
+:width: 95%
+
+A sketch of attention when the model predicts the word after "too": it looks back at every
+earlier word and uses "water" most. The weights are illustrative. The next word, "hot", is
+hidden by the causal mask: in training it is the answer.
+```
+
+1. **Score:** the word "too" asks every earlier word: how useful are you for guessing what comes
+   next?
+2. **Mix:** it takes a weighted average of what those words carry. Here, mostly "water".
+3. **No peeking:** later words are hidden, by the causal mask. In training the next word is the
+   answer, so it must stay hidden.
+
+In symbols, as in Lecture 12:
+
+$$
+\mathrm{softmax}\Big(\frac{QK^\top}{\sqrt{d_k}} + M\Big)\, V
+$$
+
+- $QK^\top/\sqrt{d_k}$ are the scores. The mask $M$ is $-\infty$ for later words, which sets
+  their weight to 0.
+
+:::{admonition} Definition: causal mask
+:class: tip
+A **causal mask** stops each position from attending to later positions, so the prediction at
+position $t$ uses only tokens $1$ to $t$.
+:::
+
+- A transformer with only this masked attention is **decoder-only**. GPT-2, GPT-3, Llama and our
+  tiny GPT are all decoder-only.
+
+## Training: predict the next token, everywhere
+
+```{index} pretraining, cross-entropy, self-supervised learning
+```
+
+### Tuning the dials
+
+- **The model's behavior is set by its parameters**, like the dials of a machine. A straight-line
+  fit in [Lecture 9](../l09/notes.md) has 2; our tiny GPT has 842,881; GPT-3 has 175 billion.
+  They start random, so the model writes gibberish.
+- **One training step:** show the model some text with the next character hidden; it guesses;
+  compare its guess with the true character; nudge every dial a little so the true one gets more
+  likely. Repeat, 2,000 times for our tiny GPT.
+- **The nudge is a gradient step.** Backpropagation, the automatic differentiation of
+  [Lecture 11](../l11/notes.md), gives the gradient for every dial in one backward pass.
+- Below, our tiny GPT on one example, "…learns the proba?". The true answer is "b". Press play.
+
+<div class="cw" data-widget="llm-dials" data-source="l17"></div>
+
+- It gives "b" 0.4% before training, 48% at step 750, and over 99% at step 2,000.
+- The dials are a drawing. The guesses and the chart are the tiny GPT's own, saved every 250
+  steps.
+
+### The objective
+
+- **Training makes real text likely.** By the chain rule, a text's log-probability is a sum over
+  its tokens. We want it large, so we minimize its negative, averaged per token.
+
+:::{admonition} Definition: pretraining
+:class: tip
+**Pretraining** fits a language model to a large body of text by minimizing the next-token
+cross-entropy: the average of $-\log p$ of the token that actually came next.
+:::
+
+$$
+\mathcal{L}(\theta) = \underbrace{-\frac{1}{T} \sum_{t=1}^{T}}_{\text{minus, averaged}}
+\underbrace{\log p_\theta(x_{t+1} \mid x_1, \dots, x_t)}_{\text{log probability of the true next token}}
+$$
+
+- **$\theta$:** the parameters, the dials. $p_\theta$ is the model with those parameters.
+- **Log probability of the true next token:** how much probability the model gave the token
+  that really came next.
+- **The minus:** it makes the quantity a loss to minimize. The loss of one prediction, $-\ln p$,
+  is 0 when the model gave the true token probability 1, 0.69 for a coin flip ($p = 0.5$), and
+  4.86 for a blind guess among 129 characters.
+- **The average:** $\frac{1}{T}\sum_t$ averages over the $T$ positions, so the loss is per token.
+- **Cross-entropy:** each position is a classification over the vocabulary, as in
+  [Lecture 10](../l10/notes.md).
+
+```{figure} figures/neglog.png
+:alt: The loss minus ln p against the probability p given to the true next token, from 0 to 1. The curve falls steeply from about 5 near p = 0 to 0 at p = 1. Three points are marked: a blind guess, 1/129, loss 4.86; a coin flip, loss 0.69; sure and right, loss 0.
+:width: 55%
+
+The loss of one prediction. Being right and sure costs nothing; being surprised costs a lot.
+```
+
+### Every position at once
+
+- Below, one sentence of 10 tokens turned into 9 guesses. Guess 1: from "The" alone, guess the
+  next token. Guess 2: from "The pump". Press play.
+
+<div class="cw" data-widget="llm-causal" data-source="l17"></div>
+
+- **Self-supervised:** the labels are the text itself, shifted by one. No one labels anything,
+  which is why trillions of tokens are usable.
+- **Every position at once:** one sentence gives 9 training examples, all done in one pass.
+- Each guess sees only the tokens before it, because of the causal mask. Without it, the answer
+  would be in plain sight.
+
+### Training is an optimization problem
+
+$$
+\min_{\theta}\;\; \mathcal{L}(\theta) = -\frac{1}{N} \sum_{n=1}^{N} \log p_\theta\big(\text{next token}_n \mid \text{the tokens before it}\big)
+$$
+
+- **Decision variables:** the parameters $\theta$: 842,881 in our tiny GPT, 175 billion in
+  GPT-3.
+- **Objective:** the loss over all $N$ predictions, the same kind of data loss as the
+  $\min_\theta L_\text{data}$ of [Lecture 13](../l13/notes.md).
+- **Method:** gradient-based. Backpropagation gives $\nabla_\theta \mathcal{L}$ in one backward
+  pass, and AdamW ([Lecture 12](../l12/notes.md)) takes the step. The large models do the same:
+  GPT-3 was trained with "Adam with β1 = 0.9, β2 = 0.95"
+  ([Brown et al., 2020](https://arxiv.org/abs/2005.14165)), and Llama 3 405B "using AdamW"
+  ([Llama Team, 2024](https://arxiv.org/abs/2407.21783)).
+
+```{figure} figures/decision-map.png
+:alt: Lecture 15's sketch of where each optimizer fits, with the number of inputs on a log axis from 1 to 10 to the 12, and the cost of one evaluation from 1 millisecond to a week. A blue region at the top left is Bayesian optimization, a gold region between is other derivative-free methods, and a green band along the bottom, cheap evaluations up to 10 to the 12 inputs, is gradient-based. A gold star at 2 inputs and hours marks Lecture 15's reactor. A red star at 842,881 inputs and 58 milliseconds marks our tiny GPT. A dashed line marks GPT-3's 175 billion parameters.
+:width: 80%
+
+[Lecture 15](../l15/notes.md)'s map of where each optimizer fits, with our tiny GPT added. The
+reactor (gold star) has 2 knobs and hours per experiment: Bayesian optimization. The tiny GPT
+(red star) has 842,881 knobs and 58 ms per training step, with gradients: gradient descent.
+```
+
+### Reading the loss
+
+- **At the start, the dials are random:** each of the 129 characters gets about the same chance,
+  1/129. A model that knows nothing has a loss of $-\ln(1/129) = \ln 129$. With our 129
+  characters, that is 4.86. Our tiny GPT's first loss was 4.67, near 4.86.
+- **To read a loss, undo the $\ln$.** The loss is the average of $-\ln p$, so $e^{-\text{loss}}$ is
+  the typical $p$ (the geometric mean). Our tiny GPT reaches 1.51 on held-out text after 2,000
+  steps, and $e^{-1.51} = 0.22$: on text it never saw, it typically gives the right next character
+  a 22% chance.
+
+| Loss | Typical $p = e^{-\text{loss}}$ | |
+|---|---|---|
+| 4.86 | 0.8% | a blind guess, 1/129 |
+| 1.51 | 22% | our tiny GPT at the end, on held-out text |
+| 0.69 | 50% | a coin flip |
+| 0 | 100% | sure and right |
+
+- "Typical" is not the share of right guesses: it is the geometric mean of the probabilities the
+  model gave the true characters.
+- Equivalently, $e^{1.51} \approx 4.5$: the model is about as unsure as a choice among 4.5
+  equally likely characters, instead of 129.
+
+```{figure} figures/tiny-loss.png
+:alt: Next-character loss against training step, from 0 to 2000. The training loss on each batch, a thin blue line, starts near 5, drops fast to about 2 by step 500, and keeps falling slowly to about 1.2. The held-out loss, red dots every 250 steps, follows it and levels off at 1.51, annotated as the right character typically getting e to the minus 1.51, 22%. A dotted line near 4.86 is labeled knows nothing: 1/129 for every character.
+:width: 85%
+
+Our tiny GPT over 2,000 training steps. Blue: the loss on each training batch. Red: the loss on
+the last 10% of the notes, never trained on. Dotted: a model that knows nothing. Both curves drop
+fastest in the first 500 steps; the red one levels off while the blue one keeps falling.
+```
+
+- Its training loss (1.22) falls below its held-out loss (1.51): with 0.6 million characters,
+  it starts to memorize. This is the overfitting of [Lecture 9](../l09/notes.md); the
+  held-out curve is the one to trust.
+
+### What it writes as it learns
+
+What the tiny GPT writes after "The model ", at temperature 0.8, as training goes on:
+
+| Step | Held-out loss | It writes | What changed |
+|---|---|---|---|
+| 0 | 4.67 | `The model l₂4zé'-(u↑Ly°⁷)aQ8d¹₆−wZ²t,>zü4i{₂YG` | random characters |
+| 250 | 2.46 | ``The model 100.5 06 ` dastand and the gry lenpt.`` | letters, spaces, line breaks; almost no words |
+| 500 | 1.94 | `The model is onlow you be column is a sque, and with the defforemation` | short real words, glued into nonsense |
+| 1,250 | 1.55 | `The model windows where the forecaster is the residual.` | phrases from the course |
+| 2,000 | 1.51 | `The model of the data, and in a \text{sk}} = \underbrace{\frac{dX}{dt}` | LaTeX copied from our notes |
+
+- Spelling, words and Markdown come first. Meaning comes much later, and with far more data.
+- It learned only from our notes, so it copies their style, LaTeX included. Far more text, and a
+  bigger model, are what turn style into meaning.
+
+### What our tiny GPT learned
+
+A test with a fixed rule: take one term from each of Lectures 1 to 16, give the model the first
+60% of its characters, and let it pick the most likely next character until the term ends.
+
+| Lecture | Given | Finished | | Lecture | Given | Finished |
+|---|---|---|---|---|---|---|
+| 1 | toolch | ain ✓ | | 9 | regres | sion ✓ |
+| 2 | environ | ment ✓ | | 10 | classific | ation ✓ |
+| 3 | datab | ase ✓ | | 11 | gradi | ent ✓ |
+| 4 | Parqu | et ✓ | | 12 | convolu | tion ✓ |
+| 5 | datafr | ame ✓ | | 13 | physics-in | to a s ✗ |
+| 6 | valida | tion ✓ | | 14 | uncerta | inty ✓ |
+| 7 | steady s | tate ✓ | | 15 | Bayesian opti | mization ✓ |
+| 8 | forec | ast ✓ | | 16 | distribu | tion ✓ |
+
+- **15 of 16 right:** it learned our spelling and our vocabulary.
+- **The miss is a frequency effect:** "into a" appears 58 times in our notes, "physics-informed"
+  only 8.
+- **No sentences with meaning:** asked to go on, it writes "and the same step of the same
+  samples". Meaning takes far more parameters and data: the next section.
+
+## Data and scale
+
+### Models over the years
+
+```{index} mixture of experts
+```
+
+- Language models by year and size, on a log scale: each labeled line is 1,000 times the one
+  below. Press play.
+- Closed models publish no size: they sit on the strip at the top.
+
+<div class="cw" data-widget="llm-sizes" data-source="l17"></div>
+
+- **Published sizes grew fast:** GPT-1 had 117 million parameters (2018), GPT-2 1.5 billion
+  (2019), GPT-3 175 billion (2020) and PaLM 540 billion (2022).
+- **Recent open models are mixtures of experts:** they use only part of their parameters for each
+  token (the hollow dots). DeepSeek-V3 has 671 billion with 37 billion active (2024); Kimi K3 has
+  2.8 trillion with 104 billion active (2026).
+- Sources: [GPT-1 and GPT-2](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf),
+  [GPT-3](https://arxiv.org/abs/2005.14165), [PaLM](https://arxiv.org/abs/2204.02311),
+  [DeepSeek-V3](https://arxiv.org/abs/2412.19437), [Kimi K3](https://huggingface.co/moonshotai/Kimi-K3).
+- **Closed models publish no size.** The GPT-4 report "contains no further details about the
+  architecture (including model size)" ([OpenAI, 2023](https://arxiv.org/abs/2303.08774)); nor do
+  later GPT models (GPT-6 Astra, September 2026) or Anthropic's Claude models.
+
+### In human terms
+
+- **Their data:** mostly filtered web text, plus books, code and papers. Llama 3 used "about 15T
+  multilingual tokens."
+- **Our data:** the notes of Lectures 1 to 16, 668,651 characters. In 2,000 steps the tiny GPT
+  sees each character about 27 times.
+- **Reading it:** our notes take about 7 hours to read, at 250 words a minute. Our notes run at
+  0.58 words per GPT-2 token, and GPT-3 uses the same vocabulary, so its 300 billion training
+  tokens would take about 1,300 years of non-stop reading.
+- **Computing it:** training costs about 6 operations per parameter per token: about
+  8 × 10¹³ for our tiny GPT. A laptop GPU did that in 2 minutes, about 700 billion operations a
+  second; at one billion a second it would take about 23 hours. GPT-3 needed 3.14 × 10²³
+  ([Brown et al., 2020](https://arxiv.org/abs/2005.14165), Table D.1): about 10 million years at a
+  billion a second.
+
+### After pretraining
+
+```{index} supervised fine-tuning, reinforcement learning from human feedback, direct preference optimization
+```
+
+A chat model is made in three stages:
+
+1. **Pretraining:** the model learns to continue text, from trillions of tokens. We gave GPT-2
+   "What is the boiling point of water?", and it continued "The boiling point of water is the
+   point at which the water boils.", then repeated that sentence.
+2. **Supervised fine-tuning** (SFT) trains it further, with the same next-token loss, on examples
+   of instructions and good answers, written by people. InstructGPT "hired a team of about 40
+   contractors" to write them and to rank answers
+   ([Ouyang et al., 2022](https://arxiv.org/abs/2203.02155)).
+3. **Preference tuning:** people pick the better of two answers, and the model learns their
+   preference, by one of two methods:
+   - **Reinforcement learning from human feedback** (RLHF): a reward model learns their picks,
+     and the LLM is tuned to score high on it.
+   - **Direct preference optimization** (DPO): the same picks, used directly: "without explicit
+     reward modeling or reinforcement learning"
+     ([Rafailov et al., 2023](https://arxiv.org/abs/2305.18290)).
+
+- **The result is a chat model:** the same network, now answering. Qwen2.5-0.5B-Instruct, from the
+  opening example, answers "In one sentence, what does a heat exchanger do?" with "A heat exchanger
+  transfers heat from one medium to another."
+- **Still how it is done:** in Llama 3, "each round of post-training involves supervised
+  finetuning (SFT) followed by Direct Preference Optimization (DPO; Rafailov et al., 2024) on
+  examples collected either via human annotations or generated synthetically"
+  ([Llama Team, 2024](https://arxiv.org/abs/2407.21783)).
+- **Pretraining gives the knowledge and the fluency**, from trillions of unlabeled tokens.
+  Post-training changes the behavior, with far less data written or ranked by people. The chat
+  model still completes a script: the hidden script of the opening example.
+
+## Sampling: temperature
+
+```{index} temperature, logit, greedy decoding
+```
+
+:::{admonition} Definition: temperature
+:class: tip
+**Temperature** $\tau$ is a knob for how adventurous the model is when it picks the next token.
+Low: it almost always takes the most likely token. High: less likely tokens get a real chance.
+:::
+
+$$
+p_\tau(v) = \frac{e^{z_v / \tau}}{\sum_{u \in \text{vocabulary}} e^{z_u / \tau}}
+$$
+
+- **$z$:** the **logits**, the model's raw score for each token, before the softmax turns them
+  into probabilities. Higher means more likely.
+- **$\tau$ (tau):** divide every logit by $\tau$, then take the softmax. Below 1, it sharpens the
+  distribution toward the most likely token; above 1, it flattens it. At $\tau = 1$, these are the
+  model's own probabilities.
+- **Example, two logits, 2 and 1:** at $\tau = 1$, 73% and 27%. At $\tau = 0.5$ the gap doubles:
+  88% and 12%. At $\tau = 2$ it halves: 62% and 38%.
+- "Using a higher value for T produces a softer probability distribution over classes"
+  ([Hinton, Vinyals and Dean, 2015](https://arxiv.org/abs/1503.02531)).
+
+```{figure} figures/temperature.png
+:alt: Three bar charts of GPT-2's probabilities for the next token after "The pump stopped because the water was too", at temperatures 0.5, 1 and 2. The top token is hot, then cold, high, low and others. At 0.5 the bar for hot is near 0.9 and the rest nearly vanish; at 1 hot is about 0.4; at 2 every bar is short and the top eight hold about an eighth of the probability.
+:width: 100%
+
+We ran GPT-2 on "The pump stopped because the water was too" and applied three temperatures to
+its logits, over its whole vocabulary of 50,257 tokens. "␣hot" gets 88% at temperature 0.5, 42%
+at 1 and 4% at 2. The red bar is the most likely token.
+```
+
+- $\tau \to 0$: always the most likely token (**greedy** decoding). Repeatable, often
+  repetitive.
+- $\tau = 1$: the model's own probabilities.
+- $\tau > 1$: unlikely tokens get a real chance. More varied, more mistakes.
+
+### Spin the wheel
+
+- **Sampling is spinning a wheel** with one slice per token, sized by its probability. Below,
+  GPT-2's next token after "…the water was too". Change $\tau$, then spin.
+- **$\tau$ changes the wheel; the spin stays fair.** At $\tau = 0.5$, "␣hot" takes 88% of the
+  wheel; at $\tau = 2$, only 4%.
+
+<div class="cw" data-widget="llm-wheel" data-source="l17"></div>
+
+- **Why "temperature":** the softmax with a temperature is Boltzmann's distribution from
+  thermodynamics:
+
+$$
+p(\text{token } v) = \frac{e^{z_v/\tau}}{\sum_u e^{z_u/\tau}}
+\qquad\qquad
+p(\text{state } i) = \frac{e^{-E_i/k_BT}}{\sum_j e^{-E_j/k_BT}}
+$$
+
+- A logit $z$ plays minus an energy, and $\tau$ plays $k_BT$. Hot: every state gets visited.
+  Cold: the lowest-energy state wins.
+- "In statistical mechanics, the softmax function is known as the Boltzmann distribution"
+  ([Wikipedia](https://en.wikipedia.org/wiki/Softmax_function), after
+  [LeCun et al., 2006](http://yann.lecun.com/exdb/publis/pdf/lecun-06.pdf)).
+
+### The loop with a temperature knob
+
+- Below, GPT-2's ten most likely next tokens at each step of the generation loop. Red: the one
+  appended. Step through, then move $\tau$.
+
+<div class="cw" data-widget="llm-sample" data-source="l17"></div>
+
+- **$\tau = 1$:** GPT-2's own probabilities. At step 1, "␣water" gets 3.7%: many words could
+  follow.
+- **$\tau = 0.1$:** "␣water" jumps to 89%. Low temperature gives nearly the same text every time.
+- **$\tau = 2$:** every bar flattens. At step 4, even "␣hot" falls to 4%: almost anything can come
+  next.
+
+### Our tiny GPT at three temperatures
+
+From the same prompt, "A Gaussian process", and the same model; only $\tau$ changed:
+
+- $\tau = 0.3$: "… a strain of the same data is the same offf the same way": safe and
+  repetitive, with a Markdown heading copied from our notes.
+- $\tau = 0.8$: "… the default does not exact the band file coefficients the wide, vector plant":
+  varied words in our style, with no meaning.
+- $\tau = 1.5$: "… cructor arNive," and a brieful mini-bassed flrecash": broken words and rare
+  symbols, the tail of the distribution.
+
+## Fluent is not the same as true
 
 ```{index} hallucination
 ```
-```{index} pair: failure mode; confident hallucination
+
+```{index} pair: failure mode; hallucination
 ```
 
-The model computes a probability distribution over the next token. That single fact
-explains both why the output reads so well and why it is confidently wrong, and you can
-watch it happen.
-
-```{figure} figures/next-token.png
-:alt: Four panels. First, a question whose answer is in the prompt, showing one token at probability 1.000 and zero bits of entropy. Second, the same question about a part number that does not exist, showing probability spread across the digits 1, 2, 10, 3, 16 and 2.22 bits. Third, the same gap with NOT FOUND permitted, collapsing back to one token at 1.000 and zero bits. Fourth, grouped bars showing how temperature and top-p reshape a measured distribution.
-:width: 100%
-
-The top-20 next-token probabilities returned by `gpt-4.1-mini`, for four prompts about the
-same pump.
-```
-
-Ask for a value that is present in the prompt and the distribution collapses: the token
-`10` arrives with probability **1.000** and an entropy of **0.00 bits**. The model is not
-reasoning about pressure; it is completing a pattern that the context has made
-overwhelming.
-
-Now ask the same question about `Kessler-Voss KV-7710/B`, a pump that does not exist. The
-distribution does not become uniform, and it does not contain any signal that means "I
-have never heard of this." It puts **0.405** on the token `1`, **0.358** on `2`, and
-spreads the rest over `10`, `3`, `16`, `6`, `4`. Entropy rises to **2.22 bits**. Read that
-carefully, because it is the whole hallucination story in one measurement: the model is
-*less* certain, but it is still emitting a digit. There is no token in its vocabulary that
-means "not in the source," so the probability mass that ought to go there has nowhere to go
-except onto plausible numbers.
-
-Give it that token and the problem disappears. The third panel is the same missing value,
-with one clause added to the prompt: *or with the words NOT FOUND if the answer is not in
-the text below*. The distribution collapses again, this time onto `NOT` at probability
-**1.000**, entropy **0.00 bits**. The escape hatch costs eleven words and it is the single
-highest-leverage line in an extraction prompt.
-
-:::{admonition} What a practitioner should take from this
+:::{admonition} Definition: hallucination
 :class: tip
-
-Hallucination is not the model lying. It is the model doing exactly what it was trained to
-do, in a situation where the correct answer is not expressible in its output space.
-
-The three fixes follow directly, and you will use all of them in Assignment 8. **Put the answer in
-the context**, because grounded questions collapse to near-zero entropy. **Give it a way
-to say no**, explicitly, in the prompt and in the schema, so that a null is a legal answer
-rather than an impossible one. **Do not rely on confidence as a detector**: entropy went
-from 0.00 to 2.22 bits between a right answer and a fabricated one, which is a real signal
-but nowhere near a clean one, and you do not get to see it at all on most APIs.
+A **hallucination** is fluent, confident text that is false: an invented number, unit, citation
+or fact.
 :::
 
-### The two knobs, and what they cannot do
-
-```{index} temperature, top-p sampling
-```
-
-**Temperature** divides the logits before the softmax. Below 1 it sharpens the
-distribution toward the leading candidate; above 1 it flattens it. **Top-p** (nucleus
-sampling) truncates instead: sort candidates by probability, keep the smallest set whose
-mass exceeds *p*, renormalize, and sample only from those. The fourth panel of the figure
-applies both to a measured distribution.
-
-The important thing about both is what they are *not*. Neither adds information. The
-distribution has already been computed by the time either knob applies, and every
-candidate the model was going to consider is already in it. Lowering the temperature to
-zero does not make the model more accurate; it makes it more repeatable at whatever
-accuracy it had. For extraction, that repeatability is what you want, which is why Assignment 8 asks
-for a low temperature.
-
-:::{admonition} Common pitfall
-:class: warning
-
-**"It worked once" is not a passing test, and low temperature does not make it one.**
-
-Sending the *same* prompt to `gpt-4.1-mini` five times, and reading the returned
-distribution rather than the sampled token, the leading candidate's probability ranged from
-**0.626 to 0.858** and the entropy from **0.71 to 1.26 bits**. The prompt was byte
-identical. The distribution itself was not reproducible, before any sampling happened.
-
-Providers batch requests, run in reduced precision, and route across heterogeneous
-hardware, and floating-point addition is not associative. You should expect run-to-run
-variation as a property of the platform, not as a bug you can configure away. Evaluate on a
-set, not on an anecdote, and re-run the set when you change anything.
-:::
-
-## Tokenization, and what it does to engineering text
-
-```{index} tokenization, byte-pair encoding
-```
-
-The vocabulary is learned. Nobody sat down and decided that ` MP` should be a token and
-`MPa` should not.
-
-The dominant scheme is **byte-pair encoding**, an idea Philip Gage published in 1994 as a
-data-compression algorithm and Sennrich, Haddow and Birch repurposed in 2016 to give
-neural translation systems an open vocabulary. Training it is almost embarrassingly simple:
-start with the raw bytes as your vocabulary, find the most frequent adjacent pair in the
-corpus, merge it into a new symbol, and repeat once per vocabulary entry you want, which in
-practice is tens or hundreds of thousands of times. The merge list is then frozen and
-shipped with the model. Encoding new text means replaying those merges greedily.
-
-Everything that follows is a consequence of that corpus being mostly ordinary web text.
-Fragments that are common in English get merged early and become single tokens. Fragments
-that are common in *your* documents and rare on the web never get merged at all.
-
-```{figure} figures/tokenization.png
-:alt: Three panels. Left, eight engineering strings drawn as sequences of coloured token boxes, showing 10.5 MPa as five tokens and P/N 4L-2200-XG as ten. Middle, a horizontal bar chart of characters per token for five kinds of text, from 4.82 for technical prose down to 2.35 for an alarm table. Right, four bars for the token count of the same datasheet under cl100k_base, o200k_base, Claude Haiku 4.5, and Claude Opus 5, at 776, 770, 924, and 1,263.
-:width: 100%
-
-The same characters, three different ways of looking at what they cost.
-```
-
-### What breaks, specifically
-
-**Units detach from their numbers.** `10.5 MPa` is five tokens: `10`, `.`, `5`, ` MP`,
-`a`. The unit is split across a token that also begins "MP3" and "MPG", and a bare `a`.
-
-**Numbers are cut in fixed-width digit groups, not at their real boundaries.** `1500 rpm`
-tokenizes as `150`, `0`, ` rpm`. The model never sees `1500` as a unit; it sees a
-three-digit chunk followed by a stray zero. `4140` in `AISI 4140` becomes `414` + `0`, and
-`2200` becomes `220` + `0`. If you have wondered why LLMs are unreliable at arithmetic on
-long numbers, this is a large part of the answer: the representation itself does not
-respect place value.
-
-**Part numbers shatter.** `P/N 4L-2200-XG` is 14 characters and **10 tokens**, a rate of
-1.4 characters per token against 4.8 for prose. Identifiers are the densest and most
-expensive thing in your corpus and they are also the thing you most need extracted exactly.
-
-**Some characters are not even one token.** `Ø25` under `cl100k_base` is three tokens, and
-the first two are *halves of a character*: `Ø` is two bytes in UTF-8 and the encoder had no
-merge for that pair, so it emitted each byte separately. Neither one decodes to a printable
-character on its own. Under the newer `o200k_base` the same string is two tokens. Nothing
-about your document changed.
-
-**Case and spacing matter.** `bearing` is one token. `Bearing` is two (`B` + `earing`).
-`BEARING` is two. Maintenance logs written in capitals, which is most of them, cost more
-than the same words in lower case, and the model sees different symbols.
-
-### What that adds up to per page
-
-Averaged over a document, the effect shows up as characters per token, which is the number
-worth carrying in your head:
-
-| kind of text | characters per token |
-|---|---|
-| technical prose | 4.82 |
-| free-text maintenance log | 3.82 |
-| pump datasheet | 3.05 |
-| Python source | 2.56 |
-| an alarm table flattened out of a PDF | 2.35 |
-
-A page of a datasheet costs about **1.6 times** as many tokens as a page of prose with the
-same number of characters, and a page of tabular data costs about **twice**. Any budget
-you build from a general "four characters per token" rule of thumb will be wrong in the
-expensive direction for exactly the documents this course cares about.
-
-### Count, do not estimate
-
-The measured spread across tokenizers is the practical lesson. On the same 2,365-character
-datasheet:
-
-| tokenizer | tokens | against `cl100k_base` |
-|---|---|---|
-| `cl100k_base` (OpenAI) | 776 | baseline |
-| `o200k_base` (OpenAI) | 770 | −1% |
-| Claude Haiku 4.5 | 924 | +19% |
-| Claude Opus 5 | 1,263 | **+63%** |
-
-People expect the vendors to differ. The gap that catches them is the last row against the
-one above it. **Two models from the same provider disagree by 37% on the same text**,
-because Anthropic changed tokenizer within its own model line and documents the change as
-roughly 30% more tokens for the same input. "Use the provider's tokenizer" is not a
-sufficient rule. Use the *model's*, for the exact model id you are going to call, and
-re-measure when you change model.
-
-Mechanically, the two providers make opposite trade-offs and you should know both.
-OpenAI's `tiktoken` is a local library: counting is free, offline, instantaneous, and
-exact for their models. Anthropic publishes no offline tokenizer and instead exposes a
-[token counting endpoint](https://platform.claude.com/docs/en/build-with-claude/token-counting),
-`POST /v1/messages/count_tokens`, which is free to call but is a network round trip,
-consumes its own rate limit, and is documented as an *estimate* that may differ slightly
-from what you are billed. Neither is wrong; they are different points on a
-latency-versus-fidelity curve. What is always wrong is using one vendor's local library to
-predict another vendor's bill.
-
-:::{admonition} Common pitfall
-:class: warning
-
-Anthropic's own documentation puts it bluntly, and it is worth quoting because it is the
-mistake in this section that costs real money: `tiktoken` "is OpenAI's tokenizer. It
-undercounts Claude tokens by ~15–20% on typical text, and by much more on code or
-non-English input."
-
-Measured on the 146-page report in the next section: `tiktoken` says 87,556 tokens, Claude
-Opus 5 bills 126,452. The estimate is **31% low**. On a corpus of ten thousand documents,
-that is the difference between a budget that holds and one that does not.
-:::
-
-## The context window as a budget
-
-```{index} context window
-```
-
-The context window is the total number of tokens a model can attend to at once, and the
-budget is shared: **tokens in plus tokens out**. If you send 190,000 tokens to a model
-with a 200,000-token window, you have left room for 10,000 tokens of answer, whatever you
-set `max_tokens` to. On the providers this course uses, exceeding the window is a
-request-level error rather than a silent truncation, which is the merciful behaviour, and
-you should confirm that for any provider you add. The silent truncation that
-actually bites you happens earlier, in your own code: a chunker with an off-by-one, a PDF
-extractor that gives up on page 40, a `[:8000]` somebody added while debugging and never
-removed.
-
-Windows are now large enough that "will it fit" is rarely the binding question. What
-replaced it is "what does each question cost, and which model can I afford to route to."
-
-```{figure} figures/context-cost.png
-:alt: Three panels. Left, cumulative tokens across 146 pages of a NASA report, drawn twice, once as tiktoken counts it reaching 88 thousand and once as Claude Opus 5 bills it reaching 126 thousand, against a dashed line at the 200 thousand token Haiku context window. Middle, log-log cost per call against input tokens for two models with and without prompt caching, marking 63 cents per question for this report on Opus 5. Right, measured wall-clock latency against token count, with input length nearly flat and output length rising steeply to 22 seconds.
-:width: 100%
-
-One real document, measured three ways: what it counts as, what it costs, and what it does
-to latency.
-```
-
-The document is NASA RP-1218, Brooks, Pope and Marcolini's 1989 report on airfoil
-self-noise. This course has used the dataset from it twice already, in
-[Lecture 9](../l09/notes.md) and [Lecture 13](../l13/notes.md); this is the report itself. It is 146
-pages and 248,947 characters of extracted text, and it is a 1989 scan, so what the
-extractor returns is OCR output complete with figure axis labels, running heads, and
-garbled fragments like `oi` and `TEj LE`. That is not a defect in the demonstration, it is
-the realistic case: **you pay tokens for whatever your extractor produces, noise
-included**. It comes out at 2.84 characters per token, more token-dense than the datasheet
-at 3.05, which is what OCR noise and equations do to a document.
-
-Three numbers follow, and each drives a different decision:
-
-**It counts as 126,452 tokens on Claude Opus 5** and 100,448 on Claude Haiku 4.5. Against a
-1M-token window that is 13%, so it fits comfortably. Against Haiku's 200K window it is
-half, so it fits exactly once with room for a conversation and no more. The constraint is
-not the document, it is the document plus everything else you wanted in the prompt.
-
-**It costs $0.63 per question** at Opus 5's $5 per million input tokens, every time you
-re-send it. Ask fifty questions over a working session and you have spent $31 on one
-report. Prompt caching, which most providers now offer, cuts the repeat reads to about a
-tenth, which is the difference between a workflow and a line item. The same document on
-Haiku 4.5 is $0.10 per question, which is what "route the easy subtasks to a smaller
-model" means in practice.
-
-**It barely affects latency at all**, and this is the measurement that most often reverses
-students' intuition.
-
-### Input is cheap in time; output is not
-
-The right-hand panel is a real sweep against Claude Haiku 4.5, three repeats per point,
-with the individual repeats drawn as faint dots so you can see the scatter honestly.
-
-| what varied | from | to | median latency |
-|---|---|---|---|
-| input tokens (`max_tokens` = 16) | 769 | 100,456 | 0.85 s → 1.21 s |
-| output tokens (39-token prompt) | 16 | 2,048 | 1.00 s → 22.55 s |
-
-A **130-fold** increase in input added about **0.4 seconds**, which is inside the
-run-to-run scatter. A **128-fold** increase in output added **22 seconds**. Generation ran
-at roughly 90 tokens per second and that rate is set by the serial loop described earlier,
-not by anything you can pay to avoid.
-
-Put crudely: **one output token costs about as much wall-clock time as a thousand input
-tokens.** So the instinct to trim the document you paste in, to make the call faster,
-optimizes the wrong term. Trimming the input saves money. Trimming what you ask
-the model to *write* saves time. For an extraction task that returns a small JSON object,
-you are almost entirely paying for input tokens in dollars and almost entirely paying for
-output tokens in seconds, and those are two different budgets with two different fixes.
-
-:::{admonition} What a practitioner should take from this
-:class: tip
-
-Before you build anything, write down three numbers for one representative document:
-tokens under the model you will call, dollars per call, and seconds per call. All three
-are one API call away and none of them can be guessed reliably.
-
-Then decide where the loop is. If the same large context is queried repeatedly, prompt
-caching is the first optimization and it is nearly free. If each document is seen once,
-caching does nothing and a smaller model is the lever. If a human is waiting, cap
-`max_tokens` and ask for the smallest output that answers the question, because that is
-the only term that moves the clock.
-:::
-
-## Embeddings
-
-An embedding is a vector that stands in for a piece of text, arranged so that texts with
-similar meaning land near each other. That is the whole idea, and the reason it earns a
-section is that for a large class of engineering problems it is a better tool than an LLM
-call: cheaper by orders of magnitude, faster, deterministic, and easy to index.
-
-### Two different things are called embeddings
-
-```{index} embedding
-```
-```{index} single: embedding; token embedding
-```
-```{index} single: embedding; sentence embedding
-```
-
-Inside the model, the first stage after tokenization is an embedding lookup: a table with
-one row per vocabulary entry. Those are **token embeddings**, and there is one per
-fragment, not one per word or per sentence. `SS316L` has three of them.
-
-What you get from an embeddings API is a **sentence or document embedding**: one vector
-for the whole input, produced by a separate model trained specifically so that distance
-between vectors means semantic similarity. Reimers and Gurevych's 2019 Sentence-BERT paper
-is the standard reference for why the distinction matters. Averaging the token embeddings
-of a generative model is not a substitute; those vectors were optimized to predict the
-next token, not to make cosine distance meaningful, and they perform badly at it.
-
-Providers differ here in a way worth knowing. Anthropic does not train an embedding model
-at all and its documentation points you at
-[third-party providers](https://platform.claude.com/docs/en/build-with-claude/embeddings),
-recommending Voyage AI. OpenAI ships `text-embedding-3-small` (1,536 dimensions) and
-`text-embedding-3-large` (3,072). Voyage's current models default to 1,024. The measurements
-below use `text-embedding-3-small`, and every claim in them is a property of that model
-rather than of embeddings in general.
-
-### Cosine similarity, and what it buys you
-
-```{index} cosine similarity, TF-IDF
-```
-
-Vectors are compared by the cosine of the angle between them, which is the dot product of
-the unit-normalized vectors. Most embedding APIs return vectors already normalized, in
-which case cosine similarity and dot product are the same computation and the second is
-faster. Cosine ranges from −1 to 1, though in practice the interesting range for one
-model on one corpus is much narrower, and the absolute values are not comparable across
-models.
-
-The demonstration is 34 free-text maintenance log entries, written the way maintenance
-logs are actually written: abbreviations, missing articles, inconsistent tag formats.
-
-```{figure} figures/embeddings.png
-:alt: Three panels. Left, a 34 by 34 cosine similarity heatmap with visible bright blocks along the diagonal corresponding to labelled clusters. Middle, a scatter of embedding cosine against TF-IDF cosine for every pair, with same-event pairs in green well above the lexical baseline and one at zero lexical overlap. Right, a two-dimensional PCA projection of the same vectors coloured by cluster.
-:width: 100%
-
-Thirty-four maintenance log entries, embedded and compared. The middle panel is the
-argument for embeddings: the vertical spread at the left edge is pairs with no words in
-common.
-```
-
-The single most convincing pair in the whole set:
-
-> `brg vibration p101 high at startup`
-> `Operator reports growling from the drive end bearing on P-101`
-
-These describe the same event. Their **TF-IDF cosine is 0.000**: after tokenizing on word
-boundaries, they share not one term. Any keyword search, any `LIKE '%bearing%'`, any
-lexical index misses this pair completely. Their **embedding cosine is 0.532**, comfortably
-above the 0.364 median for unrelated pairs. That gap is the entire value proposition, and
-it is why the vector store previewed in Week 2 exists.
-
-### When embeddings beat an LLM call
-
-Deduplicating those 34 entries pairwise with an LLM means 561 calls. At roughly a
-thousand input tokens and a short answer each, that is on the order of a dollar and several
-minutes, and the answers are not reproducible. Embedding all 34 entries was **one call, 455
-tokens, and a fraction of a cent**, after which every pairwise comparison is a dot product:
-a 34 × 1,536 matrix times its own transpose, microseconds. Scaled to a hundred thousand
-records the LLM approach is arithmetically impossible, while the embedding approach is a
-single matrix multiply or an approximate-nearest-neighbour index.
-
-The rule of thumb: **use embeddings when the question is "which of these are alike," and an
-LLM when the question is "what does this one say."** Deduplication, clustering, near-
-duplicate detection, and retrieval are the first kind. Extraction, summarization, and
-judgment are the second. Most real pipelines use embeddings to narrow a corpus from
-millions to tens, and then spend LLM tokens only on the tens. That pipeline is
-retrieval-augmented generation, and this is the half of it you can build today.
-
-### Dimensionality is a storage decision
-
-Vector size is not free. A million chunks at 1,536 float32 dimensions is 6 GB before any
-index overhead, which is a database decision rather than a modelling one.
-
-Both OpenAI's v3 models and Voyage's current models are trained so the vector can be
-**truncated from the end** and renormalized, a technique known as Matryoshka
-representation. Measured on this corpus, keeping the leading *n* dimensions and asking
-whether each entry's nearest neighbour is unchanged:
-
-| dimensions kept | bytes per vector | nearest neighbour unchanged |
-|---|---|---|
-| 1,536 | 6,144 | 100% |
-| 1,024 | 4,096 | 97.1% |
-| 512 | 2,048 | 100% |
-| 256 | 1,024 | 85.3% |
-| 128 | 512 | 82.4% |
-| 64 | 256 | 67.6% |
-
-A third of the storage for no measurable loss is a good trade and you should take it. But
-look at the 1,024 row, which does *worse* than the 512 row below it. The curve is not
-monotonic, and on 34 records it cannot be: this is sampling noise, not a property of the
-model. It is in the table rather than smoothed away because the temptation to tune a
-storage decision on a small sample is exactly the mistake this course keeps warning about,
-and here it is in one of our own measurements.
-
-:::{admonition} Common pitfall
-:class: warning
-
-**Embeddings from two different models are not comparable, and there is no conversion.**
-
-Cosine values from `text-embedding-3-small` and from `voyage-4` are different numbers in
-different spaces. A threshold tuned on one is meaningless on the other. This makes changing
-embedding model a *migration*: you must re-embed the entire corpus, which costs the full
-corpus in tokens again, and you must re-tune every threshold downstream. Pin the model id
-in your config next to the vectors, the way you would pin a schema version.
-
-Two related traps. Some providers use **asymmetric** embeddings, where a query and a
-document must be embedded with a different `input_type` flag because the model prepends a
-different instruction to each; embedding both sides the same way silently degrades
-retrieval. And embedding APIs have their own token limits (8,192 for OpenAI's v3 models,
-32,000 for Voyage's), so a long document must be chunked before it can be embedded at all.
-:::
-
-## Where this pushes back
-
-Everything above sold you two tools. This section is the part where they are weighed, and
-the honest summary is that cosine similarity is a much blunter instrument than its
-convenience suggests.
-
-```{figure} figures/embedding-limits.png
-:alt: Three panels. Left, a strip plot of embedding cosine for unrelated pairs, same-event pairs, and opposite-meaning pairs, with the same-event and opposite-meaning groups overlapping almost completely inside a shaded band. Middle, precision and recall against cosine threshold on the labelled pairs, with precision never exceeding 0.62. Right, top-1 neighbour agreement against the number of dimensions kept.
-:width: 100%
-
-The same 34 entries, asked harder questions.
-```
-
-### Cosine similarity does not know about negation
-
-```{index} pair: failure mode; cosine similarity and negation
-```
-
-Consider these two entries:
-
-> `Mechanical seal leaking, approx 8 drops/min, pump P-101`
-> `P-101 seal inspected, no leak found`
-
-One is a fault and the other is its refutation. Their cosine similarity is **0.694**. Now
-recall the pair from the previous section, which describe the *same* event and score
-**0.532**.
-
-**A pair that means the opposite scores higher than a pair that means the same thing.**
-This is not a near miss. Across the eight opposite-meaning pairs in this set, **all eight
-score above the weakest true match**, and the medians are 0.691 for the opposite pairs
-against 0.655 for the true ones. The left panel shows the two groups sitting on top of each
-other.
-
-The reason is structural rather than a defect of this particular model. Cosine similarity
-measures how much two texts are *about the same thing*, and a report of a leak and a report
-of no leak are maximally about the same thing. The word "no" is one token among a dozen and
-it does not move the vector far. Nothing in the training objective of an embedding model
-requires it to.
-
-The middle panel is what that costs you operationally. Sweeping the duplicate-detection
-threshold across the labelled pairs, precision never rises above **0.62** at any cut that
-retains meaningful recall. There is no threshold. Not a badly chosen one; there is no value
-that separates these two classes, because the classes overlap in the underlying quantity.
-
-### Units are invisible
-
-Two more entries:
-
-> `Bearing temperature 85 degC steady on the drive end`
-> `Bearing temperature 85 degF steady on the drive end`
-
-Cosine **0.971**. One of these describes a bearing at its alarm limit and the other
-describes a bearing at room temperature. To the embedding they are the same sentence with a
-typo. The same effect on pressures, `10.5 MPa` against `10.5 bar`, gives **0.761**, still
-well inside the range where a deduplicator would merge them.
-
-This should worry you specifically because of Assignment 8. Unit normalization cannot be delegated to
-semantic similarity, and it cannot be delegated to the LLM's good judgment either. It has
-to be an explicit, typed, tested step in your pipeline, which is why the assignment requires
-units in the schema and a normalization stage with the original value retained.
-
-### The theoretical objection
-
-There is also a principled critique worth knowing about. Steck, Ekanadham and Kallus'
-2024 paper *Is Cosine-Similarity of Embeddings Really About Similarity?* shows that for
-regularized linear models, cosine similarity between learned embeddings can yield
-"arbitrary and therefore meaningless" similarities, because the values are governed by the
-regularization applied during training rather than by anything semantic. Deep models
-combine several regularizers with similar unintended effects. The paper does not say never
-use cosine, and neither do these notes. It says the metric is a convention with no
-guarantee attached, which is a good frame for the measurements above: they are the
-empirical version of the same warning.
-
-### And the tokenizer moves under you
-
-The 37% disagreement between two models from one vendor is not a quirk of this month. It
-is the normal condition. Model ids are deprecated, tokenizers are revised, context windows
-and prices change, and the numbers in these notes are dated 2026-08-06 for exactly that
-reason. Anything in your system that depends on a token count (a chunk size, a cost
-estimate, a context-fit check, a rate-limit budget) is a hardcoded assumption about a
-model version. Pin the model id, record it in your outputs, and re-measure on upgrade. Assignment 8
-requires you to report the exact model id you used, and this is why.
-
-## In-class demo
-
-[`l17-tokens-embeddings.ipynb`](l17-tokens-embeddings.ipynb) runs in two halves.
-
-The first half tokenizes a datasheet. We start with the strings from the figure above,
-predict the token counts as a room before revealing them, then tokenize the whole document
-and count it four ways. The moment to watch for is `Ø25`, where the tokenizer emits two
-fragments that are not characters, and the four-way count, where the two Anthropic models
-disagree with each other by more than either disagrees with OpenAI.
-
-The second half embeds the thirty-four maintenance log entries. Before we compute anything,
-you will be asked to predict which pairs cluster. Most rooms get the near-duplicates right
-and the negations wrong, which is the point: the pair everyone marks as "obviously
-different" scores higher than the pair everyone marks as "obviously the same."
-
-The notebook runs without any API key using local tokenizers and a lexical baseline, and
-uses the provider endpoints when `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` are set. Bring
-keys if you have them.
+- **A chat model:** we ran Qwen2.5-0.5B-Instruct (0.49 billion parameters, trained on 18
+  trillion tokens) on a laptop and asked "What is the boiling point of water at sea level?". It
+  answered "The boiling point of water at sea level is 100 degrees Fahrenheit."
+- After "…100 degrees" it gave "␣Fahrenheit" 58.6% and "␣Celsius" 40.8%, and took the more likely
+  one. The number is right; the unit is a near coin flip.
+- **A pretrained model:** given "Question: What is the boiling point of water at sea level?
+  Answer:", GPT-2 writes "The boiling point of water at sea level is about 1,000 degrees
+  Fahrenheit." The true value is 212 °F (100 °C).
+- **Why:** pretraining rewards the likely next token. Nothing in the loss checks a fact.
+- Larger models and post-training make this rarer. They do not remove it.
+- **So:** treat every number and unit from an LLM as unchecked. Check it against a measurement, a
+  handbook or a calculation.
+
+## Limitations and trade-offs
+
+- **It invents sources and software packages.** In code from GPT-3.5, GPT-4 and GPT-4 Turbo,
+  "the average percentage of hallucinated packages is at least 5.2%", and 21.7% for open models
+  ([Spracklen et al., 2025](https://arxiv.org/abs/2406.10279)). Attackers can publish malicious
+  code under an invented name. Check that each source and package exists before you cite or
+  install it.
+- **Coding agents act on their guesses:** they edit files, install packages and run commands.
+  Review the diff and run the tests before you merge, and keep secrets out of their reach.
+- **It knows only its training data:** nothing after its cutoff date, and nothing in your
+  company's documents. Put the documents it needs in the prompt, and do not ask it for current
+  values.
+- **Long inputs:** answers get worse as inputs grow, well inside the advertised window
+  ([Hsieh et al., 2024](https://arxiv.org/abs/2404.06654);
+  [Du et al., 2025](https://arxiv.org/abs/2510.05381)). Facts in the middle of a long input used
+  to be the worst served ([Liu et al., 2024](https://arxiv.org/abs/2307.03172)); newer models
+  show that less, but the drop with length remains. Send only what matters: retrieve the
+  relevant parts, ask the model to quote its evidence, and repeat the main instructions.
+- **Numbers and units:** the model reads 4140 as two text pieces, "414" and "0", never as a
+  quantity. It predicts digits as tokens; it does not calculate. Do arithmetic and unit
+  conversions in code.
+- **It is not reproducible:** the same prompt can give another answer, even at temperature 0.
+  Save the output you used, with the model's name and the date, as in
+  [Lecture 1](../l01/notes.md).
+- **Your prompt leaves your machine** for the provider's servers. Check your company's rules
+  before you paste its data, or run an open model locally.
 
 ## Summary
 
-An LLM is a next-token predictor over a vocabulary of subword fragments, and nearly every
-engineering property you care about follows from that. Tokenization decides what the model
-actually sees, and it treats engineering notation badly: numbers split at digit-group
-boundaries rather than real ones, units detach, part numbers shatter into ten tokens, and a
-character can fail to be a token at all. Token counts decide cost, and they are not
-portable: the same datasheet is 776 tokens to `tiktoken` and 1,263 to Claude Opus 5, so you
-count with the model you are going to call rather than the library you happen to have.
-Context is a shared budget of input plus output, but on current models the binding
-constraint is usually money rather than capacity, and the latency is set almost entirely by
-what you ask the model to write rather than what you give it to read. Hallucination is what
-happens when the right answer is not expressible in the output space, so the fix is to
-ground the question and to supply a token that means "not found." Embeddings turn text into
-vectors whose distances mean something, which finds near-duplicates that share no words at
-all, and which is blind to negation and to units in ways that will bite an extraction
-pipeline that trusts them too far.
-
-The three habits worth carrying out of this session are the ones Assignment 8 is built on:
-count the tokens with the model you will actually call, ground every question in the
-context, and give the model a token that means "not found."
+An LLM is a generative model of text. The chain rule turns the probability of a text into a
+product of next-token probabilities, so a model that predicts the next token, from the tokens
+before it, can both score text and generate it, one token at a time. Generation is Lecture 8's
+recursive forecast with tokens instead of pressures, and it shares its weakness: errors feed
+forward. The tokens come from byte-pair encoding, which is why common words are cheap and part
+numbers, units and formulas are not. The model is the transformer of Lecture 12 with a causal
+mask, and pretraining minimizes the next-token cross-entropy at every position of every context
+window, by gradient descent on billions of parameters. The same loop, on 0.6 million characters
+of our notes, gives a model that spells like the course and means nothing; meaning takes far more
+text and a far bigger model. Post-training turns a model that continues text into one that
+answers. Temperature sets how adventurous the sampling is. Nothing in the loss checks a fact, so
+every number an LLM gives you needs checking.
 
 ## Resources
 
-- [Vaswani et al., *Attention Is All You Need*](https://arxiv.org/abs/1706.03762) (2017).
-  The architecture, from the paper that introduced it. Skim for Figure 1 and section 3.2;
-  the point is the block diagram, not the derivation.
-- [Jay Alammar, *The Illustrated Transformer*](https://jalammar.github.io/illustrated-transformer/).
-  The best visual explanation of attention there is. Read this before the paper if the
-  paper is heavy going.
-- [Jay Alammar, *The Illustrated Word2vec*](https://jalammar.github.io/illustrated-word2vec/).
-  Where the intuition that vector distance means semantic similarity comes from, built up
-  from scratch.
-- [Bommasani et al., *On the Opportunities and Risks of Foundation Models*](https://arxiv.org/abs/2108.07258)
-  (2021). Read the introduction for the framing: why one model trained once and adapted
-  many times changes the engineering problem.
-- [Sennrich, Haddow and Birch, *Neural Machine Translation of Rare Words with Subword Units*](https://arxiv.org/abs/1508.07909)
-  (2016). The paper that brought byte-pair encoding into language models. Section 3.2 is
-  the algorithm, and it is shorter than you expect.
-- [Reimers and Gurevych, *Sentence-BERT*](https://arxiv.org/abs/1908.10084) (2019). Why a
-  sentence embedding is a different object, trained specifically so that cosine similarity
-  between two independently computed vectors means something. The abstract's arithmetic is
-  the part to keep: finding the most similar pair in 10,000 sentences takes about 65 hours
-  of cross-encoder inference and about 5 seconds with sentence embeddings.
-- [Steck, Ekanadham and Kallus, *Is Cosine-Similarity of Embeddings Really About Similarity?*](https://arxiv.org/abs/2403.05440)
-  (2024). The principled version of this session's limits section. Short, and it will make
-  you more careful with thresholds.
-- [Anthropic, token counting](https://platform.claude.com/docs/en/build-with-claude/token-counting).
-  The endpoint, its rate limits, and the note that Claude 4.7 and later use a tokenizer
-  producing roughly 30% more tokens for the same text.
-- [Anthropic, embeddings](https://platform.claude.com/docs/en/build-with-claude/embeddings).
-  Worth reading precisely because Anthropic does not have an embedding model; it is a clear
-  statement of what to look for in one, and the Voyage sections cover `input_type`,
-  Matryoshka truncation, and quantization.
-- [OpenAI, embeddings guide](https://developers.openai.com/api/docs/guides/embeddings). The
-  `dimensions` parameter, the 8,192-token input limit, and the model comparison.
-- [`tiktoken`](https://github.com/openai/tiktoken). OpenAI's local BPE tokenizer. Fast,
-  exact for OpenAI models, and correct for no others; useful in this course mainly as the
-  thing to measure other tokenizers against.
-- [Brooks, Pope and Marcolini, *Airfoil self-noise and prediction*](https://ntrs.nasa.gov/citations/19890016302),
-  NASA RP-1218 (1989). The 146-page report measured in these notes, and the source of the
-  dataset used in Lecture 9 and Lecture 13. Public domain, and a good test document precisely because the
-  scan is imperfect.
+:::{admonition} With thanks to 3Blue1Brown
+:class: note
+This lecture is built on Grant Sanderson's lessons on large language models (text adaptations by
+Justin Sun), the clearest visual explanation of them we know. The chatbot as a script it
+completes, training as tuning dials, vectors that talk to each other, and temperature all come
+from there. Watch them before anything else on this list.
+
+- [Large Language Models explained briefly](https://www.3blue1brown.com/lessons/mini-llm/)
+  ([video](https://www.youtube.com/watch?v=LPZh9BOjkQs), 2024, about 8 min). The whole idea in one
+  sitting: next-word prediction, training as tuning dials, pretraining and RLHF, attention.
+- [Transformers, the tech behind LLMs](https://www.3blue1brown.com/lessons/gpt/)
+  ([video](https://www.youtube.com/watch?v=wjZofJX0v4M), Chapter 5). The structure of the model,
+  embeddings as directions with meaning, softmax and temperature.
+- [Attention in transformers, step-by-step](https://www.youtube.com/watch?v=eMlx5fFNoYc) and
+  [How might LLMs store facts](https://www.youtube.com/watch?v=9-Jl0dxWQs8) (Chapters 6 and 7).
+  Attention and the MLP, in depth.
+:::
+
+**Videos**
+
+- [Karpathy, Intro to Large Language Models](https://www.youtube.com/watch?v=zjkBMFhNj_g) (2023,
+  1 h). Pretraining, fine-tuning and what comes next, for a general audience.
+- [Karpathy, Let's build GPT: from scratch, in code, spelled out](https://www.youtube.com/watch?v=kCc8FmEb1nY)
+  (2023, 2 h). How a tiny GPT like ours is built, in code.
+- [Karpathy, Let's build the GPT Tokenizer](https://www.youtube.com/watch?v=zduSFxRajkE) (2024,
+  2 h). Byte-pair encoding, in code.
+- [Karpathy, Deep Dive into LLMs like ChatGPT](https://www.youtube.com/watch?v=7xTGNNLPyMI)
+  (2025, 3.5 h). The full pipeline, from data to chat model.
+
+**Interactive**
+
+- [Transformer Explainer](https://poloclub.github.io/transformer-explainer/). GPT-2 running in
+  your browser: type a prompt, step through the layers, move the temperature.
+- [LLM Visualization](https://bbycroft.net/llm). A 3D walk through every computation of a small
+  GPT.
+- [Tiktokenizer](https://tiktokenizer.vercel.app/). Paste text, see the tokens and the count.
+
+**Reading**
+
+- [Alammar, The Illustrated GPT-2](https://jalammar.github.io/illustrated-gpt2/). Masked
+  self-attention and generation, in pictures.
+- [Jurafsky and Martin, Speech and Language Processing, 3rd ed. draft](https://web.stanford.edu/~jurafsky/slp3/),
+  free online: Chapter 2 (tokens and BPE), Chapter 7 (transformers and pretraining), Chapter 8
+  (post-training).
+- [Hugging Face LLM Course](https://huggingface.co/learn/llm-course/chapter1/1). Free, hands-on,
+  with the `transformers` library.
+- Papers: [GPT-3 (Brown et al., 2020)](https://arxiv.org/abs/2005.14165),
+  [InstructGPT (Ouyang et al., 2022)](https://arxiv.org/abs/2203.02155),
+  [DPO (Rafailov et al., 2023)](https://arxiv.org/abs/2305.18290),
+  [Llama 3 (Llama Team, 2024)](https://arxiv.org/abs/2407.21783).
 
 ## Assignment
 
-**Assignment 8, structured extraction from engineering documents**, is released today and is due on
-2026-11-04. You will build and *evaluate* an LLM extractor that turns
-messy engineering text into a schema-validated, normalized table, with a gold set, a
-measured prompt iteration, and per-call cost accounting. This is a pointer, not the rubric.
-
-Two things from today feed straight into it and are worth starting on now. Task 2 is a
-token and cost baseline over your corpus, which you can do with nothing but the tokenizer
-and the counting endpoint before you have written any extraction code. And the corpus
-itself needs two or three deliberately incomplete documents, because the "not found"
-behaviour measured in this session is exactly what those documents exist to test.
+No assignment is released with this lecture. The [final project](../../course/final-project.md)
+is released today: team agreement due Friday 10-30, proposal due Wednesday 11-04.
 
 ## Practice module
 
-<a href="../../game/#/l17"><strong>Practice module for this session</strong></a>, about ten
-minutes of questions drawn from this session's notes, slides and demo. It runs entirely in
-your browser, the questions are selected from your Andrew ID, and it ends by producing a PDF
-you upload for participation credit.
+<a href="../../game/#/l17"><strong>Practice module for this session</strong></a>, for
+participation credit.

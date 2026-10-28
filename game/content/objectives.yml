@@ -8,20 +8,33 @@
 - id: l17-o1
   lecture: l17
   text: >-
-    Build a correct-enough mental model of a decoder-only LLM to reason about failure modes
-    (truncation, hallucination, context limits) rather than treat it as a black box.
+    Describe an LLM as a generative model of text: the chain rule turns the probability of a text
+    into a product of next-token probabilities, and generation samples from them one token at a
+    time.
 
 - id: l17-o2
   lecture: l17
   text: >-
-    Understand tokenization concretely: subword units, why "10.5 MPa" or "SS316L" may split
-    oddly, and how token counts drive cost/latency.
+    Explain what tokens are, how byte-pair encoding builds them, and why the context window is a
+    budget counted in tokens.
 
 - id: l17-o3
   lecture: l17
   text: >-
-    Understand embeddings as vectors and use cosine similarity to cluster/retrieve
-    engineering text.
+    Explain pretraining: next-token cross-entropy at every position of every context window, on
+    the transformer of L12 with a causal mask.
+
+- id: l17-o4
+  lecture: l17
+  text: >-
+    Relate model size, training data and compute across language models, and explain what
+    post-training adds to a pretrained model.
+
+- id: l17-o5
+  lecture: l17
+  text: >-
+    Explain what temperature does to the next-token distribution, and why hallucination follows
+    from next-token prediction.
 
 - id: l09-o1
   lecture: l09
