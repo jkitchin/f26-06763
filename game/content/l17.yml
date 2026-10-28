@@ -1,9 +1,9 @@
 # L17 item bank, hand-written from lectures/l17/notes.md.
 #
-# Rewritten on 2026-10-28 with the final notes: short, high-level items, several of them tying
-# L17 to earlier lectures (L1, L8, L9, L10, L12, L15, L16). Earlier versions stay in
-# pools/l17.json: versions 1 and 2 for the old systems-level L17, version 3 for the first draft
-# of this one.
+# Pool v5 (2026-10-28, after release): high-level items only, an overview of what an LLM is,
+# how it is trained and how it fails, several of them tied to earlier lectures (L1, L8, L12,
+# L16). Earlier versions stay in pools/l17.json: 1 and 2 for the old systems-level L17, 3 and 4
+# for the more detailed drafts of this one.
 # The contract every item obeys:
 #
 #   source.quote  appears verbatim in source.file
@@ -16,10 +16,9 @@ schema: 1
 lecture: l17
 title: "Large language models, what they are and how they are trained"
 source_notes: lectures/l17/notes.md
-# Held until release: tools/release_lecture.py flips this to published.
 status: published
-serve: 10
-pool_version: 4
+serve: 9
+pool_version: 5
 provenance:
   drafted_by: hand
   reviewed_by: none
@@ -29,14 +28,63 @@ items:
 
   # --- o1: a generative model of text -------------------------------------------------------
 
+  - id: l17-q21
+    kind: mcq
+    rung: 1
+    difficulty: 1
+    objectives: [l17-o1]
+    prompt: |
+      At its core, what does an LLM do?
+    options:
+      - "Gives a probability for the next token, then repeats"
+      - "Looks up the answer in a database of facts"
+      - "Searches the web and summarizes what it finds"
+      - "Runs a program written for each kind of question"
+    answer: "Gives a probability for the next token, then repeats"
+    evidence: |
+      It gives a probability for every possible next token; one is picked and appended, and the
+      model runs again. Chat, summaries and code all come from this one loop.
+    source:
+      file: lectures/l17/notes.md
+      heading: "Why this matters"
+      quote: |
+        Under the hood, an LLM does one thing: it gives a probability for the next token, and one token
+          is picked.
+    verify: {mode: quote, needle: "it gives a probability for the next token", volatility: stable}
+    tags: [overview, next-token]
+
+  - id: l17-q22
+    kind: mcq
+    rung: 2
+    difficulty: 1
+    objectives: [l17-o1]
+    prompt: |
+      How does a chatbot turn your question into an answer?
+    options:
+      - "It continues a hidden script that holds your message"
+      - "It retrieves a stored answer that matches your question"
+      - "It writes the whole answer at once, then checks it"
+      - "It turns your question into a database query"
+    answer: "It continues a hidden script that holds your message"
+    evidence: |
+      The app wraps your message in a script, with special tokens marking who speaks. The model
+      continues that script one token at a time, and the app shows only the reply.
+    source:
+      file: lectures/l17/notes.md
+      heading: "Why this matters"
+      quote: |
+        The app wraps your question in a hidden script
+    verify: {mode: quote, needle: "hidden script", volatility: stable}
+    tags: [overview, chat]
+
   - id: l17-q01
     kind: mcq
     rung: 2
     difficulty: 1
     objectives: [l17-o1]
     prompt: |
-      Lecture 16's generative models drew a whole point (x, y) at once. How does an LLM draw a
-      text?
+      Lecture 16's generative models drew a whole point (x, y) at once. How does an LLM generate
+      a text?
     options:
       - "One token at a time, each given the tokens before it"
       - "Every token at once, like one sample from a Gaussian mixture"
@@ -44,9 +92,8 @@ items:
       - "As one whole sentence, picked from a list of candidates"
     answer: "One token at a time, each given the tokens before it"
     evidence: |
-      A 10-token text already has about 10^47 possible values, far too many to draw at once.
-      One token at a time, each step is one choice among 50,257, and the chain rule makes the
-      result exact.
+      A text has far too many possible values to draw at once. One token at a time, each step is
+      one choice from the vocabulary, and the chain rule makes the result exact.
     source:
       file: lectures/l17/notes.md
       heading: "One variable at a time"
@@ -61,17 +108,16 @@ items:
     difficulty: 2
     objectives: [l17-o1]
     prompt: |
-      Why is a model that only predicts the next token a complete model of text?
+      Why is predicting the next token enough to model a whole text?
     options:
-      - "The chain rule makes p(text) a product of next-token probabilities"
-      - "Each token depends only on the token right before it"
-      - "It approximates p(text), and the error shrinks as models get bigger"
-      - "Texts are short, so little is lost by going one token at a time"
-    answer: "The chain rule makes p(text) a product of next-token probabilities"
+      - "The chain rule splits p(text) into next-token probabilities"
+      - "Each word depends only on the word right before it"
+      - "It is a rough approximation that works for short texts"
+      - "The model memorizes every text it was trained on"
+    answer: "The chain rule splits p(text) into next-token probabilities"
     evidence: |
-      p(x_1, ..., x_T) = product over t of p(x_t | all earlier tokens). This is exact, with no
-      assumption about which earlier tokens matter. Learn the next-token probabilities and you
-      have the whole distribution.
+      The probability of a text is exactly the product of its next-token probabilities, with no
+      approximation. Learn those, and the model can both score a text and write one.
     source:
       file: lectures/l17/notes.md
       heading: "The chain rule"
@@ -87,17 +133,17 @@ items:
     difficulty: 2
     objectives: [l17-o1]
     prompt: |
-      An LLM writing an answer works like Lecture 8's recursive AR forecast. Which weakness do
-      they share?
+      An LLM writing an answer works like Lecture 8's recursive forecast. What weakness do they
+      share?
     options:
-      - "Each output is fed back in, so an early error carries forward"
-      - "Both can only use a fixed window of the last 10 values"
-      - "Both are linear models, so they cannot capture curved trends in data"
+      - "Each output is fed back in, so early errors carry forward"
+      - "Both can look back only a fixed 10 steps"
+      - "Both are linear models of their inputs"
       - "Both must be trained on labels written by people"
-    answer: "Each output is fed back in, so an early error carries forward"
+    answer: "Each output is fed back in, so early errors carry forward"
     evidence: |
-      Both use their own predictions as later inputs. In Lecture 8 the forecast was worse than
-      the mean after two hours; in an LLM, one wrong token early on steers the rest of the answer.
+      Both use their own predictions as later inputs. In Lecture 8 the forecast drifted to the
+      mean; in an LLM, one wrong token early on steers the rest of the answer.
     source:
       file: lectures/l17/notes.md
       heading: "Autoregressive, as in Lecture 8"
@@ -109,54 +155,53 @@ items:
 
   # --- o2: tokens and the context window ----------------------------------------------------
 
-  - id: l17-q04
+  - id: l17-q23
     kind: mcq
     rung: 1
     difficulty: 1
     objectives: [l17-o2]
     prompt: |
-      Byte-pair encoding builds a vocabulary by repeating one step. Which?
+      What is a token?
     options:
-      - "Merge the most frequent pair of neighboring tokens"
-      - "Split the longest token in the vocabulary into two shorter ones"
-      - "Add every whole word that appears at least twice in the text"
-      - "Drop the rarest characters from the vocabulary"
-    answer: "Merge the most frequent pair of neighboring tokens"
+      - "A piece of text: a character, a word or part of a word"
+      - "One full sentence of the prompt"
+      - "One parameter of the model"
+      - "One layer of the transformer"
+    answer: "A piece of text: a character, a word or part of a word"
     evidence: |
-      Start from characters, count every adjacent pair, merge the most frequent one into a new
-      token, repeat. In "aaabdaaabac" the first merge is a + a, which appears 4 times.
+      The tokenizer cuts text into tokens and gives each one a number, its id. The model never
+      sees letters, only the ids.
+    source:
+      file: lectures/l17/notes.md
+      heading: "Tokens"
+      quote: |
+        A **token** is a piece of text the model reads and writes: a character, a word, or part of a word.
+    verify: {mode: quote, needle: "a character, a word, or part of a word", volatility: stable}
+    tags: [tokens, overview]
+
+  - id: l17-q04
+    kind: mcq
+    rung: 2
+    difficulty: 1
+    objectives: [l17-o2]
+    prompt: |
+      Byte-pair encoding merges frequent pieces of text into single tokens. What does that buy?
+    options:
+      - "Fewer tokens per text: more fits, and writing is faster"
+      - "Exactly one token for every word ever written"
+      - "A model that no longer needs a vocabulary"
+      - "Rare words are dropped, so the text gets cleaner"
+    answer: "Fewer tokens per text: more fits, and writing is faster"
+    evidence: |
+      Frequent pieces become one token, so sequences get shorter: more text fits in the context
+      window and generation takes fewer steps. Rare words still split into known pieces.
     source:
       file: lectures/l17/notes.md
       heading: "Byte-pair encoding"
       quote: |
-        merge it into one new token, repeat
-    verify: {mode: quote, needle: "merge it into one new token", volatility: stable}
+        Frequent pieces become one token, so sequences get shorter
+    verify: {mode: quote, needle: "sequences get shorter", volatility: stable}
     tags: [byte-pair-encoding]
-
-  - id: l17-q05
-    kind: mcq
-    rung: 2
-    difficulty: 2
-    objectives: [l17-o2]
-    prompt: |
-      Why do LLMs cut text into subwords rather than whole words?
-    options:
-      - "A new word, like the pump tag P-101A, can still be built from pieces"
-      - "Attention can compare only pieces of words, never whole words at once"
-      - "Whole words would make every text many more tokens long"
-      - "Subwords make every word exactly two tokens, so costs are fixed"
-    answer: "A new word, like the pump tag P-101A, can still be built from pieces"
-    evidence: |
-      A word vocabulary has no token for a word it never saw. With subwords, common words stay
-      whole and rare ones split ("overhe" + "ated"), so any text can be written. Whole words give
-      fewer tokens, not more.
-    source:
-      file: lectures/l17/notes.md
-      heading: "Three ways to cut a text"
-      quote: |
-        so any new word can still be built
-    verify: {mode: quote, needle: "any new word can still be built", volatility: stable}
-    tags: [tokens, subwords]
 
   - id: l17-q06
     kind: mcq
@@ -164,16 +209,17 @@ items:
     difficulty: 2
     objectives: [l17-o2]
     prompt: |
-      The tokenizer cuts "4140" into "414" and "0". What should you do with unit conversions?
+      An LLM reads "4140" as two text pieces, "414" and "0". What should you do with arithmetic
+      and unit conversions?
     options:
-      - "Do them in code: the model sees text pieces, not a quantity"
-      - "Write numbers in scientific notation so each stays one token"
-      - "Raise the temperature so the model explores more digits"
-      - "Nothing: the model rebuilds the number before computing"
-    answer: "Do them in code: the model sees text pieces, not a quantity"
+      - "Do them in code, not in the model"
+      - "Write every number in scientific notation"
+      - "Raise the temperature so it tries more digits"
+      - "Nothing: the model computes them exactly"
+    answer: "Do them in code, not in the model"
     evidence: |
-      The model predicts digits as tokens; it does not calculate. Scientific notation splits into
-      even more pieces: "Q = 1.5e-3 m³/s" is 15 characters and 12 tokens.
+      The model predicts digits as text; it does not calculate. Numbers, units and part numbers
+      are where LLMs slip, so check them and compute in code.
     source:
       file: lectures/l17/notes.md
       heading: "Numbers and units cost more than words"
@@ -181,7 +227,7 @@ items:
         **So numbers, units and part numbers are where LLMs slip.** Check them, and do the arithmetic
           in code.
     verify: {mode: quote, needle: "do the arithmetic", volatility: stable}
-    tags: [tokens, numbers, practitioner]
+    tags: [numbers, practitioner]
 
   - id: l17-q07
     kind: mcq
@@ -210,29 +256,30 @@ items:
 
   # --- o3: pretraining on the transformer with a causal mask --------------------------------
 
-  - id: l17-q08
+  - id: l17-q24
     kind: mcq
     rung: 1
     difficulty: 1
     objectives: [l17-o3]
     prompt: |
-      An LLM uses Lecture 12's transformer with one change. Which?
+      What happens in one training step of an LLM?
     options:
-      - "A causal mask: each token sees only itself and earlier tokens"
-      - "No attention at all: each token goes through the MLP on its own"
-      - "Each token attends only to the single token right before it"
-      - "The tokens are read from right to left, so the answer comes first"
-    answer: "A causal mask: each token sees only itself and earlier tokens"
+      - "It guesses next tokens; all parameters are nudged toward the truth"
+      - "A person corrects its answers and rewrites its rules"
+      - "It saves the text in a database to look up when asked later"
+      - "It picks the best of several models trained side by side"
+    answer: "It guesses next tokens; all parameters are nudged toward the truth"
     evidence: |
-      The mask sets the scores of later tokens to minus infinity, so their weights are 0. The
-      prediction at position t uses only tokens 1 to t, and in training the answer stays hidden.
+      Show it text, let it guess each next token, compare with the token that really came next,
+      and take a gradient step on every parameter. Repeat, many times over.
     source:
       file: lectures/l17/notes.md
-      heading: "Attention looks back"
+      heading: "Tuning the dials"
       quote: |
-        One change from Lecture 12: a token may attend only to itself and the tokens before it.
-    verify: {mode: quote, needle: "only to itself and the tokens before it", volatility: stable}
-    tags: [causal-mask, attention, lecture-12]
+        nudge every dial a little so the true one gets more
+          likely.
+    verify: {mode: quote, needle: "nudge every dial a little", volatility: stable}
+    tags: [training, overview]
 
   - id: l17-q09
     kind: mcq
@@ -258,112 +305,31 @@ items:
     verify: {mode: quote, needle: "shifted by one", volatility: stable}
     tags: [self-supervised, pretraining]
 
-  - id: l17-q10
+  - id: l17-q08
     kind: mcq
     rung: 2
-    difficulty: 2
+    difficulty: 1
     objectives: [l17-o3]
     prompt: |
-      The pretraining loss is the cross-entropy of Lecture 10. At each position, what is being
-      classified?
+      An LLM uses Lecture 12's transformer with one change. Which?
     options:
-      - "The next token, among all tokens in the vocabulary"
-      - "Whether the sentence so far is true or false"
-      - "The topic of the document the text came from"
-      - "Whether the token is a whole word or a piece of one"
-    answer: "The next token, among all tokens in the vocabulary"
+      - "Each token sees only itself and earlier tokens"
+      - "There is no attention, only the MLP"
+      - "Each token sees only the token right before it"
+      - "The tokens are read from right to left"
+    answer: "Each token sees only itself and earlier tokens"
     evidence: |
-      Each position is a classification with one class per token: 50,257 classes for GPT-2, 129
-      for our tiny GPT. The loss is minus the log of the probability given to the true class.
+      A causal mask hides later tokens. In training the next token is the answer, so it has to
+      stay hidden.
     source:
       file: lectures/l17/notes.md
-      heading: "The objective"
+      heading: "Attention looks back"
       quote: |
-        **Cross-entropy:** each position is a classification over the vocabulary
-    verify: {mode: quote, needle: "classification over the vocabulary", volatility: stable}
-    tags: [cross-entropy, lecture-10]
+        One change from Lecture 12: a token may attend only to itself and the tokens before it.
+    verify: {mode: quote, needle: "only to itself and the tokens before it", volatility: stable}
+    tags: [causal-mask, lecture-12]
 
-  - id: l17-q11
-    kind: mcq
-    rung: 3
-    difficulty: 2
-    objectives: [l17-o3]
-    prompt: |
-      Our tiny GPT has 842,881 parameters, 58 ms per training step, and gradients from
-      backpropagation (Lecture 11). Where does it sit on Lecture 15's optimizer map?
-    options:
-      - "Gradient-based: many inputs, cheap steps, gradients available"
-      - "Bayesian optimization: few inputs, expensive experiments"
-      - "A grid search over every parameter, one at a time"
-      - "Derivative-free search, since a noisy loss makes gradients useless"
-    answer: "Gradient-based: many inputs, cheap steps, gradients available"
-    evidence: |
-      Lecture 15's reactor had 2 knobs and hours per experiment: Bayesian optimization. Hundreds
-      of thousands of parameters with cheap gradients is gradient territory; GPT-3 used Adam,
-      Llama 3 AdamW.
-    source:
-      file: lectures/l17/notes.md
-      heading: "Training is an optimization problem"
-      quote: |
-        The tiny GPT
-        (red star) has 842,881 knobs and 58 ms per training step, with gradients: gradient descent.
-    verify: {mode: quote, needle: "with gradients: gradient descent", volatility: stable}
-    tags: [optimization, lecture-15, lecture-11]
-
-  - id: l17-q12
-    kind: mcq
-    rung: 3
-    difficulty: 2
-    objectives: [l17-o3]
-    prompt: |
-      The tiny GPT ends with a training loss of 1.22 and a held-out loss of 1.51. What does the
-      gap tell you?
-    options:
-      - "It has started to memorize its training text: overfitting"
-      - "It is undertrained, and more steps will close the gap"
-      - "The held-out notes use characters the model never saw in training"
-      - "The learning rate is too low to reach the held-out text"
-    answer: "It has started to memorize its training text: overfitting"
-    evidence: |
-      With 0.6 million characters, the training loss keeps falling while the held-out loss levels
-      off: Lecture 9's overfitting. More steps widen the gap; the held-out curve is the one to
-      trust.
-    source:
-      file: lectures/l17/notes.md
-      heading: "Reading the loss"
-      quote: |
-        Its training loss (1.22) falls below its held-out loss (1.51): with 0.6 million characters,
-          it starts to memorize.
-    verify: {mode: quote, needle: "it starts to memorize", volatility: measured}
-    tags: [held-out, overfitting, lecture-9]
-
-  - id: l17-q13
-    kind: mcq
-    rung: 3
-    difficulty: 3
-    objectives: [l17-o3]
-    prompt: |
-      The held-out loss is 1.51, and e^(-1.51) is about 0.22. What does 22% mean?
-    options:
-      - "The true next character typically gets about 22% probability"
-      - "22% of the model's next-character guesses are right"
-      - "The model has learned 22% of its 129-character vocabulary"
-      - "Training is 22% of the way from a blind guess to a loss of zero"
-    answer: "The true next character typically gets about 22% probability"
-    evidence: |
-      The loss is the average of -ln p, so e^(-loss) is the typical p: the geometric mean of the
-      probabilities given to the true characters. It is not the share of right guesses. A blind
-      guess gives 1/129, 0.8%.
-    source:
-      file: lectures/l17/notes.md
-      heading: "Reading the loss"
-      quote: |
-        is not the share of right guesses: it is the geometric mean of the probabilities the
-          model gave the true characters.
-    verify: {mode: quote, needle: "geometric mean", volatility: measured}
-    tags: [cross-entropy, loss]
-
-  # --- o4: data and scale -------------------------------------------------------------------
+  # --- o4: size, data, compute and post-training --------------------------------------------
 
   - id: l17-q14
     kind: mcq
@@ -371,8 +337,8 @@ items:
     difficulty: 2
     objectives: [l17-o4]
     prompt: |
-      Trained on our notes alone, the tiny GPT finishes 15 of 16 course terms but writes no
-      meaningful sentence. What would help most?
+      Trained on our notes alone, the tiny GPT spells our terms but writes no meaningful sentence.
+      What would help most?
     options:
       - "Far more text, and a bigger model"
       - "Training longer on the same notes"
@@ -380,8 +346,8 @@ items:
       - "A longer context window"
     answer: "Far more text, and a bigger model"
     evidence: |
-      It already copies our style. Meaning takes far more data and parameters; training longer on
-      0.6 million characters only memorizes them, as the held-out loss shows.
+      It already copies our style. Meaning takes far more data and parameters; training longer
+      on the same small text only memorizes it.
     source:
       file: lectures/l17/notes.md
       heading: "What it writes as it learns"
@@ -389,52 +355,25 @@ items:
         Far more text, and a
           bigger model, are what turn style into meaning.
     verify: {mode: quote, needle: "turn style into meaning", volatility: stable}
-    tags: [scaling, tiny-gpt]
-
-  - id: l17-q15
-    kind: mcq
-    rung: 2
-    difficulty: 2
-    objectives: [l17-o4]
-    prompt: |
-      DeepSeek-V3 has 671 billion parameters, 37 billion of them active. What does "active" mean?
-    options:
-      - "Only part of the parameters is used for each token"
-      - "Only 37 billion were trained; the rest are left random"
-      - "The rest are kept for languages other than English"
-      - "The rest switch on only at a high temperature"
-    answer: "Only part of the parameters is used for each token"
-    evidence: |
-      DeepSeek-V3 is a mixture of experts: for each token, only some of its expert sub-networks
-      run. All 671 billion parameters are trained; 37 billion do the work on any one token, which
-      keeps each step cheaper.
-    source:
-      file: lectures/l17/notes.md
-      heading: "Models over the years"
-      quote: |
-        they use only part of their parameters for each
-          token
-    verify: {mode: quote, needle: "only part of their parameters", volatility: stable}
-    tags: [mixture-of-experts, scaling]
+    tags: [scale, tiny-gpt]
 
   - id: l17-q16
     kind: mcq
     rung: 2
-    difficulty: 2
+    difficulty: 1
     objectives: [l17-o4]
     prompt: |
-      Asked a question, a pretrained model continues the text instead of answering. What turns it
-      into a chat model?
+      A pretrained model continues your question instead of answering it. What turns it into a
+      chat model?
     options:
-      - "More training on good answers, then on people's preferences"
-      - "More pretraining on web text, until it learns to answer on its own"
-      - "A larger context window, so it sees the whole question"
-      - "A lower temperature, so it picks the most likely answer"
-    answer: "More training on good answers, then on people's preferences"
+      - "More training on good answers and on people's preferences"
+      - "More pretraining on web text"
+      - "A larger context window"
+      - "A lower temperature"
+    answer: "More training on good answers and on people's preferences"
     evidence: |
-      Supervised fine-tuning (SFT) trains on examples of good answers; RLHF or DPO then trains on
-      which of two answers people prefer. More pretraining only makes it better at continuing
-      text.
+      Supervised fine-tuning trains on examples of good answers; RLHF or DPO then trains on which
+      of two answers people prefer. More pretraining only makes it better at continuing text.
     source:
       file: lectures/l17/notes.md
       heading: "After pretraining"
@@ -442,7 +381,31 @@ items:
         **Supervised fine-tuning** (SFT) trains it further, with the same next-token loss, on examples
            of instructions and good answers, written by people.
     verify: {mode: quote, needle: "instructions and good answers", volatility: stable}
-    tags: [post-training, sft, rlhf]
+    tags: [post-training]
+
+  - id: l17-q25
+    kind: mcq
+    rung: 2
+    difficulty: 1
+    objectives: [l17-o4]
+    prompt: |
+      You ask an LLM about last week's measurements from your plant. What is the problem?
+    options:
+      - "It knows only its training data: nothing recent or private"
+      - "Measurements are too numeric for any LLM to read"
+      - "It refuses every question about a specific plant"
+      - "A week of data is always too long for its context window"
+    answer: "It knows only its training data: nothing recent or private"
+    evidence: |
+      Training stops at a cutoff date and never sees your company's documents. Put the data it
+      needs in the prompt, and do not ask it for current values.
+    source:
+      file: lectures/l17/notes.md
+      heading: "Limitations and trade-offs"
+      quote: |
+        **It knows only its training data:** nothing after its cutoff date
+    verify: {mode: quote, needle: "nothing after its cutoff date", volatility: stable}
+    tags: [training-data, practitioner]
 
   # --- o5: temperature and hallucination ----------------------------------------------------
 
@@ -452,16 +415,16 @@ items:
     difficulty: 1
     objectives: [l17-o5]
     prompt: |
-      You lower the temperature from 1 to 0.3. What happens to the next-token probabilities?
+      You lower the temperature. What happens to the text the model writes?
     options:
-      - "The top token takes more of them: safer, more repetitive text"
-      - "They flatten, so unlikely tokens get a real chance"
-      - "They stay the same; only the speed of generation changes a little"
-      - "Only the most common words in the vocabulary remain"
-    answer: "The top token takes more of them: safer, more repetitive text"
+      - "Safer and more repetitive: it sticks to the likeliest tokens"
+      - "More varied: unlikely tokens get a real chance"
+      - "Nothing changes; only the speed goes up"
+      - "It switches to a smaller vocabulary"
+    answer: "Safer and more repetitive: it sticks to the likeliest tokens"
     evidence: |
-      The logits are divided by the temperature before the softmax. Dividing by 0.3 stretches the
-      gaps, so the most likely token takes more of the probability.
+      Low temperature sharpens the probabilities toward the most likely token. High temperature
+      flattens them, so the text gets more varied and makes more mistakes.
     source:
       file: lectures/l17/notes.md
       heading: "Sampling: temperature"
@@ -471,47 +434,22 @@ items:
     verify: {mode: quote, needle: "sharpens the", volatility: stable}
     tags: [temperature]
 
-  - id: l17-q18
-    kind: mcq
-    rung: 2
-    difficulty: 2
-    objectives: [l17-o5]
-    prompt: |
-      The softmax with a temperature is Boltzmann's distribution. In that parallel, what does a
-      token's logit play?
-    options:
-      - "Minus the energy of a state"
-      - "The temperature k_BT of the system"
-      - "The number of states the system can visit"
-      - "The entropy of the system"
-    answer: "Minus the energy of a state"
-    evidence: |
-      exp(z/τ) matches exp(-E/k_BT): a high logit is a low energy, and τ plays k_BT. Cold, the
-      lowest-energy state (the top token) wins; hot, every state gets visited.
-    source:
-      file: lectures/l17/notes.md
-      heading: "Spin the wheel"
-      quote: |
-        A logit $z$ plays minus an energy, and $\tau$ plays $k_BT$.
-    verify: {mode: quote, needle: "plays minus an energy", volatility: stable}
-    tags: [temperature, boltzmann]
-
   - id: l17-q19
     kind: mcq
     rung: 2
-    difficulty: 2
+    difficulty: 1
     objectives: [l17-o5]
     prompt: |
       Why can an LLM state a wrong number as fluently as a right one?
     options:
-      - "Its loss rewards the likely next token; nothing checks facts"
-      - "Numbers split into tokens, and it cannot read the tokens back"
-      - "A low temperature forces it to guess when unsure"
-      - "It was trained on simulations, not on measurements"
-    answer: "Its loss rewards the likely next token; nothing checks facts"
+      - "Training rewards likely text; nothing checks facts"
+      - "Numbers are hidden from the model during training"
+      - "A low temperature forces it to guess"
+      - "It was trained on simulated data only"
+    answer: "Training rewards likely text; nothing checks facts"
     evidence: |
-      Pretraining makes likely text likely, true or not. After "…100 degrees", Qwen gave
-      "Fahrenheit" 58.6% for water's boiling point and took it. Check every number and unit.
+      Pretraining makes likely text likely, true or not. That is why every number and unit from
+      an LLM has to be checked against a measurement, a handbook or a calculation.
     source:
       file: lectures/l17/notes.md
       heading: "Fluent is not the same as true"
@@ -522,17 +460,17 @@ items:
 
   - id: l17-q20
     kind: mcq
-    rung: 3
-    difficulty: 2
+    rung: 2
+    difficulty: 1
     objectives: [l17-o5]
     prompt: |
       The same prompt can give a different answer, even at temperature 0. As in Lecture 1, what
       should you save?
     options:
       - "The output you used, with the model's name and the date"
-      - "Only the prompt, since the same output can always be regenerated"
+      - "Only the prompt; the output can always be regenerated"
       - "The temperature setting, which fixes the output"
-      - "Nothing: rerun the prompt whenever you need the answer"
+      - "Nothing: rerun the prompt when you need it"
     answer: "The output you used, with the model's name and the date"
     evidence: |
       Providers do not promise identical outputs for identical inputs. A result you cannot
@@ -543,4 +481,4 @@ items:
       quote: |
         Save the output you used, with the model's name and the date, as in
     verify: {mode: quote, needle: "Save the output you used", volatility: stable}
-    tags: [reproducibility, lecture-1, practitioner]
+    tags: [reproducibility, lecture-1]

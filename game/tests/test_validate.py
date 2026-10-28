@@ -393,7 +393,9 @@ def test_heading_must_be_where_the_quote_lives(item):
     section their quote is not in, usually because a short needle matched the
     objectives bullet at the top of the file instead of the passage meant.
     """
-    item["source"]["heading"] = "Why this matters"      # real heading, wrong section
+    # a real heading, but not the section the quote is in
+    wrong = "Summary" if item["source"]["heading"] != "Summary" else "Why this matters"
+    item["source"]["heading"] = wrong
     msgs = errors_for(V.check_grounding, item)
     assert any("is not where the quote lives" in m for m in msgs)
 

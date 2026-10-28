@@ -4616,11 +4616,51 @@
       ]
     },
     {
+      "id": "l17-q21",
+      "kind": "mcq",
+      "lecture": "l17",
+      "context": "At its core, what does an LLM do?",
+      "why": "It gives a probability for every possible next token; one is picked and appended, and the\nmodel runs again. Chat, summaries and code all come from this one loop.",
+      "objectives": [
+        "l17-o1"
+      ],
+      "tags": [
+        "overview",
+        "next-token"
+      ],
+      "true": "Gives a probability for the next token, then repeats",
+      "false": [
+        "Looks up the answer in a database of facts",
+        "Searches the web and summarizes what it finds",
+        "Runs a program written for each kind of question"
+      ]
+    },
+    {
+      "id": "l17-q22",
+      "kind": "mcq",
+      "lecture": "l17",
+      "context": "How does a chatbot turn your question into an answer?",
+      "why": "The app wraps your message in a script, with special tokens marking who speaks. The model\ncontinues that script one token at a time, and the app shows only the reply.",
+      "objectives": [
+        "l17-o1"
+      ],
+      "tags": [
+        "overview",
+        "chat"
+      ],
+      "true": "It continues a hidden script that holds your message",
+      "false": [
+        "It retrieves a stored answer that matches your question",
+        "It writes the whole answer at once, then checks it",
+        "It turns your question into a database query"
+      ]
+    },
+    {
       "id": "l17-q01",
       "kind": "mcq",
       "lecture": "l17",
-      "context": "Lecture 16's generative models drew a whole point (x, y) at once. How does an LLM draw a\ntext?",
-      "why": "A 10-token text already has about 10^47 possible values, far too many to draw at once.\nOne token at a time, each step is one choice among 50,257, and the chain rule makes the\nresult exact.",
+      "context": "Lecture 16's generative models drew a whole point (x, y) at once. How does an LLM generate\na text?",
+      "why": "A text has far too many possible values to draw at once. One token at a time, each step is\none choice from the vocabulary, and the chain rule makes the result exact.",
       "objectives": [
         "l17-o1"
       ],
@@ -4639,27 +4679,27 @@
       "id": "l17-q02",
       "kind": "mcq",
       "lecture": "l17",
-      "context": "Why is a model that only predicts the next token a complete model of text?",
-      "why": "p(x_1, ..., x_T) = product over t of p(x_t | all earlier tokens). This is exact, with no\nassumption about which earlier tokens matter. Learn the next-token probabilities and you\nhave the whole distribution.",
+      "context": "Why is predicting the next token enough to model a whole text?",
+      "why": "The probability of a text is exactly the product of its next-token probabilities, with no\napproximation. Learn those, and the model can both score a text and write one.",
       "objectives": [
         "l17-o1"
       ],
       "tags": [
         "chain-rule"
       ],
-      "true": "The chain rule makes p(text) a product of next-token probabilities",
+      "true": "The chain rule splits p(text) into next-token probabilities",
       "false": [
-        "Each token depends only on the token right before it",
-        "It approximates p(text), and the error shrinks as models get bigger",
-        "Texts are short, so little is lost by going one token at a time"
+        "Each word depends only on the word right before it",
+        "It is a rough approximation that works for short texts",
+        "The model memorizes every text it was trained on"
       ]
     },
     {
       "id": "l17-q03",
       "kind": "mcq",
       "lecture": "l17",
-      "context": "An LLM writing an answer works like Lecture 8's recursive AR forecast. Which weakness do\nthey share?",
-      "why": "Both use their own predictions as later inputs. In Lecture 8 the forecast was worse than\nthe mean after two hours; in an LLM, one wrong token early on steers the rest of the answer.",
+      "context": "An LLM writing an answer works like Lecture 8's recursive forecast. What weakness do they\nshare?",
+      "why": "Both use their own predictions as later inputs. In Lecture 8 the forecast drifted to the\nmean; in an LLM, one wrong token early on steers the rest of the answer.",
       "objectives": [
         "l17-o1"
       ],
@@ -4667,71 +4707,70 @@
         "autoregressive",
         "lecture-8"
       ],
-      "true": "Each output is fed back in, so an early error carries forward",
+      "true": "Each output is fed back in, so early errors carry forward",
       "false": [
-        "Both can only use a fixed window of the last 10 values",
-        "Both are linear models, so they cannot capture curved trends in data",
+        "Both can look back only a fixed 10 steps",
+        "Both are linear models of their inputs",
         "Both must be trained on labels written by people"
+      ]
+    },
+    {
+      "id": "l17-q23",
+      "kind": "mcq",
+      "lecture": "l17",
+      "context": "What is a token?",
+      "why": "The tokenizer cuts text into tokens and gives each one a number, its id. The model never\nsees letters, only the ids.",
+      "objectives": [
+        "l17-o2"
+      ],
+      "tags": [
+        "tokens",
+        "overview"
+      ],
+      "true": "A piece of text: a character, a word or part of a word",
+      "false": [
+        "One full sentence of the prompt",
+        "One parameter of the model",
+        "One layer of the transformer"
       ]
     },
     {
       "id": "l17-q04",
       "kind": "mcq",
       "lecture": "l17",
-      "context": "Byte-pair encoding builds a vocabulary by repeating one step. Which?",
-      "why": "Start from characters, count every adjacent pair, merge the most frequent one into a new\ntoken, repeat. In \"aaabdaaabac\" the first merge is a + a, which appears 4 times.",
+      "context": "Byte-pair encoding merges frequent pieces of text into single tokens. What does that buy?",
+      "why": "Frequent pieces become one token, so sequences get shorter: more text fits in the context\nwindow and generation takes fewer steps. Rare words still split into known pieces.",
       "objectives": [
         "l17-o2"
       ],
       "tags": [
         "byte-pair-encoding"
       ],
-      "true": "Merge the most frequent pair of neighboring tokens",
+      "true": "Fewer tokens per text: more fits, and writing is faster",
       "false": [
-        "Split the longest token in the vocabulary into two shorter ones",
-        "Add every whole word that appears at least twice in the text",
-        "Drop the rarest characters from the vocabulary"
-      ]
-    },
-    {
-      "id": "l17-q05",
-      "kind": "mcq",
-      "lecture": "l17",
-      "context": "Why do LLMs cut text into subwords rather than whole words?",
-      "why": "A word vocabulary has no token for a word it never saw. With subwords, common words stay\nwhole and rare ones split (\"overhe\" + \"ated\"), so any text can be written. Whole words give\nfewer tokens, not more.",
-      "objectives": [
-        "l17-o2"
-      ],
-      "tags": [
-        "tokens",
-        "subwords"
-      ],
-      "true": "A new word, like the pump tag P-101A, can still be built from pieces",
-      "false": [
-        "Attention can compare only pieces of words, never whole words at once",
-        "Whole words would make every text many more tokens long",
-        "Subwords make every word exactly two tokens, so costs are fixed"
+        "Exactly one token for every word ever written",
+        "A model that no longer needs a vocabulary",
+        "Rare words are dropped, so the text gets cleaner"
       ]
     },
     {
       "id": "l17-q06",
       "kind": "mcq",
       "lecture": "l17",
-      "context": "The tokenizer cuts \"4140\" into \"414\" and \"0\". What should you do with unit conversions?",
-      "why": "The model predicts digits as tokens; it does not calculate. Scientific notation splits into\neven more pieces: \"Q = 1.5e-3 m³/s\" is 15 characters and 12 tokens.",
+      "context": "An LLM reads \"4140\" as two text pieces, \"414\" and \"0\". What should you do with arithmetic\nand unit conversions?",
+      "why": "The model predicts digits as text; it does not calculate. Numbers, units and part numbers\nare where LLMs slip, so check them and compute in code.",
       "objectives": [
         "l17-o2"
       ],
       "tags": [
-        "tokens",
         "numbers",
         "practitioner"
       ],
-      "true": "Do them in code: the model sees text pieces, not a quantity",
+      "true": "Do them in code, not in the model",
       "false": [
-        "Write numbers in scientific notation so each stays one token",
-        "Raise the temperature so the model explores more digits",
-        "Nothing: the model rebuilds the number before computing"
+        "Write every number in scientific notation",
+        "Raise the temperature so it tries more digits",
+        "Nothing: the model computes them exactly"
       ]
     },
     {
@@ -4754,24 +4793,23 @@
       ]
     },
     {
-      "id": "l17-q08",
+      "id": "l17-q24",
       "kind": "mcq",
       "lecture": "l17",
-      "context": "An LLM uses Lecture 12's transformer with one change. Which?",
-      "why": "The mask sets the scores of later tokens to minus infinity, so their weights are 0. The\nprediction at position t uses only tokens 1 to t, and in training the answer stays hidden.",
+      "context": "What happens in one training step of an LLM?",
+      "why": "Show it text, let it guess each next token, compare with the token that really came next,\nand take a gradient step on every parameter. Repeat, many times over.",
       "objectives": [
         "l17-o3"
       ],
       "tags": [
-        "causal-mask",
-        "attention",
-        "lecture-12"
+        "training",
+        "overview"
       ],
-      "true": "A causal mask: each token sees only itself and earlier tokens",
+      "true": "It guesses next tokens; all parameters are nudged toward the truth",
       "false": [
-        "No attention at all: each token goes through the MLP on its own",
-        "Each token attends only to the single token right before it",
-        "The tokens are read from right to left, so the answer comes first"
+        "A person corrects its answers and rewrites its rules",
+        "It saves the text in a database to look up when asked later",
+        "It picks the best of several models trained side by side"
       ]
     },
     {
@@ -4795,98 +4833,36 @@
       ]
     },
     {
-      "id": "l17-q10",
+      "id": "l17-q08",
       "kind": "mcq",
       "lecture": "l17",
-      "context": "The pretraining loss is the cross-entropy of Lecture 10. At each position, what is being\nclassified?",
-      "why": "Each position is a classification with one class per token: 50,257 classes for GPT-2, 129\nfor our tiny GPT. The loss is minus the log of the probability given to the true class.",
+      "context": "An LLM uses Lecture 12's transformer with one change. Which?",
+      "why": "A causal mask hides later tokens. In training the next token is the answer, so it has to\nstay hidden.",
       "objectives": [
         "l17-o3"
       ],
       "tags": [
-        "cross-entropy",
-        "lecture-10"
+        "causal-mask",
+        "lecture-12"
       ],
-      "true": "The next token, among all tokens in the vocabulary",
+      "true": "Each token sees only itself and earlier tokens",
       "false": [
-        "Whether the sentence so far is true or false",
-        "The topic of the document the text came from",
-        "Whether the token is a whole word or a piece of one"
-      ]
-    },
-    {
-      "id": "l17-q11",
-      "kind": "mcq",
-      "lecture": "l17",
-      "context": "Our tiny GPT has 842,881 parameters, 58 ms per training step, and gradients from\nbackpropagation (Lecture 11). Where does it sit on Lecture 15's optimizer map?",
-      "why": "Lecture 15's reactor had 2 knobs and hours per experiment: Bayesian optimization. Hundreds\nof thousands of parameters with cheap gradients is gradient territory; GPT-3 used Adam,\nLlama 3 AdamW.",
-      "objectives": [
-        "l17-o3"
-      ],
-      "tags": [
-        "optimization",
-        "lecture-15",
-        "lecture-11"
-      ],
-      "true": "Gradient-based: many inputs, cheap steps, gradients available",
-      "false": [
-        "Bayesian optimization: few inputs, expensive experiments",
-        "A grid search over every parameter, one at a time",
-        "Derivative-free search, since a noisy loss makes gradients useless"
-      ]
-    },
-    {
-      "id": "l17-q12",
-      "kind": "mcq",
-      "lecture": "l17",
-      "context": "The tiny GPT ends with a training loss of 1.22 and a held-out loss of 1.51. What does the\ngap tell you?",
-      "why": "With 0.6 million characters, the training loss keeps falling while the held-out loss levels\noff: Lecture 9's overfitting. More steps widen the gap; the held-out curve is the one to\ntrust.",
-      "objectives": [
-        "l17-o3"
-      ],
-      "tags": [
-        "held-out",
-        "overfitting",
-        "lecture-9"
-      ],
-      "true": "It has started to memorize its training text: overfitting",
-      "false": [
-        "It is undertrained, and more steps will close the gap",
-        "The held-out notes use characters the model never saw in training",
-        "The learning rate is too low to reach the held-out text"
-      ]
-    },
-    {
-      "id": "l17-q13",
-      "kind": "mcq",
-      "lecture": "l17",
-      "context": "The held-out loss is 1.51, and e^(-1.51) is about 0.22. What does 22% mean?",
-      "why": "The loss is the average of -ln p, so e^(-loss) is the typical p: the geometric mean of the\nprobabilities given to the true characters. It is not the share of right guesses. A blind\nguess gives 1/129, 0.8%.",
-      "objectives": [
-        "l17-o3"
-      ],
-      "tags": [
-        "cross-entropy",
-        "loss"
-      ],
-      "true": "The true next character typically gets about 22% probability",
-      "false": [
-        "22% of the model's next-character guesses are right",
-        "The model has learned 22% of its 129-character vocabulary",
-        "Training is 22% of the way from a blind guess to a loss of zero"
+        "There is no attention, only the MLP",
+        "Each token sees only the token right before it",
+        "The tokens are read from right to left"
       ]
     },
     {
       "id": "l17-q14",
       "kind": "mcq",
       "lecture": "l17",
-      "context": "Trained on our notes alone, the tiny GPT finishes 15 of 16 course terms but writes no\nmeaningful sentence. What would help most?",
-      "why": "It already copies our style. Meaning takes far more data and parameters; training longer on\n0.6 million characters only memorizes them, as the held-out loss shows.",
+      "context": "Trained on our notes alone, the tiny GPT spells our terms but writes no meaningful sentence.\nWhat would help most?",
+      "why": "It already copies our style. Meaning takes far more data and parameters; training longer\non the same small text only memorizes it.",
       "objectives": [
         "l17-o4"
       ],
       "tags": [
-        "scaling",
+        "scale",
         "tiny-gpt"
       ],
       "true": "Far more text, and a bigger model",
@@ -4897,83 +4873,61 @@
       ]
     },
     {
-      "id": "l17-q15",
-      "kind": "mcq",
-      "lecture": "l17",
-      "context": "DeepSeek-V3 has 671 billion parameters, 37 billion of them active. What does \"active\" mean?",
-      "why": "DeepSeek-V3 is a mixture of experts: for each token, only some of its expert sub-networks\nrun. All 671 billion parameters are trained; 37 billion do the work on any one token, which\nkeeps each step cheaper.",
-      "objectives": [
-        "l17-o4"
-      ],
-      "tags": [
-        "mixture-of-experts",
-        "scaling"
-      ],
-      "true": "Only part of the parameters is used for each token",
-      "false": [
-        "Only 37 billion were trained; the rest are left random",
-        "The rest are kept for languages other than English",
-        "The rest switch on only at a high temperature"
-      ]
-    },
-    {
       "id": "l17-q16",
       "kind": "mcq",
       "lecture": "l17",
-      "context": "Asked a question, a pretrained model continues the text instead of answering. What turns it\ninto a chat model?",
-      "why": "Supervised fine-tuning (SFT) trains on examples of good answers; RLHF or DPO then trains on\nwhich of two answers people prefer. More pretraining only makes it better at continuing\ntext.",
+      "context": "A pretrained model continues your question instead of answering it. What turns it into a\nchat model?",
+      "why": "Supervised fine-tuning trains on examples of good answers; RLHF or DPO then trains on which\nof two answers people prefer. More pretraining only makes it better at continuing text.",
       "objectives": [
         "l17-o4"
       ],
       "tags": [
-        "post-training",
-        "sft",
-        "rlhf"
+        "post-training"
       ],
-      "true": "More training on good answers, then on people's preferences",
+      "true": "More training on good answers and on people's preferences",
       "false": [
-        "More pretraining on web text, until it learns to answer on its own",
-        "A larger context window, so it sees the whole question",
-        "A lower temperature, so it picks the most likely answer"
+        "More pretraining on web text",
+        "A larger context window",
+        "A lower temperature"
+      ]
+    },
+    {
+      "id": "l17-q25",
+      "kind": "mcq",
+      "lecture": "l17",
+      "context": "You ask an LLM about last week's measurements from your plant. What is the problem?",
+      "why": "Training stops at a cutoff date and never sees your company's documents. Put the data it\nneeds in the prompt, and do not ask it for current values.",
+      "objectives": [
+        "l17-o4"
+      ],
+      "tags": [
+        "training-data",
+        "practitioner"
+      ],
+      "true": "It knows only its training data: nothing recent or private",
+      "false": [
+        "Measurements are too numeric for any LLM to read",
+        "It refuses every question about a specific plant",
+        "A week of data is always too long for its context window"
       ]
     },
     {
       "id": "l17-q17",
       "kind": "direction",
       "lecture": "l17",
-      "context": "You lower the temperature from 1 to 0.3. What happens to the next-token probabilities?",
-      "why": "The logits are divided by the temperature before the softmax. Dividing by 0.3 stretches the\ngaps, so the most likely token takes more of the probability.",
+      "context": "You lower the temperature. What happens to the text the model writes?",
+      "why": "Low temperature sharpens the probabilities toward the most likely token. High temperature\nflattens them, so the text gets more varied and makes more mistakes.",
       "objectives": [
         "l17-o5"
       ],
       "tags": [
         "temperature"
       ],
-      "true": "The top token takes more of them: safer, more repetitive text",
+      "true": "Safer and more repetitive: it sticks to the likeliest tokens",
       "false": [
-        "They flatten, so unlikely tokens get a real chance",
-        "They stay the same; only the speed of generation changes a little",
-        "Only the most common words in the vocabulary remain"
-      ]
-    },
-    {
-      "id": "l17-q18",
-      "kind": "mcq",
-      "lecture": "l17",
-      "context": "The softmax with a temperature is Boltzmann's distribution. In that parallel, what does a\ntoken's logit play?",
-      "why": "exp(z/τ) matches exp(-E/k_BT): a high logit is a low energy, and τ plays k_BT. Cold, the\nlowest-energy state (the top token) wins; hot, every state gets visited.",
-      "objectives": [
-        "l17-o5"
-      ],
-      "tags": [
-        "temperature",
-        "boltzmann"
-      ],
-      "true": "Minus the energy of a state",
-      "false": [
-        "The temperature k_BT of the system",
-        "The number of states the system can visit",
-        "The entropy of the system"
+        "More varied: unlikely tokens get a real chance",
+        "Nothing changes; only the speed goes up",
+        "It switches to a smaller vocabulary"
       ]
     },
     {
@@ -4981,7 +4935,7 @@
       "kind": "mcq",
       "lecture": "l17",
       "context": "Why can an LLM state a wrong number as fluently as a right one?",
-      "why": "Pretraining makes likely text likely, true or not. After \"…100 degrees\", Qwen gave\n\"Fahrenheit\" 58.6% for water's boiling point and took it. Check every number and unit.",
+      "why": "Pretraining makes likely text likely, true or not. That is why every number and unit from\nan LLM has to be checked against a measurement, a handbook or a calculation.",
       "objectives": [
         "l17-o5"
       ],
@@ -4989,11 +4943,11 @@
         "hallucination",
         "practitioner"
       ],
-      "true": "Its loss rewards the likely next token; nothing checks facts",
+      "true": "Training rewards likely text; nothing checks facts",
       "false": [
-        "Numbers split into tokens, and it cannot read the tokens back",
-        "A low temperature forces it to guess when unsure",
-        "It was trained on simulations, not on measurements"
+        "Numbers are hidden from the model during training",
+        "A low temperature forces it to guess",
+        "It was trained on simulated data only"
       ]
     },
     {
@@ -5007,14 +4961,13 @@
       ],
       "tags": [
         "reproducibility",
-        "lecture-1",
-        "practitioner"
+        "lecture-1"
       ],
       "true": "The output you used, with the model's name and the date",
       "false": [
-        "Only the prompt, since the same output can always be regenerated",
+        "Only the prompt; the output can always be regenerated",
         "The temperature setting, which fixes the output",
-        "Nothing: rerun the prompt whenever you need the answer"
+        "Nothing: rerun the prompt when you need it"
       ]
     }
   ]
