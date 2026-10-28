@@ -252,23 +252,65 @@
     },
     {
       "from": "l17",
-      "to": "l09",
+      "to": "l01",
       "weight": 1,
-      "where": "[Lecture 9](../l09/notes.md) and [Lecture 13](../l13/notes.md); this is the report itself. It is 146",
+      "where": "[Lecture 1](../l01/notes.md).",
+      "origin": "link"
+    },
+    {
+      "from": "l17",
+      "to": "l08",
+      "weight": 1,
+      "where": "- The word is the one from [Lecture 8](../l08/notes.md): \"**Autoregressive** models predict the",
+      "origin": "link"
+    },
+    {
+      "from": "l17",
+      "to": "l09",
+      "weight": 2,
+      "where": "fit in [Lecture 9](../l09/notes.md) has 2; our tiny GPT has 842,881; GPT-3 has 175 billion.",
+      "origin": "link"
+    },
+    {
+      "from": "l17",
+      "to": "l10",
+      "weight": 1,
+      "where": "[Lecture 10](../l10/notes.md).",
       "origin": "link"
     },
     {
       "from": "l17",
       "to": "l11",
       "weight": 1,
-      "where": "Nothing in that stack is new to this course. [Lecture 11](../l11/notes.md) covered tensors,",
+      "where": "[Lecture 11](../l11/notes.md), gives the gradient for every dial in one backward pass.",
+      "origin": "link"
+    },
+    {
+      "from": "l17",
+      "to": "l12",
+      "weight": 2,
+      "where": "- This is the transformer of [Lecture 12](../l12/notes.md), where the tokens were cycles of a",
       "origin": "link"
     },
     {
       "from": "l17",
       "to": "l13",
       "weight": 1,
-      "where": "[Lecture 9](../l09/notes.md) and [Lecture 13](../l13/notes.md); this is the report itself. It is 146",
+      "where": "$\\min_\\theta L_\\text{data}$ of [Lecture 13](../l13/notes.md).",
+      "origin": "link"
+    },
+    {
+      "from": "l17",
+      "to": "l15",
+      "weight": 1,
+      "where": "[Lecture 15](../l15/notes.md)'s map of where each optimizer fits, with our tiny GPT added. The",
+      "origin": "link"
+    },
+    {
+      "from": "l17",
+      "to": "l16",
+      "weight": 2,
+      "where": "- [Lecture 16](../l16/notes.md) built generative models: learn a distribution, then sample from",
       "origin": "link"
     },
     {
@@ -358,22 +400,22 @@
     }
   ],
   "in_degree": {
-    "l01": 1,
+    "l01": 2,
     "l02": 1,
     "l03": 3,
     "l04": 2,
     "l05": 4,
     "l06": 0,
     "l07": 6,
-    "l08": 3,
+    "l08": 4,
     "l09": 8,
-    "l10": 1,
+    "l10": 2,
     "l11": 5,
-    "l12": 2,
+    "l12": 3,
     "l13": 4,
     "l14": 2,
-    "l15": 1,
-    "l16": 1,
+    "l15": 2,
+    "l16": 2,
     "l17": 1,
     "l18": 0,
     "l19": 1,
@@ -381,22 +423,22 @@
     "l21": 0
   },
   "in_weight": {
-    "l01": 1,
+    "l01": 2,
     "l02": 1,
     "l03": 5,
     "l04": 3,
     "l05": 6,
     "l06": 0,
     "l07": 9,
-    "l08": 5,
-    "l09": 15,
-    "l10": 3,
+    "l08": 6,
+    "l09": 16,
+    "l10": 4,
     "l11": 8,
-    "l12": 2,
+    "l12": 4,
     "l13": 4,
     "l14": 4,
-    "l15": 5,
-    "l16": 1,
+    "l15": 6,
+    "l16": 3,
     "l17": 1,
     "l18": 0,
     "l19": 1,
@@ -420,7 +462,7 @@
     "l14": 1,
     "l15": 2,
     "l16": 6,
-    "l17": 3,
+    "l17": 9,
     "l18": 0,
     "l19": 0,
     "l20": 7,

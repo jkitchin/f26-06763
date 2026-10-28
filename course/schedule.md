@@ -22,7 +22,7 @@
 | Lecture 14: 10-19-2026 (Monday)                    | Uncertainty quantification (UQ) for machine learning                                                         |
 | Lecture 15: 10-21-2026 (Wednesday)                 | Bayesian optimization                                                                                        |
 | Lecture 16: 10-26-2026 (Monday)                    | Generative AI                                                                                                |
-| Lecture 17: 10-28-2026 (Wednesday)                 | Large language models (LLMs): what they are and how to use one                                               |
+| Lecture 17: 10-28-2026 (Wednesday)                 | Large language models (LLMs): what they are and how they are trained                                            |
 | Lecture 18: 11-02-2026 (Monday)                    | Retrieval-augmented generation (RAG): answering from your documents                                          |
 | Lecture 19: 11-04-2026 (Wednesday)                 | LLM agents: tools, loops and guardrails                                                                      |
 | Lecture 20: 11-09-2026 (Monday, AIChE)             | (Optional) reinforcement learning                                                                                                             |

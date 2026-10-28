@@ -210,6 +210,358 @@
         }
       },
       "serve": 6
+    },
+    "3": {
+      "items": {
+        "l17-q01": {
+          "answer": "The chain rule writes the probability of a text exactly as a product of next-token probabilities",
+          "options": [
+            "The chain rule writes the probability of a text exactly as a product of next-token probabilities",
+            "Texts are short enough that predicting one token at a time loses only a small amount of accuracy",
+            "The model assumes each token depends only on the token right before it, which makes the product exact",
+            "Next-token prediction is an approximation that becomes exact once the model has enough parameters"
+          ]
+        },
+        "l17-q02": {
+          "answer": "Predict the next-token probabilities, sample one token, append it, repeat",
+          "options": [
+            "Predict the next-token probabilities, sample one token, append it, repeat",
+            "Predict every token of the answer at once, then sort them by probability",
+            "Sample a whole sentence, score it, keep it if its probability is high enough",
+            "Append the most frequent token in the training data, then predict the next word"
+          ]
+        },
+        "l17-q03": {
+          "answer": "Each token it writes becomes part of the input for the next prediction",
+          "options": [
+            "Each token it writes becomes part of the input for the next prediction",
+            "It regresses the next token on a fixed window of the five tokens before it",
+            "It corrects its own errors by re-reading the whole answer at the end",
+            "It is trained by regression on numbers rather than by classification"
+          ]
+        },
+        "l17-q04": {
+          "answer": "Merges the most frequent adjacent pair of tokens into one new token",
+          "options": [
+            "Merges the most frequent adjacent pair of tokens into one new token",
+            "Splits the longest token in the vocabulary into two shorter pieces",
+            "Adds every word that appears more than once in the training text",
+            "Removes the rarest characters and replaces them with a single unknown token"
+          ]
+        },
+        "l17-q05": {
+          "answer": "Q = 1.5e-3 m³/s",
+          "options": [
+            "Q = 1.5e-3 m³/s",
+            "heat exchanger",
+            "the operator reduced the flow",
+            "temperature and pressure"
+          ]
+        },
+        "l17-q06": {
+          "answer": "The model does not see it at all",
+          "options": [
+            "The model does not see it at all",
+            "The model reads it, but with lower attention weights",
+            "The model summarizes it automatically before answering",
+            "The model stores it and reads it on the next question"
+          ]
+        },
+        "l17-q07": {
+          "answer": "Frequent words get one token, and rare words still split into known pieces",
+          "options": [
+            "Frequent words get one token, and rare words still split into known pieces",
+            "Subwords are the only units a transformer can attend to without a causal mask",
+            "Characters cannot be embedded as vectors, and words take too much memory to store",
+            "Subwords make every word exactly two tokens long, which fixes the cost of a text"
+          ]
+        },
+        "l17-q08": {
+          "answer": "Stops each position from attending to later positions",
+          "options": [
+            "Stops each position from attending to later positions",
+            "Removes the tokens that are least likely to be useful",
+            "Hides a random 15% of the tokens so the model must guess them",
+            "Limits each position to the five tokens just before it"
+          ]
+        },
+        "l17-q09": {
+          "answer": "The text itself, shifted by one: the label at each position is the next token",
+          "options": [
+            "The text itself, shifted by one: the label at each position is the next token",
+            "A smaller model that labels the text before the large one is trained on it",
+            "Human annotators, who label a sample that the model then generalizes from",
+            "The tokenizer, which marks each token as correct or incorrect for its context"
+          ]
+        },
+        "l17-q10": {
+          "answer": "128, one at every position, each from only the past",
+          "options": [
+            "128, one at every position, each from only the past",
+            "1, the character after the end of the window",
+            "64, one for every pair of neighboring characters",
+            "16,384, one for every pair of positions in the window"
+          ]
+        },
+        "l17-q11": {
+          "answer": "ln 129, about 4.86",
+          "options": [
+            "ln 129, about 4.86",
+            "0, because it never makes a confident mistake",
+            "1, because the probabilities sum to one",
+            "129, one unit of loss per character"
+          ]
+        },
+        "l17-q12": {
+          "answer": "The loss on held-out text: 1.51, higher, because the model starts to memorize",
+          "options": [
+            "The loss on held-out text: 1.51, higher, because the model starts to memorize",
+            "A bigger model, since 0.8 million parameters cannot reach a loss below 2",
+            "Nothing: the training loss is the standard way to report a language model",
+            "The loss at temperature 1.5, which is the one that measures creativity"
+          ]
+        },
+        "l17-q13": {
+          "answer": "About 20 billion",
+          "options": [
+            "About 20 billion",
+            "About 1 billion",
+            "About 1 trillion",
+            "About 300 billion"
+          ]
+        },
+        "l17-q14": {
+          "answer": "Undertrained: about 1.7 tokens per parameter, far below 20",
+          "options": [
+            "Undertrained: about 1.7 tokens per parameter, far below 20",
+            "Compute-optimal: exactly the ratio Chinchilla recommends for its size",
+            "Overtrained: it saw more tokens than its parameters could use",
+            "Impossible to judge, because the rule applies only to models under 70 billion"
+          ]
+        },
+        "l17-q15": {
+          "answer": "A smaller model, trained longer, is cheaper to run afterward",
+          "options": [
+            "A smaller model, trained longer, is cheaper to run afterward",
+            "The Chinchilla rule was shown to be wrong for multilingual text",
+            "More tokens per parameter makes the context window longer",
+            "Training past the rule removes the need for instruction tuning"
+          ]
+        },
+        "l17-q16": {
+          "answer": "Training after pretraining, on instructions with good answers and on people's preferences",
+          "options": [
+            "Training after pretraining, on instructions with good answers and on people's preferences",
+            "A larger context window, so it could read the whole question and more documents at once",
+            "A newer tokenizer, which turned each question into fewer and more informative tokens",
+            "More pretraining text, which made up for having over 100 times fewer parameters"
+          ]
+        },
+        "l17-q17": {
+          "answer": "It sharpens toward the most likely token, so the text gets safer and more repetitive",
+          "options": [
+            "It sharpens toward the most likely token, so the text gets safer and more repetitive",
+            "It flattens, so unlikely tokens get a real chance and the text gets more varied",
+            "Nothing changes in the distribution; only the speed of generation goes up",
+            "The model switches to a smaller vocabulary of the most common tokens"
+          ]
+        },
+        "l17-q18": {
+          "answer": "Pretraining rewards the likely next token, and nothing in the loss checks a fact",
+          "options": [
+            "Pretraining rewards the likely next token, and nothing in the loss checks a fact",
+            "The tokenizer splits numbers into pieces, so the model cannot read them back",
+            "The temperature was too low, which forces the model to make up a value",
+            "GPT-2 was trained on simulated data, so its numbers come from simulations"
+          ]
+        }
+      },
+      "serve": 9
+    },
+    "4": {
+      "items": {
+        "l17-q01": {
+          "answer": "One token at a time, each given the tokens before it",
+          "options": [
+            "One token at a time, each given the tokens before it",
+            "Every token at once, like one sample from a Gaussian mixture",
+            "Word by word, with each word drawn independently",
+            "As one whole sentence, picked from a list of candidates"
+          ]
+        },
+        "l17-q02": {
+          "answer": "The chain rule makes p(text) a product of next-token probabilities",
+          "options": [
+            "The chain rule makes p(text) a product of next-token probabilities",
+            "Each token depends only on the token right before it",
+            "It approximates p(text), and the error shrinks as models get bigger",
+            "Texts are short, so little is lost by going one token at a time"
+          ]
+        },
+        "l17-q03": {
+          "answer": "Each output is fed back in, so an early error carries forward",
+          "options": [
+            "Each output is fed back in, so an early error carries forward",
+            "Both can only use a fixed window of the last 10 values",
+            "Both are linear models, so they cannot capture curved trends in data",
+            "Both must be trained on labels written by people"
+          ]
+        },
+        "l17-q04": {
+          "answer": "Merge the most frequent pair of neighboring tokens",
+          "options": [
+            "Merge the most frequent pair of neighboring tokens",
+            "Split the longest token in the vocabulary into two shorter ones",
+            "Add every whole word that appears at least twice in the text",
+            "Drop the rarest characters from the vocabulary"
+          ]
+        },
+        "l17-q05": {
+          "answer": "A new word, like the pump tag P-101A, can still be built from pieces",
+          "options": [
+            "A new word, like the pump tag P-101A, can still be built from pieces",
+            "Attention can compare only pieces of words, never whole words at once",
+            "Whole words would make every text many more tokens long",
+            "Subwords make every word exactly two tokens, so costs are fixed"
+          ]
+        },
+        "l17-q06": {
+          "answer": "Do them in code: the model sees text pieces, not a quantity",
+          "options": [
+            "Do them in code: the model sees text pieces, not a quantity",
+            "Write numbers in scientific notation so each stays one token",
+            "Raise the temperature so the model explores more digits",
+            "Nothing: the model rebuilds the number before computing"
+          ]
+        },
+        "l17-q07": {
+          "answer": "The model never sees it",
+          "options": [
+            "The model never sees it",
+            "It is read, but with lower attention weights",
+            "It is summarized automatically before answering",
+            "It is stored and read on your next question"
+          ]
+        },
+        "l17-q08": {
+          "answer": "A causal mask: each token sees only itself and earlier tokens",
+          "options": [
+            "A causal mask: each token sees only itself and earlier tokens",
+            "No attention at all: each token goes through the MLP on its own",
+            "Each token attends only to the single token right before it",
+            "The tokens are read from right to left, so the answer comes first"
+          ]
+        },
+        "l17-q09": {
+          "answer": "The text itself, shifted by one token",
+          "options": [
+            "The text itself, shifted by one token",
+            "People who label a small sample of it",
+            "A smaller model that labels it first",
+            "The tokenizer, which marks tokens right or wrong"
+          ]
+        },
+        "l17-q10": {
+          "answer": "The next token, among all tokens in the vocabulary",
+          "options": [
+            "The next token, among all tokens in the vocabulary",
+            "Whether the sentence so far is true or false",
+            "The topic of the document the text came from",
+            "Whether the token is a whole word or a piece of one"
+          ]
+        },
+        "l17-q11": {
+          "answer": "Gradient-based: many inputs, cheap steps, gradients available",
+          "options": [
+            "Gradient-based: many inputs, cheap steps, gradients available",
+            "Bayesian optimization: few inputs, expensive experiments",
+            "A grid search over every parameter, one at a time",
+            "Derivative-free search, since a noisy loss makes gradients useless"
+          ]
+        },
+        "l17-q12": {
+          "answer": "It has started to memorize its training text: overfitting",
+          "options": [
+            "It has started to memorize its training text: overfitting",
+            "It is undertrained, and more steps will close the gap",
+            "The held-out notes use characters the model never saw in training",
+            "The learning rate is too low to reach the held-out text"
+          ]
+        },
+        "l17-q13": {
+          "answer": "The true next character typically gets about 22% probability",
+          "options": [
+            "The true next character typically gets about 22% probability",
+            "22% of the model's next-character guesses are right",
+            "The model has learned 22% of its 129-character vocabulary",
+            "Training is 22% of the way from a blind guess to a loss of zero"
+          ]
+        },
+        "l17-q14": {
+          "answer": "Far more text, and a bigger model",
+          "options": [
+            "Far more text, and a bigger model",
+            "Training longer on the same notes",
+            "A higher sampling temperature",
+            "A longer context window"
+          ]
+        },
+        "l17-q15": {
+          "answer": "Only part of the parameters is used for each token",
+          "options": [
+            "Only part of the parameters is used for each token",
+            "Only 37 billion were trained; the rest are left random",
+            "The rest are kept for languages other than English",
+            "The rest switch on only at a high temperature"
+          ]
+        },
+        "l17-q16": {
+          "answer": "More training on good answers, then on people's preferences",
+          "options": [
+            "More training on good answers, then on people's preferences",
+            "More pretraining on web text, until it learns to answer on its own",
+            "A larger context window, so it sees the whole question",
+            "A lower temperature, so it picks the most likely answer"
+          ]
+        },
+        "l17-q17": {
+          "answer": "The top token takes more of them: safer, more repetitive text",
+          "options": [
+            "The top token takes more of them: safer, more repetitive text",
+            "They flatten, so unlikely tokens get a real chance",
+            "They stay the same; only the speed of generation changes a little",
+            "Only the most common words in the vocabulary remain"
+          ]
+        },
+        "l17-q18": {
+          "answer": "Minus the energy of a state",
+          "options": [
+            "Minus the energy of a state",
+            "The temperature k_BT of the system",
+            "The number of states the system can visit",
+            "The entropy of the system"
+          ]
+        },
+        "l17-q19": {
+          "answer": "Its loss rewards the likely next token; nothing checks facts",
+          "options": [
+            "Its loss rewards the likely next token; nothing checks facts",
+            "Numbers split into tokens, and it cannot read the tokens back",
+            "A low temperature forces it to guess when unsure",
+            "It was trained on simulations, not on measurements"
+          ]
+        },
+        "l17-q20": {
+          "answer": "The output you used, with the model's name and the date",
+          "options": [
+            "The output you used, with the model's name and the date",
+            "Only the prompt, since the same output can always be regenerated",
+            "The temperature setting, which fixes the output",
+            "Nothing: rerun the prompt whenever you need the answer"
+          ]
+        }
+      },
+      "serve": 10
     }
   }
 }

@@ -1,7 +1,10 @@
 # L17 item bank, hand-written from lectures/l17/notes.md.
 #
-# These twelve are the exemplars the later LLM-drafted banks are grounded on, so
-# they are deliberately over-commented. The contract every item obeys:
+# Rewritten on 2026-10-28 with the final notes: short, high-level items, several of them tying
+# L17 to earlier lectures (L1, L8, L9, L10, L12, L15, L16). Earlier versions stay in
+# pools/l17.json: versions 1 and 2 for the old systems-level L17, version 3 for the first draft
+# of this one.
+# The contract every item obeys:
 #
 #   source.quote  appears verbatim in source.file
 #   verify.needle appears inside source.quote
@@ -11,366 +14,249 @@
 
 schema: 1
 lecture: l17
-title: "Foundation models and LLMs at a systems level"
+title: "Large language models, what they are and how they are trained"
 source_notes: lectures/l17/notes.md
+# Held until release: tools/release_lecture.py flips this to published.
 status: unwritten
-
-# Serve fewer than the pool holds, or every student gets every item and the
-# item-set half of the anti-forgery design does nothing. Measured on this pool:
-# at serve 12 of 12 two students share 12/12 items, at serve 8 they share 5/8.
-# validate.py enforces the floor.
-#
-# GROWTH TARGET: 20+ items, at which point serve can go back to 12 with real
-# set-level personalization. The twelve below are the hand-written exemplars;
-# Phase 2 drafts the rest against them.
-serve: 6
-pool_version: 2
+serve: 10
+pool_version: 4
 provenance:
   drafted_by: hand
-  reviewed_by: jkitchin
-  reviewed_at: 2026-08-07
+  reviewed_by: none
+  reviewed_at: 2026-10-28
 
 items:
 
-  # --- tokenization -------------------------------------------------------
+  # --- o1: a generative model of text -------------------------------------------------------
 
   - id: l17-q01
-    kind: predict_measure
-    rung: 1
-    difficulty: 2
-    objectives: [l17-o2]
+    kind: mcq
+    rung: 2
+    difficulty: 1
+    objectives: [l17-o1]
     prompt: |
-      A two-page pump datasheet, 2,365 characters. You count it locally with
-      `tiktoken` (`cl100k_base`) and get **776 tokens**. You are about to send it
-      to Claude Opus 5.
-
-      Before you look: what will Opus 5 count it as?
-    predict:
-      ask: "Write a number, and say whether you expect it above or below 776."
-      common_prior: "About the same, within 10%. Tokenizers are roughly interchangeable."
+      Lecture 16's generative models drew a whole point (x, y) at once. How does an LLM draw a
+      text?
     options:
-      - "About 780, within 1% of the local count"
-      - "924, the same as Claude Haiku 4.5"
-      - "1,263, about 63% more than the local count"
-      - "About 590, because a newer tokenizer compresses better"
-    answer: "1,263, about 63% more than the local count"
+      - "One token at a time, each given the tokens before it"
+      - "Every token at once, like one sample from a Gaussian mixture"
+      - "Word by word, with each word drawn independently"
+      - "As one whole sentence, picked from a list of candidates"
+    answer: "One token at a time, each given the tokens before it"
     evidence: |
-      1,263, which is 63% above the `tiktoken` estimate and 37% above Claude
-      Haiku 4.5's 924 on the same bytes. The gap that catches people is not the
-      one between vendors: two models from the *same* provider disagree by 37%,
-      because Anthropic changed tokenizer within its own model line. "Use the
-      provider's tokenizer" is not a sufficient rule. Use the model's, for the
-      exact model id you are going to call, and re-measure when you change model.
+      A 10-token text already has about 10^47 possible values, far too many to draw at once.
+      One token at a time, each step is one choice among 50,257, and the chain rule makes the
+      result exact.
     source:
       file: lectures/l17/notes.md
-      heading: "Count, do not estimate"
-      quote: "| Claude Opus 5 | 1,263 | **+63%** |"
-    verify:
-      mode: quote
-      needle: "1,263"
-      volatility: dated
-      expires: 2027-06-30
-    tags: [tokenization, cost]
+      heading: "One variable at a time"
+      quote: |
+        One token at a time, each step is one choice among 50,257.
+    verify: {mode: quote, needle: "one choice among 50,257", volatility: stable}
+    tags: [generative-model, lecture-16]
 
   - id: l17-q02
     kind: mcq
-    rung: 1
-    difficulty: 2
-    objectives: [l17-o2]
-    prompt: |
-      Characters per token, averaged over whole documents, for five kinds of text
-      this course actually handles. Which is the most token-dense, meaning the
-      fewest characters bought per token?
-    options:
-      - "Technical prose, at 4.82 characters per token, since English words are what the vocabulary was fitted on"
-      - "A pump datasheet, at 3.05 characters per token"
-      - "Python source, at 2.56 characters per token, because identifiers and punctuation fragment badly"
-      - "An alarm table flattened out of a PDF, at 2.35 characters per token"
-    answer: "An alarm table flattened out of a PDF, at 2.35 characters per token"
-    evidence: |
-      Tabular data is the worst case, at roughly half the characters per token of
-      ordinary prose. A page of a datasheet costs about 1.6 times as many tokens
-      as a page of prose with the same number of characters, and a page of
-      tabular data about twice. Any budget built from the general "four
-      characters per token" rule of thumb will be wrong in the expensive
-      direction for exactly the documents this course cares about.
-    source:
-      file: lectures/l17/notes.md
-      heading: "What that adds up to per page"
-      quote: "| an alarm table flattened out of a PDF | 2.35 |"
-    verify:
-      mode: quote
-      needle: "2.35"
-      volatility: measured
-    tags: [tokenization, cost]
-
-  - id: l17-q03
-    kind: claim_vs_source
     rung: 2
     difficulty: 2
-    objectives: [l17-o2]
-    prompt: |
-      A teammate cites Anthropic's documentation, which says `tiktoken`
-      "undercounts Claude tokens by ~15-20% on typical text," and budgets a
-      146-page scanned report accordingly.
-
-      What did the measurement in these notes actually find, and what is the
-      general lesson?
-    options:
-      - "15-20% was confirmed, so the documented figure is safe to budget with and the vendor number can be trusted directly"
-      - "The estimate came in 31% low, well outside the documented range"
-      - "The estimate came in 31% high, so the budget has slack rather than a shortfall"
-      - "The two counts agreed, because both tokenizers now share a vocabulary"
-    answer: "The estimate came in 31% low, well outside the documented range"
-    evidence: |
-      `tiktoken` said 87,556 tokens; Claude Opus 5 billed 126,452. That is 31%
-      low, against documentation promising 15-20%, because the documentation
-      describes typical text and this is OCR output full of figure axis labels,
-      running heads, and garbled fragments. You pay tokens for whatever your
-      extractor produces, noise included. A vendor's stated error bar is a claim
-      about their corpus, not about yours; measure on your own documents.
-    source:
-      file: lectures/l17/notes.md
-      heading: "Count, do not estimate"
-      quote: "Opus 5 bills 126,452. The estimate is **31% low**."
-    verify:
-      mode: quote
-      needle: "31% low"
-      volatility: dated
-      expires: 2027-06-30
-    tags: [tokenization, cost, verification]
-
-  # --- architecture and latency -------------------------------------------
-
-  - id: l17-q04
-    kind: direction
-    rung: 1
-    difficulty: 2
     objectives: [l17-o1]
     prompt: |
-      An LLM call in your pipeline is too slow. You can either trim the 100,000-token
-      document you paste in down to 800 tokens, or cut the answer you ask for from
-      2,048 tokens down to 16.
-
-      Which one moves the clock, and roughly by how much?
-    predict:
-      ask: "Commit to one before you reveal. Most rooms pick the other one."
-      common_prior: "Trim the input. A huge prompt must be what is slow."
+      Why is a model that only predicts the next token a complete model of text?
     options:
-      - "Trimming the input; long prompts dominate latency, because the model must attend over every pair of positions before it can answer"
-      - "Trimming the output; the 128-fold output cut saves about 22 seconds while the 130-fold input cut saves about 0.4 seconds"
-      - "Both about equally, since latency is roughly linear in total tokens"
-      - "Neither; latency is set by the provider's queue rather than by token counts"
-    answer: "Trimming the output; the 128-fold output cut saves about 22 seconds while the 130-fold input cut saves about 0.4 seconds"
+      - "The chain rule makes p(text) a product of next-token probabilities"
+      - "Each token depends only on the token right before it"
+      - "It approximates p(text), and the error shrinks as models get bigger"
+      - "Texts are short, so little is lost by going one token at a time"
+    answer: "The chain rule makes p(text) a product of next-token probabilities"
     evidence: |
-      Reading the input is parallel; writing the output is a strict serial loop,
-      one forward pass per token, and no hardware makes step 200 start before
-      step 199 finishes. Measured against Claude Haiku 4.5, a 130-fold increase
-      in input added about 0.4 s, inside the run-to-run scatter, while a 128-fold
-      increase in output added 22 s. Trimming the input saves money; trimming the
-      output saves time. Two budgets, two different fixes.
+      p(x_1, ..., x_T) = product over t of p(x_t | all earlier tokens). This is exact, with no
+      assumption about which earlier tokens matter. Learn the next-token probabilities and you
+      have the whole distribution.
     source:
       file: lectures/l17/notes.md
-      heading: "Input is cheap in time; output is not"
-      quote: "one output token costs about as much wall-clock time as a thousand input"
-    verify:
-      mode: ordering
-      needle: "one output token costs about as much wall-clock time as a thousand input"
-      volatility: measured
-    tags: [latency, architecture]
+      heading: "The chain rule"
+      quote: |
+        The chain rule of probability writes the probability of a text as a product of next-token
+          probabilities, with no approximation:
+    verify: {mode: quote, needle: "with no approximation", volatility: stable}
+    tags: [chain-rule]
 
-  - id: l17-q05
-    kind: mechanism_recall
-    rung: 5
-    difficulty: 3
-    objectives: [l17-o1]
-    prompt: |
-      Close the notes. In full sentences, explain *why* output tokens cost far
-      more wall-clock time than input tokens. Write the mechanism, not the
-      measurement. Stop when you stall, and note where.
-    checklist:
-      - text: "The model is autoregressive: one token is drawn, appended, and the whole thing runs again"
-        needle: "appended to the"
-      - text: "Generating N tokens is therefore N forward passes in strict sequence"
-        needle: "500 forward passes, in strict sequence"
-      - text: "No amount of hardware parallelizes it, because step 200 cannot start before step 199 finishes"
-        needle: "no\namount of hardware makes step 200 start before step 199 finishes"
-      - text: "Reading the input is parallel: all of it can be processed at once"
-        needle: "Reading\nthe input is a *parallel* operation"
-    answer: null
-    evidence: |
-      The whole answer is in one sentence of the architecture section: generating
-      500 tokens is 500 forward passes, in strict sequence. Everything else,
-      including the 22-second measurement, follows from it. If your explanation
-      reached for "the model has to think harder about longer answers," you have
-      found a real gap: the per-token cost is constant, and it is the *count* of
-      serial steps that moves.
-    source:
-      file: lectures/l17/notes.md
-      heading: "The shape of a decoder-only model"
-      quote: "generating 500 tokens is 500 forward passes, in strict sequence, and no"
-    verify:
-      mode: manual
-      needle: "500 forward passes, in strict sequence"
-      volatility: stable
-      exempt_reason: >-
-        Free-text recall. Each checklist entry is verified against the source
-        individually rather than the answer being matched as a whole.
-    tags: [architecture, latency, self-test]
-
-  - id: l17-q06
-    kind: spot_the_defect
-    rung: 3
-    difficulty: 3
-    objectives: [l17-o1]
-    prompt: |
-      An extraction prompt asks a model for the discharge pressure of pump
-      `Kessler-Voss KV-7710/B`, which does not exist. The prompt supplies a
-      datasheet that does not mention it, and asks for the number only.
-
-      The model returns `1`. What is wrong, and what single change fixes it?
-    options:
-      - "The temperature is too high; set it to 0 so the model stops guessing and returns only what the datasheet actually supports"
-      - "There is no token meaning \"not in the source\", so permit an explicit NOT FOUND answer"
-      - "The datasheet was truncated before the relevant page; raise the context window"
-      - "The model is lying, and the fix is a stronger instruction not to fabricate"
-    answer: "There is no token meaning \"not in the source\", so permit an explicit NOT FOUND answer"
-    evidence: |
-      Measured, the distribution does not become uniform and contains no signal
-      meaning "I have never heard of this." It puts 0.405 on `1`, 0.358 on `2`,
-      and entropy rises to 2.22 bits. The model is *less* certain but still
-      emitting a digit. Add the clause "or with the words NOT FOUND if the answer
-      is not in the text below" and the distribution collapses onto `NOT` at
-      probability 1.000, entropy 0.00 bits. Eleven words. Hallucination here is
-      not the model lying, it is the model doing exactly what it was trained to
-      do in a situation where the correct answer is not expressible in its
-      output space.
-    source:
-      file: lectures/l17/notes.md
-      heading: "Prediction, fluency, and hallucination"
-      quote: "Entropy rises to **2.22 bits**."
-    verify:
-      mode: quote
-      needle: "2.22 bits"
-      volatility: measured
-    tags: [hallucination, prompting]
-
-  # --- context, cost -------------------------------------------------------
-
-  - id: l17-q07
+  - id: l17-q03
     kind: mcq
     rung: 2
     difficulty: 2
-    objectives: [l17-o1, l17-o2]
+    objectives: [l17-o1]
     prompt: |
-      You send 190,000 tokens to a model with a 200,000-token context window and
-      set `max_tokens` to 64,000. What happens?
+      An LLM writing an answer works like Lecture 8's recursive AR forecast. Which weakness do
+      they share?
     options:
-      - "You get up to 64,000 tokens back, because `max_tokens` governs generation and the window governs input, and the two are budgeted separately"
-      - "The window is shared between input and output, so there is room for about 10,000 tokens of answer whatever `max_tokens` says"
-      - "The provider silently truncates the input to make room for the output"
-      - "The oldest part of the input is evicted automatically, sliding-window style"
-    answer: "The window is shared between input and output, so there is room for about 10,000 tokens of answer whatever `max_tokens` says"
+      - "Each output is fed back in, so an early error carries forward"
+      - "Both can only use a fixed window of the last 10 values"
+      - "Both are linear models, so they cannot capture curved trends in data"
+      - "Both must be trained on labels written by people"
+    answer: "Each output is fed back in, so an early error carries forward"
     evidence: |
-      The context window is tokens in *plus* tokens out. On the providers this
-      course uses, exceeding the window is a request-level error rather than a
-      silent truncation, which is the merciful behaviour, and you should confirm
-      that for any provider you add. The silent truncation that actually bites
-      you happens earlier and in your own code: a chunker with an off-by-one, a
-      PDF extractor that gives up on page 40, a `[:8000]` somebody added while
-      debugging and never removed.
+      Both use their own predictions as later inputs. In Lecture 8 the forecast was worse than
+      the mean after two hours; in an LLM, one wrong token early on steers the rest of the answer.
     source:
       file: lectures/l17/notes.md
-      heading: "The context window as a budget"
-      quote: "the budget is shared: **tokens in plus tokens out**"
-    verify:
-      mode: quote
-      needle: "tokens in plus tokens out"
-      volatility: stable
-    tags: [context, budget]
+      heading: "Autoregressive, as in Lecture 8"
+      quote: |
+        **The same weakness:** both feed their own outputs back in, so an early mistake becomes an input
+          for every later step.
+    verify: {mode: quote, needle: "an early mistake becomes an input", volatility: stable}
+    tags: [autoregressive, lecture-8]
 
-  # --- embeddings ----------------------------------------------------------
+  # --- o2: tokens and the context window ----------------------------------------------------
 
-  - id: l17-q08
-    kind: rank
+  - id: l17-q04
+    kind: mcq
     rung: 1
-    difficulty: 3
-    objectives: [l17-o3]
+    difficulty: 1
+    objectives: [l17-o2]
     prompt: |
-      Three pairs of maintenance-log entries, embedded with
-      `text-embedding-3-small`. Rank them by cosine similarity, highest first.
-
-      **A.** `brg vibration p101 high at startup` against
-      `Operator reports growling from the drive end bearing on P-101`
-      (the same event, no shared words)
-
-      **B.** `Mechanical seal leaking, approx 8 drops/min, pump P-101` against
-      `P-101 seal inspected, no leak found`
-      (a fault and its refutation)
-
-      **C.** `Bearing temperature 85 degC steady on the drive end` against
-      `Bearing temperature 85 degF steady on the drive end`
-      (differing by one unit)
-    predict:
-      ask: "Write your ordering down before revealing."
-      common_prior: "A > C > B. The same-event pair should score highest and the contradiction lowest."
+      Byte-pair encoding builds a vocabulary by repeating one step. Which?
     options:
-      - "C (0.971) > B (0.694) > A (0.532)"
-      - "A (0.971) > C (0.694) > B (0.532), the same-event pair scoring highest"
-      - "C (0.971) > A (0.694) > B (0.532)"
-      - "A (0.694) > B (0.532) > C (0.361), with the unit mismatch scoring lowest of the three"
-    answer: "C (0.971) > B (0.694) > A (0.532)"
+      - "Merge the most frequent pair of neighboring tokens"
+      - "Split the longest token in the vocabulary into two shorter ones"
+      - "Add every whole word that appears at least twice in the text"
+      - "Drop the rarest characters from the vocabulary"
+    answer: "Merge the most frequent pair of neighboring tokens"
     evidence: |
-      The pair that means the *opposite* scores higher than the pair that means
-      the *same*, and the pair differing only by a unit scores highest of all.
-      Across the eight opposite-meaning pairs in this set, all eight score above
-      the weakest true match. Cosine measures how much two texts are *about the
-      same thing*, and a leak report and a no-leak report are maximally about the
-      same thing; "no" is one token among a dozen and it does not move the vector
-      far. This is structural, not a defect of this particular model.
+      Start from characters, count every adjacent pair, merge the most frequent one into a new
+      token, repeat. In "aaabdaaabac" the first merge is a + a, which appears 4 times.
     source:
       file: lectures/l17/notes.md
-      heading: "Cosine similarity does not know about negation"
-      quote: "One is a fault and the other is its refutation. Their cosine similarity is **0.694**."
-    verify:
-      mode: ordering
-      needle: "0.694"
-      volatility: measured
-    tags: [embeddings, negation, units]
+      heading: "Byte-pair encoding"
+      quote: |
+        merge it into one new token, repeat
+    verify: {mode: quote, needle: "merge it into one new token", volatility: stable}
+    tags: [byte-pair-encoding]
 
-  - id: l17-q09
-    kind: locus_of_control
+  - id: l17-q05
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l17-o2]
+    prompt: |
+      Why do LLMs cut text into subwords rather than whole words?
+    options:
+      - "A new word, like the pump tag P-101A, can still be built from pieces"
+      - "Attention can compare only pieces of words, never whole words at once"
+      - "Whole words would make every text many more tokens long"
+      - "Subwords make every word exactly two tokens, so costs are fixed"
+    answer: "A new word, like the pump tag P-101A, can still be built from pieces"
+    evidence: |
+      A word vocabulary has no token for a word it never saw. With subwords, common words stay
+      whole and rare ones split ("overhe" + "ated"), so any text can be written. Whole words give
+      fewer tokens, not more.
+    source:
+      file: lectures/l17/notes.md
+      heading: "Three ways to cut a text"
+      quote: |
+        so any new word can still be built
+    verify: {mode: quote, needle: "any new word can still be built", volatility: stable}
+    tags: [tokens, subwords]
+
+  - id: l17-q06
+    kind: mcq
     rung: 3
     difficulty: 2
-    objectives: [l17-o3]
+    objectives: [l17-o2]
     prompt: |
-      Your deduplicator merged `Bearing temperature 85 degC` with
-      `Bearing temperature 85 degF`, which are an alarm condition and room
-      temperature respectively. Where does the fix belong?
+      The tokenizer cuts "4140" into "414" and "0". What should you do with unit conversions?
     options:
-      - "In the embedding model: switch to one trained on technical text, which will encode degC and degF as the distinct quantities they are"
-      - "In the threshold: raise the cosine cut until these two fall apart"
-      - "In the pipeline: unit normalization has to be an explicit, typed, tested step, with the original value retained"
-      - "In the LLM: add a downstream judge call that checks the units agree"
-    answer: "In the pipeline: unit normalization has to be an explicit, typed, tested step, with the original value retained"
+      - "Do them in code: the model sees text pieces, not a quantity"
+      - "Write numbers in scientific notation so each stays one token"
+      - "Raise the temperature so the model explores more digits"
+      - "Nothing: the model rebuilds the number before computing"
+    answer: "Do them in code: the model sees text pieces, not a quantity"
     evidence: |
-      Cosine here is 0.971, and on `10.5 MPa` against `10.5 bar` it is 0.761,
-      still well inside the range where a deduplicator merges. Raising the
-      threshold cannot work, because precision never rises above 0.62 at any cut
-      that retains meaningful recall: there is no value that separates the
-      classes, since the classes overlap in the underlying quantity. Unit
-      normalization cannot be delegated to semantic similarity, and it cannot be
-      delegated to the LLM's good judgment either, which is why A8 requires units
-      in the schema.
+      The model predicts digits as tokens; it does not calculate. Scientific notation splits into
+      even more pieces: "Q = 1.5e-3 m³/s" is 15 characters and 12 tokens.
     source:
       file: lectures/l17/notes.md
-      heading: "Units are invisible"
-      quote: "to be an explicit, typed, tested step in your pipeline"
-    verify:
-      mode: quote
-      needle: "explicit, typed, tested step"
-      volatility: stable
-    tags: [embeddings, units, pipeline]
+      heading: "Numbers and units cost more than words"
+      quote: |
+        **So numbers, units and part numbers are where LLMs slip.** Check them, and do the arithmetic
+          in code.
+    verify: {mode: quote, needle: "do the arithmetic", volatility: stable}
+    tags: [tokens, numbers, practitioner]
+
+  - id: l17-q07
+    kind: mcq
+    rung: 1
+    difficulty: 1
+    objectives: [l17-o2]
+    prompt: |
+      You paste a manual longer than the model's context window. What happens to the part past
+      the window?
+    options:
+      - "The model never sees it"
+      - "It is read, but with lower attention weights"
+      - "It is summarized automatically before answering"
+      - "It is stored and read on your next question"
+    answer: "The model never sees it"
+    evidence: |
+      The context window is the most tokens the model can take in at once. Text beyond it is not
+      part of the input, so long documents must be cut, summarized or searched first.
+    source:
+      file: lectures/l17/notes.md
+      heading: "The context window"
+      quote: |
+        Text beyond the window is not seen at all. Long documents must be cut, summarized or searched.
+    verify: {mode: quote, needle: "not seen at all", volatility: stable}
+    tags: [context-window]
+
+  # --- o3: pretraining on the transformer with a causal mask --------------------------------
+
+  - id: l17-q08
+    kind: mcq
+    rung: 1
+    difficulty: 1
+    objectives: [l17-o3]
+    prompt: |
+      An LLM uses Lecture 12's transformer with one change. Which?
+    options:
+      - "A causal mask: each token sees only itself and earlier tokens"
+      - "No attention at all: each token goes through the MLP on its own"
+      - "Each token attends only to the single token right before it"
+      - "The tokens are read from right to left, so the answer comes first"
+    answer: "A causal mask: each token sees only itself and earlier tokens"
+    evidence: |
+      The mask sets the scores of later tokens to minus infinity, so their weights are 0. The
+      prediction at position t uses only tokens 1 to t, and in training the answer stays hidden.
+    source:
+      file: lectures/l17/notes.md
+      heading: "Attention looks back"
+      quote: |
+        One change from Lecture 12: a token may attend only to itself and the tokens before it.
+    verify: {mode: quote, needle: "only to itself and the tokens before it", volatility: stable}
+    tags: [causal-mask, attention, lecture-12]
+
+  - id: l17-q09
+    kind: mcq
+    rung: 1
+    difficulty: 1
+    objectives: [l17-o3]
+    prompt: |
+      Pretraining uses trillions of tokens that nobody labeled. Where do the targets come from?
+    options:
+      - "The text itself, shifted by one token"
+      - "People who label a small sample of it"
+      - "A smaller model that labels it first"
+      - "The tokenizer, which marks tokens right or wrong"
+    answer: "The text itself, shifted by one token"
+    evidence: |
+      The target at every position is the token that actually came next. That is why any text
+      can be used, without anyone labeling it.
+    source:
+      file: lectures/l17/notes.md
+      heading: "Every position at once"
+      quote: |
+        **Self-supervised:** the labels are the text itself, shifted by one.
+    verify: {mode: quote, needle: "shifted by one", volatility: stable}
+    tags: [self-supervised, pretraining]
 
   - id: l17-q10
     kind: mcq
@@ -378,106 +264,283 @@ items:
     difficulty: 2
     objectives: [l17-o3]
     prompt: |
-      You need to deduplicate 34 free-text maintenance log entries. Doing it
-      pairwise with an LLM means 561 calls. What does the embedding route cost,
-      and what is the rule this illustrates?
+      The pretraining loss is the cross-entropy of Lecture 10. At each position, what is being
+      classified?
     options:
-      - "561 embedding calls, one per pair, but each is far cheaper than an LLM call so the total cost still falls by orders of magnitude"
-      - "One call and 455 tokens, after which every comparison is a dot product"
-      - "34 calls, one per entry, then 561 cosine comparisons"
-      - "One call, but the comparison still needs an LLM to interpret the scores"
-    answer: "One call and 455 tokens, after which every comparison is a dot product"
+      - "The next token, among all tokens in the vocabulary"
+      - "Whether the sentence so far is true or false"
+      - "The topic of the document the text came from"
+      - "Whether the token is a whole word or a piece of one"
+    answer: "The next token, among all tokens in the vocabulary"
     evidence: |
-      All 34 entries embed in a single call for a fraction of a cent, and every
-      pairwise comparison is then a 34 x 1,536 matrix times its own transpose,
-      microseconds. Scaled to a hundred thousand records the LLM approach is not
-      merely expensive, it is arithmetically impossible, while the embedding
-      approach is one matrix multiply or an approximate-nearest-neighbour index.
-      Most real pipelines use embeddings to narrow a corpus from millions to
-      tens, then spend LLM tokens only on the tens. That pipeline is RAG.
+      Each position is a classification with one class per token: 50,257 classes for GPT-2, 129
+      for our tiny GPT. The loss is minus the log of the probability given to the true class.
     source:
       file: lectures/l17/notes.md
-      heading: "When embeddings beat an LLM call"
-      quote: "Embedding all 34 entries was **one call, 455"
-    verify:
-      mode: quote
-      needle: "455"
-      volatility: measured
-    tags: [embeddings, cost]
+      heading: "The objective"
+      quote: |
+        **Cross-entropy:** each position is a classification over the vocabulary
+    verify: {mode: quote, needle: "classification over the vocabulary", volatility: stable}
+    tags: [cross-entropy, lecture-10]
 
   - id: l17-q11
+    kind: mcq
+    rung: 3
+    difficulty: 2
+    objectives: [l17-o3]
+    prompt: |
+      Our tiny GPT has 842,881 parameters, 58 ms per training step, and gradients from
+      backpropagation (Lecture 11). Where does it sit on Lecture 15's optimizer map?
+    options:
+      - "Gradient-based: many inputs, cheap steps, gradients available"
+      - "Bayesian optimization: few inputs, expensive experiments"
+      - "A grid search over every parameter, one at a time"
+      - "Derivative-free search, since a noisy loss makes gradients useless"
+    answer: "Gradient-based: many inputs, cheap steps, gradients available"
+    evidence: |
+      Lecture 15's reactor had 2 knobs and hours per experiment: Bayesian optimization. Hundreds
+      of thousands of parameters with cheap gradients is gradient territory; GPT-3 used Adam,
+      Llama 3 AdamW.
+    source:
+      file: lectures/l17/notes.md
+      heading: "Training is an optimization problem"
+      quote: |
+        The tiny GPT
+        (red star) has 842,881 knobs and 58 ms per training step, with gradients: gradient descent.
+    verify: {mode: quote, needle: "with gradients: gradient descent", volatility: stable}
+    tags: [optimization, lecture-15, lecture-11]
+
+  - id: l17-q12
+    kind: mcq
+    rung: 3
+    difficulty: 2
+    objectives: [l17-o3]
+    prompt: |
+      The tiny GPT ends with a training loss of 1.22 and a held-out loss of 1.51. What does the
+      gap tell you?
+    options:
+      - "It has started to memorize its training text: overfitting"
+      - "It is undertrained, and more steps will close the gap"
+      - "The held-out notes use characters the model never saw in training"
+      - "The learning rate is too low to reach the held-out text"
+    answer: "It has started to memorize its training text: overfitting"
+    evidence: |
+      With 0.6 million characters, the training loss keeps falling while the held-out loss levels
+      off: Lecture 9's overfitting. More steps widen the gap; the held-out curve is the one to
+      trust.
+    source:
+      file: lectures/l17/notes.md
+      heading: "Reading the loss"
+      quote: |
+        Its training loss (1.22) falls below its held-out loss (1.51): with 0.6 million characters,
+          it starts to memorize.
+    verify: {mode: quote, needle: "it starts to memorize", volatility: measured}
+    tags: [held-out, overfitting, lecture-9]
+
+  - id: l17-q13
     kind: mcq
     rung: 3
     difficulty: 3
     objectives: [l17-o3]
     prompt: |
-      Truncating `text-embedding-3-small` vectors and asking whether each entry's
-      nearest neighbour is unchanged, measured on 34 records:
-
-      | dimensions kept | nearest neighbour unchanged |
-      |---|---|
-      | 1,536 | 100% |
-      | 1,024 | 97.1% |
-      | 512 | 100% |
-      | 256 | 85.3% |
-
-      The 1,024 row does worse than the 512 row below it. What should you
-      conclude?
+      The held-out loss is 1.51, and e^(-1.51) is about 0.22. What does 22% mean?
     options:
-      - "512 dimensions is genuinely the sweet spot for this model, so truncate there and take both the storage saving and the accuracy"
-      - "Nothing about the model. On 34 records the curve cannot be monotonic; this is sampling noise, and tuning a storage decision on a sample this small is the mistake"
-      - "The Matryoshka training failed for this model, so truncation is unsafe here"
-      - "The 1,024 measurement is a bug and should be re-run until it exceeds the 512 row"
-    answer: "Nothing about the model. On 34 records the curve cannot be monotonic; this is sampling noise, and tuning a storage decision on a sample this small is the mistake"
+      - "The true next character typically gets about 22% probability"
+      - "22% of the model's next-character guesses are right"
+      - "The model has learned 22% of its 129-character vocabulary"
+      - "Training is 22% of the way from a blind guess to a loss of zero"
+    answer: "The true next character typically gets about 22% probability"
     evidence: |
-      The non-monotonic row is in the table rather than smoothed away precisely
-      because the temptation to tune a storage decision on a small sample is the
-      mistake this course keeps warning about, and here it is in one of our own
-      measurements. The defensible reading is the coarse one: a third of the
-      storage for no measurable loss is a good trade, and anything finer than
-      that is not supported by 34 records.
+      The loss is the average of -ln p, so e^(-loss) is the typical p: the geometric mean of the
+      probabilities given to the true characters. It is not the share of right guesses. A blind
+      guess gives 1/129, 0.8%.
     source:
       file: lectures/l17/notes.md
-      heading: "Dimensionality is a storage decision"
-      quote: "| 1,024 | 4,096 | 97.1% |"
-    verify:
-      mode: quote
-      needle: "97.1%"
-      volatility: measured
-    tags: [embeddings, storage, sampling]
+      heading: "Reading the loss"
+      quote: |
+        is not the share of right guesses: it is the geometric mean of the probabilities the
+          model gave the true characters.
+    verify: {mode: quote, needle: "geometric mean", volatility: measured}
+    tags: [cross-entropy, loss]
 
-  # --- notebook ------------------------------------------------------------
+  # --- o4: data and scale -------------------------------------------------------------------
 
-  - id: l17-q12
-    kind: notebook_run
-    rung: 4
+  - id: l17-q14
+    kind: mcq
+    rung: 2
     difficulty: 2
-    objectives: [l17-o2]
+    objectives: [l17-o4]
     prompt: |
-      Open [`l17-tokens-embeddings.ipynb`](../lectures/l17/l17-tokens-embeddings.ipynb)
-      and run the tokenization section against the pump datasheet.
-
-      Compare the characters-per-token figure you get for the datasheet with the
-      one for technical prose. Which direction does it go, and roughly by how much?
+      Trained on our notes alone, the tiny GPT finishes 15 of 16 course terms but writes no
+      meaningful sentence. What would help most?
     options:
-      - "The datasheet is less dense: more characters per token than prose, by about 1.6x"
-      - "The datasheet is more dense: fewer characters per token than prose, by about 1.6x"
-      - "They come out within a few percent of each other"
-      - "The datasheet is more dense by more than 5x, since almost every line is numbers and units rather than words"
-    answer: "The datasheet is more dense: fewer characters per token than prose, by about 1.6x"
+      - "Far more text, and a bigger model"
+      - "Training longer on the same notes"
+      - "A higher sampling temperature"
+      - "A longer context window"
+    answer: "Far more text, and a bigger model"
     evidence: |
-      3.05 characters per token for the datasheet against 4.82 for technical
-      prose, so a page of datasheet costs about 1.6 times as many tokens as a
-      page of prose with the same number of characters. The question asks for the
-      ratio rather than the absolute value on purpose: your exact numbers depend
-      on the tokenizer version you have installed, but the direction and the
-      rough size of the effect do not.
+      It already copies our style. Meaning takes far more data and parameters; training longer on
+      0.6 million characters only memorizes them, as the held-out loss shows.
     source:
       file: lectures/l17/notes.md
-      heading: "What that adds up to per page"
-      quote: "about **1.6 times** as many tokens as a page of prose"
-    verify:
-      mode: ordering
-      needle: "1.6 times"
-      volatility: measured
-    tags: [tokenization, notebook]
+      heading: "What it writes as it learns"
+      quote: |
+        Far more text, and a
+          bigger model, are what turn style into meaning.
+    verify: {mode: quote, needle: "turn style into meaning", volatility: stable}
+    tags: [scaling, tiny-gpt]
+
+  - id: l17-q15
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l17-o4]
+    prompt: |
+      DeepSeek-V3 has 671 billion parameters, 37 billion of them active. What does "active" mean?
+    options:
+      - "Only part of the parameters is used for each token"
+      - "Only 37 billion were trained; the rest are left random"
+      - "The rest are kept for languages other than English"
+      - "The rest switch on only at a high temperature"
+    answer: "Only part of the parameters is used for each token"
+    evidence: |
+      DeepSeek-V3 is a mixture of experts: for each token, only some of its expert sub-networks
+      run. All 671 billion parameters are trained; 37 billion do the work on any one token, which
+      keeps each step cheaper.
+    source:
+      file: lectures/l17/notes.md
+      heading: "Models over the years"
+      quote: |
+        they use only part of their parameters for each
+          token
+    verify: {mode: quote, needle: "only part of their parameters", volatility: stable}
+    tags: [mixture-of-experts, scaling]
+
+  - id: l17-q16
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l17-o4]
+    prompt: |
+      Asked a question, a pretrained model continues the text instead of answering. What turns it
+      into a chat model?
+    options:
+      - "More training on good answers, then on people's preferences"
+      - "More pretraining on web text, until it learns to answer on its own"
+      - "A larger context window, so it sees the whole question"
+      - "A lower temperature, so it picks the most likely answer"
+    answer: "More training on good answers, then on people's preferences"
+    evidence: |
+      Supervised fine-tuning (SFT) trains on examples of good answers; RLHF or DPO then trains on
+      which of two answers people prefer. More pretraining only makes it better at continuing
+      text.
+    source:
+      file: lectures/l17/notes.md
+      heading: "After pretraining"
+      quote: |
+        **Supervised fine-tuning** (SFT) trains it further, with the same next-token loss, on examples
+           of instructions and good answers, written by people.
+    verify: {mode: quote, needle: "instructions and good answers", volatility: stable}
+    tags: [post-training, sft, rlhf]
+
+  # --- o5: temperature and hallucination ----------------------------------------------------
+
+  - id: l17-q17
+    kind: direction
+    rung: 2
+    difficulty: 1
+    objectives: [l17-o5]
+    prompt: |
+      You lower the temperature from 1 to 0.3. What happens to the next-token probabilities?
+    options:
+      - "The top token takes more of them: safer, more repetitive text"
+      - "They flatten, so unlikely tokens get a real chance"
+      - "They stay the same; only the speed of generation changes a little"
+      - "Only the most common words in the vocabulary remain"
+    answer: "The top token takes more of them: safer, more repetitive text"
+    evidence: |
+      The logits are divided by the temperature before the softmax. Dividing by 0.3 stretches the
+      gaps, so the most likely token takes more of the probability.
+    source:
+      file: lectures/l17/notes.md
+      heading: "Sampling: temperature"
+      quote: |
+        Below 1, it sharpens the
+          distribution toward the most likely token; above 1, it flattens it.
+    verify: {mode: quote, needle: "sharpens the", volatility: stable}
+    tags: [temperature]
+
+  - id: l17-q18
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l17-o5]
+    prompt: |
+      The softmax with a temperature is Boltzmann's distribution. In that parallel, what does a
+      token's logit play?
+    options:
+      - "Minus the energy of a state"
+      - "The temperature k_BT of the system"
+      - "The number of states the system can visit"
+      - "The entropy of the system"
+    answer: "Minus the energy of a state"
+    evidence: |
+      exp(z/τ) matches exp(-E/k_BT): a high logit is a low energy, and τ plays k_BT. Cold, the
+      lowest-energy state (the top token) wins; hot, every state gets visited.
+    source:
+      file: lectures/l17/notes.md
+      heading: "Spin the wheel"
+      quote: |
+        A logit $z$ plays minus an energy, and $\tau$ plays $k_BT$.
+    verify: {mode: quote, needle: "plays minus an energy", volatility: stable}
+    tags: [temperature, boltzmann]
+
+  - id: l17-q19
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l17-o5]
+    prompt: |
+      Why can an LLM state a wrong number as fluently as a right one?
+    options:
+      - "Its loss rewards the likely next token; nothing checks facts"
+      - "Numbers split into tokens, and it cannot read the tokens back"
+      - "A low temperature forces it to guess when unsure"
+      - "It was trained on simulations, not on measurements"
+    answer: "Its loss rewards the likely next token; nothing checks facts"
+    evidence: |
+      Pretraining makes likely text likely, true or not. After "…100 degrees", Qwen gave
+      "Fahrenheit" 58.6% for water's boiling point and took it. Check every number and unit.
+    source:
+      file: lectures/l17/notes.md
+      heading: "Fluent is not the same as true"
+      quote: |
+        **Why:** pretraining rewards the likely next token. Nothing in the loss checks a fact.
+    verify: {mode: quote, needle: "Nothing in the loss checks a fact", volatility: stable}
+    tags: [hallucination, practitioner]
+
+  - id: l17-q20
+    kind: mcq
+    rung: 3
+    difficulty: 2
+    objectives: [l17-o5]
+    prompt: |
+      The same prompt can give a different answer, even at temperature 0. As in Lecture 1, what
+      should you save?
+    options:
+      - "The output you used, with the model's name and the date"
+      - "Only the prompt, since the same output can always be regenerated"
+      - "The temperature setting, which fixes the output"
+      - "Nothing: rerun the prompt whenever you need the answer"
+    answer: "The output you used, with the model's name and the date"
+    evidence: |
+      Providers do not promise identical outputs for identical inputs. A result you cannot
+      regenerate has to be stored, with what produced it: Lecture 1's reproducibility rule.
+    source:
+      file: lectures/l17/notes.md
+      heading: "Limitations and trade-offs"
+      quote: |
+        Save the output you used, with the model's name and the date, as in
+    verify: {mode: quote, needle: "Save the output you used", volatility: stable}
+    tags: [reproducibility, lecture-1, practitioner]
