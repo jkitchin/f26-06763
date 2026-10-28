@@ -17,7 +17,7 @@ lecture: l17
 title: "Large language models, what they are and how they are trained"
 source_notes: lectures/l17/notes.md
 # Held until release: tools/release_lecture.py flips this to published.
-status: unwritten
+status: published
 serve: 10
 pool_version: 4
 provenance:
