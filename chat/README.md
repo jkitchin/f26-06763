@@ -29,9 +29,10 @@ Times were measured in headless Chrome on an Apple-silicon Mac (reranking: 3.2 s
   `package.json` and in `rag-chat.js`), same model and dtype. A Python embedding of the index
   and a JavaScript embedding of the query would disagree by enough to reorder close results.
 - **Built at deploy, never committed.** The index is a function of what `_toc.yml` releases, so
-  CI builds it (`book.yml`, "Build the course-notes chat index") and copies it beside any
-  released deck that contains `class="rag-chat"`. It cannot go stale, and it cannot contain an
-  unreleased lecture or anything from `course/modules/`.
+  CI builds it (`book.yml`, "Build the course-notes chat index"), publishes it with
+  `rag-chat.js` at `/chat/`, and copies both beside any released deck that contains
+  `class="rag-chat"`. It cannot go stale, and it cannot contain an unreleased lecture or anything
+  from `course/modules/`.
 - **Exact search, on purpose.** 1,200 dot products of length 384 take milliseconds. An
   approximate index would add code and lose recall for nothing at this size; the lecture's
   tuning section says where that changes.
@@ -50,6 +51,24 @@ Times were measured in headless Chrome on an Apple-silicon Mac (reranking: 3.2 s
   `data-model="Llama-3.2-1B-Instruct-q4f16_1-MLC"` restores the smaller model for comparison.
 - **Generation is optional.** Without WebGPU, or before the model loads, the widget stops after
   the prompt and shows the passages with links. Retrieval is the part worth inspecting.
+
+## The Ask button on every page
+
+The same widget sits behind a floating **Ask** button in the lower-right corner of every notes
+page, so a student can search the course from anywhere and not only from the L18 deck.
+`_static/ask.js` draws the button and a side panel and nothing else. Jupyter Book loads every
+`_static/*.js` on every page, so that file fetches nothing at page load. The first click adds a
+`<div class="rag-chat compact">` to the panel and loads `/chat/rag-chat.js`, which mounts on it
+and reads `/chat/rag-index.json`. There is one pipeline, so the site and the capstone cannot
+disagree about what the notes say.
+
+`ask.js` finds the site root from its own `src` (`<site>/_static/ask.js`), so it hardcodes no
+`/f26-06763/` and works at any nesting depth. In the panel, the answer is stacked above the
+passages, the stage strip is hidden on screens under 700 px wide, and rag-chat's white controls
+take the theme's surface colour so dark mode stays readable. A local `jupyter-book build` has no
+`/chat/`, so the panel says the assistant is not in that build. To try it locally, build the
+index (below), copy `chat/rag-chat.js` and `chat/build/rag-index.json` into `_build/html/chat/`,
+and serve `_build/html` under `/f26-06763/` with `python3 -m http.server`.
 
 ## The network exception
 
