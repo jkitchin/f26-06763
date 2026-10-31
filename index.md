@@ -20,6 +20,9 @@ The lecture notes are the "textbook" of each session. They are written to be rea
 or after class, containing extended information and the
 links to primary sources we considered while preparing this material. The slides used in class are linked from the top of each set of notes.
 
+We built this course with an AI assistant, in the open; the [syllabus](course/syllabus.md)
+says how.
+
 Every technology, format, method, and case study the course uses is
 collected in the {ref}`general index <genindex>`, with each term linked to the section that
 introduces it. When you remember the idea but not which session covered it, we suggest you start there rather than with search.

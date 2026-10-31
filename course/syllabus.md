@@ -133,6 +133,9 @@ Grades are absolute, and no curve is applied:
   able to **explain and defend** everything you submit. Using AI to bypass learning an
   assignment's core skill (e.g., having it write an entire graded pipeline you can't
   explain) is not permitted. When in doubt, disclose.
+- **AI use by the instructors:** We built most of this course's infrastructure (e.g., additional handouts/notes, slides, figures, notebooks, practice questions and the course software) with the aid of [Claude Code](https://claude.com/claude-code),
+  Anthropic's AI coding assistant. We chose all the topics, datasets and examples, and decided every change. The full, lengthy [commit history](https://github.com/jkitchin/f26-06763/commits/main) that shows all the effort in preparing this course, is publicly available. AI is not used to grade your work or to write feedback on it, and we do
+  not put your submissions or personal information into AI tools. If you find an error in the course, please tell us. We plan to keep constantly improving this course and how to build it.
 - **Academic integrity:** governed by [CMU's guidelines](https://www.cmu.edu/policies/student-and-student-life/academic-integrity.html).
 
 ## Other Policies and Procedures
