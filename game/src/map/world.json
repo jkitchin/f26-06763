@@ -303,13 +303,13 @@
       "id": "l18",
       "date": "2026-11-02",
       "title": "Retrieval-augmented generation (RAG): answering from your documents",
-      "written": false,
+      "written": true,
       "arc_source": "declared",
       "arc": "LLM and agentic engineering",
       "region": 3,
       "x": 11,
       "y": 1,
-      "notes": null
+      "notes": "../lectures/l18/notes.html"
     },
     {
       "session": "L19",

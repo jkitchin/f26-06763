@@ -11,7 +11,7 @@ lecture: l18
 title: "Context engineering: tools, search and retrieval"
 source_notes: lectures/l18/notes.md
 # Held until release: tools/release_lecture.py flips this to published.
-status: unwritten
+status: published
 # serve = pool // 2, so a retake can be served a disjoint set (CLAUDE.md section 9c).
 serve: 10
 pool_version: 2
