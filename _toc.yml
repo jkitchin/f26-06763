@@ -105,6 +105,21 @@ parts:
       - file: course/miniproject
       - file: course/final-project
 
+# Case studies from other fields, each linking back to the lectures it
+# illustrates. They may link only to released lectures, so check the links
+# before adding one that points past the latest released session.
+  - caption: Case studies
+    chapters:
+      - file: case-studies/index
+        sections:
+          - file: case-studies/ecg-patient-splits
+          - file: case-studies/chest-xray-shortcuts
+          - file: case-studies/sepsis-alert-validation
+          - file: case-studies/electric-load-forecasting
+          - file: case-studies/bearing-fault-benchmark
+          - file: case-studies/bridge-health-monitoring
+          - file: case-studies/alloy-adaptive-design
+
 # Optional material: hidden for now, to be reviewed and released later. The
 # overview cross-links both section pages, so the whole part is held together.
 #   - caption: Optional material

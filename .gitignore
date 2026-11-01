@@ -91,3 +91,5 @@ chat/node_modules/
 lectures/*/rag-chat.js
 lectures/*/rag-index.json
 lectures/*/rag-index.js
+# ...and the Ask button, which a deck places with <div class="ask-slot">.
+lectures/*/ask.js
