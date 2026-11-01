@@ -186,7 +186,7 @@ def sessions() -> list[dict]:
         if r["title"].lower().startswith("(optional)"):
             r["arc"], r["arc_source"] = OPTIONAL, "optional"
     # A lecture row with no topic gets no room: there is nothing to show in it.
-    # L21 is one, a probable cancellation. It still counts toward
+    # L21 is one for now. It still counts toward
     # EXPECTED_SESSIONS and still passes its arc on (its old notes declare
     # Production and responsibility, which is where L22 belongs), and it comes
     # back by itself once the schedule gives it a topic.
