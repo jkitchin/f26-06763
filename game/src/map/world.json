@@ -72,7 +72,6 @@
       "x0": 16,
       "rows": 1,
       "rooms": [
-        "l21",
         "l22"
       ]
     }
@@ -373,20 +372,6 @@
       "notes": "../course/optional/how-this-course-was-built.html"
     },
     {
-      "session": "L21",
-      "id": "l21",
-      "date": "2026-11-11",
-      "title": "",
-      "kind": "session",
-      "written": false,
-      "arc_source": "declared",
-      "arc": "Production and responsibility",
-      "region": 5,
-      "x": 16,
-      "y": 1,
-      "notes": null
-    },
-    {
       "session": "L22",
       "id": "l22",
       "date": "2026-11-16",
@@ -396,7 +381,7 @@
       "arc_source": "inherited",
       "arc": "Production and responsibility",
       "region": 5,
-      "x": 17,
+      "x": 16,
       "y": 1,
       "notes": null
     }
@@ -817,38 +802,6 @@
       "relation": null,
       "why": null,
       "where": "[Lecture 17](../l17/notes.md) is a next-token predictor fitted by supervised learning on text."
-    },
-    {
-      "from": "l21",
-      "to": "l03",
-      "origin": "authored",
-      "relation": "builds-on",
-      "why": "The 2.4-volt threshold is a specific number decided in Lecture 3. Evaluating against it is meaningless without knowing where it came from.",
-      "where": "sensor readings above Lecture 3's 2.4-volt trustworthiness threshold"
-    },
-    {
-      "from": "l21",
-      "to": "l04",
-      "origin": "authored",
-      "relation": "shares-data",
-      "why": "Same sensor data, no API key, which is why the demo runs anywhere.",
-      "where": "data Lecture 3, Lecture 4, and Lecture 20 use and needs no API key or external service"
-    },
-    {
-      "from": "l21",
-      "to": "l13",
-      "origin": "authored",
-      "relation": "builds-on",
-      "why": "The strongest claim of dependency anywhere in the back half. Not \"recall Lecture 13\" but \"this is Lecture 13, continued\".",
-      "where": "the subject of the entire second half of Lecture 13: what happens when a company builds the model, ships it, and stops watching"
-    },
-    {
-      "from": "l21",
-      "to": "l19",
-      "origin": "authored",
-      "relation": "reuses",
-      "why": "The eval harness is built against the RAG system Lecture 19 leaves behind.",
-      "where": "eval harness for a small RAG assistant in the spirit of Lecture 19's system"
     }
   ],
   "signs": []

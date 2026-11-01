@@ -44,6 +44,8 @@ edges:
   # its notes cite earlier lectures with markdown links.
 
   # --- Lecture 21, evaluation and observability -----------------------------------
+  # Not drawn while L21 has no topic on the schedule (tools/world.py gives a row
+  # with no topic no room). The edges stay valid against the notes on disk.
   # Its edge to l20 ("Lecture 20's harness") was removed on 2026-10-12: that harness is the
   # agents lecture, now L19, and L20 is reinforcement learning. Re-author it as l21 -> l19
   # when L21's notes are renumbered.
