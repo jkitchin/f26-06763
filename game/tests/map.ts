@@ -20,8 +20,19 @@ console.log('map:')
 
 // --- the generated world holds together ------------------------------------
 
-check(world.rooms.length === 22, 'every session on the schedule is a room',
-  `${world.rooms.length} rooms`)
+const sessionRooms = world.rooms.filter((r) => r.kind === 'session')
+check(sessionRooms.length === 22, 'every session on the schedule is a room',
+  `${sessionRooms.length} rooms`)
+
+// The optional page is the one room that is not a session. It sits in the
+// Optional region with L20, which the schedule marks "(Optional)", so neither
+// reopens a region the course has already left.
+const built = roomById('built')
+check(built?.kind === 'page' && built.arc === 'Optional' && built.date === '',
+  'the optional page is a room in the Optional region, with no date')
+check(roomById('l20')?.arc === 'Optional', 'L20 sits in the Optional region')
+check(world.regions.filter((g) => g.name === 'Optional').length === 1,
+  'and there is one Optional region')
 // The written (open) rooms are exactly the lectures released in _toc.yml. The
 // course ships one week at a time, so this set grows week by week; the test
 // derives it from _toc.yml rather than hard-coding a count a release would break.
@@ -30,9 +41,14 @@ check(world.rooms.length === 22, 'every session on the schedule is a room',
 const toc = readFileSync(new URL('../../_toc.yml', import.meta.url), 'utf8')
 const releasedIds = new Set(
   [...toc.matchAll(/^\s*-\s*file:\s*lectures\/(l\d\d)\/notes/gm)].map((m) => m[1]))
+// Pages are released the same way, by an uncommented _toc.yml entry.
+const PAGES: Record<string, string> = { built: 'course/optional/how-this-course-was-built' }
+const pageListed = (id: string) =>
+  new RegExp(`^\\s*-\\s*file:\\s*${PAGES[id]}\\s*$`, 'm').test(toc)
 const writtenIds = world.rooms.filter((r) => r.written).map((r) => r.id).sort()
 const expectedWritten = world.rooms
-  .filter((r) => releasedIds.has(r.id)).map((r) => r.id).sort()
+  .filter((r) => (r.kind === 'page' ? pageListed(r.id) : releasedIds.has(r.id)))
+  .map((r) => r.id).sort()
 check(JSON.stringify(writtenIds) === JSON.stringify(expectedWritten),
   'written rooms are exactly the lectures released in _toc.yml',
   `written: ${writtenIds.join(',') || '(none)'}`)
@@ -69,7 +85,9 @@ check(world.signs.every((s) => roomById(s.lecture)?.written === false),
 // A corridor drawn out of L19 (RAG, which was L17 before the 2026-10-08
 // renumbering) would contradict the finding that it cites nothing. See
 // game/content/map-edges.yml.
-check(!world.doors.some((d) => d.from === 'l19'), 'L19 is still the dead end')
+// A link from L19 to the optional page is not a citation of another session.
+check(!world.doors.some((d) => d.from === 'l19' && roomById(d.to)?.kind === 'session'),
+  'L19 is still the dead end')
 
 // Four. Fifteen became ten when L23's five authored edges left with the lecture
 // (MLOps moved to course/optional/), and ten became four on 2026-10-12 when the
@@ -126,7 +144,8 @@ check(!doorVisible(oneDoor, none), 'a corridor is hidden until both ends are vis
 check(!doorVisible(oneDoor, new Set(['l21'])), 'one end is not enough')
 check(doorVisible(oneDoor, both), 'and drawn once both have been')
 
-check(coverage(none).seen === 0 && coverage(none).total === 22, 'coverage starts at zero of 22')
+// 22 sessions and the optional page.
+check(coverage(none).seen === 0 && coverage(none).total === 23, 'coverage starts at zero of 23')
 check(coverage(both).seen === 2, 'and counts the rooms actually stood in')
 
 // Shuttered rooms no longer carry a promise sign: the promises were forward

@@ -71,8 +71,21 @@ def test_l19_is_still_the_dead_end():
     in prose. It is a true fact about the course and the map should show it, so
     an edge appearing out of L19 means somebody found a citation and this test
     should be updated deliberately."""
-    out = {e["from"] for e in graph.build()["edges"]}
+    lectures = set(graph.lectures())
+    out = {e["from"] for e in graph.build()["edges"] if e["to"] in lectures}
     assert "l19" not in out
+
+
+def test_pages_connect_only_to_lectures():
+    """A page's corridors are extracted from its links in both directions, and
+    each one joins that page to a lecture, never a page to a page."""
+    lectures = set(graph.lectures())
+    edges = graph.build()["edges"]
+    for page in graph.PAGES:
+        mine = [e for e in edges if page in (e["from"], e["to"])]
+        assert mine, f"{page} has no corridors"
+        for e in mine:
+            assert ({e["from"], e["to"]} - {page}) <= lectures, e
 
 
 def test_every_relation_is_documented():

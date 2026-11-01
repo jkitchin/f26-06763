@@ -85,6 +85,32 @@ def released_ids() -> set[str]:
 #: no gap, so a future edit that reopens one will trip it.
 EXPECTED_SESSIONS = 22
 
+#: The region for sessions the schedule marks "(Optional)" and for the published
+#: pages that are not sessions (tools/graph.py PAGES). It replaces the arc the
+#: notes declare, so an optional lecture does not reopen a region the course has
+#: already left, and it does not pass its arc on to the sessions after it.
+OPTIONAL = "Optional"
+
+
+def page_released(file: str) -> bool:
+    """Is this page listed, uncommented, in _toc.yml?"""
+    text = TOC.read_text(encoding="utf-8") if TOC.is_file() else ""
+    entry = re.escape(file.removesuffix(".md"))
+    return re.search(rf"^\s*-\s*file:\s*{entry}\s*$", text, re.M) is not None
+
+
+def page_rooms(pages: dict[str, str]) -> list[dict]:
+    """One room per published page, titled by the page's own H1."""
+    out = []
+    for pid, file in pages.items():
+        text = (REPO / file).read_text(encoding="utf-8")
+        title = next((l[2:].strip() for l in text.split("\n") if l.startswith("# ")), pid)
+        out.append({"session": "Extra", "id": pid, "date": "", "title": title,
+                    "kind": "page", "written": page_released(file),
+                    "arc_source": "optional", "arc": OPTIONAL,
+                    "href": "../" + file.removesuffix(".md") + ".html"})
+    return out
+
 #: Rooms per row within a region. Two reads as a course sequence going down the
 #: page, and keeps the widest region from dominating the layout.
 COLS = 2
@@ -128,7 +154,7 @@ def sessions() -> list[dict]:
             session = f"L{lec}" if lec else f"MP-{mp}"
             date = f"{yyyy}-{mm}-{dd}"  # store ISO so the JSON is stable and sorts
             rows.append({"session": session, "id": slug(session), "date": date,
-                         "title": title.replace("**", "").strip()})
+                         "title": title.replace("**", "").strip(), "kind": "session"})
 
     if len(rows) != EXPECTED_SESSIONS:
         raise SystemExit(
@@ -157,12 +183,15 @@ def sessions() -> list[dict]:
                 f"notes."
             )
         r["arc"] = current
+        if r["title"].lower().startswith("(optional)"):
+            r["arc"], r["arc_source"] = OPTIONAL, "optional"
     return rows
 
 
 def build() -> dict:
     rows = sessions()
     graph = json.loads(GRAPH.read_text(encoding="utf-8"))
+    pages = page_rooms(graph.get("pages", {}))
 
     # Regions in course order, which is the order students already carry.
     regions: list[dict] = []
@@ -170,6 +199,16 @@ def build() -> dict:
         if not regions or regions[-1]["name"] != r["arc"]:
             regions.append({"name": r["arc"], "rooms": []})
         regions[-1]["rooms"].append(r["id"])
+
+    # Pages join the optional region on a row of their own, below its sessions.
+    if pages:
+        opt = next((g for g in regions if g["name"] == OPTIONAL), None)
+        if opt is None:
+            opt = {"name": OPTIONAL, "rooms": []}
+            regions.append(opt)
+        pad = -len(opt["rooms"]) % COLS
+        opt["rooms"] += [None] * pad + [pg["id"] for pg in pages]
+    rows += pages
 
     # Lay each region out as its own block of COLS-wide rows, then place the
     # blocks left to right with one cell of corridor between them.
@@ -179,14 +218,18 @@ def build() -> dict:
         region["x0"] = x
         region["rows"] = (len(region["rooms"]) + COLS - 1) // COLS
         for i, rid in enumerate(region["rooms"]):
-            row = next(r for r in rows if r["id"] == rid)
+            if rid is None:
+                continue
+            row = dict(next(r for r in rows if r["id"] == rid))
+            href = row.pop("href", f"../lectures/{rid}/notes.html")
             rooms[rid] = {
                 **row,
                 "region": ri,
                 "x": x + (i % COLS),
                 "y": 1 + (i // COLS),
-                "notes": f"../lectures/{rid}/notes.html" if row["written"] else None,
+                "notes": href if row["written"] else None,
             }
+        region["rooms"] = [rid for rid in region["rooms"] if rid is not None]
         x += COLS + 1
 
     width = x
@@ -208,9 +251,10 @@ def build() -> dict:
     return {
         "generated_by": "tools/world.py",
         "note": (
-            "Rooms are the sessions in course/schedule.md, regions are the arcs "
-            "the notes declare, corridors are the edges tools/graph.py verified. "
-            "Nothing is placed by hand."
+            "Rooms are the sessions in course/schedule.md plus the pages in "
+            "tools/graph.py PAGES, regions are the arcs the notes declare, "
+            "corridors are the edges tools/graph.py verified. Nothing is placed "
+            "by hand."
         ),
         "grid": {"width": width, "height": height, "cols_per_region": COLS},
         # Bottom-left of the first region, which is where the course starts.

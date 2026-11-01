@@ -30,7 +30,7 @@
  * designed. Arrow keys are the second way in, not the only one.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Bank } from '../content/load.ts'
 import {
   coverage, doorsOf, doorVisible, roomAt, roomById, signFor, step, world,
@@ -40,13 +40,30 @@ import type { Event } from '../store/log.ts'
 import { visitedRooms } from '../store/log.ts'
 
 /**
- * Pixels per grid cell, chosen so the whole 16-wide grid fits a desktop
- * container without scrolling. At 96 the fifth region sat past the right edge
- * and the map silently looked like a four-arc course. It still scrolls on a
- * narrow screen, because a 16-wide grid squeezed onto a phone is unreadable and
- * a scrollbar is not.
+ * Pixels per grid cell: the largest that fits the whole grid in the container,
+ * between these bounds. A fixed 72 put the last region past the right edge of a
+ * laptop screen once the grid grew to 19 cells, and the map silently looked
+ * like a course that ends at L19. Below the minimum it stops shrinking and
+ * scrolls, because a grid squeezed onto a phone is unreadable and a scrollbar
+ * is not.
  */
-const CELL = 72
+const CELL_MAX = 72
+const CELL_MIN = 48
+
+function useCell(box: RefObject<HTMLDivElement | null>): number {
+  const [cell, setCell] = useState(CELL_MAX)
+  useEffect(() => {
+    const el = box.current
+    if (!el) return
+    const fit = () => setCell(Math.max(CELL_MIN,
+      Math.min(CELL_MAX, Math.floor(el.clientWidth / world.grid.width))))
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [box])
+  return cell
+}
 
 interface Props {
   banks: Record<string, Bank>
@@ -79,6 +96,8 @@ const KEYS: Record<string, [number, number]> = {
 export function MapView({ banks, log, onVisit, onStart, onList }: Props) {
   const [at, setAt] = useState(world.spawn)
   const boardRef = useRef<HTMLDivElement>(null)
+  const boxRef = useRef<HTMLDivElement>(null)
+  const cell = useCell(boxRef)
   const visited = useMemo(() => visitedRooms(log), [log])
   const here = roomAt(at.x, at.y)
   const seen = coverage(visited)
@@ -108,8 +127,8 @@ export function MapView({ banks, log, onVisit, onStart, onList }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [move])
 
-  const W = world.grid.width * CELL
-  const H = world.grid.height * CELL
+  const W = world.grid.width * cell
+  const H = world.grid.height * cell
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6">
@@ -131,7 +150,7 @@ export function MapView({ banks, log, onVisit, onStart, onList }: Props) {
         </div>
       </header>
 
-      <div className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--bg)]">
+      <div ref={boxRef} className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--bg)]">
         <div
           ref={boardRef}
           className="relative"
@@ -145,14 +164,16 @@ export function MapView({ banks, log, onVisit, onStart, onList }: Props) {
               className="absolute rounded-xl border border-dashed border-[var(--border)]
                          bg-[var(--surface-raised)] opacity-40"
               style={{
-                left: (region.x0 - 0.25) * CELL,
-                top: 0.7 * CELL,
-                width: (world.grid.cols_per_region + 0.5) * CELL,
-                height: (region.rows + 0.5) * CELL,
+                // The box starts higher than the rooms so that a region name
+                // wrapped onto two lines sits above the first row, not on it.
+                left: (region.x0 - 0.25) * cell,
+                top: 0.4 * cell,
+                width: (world.grid.cols_per_region + 0.5) * cell,
+                height: (region.rows + 0.8) * cell,
               }}
             >
-              <span className="absolute -top-1 left-2 text-[11px] font-medium uppercase
-                               tracking-wide text-[var(--muted)]">
+              <span className="absolute -top-1 left-2 right-2 text-[11px] font-medium uppercase
+                               leading-tight tracking-wide text-[var(--muted)]">
                 {region.name}
               </span>
             </div>
@@ -167,8 +188,8 @@ export function MapView({ banks, log, onVisit, onStart, onList }: Props) {
               return (
                 <line
                   key={`${d.from}-${d.to}`}
-                  x1={(a.x + 0.5) * CELL} y1={(a.y + 0.5) * CELL}
-                  x2={(b.x + 0.5) * CELL} y2={(b.y + 0.5) * CELL}
+                  x1={(a.x + 0.5) * cell} y1={(a.y + 0.5) * cell}
+                  x2={(b.x + 0.5) * cell} y2={(b.y + 0.5) * cell}
                   stroke={lit ? 'var(--brand)' : 'var(--border)'}
                   strokeWidth={lit ? 2.5 : 1.5}
                   strokeDasharray={d.origin === 'authored' ? '5 4' : undefined}
@@ -182,6 +203,7 @@ export function MapView({ banks, log, onVisit, onStart, onList }: Props) {
             <RoomTile
               key={room.id}
               room={room}
+              cell={cell}
               visited={visited.has(room.id)}
               standing={here?.id === room.id}
               onClick={() => setAt({ x: room.x, y: room.y })}
@@ -194,9 +216,9 @@ export function MapView({ banks, log, onVisit, onStart, onList }: Props) {
                        rounded-full border-2 border-[var(--brand)] bg-[var(--bg)]
                        text-sm shadow-lg transition-transform duration-100"
             style={{
-              width: CELL * 0.34, height: CELL * 0.34,
-              transform: `translate(${(at.x + 0.5) * CELL - CELL * 0.17}px, ${
-                (at.y + 0.5) * CELL - CELL * 0.17}px)`,
+              width: cell * 0.34, height: cell * 0.34,
+              transform: `translate(${(at.x + 0.5) * cell - cell * 0.17}px, ${
+                (at.y + 0.5) * cell - cell * 0.17}px)`,
             }}
           >
             ●
@@ -209,8 +231,8 @@ export function MapView({ banks, log, onVisit, onStart, onList }: Props) {
   )
 }
 
-function RoomTile({ room, visited, standing, onClick }: {
-  room: Room; visited: boolean; standing: boolean; onClick: () => void
+function RoomTile({ room, cell, visited, standing, onClick }: {
+  room: Room; cell: number; visited: boolean; standing: boolean; onClick: () => void
 }) {
   // Every tile is opaque, which is what stops a corridor drawing itself across
   // a room label. The lines sit in an SVG behind the tiles, so an opaque tile
@@ -229,8 +251,8 @@ function RoomTile({ room, visited, standing, onClick }: {
       className={`absolute grid place-items-center rounded-xl border-2 px-1 text-center
                   transition-colors ${tone} ${standing ? 'ring-2 ring-[var(--brand)]' : ''}`}
       style={{
-        left: room.x * CELL + 6, top: room.y * CELL + 6,
-        width: CELL - 12, height: CELL - 12,
+        left: room.x * cell + 6, top: room.y * cell + 6,
+        width: cell - 12, height: cell - 12,
         // Shutters get their own texture rather than only a dashed border,
         // which they would otherwise share with a written room nobody has
         // visited. Two different states must not look the same.
@@ -244,7 +266,9 @@ function RoomTile({ room, visited, standing, onClick }: {
         room.written ? 'Notes available' : 'Not written yet'
       }.${visited ? ' Visited.' : ''}`}
     >
-      <span className="text-[13px] font-semibold">{room.session}</span>
+      <span className="font-semibold" style={{ fontSize: Math.min(13, Math.round(cell * 0.2)) }}>
+        {room.session}
+      </span>
     </button>
   )
 }
@@ -270,7 +294,7 @@ function RoomPanel({ room, banks, visited, onStart }: {
   return (
     <section className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--surface-raised)] p-5">
       <p className="text-xs uppercase tracking-wide text-[var(--muted)]">
-        {room.arc} · {room.date}
+        {room.arc}{room.date && ` · ${room.date}`}
       </p>
       <h2 className="mt-1 text-lg font-semibold">
         {room.session} · {room.title}
@@ -278,7 +302,9 @@ function RoomPanel({ room, banks, visited, onStart }: {
 
       <div className="mt-3 flex flex-wrap gap-2">
         {room.notes && (
-          <a className="btn-secondary" href={room.notes}>Read the notes</a>
+          <a className="btn-secondary" href={room.notes}>
+            {room.kind === 'page' ? 'Read the page' : 'Read the notes'}
+          </a>
         )}
         {bank && (
           <button type="button" className="btn-primary" onClick={() => onStart(room.id)}>
@@ -295,7 +321,7 @@ function RoomPanel({ room, banks, visited, onStart }: {
             neither the button above nor the "not written yet" note applies, and
             without this the panel silently offers a student less than the room
             beside it with no reason given. */}
-        {room.written && !bank && (
+        {room.written && !bank && room.kind === 'session' && (
           <span className="self-center text-sm text-[var(--muted)]">
             Notes are up. The practice module for this one is not written yet.
           </span>
