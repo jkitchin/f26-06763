@@ -20,6 +20,11 @@
  *
  * Paths come from this script's own src, <site>/_static/ask.js, so nothing here hardcodes
  * /f26-06763/ and the button works at any nesting depth.
+ *
+ * A slide deck can carry the same button. CI copies ask.js beside every deck, and a deck that
+ * loads it and marks a spot with <div class="ask-slot"> gets the button inline in that slide,
+ * opening the same panel. There the chat comes from beside the deck (rag-chat.js and the
+ * rag-index files, which CI copies in for any deck that embeds the capstone), not from /chat/.
  */
 (function () {
   'use strict';
@@ -39,6 +44,8 @@
     '.ask-toggle:focus-visible{outline:2px solid var(--pst-color-text-base,#222);outline-offset:2px}',
     '.ask-toggle svg{display:block;width:1.15em;height:1.15em;fill:currentColor}',
     'body.ask-open .ask-toggle{display:none}',
+    '.ask-slot .ask-toggle{position:static;margin-top:.4em}',
+    'body.ask-open .ask-slot .ask-toggle{display:inline-flex}',
     '@media (max-width:700px){.ask-toggle{padding:0;width:2.9rem;height:2.9rem;',
     'justify-content:center}.ask-toggle-label{display:none}}',
     '@media (prefers-reduced-motion:reduce){.ask-toggle{transition:none}',
@@ -119,9 +126,12 @@
     if (ui.mounted) return;
     ui.mounted = true;
     var chat = el('div', 'rag-chat compact', ui.body);
-    chat.dataset.index = new URL('chat/rag-index.json', SITE).href;
+    // In a deck the files sit beside it. The deck has usually loaded rag-chat.js already for the
+    // capstone; loading it again runs its boot() once more, which mounts only this new element.
+    var base = ui.deck ? new URL('./', SELF.src) : new URL('chat/', SITE);
+    chat.dataset.index = new URL('rag-index.json', base).href;
     var s = document.createElement('script');
-    s.src = new URL('chat/rag-chat.js', SITE).href;
+    s.src = new URL('rag-chat.js', base).href;
     s.onerror = function () {
       chat.remove();
       el('p', 'ask-error', ui.body,
@@ -142,26 +152,36 @@
   function closePanel() {
     ui.panel.hidden = true;
     document.body.classList.remove('ask-open');
-    ui.toggle.focus();
+    if (ui.toggle) ui.toggle.focus();
   }
 
-  function init() {
-    // Book pages only. The theme's main column marks one; a page without it has no reader to ask.
-    if (!document.querySelector('.bd-main') || document.querySelector('.ask-toggle')) return;
-    el('style', null, document.head, CSS);
-    buildPanel();
-
-    var btn = el('button', 'ask-toggle', document.body);
+  function addButton(parent, cls) {
+    var btn = el('button', cls, parent);
     btn.type = 'button';
     btn.title = 'Ask a question about the course notes (runs in your browser)';
     btn.setAttribute('aria-label', 'Ask the course notes');
     el('span', null, btn).innerHTML = ICON;
     el('span', 'ask-toggle-label', btn, 'Ask');
     btn.addEventListener('click', function () {
+      ui.toggle = btn;
       if (ui.panel.hidden) openPanel();
       else closePanel();
     });
-    ui.toggle = btn;
+    return btn;
+  }
+
+  function init() {
+    // Book pages, which the theme's main column marks, or a deck with a slot for the button.
+    // Anything else has no reader to ask.
+    var slots = document.querySelectorAll('.ask-slot');
+    var book = document.querySelector('.bd-main');
+    if ((!book && !slots.length) || document.querySelector('.ask-toggle')) return;
+    ui.deck = !book;
+    el('style', null, document.head, CSS);
+    buildPanel();
+
+    if (book) ui.toggle = addButton(document.body, 'ask-toggle');
+    else slots.forEach(function (slot) { addButton(slot, 'ask-toggle'); });
 
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && !ui.panel.hidden) closePanel();

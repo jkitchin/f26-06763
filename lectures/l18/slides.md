@@ -195,6 +195,17 @@ share. They are optional reading, linked from the book under "Case studies".
 
 ---
 
+## Why this matters, what the model sees
+
+![h:390](figures/context-window.png)
+
+- <span class="pt">▶</span> what does not fit is gone, which looks like forgetting
+
+<!-- Recap from L17. The reply is written into the same window, so a long answer also needs room.
+     Clients differ on overflow: some drop the oldest turns, some reject the request. -->
+
+---
+
 ## Why this matters, a chatbot and a policy page
 
 - 2022: Air Canada's chatbot said a bereavement fare could be claimed **after** flying
@@ -263,6 +274,16 @@ share. They are optional reading, linked from the book under "Case studies".
 - <span class="pt">▶</span> a tool result is just more text in the context window, and it costs tokens
 
 <span class="source">[Tool-use documentation](https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview)</span>
+
+---
+
+## Tools, the loop
+
+![h:470](figures/tool-loop.png)
+
+<!-- Walk it clockwise with the real message shapes. grep_notes is a tool we define; the result
+     is the actual line from the L4 notes. Every lap adds a request and a result to the window,
+     which is the previous slide's point about tokens. -->
 
 ---
 
@@ -373,10 +394,12 @@ $$\text{score}(q,d)=\sum_{t\in q}\text{idf}(t)\,\frac{f(t,d)\,(k_1+1)}{f(t,d)+k_
 ## Keyword search, in SQLite
 
 ```python
-db.execute("CREATE VIRTUAL TABLE notes USING fts5(body, tokenize='porter unicode61')")
-db.executemany("INSERT INTO notes(rowid, body) VALUES (?, ?)", enumerate(texts))
-db.execute("SELECT rowid FROM notes WHERE notes MATCH ? ORDER BY bm25(notes) LIMIT 5",
-           ('"zero_grad"',))
+db.execute("CREATE VIRTUAL TABLE notes "
+           "USING fts5(body, tokenize='porter unicode61')")
+db.executemany("INSERT INTO notes(rowid, body) VALUES (?, ?)",
+               enumerate(texts))
+db.execute("SELECT rowid FROM notes WHERE notes MATCH ? "
+           "ORDER BY bm25(notes) LIMIT 5", ('"zero_grad"',))
 ```
 
 - The L3 database, a new job; `bm25()` is smaller for better matches
@@ -446,6 +469,12 @@ db.execute("SELECT rowid FROM notes WHERE notes MATCH ? ORDER BY bm25(notes) LIM
 - Lost: `zero_grad` (rank 8) and "invent a part number" (rank 14; BM25: 1)
 - L17 still applies: units, negation and identifiers are weak spots
 - <span class="pt">▶</span> keyword and embedding search fail on different questions
+
+<div class="ask-slot">
+
+Try it: the **Ask** button on every notes page runs this search over the released notes.
+
+</div>
 
 ---
 
@@ -846,3 +875,4 @@ Nicknames only. Everyone who skipped one still counted in every bar you saw.
 <script src="clicker-slide.js"></script>
 <script src="rag-index.js"></script>
 <script src="rag-chat.js"></script>
+<script src="ask.js"></script>

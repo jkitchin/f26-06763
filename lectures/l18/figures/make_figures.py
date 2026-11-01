@@ -501,7 +501,116 @@ def run_plots():
     print("wrote recall-ladder, abstention, chunk-sweep, scale, widget-corpus-map, widget-maxsim, widget-bm25")
 
 
-GROUPS = {"ladder": run_ladder, "sweep": run_sweep, "scale": run_scale, "widgets": run_widgets, "plots": run_plots}
+def run_window():
+    """Schematic, no data: what fills the context window, once when it fits and once when it does not."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import FancyBboxPatch
+    plt.rcParams.update({"font.size": 12, "savefig.dpi": 150, "savefig.bbox": "tight"})
+    BLUE, ORANGE, GREEN, GRAY, RED = "#1f6fb2", "#c2410c", "#2b8a3e", "#777777", "#c41230"
+    parts = [("system\nprompt", GRAY), ("context: documents,\ntool results, earlier turns", BLUE),
+             ("user\nprompt", ORANGE), ("reply", GREEN)]
+    rows = [("Everything fits", [12, 46, 12, 18]), ("Too much: the oldest content falls out, and the model \"forgets\" it", [12, 92, 12, 18])]
+    LIMIT = 100
+    fig, ax = plt.subplots(figsize=(12, 5))
+    for r, (label, widths) in enumerate(rows):
+        y = 1.7 - 1.75 * r
+        ax.text(0, y + 1.05, label, ha="left", va="bottom", fontsize=12, weight="bold")
+        # Over the limit, the overflow is drawn off the left edge: in a chat, the oldest content
+        # is what clients usually truncate first, so the system prompt and early turns go.
+        x = min(0, LIMIT - sum(widths))
+        for (name, col), w in zip(parts, widths):
+            ax.add_patch(FancyBboxPatch((x + 0.4, y), w - 0.8, 0.8, boxstyle="round,pad=0,rounding_size=0.15",
+                                        fc=col, ec="none", alpha=0.25))
+            if x + w > 0:
+                ax.add_patch(plt.Rectangle((max(x, 0) + 0.4, y), x + w - max(x, 0) - 0.8, 0.8, fc=col, ec="none"))
+            ax.text(x + w / 2, y + 0.4, name, ha="center", va="center", fontsize=11, weight="bold",
+                    color="white" if x + w / 2 > 0 else col)
+            x += w
+        if sum(widths) > LIMIT:
+            ax.text(min(0, LIMIT - sum(widths)) + 0.5, y - 0.25,
+                    "past the limit: cut (often the oldest first), or the request is rejected",
+                    color=RED, fontsize=11, va="top")
+    # The window: a fixed frame the same size on both rows.
+    for r in range(2):
+        y = 1.7 - 1.75 * r
+        ax.add_patch(plt.Rectangle((0, y - 0.12), LIMIT, 1.04, fill=False, ec="k", lw=2.2, ls="-"))
+    ax.annotate("", xy=(0, 3.25), xytext=(LIMIT, 3.25), arrowprops=dict(arrowstyle="<->", lw=1.5))
+    ax.text(LIMIT / 2, 3.35, "context window: a fixed number of tokens, everything the model sees",
+            ha="center", va="bottom", fontsize=12)
+    ax.text(LIMIT / 2, -0.85, "The reply is generated into the same window, so it needs room too.",
+            ha="center", fontsize=11, color=GRAY, style="italic")
+    ax.set(xlim=(-36, LIMIT + 2), ylim=(-1.05, 3.7))
+    ax.axis("off")
+    fig.savefig(HERE / "context-window.png"); plt.close(fig)
+    print("wrote context-window")
+
+
+def run_toolloop():
+    """Schematic, no data: one turn of the tool-use loop, with the messages as the API carries them.
+    The result quotes lectures/l04/notes.md, the row-group definition, so the example is real."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
+    plt.rcParams.update({"savefig.dpi": 150, "savefig.bbox": "tight"})
+    BLUE, ORANGE, GREEN, GRAY, RED = "#1f6fb2", "#c2410c", "#2b8a3e", "#777777", "#c41230"
+    W, H, R = 13.4, 3.6, 17.6   # box width and height, x of the right column
+    boxes = [  # (x, y, title, colour, body, dashed)
+        (0, 5.4, "1  The context window", GRAY,
+         '[{"role": "system",\n'
+         '  "content": "Answer from the course notes."},\n'
+         ' {"role": "user",\n'
+         '  "content": "What is a row group?"},\n'
+         ' ...earlier requests and results...]', False),
+        (R, 5.4, "2  The model asks for a tool", ORANGE,
+         '{"stop_reason": "tool_use",\n'
+         ' "content": [\n'
+         '   {"type": "tool_use", "id": "toolu_01",\n'
+         '    "name": "grep_notes",\n'
+         '    "input": {"pattern": "row group"}}]}', False),
+        (R, 0, "3  Your code runs the tool", BLUE,
+         '$ grep -n "row group" lectures/*/notes.md\n'
+         'l04/notes.md:119: A **row group** is a\n'
+         '  horizontal slice of a Parquet file,\n'
+         '  perhaps a few hundred thousand rows. ...', True),
+        (0, 0, "4  The result goes back in", GREEN,
+         '{"role": "user",\n'
+         ' "content": [\n'
+         '   {"type": "tool_result",\n'
+         '    "tool_use_id": "toolu_01",\n'
+         '    "content": "l04/notes.md:119: A row..."}]}', False),
+    ]
+    fig, ax = plt.subplots(figsize=(16.5, 7.2))
+    for x, y, title, col, body, dashed in boxes:
+        ax.add_patch(FancyBboxPatch((x, y), W, H, boxstyle="round,pad=0.05,rounding_size=0.25",
+                                    fc=col + "14", ec=col, lw=2.2, ls="--" if dashed else "-"))
+        ax.text(x + 0.35, y + H - 0.3, title, fontsize=15, weight="bold", color=col, va="top")
+        ax.text(x + 0.35, y + H - 1.0, body, fontsize=10.5, family="monospace", va="top", linespacing=1.4)
+    arrow = dict(arrowstyle="-|>", mutation_scale=24, lw=2.6, color="k")
+    mid, cx = (W + R) / 2, R + W / 2
+    for a, b in [((W + 0.2, 7.2), (R - 0.2, 7.2)), ((cx, 5.2), (cx, H + 0.2)),
+                 ((R - 0.2, 1.8), (W + 0.2, 1.8)), ((W / 2, H + 0.2), (W / 2, 5.2))]:
+        ax.add_patch(FancyArrowPatch(a, b, **arrow))
+    ax.text(mid, 7.45, "model reads\nall of it", ha="center", va="bottom", fontsize=12)
+    ax.text(cx + 0.3, 4.5, "your code decides whether to run it", fontsize=12, va="center")
+    ax.text(mid, 2.05, "output\nas text", ha="center", va="bottom", fontsize=12)
+    ax.text(W / 2 - 0.3, 4.5, "appended, and it costs tokens", fontsize=12, va="center", ha="right")
+    ax.text(mid, 4.5, "repeat until the\nmodel stops asking", ha="center", va="center", fontsize=14,
+            weight="bold", color=RED)
+    ax.add_patch(FancyArrowPatch((R + W + 0.2, 7.2), (R + W + 1.6, 7.2), **arrow))
+    ax.text(R + W + 1.7, 7.2, '"end_turn":\nthe answer', fontsize=12, va="center")
+    ax.text(cx, -0.3, "dashed: runs outside the model", ha="center", fontsize=11, color=GRAY,
+            style="italic", va="top")
+    ax.set(xlim=(-5.8, R + W + 4.6), ylim=(-0.8, 9.3))
+    ax.axis("off")
+    fig.savefig(HERE / "tool-loop.png"); plt.close(fig)
+    print("wrote tool-loop")
+
+
+GROUPS = {"ladder": run_ladder, "sweep": run_sweep, "scale": run_scale, "widgets": run_widgets,
+          "plots": run_plots, "window": run_window, "toolloop": run_toolloop}
 
 if __name__ == "__main__":
     for g in sys.argv[1:] or list(GROUPS):
