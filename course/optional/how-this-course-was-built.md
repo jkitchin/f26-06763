@@ -42,7 +42,7 @@
 
 The guardrails along the way:
 
-- **Permissions:** the agent asks before it runs a command or edits a file we have not allowed.
+- **Permissions:** we set what the agent may do without asking us.
 - **Automatic checks:** the build fails on any warning. Other checks confirm that every practice
   question still matches the notes, that no instructor-only file is published, and that the
   live site serves the new version.
