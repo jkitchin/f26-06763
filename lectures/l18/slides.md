@@ -464,15 +464,19 @@ db.execute("SELECT rowid FROM notes WHERE notes MATCH ? "
 
 ## Semantic search, on the course notes
 
-- Dense: **hit@5 0.88, MRR 0.72**; paraphrases up from 0.67 to **0.83**
-- Money question: rank **2** (BM25: 14)
-- Lost: `zero_grad` (rank 8) and "invent a part number" (rank 14; BM25: 1)
-- L17 still applies: units, negation and identifiers are weak spots
-- <span class="pt">▶</span> keyword and embedding search fail on different questions
+| 28 questions over 516 note sections | Keyword (BM25) | Embeddings |
+|---|---|---|
+| hit@5, all questions | 0.83 | **0.88** |
+| hit@5, paraphrased questions | 0.67 | **0.83** |
+| "adding up money … off by a fraction of a cent" | rank 14 | **rank 2** |
+| "what happens if you forget `zero_grad`" | **rank 5** | rank 8 |
+| "chatbot confidently invents a part number" | **rank 1** | rank 14 |
+
+- <span class="pt">▶</span> embeddings miss exact identifiers and words (L17); keyword search misses rewordings
 
 <div class="ask-slot">
 
-Try it: the **Ask** button on every notes page runs this search over the released notes.
+Try it: the **Ask** button on every notes page searches the released notes with both.
 
 </div>
 

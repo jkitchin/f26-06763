@@ -110,6 +110,13 @@
 
     ui.body = el('div', null, panel);
 
+    // Keys pressed inside the panel belong to the panel. In a deck, Marp's bespoke navigation
+    // listens on document and would otherwise take Space, the arrows, "o" and Escape for itself.
+    panel.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closePanel();
+      e.stopPropagation();
+    });
+
     el('p', 'ask-foot', panel,
       'Searches the released lecture notes and slides, and runs entirely in your browser: ' +
       'nothing you type is sent anywhere. Opening this panel downloads a 23 MB search model. ' +

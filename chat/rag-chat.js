@@ -344,7 +344,12 @@ async function mount(root) {
     ask.disabled = false;
   }
   ask.onclick = run;
-  input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !ask.disabled) run(); });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !ask.disabled) run();
+    // In a Marp deck, bespoke listens for keydown on document, so without this Space and the
+    // arrow keys typed into the box turn the slide instead. Escape still reaches the page.
+    if (e.key !== 'Escape') e.stopPropagation();
+  });
 }
 
 function boot() {
