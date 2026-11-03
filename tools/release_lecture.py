@@ -50,9 +50,11 @@ TOC = REPO / "_toc.yml"
 #: AL/RL now fill L14 to L16), so A8 to A10 follow their lectures: A8 with L18 (structured
 #: output), A9 with L19 (RAG), A10 with L20 (agents); A11 stays with L21. A8 was released
 #: with L18 by mistake on 2026-11-01 and pulled the same day; it is held until a date is set.
+#: L19 became the agents lecture (RAG went into L18) and releases no assignment (2026-11-03), so
+#: A9 is held too.
 LECTURE_ASSIGNMENTS = {
     1: ["a01"], 4: ["a02"], 6: ["a03"], 8: ["a04"], 15: ["a05"],
-    19: ["a09"], 20: ["a10"], 21: ["a11"],   # a06 and a08 held: not released with L11 and L18; dates open
+    20: ["a10"], 21: ["a11"],   # a06, a08 and a09 held: not released with L11, L18 and L19; dates open
 }
 
 #: Which project page (course/<slug>.md) is released with which lecture. The

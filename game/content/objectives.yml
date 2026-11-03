@@ -215,19 +215,35 @@
 - id: l19-o1
   lecture: l19
   text: >-
-    Explain why RAG exists (grounding, freshness, source attribution, cost vs long-context)
-    and where it breaks.
+    Explain what an LLM agent is, and when a fixed workflow is the better choice.
 
 - id: l19-o2
   lecture: l19
   text: >-
-    Build each stage of a RAG pipeline and reason about the design choices at each stage.
+    Trace the agent loop message by message, and explain why the tokens it reads grow faster than
+    the number of calls.
 
 - id: l19-o3
   lecture: l19
   text: >-
-    Evaluate retrieval quality quantitatively and connect retrieval failures to downstream
-    answer failures.
+    Write tool definitions a model can use correctly, with errors it can recover from.
+
+- id: l19-o4
+  lecture: l19
+  text: >-
+    Bound and guard an agent: a step budget, a stuck check, read-only access, and a person's
+    approval before any change to a physical system.
+
+- id: l19-o5
+  lecture: l19
+  text: >-
+    Measure an agent on a fixed set of tasks, and explain why success falls as $p^n$ with the
+    number of steps.
+
+- id: l19-o6
+  lecture: l19
+  text: >-
+    Describe how coding agents map onto the same loop, and how to work with one safely.
 
 - id: l01-o1
   lecture: l01

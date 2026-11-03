@@ -694,6 +694,38 @@
       "where": "- [Lecture 16](../l16/notes.md) built generative models: learn a distribution, then sample from"
     },
     {
+      "from": "l19",
+      "to": "l01",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "([Lecture 1](../l01/notes.md))."
+    },
+    {
+      "from": "l19",
+      "to": "l04",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "| `query_log` | One read-only SQL query on last week's hourly log, stored in DuckDB ([Lecture 4](../l04/notes.md)) |"
+    },
+    {
+      "from": "l19",
+      "to": "l15",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "- The stirred tank of [Lecture 15](../l15/notes.md): A turns into the product B, and B burns"
+    },
+    {
+      "from": "l19",
+      "to": "l18",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "- That loop is an **agent**. [Lecture 18](../l18/notes.md) ended with one tool call. Today: the"
+    },
+    {
       "from": "l20",
       "to": "l07",
       "origin": "link",

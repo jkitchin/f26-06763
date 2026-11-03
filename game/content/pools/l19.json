@@ -174,6 +174,119 @@
         }
       },
       "serve": 5
+    },
+    "3": {
+      "items": {
+        "l19-q11": {
+          "answer": "The model picks its next step from the last tool result",
+          "options": [
+            "It runs a larger and more capable model than a workflow would use",
+            "The model picks its next step from the last tool result",
+            "It calls at least one tool before it writes its final answer",
+            "It always answers in structured JSON that your code can parse"
+          ]
+        },
+        "l19-q12": {
+          "answer": "A workflow: your code fixes the steps",
+          "options": [
+            "An agent, so the model can choose the steps for each datasheet",
+            "A workflow: your code fixes the steps",
+            "A multi-agent system, with one agent for each field",
+            "An agent with a step budget of one call"
+          ]
+        },
+        "l19-q13": {
+          "answer": "Your code, after the model writes a request",
+          "options": [
+            "The model itself, as soon as it decides the change is needed",
+            "Your code, after the model writes a request",
+            "The provider's servers, which execute tool calls for the model",
+            "The tool definition, which the model reads with every call"
+          ]
+        },
+        "l19-q14": {
+          "answer": "More than 3 times: every call re-reads the growing history",
+          "options": [
+            "About 3 times, in proportion to the number of calls the agent makes",
+            "More than 3 times: every call re-reads the growing history",
+            "They stay about the same, because only new messages are sent",
+            "Less than 3 times, because the context window caps them"
+          ]
+        },
+        "l19-q15": {
+          "answer": "Return an error that says what was wrong and what is allowed",
+          "options": [
+            "Raise an exception so that the loop stops before anything goes wrong",
+            "Return an error that says what was wrong and what is allowed",
+            "Clip the value to 140 °C and return the prediction there",
+            "Return a prediction anyway, with a warning flag in the result"
+          ]
+        },
+        "l19-q16": {
+          "answer": "Its description and argument types",
+          "options": [
+            "Switch to a larger model that makes fewer mistakes",
+            "Its description and argument types",
+            "Raise the step budget so the model has more tries",
+            "Add retries until the arguments are accepted"
+          ]
+        },
+        "l19-q17": {
+          "answer": "The approval gate in the loop: the operator said no",
+          "options": [
+            "The model recognized the note as an injection and ignored it",
+            "The approval gate in the loop: the operator said no",
+            "The system prompt, which says a change needs approval",
+            "The range check inside set_temperature"
+          ]
+        },
+        "l19-q18": {
+          "answer": "Private data, untrusted content, and a way to send data out",
+          "options": [
+            "A large model, a long context window, and a high sampling temperature",
+            "Private data, untrusted content, and a way to send data out",
+            "Many tools, many steps, and no step budget for the loop",
+            "Private data, a read-only database, and an approval gate"
+          ]
+        },
+        "l19-q19": {
+          "answer": "36%",
+          "options": [
+            "95%",
+            "80%",
+            "36%",
+            "5%"
+          ]
+        },
+        "l19-q20": {
+          "answer": "The chance that all 8 runs of a task succeed",
+          "options": [
+            "The average success rate measured over 8 different tasks",
+            "The chance that all 8 runs of a task succeed",
+            "The success rate of the best of 8 runs",
+            "The success rate after 8 retries of each failed call"
+          ]
+        },
+        "l19-q21": {
+          "answer": "Its permission settings: allow, ask or deny",
+          "options": [
+            "The AGENTS.md or CLAUDE.md file it reads at the start of a session",
+            "Its permission settings: allow, ask or deny",
+            "Compacting the conversation when the context fills up",
+            "The temperature at which the model samples"
+          ]
+        },
+        "l19-q22": {
+          "answer": "They took 19% longer, while believing they had been 20% faster",
+          "options": [
+            "They finished 24% faster, as they had forecast before the study started",
+            "They took 19% longer, while believing they had been 20% faster",
+            "They finished every task faster, by about 20% on average",
+            "Nothing measurable changed in how long the tasks took them"
+          ]
+        }
+      },
+      "serve": 6
     }
   }
 }

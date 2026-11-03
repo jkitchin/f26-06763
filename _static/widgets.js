@@ -4830,6 +4830,152 @@
     draw(0);
   };
 
+  /* ---------------------------------------------------------------- L19: agents
+   * Data: _static/l19-widget-data.js, written by lectures/l19/figures/make_figures.py from the
+   * scripted run of lectures/l19/l19-agents.ipynb. */
+
+  /* One agent run, message by message: the conversation on the left, and on the right the input
+   * tokens each model call reads, which grow because every call re-reads everything before it. */
+  WIDGETS['agent-trace'] = function (root, data) {
+    var d = data.trace, S = d.steps, C = d.calls, P = d.prefix.system + d.prefix.tools;
+    var LABEL = { user: 'User', request: 'Model: tool request', result: 'Tool result (your code ran it)',
+      answer: 'Model: answer' };
+    var EDGE = { user: '#8a8a8a', request: '#c41230', result: '#1f5c99', answer: '#2e7d32' };
+    html('div', { class: 'cw-title' }, root, 'One agent run, message by message');
+    var row = html('div', {}, root);
+    row.style.cssText = 'display:grid;grid-template-columns:1.45fr 1fr;gap:14px;align-items:start';
+    var list = html('div', {}, row);
+    list.style.cssText = 'position:relative;max-height:330px;overflow-y:auto;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;' +
+      'font-size:.86em;line-height:1.3';
+    var W = 330, H = 270, L = 46, R = W - 8, T = 22, B = H - 30;
+    var svg = svgRoot(row, W, H, 'Input tokens read by each model call');
+    var ymax = Math.ceil(C[C.length - 1].input * 1.15 / 100) * 100;
+    var sy = scale(0, ymax, B, T), bw = (R - L) / C.length;
+    [0, ymax / 2, ymax].forEach(function (v) {
+      el('line', { x1: L, x2: R, y1: sy(v), y2: sy(v), stroke: 'currentColor', 'stroke-opacity': 0.12 }, svg);
+      text(svg, L - 6, sy(v) + 4, String(v), { 'text-anchor': 'end', 'font-size': 11, opacity: 0.7 });
+    });
+    text(svg, (L + R) / 2, H - 4, 'model call', { 'text-anchor': 'middle', 'font-size': 12, opacity: 0.8 });
+    text(svg, L, 12, 'input tokens read', { 'font-size': 12, opacity: 0.8 });
+    var bars = C.map(function (c, j) {
+      var x = L + j * bw + bw * 0.15, w = bw * 0.7;
+      var g = el('g', { opacity: 0 }, svg);
+      el('rect', { x: x, y: sy(P), width: w, height: B - sy(P), fill: '#dbe8f5', stroke: '#1f5c99' }, g);
+      el('rect', { x: x, y: sy(c.input), width: w, height: sy(P) - sy(c.input), fill: '#f7e3c3', stroke: '#b07d12' }, g);
+      text(g, x + w / 2, sy(c.input) - 5, String(c.input), { 'text-anchor': 'middle', 'font-size': 12 });
+      text(svg, x + w / 2, B + 15, String(j + 1), { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.7 });
+      return g;
+    });
+    // drawn after the bars, so the bars never hide it
+    el('line', { x1: L, x2: R, y1: sy(P), y2: sy(P), stroke: '#1f5c99', 'stroke-dasharray': '5 4', 'stroke-width': 1.5 }, svg);
+    text(svg, L + 4, sy(P) + 14, 'prefix: ' + P + ' tokens, every call', { 'font-size': 11, fill: '#1f5c99',
+      stroke: 'white', 'stroke-width': 3, 'paint-order': 'stroke' });
+    var controls = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root, 'Blue: the system prompt (' + d.prefix.system + ' tokens) and the tool ' +
+      'definitions (' + d.prefix.tools + '), sent with every call. Gold: the conversation so far. Tokens counted with ' +
+      'tiktoken (' + d.tokenizer + '). The model is scripted, so the run is the same every time.');
+    var items = S.map(function (s) {
+      var div = html('div', {}, list);
+      div.style.cssText = 'border-left:4px solid ' + EDGE[s.kind] + ';background:rgba(128,128,128,.07);' +
+        'border-radius:0 5px 5px 0;padding:4px 8px;margin:0 0 6px;display:none;white-space:pre-wrap;word-break:break-word';
+      var head = html('div', {}, div, LABEL[s.kind] + ' · ' + s.tokens + ' tokens');
+      head.style.cssText = 'font-family:inherit;font-weight:600;color:' + EDGE[s.kind] + ';font-size:.92em';
+      html('div', {}, div, s.text.length > 230 ? s.text.slice(0, 227) + '...' : s.text);
+      if (s.approval) {
+        var a = html('div', {}, div, 'Approval needed: ' + s.approval);
+        a.style.cssText = 'color:#2e7d32;font-weight:600;margin-top:2px';
+      }
+      return div;
+    });
+    function show(i) {
+      items.forEach(function (div, k) {
+        div.style.display = k <= i ? 'block' : 'none';
+        div.style.outline = k === i ? '2px solid ' + EDGE[S[k].kind] : 'none';
+      });
+      list.scrollTop = Math.max(0, items[i].offsetTop + items[i].offsetHeight - list.clientHeight + 4);
+      var made = S[i].call;
+      bars.forEach(function (g, j) { g.setAttribute('opacity', j < made ? (j === made - 1 && S[i].kind !== 'result' ? 1 : 0.55) : 0); });
+      var s = S[i], c = C[made - 1];
+      if (s.kind === 'user') {
+        readout.textContent = 'The task. Nothing has been sent yet. Each model call will read the ' + P +
+          '-token prefix plus every message so far. Press Step.';
+      } else if (s.kind === 'request') {
+        readout.textContent = 'Call ' + made + ' reads ' + c.input + ' tokens (' + P + ' prefix + ' + c.history +
+          ' of conversation) and asks for a tool.' + (s.approval ? ' This tool changes the plant, so your code asks the operator first.' : ' Your code, not the model, will run it.');
+      } else if (s.kind === 'result') {
+        readout.textContent = 'Your code ran the tool and appended its result (' + s.tokens + ' tokens). ' +
+          (s.text.indexOf('error') >= 0 ? 'An error the model can read: it can try again. ' : '') +
+          'Every later call re-reads it.';
+      } else {
+        var total = C.reduce(function (a, x) { return a + x.input; }, 0);
+        readout.textContent = 'Call ' + made + ' reads ' + c.input + ' tokens and answers. The loop ends. ' +
+          C.length + ' calls read ' + total.toLocaleString('en-US') + ' tokens in total, though the last conversation is only ' +
+          c.input + '.';
+      }
+    }
+    player(controls, S.length, show, 1600).set(0);
+  };
+
+  /* Errors compound: if each tool call is right with probability p, a task of n calls that must all
+   * be right succeeds with probability p^n. The red dots are the worked example's measurements. */
+  WIDGETS['agent-reliability'] = function (root, data) {
+    var meas = (data.reliability || {}).measured || {};
+    var p = 0.95, n = 20, NMAX = 50;
+    var W = 720, H = 290, L = 54, R = W - 20, T = 14, B = H - 36;
+    html('div', { class: 'cw-title' }, root, 'Errors compound: p to the n');
+    var svg = svgRoot(root, W, H, 'Task success against the number of tool calls');
+    var sx = scale(0, NMAX, L, R), sy = scale(0, 1, B, T);
+    [0, 0.25, 0.5, 0.75, 1].forEach(function (v) {
+      el('line', { x1: L, x2: R, y1: sy(v), y2: sy(v), stroke: 'currentColor', 'stroke-opacity': 0.1 }, svg);
+      text(svg, L - 8, sy(v) + 4, Math.round(100 * v) + '%', { 'text-anchor': 'end', 'font-size': 12, opacity: 0.7 });
+    });
+    [1, 10, 20, 30, 40, 50].forEach(function (v) {
+      text(svg, sx(v), B + 18, String(v), { 'text-anchor': 'middle', 'font-size': 12, opacity: 0.7 });
+    });
+    text(svg, (L + R) / 2, H - 2, 'tool calls in the task, n', { 'text-anchor': 'middle', 'font-size': 13, opacity: 0.85 });
+    var ref = [];
+    for (var k0 = 1; k0 <= NMAX; k0++) ref.push(sx(k0).toFixed(1) + ',' + sy(Math.pow(0.9, k0)).toFixed(1));
+    el('polyline', { points: ref.join(' '), fill: 'none', stroke: '#b07d12', 'stroke-width': 1.5, 'stroke-dasharray': '5 4', opacity: 0.8 }, svg);
+    text(svg, sx(9), sy(Math.pow(0.9, 9)) + 18, 'p = 0.9', { 'font-size': 12, fill: '#b07d12' });
+    var curve = el('polyline', { fill: 'none', stroke: '#1f5c99', 'stroke-width': 3 }, svg);
+    var vline = el('line', { stroke: '#c41230', 'stroke-dasharray': '4 4', 'stroke-width': 1.5 }, svg);
+    var hline = el('line', { stroke: '#c41230', 'stroke-dasharray': '4 4', 'stroke-width': 1.5 }, svg);
+    var dot = el('circle', { r: 7, fill: '#c41230' }, svg);
+    var lab = text(svg, 0, 0, '', { 'font-size': 14, 'font-weight': 600, fill: '#c41230' });
+    Object.keys(meas).forEach(function (k) {
+      el('circle', { cx: sx(+k), cy: sy(meas[k]), r: 5, fill: 'none', stroke: '#b07d12', 'stroke-width': 2.5 }, svg);
+    });
+    var controls = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root, 'Gold circles: the worked example, a model that slips on 10% of its tool ' +
+      'calls (p = 0.9), measured on tasks of one, two and three calls, 200 runs each.');
+    function rangeInput(label, min, max, step, value, show, set) {
+      var l = html('label', {}, controls, label + ' ');
+      var r = html('input', { type: 'range', min: min, max: max, step: step, value: value }, l);
+      var out = html('span', {}, l, show(value));
+      r.oninput = function () { out.textContent = show(+r.value); set(+r.value); draw(); };
+    }
+    function draw() {
+      var pts = [];
+      for (var k = 1; k <= NMAX; k++) pts.push(sx(k).toFixed(1) + ',' + sy(Math.pow(p, k)).toFixed(1));
+      curve.setAttribute('points', pts.join(' '));
+      var v = Math.pow(p, n), x = sx(n), y = sy(v);
+      vline.setAttribute('x1', x); vline.setAttribute('x2', x); vline.setAttribute('y1', B); vline.setAttribute('y2', y);
+      hline.setAttribute('x1', L); hline.setAttribute('x2', x); hline.setAttribute('y1', y); hline.setAttribute('y2', y);
+      dot.setAttribute('cx', x); dot.setAttribute('cy', y);
+      lab.setAttribute('x', Math.min(x + 10, R - 60)); lab.setAttribute('y', Math.max(y - 10, T + 14));
+      lab.textContent = Math.round(100 * v) + '%';
+      var need = Math.pow(0.9, 1 / n);
+      readout.textContent = 'Each call right with p = ' + p.toFixed(3) + ': a task of ' + n + ' call' + (n > 1 ? 's' : '') +
+        ' succeeds ' + Math.round(100 * v) + '% of the time (p^n = ' + v.toFixed(3) + '). To keep ' + n +
+        ' calls at 90%, each call must be right ' + (100 * need).toFixed(1) + '% of the time.';
+    }
+    rangeInput('p per call', 0.8, 0.999, 0.001, p, function (v) { return v.toFixed(3); }, function (v) { p = v; });
+    rangeInput('calls n', 1, NMAX, 1, n, function (v) { return String(v); }, function (v) { n = v; });
+    draw();
+  };
+
   // ------------------------------------------------------------------ boot
 
   function boot() {
