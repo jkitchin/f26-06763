@@ -287,6 +287,119 @@
         }
       },
       "serve": 6
+    },
+    "4": {
+      "items": {
+        "l19-q11": {
+          "answer": "The model picks its next step from the last tool result",
+          "options": [
+            "It runs a larger and more capable model than a workflow would use",
+            "The model picks its next step from the last tool result",
+            "It calls at least one tool before it writes its final answer",
+            "It always answers in structured JSON that your code can parse"
+          ]
+        },
+        "l19-q12": {
+          "answer": "A workflow: your code fixes the steps",
+          "options": [
+            "An agent, so the model can choose the steps for each datasheet",
+            "A workflow: your code fixes the steps",
+            "A multi-agent system, with one agent for each field",
+            "An agent with a step budget of one call"
+          ]
+        },
+        "l19-q13": {
+          "answer": "Your code, after the model writes a request",
+          "options": [
+            "The model itself, as soon as it decides the change is needed",
+            "Your code, after the model writes a request",
+            "The provider's servers, which execute tool calls for the model",
+            "The tool definition, which the model reads with every call"
+          ]
+        },
+        "l19-q16": {
+          "answer": "Its description and argument types",
+          "options": [
+            "Switch to a larger model that makes fewer mistakes",
+            "Its description and argument types",
+            "Raise the step budget so the model has more tries",
+            "Add retries until the arguments are accepted"
+          ]
+        },
+        "l19-q17": {
+          "answer": "The approval gate in the loop: the operator said no",
+          "options": [
+            "The model recognized the note as an injection and ignored it",
+            "The approval gate in the loop: the operator said no",
+            "The system prompt, which says a change needs approval",
+            "The range check inside set_temperature"
+          ]
+        },
+        "l19-q21": {
+          "answer": "Its permission settings: allow, ask or deny",
+          "options": [
+            "The AGENTS.md or CLAUDE.md file it reads at the start of a session",
+            "Its permission settings: allow, ask or deny",
+            "Compacting the conversation when the context fills up",
+            "The temperature at which the model samples"
+          ]
+        },
+        "l19-q22": {
+          "answer": "They took 19% longer, while believing they had been 20% faster",
+          "options": [
+            "They finished 24% faster, as they had forecast before the study started",
+            "They took 19% longer, while believing they had been 20% faster",
+            "They finished every task faster, by about 20% on average",
+            "Nothing measurable changed in how long the tasks took them"
+          ]
+        },
+        "l19-q23": {
+          "answer": "Checking the permission rules before a tool runs",
+          "options": [
+            "Choosing which tool to call next, from the last result",
+            "Checking the permission rules before a tool runs",
+            "Writing the arguments of a tool request",
+            "Writing the final answer for the user"
+          ]
+        },
+        "l19-q25": {
+          "answer": "Each call starts with the last call's whole prompt, which the cache reuses",
+          "options": [
+            "The provider stores the model's earlier answers and replays them when asked again",
+            "Each call starts with the last call's whole prompt, which the cache reuses",
+            "The cache compresses the tool results, so every call is shorter",
+            "Cached calls run on a smaller and cheaper model than uncached ones"
+          ]
+        },
+        "l19-q26": {
+          "answer": "Every call misses the cache and pays to write it again",
+          "options": [
+            "Nothing changes, because the cache ignores the system prompt",
+            "Every call misses the cache and pays to write it again",
+            "Only the first call misses; the later calls still hit",
+            "The cache keeps working, but it expires after one minute"
+          ]
+        },
+        "l19-q27": {
+          "answer": "In the instructions file, read at the start of every session",
+          "options": [
+            "In a longer and more emphatic first message next time",
+            "In the instructions file, read at the start of every session",
+            "In a comment at the top of each file the agent is likely to edit",
+            "Nowhere: an agent cannot keep a rule across a long session"
+          ]
+        },
+        "l19-q28": {
+          "answer": "A test it can run that comes back pass or fail",
+          "options": [
+            "A longer prompt that explains the whole project in detail",
+            "A test it can run that comes back pass or fail",
+            "Permission to run every command without asking first",
+            "A larger context window, so it can read every file at once"
+          ]
+        }
+      },
+      "serve": 6
     }
   }
 }

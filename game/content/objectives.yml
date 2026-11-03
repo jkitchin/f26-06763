@@ -220,30 +220,30 @@
 - id: l19-o2
   lecture: l19
   text: >-
-    Trace the agent loop message by message, and explain why the tokens it reads grow faster than
-    the number of calls.
+    Trace the agent loop, and name the jobs of the harness, the software around the model.
 
 - id: l19-o3
   lecture: l19
   text: >-
-    Write tool definitions a model can use correctly, with errors it can recover from.
+    Explain how prompt caching cuts the cost of a long agent run, and what breaks the cache.
 
 - id: l19-o4
   lecture: l19
   text: >-
-    Bound and guard an agent: a step budget, a stuck check, read-only access, and a person's
-    approval before any change to a physical system.
+    Write tool definitions a model can use correctly, and guard an agent that can act: least
+    privilege, a person's approval, and no lethal trifecta.
 
 - id: l19-o5
   lecture: l19
   text: >-
-    Measure an agent on a fixed set of tasks, and explain why success falls as $p^n$ with the
-    number of steps.
+    Describe the parts of a coding agent: the instructions file, the tools, the permissions and
+    sandbox, and context management.
 
 - id: l19-o6
   lecture: l19
   text: >-
-    Describe how coding agents map onto the same loop, and how to work with one safely.
+    Set up a project so a coding agent can work in it safely, with the course's toolchain: uv,
+    git, tests and read-only data.
 
 - id: l01-o1
   lecture: l01

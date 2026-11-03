@@ -4917,65 +4917,6 @@
     player(controls, S.length, show, 1600).set(0);
   };
 
-  /* Errors compound: if each tool call is right with probability p, a task of n calls that must all
-   * be right succeeds with probability p^n. The red dots are the worked example's measurements. */
-  WIDGETS['agent-reliability'] = function (root, data) {
-    var meas = (data.reliability || {}).measured || {};
-    var p = 0.95, n = 20, NMAX = 50;
-    var W = 720, H = 290, L = 54, R = W - 20, T = 14, B = H - 36;
-    html('div', { class: 'cw-title' }, root, 'Errors compound: p to the n');
-    var svg = svgRoot(root, W, H, 'Task success against the number of tool calls');
-    var sx = scale(0, NMAX, L, R), sy = scale(0, 1, B, T);
-    [0, 0.25, 0.5, 0.75, 1].forEach(function (v) {
-      el('line', { x1: L, x2: R, y1: sy(v), y2: sy(v), stroke: 'currentColor', 'stroke-opacity': 0.1 }, svg);
-      text(svg, L - 8, sy(v) + 4, Math.round(100 * v) + '%', { 'text-anchor': 'end', 'font-size': 12, opacity: 0.7 });
-    });
-    [1, 10, 20, 30, 40, 50].forEach(function (v) {
-      text(svg, sx(v), B + 18, String(v), { 'text-anchor': 'middle', 'font-size': 12, opacity: 0.7 });
-    });
-    text(svg, (L + R) / 2, H - 2, 'tool calls in the task, n', { 'text-anchor': 'middle', 'font-size': 13, opacity: 0.85 });
-    var ref = [];
-    for (var k0 = 1; k0 <= NMAX; k0++) ref.push(sx(k0).toFixed(1) + ',' + sy(Math.pow(0.9, k0)).toFixed(1));
-    el('polyline', { points: ref.join(' '), fill: 'none', stroke: '#b07d12', 'stroke-width': 1.5, 'stroke-dasharray': '5 4', opacity: 0.8 }, svg);
-    text(svg, sx(9), sy(Math.pow(0.9, 9)) + 18, 'p = 0.9', { 'font-size': 12, fill: '#b07d12' });
-    var curve = el('polyline', { fill: 'none', stroke: '#1f5c99', 'stroke-width': 3 }, svg);
-    var vline = el('line', { stroke: '#c41230', 'stroke-dasharray': '4 4', 'stroke-width': 1.5 }, svg);
-    var hline = el('line', { stroke: '#c41230', 'stroke-dasharray': '4 4', 'stroke-width': 1.5 }, svg);
-    var dot = el('circle', { r: 7, fill: '#c41230' }, svg);
-    var lab = text(svg, 0, 0, '', { 'font-size': 14, 'font-weight': 600, fill: '#c41230' });
-    Object.keys(meas).forEach(function (k) {
-      el('circle', { cx: sx(+k), cy: sy(meas[k]), r: 5, fill: 'none', stroke: '#b07d12', 'stroke-width': 2.5 }, svg);
-    });
-    var controls = html('div', { class: 'cw-controls' }, root);
-    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
-    html('div', { class: 'cw-note' }, root, 'Gold circles: the worked example, a model that slips on 10% of its tool ' +
-      'calls (p = 0.9), measured on tasks of one, two and three calls, 200 runs each.');
-    function rangeInput(label, min, max, step, value, show, set) {
-      var l = html('label', {}, controls, label + ' ');
-      var r = html('input', { type: 'range', min: min, max: max, step: step, value: value }, l);
-      var out = html('span', {}, l, show(value));
-      r.oninput = function () { out.textContent = show(+r.value); set(+r.value); draw(); };
-    }
-    function draw() {
-      var pts = [];
-      for (var k = 1; k <= NMAX; k++) pts.push(sx(k).toFixed(1) + ',' + sy(Math.pow(p, k)).toFixed(1));
-      curve.setAttribute('points', pts.join(' '));
-      var v = Math.pow(p, n), x = sx(n), y = sy(v);
-      vline.setAttribute('x1', x); vline.setAttribute('x2', x); vline.setAttribute('y1', B); vline.setAttribute('y2', y);
-      hline.setAttribute('x1', L); hline.setAttribute('x2', x); hline.setAttribute('y1', y); hline.setAttribute('y2', y);
-      dot.setAttribute('cx', x); dot.setAttribute('cy', y);
-      lab.setAttribute('x', Math.min(x + 10, R - 60)); lab.setAttribute('y', Math.max(y - 10, T + 14));
-      lab.textContent = Math.round(100 * v) + '%';
-      var need = Math.pow(0.9, 1 / n);
-      readout.textContent = 'Each call right with p = ' + p.toFixed(3) + ': a task of ' + n + ' call' + (n > 1 ? 's' : '') +
-        ' succeeds ' + Math.round(100 * v) + '% of the time (p^n = ' + v.toFixed(3) + '). To keep ' + n +
-        ' calls at 90%, each call must be right ' + (100 * need).toFixed(1) + '% of the time.';
-    }
-    rangeInput('p per call', 0.8, 0.999, 0.001, p, function (v) { return v.toFixed(3); }, function (v) { p = v; });
-    rangeInput('calls n', 1, NMAX, 1, n, function (v) { return String(v); }, function (v) { n = v; });
-    draw();
-  };
-
   // ------------------------------------------------------------------ boot
 
   function boot() {

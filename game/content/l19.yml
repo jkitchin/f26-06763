@@ -1,8 +1,9 @@
 # L19 item bank, hand-written from lectures/l19/notes.md.
 #
-# Pool v3 (2026-11-03): LLM agents, tools, loops and guardrails. Pools 1 and 2 were the old RAG
-# lecture, before L18 absorbed retrieval; they stay in pools/l19.json. Click-only items, the
-# numbers from lectures/l19/figures/make_figures.py and the worked example.
+# Pool v4 (2026-11-03): the lecture restructured around the harness, prompt caching and coding
+# agents; the measuring items of v3 are gone. Pools 1 and 2 were the old RAG lecture, before L18
+# absorbed retrieval; v1 to v3 stay in pools/l19.json. Click-only items, the numbers from
+# lectures/l19/figures/make_figures.py and the worked example.
 # The contract every item obeys:
 #
 #   source.quote  appears verbatim in source.file
@@ -17,7 +18,7 @@ title: "LLM agents: tools, loops and guardrails"
 source_notes: lectures/l19/notes.md
 status: unwritten
 serve: 6
-pool_version: 3
+pool_version: 4
 provenance:
   drafted_by: hand
   reviewed_by: none
@@ -91,49 +92,71 @@ items:
     verify: {mode: quote, needle: "The model only writes requests", volatility: stable}
     tags: [loop, harness]
 
-  - id: l19-q14
+  - id: l19-q23
+    kind: mcq
+    rung: 1
+    difficulty: 1
+    objectives: [l19-o2]
+    prompt: |
+      Which of these is a job of the harness, not of the model?
+    options:
+      - "Choosing which tool to call next, from the last result"
+      - "Checking the permission rules before a tool runs"
+      - "Writing the arguments of a tool request"
+      - "Writing the final answer for the user"
+    answer: "Checking the permission rules before a tool runs"
+    evidence: |
+      The model reads text and writes requests: which tool, which arguments, and the final answer. The harness, the software around it, builds the prompt, runs the tools, checks permissions, manages the context and ends the run.
+    source:
+      file: lectures/l19/notes.md
+      heading: "The harness"
+      quote: "checks permissions, manages the context, and decides when the run ends"
+    verify: {mode: quote, needle: "checks permissions, manages the context", volatility: stable}
+    tags: [harness, definition]
+
+  - id: l19-q25
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l19-o3]
+    prompt: |
+      Why does prompt caching save so much in an agent run?
+    options:
+      - "The provider stores the model's earlier answers and replays them when asked again"
+      - "Each call starts with the last call's whole prompt, which the cache reuses"
+      - "The cache compresses the tool results, so every call is shorter"
+      - "Cached calls run on a smaller and cheaper model than uncached ones"
+    answer: "Each call starts with the last call's whole prompt, which the cache reuses"
+    evidence: |
+      An agent's prompt only grows at the end, so the old prompt is an exact prefix of the new one. That prefix is read from the cache at about a tenth of the price. In the tank run, the cache would cut the cost to 39%, and to 17% over 30 calls.
+    source:
+      file: lectures/l19/notes.md
+      heading: "How the cache works"
+      quote: "the old prompt is an exact prefix of the new prompt"
+    verify: {mode: quote, needle: "exact prefix of the new prompt", volatility: stable}
+    tags: [caching, cost]
+
+  - id: l19-q26
     kind: mcq
     rung: 3
     difficulty: 2
-    objectives: [l19-o2]
-    prompt: |
-      An agent's task grows from 10 model calls to 30. How do the input tokens it reads in total change?
-    options:
-      - "About 3 times, in proportion to the number of calls the agent makes"
-      - "More than 3 times: every call re-reads the growing history"
-      - "They stay about the same, because only new messages are sent"
-      - "Less than 3 times, because the context window caps them"
-    answer: "More than 3 times: every call re-reads the growing history"
-    evidence: |
-      An LLM keeps no memory between calls, so each call sends the whole conversation again. The re-read history grows as n squared: about 6,900 tokens for 10 calls and 43,000 for 30 in the tank example.
-    source:
-      file: lectures/l19/notes.md
-      heading: "Every call re-reads everything"
-      quote: "Each call sends the whole conversation again."
-    verify: {mode: quote, needle: "sends the whole conversation again", volatility: stable}
-    tags: [tokens, cost]
-
-  - id: l19-q15
-    kind: mcq
-    rung: 2
-    difficulty: 1
     objectives: [l19-o3]
     prompt: |
-      The model asks `predict_yield` for 150 °C, outside the model's range of 20 to 140 °C. What should the tool do?
+      A teammate puts the current time, to the second, at the start of the system prompt. What happens to the prompt cache?
     options:
-      - "Raise an exception so that the loop stops before anything goes wrong"
-      - "Return an error that says what was wrong and what is allowed"
-      - "Clip the value to 140 °C and return the prediction there"
-      - "Return a prediction anyway, with a warning flag in the result"
-    answer: "Return an error that says what was wrong and what is allowed"
+      - "Nothing changes, because the cache ignores the system prompt"
+      - "Every call misses the cache and pays to write it again"
+      - "Only the first call misses; the later calls still hit"
+      - "The cache keeps working, but it expires after one minute"
+    answer: "Every call misses the cache and pays to write it again"
     evidence: |
-      An exception stops the loop. An error returned as a result lets the model read it and try again: in the tank run, call 3 asked again inside the range. Clipping silently answers a different question.
+      The cache matches the start of the prompt exactly. A clock at the start changes it on every call, so nothing after it matches. In the worked example the run then costs 124% of the price with no cache at all.
     source:
       file: lectures/l19/notes.md
-      heading: "Errors the model can read"
-      quote: "A tool that raises an exception stops the loop."
-    verify: {mode: quote, needle: "raises an exception stops the loop", volatility: stable}
-    tags: [tools, errors]
+      heading: "What breaks the cache"
+      quote: "every call pays to write and reads nothing back"
+    verify: {mode: quote, needle: "pays to write and reads nothing back", volatility: stable}
+    tags: [caching, failure]
 
   - id: l19-q16
     kind: mcq
@@ -174,76 +197,10 @@ items:
       The model was fooled and asked for the change. The check is in the loop, in code: set_temperature runs only after the operator says yes. 140 °C is inside the tool's range, so no range check would stop it.
     source:
       file: lectures/l19/notes.md
-      heading: "A person approves every change"
+      heading: "Guardrails: when the agent can act"
       quote: "runs only after the operator says yes"
     verify: {mode: quote, needle: "runs only after the operator says yes", volatility: stable}
     tags: [guardrails, injection, approval]
-
-  - id: l19-q18
-    kind: mcq
-    rung: 1
-    difficulty: 1
-    objectives: [l19-o4]
-    prompt: |
-      Which three, in one agent, let an attacker steal your data (the lethal trifecta)?
-    options:
-      - "A large model, a long context window, and a high sampling temperature"
-      - "Private data, untrusted content, and a way to send data out"
-      - "Many tools, many steps, and no step budget for the loop"
-      - "Private data, a read-only database, and an approval gate"
-    answer: "Private data, untrusted content, and a way to send data out"
-    evidence: |
-      Access to private data, exposure to untrusted content, and a way to send data out. With all three, planted text can make the agent send your data to the attacker. Remove any one.
-    source:
-      file: lectures/l19/notes.md
-      heading: "The lethal trifecta"
-      quote: "your data when one agent has all three of:"
-    verify: {mode: quote, needle: "when one agent has all three of", volatility: stable}
-    tags: [guardrails, trifecta]
-
-  - id: l19-q19
-    kind: mcq
-    rung: 2
-    difficulty: 2
-    objectives: [l19-o5]
-    prompt: |
-      Each tool call is right 95% of the time. A task needs 20 calls, all right. About how often does the task succeed?
-    options:
-      - "95%"
-      - "80%"
-      - "36%"
-      - "5%"
-    answer: "36%"
-    evidence: |
-      Every call must be right, so the chances multiply: 0.95 to the power 20 is 0.36. Errors compound with the number of steps.
-    source:
-      file: lectures/l19/notes.md
-      heading: "Errors compound"
-      quote: "36% for 20 calls"
-    verify: {mode: quote, needle: "36% for 20 calls", volatility: stable}
-    tags: [reliability]
-
-  - id: l19-q20
-    kind: mcq
-    rung: 2
-    difficulty: 2
-    objectives: [l19-o5]
-    prompt: |
-      An agent succeeds on 87% of single runs of its tasks. What does pass^8 measure?
-    options:
-      - "The average success rate measured over 8 different tasks"
-      - "The chance that all 8 runs of a task succeed"
-      - "The success rate of the best of 8 runs"
-      - "The success rate after 8 retries of each failed call"
-    answer: "The chance that all 8 runs of a task succeed"
-    evidence: |
-      pass^k is the chance that all k runs of the same task succeed, averaged over tasks. In the worked example it falls from 0.87 for one run to 0.36 for eight.
-    source:
-      file: lectures/l19/notes.md
-      heading: "Does it work every time?"
-      quote: "the chance that all k i.i.d. task trials are successful"
-    verify: {mode: quote, needle: "all k i.i.d. task trials are successful", volatility: stable}
-    tags: [reliability, evaluation]
 
   - id: l19-q21
     kind: mcq
@@ -259,13 +216,57 @@ items:
       - "The temperature at which the model samples"
     answer: "Its permission settings: allow, ask or deny"
     evidence: |
-      Permissions are checked by the agent's software before a tool runs. The instructions file is context the model may ignore, not a control.
+      Permissions are checked by the harness before a tool runs: allow, ask or deny. The instructions file is context the model may ignore, not a control.
     source:
       file: lectures/l19/notes.md
-      heading: "The parts, mapped onto the loop"
-      quote: "permission rules are enforced by Claude Code, not by the model"
+      heading: "The parts of a coding agent"
+      quote: "enforced by Claude Code, not by the model"
     verify: {mode: quote, needle: "enforced by Claude Code, not by the model", volatility: stable}
     tags: [coding agents, permissions]
+
+  - id: l19-q27
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l19-o5]
+    prompt: |
+      Late in a long session, your coding agent stops following a rule you gave it in your first message. Where should the rule live?
+    options:
+      - "In a longer and more emphatic first message next time"
+      - "In the instructions file, read at the start of every session"
+      - "In a comment at the top of each file the agent is likely to edit"
+      - "Nowhere: an agent cannot keep a rule across a long session"
+    answer: "In the instructions file, read at the start of every session"
+    evidence: |
+      Near the limit of the context window the harness compacts the conversation into a summary, and early instructions can get lost. AGENTS.md or CLAUDE.md is loaded at the start of every session. A rule that must hold goes further, into a permission, a hook or a test.
+    source:
+      file: lectures/l19/notes.md
+      heading: "The parts of a coding agent"
+      quote: "Put lasting rules in the instructions file."
+    verify: {mode: quote, needle: "lasting rules in the instructions file", volatility: stable}
+    tags: [coding agents, context]
+
+  - id: l19-q28
+    kind: mcq
+    rung: 2
+    difficulty: 1
+    objectives: [l19-o6]
+    prompt: |
+      You ask a coding agent to fix a bug in your project. What gives it the best chance of getting the fix right?
+    options:
+      - "A longer prompt that explains the whole project in detail"
+      - "A test it can run that comes back pass or fail"
+      - "Permission to run every command without asking first"
+      - "A larger context window, so it can read every file at once"
+    answer: "A test it can run that comes back pass or fail"
+    evidence: |
+      The verify step is where an agent finds out it was wrong. With `uv run pytest` it can read the failure, fix it and run the test again; without a check it can only guess.
+    source:
+      file: lectures/l19/notes.md
+      heading: "A workflow that works"
+      quote: "Give Claude something it can run that comes back pass or fail."
+    verify: {mode: quote, needle: "comes back pass or fail", volatility: stable}
+    tags: [coding agents, tests]
 
   - id: l19-q22
     kind: mcq
@@ -281,10 +282,10 @@ items:
       - "Nothing measurable changed in how long the tasks took them"
     answer: "They took 19% longer, while believing they had been 20% faster"
     evidence: |
-      Developers forecast 24% faster and believed afterwards they had been 20% faster; measured, tasks took 19% longer. One study with early-2025 tools, but the lesson holds: measure, do not assume.
+      Developers forecast 24% faster and believed afterwards they had been 20% faster; measured, tasks took 19% longer. METR's 2026 re-run points the other way, but METR calls its own data unreliable. Measure on your own tasks.
     source:
       file: lectures/l19/notes.md
-      heading: "Do they make you faster?"
+      heading: "Do coding agents make you faster?"
       quote: "with AI allowed, tasks took"
     verify: {mode: quote, needle: "with AI allowed, tasks took", volatility: stable}
     tags: [coding agents, evidence]

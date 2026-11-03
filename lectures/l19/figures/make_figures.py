@@ -11,17 +11,23 @@ Name groups to regenerate only those; with no names, every group runs.
     trace        runs the scripted agent of ../l19-agents.ipynb (its code cells, executed here),
                  counts the tokens of every message with tiktoken (o200k_base, the GPT-4o
                  tokenizer; other providers count a little differently), and writes the
-                 "trace" widget data and tokens.png.
-    reliability  reliability.png: p^n against the number of tool calls, with the success rates
-                 the notebook's ten-task evaluation measures at p = 0.9 (200 runs per task).
+                 "trace" widget data, tokens.png and caching.png. caching.png prices the same
+                 run with Anthropic's cache multipliers (write 1.25x, read 0.1x the input price)
+                 and extends it to 30 calls with the measured prefix and growth per call.
     diagrams     coscientist.png (redrawn from the Coscientist paper's description of its
-                 modules), workflow-agent.png, agent-loop.png and coding-agent.png.
-    course       the commit counts the deck quotes for this course's own history.
+                 modules), workflow-agent.png, agent-loop.png, harness.png, cache-prefix.png,
+                 coding-loop.png, coding-agent.png, context.png and multi-agent.png.
+    timeline     timeline.png: LLM agents from ReAct to today, every date from a primary source.
+    evidence     metr.png: the forecast, believed and measured change in task time in METR's
+                 2025 randomized trial (Becker et al., arXiv 2507.09089), and the returning
+                 developers' estimate from METR's February 2026 re-run, which METR itself calls
+                 an unreliable signal (metr.org/blog/2026-02-24-uplift-update/).
+    course       claude-md.png: the length of this course's CLAUDE.md over its git history, and
+                 the commit counts the deck quotes.
 """
 import contextlib
 import io
 import json
-import math
 import os
 import subprocess
 import sys
@@ -30,6 +36,7 @@ from pathlib import Path
 import matplotlib
 
 matplotlib.use("Agg")
+import matplotlib.dates  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch  # noqa: E402
 
@@ -58,8 +65,8 @@ def cache_put(name, obj):
     (CACHE / f"{name}.json").write_text(json.dumps(obj))
 
 
-def notebook_namespace(skip=("evaluate(p=", "pass_hat_k(w")):
-    """Execute the notebook's code cells (not the Colab cell, not the slow evaluation printouts)."""
+def notebook_namespace(skip=()):
+    """Execute the notebook's code cells (not the Colab cell)."""
     import nbformat
     nb = nbformat.read(NOTEBOOK, 4)
     ns = {}
@@ -145,43 +152,45 @@ def group_trace():
                  fontsize=13)
     save(fig, "tokens.png")
 
-
-# --------------------------------------------------------------------------- reliability
-def group_reliability():
-    ns = notebook_namespace()
-    cwd = os.getcwd()
-    os.chdir(LECTURE)
-    try:
-        rows = ns["evaluate"](p=0.9)
-    finally:
-        os.chdir(cwd)
-    by_n = {}
-    for _, n, wins in rows:
-        by_n.setdefault(n, []).append(wins / 200)
-    measured = {n: sum(v) / len(v) for n, v in sorted(by_n.items())}
-    pass_k = {k: sum(math.comb(w, k) / math.comb(200, k) for *_, w in rows) / len(rows) for k in (1, 2, 4, 8)}
-    for n, v in measured.items():
-        print(f"  p = 0.9, {n} tool call(s): measured {v:.2f} over {len(by_n[n])} tasks, p^n = {0.9 ** n:.2f}")
-    print("  " + ", ".join(f"pass^{k} = {v:.2f}" for k, v in pass_k.items()))
-    for p in (0.99, 0.95, 0.9):
-        print(f"  p = {p}: 10 calls {p ** 10:.2f}, 20 calls {p ** 20:.2f}, 50 calls {p ** 50:.2f}")
-    cache_put("reliability", {"measured": measured, "pass_k": pass_k})
-
-    fig, ax = plt.subplots(figsize=(8.6, 4.4))
-    n = list(range(1, 51))
-    for p, c in ((0.99, GREEN), (0.95, BLUE), (0.9, RED)):
-        ax.plot(n, [p ** k for k in n], color=c, lw=2.5)
-        ax.text(51, max(p ** 50, 0.035), f"p = {p}", color=c, va="center", fontsize=12)
-    ax.plot(list(measured), list(measured.values()), "o", color=RED, ms=8, mec="white", zorder=5)
-    ax.annotate("measured in the notebook\n(p = 0.9, 200 runs per task)", xy=(3, measured[3]),
-                xytext=(29, 0.43), fontsize=11, color=RED, arrowprops={"arrowstyle": "->", "color": RED})
-    ax.annotate(f"20 calls at p = 0.95:\n{0.95 ** 20:.2f}", xy=(20, 0.95 ** 20), xytext=(26, 0.55),
-                fontsize=11, color=BLUE, arrowprops={"arrowstyle": "->", "color": BLUE})
-    ax.set_xlim(0, 56)
-    ax.set_ylim(0, 1.02)
-    ax.set_xlabel("Tool calls in the task, n")
-    ax.set_ylabel("Chance the whole task succeeds, $p^n$")
-    save(fig, "reliability.png")
+    # caching.png: the same run with a prompt cache. Call k+1 starts with everything call k sent,
+    # so that part can be read from the cache; only what is new since call k is written.
+    WRITE, READ = 1.25, 0.10
+    inputs = [c["input"] for c in calls]
+    hit = [0] + inputs[:-1]
+    new = [i - h for i, h in zip(inputs, hit)]
+    billed = sum(WRITE * w + READ * h for w, h in zip(new, hit))
+    print(f"  with a cache: {sum(hit)} of {total_in} tokens read from the cache; billed as "
+          f"{billed:,.0f} full-price tokens ({billed / total_in:.0%})")
+    K = 30
+    ext = [inputs[0] + m_avg * k for k in range(K)]
+    plain = [sum(ext[:k]) for k in range(1, K + 1)]
+    cached = [WRITE * ext[0] + sum(READ * ext[j - 1] + WRITE * (ext[j] - ext[j - 1]) for j in range(1, k))
+              for k in range(1, K + 1)]
+    print(f"  {K} calls: {plain[-1]:,.0f} tokens without a cache, {cached[-1]:,.0f} with ({cached[-1] / plain[-1]:.0%})")
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(12.4, 4.3), gridspec_kw={"width_ratios": [1, 1.15]})
+    x = range(1, n + 1)
+    a1.bar(x, hit, color=FILL["green"], edgecolor=GREEN, label="Same as the last call: read from the cache")
+    a1.bar(x, new, bottom=hit, color=FILL["gold"], edgecolor=GOLD, label="New since the last call: written")
+    for i, (h, w) in enumerate(zip(hit, new), 1):
+        a1.text(i, h + w + 18, f"{w}", ha="center", fontsize=11, color=GOLD)
+    a1.set_xticks(list(x))
+    a1.set_xlabel("Model call")
+    a1.set_ylabel("Input tokens")
+    a1.set_ylim(0, max(inputs) * 1.42)
+    a1.legend(frameon=False, loc="upper left", fontsize=10.5)
+    a1.set_title("Our run: most of each call was sent before", fontsize=12.5)
+    kk = range(1, K + 1)
+    a2.plot(kk, plain, color=RED, lw=2.6)
+    a2.plot(kk, cached, color=GREEN, lw=2.6)
+    a2.text(K + 0.6, plain[-1], f"no cache\n{plain[-1]:,.0f}", color=RED, va="center", fontsize=11)
+    a2.text(K + 0.6, cached[-1], f"with a cache\n{cached[-1]:,.0f}", color=GREEN, va="center", fontsize=11)
+    a2.set_xlim(0, K + 7)
+    a2.set_xlabel("Model calls in the run")
+    a2.set_ylabel("Input cost, in full-price tokens")
+    a2.set_title(f"The same growth, extended to {K} calls", fontsize=12.5)
+    a2.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:,.0f}"))
+    fig.tight_layout(w_pad=3)
+    save(fig, "caching.png")
 
 
 # ------------------------------------------------------------------------------ diagrams
@@ -280,20 +289,183 @@ def group_diagrams():
             ha="center", fontsize=11.5, style="italic", color="#3c3c3c")
     save(fig, "agent-loop.png")
 
-    # A coding agent: the same loop, different tools.
-    fig, ax = canvas(11, 4.8)
-    box(ax, 5.5, 2.5, 2.2, 1.0, "LLM", "red", RED, size=14, weight="bold")
-    box(ax, 1.9, 3.9, 3.2, 0.9, "Instructions file (system prompt)\nAGENTS.md, CLAUDE.md", "blue", BLUE, size=11)
-    box(ax, 9.1, 3.9, 3.2, 0.9, "Tools: read, search,\nedit, run commands", "gold", GOLD, size=11)
-    box(ax, 1.9, 1.1, 3.2, 0.9, "Context management:\nsummaries, subagents", "purple", "#7a3db8", size=11)
-    box(ax, 9.1, 1.1, 3.2, 0.9, "Permissions: allow, ask, deny\nchecked before a tool runs", "green", GREEN, size=11)
-    arrow(ax, (3.5, 3.6), (4.4, 2.85), BLUE)
-    arrow(ax, (6.6, 2.85), (7.5, 3.6), GOLD)
-    arrow(ax, (7.5, 1.4), (6.6, 2.15), GREEN)
-    arrow(ax, (3.5, 1.4), (4.4, 2.15), "#7a3db8")
-    ax.text(5.5, 0.2, "Claude Code, opencode, Codex CLI, Copilot's agent mode: the loop of this lecture",
+    # The harness: everything around the model.
+    fig, ax = canvas(12, 5.6)
+    ax.add_patch(FancyBboxPatch((0.15, 0.55), 11.7, 4.75, boxstyle="round,pad=0.02,rounding_size=0.2",
+                                fc="#fbfbfb", ec=GRAY, lw=1.6, ls="--"))
+    ax.text(6.0, 5.0, "The harness: the software around the model", ha="center", fontsize=14, fontweight="bold")
+    box(ax, 6.0, 2.85, 2.1, 1.2, "LLM\nreads text,\nwrites requests", "red", RED, size=12)
+    left = [("Builds the prompt", "system prompt, tool definitions,\ninstructions file, history", BLUE),
+            ("Manages the context", "prompt cache, compaction,\nsubagents", "#7a3db8"),
+            ("Ends the run", "answer, step budget,\nstuck, cost cap", GOLD)]
+    right = [("Runs the tools", "read and edit files, run commands,\nquery a database", GOLD),
+             ("Checks permissions", "allow, ask, deny;\na sandbox; a person approves", GREEN),
+             ("Logs every step", "what was asked, what ran,\nwhat came back", GRAY)]
+    for i, (title, sub, c) in enumerate(left):
+        y = 4.1 - 1.25 * i
+        box(ax, 2.2, y, 3.5, 1.0, "", "white", c)
+        ax.text(2.2, y + 0.22, title, ha="center", fontsize=12, fontweight="bold", color=c)
+        ax.text(2.2, y - 0.2, sub, ha="center", va="center", fontsize=10, color="#3c3c3c", linespacing=1.2)
+        arrow(ax, (3.98, y), (4.93, 2.85 + (y - 2.85) * 0.25), c)
+    for i, (title, sub, c) in enumerate(right):
+        y = 4.1 - 1.25 * i
+        box(ax, 9.8, y, 3.5, 1.0, "", "white", c)
+        ax.text(9.8, y + 0.22, title, ha="center", fontsize=12, fontweight="bold", color=c)
+        ax.text(9.8, y - 0.2, sub, ha="center", va="center", fontsize=10, color="#3c3c3c", linespacing=1.2)
+        arrow(ax, (7.07, 2.85 + (y - 2.85) * 0.25), (8.02, y), c)
+    ax.text(3.6, 0.82, "what the model reads", ha="center", fontsize=10.5, color="#3c3c3c", style="italic")
+    ax.text(8.4, 0.82, "what the model asks for", ha="center", fontsize=10.5, color="#3c3c3c", style="italic")
+    ax.text(6.0, 0.15, "Claude Code, Codex CLI and opencode are harnesses. So is the 30-line loop of the worked example.",
             ha="center", fontsize=11, style="italic", color="#3c3c3c")
+    save(fig, "harness.png")
+
+    # How a prompt cache works: the next call starts with the last call's whole prompt.
+    fig, ax = canvas(12, 4.6)
+    rows = [("Call 1", [("Tools + system prompt", 4.0, "w"), ("Task", 1.2, "w")]),
+            ("Call 2", [("Tools + system prompt", 4.0, "r"), ("Task", 1.2, "r"), ("Request 1", 1.5, "w"),
+                        ("Result 1", 1.7, "w")]),
+            ("Call 2, with the\ntime in the prompt", [("10:02 + tools + system", 4.0, "x"), ("Task", 1.2, "w"),
+                                                       ("Request 1", 1.5, "w"), ("Result 1", 1.7, "w")])]
+    style = {"w": ("gold", GOLD), "r": ("green", GREEN), "x": ("red", RED)}
+    for j, (label, blocks) in enumerate(rows):
+        y = 3.75 - 1.3 * j
+        ax.text(1.35, y, label, ha="right", va="center", fontsize=13, fontweight="bold")
+        x0 = 1.6
+        for text, w, k in blocks:
+            f, e = style[k]
+            box(ax, x0 + w / 2, y, w - 0.08, 0.7, text, f, e, size=12.5)
+            x0 += w
+    ax.text(10.4, 2.45, "cache hit:\nonly the new part\nis processed", fontsize=12, color=GREEN, va="center")
+    ax.text(10.4, 1.15, "first block changed:\neverything is\nprocessed again", fontsize=12, color=RED, va="center")
+    for x, t, c in ((2.0, "read from the cache (about 0.1x the price)", GREEN),
+                    (7.7, "processed and written (about 1.25x)", GOLD)):
+        ax.add_patch(FancyBboxPatch((x, 0.12), 0.35, 0.28, boxstyle="round,pad=0.01", fc=FILL[{GREEN: "green", GOLD: "gold"}[c]], ec=c))
+        ax.text(x + 0.5, 0.26, t, va="center", fontsize=12, color="#3c3c3c")
+    save(fig, "cache-prefix.png")
+
+    # A coding agent's loop: gather context, take action, verify, and you can step in anywhere.
+    fig, ax = canvas(11, 5.2)
+    pts = {"gather": (2.05, 3.55), "act": (8.95, 3.55), "verify": (5.5, 0.85)}
+    spec = {"gather": ("Gather context", "read files, search the code,\nread the docs", BLUE, "blue"),
+            "act": ("Take action", "edit files,\nrun commands", GOLD, "gold"),
+            "verify": ("Verify the result", "run the tests, the type checker,\nthe linter; read the errors", GREEN, "green")}
+    for k, (x, y) in pts.items():
+        title, sub, c, f = spec[k]
+        box(ax, x, y, 3.7, 1.25, "", f, c)
+        ax.text(x, y + 0.27, title, ha="center", fontsize=15, fontweight="bold", color=c)
+        ax.text(x, y - 0.22, sub, ha="center", va="center", fontsize=12.5, color="#3c3c3c", linespacing=1.2)
+    arrow(ax, (3.95, 3.7), (7.05, 3.7), GRAY)
+    arrow(ax, (8.7, 2.9), (7.3, 1.5), GRAY)
+    arrow(ax, (3.7, 1.5), (2.3, 2.9), GRAY)
+    ax.text(5.5, 2.3, "You: a prompt to start;\nsteer, interrupt or\napprove at any point", ha="center", va="center",
+            fontsize=13, color=RED, fontweight="bold")
+    ax.text(5.5, 4.75, "Repeat until the task is done, or you stop it", ha="center", fontsize=13,
+            style="italic", color="#3c3c3c")
+    save(fig, "coding-loop.png")
+
+    # A coding agent: the same loop, with parts you can configure.
+    fig, ax = canvas(12, 5.4)
+    box(ax, 6.0, 2.75, 2.0, 1.0, "LLM", "red", RED, size=15, weight="bold")
+    parts = [(2.1, 4.45, "Instructions file", "AGENTS.md or CLAUDE.md:\nread at the start of every session", BLUE, "blue"),
+             (6.0, 4.75, "Tools", "read, search, edit,\nrun commands, fetch a web page", GOLD, "gold"),
+             (9.9, 4.45, "Permissions and sandbox", "allow, ask or deny each tool;\nlimit files and network", GREEN, "green"),
+             (2.1, 1.05, "Context management", "compaction near the limit;\nsubagents with their own context", "#7a3db8", "purple"),
+             (6.0, 0.75, "Extensions", "MCP servers (Lecture 18), skills,\nhooks that run your scripts", GRAY, "gray"),
+             (9.9, 1.05, "You", "the prompt, approvals,\nreading every diff", RED, "red")]
+    for x, y, title, sub, c, f in parts:
+        box(ax, x, y, 3.6, 1.1, "", f, c)
+        ax.text(x, y + 0.24, title, ha="center", fontsize=12, fontweight="bold", color=c if c != GRAY else "black")
+        ax.text(x, y - 0.18, sub, ha="center", va="center", fontsize=10, color="#3c3c3c", linespacing=1.2)
+        tx = 6.0 + (x - 6.0) * 0.13
+        ty = 2.75 + (0.55 if y > 2.75 else -0.55)
+        arrow(ax, (x + (0.0 if x == 6.0 else (1.0 if x < 6 else -1.0)), y + (-0.58 if y > 2.75 else 0.58)), (tx, ty), c, style="-")
     save(fig, "coding-agent.png")
+
+    # The context window over a session: it fills, compaction makes room, a subagent works apart.
+    fig, ax = canvas(12, 5.0)
+    W0, W = 2.3, 8.6
+
+    def bar(y, blocks, label, full=None):
+        ax.text(W0 - 0.15, y, label, ha="right", va="center", fontsize=12.5, fontweight="bold", linespacing=1.15)
+        ax.add_patch(FancyBboxPatch((W0, y - 0.32), W, 0.64, boxstyle="round,pad=0.0,rounding_size=0.05",
+                                    fc="white", ec="#b0b0b0", lw=1.2, ls="--"))
+        x = W0
+        for text, w, f, e in blocks:
+            box(ax, x + w / 2, y, w - 0.05, 0.56, text, f, e, size=11.5)
+            x += w
+        if full:
+            ax.text(W0 + W + 0.1, y, full, va="center", fontsize=11.5, color="#3c3c3c")
+
+    sysb = ("System + tools", 1.75, "blue", BLUE)
+    mem = ("CLAUDE.md", 1.4, "blue", BLUE)
+    bar(4.2, [sysb, mem, ("Your prompt", 1.4, "gold", GOLD)], "Start of a session", "room to work")
+    bar(3.0, [sysb, mem, ("Your prompt", 1.4, "gold", GOLD),
+              ("Files, command output, test logs ...", 4.0, "gold", GOLD)], "Long session", "near the limit")
+    bar(1.8, [sysb, mem, ("Summary of the work", 2.4, "purple", "#7a3db8"), ("Recent", 1.1, "gold", GOLD)],
+        "After compaction", "early details\nmay be lost")
+    ax.text(W0 - 0.15, 0.55, "Subagent", ha="right", va="center", fontsize=12.5, fontweight="bold")
+    box(ax, W0 + 2.6, 0.55, 5.2, 0.56, "Own window: reads 40 files for one question", "gray", GRAY, size=11.5)
+    arrow(ax, (W0 + 5.25, 0.85), (W0 + 6.1, 1.47), "#7a3db8", "returns a short answer", size=11.5, tx=1.4)
+    ax.text(W0 + W / 2, 4.8, "The context window: everything the model reads on one call", ha="center",
+            fontsize=14, fontweight="bold")
+    save(fig, "context.png")
+
+    # Multi-agent: a lead agent hands parts to subagents, at a price in tokens.
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(12, 4.4), gridspec_kw={"width_ratios": [1.35, 1]})
+    a1.set_xlim(0, 7)
+    a1.set_ylim(0, 4.4)
+    a1.axis("off")
+    box(a1, 3.5, 3.6, 2.6, 0.75, "Lead agent\nplans, then combines", "red", RED, size=13)
+    for x, t in ((1.1, "Subagent 1\nsearch topic A"), (3.5, "Subagent 2\nsearch topic B"), (5.9, "Subagent 3\nsearch topic C")):
+        box(a1, x, 1.5, 2.1, 0.85, t, "gold", GOLD, size=12)
+        arrow(a1, (3.5 + (x - 3.5) * 0.3, 3.2), (x, 1.92), GRAY)
+        a1.text(x, 0.82, "own context window", ha="center", fontsize=11.5, color="#3c3c3c", style="italic")
+    a1.text(3.5, 0.2, "They work in parallel; each sends back a summary", ha="center", fontsize=12.5,
+            color="#3c3c3c")
+    labels, vals, cols = ["Chat", "One agent", "Multi-agent"], [1, 4, 15], [GRAY, GOLD, RED]
+    a2.bar(labels, vals, color=[FILL["gray"], FILL["gold"], FILL["red"]], edgecolor=cols, lw=1.8, width=0.6)
+    for i, v in enumerate(vals):
+        a2.text(i, v + 0.4, f"about {v}x" if v > 1 else "1x", ha="center", fontsize=14, color=cols[i], fontweight="bold")
+    a2.set_ylabel("Tokens used, relative to a chat")
+    a2.set_ylim(0, 17.5)
+    a2.set_title("Anthropic's research system (2025)", fontsize=13.5)
+    fig.tight_layout(w_pad=2)
+    save(fig, "multi-agent.png")
+
+
+# ------------------------------------------------------------------------------ evidence
+def group_evidence():
+    # METR, Becker et al. (2025), and METR's February 2026 re-run: change in the time to finish a
+    # task when AI tools are allowed. Negative is faster. Bars with whiskers are measured, with the
+    # 95% confidence interval METR reports; the 2026 row is the developers who returned from 2025.
+    rows = [("2025: forecast by the\ndevelopers, before", -24, None, BLUE),
+            ("2025: estimated by the\ndevelopers, after", -20, None, GOLD),
+            ("2025: measured", 19, (2, 39), RED),
+            ("2026 re-run, same developers:\nmeasured, \"unreliable\"", -18, (-38, 9), GRAY)]
+    fig, ax = plt.subplots(figsize=(10, 4.3))
+    for i, (label, v, ci, c) in enumerate(rows):
+        y = 3 - i
+        ax.barh(y, v, color=c, height=0.55, alpha=0.9 if c != GRAY else 0.55)
+        if ci:
+            ax.plot(ci, [y, y], color="black", lw=1.4)
+            for e in ci:
+                ax.plot([e, e], [y - 0.12, y + 0.12], color="black", lw=1.4)
+        edge = (ci[1] if v > 0 else ci[0]) if ci else v
+        ax.text(edge + (1.5 if v > 0 else -1.5), y, f"{abs(v)}% {'slower' if v > 0 else 'faster'}",
+                ha="left" if v > 0 else "right", va="center", fontsize=14, fontweight="bold",
+                color=c if c != GRAY else "#5c5c5c")
+    ax.set_yticks([3, 2, 1, 0])
+    ax.set_yticklabels([r[0] for r in rows], fontsize=12.5)
+    ax.axvline(0, color="black", lw=1)
+    ax.set_xlim(-62, 55)
+    ax.set_xticks([-40, -20, 0, 20, 40])
+    ax.set_xticklabels(["-40%", "-20%", "0", "+20%", "+40%"])
+    ax.set_xlabel("Change in the time to finish a task when AI tools are allowed (whiskers: 95% interval)")
+    ax.text(-61, -0.75, "faster", fontsize=11, color="#3c3c3c", style="italic")
+    ax.text(54, -0.75, "slower", fontsize=11, color="#3c3c3c", style="italic", ha="right")
+    ax.spines["left"].set_visible(False)
+    ax.tick_params(axis="y", length=0)
+    save(fig, "metr.png")
 
 
 # -------------------------------------------------------------------------------- course
@@ -306,14 +478,100 @@ def group_course():
     lines = len((REPO / "CLAUDE.md").read_text().splitlines())
     print(f"  {claude} of {total} commits (no merges) carry a Co-Authored-By: Claude line; CLAUDE.md has {lines} lines")
 
+    # CLAUDE.md's length at every commit that changed it.
+    import datetime as dt
+    hist = []
+    for line in git("log", "--reverse", "--format=%h %as", "--", "CLAUDE.md").splitlines():
+        h, d = line.split()
+        n = len(git("show", f"{h}:CLAUDE.md").splitlines())
+        hist.append((dt.date.fromisoformat(d), n))
+    print(f"  CLAUDE.md: {len(hist)} commits, {hist[0][1]} lines on {hist[0][0]}, {hist[-1][1]} on {hist[-1][0]}")
+
+    def first(text):
+        """The date of the commit that added this text to CLAUDE.md."""
+        out = git("log", "--reverse", "--format=%as", "-S", text, "--", "CLAUDE.md").split()
+        return dt.date.fromisoformat(out[0])
+
+    rules = [("Verify every link and every number", "check every number against its source:\na quoted claim was not in its paper", 240),
+             ("deployment_queued", "check the live site, not the green run:\nthe site served an old build for hours", 470),
+             ("Never judge past work", "never judge past work by present content:\na quiz bug failed students who did nothing wrong", 700)]
+    days = [d for d, _ in hist]
+    fig, ax = plt.subplots(figsize=(10.5, 4.0))
+    ax.step(days + [dt.date(2026, 11, 3)], [n for _, n in hist] + [hist[-1][1]], where="post", color=BLUE, lw=2.6)
+    for key, label, ty in rules:
+        d = first(key)
+        y = max(n for dd, n in hist if dd <= d)
+        ax.plot([d], [y], "o", color=RED, ms=8, mec="white", zorder=5)
+        ax.annotate(label, xy=(d, y), xytext=(dt.date(2026, 10, 1), ty), fontsize=10.5, color=RED,
+                    ha="center", va="center", arrowprops={"arrowstyle": "->", "color": RED, "lw": 1.1})
+        print(f"  rule added {d}: {key}")
+    ax.set_ylabel("Lines in CLAUDE.md")
+    ax.set_ylim(0, 1150)
+    ax.xaxis.set_major_locator(matplotlib.dates.MonthLocator())
+    ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%b %Y"))
+    ax.set_title("The course's instructions file grew one rule at a time, most of them after a mistake", fontsize=12.5)
+    save(fig, "claude-md.png")
+
+
+# ------------------------------------------------------------------------------ timeline
+# (date, label, kind, level): level is the height of the label, + above the axis, - below.
+# Every date is from a primary source: the arXiv "v1" line, the company's dated announcement, or
+# the repository's first commit (Auto-GPT, Codex CLI, agents.md).
+TIMELINE = [
+    ("2022-10-06", "ReAct: reason,\nthen act", "research", 1.1),
+    ("2023-03-14", "GPT-4", "product", -0.9),
+    ("2023-03-16", "Auto-GPT\n(open source)", "product", 2.2),
+    ("2023-04-11", "Coscientist and ChemCrow\npreprints, same day", "science", -2.0),
+    ("2023-06-13", "Function calling\nin OpenAI's API", "standard", 1.1),
+    ("2023-10-10", "SWE-bench: real\nGitHub issues", "research", -0.9),
+    ("2023-12-20", "Coscientist\nin Nature", "science", 2.2),
+    ("2024-03-12", "Devin", "product", -2.0),
+    ("2024-05-06", "SWE-agent: the\nagent-computer interface", "research", 1.1),
+    ("2024-10-22", "Computer use", "product", -0.9),
+    ("2024-11-25", "Model Context\nProtocol (MCP)", "standard", 2.2),
+    ("2025-02-24", "Claude Code\n(preview)", "product", -2.0),
+    ("2025-04-16", "Codex CLI\n(open source)", "product", 1.1),
+    ("2025-08-19", "AGENTS.md\nformat", "standard", -0.9),
+    ("2025-12-09", "MCP and AGENTS.md\njoin the Linux Foundation", "standard", 2.2),
+    ("2026-02-11", "OpenAI: a product with\n0 hand-written lines", "product", -2.0),
+]
+
+
+def group_timeline():
+    import datetime as dt
+    colors = {"research": BLUE, "science": RED, "product": GOLD, "standard": GREEN}
+    names = {"research": "Research", "science": "Science (chemistry)", "product": "Products",
+             "standard": "Standards"}
+    fig, ax = plt.subplots(figsize=(13, 4.6))
+    d0, d1 = dt.date(2022, 8, 1), dt.date(2026, 5, 1)
+    ax.plot([d0, d1], [0, 0], color="#3c3c3c", lw=1.6)
+    for y in range(2023, 2027):
+        d = dt.date(y, 1, 1)
+        ax.plot([d, d], [-0.12, 0.12], color="#3c3c3c", lw=1.6)
+        ax.text(d, -0.32, str(y), ha="center", va="top", fontsize=11, color="#3c3c3c", fontweight="bold")
+    for date, label, kind, level in TIMELINE:
+        d = dt.date.fromisoformat(date)
+        c = colors[kind]
+        ax.plot([d, d], [0, level * 0.82], color=c, lw=1.2, alpha=0.7)
+        ax.plot([d], [0], "o", color=c, ms=8, mec="white", zorder=5)
+        ax.text(d, level, f"{d:%b %Y}\n{label}" if level > 0 else f"{label}\n{d:%b %Y}",
+                ha="center", va="bottom" if level > 0 else "top", fontsize=9.6, color="black",
+                linespacing=1.15, bbox={"fc": "white", "ec": c, "lw": 1.3, "boxstyle": "round,pad=0.25"})
+    for i, (k, name) in enumerate(names.items()):
+        ax.plot([], [], "o", color=colors[k], ms=9, label=name)
+    ax.legend(loc="upper left", ncol=4, frameon=False, fontsize=10.5, bbox_to_anchor=(0.0, 1.13))
+    ax.set_xlim(d0, d1)
+    ax.set_ylim(-3.3, 3.5)
+    ax.axis("off")
+    save(fig, "timeline.png")
+
 
 # ------------------------------------------------------------------------ widget data
 def write_widget_data():
     data = {}
-    for name in ("trace", "reliability"):
-        p = CACHE / f"{name}.json"
-        if p.exists():
-            data[name] = json.loads(p.read_text())
+    p = CACHE / "trace.json"
+    if p.exists():
+        data["trace"] = json.loads(p.read_text())
     text = ("/* Generated by lectures/l19/figures/make_figures.py. Do not edit. */\n"
             "window.COURSE_WIDGET_DATA = window.COURSE_WIDGET_DATA || {};\n"
             "window.COURSE_WIDGET_DATA.l19 = " + json.dumps(data, separators=(",", ":"), ensure_ascii=False) + ";\n")
@@ -321,8 +579,8 @@ def write_widget_data():
     print(f"  wrote {WIDGET_JS.relative_to(REPO)} ({len(text) / 1024:.0f} KB)")
 
 
-GROUPS = {"trace": group_trace, "reliability": group_reliability, "diagrams": group_diagrams,
-          "course": group_course}
+GROUPS = {"trace": group_trace, "diagrams": group_diagrams, "timeline": group_timeline,
+          "evidence": group_evidence, "course": group_course}
 
 if __name__ == "__main__":
     names = sys.argv[1:] or list(GROUPS)

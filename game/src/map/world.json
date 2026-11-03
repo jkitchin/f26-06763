@@ -699,7 +699,23 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "([Lecture 1](../l01/notes.md))."
+      "where": "is the model\" is not in the paper it is cited to ([Lecture 1](../l01/notes.md))."
+    },
+    {
+      "from": "l19",
+      "to": "l02",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "| uv and a lockfile ([Lecture 2](../l02/notes.md)) | `uv run pytest` gives the same environment to you, the agent and CI. No \"works on my machine\" |"
+    },
+    {
+      "from": "l19",
+      "to": "l03",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "| A database with a schema ([Lecture 3](../l03/notes.md), [Lecture 4](../l04/notes.md)) | The agent can query the data with SQL, through a read-only connection "
     },
     {
       "from": "l19",
@@ -708,6 +724,22 @@
       "relation": null,
       "why": null,
       "where": "| `query_log` | One read-only SQL query on last week's hourly log, stored in DuckDB ([Lecture 4](../l04/notes.md)) |"
+    },
+    {
+      "from": "l19",
+      "to": "l06",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "| Data validation ([Lecture 6](../l06/notes.md)) | Schema checks catch wrong data, whoever wrote the code |"
+    },
+    {
+      "from": "l19",
+      "to": "l10",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "| Experiment tracking ([Lecture 10](../l10/notes.md)) | Every number traces back to the run, the code and the data that made it |"
     },
     {
       "from": "l19",
@@ -723,7 +755,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "- That loop is an **agent**. [Lecture 18](../l18/notes.md) ended with one tool call. Today: the"
+      "where": "- [Lecture 18](../l18/notes.md) ended with one **tool call**: the model asks for a tool by name,"
     },
     {
       "from": "l20",

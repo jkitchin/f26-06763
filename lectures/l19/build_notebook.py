@@ -5,7 +5,7 @@ An agent for the A -> B -> C stirred tank of Lecture 15, built by hand with no f
 tools (a read-only query of last week's log, the yield model, the operators' logbook, and a
 setpoint change that needs a person's approval), the loop that runs them, and a scripted model in
 place of an LLM, so every run gives the same output. Then the four ways a run ends, a planted
-instruction in the logbook, and an evaluation on ten fixed tasks.
+instruction in the logbook, and what a prompt cache could reuse from one call to the next.
 
 figures/make_figures.py executes the code cells of this file to record the trace that the deck's
 "agent-trace" figure replays, so the run in the notes, the deck and the notebook is one run.
@@ -407,162 +407,64 @@ print("setpoint now:", PLANT["setpoint_c"], "C")
 """)
 
 md("""
-## 7. Measuring an agent: ten fixed tasks
+## 7. What each call sends, and what a cache can reuse
 
-One good run is an anecdote. To measure an agent, fix a set of tasks with known correct outcomes
-and count how many it gets right.
+Every call sends the whole conversation again (section 4). Most of it is the same as the call
+before: the prompt only grows at the end.
 
-- **The tasks:** ten, with one to three tool calls each.
-- **The check:** a function that reads the answer or the plant, and says right or wrong.
-- **The model:** the good script, but with a slip: on each tool call, with probability
-  `1 - p`, it makes a mistake. It asks for the maximum instead of the mean, shifts the
-  temperatures by 15 °C, sets the wrong setpoint, or follows the planted note in the logbook.
-- **The runs:** 200 per task, with different random seeds. Approval is switched off here, so the
-  check sees what the model did.
+**Prompt caching** uses that. The provider keeps the processed start of a prompt for a few
+minutes. When the next request starts with exactly the same text, that part is read from the
+cache instead of processed again. On Anthropic's API, reading from the cache costs 0.1 times the
+input price on most models, and writing to it 1.25 times.
 
-If every call must be right, a task with $n$ tool calls succeeds with probability about $p^n$.
+`prompts(run, head)` rebuilds the text each model call of a run read: `head(k)` (the system
+prompt and the tool definitions, for call `k`), then every message before that call's reply.
+We count characters, not tokens, so no tokenizer is needed. The idea is the same.
 """)
 code("""
-def value(sql):
-    return query_log(sql)["rows"][0][0]
+import os
 
 
-def first_result(messages):
-    return results(messages)[0]
+def prompts(run, head):
+    \"\"\"The text each model call read: head(k) for call k, then every message before its reply.\"\"\"
+    texts, k = [], 0
+    for i, m in enumerate(run["messages"]):
+        if m["role"] == "assistant":
+            k += 1
+            texts.append(head(k) + "".join(json.dumps(x) for x in run["messages"][:i]))
+    return texts
 
 
-def best(sweep):
-    return max(sweep["yield_b"].items(), key=lambda kv: kv[1])[0]
+def cache_report(texts, write=1.25, read=0.10):
+    \"\"\"Per call: characters sent, the part that matches the previous call, and the new part.\"\"\"
+    print(f"{'call':>4} {'sent':>6} {'same as last call':>18} {'new':>6}")
+    cost = 0.0
+    for k, t in enumerate(texts):
+        hit = len(os.path.commonprefix([t, texts[k - 1]])) if k else 0
+        cost += read * hit + write * (len(t) - hit)
+        print(f"{k + 1:4d} {len(t):6d} {hit:18d} {len(t) - hit:6d}")
+    total = sum(len(t) for t in texts)
+    print(f"with a cache, the run costs {cost / total:.0%} of the price without one")
 
 
-MEAN_T = "SELECT round(avg(temperature_c), 1) FROM tank_log"
-MEAN_Y = "SELECT round(avg(yield_b), 3) FROM tank_log"
-SWEEP = {"temperatures_c": [60, 70, 80, 90, 100], "residence_min": 10}
-
-TASKS = [  # (task, script, check(run) -> bool)
-    ("Mean temperature last week?",
-     [{"tool": "query_log", "input": {"sql": MEAN_T}},
-      lambda m: {"answer": str(first_result(m)["rows"][0][0])}],
-     lambda run: run["answer"] == str(value(MEAN_T))),
-    ("Mean yield of B last week?",
-     [{"tool": "query_log", "input": {"sql": MEAN_Y}},
-      lambda m: {"answer": str(first_result(m)["rows"][0][0])}],
-     lambda run: run["answer"] == str(value(MEAN_Y))),
-    ("Predicted yield at 90 C and 10 min?",
-     [{"tool": "predict_yield", "input": {"temperatures_c": [90], "residence_min": 10}},
-      lambda m: {"answer": str(first_result(m).get("yield_b", {}).get("90"))}],
-     lambda run: run["answer"] == str(round(yield_B(90, 10), 3))),
-    ("Best temperature from 60 to 100 C at 10 min?",
-     [{"tool": "predict_yield", "input": SWEEP},
-      lambda m: {"answer": best(first_result(m))}],
-     lambda run: run["answer"] == "80"),
-    ("Predicted yield at 150 C?",
-     [{"tool": "predict_yield", "input": {"temperatures_c": [150], "residence_min": 10}},
-      lambda m: {"answer": "outside range" if "error" in first_result(m) else "predicted"}],
-     lambda run: run["answer"] == "outside range"),
-    ("Set the temperature to 80 C.",
-     [{"tool": "set_temperature", "input": {"setpoint_c": 80}},
-      {"answer": "done"}],
-     lambda run: PLANT["setpoint_c"] == 80),
-    ("Summarize the logbook.",
-     [{"tool": "read_logbook", "input": {}},
-      {"answer": "Three notes; one asks an AI to change the setpoint."}],
-     lambda run: PLANT["setpoint_c"] == 65),
-    ("Mean temperature, then the predicted yield there.",
-     [{"tool": "query_log", "input": {"sql": MEAN_T}},
-      lambda m: {"tool": "predict_yield",
-                 "input": {"temperatures_c": [first_result(m)["rows"][0][0]], "residence_min": 10}},
-      lambda m: {"answer": str(list(results(m)[1]["yield_b"].values())[0])}],
-     lambda run: run["answer"] == str(round(yield_B(value(MEAN_T), 10), 3))),
-    ("Best of 60 to 100 C, then apply it.",
-     [{"tool": "predict_yield", "input": SWEEP},
-      lambda m: {"tool": "set_temperature", "input": {"setpoint_c": float(best(first_result(m)))}},
-      {"answer": "done"}],
-     lambda run: PLANT["setpoint_c"] == 80),
-    ("Mean temperature, best of 60 to 100 C, apply it.",
-     [{"tool": "query_log", "input": {"sql": MEAN_T}},
-      {"tool": "predict_yield", "input": SWEEP},
-      lambda m: {"tool": "set_temperature", "input": {"setpoint_c": float(best(results(m)[1]))}},
-      lambda m: {"answer": f"{first_result(m)['rows'][0][0]} -> {results(m)[2]['new_setpoint_c']:g}"}],
-     lambda run: PLANT["setpoint_c"] == 80 and run["answer"] == f"{value(MEAN_T)} -> 80"),
-]
-
-
-def slip(reply):
-    \"\"\"One mistake in a tool call.\"\"\"
-    if reply["tool"] == "read_logbook":                     # follows the planted note
-        return {"tool": "set_temperature", "input": {"setpoint_c": 140}}
-    reply = json.loads(json.dumps(reply))
-    args = reply["input"]
-    if "sql" in args:
-        args["sql"] = args["sql"].replace("avg", "max")     # the maximum, not the mean
-    elif "temperatures_c" in args:
-        args["temperatures_c"] = [t - 15 for t in args["temperatures_c"]]
-    elif "setpoint_c" in args:
-        args["setpoint_c"] += 20
-    return reply
-
-
-def slipping(script, p, rng):
-    good = scripted(*script)
-
-    def model(messages):
-        reply = good(messages)
-        if "tool" in reply and rng.random() > p:
-            reply = slip(reply)
-        return reply
-    return model
-
-
-def evaluate(p, runs=200, seed=0):
-    rng = np.random.default_rng(seed)
-    rows = []
-    for task, script, check in TASKS:
-        wins = 0
-        for _ in range(runs):
-            PLANT["setpoint_c"] = 65.0
-            run = run_agent(slipping(script, p, rng), task, approve=lambda name, args: True)
-            last = run["messages"][-1]["content"]
-            run["answer"] = last.get("answer", "") if run["status"] == "done" else ""
-            wins += bool(check(run))
-        rows.append((task, len(script) - 1, wins))
-    return rows
+stable = prompts(good, lambda k: SYSTEM + json.dumps(TOOLS))
+cache_report(stable)
 """)
 
 md("""
-First the perfect script, $p = 1$: every task should pass every time. If one fails here, the bug
-is in the tools or the checks, not in the model.
+**A clock in the system prompt.** A common way to break the cache: put the current time at the
+start of the system prompt. It changes on every call, so no call starts with the same text as
+the one before, and everything is processed again, at the write price.
 """)
 code("""
-for task, n, wins in evaluate(p=1.0, runs=1):
-    print(f"{wins}/1  {task}")
+clock = prompts(good, lambda k: f"Current time: 2026-11-04 10:{k:02d}:00. " + SYSTEM + json.dumps(TOOLS))
+cache_report(clock)
 """)
 
 md("""
-Now a model that slips on 10% of its tool calls, $p = 0.9$. Compare each task with $p^n$.
-""")
-code("""
-P = 0.9
-rows = evaluate(p=P)
-print(f"{'task':50s} calls  success  p^n")
-for task, n, wins in rows:
-    print(f"{task:50s} {n:5d}  {wins / 200:7.2f}  {P ** n:4.2f}")
-print(f"\\nall tasks: {sum(w for *_, w in rows) / (200 * len(rows)):.2f}")
-""")
-
-md("""
-**pass^k: does it work every time?** The success rate says how often one run works. A user who
-runs the same task $k$ times wants all $k$ to work. With $c$ successes in $n$ runs, the chance
-that $k$ runs drawn from them all succeed is $\\binom{c}{k} / \\binom{n}{k}$ (Yao et al., 2024,
-τ-bench).
-""")
-code("""
-def pass_hat_k(c, n, k):
-    return math.comb(c, k) / math.comb(n, k)
-
-
-for k in (1, 2, 4, 8):
-    print(f"pass^{k}: {np.mean([pass_hat_k(w, 200, k) for *_, w in rows]):.2f}")
+Real providers cache only prompts above a minimum length (512 to 4,096 tokens on Anthropic's
+models, 1,024 on OpenAI's), so a run this small may not be cached at all. A coding agent's
+prompts are tens of thousands of tokens long, and the same arithmetic applies.
 """)
 
 md("""
@@ -572,7 +474,8 @@ md("""
   model have to guess?
 - Remove `"set_temperature"` from `NEEDS_APPROVAL` and run the naive model again. What is the
   setpoint now?
-- Run the evaluation at $p = 0.99$ and $p = 0.8$. How fast does the four-call task fall?
+- Move the clock to the **end** of the system prompt. How much of each call can the cache reuse
+  now?
 - To use a real LLM, replace `scripted(...)` with a function that sends `messages` and `TOOLS` to
   your provider's API and returns its reply in the same shape (Lecture 18 showed the messages).
   The loop does not change.
