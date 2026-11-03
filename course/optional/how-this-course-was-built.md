@@ -48,6 +48,34 @@ The guardrails along the way:
   live site serves the new version.
 - **A person merges.** Nothing reaches this site without one of us.
 
+```{figure} ../../lectures/l19/figures/course-build.png
+:alt: How one change reaches this course's site. Top row, left to right: an instructor writes the spec, topics, data and examples; Claude Code reads CLAUDE.md, the rules, and writes notes, slides, figures, notebook and practice questions; a pull request, a branch with the change; automatic checks, a strict build, the index, quiz quotes that must match the notes, figures that must exist, and no instructor file published. Bottom row, right to left: an instructor reads it, asks for fixes and merges; a weekly release, a bot that opens the release of the next lecture; the public site with notes, slides, notebooks, the practice game and the map. A red arrow from the checks back to Claude Code says a check fails, fix it; a green arrow from the instructor back to Claude Code says changes requested.
+:width: 100%
+
+How one change reaches this site. A failed check goes back to the agent, not to the site.
+```
+
+- The pipeline is a harness for the whole course: the rules the agent reads, the checks that
+  run on every change, and a person who merges. The model is one box in it.
+
+### Every change, as a branch
+
+```{figure} ../../lectures/l19/figures/course-history.png
+:alt: Every pull request merged into the course's repository from July to November 2026, drawn as arcs off a horizontal line labeled main. Each arc runs from the branch's first commit to the day it merged; taller arcs carry more commits. Arcs above the line are lectures, in blue, and course pages, in gray. Arcs below are the practice game and map, in green, the clicker, arcade and Ask button, in gold, and the build, checks and rules, in purple. Labels mark the first lecture, the weekly release gate, the course map, the clicker, the first weekly release, the arcade, the RAG chat and the Ask button.
+:width: 100%
+
+The course's pull requests, from the first lecture to November 2026.
+```
+
+- Each arc is one pull request: a branch from its first commit to the day it merged into main.
+  Taller arcs carry more commits.
+- Above the line: the lectures and the course pages. Below: the practice game and map, the
+  clicker, arcade and Ask button, and the build, checks and rules that guard them.
+- By 3 November 2026: 131 pull requests, and 288 of the 337 commits list Claude as co-author.
+  An instructor merged every one.
+- The figure is drawn from the repository's own git history by
+  `lectures/l19/figures/make_figures.py`, so you can rerun it.
+
 ## The rules file
 
 - `CLAUDE.md`, at the root of the [repository](https://github.com/jkitchin/f26-06763/blob/main/CLAUDE.md),
