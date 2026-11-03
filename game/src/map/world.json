@@ -699,7 +699,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "is the model\" is not in the paper it is cited to ([Lecture 1](../l01/notes.md))."
+      "where": "- [Lecture 1](../l01/notes.md) showed that in a production ML (machine learning) system, the ML"
     },
     {
       "from": "l19",
@@ -707,7 +707,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "| uv and a lockfile ([Lecture 2](../l02/notes.md)) | `uv run pytest` gives the same environment to you, the agent and CI. No \"works on my machine\" |"
+      "where": "integration, [Lecture 2](../l02/notes.md)), how to check its own work, what not to touch, and"
     },
     {
       "from": "l19",
@@ -715,7 +715,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "| A database with a schema ([Lecture 3](../l03/notes.md), [Lecture 4](../l04/notes.md)) | The agent can query the data with SQL, through a read-only connection "
+      "where": "- SQL (Structured Query Language, [Lecture 3](../l03/notes.md)) is the language for asking a"
     },
     {
       "from": "l19",
@@ -723,7 +723,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "| `query_log` | One read-only SQL query on last week's hourly log, stored in DuckDB ([Lecture 4](../l04/notes.md)) |"
+      "where": "| `query_log` | One read-only SQL query on last week's hourly power log, stored in DuckDB ([Lecture 4](../l04/notes.md)) |"
     },
     {
       "from": "l19",
@@ -740,14 +740,6 @@
       "relation": null,
       "why": null,
       "where": "| Experiment tracking ([Lecture 10](../l10/notes.md)) | Every number traces back to the run, the code and the data that made it |"
-    },
-    {
-      "from": "l19",
-      "to": "l15",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "- The stirred tank of [Lecture 15](../l15/notes.md): A turns into the product B, and B burns"
     },
     {
       "from": "l19",

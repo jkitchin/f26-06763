@@ -316,29 +316,29 @@
     {
       "from": "l19",
       "to": "l01",
-      "weight": 3,
-      "where": "is the model\" is not in the paper it is cited to ([Lecture 1](../l01/notes.md)).",
+      "weight": 4,
+      "where": "- [Lecture 1](../l01/notes.md) showed that in a production ML (machine learning) system, the ML",
       "origin": "link"
     },
     {
       "from": "l19",
       "to": "l02",
-      "weight": 3,
-      "where": "| uv and a lockfile ([Lecture 2](../l02/notes.md)) | `uv run pytest` gives the same environment to you, the agent and CI. No \"works on my machine\" |",
+      "weight": 4,
+      "where": "integration, [Lecture 2](../l02/notes.md)), how to check its own work, what not to touch, and",
       "origin": "link"
     },
     {
       "from": "l19",
       "to": "l03",
-      "weight": 1,
-      "where": "| A database with a schema ([Lecture 3](../l03/notes.md), [Lecture 4](../l04/notes.md)) | The agent can query the data with SQL, through a read-only connection ",
+      "weight": 2,
+      "where": "- SQL (Structured Query Language, [Lecture 3](../l03/notes.md)) is the language for asking a",
       "origin": "link"
     },
     {
       "from": "l19",
       "to": "l04",
       "weight": 2,
-      "where": "| `query_log` | One read-only SQL query on last week's hourly log, stored in DuckDB ([Lecture 4](../l04/notes.md)) |",
+      "where": "| `query_log` | One read-only SQL query on last week's hourly power log, stored in DuckDB ([Lecture 4](../l04/notes.md)) |",
       "origin": "link"
     },
     {
@@ -353,13 +353,6 @@
       "to": "l10",
       "weight": 1,
       "where": "| Experiment tracking ([Lecture 10](../l10/notes.md)) | Every number traces back to the run, the code and the data that made it |",
-      "origin": "link"
-    },
-    {
-      "from": "l19",
-      "to": "l15",
-      "weight": 1,
-      "where": "- The stirred tank of [Lecture 15](../l15/notes.md): A turns into the product B, and B burns",
       "origin": "link"
     },
     {
@@ -470,7 +463,7 @@
     "l12": 3,
     "l13": 4,
     "l14": 2,
-    "l15": 3,
+    "l15": 2,
     "l16": 2,
     "l17": 1,
     "l18": 1,
@@ -479,9 +472,9 @@
     "l21": 0
   },
   "in_weight": {
-    "l01": 5,
-    "l02": 4,
-    "l03": 6,
+    "l01": 6,
+    "l02": 5,
+    "l03": 7,
     "l04": 5,
     "l05": 6,
     "l06": 1,
@@ -493,7 +486,7 @@
     "l12": 4,
     "l13": 4,
     "l14": 4,
-    "l15": 7,
+    "l15": 6,
     "l16": 3,
     "l17": 1,
     "l18": 3,
@@ -520,7 +513,7 @@
     "l16": 6,
     "l17": 9,
     "l18": 0,
-    "l19": 8,
+    "l19": 7,
     "l20": 7,
     "l21": 4
   },
