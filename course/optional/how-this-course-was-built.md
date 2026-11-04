@@ -71,8 +71,8 @@ The course's pull requests, from the first lecture to November 2026.
   Taller arcs carry more commits.
 - Above the line: the lectures and the course pages. Below: the practice game and map, the
   clicker, arcade and Ask button, and the build, checks and rules that guard them.
-- By 3 November 2026: 131 pull requests, and 288 of the 337 commits list Claude as co-author.
-  An instructor merged every one.
+- By 3 November 2026: 131 pull requests. Claude Code wrote most of the material, and an
+  instructor checked and merged every change.
 - The figure is drawn from the repository's own git history by
   `lectures/l19/figures/make_figures.py`, so you can rerun it.
 
