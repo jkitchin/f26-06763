@@ -574,10 +574,12 @@ Rust (tests excluded), grouped by the job each part does. Counted on 3 November 
   code is a small part of the code.
 - The same holds for agents. In Codex, the code that sends prompts to the model and reads its
   replies is about 2% of 1.1 million lines. The terminal interface alone is 29%.
-- **How we know:** we counted the lines of Rust in Codex's open-source code, 118 packages with
-  the tests left out, and sorted the packages by job ourselves. The sorting is a judgment call:
-  the files inside the core package that call the model would add about 0.3%. Read the numbers as
-  approximate, 2 to 3% for the model calls. The grouping is in `figures/make_figures.py`.
+- **How we know:** we counted the lines of Rust in Codex's open-source code on GitHub
+  ([openai/codex](https://github.com/openai/codex/tree/a47a5189281806e669053434975a399b05c5e275/codex-rs),
+  as of 3 November 2026): 118 packages, tests left out, blank lines and comments included. Then we
+  sorted the packages by job ourselves. The sorting is a judgment call: the files inside the core
+  package that call the model would add about 0.3%. Read the numbers as approximate, 2 to 3% for
+  the model calls. The grouping is in `figures/make_figures.py`.
 - Most of the engineering of an agent is the harness, and that is the part you configure.
 
 ### The parts of a coding agent

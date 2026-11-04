@@ -908,7 +908,7 @@ A **coding agent** is an LLM agent whose tools read, search, edit and run the co
 
 <div class="readbox" data-marpit-fragment>
 
-**How we know:** we counted the lines of Rust in Codex's open-source code (118 packages, tests left out) and sorted the packages by job ourselves. Another sorting moves the numbers a little, so read them as approximate: 2 to 3% talks to the model
+**How we know:** we counted the lines of Rust in [Codex's open-source code on GitHub](https://github.com/openai/codex/tree/a47a5189281806e669053434975a399b05c5e275/codex-rs) (118 packages, tests left out) and sorted the packages by job ourselves. Another sorting moves the numbers a little, so read them as approximate: 2 to 3% talks to the model
 
 </div>
 
