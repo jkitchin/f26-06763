@@ -9,11 +9,10 @@ Name groups to regenerate only those; with no names, every group runs.
 
     trace        runs the scripted agent of ../l19-agents.ipynb (its code cells, executed here),
                  counts the tokens of every message with tiktoken (o200k_base, the GPT-4o
-                 tokenizer; other providers count a little differently), and writes run.png,
-                 tokens.png and caching.png. caching.png prices the same run with Anthropic's
-                 cache multipliers (write 1.25x, read 0.1x the input price) and extends it to 30
-                 calls with the measured prefix and growth per call. caching-run.png is its
-                 right panel alone, for the deck.
+                 tokenizer; other providers count a little differently), and writes run.png and
+                 caching-run.png. caching-run.png prices the same run with Anthropic's cache
+                 multipliers (write 1.25x, read 0.1x the input price) and extends it to 30 calls
+                 with the measured prefix and growth per call.
     diagrams     solar.png (the energy model of the notebook), coscientist.png (redrawn from the
                  Coscientist paper's description of its modules), workflow-agent.png,
                  agent-loop.png, harness.png, cache-prefix.png, coding-loop.png, coding-agent.png,
@@ -161,26 +160,8 @@ def group_trace():
             fontweight="bold")
     save(fig, "run.png")
 
-    # tokens.png: what each call reads
-    fig, ax = plt.subplots(figsize=(8.6, 4.2))
-    x = range(1, n + 1)
-    ax.bar(x, [P] * n, color=FILL["blue"], edgecolor=BLUE, label="System prompt and tool definitions")
-    ax.bar(x, [c["history"] for c in calls], bottom=[P] * n, color=FILL["gold"], edgecolor=GOLD,
-           label="The conversation so far")
-    for i, c in enumerate(calls, 1):
-        ax.text(i, c["input"] + 25, f"{c['input']}", ha="center", fontsize=12)
-    ax.set_xticks(list(x))
-    ax.set_xlabel("Model call")
-    ax.set_ylabel("Input tokens read")
-    ax.set_ylim(0, max(c["input"] for c in calls) * 1.18)
-    ax.legend(frameon=False, loc="upper left", fontsize=11)
-    ax.set_title(f"Five calls read {total_in:,} tokens: every call re-reads everything before it",
-                 fontsize=13)
-    save(fig, "tokens.png")
-
-    # caching.png: the same run with a prompt cache. Call k+1 starts with everything call k sent,
-    # so that part can be read from the cache; only what is new since call k is written.
-    # caching-run.png is its right panel alone, for the deck.
+    # caching-run.png: the same run with a prompt cache, extended to 30 calls. Call k+1 starts with
+    # everything call k sent, so that part can be read from the cache; only what is new is written.
     WRITE, READ = 1.25, 0.10
     inputs = [c["input"] for c in calls]
     hit = [0] + inputs[:-1]
@@ -211,23 +192,6 @@ def group_trace():
         ax.set_xlabel("Model calls in the run")
         ax.set_ylabel("Input cost, in full-price tokens")
         ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:,.0f}"))
-
-    fig, (a1, a2) = plt.subplots(1, 2, figsize=(12.4, 4.6), gridspec_kw={"width_ratios": [1, 1.15]})
-    fig.subplots_adjust(left=0.07, right=0.9, bottom=0.14, top=0.86, wspace=0.32)
-    x = range(1, n + 1)
-    a1.bar(x, hit, color=FILL["green"], edgecolor=GREEN, label="Sent before: read from the cache, 0.1x")
-    a1.bar(x, new, bottom=hit, color=FILL["gold"], edgecolor=GOLD, label="New: processed, 1.25x")
-    for i, (h, w) in enumerate(zip(hit, new), 1):
-        a1.text(i, h + w + 18, f"+{w}", ha="center", fontsize=11, color=GOLD, fontweight="bold")
-    a1.set_title(f"With a cache: the run costs {share:.0%} as much", fontsize=13, color=GREEN)
-    a1.set_xticks(list(x))
-    a1.set_xlabel("Model call")
-    a1.set_ylabel("Input tokens")
-    a1.set_ylim(0, max(inputs) * 1.42)
-    a1.legend(frameon=False, loc="upper left", fontsize=10.5)
-    longer_run(a2)
-    a2.set_title(f"A longer run saves more: {K} calls", fontsize=13)
-    save(fig, "caching.png", tight=False)
 
     fig, ax = plt.subplots(figsize=(9.5, 4.4))
     longer_run(ax, mark=True)

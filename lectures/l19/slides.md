@@ -368,8 +368,8 @@ An **LLM agent** is an LLM that calls tools in a loop. After each result it deci
 ![w:900](figures/workflow-agent.png)
 
 <div class="cols cols-even">
-<div class="readbox"><b>Workflow:</b> "LLMs and tools are orchestrated through predefined code paths." The retrieval pipeline of Lecture 18</div>
-<div class="readbox bred" data-marpit-fragment><b>Agent:</b> "LLMs dynamically direct their own processes and tool usage"</div>
+<div class="readbox"><b>Workflow:</b> the LLM and the tools follow steps written in your code. The retrieval pipeline of Lecture 18</div>
+<div class="readbox bred" data-marpit-fragment><b>Agent:</b> the LLM decides its own steps, and which tools to use, as it goes</div>
 </div>
 
 <span class="source">[Anthropic, Building effective agents (2024)](https://www.anthropic.com/research/building-effective-agents)</span>
@@ -416,7 +416,7 @@ An **LLM agent** is an LLM that calls tools in a loop. After each result it deci
 <div class="ev down c-gold" style="--k:2" data-marpit-fragment><div class="card"><span class="d">Mar 2023</span><b>GPT-4</b>OpenAI's model; later the planner inside Coscientist</div><div class="dot"></div></div>
 <div class="ev c-gold" style="--k:3" data-marpit-fragment><div class="card"><span class="d">Mar 2023</span><b>Auto-GPT</b>Open-source program that chained GPT-4's "thoughts" toward any goal you typed</div><div class="dot"></div></div>
 <div class="ev down c-red" style="--k:4" data-marpit-fragment><div class="card"><span class="d">Apr 2023</span><b>Coscientist, ChemCrow</b>Two chemistry agents posted the same day. ChemCrow had 18 chemistry tools</div><div class="dot"></div></div>
-<div class="ev c-green" style="--k:5" data-marpit-fragment><div class="card"><span class="d">Jun 2023</span><b>Function calling</b>OpenAI's API: the model returns a tool name and arguments, in JSON, instead of prose</div><div class="dot"></div></div>
+<div class="ev c-green" style="--k:5" data-marpit-fragment><div class="card"><span class="d">Jun 2023</span><b>Function calling</b>OpenAI's API: the model returns a tool name and arguments, in JSON, instead of sentences</div><div class="dot"></div></div>
 <div class="ev down c-blue" style="--k:6" data-marpit-fragment><div class="card"><span class="d">Oct 2023</span><b>SWE-bench</b>A test for coding agents: 2,294 real bug reports from GitHub. A fix counts only if the project's tests pass</div><div class="dot"></div></div>
 <div class="ev c-red" style="--k:7" data-marpit-fragment><div class="card"><span class="d">Dec 2023</span><b>Coscientist in <i>Nature</i></b>GPT-4 plans and runs chemistry experiments with a lab robot</div><div class="dot"></div></div>
 </div>
@@ -973,7 +973,7 @@ Setup: uv sync, then uv run for everything</div><div class="why"><span class="ib
 
 - **Permissions:** allow, ask or deny each tool and command, "enforced by Claude Code, not by the model"
 - **Sandbox:** the operating system limits which files and network the commands reach
-- **Hooks:** your scripts at fixed points, "deterministic control"
+- **Hooks:** your scripts at fixed points; they always run, whatever the model decides
 
 </div>
 </div>
@@ -1010,7 +1010,7 @@ Same idea as query_log in our example: the connection is opened read-only, so Du
 
 <p class="takeaway" data-marpit-fragment>The attacker used the developer's own agent to search the machine. Keep secrets out of its reach; turn the checks off only inside a container</p>
 
-<span class="source">[Nx postmortem (2025)](https://nx.dev/blog/s1ngularity-postmortem) · [Snyk (2025)](https://snyk.io/blog/weaponizing-ai-coding-agents-for-malware-in-the-nx-malicious-package/)</span>
+<span class="source">[Nx's report (2025)](https://nx.dev/blog/s1ngularity-postmortem) · [Snyk (2025)](https://snyk.io/blog/weaponizing-ai-coding-agents-for-malware-in-the-nx-malicious-package/)</span>
 
 <!--
 The flags: --dangerously-skip-permissions (Claude Code), --yolo (Gemini CLI), --trust-all-tools (Amazon Q). The lethal trifecta in one install: your files, the attacker's prompt, a way out through the GitHub command line.
