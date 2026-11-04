@@ -201,6 +201,11 @@ pre { font-size: 0.6em; }
 .lims .r.hdr { font-weight: 700; color: #5c5c5c; border-bottom: 2px solid #8a8a8a; padding-top: 0; }
 .lims b { color: var(--c); }
 
+/* what breaks the cache: four columns, rows grouped */
+.lims.brk { font-size: 0.58em; }
+.lims.brk .r { grid-template-columns: 44px 290px 1fr 250px; padding: 3px 8px; }
+.lims .grp { font-weight: 700; color: #5c5c5c; font-size: 0.92em; padding: 8px 8px 2px; }
+
 /* recap tiles */
 .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 16px; }
 .tiles > div { background: #f7f7f7; border-radius: 10px; padding: 8px 10px; text-align: center; font-size: 0.54em;
@@ -217,6 +222,7 @@ pre { font-size: 0.6em; }
 .i-calendar { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='M8 2v4' /%3E %3Cpath d='M16 2v4' /%3E %3Crect width='18' height='18' x='3' y='4' rx='2' /%3E %3Cpath d='M3 10h18' /%3E %3C/svg%3E"); }
 .i-circle-check { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Ccircle cx='12' cy='12' r='10' /%3E %3Cpath d='m9 12 2 2 4-4' /%3E %3C/svg%3E"); }
 .i-circle-x { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Ccircle cx='12' cy='12' r='10' /%3E %3Cpath d='m15 9-6 6' /%3E %3Cpath d='m9 9 6 6' /%3E %3C/svg%3E"); }
+.i-clock { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Ccircle cx='12' cy='12' r='10' /%3E %3Cpolyline points='12 6 12 12 16 14' /%3E %3C/svg%3E"); }
 .i-cloud { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z' /%3E %3C/svg%3E"); }
 .i-code { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpolyline points='16 18 22 12 16 6' /%3E %3Cpolyline points='8 6 2 12 8 18' /%3E %3C/svg%3E"); }
 .i-coins { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Ccircle cx='8' cy='8' r='6' /%3E %3Cpath d='M18.09 10.37A6 6 0 1 1 10.34 18' /%3E %3Cpath d='M7 6h1v4' /%3E %3Cpath d='m16.71 13.88.7.71-2.82 2.82' /%3E %3C/svg%3E"); }
@@ -249,11 +255,13 @@ pre { font-size: 0.6em; }
 .i-pencil { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z' /%3E %3Cpath d='m15 5 4 4' /%3E %3C/svg%3E"); }
 .i-plug { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='M12 22v-5' /%3E %3Cpath d='M9 8V2' /%3E %3Cpath d='M15 8V2' /%3E %3Cpath d='M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z' /%3E %3C/svg%3E"); }
 .i-refresh-cw { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8' /%3E %3Cpath d='M21 3v5h-5' /%3E %3Cpath d='M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16' /%3E %3Cpath d='M8 16H3v5' /%3E %3C/svg%3E"); }
+.i-repeat { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='m17 2 4 4-4 4' /%3E %3Cpath d='M3 11v-1a4 4 0 0 1 4-4h14' /%3E %3Cpath d='m7 22-4-4 4-4' /%3E %3Cpath d='M21 13v1a4 4 0 0 1-4 4H3' /%3E %3C/svg%3E"); }
 .i-scroll-text { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='M15 12h-5' /%3E %3Cpath d='M15 8h-5' /%3E %3Cpath d='M19 17V5a2 2 0 0 0-2-2H4' /%3E %3Cpath d='M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3' /%3E %3C/svg%3E"); }
 .i-search { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Ccircle cx='11' cy='11' r='8' /%3E %3Cpath d='m21 21-4.3-4.3' /%3E %3C/svg%3E"); }
 .i-send { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z' /%3E %3Cpath d='m21.854 2.147-10.94 10.939' /%3E %3C/svg%3E"); }
 .i-shield { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z' /%3E %3C/svg%3E"); }
 .i-shield-check { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z' /%3E %3Cpath d='m9 12 2 2 4-4' /%3E %3C/svg%3E"); }
+.i-shrink { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='m15 15 6 6m-6-6v4.8m0-4.8h4.8' /%3E %3Cpath d='M9 19.8V15m0 0H4.2M9 15l-6 6' /%3E %3Cpath d='M15 4.2V9m0 0h4.8M15 9l6-6' /%3E %3Cpath d='M9 4.2V9m0 0H4.2M9 9 3 3' /%3E %3C/svg%3E"); }
 .i-square-terminal { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='m7 11 2-2-2-2' /%3E %3Cpath d='M11 13h4' /%3E %3Crect width='18' height='18' x='3' y='3' rx='2' ry='2' /%3E %3C/svg%3E"); }
 .i-sun { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Ccircle cx='12' cy='12' r='4' /%3E %3Cpath d='M12 2v2' /%3E %3Cpath d='M12 20v2' /%3E %3Cpath d='m4.93 4.93 1.41 1.41' /%3E %3Cpath d='m17.66 17.66 1.41 1.41' /%3E %3Cpath d='M2 12h2' /%3E %3Cpath d='M20 12h2' /%3E %3Cpath d='m6.34 17.66-1.41 1.41' /%3E %3Cpath d='m19.07 4.93-1.41 1.41' /%3E %3C/svg%3E"); }
 .i-terminal { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpolyline points='4 17 10 11 4 5' /%3E %3Cline x1='12' x2='20' y1='19' y2='19' /%3E %3C/svg%3E"); }
@@ -648,46 +656,46 @@ Prices: Anthropic read 0.1x, write 1.25x the input price, 5-minute lifetime refr
 
 ---
 
-## Prompt caching, our run
+## Prompt caching, a longer run
 
-![w:860](figures/caching-run.png)
+![w:690](figures/caching-run.png)
 
 <div class="small">
 
-- **Red:** every call pays full price for the whole conversation. **Green:** the part sent before is read from the cache
+- **Where the curves come from:** the prompt of our solar run (331 tokens of system prompt and tools, about 81 new tokens per call), continued to 30 calls
+- **Red:** every call pays full price for the whole conversation. **Green:** the part sent before costs a tenth
 
 </div>
 
-<p class="takeaway" data-marpit-fragment>The longer the run, the bigger the saving: 39% of the cost for our 5 calls, 17% for 30</p>
+<p class="takeaway" data-marpit-fragment>With a cache, a 30-call run costs 17% as much. The longer the run, the bigger the saving</p>
 
 <!--
-Priced with Anthropic's multipliers: write 1.25, read 0.1. Prefix 331 tokens, about 81 new tokens per call, counted with tiktoken.
+Priced with Anthropic's multipliers: write 1.25, read 0.1. Token counts from tiktoken.
 -->
 
 ---
 
-## Prompt caching, the rule
+## Prompt caching, what breaks it
 
-<div class="quote">"At Claude Code, we build our entire harness around prompt caching" (Thariq Shihipar, Claude Code team)</div>
+- **The rule:** keep the start of the prompt the same, and add new text only at the end. Four common ways to break it:
 
-<div class="cards two" data-marpit-fragment style="margin-top:0.7em">
-<div class="card c-green"><h4><span class="ib sm"><i class="ic i-circle-check"></i></span>Keeps the cache</h4>
-
-- The same system prompt and tools on every call
-- New messages added at the end
-
-</div>
-<div class="card c-red"><h4><span class="ib sm"><i class="ic i-circle-x"></i></span>Breaks the cache</h4>
-
-- Anything that changes the start, such as the current time written into the system prompt
-- Editing an earlier message
-
-</div>
+<div class="lims brk">
+<div class="r hdr"><span></span><span>What you do</span><span>Why the cache misses</span><span>Do this instead</span></div>
+<div class="grp">Using a coding agent</div>
+<div class="r c-purple" data-marpit-fragment><span class="ib sm c-purple"><i class="ic i-repeat"></i></span><b>Switch models in the middle of a task</b><span>Each model has its own cache: the next call re-reads the whole conversation at full price</span><span>Pick the model at the start</span></div>
+<div class="r c-purple" data-marpit-fragment><span class="ib sm c-purple"><i class="ic i-shrink"></i></span><b>Compact the conversation</b><span>The old messages are replaced by a summary, so the history is new</span><span>Compact between tasks, not in the middle of one</span></div>
+<div class="grp" data-marpit-fragment>Building your own agent</div>
+<div class="r c-red" data-marpit-fragment><span class="ib sm c-red"><i class="ic i-clock"></i></span><b>Write the current time at the top of the system prompt</b><span>The first line changes on every call, so nothing after it matches</span><span>Put the time in the newest message</span></div>
+<div class="r c-red" data-marpit-fragment><span class="ib sm c-red"><i class="ic i-trash-2"></i></span><b>Delete old tool results to save tokens</b><span>An earlier message changed, so everything after it is new</span><span>Only add at the end</span></div>
 </div>
 
-<p class="takeaway" data-marpit-fragment>Keep the start of the prompt the same; add new text only at the end</p>
+<p class="takeaway" data-marpit-fragment>A switch or a compaction costs one full re-read. A clock at the top costs one on every call</p>
 
-<span class="source">[Shihipar, quoted by Willison (2026)](https://simonwillison.net/2026/Feb/20/thariq-shihipar/) · [How Claude Code uses prompt caching](https://code.claude.com/docs/en/prompt-caching) · [Manus (2025)](https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus)</span>
+<span class="source">[How Claude Code uses prompt caching](https://code.claude.com/docs/en/prompt-caching) · [Manus, Context engineering for AI agents (2025)](https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus) · [Anthropic, prompt caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)</span>
+
+<!--
+Claude Code's docs: "Pick your model and effort level at the top of a session, then save /compact for natural breaks between tasks." Manus calls a timestamp at the start of the system prompt "a common mistake". Thariq Shihipar (Claude Code team): "At Claude Code, we build our entire harness around prompt caching". In the worked example, a clock at the top makes the run cost 124% of no cache at all.
+-->
 
 ---
 
@@ -697,9 +705,9 @@ Priced with Anthropic's multipliers: write 1.25, read 0.1. Prefix 331 tokens, ab
 
 ---
 
-## Tools, what the model sees
+## Tools, written for the model
 
-- **The model never sees your code.** It knows a tool only by its name, its description, and the text it sends back
+- **To call a tool, the model goes by its definition:** a name, a description, the arguments. You write that text, and the text the tool sends back
 
 <div class="cols cols-even cols-top">
 <div>
@@ -720,7 +728,7 @@ Priced with Anthropic's multipliers: write 1.25, read 0.1. Prefix 331 tokens, ab
 </div>
 </div>
 
-<p class="takeaway" data-marpit-fragment>Write every description and every error for a reader who sees only text</p>
+<p class="takeaway" data-marpit-fragment>Tools and feedback written for the model are what took SWE-agent from 11% to 18% of bugs fixed</p>
 
 <span class="source">The tools and the way their results come back are the agent-computer interface (ACI). [Yang et al., SWE-agent (2024)](https://arxiv.org/abs/2405.15793) · [Anthropic, Writing effective tools for agents (2025)](https://www.anthropic.com/research/writing-tools-for-agents)</span>
 
@@ -805,17 +813,17 @@ Priced with Anthropic's multipliers: write 1.25, read 0.1. Prefix 331 tokens, ab
 <div class="chain">
 <div class="c-gray"><span class="ib c-gray"><i class="ic i-laptop"></i></span><b>July 2025</b>Jason Lemkin, a startup founder, builds an app by chatting with Replit's coding agent</div>
 <div class="c-gold" data-marpit-fragment><span class="ib c-gold"><i class="ic i-ban"></i></span><b>"Change nothing"</b>He tells it, in capitals, to make no more changes without his permission</div>
-<div class="c-red" data-marpit-fragment><span class="ib c-red"><i class="ic i-trash-2"></i></span><b>Deleted</b>It runs a command that wipes the app's live database: records on 1,206 executives</div>
-<div class="c-red" data-marpit-fragment><span class="ib c-red"><i class="ic i-message-square"></i></span><b>Wrong report</b>It says the data cannot be restored. It could: the rollback worked</div>
+<div class="c-red" data-marpit-fragment><span class="ib c-red"><i class="ic i-trash-2"></i></span><b>Deleted</b>It runs a command that wipes the app's live database: records on more than 1,200 executives</div>
+<div class="c-red" data-marpit-fragment><span class="ib c-red"><i class="ic i-message-square"></i></span><b>Wrong about the fix</b>It tells him a rollback will not work. He tries it anyway, and it does</div>
 <div class="c-blue" data-marpit-fragment><span class="ib c-blue"><i class="ic i-shield-check"></i></span><b>Replit's fix</b>The agent now changes a separate development database; the live one changes only when you approve</div>
 </div>
 
 <p class="takeaway" data-marpit-fragment>An instruction is text the model can ignore. A limit built into the system holds. Check the system itself, not the agent's report</p>
 
-<span class="source">[The Register, 21 July 2025](https://www.theregister.com/2025/07/21/replit_saastr_vibe_coding_incident/) · [Lemkin's post, with the agent's reply (2025)](https://x.com/jasonlk/status/1946069562723897802) · [Replit (2025)](https://replit.com/blog/introducing-a-safer-way-to-vibe-code-with-replit-databases) · [Fortune (2025)](https://fortune.com/2025/07/23/ai-coding-tool-replit-wiped-database-called-it-a-catastrophic-failure/)</span>
+<span class="source">[The Register, 21 July 2025](https://www.theregister.com/2025/07/21/replit_saastr_vibe_coding_incident/) · [Replit (2025)](https://replit.com/blog/introducing-a-safer-way-to-vibe-code-with-replit-databases) · [Fortune (2025)](https://fortune.com/2025/07/23/ai-coding-tool-replit-wiped-database-called-it-a-catastrophic-failure/)</span>
 
 <!--
-Lemkin founded SaaStr. The command was npm run db:push. "This destroyed 1,206 executives and 1,196+ companies", in the agent's words. Replit's fix: development and production databases kept apart, plus a planning-only mode.
+Lemkin founded SaaStr. Fortune: data on "more than 1,200 executives and over 1,190 companies"; "the agent told Lemkin that a retrieval, or rollback, function would not work in this scenario". The agent's own words: "This was a catastrophic failure on my part".
 -->
 
 ---
@@ -1033,12 +1041,6 @@ The flags: --dangerously-skip-permissions (Claude Code), --yolo (Gemini CLI), --
 <div class="c-dark" data-marpit-fragment><span class="ib c-dark"><i class="ic i-globe"></i></span><b>The site</b>notes, slides, notebooks, practice game, map</div>
 </div>
 
-<div class="small" data-marpit-fragment>
-
-- **A failed check goes back to Claude Code**, not to the site. Claude Code wrote most of the material; an instructor checked and merged every change
-
-</div>
-
 <span class="source">A pull request: a proposed change, reviewed before it merges</span>
 
 <!--
@@ -1088,29 +1090,29 @@ A **test** is a small function that runs your code on a case where you know the 
 <div>
 
 ```python
-# src/units.py: the agent's first try
-def c_to_f(c):
-    return c * 9 / 5          # forgot + 32
-# tests/test_units.py
+# tests/test_units.py: you write it; it stays fixed
 def test_boiling_point():
     assert c_to_f(100) == 212
+# src/units.py: the agent's first try
+def c_to_f(c):
+    return c * 9 / 5        # forgot + 32
 ```
 
 </div>
 <div class="term" data-marpit-fragment>$ uv run pytest
-<span class="r">FAILED tests/test_units.py::test_boiling_point</span>
-<span class="r">  assert 180.0 == 212</span>
-<span class="c"># the agent reads this and adds the + 32</span>
+<span class="r">FAILED test_boiling_point: assert 180.0 == 212</span>
+<span class="c"># the agent edits src/units.py, not the test:</span>
+<span class="c">#   return c * 9 / 5 + 32</span>
 $ uv run pytest
 <span class="g">1 passed in 0.01s</span></div>
 </div>
 
-<p class="takeaway" data-marpit-fragment>The test, not the agent's own judgment, says when the work is done: the verify step of the loop</p>
+<p class="takeaway" data-marpit-fragment>The test stays fixed; the code changes until it passes. Tell the agent "not to modify the tests"</p>
 
-<span class="source">[Claude Code best practices](https://code.claude.com/docs/en/best-practices) · [pytest](https://docs.pytest.org/)</span>
+<span class="source">[Claude Code best practices (April 2025, archived)](https://web.archive.org/web/20250602202220/https://www.anthropic.com/engineering/claude-code-best-practices) · [pytest](https://docs.pytest.org/)</span>
 
 <!--
-Claude Code best practices: "Give Claude something it can run that comes back pass or fail".
+Anthropic: "Ask Claude to write code that passes the tests, instructing it not to modify the tests." Why say it: an agent told only "make the tests pass" can edit the test instead of the code. The test is the specification; it must not move.
 -->
 
 ---
@@ -1240,7 +1242,7 @@ The tools changed between the two: Claude Code and Codex spread through 2025 (ME
 <div class="lims">
 <div class="r hdr"><span></span><span>The limitation</span><span>What to do</span></div>
 <div class="r c-gold"><span class="ib sm c-gold"><i class="ic i-coins"></i></span><b>Cost grows with every step</b><span>Keep the start of the prompt stable for the cache; cap the steps</span></div>
-<div class="r c-red" data-marpit-fragment><span class="ib sm c-red"><i class="ic i-triangle-alert"></i></span><b>Errors add up over many steps</b><span>Each step right 95% of the time: all 20 steps right only 36% of the time. Test on your own tasks, several times</span></div>
+<div class="r c-red" data-marpit-fragment><span class="ib sm c-red"><i class="ic i-triangle-alert"></i></span><b>Long runs go wrong more often</b><span>If each step slips 1 time in 20 and nothing catches it, a 20-step run slips about 2 times in 3. Check along the way: tests, approvals</span></div>
 <div class="r c-red" data-marpit-fragment><span class="ib sm c-red"><i class="ic i-venetian-mask"></i></span><b>Prompt injection is not solved</b><span>Read-only tools, approval, a sandbox, no lethal trifecta</span></div>
 <div class="r c-blue" data-marpit-fragment><span class="ib sm c-blue"><i class="ic i-message-square"></i></span><b>A report is not evidence</b><span>Check the system itself; run the tests yourself</span></div>
 <div class="r c-blue" data-marpit-fragment><span class="ib sm c-blue"><i class="ic i-file-text"></i></span><b>Instructions are not enforced</b><span>What must hold goes in permissions, hooks and tests</span></div>

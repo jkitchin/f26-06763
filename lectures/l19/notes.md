@@ -334,33 +334,43 @@ Each call starts with the whole prompt of the call before it. Only the end is ne
   1.25 times. The cache lasts 5 minutes, and each use restarts the clock
   ([prompt caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)).
 
-### Our run, with a cache
+### A longer run, with and without a cache
 
 ```{figure} figures/caching-run.png
-:alt: Input cost of a run, in full-price tokens, against the number of model calls, from 1 to 30. Without a cache the red curve bends up to 46,035; with a cache the green curve reaches 7,719, 17%. A dotted line at 5 calls marks our run, 39% of the cost.
+:alt: Input cost of a run, in full-price tokens, against the number of model calls, from 1 to 30. Without a cache the red curve bends up to 46,035; with a cache the green curve reaches 7,719, 17%.
 :width: 85%
 
-The scripted run priced with and without a cache, then extended to 30 calls. Red: every call
-pays full price for the whole conversation. Green: the part sent before is read from the cache.
+The prompt of our solar run, 331 tokens of system prompt and tools plus about 81 new tokens per
+call, continued to 30 calls and priced with Anthropic's rates. Red: every call pays full price for
+the whole conversation. Green: the part sent before is read from the cache.
 ```
 
-- Our five calls would cost **39%** of the price without a cache. A 30-call run would cost
-  **17%**. The longer the run, the bigger the saving.
+- With a cache, a 30-call run costs **17%** as much. The longer the run, the bigger the saving.
 
 ### What breaks the cache
 
 - Thariq Shihipar, on the Claude Code team: "At Claude Code, we build our entire harness around
-  prompt caching"
-  ([on X, February 2026](https://x.com/trq212/status/2024574133011673516), quoted by
-  [Simon Willison](https://simonwillison.net/2026/Feb/20/thariq-shihipar/)).
-- **Keeps the cache:** the same system prompt and tools on every call; new messages added at the
-  end.
-- **Breaks the cache:** anything that changes the start, such as the current time written into
-  the system prompt; editing an earlier message.
-- The rule: **keep the start of the prompt the same, and add new text only at the end.**
-- A broken cache costs more than no cache. In the worked example, a clock at the start of the
-  system prompt makes the run cost 124% of the uncached price: every call pays to write and
-  reads nothing back.
+  prompt caching" (quoted by [Simon Willison, 2026](https://simonwillison.net/2026/Feb/20/thariq-shihipar/)).
+- The rule: **keep the start of the prompt the same, and add new text only at the end.** Four
+  common ways to break it:
+
+| What you do | Why the cache misses | Do this instead |
+|---|---|---|
+| **Using a coding agent:** switch models in the middle of a task | Each model has its own cache, so the next call re-reads the whole conversation at full price | Pick the model at the start |
+| **Using a coding agent:** compact the conversation | The old messages are replaced by a summary, so the history is new | Compact between tasks, not in the middle of one |
+| **Building your own agent:** write the current time at the top of the system prompt | The first line changes on every call, so nothing after it matches | Put the time in the newest message |
+| **Building your own agent:** delete old tool results to save tokens | An earlier message changed, so everything after it is new | Only add at the end |
+
+- Claude Code's documentation gives the first two: "Pick your model and effort level at the top of
+  a session, then save `/compact` for natural breaks between tasks"
+  ([How Claude Code uses prompt caching](https://code.claude.com/docs/en/prompt-caching)).
+  Manus calls a timestamp at the start of the system prompt "a common mistake", and advises
+  "Make your context append-only"
+  ([Manus, Context engineering for AI agents, 2025](https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus)).
+- A model switch or a compaction costs one full re-read, then the cache fills again. A clock at
+  the top costs one on every call, which is worse than no cache at all. In the worked example, a
+  clock at the start of the system prompt makes the run cost 124% of the uncached price: every
+  call pays to write and reads nothing back.
 
 ## Tools and guardrails
 
@@ -370,8 +380,9 @@ pays full price for the whole conversation. Green: the part sent before is read 
 ```{index} see: ACI; agent-computer interface
 ```
 
-- The model never sees your code. It knows a tool only by its name, its description, and the
-  text the tool sends back.
+- To call a tool, the model goes by the tool's definition: a name, a description, and the
+  arguments it takes. Your harness sends that text with every call, and the tool's result comes
+  back as text too. You write both.
 
 :::{admonition} Definition: agent-computer interface
 :class: tip
@@ -400,7 +411,8 @@ results come back. Its design changes how well the agent works, with the same mo
 - Anthropic's advice: write error messages that say clearly what to change, instead of error
   codes or tracebacks
   ([Writing effective tools for agents, 2025](https://www.anthropic.com/research/writing-tools-for-agents)).
-- Write every description and every error for a reader who sees only text.
+- Tools and feedback written for the model are what took SWE-agent from 11% to 18% of bugs fixed
+  (Same model, different harness, above).
 
 ### Guardrails: when the agent can act
 
@@ -467,13 +479,13 @@ needs, so a wrong or manipulated output can do damage.
 - **"Change nothing":** he had told it, in capitals, to make "NO MORE CHANGES without explicit
   permission"
   ([The Register, 21 July 2025](https://www.theregister.com/2025/07/21/replit_saastr_vibe_coding_incident/)).
-- **Deleted:** the agent ran a database command anyway and wiped the app's live database. In the
-  agent's own words: "This destroyed 1,206 executives and 1,196+ companies"
-  ([Lemkin's post, with the agent's replies](https://x.com/jasonlk/status/1946069562723897802)).
-- **Wrong report:** the agent said the data could not be restored. **The rollback worked.**
+- **Deleted:** the agent ran a database command anyway and wiped the app's live database, "wiping
+  out data for more than 1,200 executives and over 1,190 companies"
+  ([Fortune, 2025](https://fortune.com/2025/07/23/ai-coding-tool-replit-wiped-database-called-it-a-catastrophic-failure/)).
+- **Wrong about the fix:** "the agent told Lemkin that a retrieval, or rollback, function would
+  not work in this scenario" (Fortune). He tried the rollback anyway, and it worked.
 - **Replit's fix:** the agent now changes a separate development database. The live one changes
-  only when you approve it ([Replit, 2025](https://replit.com/blog/introducing-a-safer-way-to-vibe-code-with-replit-databases);
-  [Fortune](https://fortune.com/2025/07/23/ai-coding-tool-replit-wiped-database-called-it-a-catastrophic-failure/)).
+  only when you approve it ([Replit, 2025](https://replit.com/blog/introducing-a-safer-way-to-vibe-code-with-replit-databases)).
 - For you: an instruction is text the model can ignore. A limit built into the system holds.
   Check what the agent did in the system itself, not in its own report.
 
@@ -673,11 +685,8 @@ How one change reaches this site.
   - **The rules:** `CLAUDE.md` holds them. Most were added after a mistake, for example: check
     every number against its source, because a widely quoted claim that "less than 10% of the code
     is the model" is not in the paper it is cited to ([Lecture 1](../l01/notes.md)).
-  - **The checks:** a rule that must hold is also a check that runs on every change. A failed
-    check goes back to the agent, not to the site.
+  - **The checks:** a rule that must hold is also a check that runs on every change.
   - **A person merges:** nothing reaches the site until an instructor reads and merges it.
-- Claude Code wrote most of the material: notes, slides, figures, notebooks and tools. An
-  instructor checked and merged every change.
 
 ## Working with a coding agent
 
@@ -704,21 +713,28 @@ if the answer is wrong.
 - **The example:** a function `c_to_f` converts a temperature from Celsius to Fahrenheit,
   $F = C \times 9/5 + 32$. Water boils at 100 °C, which is 212 °F, so that is a case where you
   know the answer.
-- Say the agent's first try forgot the "+ 32". The test catches it:
+- You write the test. Say the agent's first try at the function forgot the "+ 32". The test
+  catches it:
 
 ```python
+# tests/test_units.py: you write it; it stays fixed
+def test_boiling_point():
+    assert c_to_f(100) == 212
+
 # src/units.py: the agent's first try
 def c_to_f(c):
     return c * 9 / 5          # forgot + 32
-
-# tests/test_units.py
-def test_boiling_point():
-    assert c_to_f(100) == 212
 ```
 
-- `uv run pytest` fails with `assert 180.0 == 212`. The agent reads that error, adds the "+ 32",
-  and runs the test again until it passes. This is the verify step of the loop: the test, not the
-  agent's own judgment, says when the work is done.
+- `uv run pytest` fails with `assert 180.0 == 212`. The agent reads that error, edits
+  `src/units.py` (not the test) to add the "+ 32", and runs the test again until it passes. This
+  is the verify step of the loop: the test, not the agent's own judgment, says when the work is
+  done.
+- **The test must not move.** An agent told only "make the tests pass" can edit the test instead
+  of the code. Anthropic's advice: "Ask Claude to write code that passes the tests, instructing it
+  not to modify the tests"
+  ([Claude Code best practices, April 2025](https://web.archive.org/web/20250602202220/https://www.anthropic.com/engineering/claude-code-best-practices),
+  archived copy).
 - Claude Code's best practices: "Give Claude something it can run that comes back pass or fail."
   ([best practices](https://code.claude.com/docs/en/best-practices)).
 
@@ -841,9 +857,10 @@ A multi-agent system, and what it costs in tokens.
 
 - **Cost grows faster than the step count.** Every call re-reads the conversation. Keep the
   start of the prompt the same so the cache works, cap the steps, and keep tool results short.
-- **Errors add up over many steps.** Say each step is right 95% of the time. Then all 20 steps
-  of a 20-step task are right only 36% of the time ($0.95^{20} = 0.36$). Prefer a workflow when
-  the steps are known, and test an agent on your own tasks, several runs each.
+- **Long runs go wrong more often.** One wrong step can spoil the result. If each step slips 1
+  time in 20 and nothing catches it, a 20-step run slips somewhere about 2 times in 3
+  ($1 - 0.95^{20} \approx 0.64$). Check along the way with tests and approvals, prefer a workflow
+  when the steps are known, and try the agent on your own tasks before you trust it.
 - **Prompt injection is not solved.** Anything the agent reads can carry instructions. The defence
   is in the harness: read-only tools, approval for changes, a sandbox, no lethal trifecta.
 - **An agent's report is not evidence.** The Replit agent said a rollback was impossible; it was

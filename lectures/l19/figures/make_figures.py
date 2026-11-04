@@ -177,24 +177,16 @@ def group_trace():
               for k in range(1, K + 1)]
     print(f"  {K} calls: {plain[-1]:,.0f} tokens without a cache, {cached[-1]:,.0f} with ({cached[-1] / plain[-1]:.0%})")
     kk = range(1, K + 1)
-
-    def longer_run(ax, mark=False):
-        ax.plot(kk, plain, color=RED, lw=2.6)
-        ax.plot(kk, cached, color=GREEN, lw=2.6)
-        ax.text(K + 0.6, plain[-1], f"no cache\n{plain[-1]:,.0f}", color=RED, va="center", fontsize=11)
-        ax.text(K + 0.6, cached[-1], f"with a cache\n{cached[-1]:,.0f}\n({cached[-1] / plain[-1]:.0%})",
-                color=GREEN, va="center", fontsize=11)
-        if mark:
-            ax.axvline(n, color=GRAY, lw=1.2, ls=":")
-            ax.text(n + 0.5, plain[-1] * 0.55, f"our run: {n} calls,\n{share:.0%} of the cost", fontsize=11.5,
-                    color="#3c3c3c")
-        ax.set_xlim(0, K + 7)
-        ax.set_xlabel("Model calls in the run")
-        ax.set_ylabel("Input cost, in full-price tokens")
-        ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:,.0f}"))
-
     fig, ax = plt.subplots(figsize=(9.5, 4.4))
-    longer_run(ax, mark=True)
+    ax.plot(kk, plain, color=RED, lw=2.6)
+    ax.plot(kk, cached, color=GREEN, lw=2.6)
+    ax.text(K + 0.6, plain[-1], f"no cache\n{plain[-1]:,.0f}", color=RED, va="center", fontsize=11.5)
+    ax.text(K + 0.6, cached[-1], f"with a cache\n{cached[-1]:,.0f}\n({cached[-1] / plain[-1]:.0%})",
+            color=GREEN, va="center", fontsize=11.5)
+    ax.set_xlim(0, K + 7)
+    ax.set_xlabel("Model calls in the run")
+    ax.set_ylabel("Input cost, in full-price tokens")
+    ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:,.0f}"))
     ax.set_title("Cost of a run, with and without a prompt cache", fontsize=13)
     save(fig, "caching-run.png")
 

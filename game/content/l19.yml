@@ -129,7 +129,7 @@ items:
       - "Cached calls run on a smaller and cheaper model than uncached ones"
     answer: "Each call starts with the last call's whole prompt, which the cache reuses"
     evidence: |
-      An agent's prompt only grows at the end, so the old prompt is an exact prefix of the new one. That prefix is read from the cache at about a tenth of the price. In the solar run, the cache would cut the cost to 39%, and to 17% over 30 calls.
+      An agent's prompt only grows at the end, so the old prompt is an exact prefix of the new one. That prefix is read from the cache at about a tenth of the price. Over a 30-call run, the cache would cut the cost to 17%.
     source:
       file: lectures/l19/notes.md
       heading: "How the cache works"
