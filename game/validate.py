@@ -429,7 +429,7 @@ def check_shape(bank: Bank, item: dict, where: str) -> None:
         bank.err(
             where,
             f"rung {rung!r} is not on the ladder (0-7); see "
-            "course/optional/how-this-course-was-built.md",
+            "course/optional/generating-is-not-learning.md",
         )
 
     if not (item.get("evidence") or "").strip():

@@ -28,11 +28,6 @@ check(sessionRooms.length === 20, 'every session on the schedule with a topic is
 check(roomById('l21') === undefined, 'L21, which has no topic, is not drawn')
 check(roomById('l20') === undefined, 'L20, which is cancelled, is not drawn')
 
-// The optional page gets a room only once it is published in _toc.yml. It is not
-// published for now (Lecture 22 covers how the course was built), so there is no
-// page room and no Optional region.
-check(roomById('built') === undefined, 'the unpublished optional page has no room')
-check(world.regions.every((g) => g.name !== 'Optional'), 'and there is no Optional region')
 // The written (open) rooms are exactly the lectures released in _toc.yml. The
 // course ships one week at a time, so this set grows week by week; the test
 // derives it from _toc.yml rather than hard-coding a count a release would break.
@@ -45,6 +40,19 @@ const releasedIds = new Set(
 const PAGES: Record<string, string> = { built: 'course/optional/how-this-course-was-built' }
 const pageListed = (id: string) =>
   new RegExp(`^\\s*-\\s*file:\\s*${PAGES[id]}\\s*$`, 'm').test(toc)
+
+// The optional page gets a room only once it is published in _toc.yml, and then
+// it sits in an Optional region of its own, with no date.
+const built = roomById('built')
+if (pageListed('built')) {
+  check(built?.kind === 'page' && built.arc === 'Optional' && built.date === '',
+    'the published optional page is a room in the Optional region, with no date')
+  check(world.regions.filter((g) => g.name === 'Optional').length === 1,
+    'and there is one Optional region')
+} else {
+  check(built === undefined, 'the unpublished optional page has no room')
+  check(world.regions.every((g) => g.name !== 'Optional'), 'and there is no Optional region')
+}
 const writtenIds = world.rooms.filter((r) => r.written).map((r) => r.id).sort()
 const expectedWritten = world.rooms
   .filter((r) => (r.kind === 'page' ? pageListed(r.id) : releasedIds.has(r.id)))
@@ -132,8 +140,10 @@ check(!doorVisible(oneDoor, none), 'a corridor is hidden until both ends are vis
 check(!doorVisible(oneDoor, new Set(['l11'])), 'one end is not enough')
 check(doorVisible(oneDoor, both), 'and drawn once both have been')
 
-// 20 sessions with a topic; the optional page has no room while it is unpublished.
-check(coverage(none).seen === 0 && coverage(none).total === 20, 'coverage starts at zero of 20')
+// 20 sessions with a topic, plus the optional page once it is published.
+const roomsTotal = 20 + (pageListed('built') ? 1 : 0)
+check(coverage(none).seen === 0 && coverage(none).total === roomsTotal,
+  `coverage starts at zero of ${roomsTotal}`)
 check(coverage(both).seen === 2, 'and counts the rooms actually stood in')
 
 // Shuttered rooms no longer carry a promise sign: the promises were forward
