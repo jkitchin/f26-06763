@@ -1,0 +1,328 @@
+{
+  "lecture": "l19",
+  "title": "LLM agents: tools, loops, harnesses and coding agents",
+  "pool_version": 6,
+  "source_notes": "lectures/l19/notes.md",
+  "generated_by": "tools/arcade_rounds.py",
+  "items": [
+    {
+      "id": "l19-q11",
+      "kind": "mcq",
+      "lecture": "l19",
+      "context": "What makes a system an LLM agent rather than a workflow?",
+      "why": "An agent calls tools in a loop and decides each next step itself. In a workflow your code fixes the steps. The size of the model and the format of the answer do not decide which one you have.",
+      "objectives": [
+        "l19-o1"
+      ],
+      "tags": [
+        "definition",
+        "workflow"
+      ],
+      "true": "The model chooses each next step from the last result",
+      "false": [
+        "It uses a larger and more capable model than a workflow would",
+        "It calls at least one tool before it writes its final answer",
+        "It answers in structured JSON that your code can read"
+      ]
+    },
+    {
+      "id": "l19-q12",
+      "kind": "mcq",
+      "lecture": "l19",
+      "context": "When is a fixed workflow a better choice than an agent?",
+      "why": "A workflow is cheaper, faster and takes the same path every time. Reach for an agent only when the next step depends on what the tools return.",
+      "objectives": [
+        "l19-o1"
+      ],
+      "tags": [
+        "workflow"
+      ],
+      "true": "When you know the steps in advance",
+      "false": [
+        "When the next step depends on what a tool returns",
+        "When the task needs more than one tool to finish",
+        "When the model must decide which data to look at"
+      ]
+    },
+    {
+      "id": "l19-q13",
+      "kind": "locus_of_control",
+      "lecture": "l19",
+      "context": "In an agent loop, who actually runs a tool?",
+      "why": "The model only writes a request: the tool's name and its arguments. Your code, the harness, checks it, runs the tool, and sends the result back.",
+      "objectives": [
+        "l19-o2"
+      ],
+      "tags": [
+        "loop",
+        "harness"
+      ],
+      "true": "Your code, after the model writes a request",
+      "false": [
+        "The model, as soon as it decides the tool is needed",
+        "The provider's servers, which run tools for the model",
+        "The tool definition, which the model reads on every call"
+      ]
+    },
+    {
+      "id": "l19-q23",
+      "kind": "mcq",
+      "lecture": "l19",
+      "context": "Which of these is a job of the harness, not of the model?",
+      "why": "The model reads text and writes requests: which tool, which arguments, and the final answer. The harness, the software around it, builds the prompt, runs the tools, checks permissions, manages the context and ends the run.",
+      "objectives": [
+        "l19-o2"
+      ],
+      "tags": [
+        "harness",
+        "definition"
+      ],
+      "true": "Checking the permission rules before a tool runs",
+      "false": [
+        "Choosing which tool to call next, from the last result",
+        "Writing the arguments of a tool request",
+        "Writing the final answer for the user"
+      ]
+    },
+    {
+      "id": "l19-q29",
+      "kind": "mcq",
+      "lecture": "l19",
+      "context": "On a test of real bug reports, the same model fixed far more bugs once only its loop and its tools were improved. What does this show?",
+      "why": "SWE-agent kept the model the same and changed only the harness: first a loop, then tools built for an LLM. When an agent fails, look at its harness before you blame the model.",
+      "objectives": [
+        "l19-o2"
+      ],
+      "tags": [
+        "harness",
+        "evidence"
+      ],
+      "true": "The software around a model changes how well the agent works",
+      "false": [
+        "A newer and larger model would have fixed just as many bugs",
+        "The second set of bug reports must have been easier to fix",
+        "Better tools help small models, but make no difference to large ones"
+      ]
+    },
+    {
+      "id": "l19-q25",
+      "kind": "mcq",
+      "lecture": "l19",
+      "context": "Why does prompt caching make a long agent run cheaper?",
+      "why": "An agent's prompt only grows at the end, so most of each call was already sent by the call before. That repeated start is read from the cache at a fraction of the price. The longer the run, the bigger the saving.",
+      "objectives": [
+        "l19-o3"
+      ],
+      "tags": [
+        "caching",
+        "cost"
+      ],
+      "true": "Each call starts with the last call's prompt, which the cache can reuse",
+      "false": [
+        "The provider replays the model's earlier answers instead of writing new ones",
+        "The cache compresses the tool results, so each call sends fewer tokens",
+        "Cached calls are sent to a smaller and cheaper model than the others"
+      ]
+    },
+    {
+      "id": "l19-q26",
+      "kind": "mcq",
+      "lecture": "l19",
+      "context": "Which rule keeps the prompt cache working in an agent?",
+      "why": "The cache matches the start of the prompt exactly. Anything that changes the start, or an earlier message, makes everything after it new again. A model switch starts a new cache too.",
+      "objectives": [
+        "l19-o3"
+      ],
+      "tags": [
+        "caching"
+      ],
+      "true": "Keep the start of the prompt the same; add new text only at the end",
+      "false": [
+        "Put the newest information at the top of the system prompt",
+        "Shorten or delete old messages as the conversation grows longer",
+        "Move to a cheaper model for the later calls of a long run"
+      ]
+    },
+    {
+      "id": "l19-q16",
+      "kind": "mcq",
+      "lecture": "l19",
+      "context": "Your agent keeps calling a tool with the wrong arguments. What do you fix first?",
+      "why": "To call a tool, the model goes by its definition: the name, the description and the arguments. A vague description makes it guess, so fix the description before you blame the model.",
+      "objectives": [
+        "l19-o4"
+      ],
+      "tags": [
+        "tools",
+        "descriptions"
+      ],
+      "true": "The tool's description: what it does, its units and its limits",
+      "false": [
+        "Switch to a larger model, which makes fewer mistakes with tools",
+        "Raise the step budget so the model gets more tries at the call",
+        "Retry each call automatically until its arguments are accepted"
+      ]
+    },
+    {
+      "id": "l19-q31",
+      "kind": "mcq",
+      "lecture": "l19",
+      "context": "The model asks a tool for something the tool cannot do. What should the tool do?",
+      "why": "An exception stops your program, and the model never learns what was wrong. A message comes back to the model as the tool's result, so it can read it and fix its request, as the solar agent did when it asked for tilts the mount cannot reach.",
+      "objectives": [
+        "l19-o4"
+      ],
+      "tags": [
+        "tools",
+        "errors"
+      ],
+      "true": "Return a message saying what was wrong, so the model can retry",
+      "false": [
+        "Raise an exception and stop the program, so nothing else can go wrong",
+        "Return an empty result, and let the model carry on with its plan",
+        "Quietly correct the arguments itself, then run the request anyway"
+      ]
+    },
+    {
+      "id": "l19-q17",
+      "kind": "mcq",
+      "lecture": "l19",
+      "context": "A note planted in a document tells your agent to make a risky change, and the model asks for it. What reliably stops the change?",
+      "why": "An LLM cannot reliably tell your instructions from instructions planted in what it reads. The model can be fooled; a check in your code still asks a person before anything changes.",
+      "objectives": [
+        "l19-o4"
+      ],
+      "tags": [
+        "guardrails",
+        "injection",
+        "approval"
+      ],
+      "true": "A check in your code: a person must approve the change",
+      "false": [
+        "The model will notice that the note was planted, and ignore it",
+        "A sentence in the system prompt saying every change needs approval",
+        "A larger model, which is much harder to fool with planted text"
+      ]
+    },
+    {
+      "id": "l19-q30",
+      "kind": "mcq",
+      "lecture": "l19",
+      "context": "Your email assistant reads your inbox, summarizes messages from anyone, and can send email. What stops a stranger's email from getting your inbox forwarded to them?",
+      "why": "Private data, text from strangers and a way to send data out make the lethal trifecta. With all three, planted text can get your data out; take any one away and the attack fails. A prompt line or a report is text the model may not follow.",
+      "objectives": [
+        "l19-o4"
+      ],
+      "tags": [
+        "guardrails",
+        "trifecta"
+      ],
+      "true": "Taking away one of the three: for example, its ability to send email",
+      "false": [
+        "A line in the system prompt that says never to forward email",
+        "A larger model that is better at spotting planted instructions",
+        "Asking the assistant to report every email it sends"
+      ]
+    },
+    {
+      "id": "l19-q21",
+      "kind": "mcq",
+      "lecture": "l19",
+      "context": "In a coding agent, which part is enforced by the harness rather than left to the model?",
+      "why": "Permissions are checked by the harness before a tool runs. The instructions file is context the model may ignore, not a control.",
+      "objectives": [
+        "l19-o5"
+      ],
+      "tags": [
+        "coding agents",
+        "permissions"
+      ],
+      "true": "Its permission rules: allow, ask or deny each tool",
+      "false": [
+        "The instructions file it reads at the start of every session",
+        "The plan it writes before it starts editing your files",
+        "Its summary of the conversation after a compaction"
+      ]
+    },
+    {
+      "id": "l19-q27",
+      "kind": "mcq",
+      "lecture": "l19",
+      "context": "Late in a long session, your coding agent stops following a rule you gave it in your first message. Where should the rule live?",
+      "why": "Near the limit of the context window the harness compacts the conversation into a summary, and early instructions can get lost. AGENTS.md or CLAUDE.md is loaded at the start of every session. A rule that must hold goes further, into a permission, a hook or a test.",
+      "objectives": [
+        "l19-o5"
+      ],
+      "tags": [
+        "coding agents",
+        "context"
+      ],
+      "true": "In the instructions file, read at the start of every session",
+      "false": [
+        "In a longer and more emphatic first message next time",
+        "In a comment at the top of each file the agent is likely to edit",
+        "Nowhere: an agent cannot keep a rule across a long session"
+      ]
+    },
+    {
+      "id": "l19-q33",
+      "kind": "mcq",
+      "lecture": "l19",
+      "context": "In a coding agent such as Codex, what is most of the code?",
+      "why": "As in Lecture 1, where the ML code was a small part of a production ML system, the code that talks to the model is a small part of a coding agent. Most of the engineering is the harness, and that is the part you configure.",
+      "objectives": [
+        "l19-o5"
+      ],
+      "tags": [
+        "coding agents",
+        "harness"
+      ],
+      "true": "The harness around the model: interface, tools, permissions, context",
+      "false": [
+        "The code that sends prompts to the model and reads back its replies",
+        "The model itself: its weights, shipped inside the agent's program",
+        "Tests that check every answer of the model before you ever see it"
+      ]
+    },
+    {
+      "id": "l19-q28",
+      "kind": "mcq",
+      "lecture": "l19",
+      "context": "You ask a coding agent to fix a bug in your project. What gives it the best chance of getting the fix right?",
+      "why": "The verify step is where an agent finds out it was wrong. With a test it can read the failure, fix the code and run the test again; without one it can only guess. The test is yours, and the agent should not change it.",
+      "objectives": [
+        "l19-o6"
+      ],
+      "tags": [
+        "coding agents",
+        "tests"
+      ],
+      "true": "A test it can run that comes back pass or fail",
+      "false": [
+        "A longer prompt that explains the whole project in detail",
+        "Permission to run every command without asking first",
+        "A larger context window, so it can read every file at once"
+      ]
+    },
+    {
+      "id": "l19-q22",
+      "kind": "mcq",
+      "lecture": "l19",
+      "context": "In METR's randomized trial, experienced developers judged how much AI tools sped them up. What did the measurement show?",
+      "why": "In METR's 2025 trial, developers expected and felt faster with AI tools, but took longer. People are poor judges of their own speed-up, and the answer changes with the tools and the task: measure on your own tasks.",
+      "objectives": [
+        "l19-o6"
+      ],
+      "tags": [
+        "coding agents",
+        "evidence"
+      ],
+      "true": "They felt faster with AI, but in fact took longer",
+      "false": [
+        "They were exactly as much faster as they believed they were",
+        "AI made no measurable difference to how long tasks took",
+        "They were much faster than they themselves believed"
+      ]
+    }
+  ]
+}

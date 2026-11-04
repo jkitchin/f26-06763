@@ -215,19 +215,35 @@
 - id: l19-o1
   lecture: l19
   text: >-
-    Explain why RAG exists (grounding, freshness, source attribution, cost vs long-context)
-    and where it breaks.
+    Explain what an LLM agent is, and when a fixed workflow is the better choice.
 
 - id: l19-o2
   lecture: l19
   text: >-
-    Build each stage of a RAG pipeline and reason about the design choices at each stage.
+    Trace the agent loop, and name the jobs of the harness, the software around the model.
 
 - id: l19-o3
   lecture: l19
   text: >-
-    Evaluate retrieval quality quantitatively and connect retrieval failures to downstream
-    answer failures.
+    Explain how prompt caching cuts the cost of a long agent run, and what breaks the cache.
+
+- id: l19-o4
+  lecture: l19
+  text: >-
+    Write tool definitions a model can use correctly, and guard an agent that can act: least
+    privilege, a person's approval, and no lethal trifecta.
+
+- id: l19-o5
+  lecture: l19
+  text: >-
+    Describe the parts of a coding agent: the instructions file, the tools, the permissions and
+    sandbox, and context management.
+
+- id: l19-o6
+  lecture: l19
+  text: >-
+    Set up a project so a coding agent can work in it safely, with the course's toolchain: uv,
+    git, tests and read-only data.
 
 - id: l01-o1
   lecture: l01

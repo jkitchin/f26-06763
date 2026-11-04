@@ -1,317 +1,382 @@
+# L19 item bank, hand-written from lectures/l19/notes.md.
+#
+# Pool v6 (2026-11-04): every item tests a main idea of the lecture, not a number from it, and
+# nothing refers to the worked example, which was removed. Two items are new: tool errors the model
+# can read, and the model as a small part of a coding agent. Pool v5 moved the running example to a
+# solar array (it was the A -> B -> C tank) and added the harness on SWE-bench and the lethal
+# trifecta. Pool v4 restructured
+# the lecture around the harness, prompt caching and coding agents. Pools 1 and 2 were the old RAG lecture, before L18
+# absorbed retrieval; v1 to v5 stay in pools/l19.json. Click-only items.
+# The contract every item obeys:
+#
+#   source.quote  appears verbatim in source.file
+#   verify.needle appears inside source.quote
+#
+# validate.py enforces both, which is what stops an item from outliving the claim
+# it tests.
+
 schema: 1
 lecture: l19
-title: "Retrieval-augmented generation and vector databases"
+title: "LLM agents: tools, loops, harnesses and coding agents"
 source_notes: lectures/l19/notes.md
-status: unwritten
-serve: 5
-pool_version: 2
+status: published
+serve: 8
+pool_version: 6
 provenance:
   drafted_by: hand
-  reviewed_by: jkitchin
-  reviewed_at: 2026-08-08
+  reviewed_by: none
+  reviewed_at: 2026-11-04
 
 items:
 
-  - id: l19-q01
-    kind: claim_vs_source
-    rung: 3
-    difficulty: 3
+  - id: l19-q11
+    kind: mcq
+    rung: 1
+    difficulty: 1
     objectives: [l19-o1]
     prompt: |
-      "We added RAG, so the answers are grounded now."
-
-      What does adding retrieval without a retrieval evaluation actually buy?
+      What makes a system an LLM agent rather than a workflow?
     options:
-      - "Grounding, since the model can now only answer from documents you supplied"
-      - "A system whose failures now come with a citation attached"
-      - "Freshness, which is the main benefit and does not depend on evaluation"
-      - "Lower cost, since retrieved chunks are cheaper than long-context prompts"
-    answer: "A system whose failures now come with a citation attached"
+      - "It uses a larger and more capable model than a workflow would"
+      - "The model chooses each next step from the last result"
+      - "It calls at least one tool before it writes its final answer"
+      - "It answers in structured JSON that your code can read"
+    answer: "The model chooses each next step from the last result"
     evidence: |
-      A confident wrong answer looks identical to a confident right one. Nothing
-      about a fluent, well-cited-looking answer distinguishes retrieval finding
-      the right chunk from retrieval confidently finding the wrong one, unless
-      you built and ran the retrieval eval. Freshness and cost are real benefits
-      and neither is what the question asked. The notes go further than most
-      treatments here: a RAG system without a retrieval eval is not obviously
-      safer than no RAG system at all.
+      An agent calls tools in a loop and decides each next step itself. In a workflow your code fixes the steps. The size of the model and the format of the answer do not decide which one you have.
     source:
       file: lectures/l19/notes.md
-      heading: "Where this pushes back"
-      quote: "failures now come with a citation attached"
-    verify: {mode: quote, needle: "come with a citation attached", volatility: stable}
-    tags: [rag, evaluation]
+      heading: "From one tool call to an agent"
+      quote: "After each result it decides the next step itself"
+    verify: {mode: quote, needle: "decides the next step itself", volatility: stable}
+    tags: [definition, workflow]
 
-  - id: l19-q02
-    kind: predict_measure
+  - id: l19-q12
+    kind: mcq
     rung: 2
-    difficulty: 3
+    difficulty: 1
     objectives: [l19-o1]
     prompt: |
-      Context windows now reach hundreds of thousands of tokens. Why not paste
-      the whole corpus into every prompt instead of chunking and retrieving?
-
-      Cost is one answer. Before you look: what is the other one?
-    predict:
-      ask: "Write down a second reason before revealing."
-      common_prior: "There isn't one. If it fits and you can afford it, long context is simply better."
+      When is a fixed workflow a better choice than an agent?
     options:
-      - "Latency, since a long prompt takes proportionally longer to process before the first token"
-      - "Models do not read a long context uniformly: accuracy on a fact is worse when it sits in the middle"
-      - "Truncation, since providers silently drop the oldest tokens once the window is exceeded"
-      - "The attention mechanism degrades quadratically, so quality falls smoothly with length"
-    answer: "Models do not read a long context uniformly: accuracy on a fact is worse when it sits in the middle"
+      - "When you know the steps in advance"
+      - "When the next step depends on what a tool returns"
+      - "When the task needs more than one tool to finish"
+      - "When the model must decide which data to look at"
+    answer: "When you know the steps in advance"
     evidence: |
-      Liu and colleagues' 2023 "Lost in the Middle" found accuracy on a fact
-      embedded in a long context is reliably higher near the beginning or end and
-      measurably worse in the middle, regardless of how relevant the fact is. So
-      a shorter, retrieval-curated context is not just cheaper, it can be more
-      reliable. Note that latency is a real cost and the wrong answer here: L17
-      measured input length as nearly free in wall-clock terms, and it is output
-      length that moves the clock.
+      A workflow is cheaper, faster and takes the same path every time. Reach for an agent only when the next step depends on what the tools return.
     source:
       file: lectures/l19/notes.md
-      heading: "Where this pushes back"
-      quote: "Lost in the Middle"
-    verify: {mode: quote, needle: "Lost in the Middle", volatility: stable}
-    tags: [rag, long-context]
+      heading: "From one tool call to an agent"
+      quote: "when you know the steps in advance: extract fields from a datasheet"
+    verify: {mode: quote, needle: "when you know the steps in advance", volatility: stable}
+    tags: [workflow]
 
-  - id: l19-q03
-    kind: spot_the_defect
-    rung: 3
-    difficulty: 2
-    objectives: [l19-o2]
-    prompt: |
-      Your retrieval quality has quietly degraded. The index was built with one
-      embedding model; a recent change re-embeds queries with a different one.
-      Nothing in the logs shows an error.
-
-      Why not, and what is the fix?
-    options:
-      - "The vector store validates dimensions, so a mismatch is caught only if the dimensions differ; pad the shorter vectors"
-      - "The query is placed in the wrong space and nothing raises; pin the model in the index metadata"
-      - "The scores are renormalised per query, which hides the change; disable normalisation to surface it"
-      - "The index needs rebuilding on every deploy, and the staleness is what degraded retrieval"
-    answer: "The query is placed in the wrong space and nothing raises; pin the model in the index metadata"
-    evidence: |
-      This is the same silent-conversion shape as the dtype trap in L11 and the
-      unit mismatch in L7: a value crosses an interface, is interpreted in the
-      wrong frame, and every downstream diagnostic reports something plausible.
-      The discipline is the same too, pin the model the way you pin a seed or a
-      library version, and record it next to the artifact it produced.
-    source:
-      file: lectures/l19/notes.md
-      heading: "Where this pushes back"
-      quote: "model than the one used to build the index does not raise an error"
-    verify: {mode: quote, needle: "does not raise an error", volatility: stable}
-    tags: [rag, embeddings, silent-failure]
-
-  - id: l19-q04
+  - id: l19-q13
     kind: locus_of_control
+    rung: 1
+    difficulty: 1
+    objectives: [l19-o2]
+    prompt: |
+      In an agent loop, who actually runs a tool?
+    options:
+      - "The model, as soon as it decides the tool is needed"
+      - "Your code, after the model writes a request"
+      - "The provider's servers, which run tools for the model"
+      - "The tool definition, which the model reads on every call"
+    answer: "Your code, after the model writes a request"
+    evidence: |
+      The model only writes a request: the tool's name and its arguments. Your code, the harness, checks it, runs the tool, and sends the result back.
+    source:
+      file: lectures/l19/notes.md
+      heading: "The loop"
+      quote: "The model only writes requests. Every check is a line of your code"
+    verify: {mode: quote, needle: "The model only writes requests", volatility: stable}
+    tags: [loop, harness]
+
+  - id: l19-q23
+    kind: mcq
+    rung: 1
+    difficulty: 1
+    objectives: [l19-o2]
+    prompt: |
+      Which of these is a job of the harness, not of the model?
+    options:
+      - "Choosing which tool to call next, from the last result"
+      - "Checking the permission rules before a tool runs"
+      - "Writing the arguments of a tool request"
+      - "Writing the final answer for the user"
+    answer: "Checking the permission rules before a tool runs"
+    evidence: |
+      The model reads text and writes requests: which tool, which arguments, and the final answer. The harness, the software around it, builds the prompt, runs the tools, checks permissions, manages the context and ends the run.
+    source:
+      file: lectures/l19/notes.md
+      heading: "The harness"
+      quote: "checks permissions, manages the context, and decides when the run ends"
+    verify: {mode: quote, needle: "checks permissions, manages the context", volatility: stable}
+    tags: [harness, definition]
+
+  - id: l19-q29
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l19-o2]
+    prompt: |
+      On a test of real bug reports, the same model fixed far more bugs once only its loop and its tools were improved. What does this show?
+    options:
+      - "A newer and larger model would have fixed just as many bugs"
+      - "The software around a model changes how well the agent works"
+      - "The second set of bug reports must have been easier to fix"
+      - "Better tools help small models, but make no difference to large ones"
+    answer: "The software around a model changes how well the agent works"
+    evidence: |
+      SWE-agent kept the model the same and changed only the harness: first a loop, then tools built for an LLM. When an agent fails, look at its harness before you blame the model.
+    source:
+      file: lectures/l19/notes.md
+      heading: "Same model, different harness"
+      quote: "Only the harness changed."
+    verify: {mode: quote, needle: "Only the harness changed", volatility: stable}
+    tags: [harness, evidence]
+
+  - id: l19-q25
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l19-o3]
+    prompt: |
+      Why does prompt caching make a long agent run cheaper?
+    options:
+      - "The provider replays the model's earlier answers instead of writing new ones"
+      - "Each call starts with the last call's prompt, which the cache can reuse"
+      - "The cache compresses the tool results, so each call sends fewer tokens"
+      - "Cached calls are sent to a smaller and cheaper model than the others"
+    answer: "Each call starts with the last call's prompt, which the cache can reuse"
+    evidence: |
+      An agent's prompt only grows at the end, so most of each call was already sent by the call before. That repeated start is read from the cache at a fraction of the price. The longer the run, the bigger the saving.
+    source:
+      file: lectures/l19/notes.md
+      heading: "How the cache works"
+      quote: "the old prompt is an exact prefix of the new prompt"
+    verify: {mode: quote, needle: "exact prefix of the new prompt", volatility: stable}
+    tags: [caching, cost]
+
+  - id: l19-q26
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l19-o3]
+    prompt: |
+      Which rule keeps the prompt cache working in an agent?
+    options:
+      - "Keep the start of the prompt the same; add new text only at the end"
+      - "Put the newest information at the top of the system prompt"
+      - "Shorten or delete old messages as the conversation grows longer"
+      - "Move to a cheaper model for the later calls of a long run"
+    answer: "Keep the start of the prompt the same; add new text only at the end"
+    evidence: |
+      The cache matches the start of the prompt exactly. Anything that changes the start, or an earlier message, makes everything after it new again. A model switch starts a new cache too.
+    source:
+      file: lectures/l19/notes.md
+      heading: "What breaks the cache"
+      quote: "keep the start of the prompt the same, and add new text only at the end."
+    verify: {mode: quote, needle: "add new text only at the end", volatility: stable}
+    tags: [caching]
+
+  - id: l19-q16
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l19-o4]
+    prompt: |
+      Your agent keeps calling a tool with the wrong arguments. What do you fix first?
+    options:
+      - "Switch to a larger model, which makes fewer mistakes with tools"
+      - "The tool's description: what it does, its units and its limits"
+      - "Raise the step budget so the model gets more tries at the call"
+      - "Retry each call automatically until its arguments are accepted"
+    answer: "The tool's description: what it does, its units and its limits"
+    evidence: |
+      To call a tool, the model goes by its definition: the name, the description and the arguments. A vague description makes it guess, so fix the description before you blame the model.
+    source:
+      file: lectures/l19/notes.md
+      heading: "A description is a prompt"
+      quote: "A wrong tool or a wrong argument usually means a vague description"
+    verify: {mode: quote, needle: "usually means a vague description", volatility: stable}
+    tags: [tools, descriptions]
+
+  - id: l19-q31
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l19-o4]
+    prompt: |
+      The model asks a tool for something the tool cannot do. What should the tool do?
+    options:
+      - "Raise an exception and stop the program, so nothing else can go wrong"
+      - "Return a message saying what was wrong, so the model can retry"
+      - "Return an empty result, and let the model carry on with its plan"
+      - "Quietly correct the arguments itself, then run the request anyway"
+    answer: "Return a message saying what was wrong, so the model can retry"
+    evidence: |
+      An exception stops your program, and the model never learns what was wrong. A message comes back to the model as the tool's result, so it can read it and fix its request, as the solar agent did when it asked for tilts the mount cannot reach.
+    source:
+      file: lectures/l19/notes.md
+      heading: "Errors the model can read"
+      quote: "The message goes back to the model like any other result, so the model can read it and fix its request."
+    verify: {mode: quote, needle: "so the model can read it and fix its request", volatility: stable}
+    tags: [tools, errors]
+
+  - id: l19-q17
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l19-o4]
+    prompt: |
+      A note planted in a document tells your agent to make a risky change, and the model asks for it. What reliably stops the change?
+    options:
+      - "The model will notice that the note was planted, and ignore it"
+      - "A check in your code: a person must approve the change"
+      - "A sentence in the system prompt saying every change needs approval"
+      - "A larger model, which is much harder to fool with planted text"
+    answer: "A check in your code: a person must approve the change"
+    evidence: |
+      An LLM cannot reliably tell your instructions from instructions planted in what it reads. The model can be fooled; a check in your code still asks a person before anything changes.
+    source:
+      file: lectures/l19/notes.md
+      heading: "Guardrails: when the agent can act"
+      quote: "runs only after the operator says yes"
+    verify: {mode: quote, needle: "runs only after the operator says yes", volatility: stable}
+    tags: [guardrails, injection, approval]
+
+  - id: l19-q30
+    kind: mcq
     rung: 3
-    difficulty: 3
-    objectives: [l19-o2]
+    difficulty: 2
+    objectives: [l19-o4]
     prompt: |
-      A fact your users need was split across two chunks at ingestion time, so no
-      single chunk contains it. Retrieval never returns a chunk that answers the
-      question.
-
-      Where does the fix belong?
+      Your email assistant reads your inbox, summarizes messages from anyone, and can send email. What stops a stranger's email from getting your inbox forwarded to them?
     options:
-      - "In the retriever: a cross-encoder re-ranker will surface both halves and the model can combine them"
-      - "In chunking, at ingestion; re-ranking cannot recover a split fact"
-      - "In the generation prompt: instruct the model to combine partial evidence across retrieved chunks"
-      - "In k: retrieve more chunks so both halves are likely to appear in the context together"
-    answer: "In chunking, at ingestion; re-ranking cannot recover a split fact"
+      - "A line in the system prompt that says never to forward email"
+      - "Taking away one of the three: for example, its ability to send email"
+      - "A larger model that is better at spotting planted instructions"
+      - "Asking the assistant to report every email it sends"
+    answer: "Taking away one of the three: for example, its ability to send email"
     evidence: |
-      Chunking is a lossy transformation you cannot fully undo downstream, so
-      money spent getting it right the first time buys more than the same money
-      spent on a fancier retriever afterward. Raising k and re-ranking are both
-      real techniques and both operate on what chunking already produced. This is
-      the retrieval version of a rule this course keeps repeating: fix it at the
-      boundary where the information is still intact.
+      Private data, text from strangers and a way to send data out make the lethal trifecta. With all three, planted text can get your data out; take any one away and the attack fails. A prompt line or a report is text the model may not follow.
     source:
       file: lectures/l19/notes.md
-      heading: "Where this pushes back"
-      quote: "Chunking is a lossy transformation you cannot fully undo downstream"
-    verify: {mode: quote, needle: "lossy transformation you cannot fully undo", volatility: stable}
-    tags: [rag, chunking]
+      heading: "Guardrails: when the agent can act"
+      quote: "Take away any one of the three, and this attack fails."
+    verify: {mode: quote, needle: "Take away any one of the three", volatility: stable}
+    tags: [guardrails, trifecta]
 
-  - id: l19-q05
+  - id: l19-q21
+    kind: mcq
+    rung: 2
+    difficulty: 1
+    objectives: [l19-o5]
+    prompt: |
+      In a coding agent, which part is enforced by the harness rather than left to the model?
+    options:
+      - "The instructions file it reads at the start of every session"
+      - "Its permission rules: allow, ask or deny each tool"
+      - "The plan it writes before it starts editing your files"
+      - "Its summary of the conversation after a compaction"
+    answer: "Its permission rules: allow, ask or deny each tool"
+    evidence: |
+      Permissions are checked by the harness before a tool runs. The instructions file is context the model may ignore, not a control.
+    source:
+      file: lectures/l19/notes.md
+      heading: "The parts of a coding agent"
+      quote: "enforced by Claude Code, not by the model"
+    verify: {mode: quote, needle: "enforced by Claude Code, not by the model", volatility: stable}
+    tags: [coding agents, permissions]
+
+  - id: l19-q27
     kind: mcq
     rung: 2
     difficulty: 2
-    objectives: [l19-o3]
+    objectives: [l19-o5]
     prompt: |
-      When is adding hybrid retrieval or a cross-encoder re-ranker not worth it?
+      Late in a long session, your coding agent stops following a rule you gave it in your first message. Where should the rule live?
     options:
-      - "When the corpus is large, since two indexes do not scale to millions of documents"
-      - "When plain dense retrieval already hits recall@k near 1.0, since there is nothing left to improve"
-      - "When queries are short, since re-rankers need long queries to score against"
-      - "When the embedding model is recent, since modern embeddings subsume what BM25 contributes"
-    answer: "When plain dense retrieval already hits recall@k near 1.0, since there is nothing left to improve"
+      - "In a longer and more emphatic first message next time"
+      - "In the instructions file, read at the start of every session"
+      - "In a comment at the top of each file the agent is likely to edit"
+      - "Nowhere: an agent cannot keep a rule across a long session"
+    answer: "In the instructions file, read at the start of every session"
     evidence: |
-      Hybrid and re-ranking are a real gain for real operational cost: two
-      indexes to maintain, more latency, and more to keep synchronised when the
-      corpus updates. The instruction is to measure the recall and nDCG gain
-      against your own gold set before adding either. A corpus small and clean
-      enough that dense retrieval already finds everything has nothing left for a
-      re-ranker to improve, and you would be paying the cost for none of the gain.
+      Near the limit of the context window the harness compacts the conversation into a summary, and early instructions can get lost. AGENTS.md or CLAUDE.md is loaded at the start of every session. A rule that must hold goes further, into a permission, a hook or a test.
     source:
       file: lectures/l19/notes.md
-      heading: "Where this pushes back"
-      quote: "has nothing left for a re-ranker to improve"
-    verify: {mode: quote, needle: "nothing left for a re-ranker to improve", volatility: stable}
-    tags: [rag, retrieval, cost]
+      heading: "The parts of a coding agent"
+      quote: "Put lasting rules in the instructions file."
+    verify: {mode: quote, needle: "lasting rules in the instructions file", volatility: stable}
+    tags: [coding agents, context]
 
-  - id: l19-q06
+  - id: l19-q33
     kind: mcq
-    rung: 3
-    difficulty: 3
-    objectives: [l19-o3]
+    rung: 1
+    difficulty: 1
+    objectives: [l19-o5]
     prompt: |
-      A retrieved chunk comes back with a similarity of 0.83. What does that
-      number license you to conclude?
+      In a coding agent such as Codex, what is most of the code?
     options:
-      - "That the chunk is relevant with roughly 83% confidence, which is a usable threshold"
-      - "That it is topically close, and nothing about whether it answers the question or even agrees with it"
-      - "That it is the best match available, since scores are normalised across the corpus"
-      - "That the answer can be generated from it, provided the score exceeds your tuned cutoff"
-    answer: "That it is topically close, and nothing about whether it answers the question or even agrees with it"
+      - "The code that sends prompts to the model and reads back its replies"
+      - "The harness around the model: interface, tools, permissions, context"
+      - "The model itself: its weights, shipped inside the agent's program"
+      - "Tests that check every answer of the model before you ever see it"
+    answer: "The harness around the model: interface, tools, permissions, context"
     evidence: |
-      Treat a similarity score as a measure of topical closeness, never as a
-      confidence score. L17 measured the sharp version of this: a fault report
-      and its refutation score 0.694 while two descriptions of the same event
-      score 0.532, so "about the same thing" and "says the same thing" are
-      different questions and cosine answers only the first. A tuned cutoff
-      inherits that problem rather than solving it.
+      As in Lecture 1, where the ML code was a small part of a production ML system, the code that talks to the model is a small part of a coding agent. Most of the engineering is the harness, and that is the part you configure.
     source:
       file: lectures/l19/notes.md
-      heading: "Where this pushes back"
-      quote: "never as a confidence score"
-    verify: {mode: quote, needle: "never as a confidence score", volatility: stable}
-    tags: [rag, similarity]
+      heading: "The model is a small part of the system"
+      quote: "Most of the engineering of an agent is the harness, and that is the part you configure."
+    verify: {mode: quote, needle: "Most of the engineering of an agent is the harness", volatility: stable}
+    tags: [coding agents, harness]
 
-  - id: l19-q07
+  - id: l19-q28
     kind: mcq
     rung: 2
-    difficulty: 2
-    objectives: [l19-o3]
+    difficulty: 1
+    objectives: [l19-o6]
     prompt: |
-      In what order should a RAG system be evaluated?
+      You ask a coding agent to fix a bug in your project. What gives it the best chance of getting the fix right?
     options:
-      - "Judge the generated answers first, since that is what users experience, then trace failures back to retrieval"
-      - "Build the retrieval gold set and measure recall@k before ever judging a generated answer"
-      - "Both at once, since retrieval and generation failures are indistinguishable from the outside"
-      - "Neither in isolation; only end-to-end task success is meaningful for a retrieval system"
-    answer: "Build the retrieval gold set and measure recall@k before ever judging a generated answer"
+      - "A longer prompt that explains the whole project in detail"
+      - "A test it can run that comes back pass or fail"
+      - "Permission to run every command without asking first"
+      - "A larger context window, so it can read every file at once"
+    answer: "A test it can run that comes back pass or fail"
     evidence: |
-      If the right chunk was never retrieved, no amount of prompt work at the
-      generation step can fix the answer, and judging the answer tells you the
-      system failed without telling you where. Measuring retrieval separately
-      partitions the failure: either the chunk was not there, or it was there and
-      the model did not use it, and those have entirely different fixes.
+      The verify step is where an agent finds out it was wrong. With a test it can read the failure, fix the code and run the test again; without one it can only guess. The test is yours, and the agent should not change it.
     source:
       file: lectures/l19/notes.md
-      heading: "Where this pushes back"
-      quote: "before you ever judge a generated answer"
-    verify: {mode: quote, needle: "before you ever judge a generated answer", volatility: stable}
-    tags: [rag, evaluation]
+      heading: "Give it a check it can run"
+      quote: "Give Claude something it can run that comes back pass or fail."
+    verify: {mode: quote, needle: "comes back pass or fail", volatility: stable}
+    tags: [coding agents, tests]
 
-  - id: l19-q08
-    kind: mechanism_recall
-    rung: 5
-    difficulty: 3
-    objectives: [l19-o2]
-    prompt: |
-      Close the notes. Write out the stages of a RAG pipeline in order, from raw
-      documents to a grounded answer, and name one design decision at each stage.
-      Stop when you stall, and note where.
-    checklist:
-      - text: "Ingest and chunk the documents"
-        needle: "chunk"
-      - text: "Embed the chunks and build an index"
-        needle: "index"
-      - text: "Embed the query and retrieve the top k"
-        needle: "retriev"
-      - text: "Optionally re-rank the candidates"
-        needle: "rank"
-      - text: "Ground the generation in the retrieved context, with an instruction to refuse if it is not there"
-        needle: "Grounding"
-    answer: null
-    evidence: |
-      The stage people compress is the first, and it is the one that cannot be
-      repaired later: chunking is lossy and no re-ranker recovers a fact split
-      across two chunks. The stage people omit entirely is the refusal
-      instruction at generation, which is L17's NOT FOUND escape hatch arriving
-      in a new setting. Where you stalled is your reading assignment.
-    source:
-      file: lectures/l19/notes.md
-      heading: "The anatomy of a RAG pipeline"
-      quote: "chunk"
-    verify:
-      mode: manual
-      needle: "chunk"
-      volatility: stable
-      exempt_reason: >-
-        Free-text recall; each checklist entry is verified against the source
-        individually rather than the answer being matched as a whole.
-    tags: [rag, self-test]
-
-  - id: l19-q09
+  - id: l19-q22
     kind: mcq
-    rung: 2
+    rung: 1
     difficulty: 2
-    objectives: [l19-o2]
+    objectives: [l19-o6]
     prompt: |
-      What does BM25 contribute that dense retrieval does not?
+      In METR's randomized trial, experienced developers judged how much AI tools sped them up. What did the measurement show?
     options:
-      - "Semantic matching across paraphrase, which embeddings approximate less reliably"
-      - "Exact lexical matching, which is what rescues a query containing a part number or an error code"
-      - "A calibrated probability of relevance, which dense scores lack"
-      - "Language independence, since term statistics do not depend on a trained model"
-    answer: "Exact lexical matching, which is what rescues a query containing a part number or an error code"
+      - "They were exactly as much faster as they believed they were"
+      - "They felt faster with AI, but in fact took longer"
+      - "AI made no measurable difference to how long tasks took"
+      - "They were much faster than they themselves believed"
+    answer: "They felt faster with AI, but in fact took longer"
     evidence: |
-      The two fail in complementary directions, which is the whole argument for
-      hybrid retrieval. Dense retrieval finds the maintenance entry that shares
-      no words with the query, which L17 measured; BM25 finds the chunk
-      containing `P/N 4L-2200-XG` exactly, which an embedding may fragment beyond
-      recognition. Neither dominates, and which one you need depends on whether
-      your users search by meaning or by identifier.
+      In METR's 2025 trial, developers expected and felt faster with AI tools, but took longer. People are poor judges of their own speed-up, and the answer changes with the tools and the task: measure on your own tasks.
     source:
       file: lectures/l19/notes.md
-      heading: "Retrieval mechanics: dense, keyword, and hybrid"
-      quote: "**BM25**"
-    verify: {mode: quote, needle: "BM25", volatility: stable}
-    tags: [rag, retrieval]
-
-  - id: l19-q10
-    kind: notebook_run
-    rung: 4
-    difficulty: 2
-    objectives: [l19-o3]
-    prompt: |
-      Open [`l19-rag.ipynb`](../lectures/l19/l19-rag.ipynb) and run the retrieval
-      evaluation against the gold set.
-
-      What is recall@k measuring, and why is it computed before any answer is
-      judged?
-    options:
-      - "The fraction of generated answers that cite a real source, which is the grounding rate"
-      - "The fraction of questions whose correct chunk appears in the top k"
-      - "The average similarity of the top k chunks, which indicates whether the index is well built"
-      - "The fraction of retrieved chunks that are relevant, which is precision at the retrieval stage"
-    answer: "The fraction of questions whose correct chunk appears in the top k"
-    evidence: |
-      It is a ceiling. If the right chunk is not in the top k, the generator
-      cannot produce a grounded correct answer no matter how good the prompt is,
-      so recall@k tells you the best your system could do before you spend any
-      effort on generation. Note the last option describes precision, which is a
-      different and also useful number, and confusing the two is the commonest
-      error in reading a retrieval eval.
-    source:
-      file: lectures/l19/notes.md
-      heading: "Evaluating retrieval, separately from evaluating the answer"
-      quote: "**Recall@k** asks"
-    verify: {mode: quote, needle: "recall@k", volatility: stable}
-    tags: [rag, evaluation, notebook]
+      heading: "Do coding agents make you faster?"
+      quote: "with AI allowed, tasks took"
+    verify: {mode: quote, needle: "with AI allowed, tasks took", volatility: stable}
+    tags: [coding agents, evidence]
