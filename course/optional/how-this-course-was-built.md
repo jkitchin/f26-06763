@@ -52,7 +52,7 @@ The guardrails along the way:
 :alt: How one change reaches this course's site. Top row, left to right: an instructor writes the spec, topics, data and examples; Claude Code reads CLAUDE.md, the rules, and writes notes, slides, figures, notebook and practice questions; a pull request, a branch with the change; automatic checks, a strict build, the index, quiz quotes that must match the notes, figures that must exist, and no instructor file published. Bottom row, right to left: an instructor reads it, asks for fixes and merges; a weekly release, a bot that opens the release of the next lecture; the public site with notes, slides, notebooks, the practice game and the map. A red arrow from the checks back to Claude Code says a check fails, fix it; a green arrow from the instructor back to Claude Code says changes requested.
 :width: 100%
 
-How one change reaches this site. A failed check goes back to the agent, not to the site.
+How one change reaches this site.
 ```
 
 - The pipeline is a harness for the whole course: the rules the agent reads, the checks that
@@ -71,8 +71,7 @@ The course's pull requests, from the first lecture to November 2026.
   Taller arcs carry more commits.
 - Above the line: the lectures and the course pages. Below: the practice game and map, the
   clicker, arcade and Ask button, and the build, checks and rules that guard them.
-- By 3 November 2026: 131 pull requests. Claude Code wrote most of the material, and an
-  instructor checked and merged every change.
+- By 3 November 2026: 131 pull requests.
 - The figure is drawn from the repository's own git history by
   `lectures/l19/figures/make_figures.py`, so you can rerun it.
 
