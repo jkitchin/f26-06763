@@ -206,6 +206,11 @@ pre { font-size: 0.6em; }
 .lims.brk .r { grid-template-columns: 44px 290px 1fr 250px; padding: 3px 8px; }
 .lims .grp { font-weight: 700; color: #5c5c5c; font-size: 0.92em; padding: 8px 8px 2px; }
 
+/* a story told in code: a dark code block inside each step */
+.chain.tsteps > div { font-size: 0.66em; }
+.chain .code { background: #1e1e1e; color: #e6e6e6; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: pre; text-align: left; border-radius: 6px; padding: 6px 10px; margin: 6px 0; font-size: 0.95em; }
+
 /* recap tiles */
 .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 16px; }
 .tiles > div { background: #f7f7f7; border-radius: 10px; padding: 8px 10px; text-align: center; font-size: 0.54em;
@@ -480,7 +485,7 @@ Feb 2026: about 1 million lines and 1,500 pull requests, "0 lines of manually-wr
 <div class="quote" data-marpit-fragment>Task: "Last week the solar panels made less energy than we hoped. Use the log and the energy model to choose a better tilt, and apply it."</div>
 
 <!--
-The energy model is a formula in the notebook, not a measurement: noon sun 34 degrees above the horizon in early November, so direct light is best at a tilt of 56 degrees; sky light is 30% of the total.
+The energy model is a formula we wrote for this example, not a measurement: noon sun 34 degrees above the horizon in early November, so direct light is best at a tilt of 56 degrees; sky light is 30% of the total.
 -->
 
 ---
@@ -685,8 +690,8 @@ Priced with Anthropic's multipliers: write 1.25, read 0.1. Token counts from tik
 <div class="r c-purple" data-marpit-fragment><span class="ib sm c-purple"><i class="ic i-repeat"></i></span><b>Switch models in the middle of a task</b><span>Each model has its own cache: the next call re-reads the whole conversation at full price</span><span>Pick the model at the start</span></div>
 <div class="r c-purple" data-marpit-fragment><span class="ib sm c-purple"><i class="ic i-shrink"></i></span><b>Compact the conversation</b><span>The old messages are replaced by a summary, so the history is new</span><span>Compact between tasks, not in the middle of one</span></div>
 <div class="grp" data-marpit-fragment>Building your own agent</div>
-<div class="r c-red" data-marpit-fragment><span class="ib sm c-red"><i class="ic i-clock"></i></span><b>Write the current time at the top of the system prompt</b><span>The first line changes on every call, so nothing after it matches</span><span>Put the time in the newest message</span></div>
-<div class="r c-red" data-marpit-fragment><span class="ib sm c-red"><i class="ic i-trash-2"></i></span><b>Delete old tool results to save tokens</b><span>An earlier message changed, so everything after it is new</span><span>Only add at the end</span></div>
+<div class="r c-red" data-marpit-fragment><span class="ib sm c-red"><i class="ic i-clock"></i></span><b>Start the system prompt with the clock: "It is 10:02:13"</b><span>That first line is different on every call, so nothing after it matches</span><span>Put the time in the newest message</span></div>
+<div class="r c-red" data-marpit-fragment><span class="ib sm c-red"><i class="ic i-trash-2"></i></span><b>Cut a long tool result from the history to save tokens</b><span>That old message changed, so everything after it is new</span><span>Leave old messages as they are; add at the end</span></div>
 </div>
 
 <p class="takeaway" data-marpit-fragment>A switch or a compaction costs one full re-read. A clock at the top costs one on every call</p>
@@ -694,7 +699,7 @@ Priced with Anthropic's multipliers: write 1.25, read 0.1. Token counts from tik
 <span class="source">[How Claude Code uses prompt caching](https://code.claude.com/docs/en/prompt-caching) · [Manus, Context engineering for AI agents (2025)](https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus) · [Anthropic, prompt caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)</span>
 
 <!--
-Claude Code's docs: "Pick your model and effort level at the top of a session, then save /compact for natural breaks between tasks." Manus calls a timestamp at the start of the system prompt "a common mistake". Thariq Shihipar (Claude Code team): "At Claude Code, we build our entire harness around prompt caching". In the worked example, a clock at the top makes the run cost 124% of no cache at all.
+Claude Code's docs: "Pick your model and effort level at the top of a session, then save /compact for natural breaks between tasks." Manus calls a timestamp at the start of the system prompt "a common mistake". Thariq Shihipar (Claude Code team): "At Claude Code, we build our entire harness around prompt caching". In our solar run, a clock at the top makes the run cost 124% of no cache at all.
 -->
 
 ---
@@ -712,7 +717,7 @@ Claude Code's docs: "Pick your model and effort level at the top of a session, t
 <div class="cols cols-even cols-top">
 <div>
 
-<p class="small"><b>1. Before the call: the description</b></p>
+<p class="small"><b>1. Before the call: the description the model reads</b></p>
 
 <div class="readbox bred"><b>Vague:</b> <span class="mono">"Predicts energy."</span> Which units? Which tilts? What if it fails?</div>
 <div class="readbox bgreen"><b>Clear:</b> <span class="mono">"Predicted energy of the array (kWh per day) at each tilt ... Valid for the mount's range, 0 to 60 degrees; returns an error outside it."</span></div>
@@ -720,10 +725,10 @@ Claude Code's docs: "Pick your model and effort level at the top of a session, t
 </div>
 <div data-marpit-fragment>
 
-<p class="small"><b>2. After a bad call: the error</b></p>
+<p class="small"><b>2. After a bad call: what the tool sends back</b></p>
 
-<div class="readbox bred"><b>A crash:</b> <span class="mono">ValueError: tilt out of range</span> stops the loop, and the run is over</div>
-<div class="readbox bgreen"><b>A message:</b> <span class="mono">"Outside the mount's range (0 to 60 degrees): [75, 90]. Nothing was predicted."</span> In our run, call 3 fixed it</div>
+<div class="readbox bred"><b>It raises an error</b> (<span class="mono">ValueError</span>): your Python program stops. The run ends with no answer, and the model never learns what was wrong</div>
+<div class="readbox bgreen"><b>It returns a message</b> as its result: <span class="mono">"Outside the mount's range (0 to 60 degrees): [75, 90]."</span> The model reads it and asks again for 0 to 60 (call 3)</div>
 
 </div>
 </div>
@@ -1004,7 +1009,7 @@ Same idea as query_log in our example: the connection is opened read-only, so Du
 
 <div class="readbox">
 
-**Nx:** a popular JavaScript build tool, about 6 million installs a week, published on **npm** (the package registry for JavaScript, like PyPI for Python)
+**Nx:** a free tool that JavaScript developers install to build and test their projects, about 6 million downloads a week. It is published on **npm**, the package registry for JavaScript, like PyPI for Python
 
 </div>
 
@@ -1084,35 +1089,23 @@ A **test** is a small function that runs your code on a case where you know the 
 
 </div>
 
-- **The example:** <span class="mono">c_to_f</span> converts Celsius to Fahrenheit, F = C × 9/5 + 32; water boils at 100 °C = 212 °F
+- **Two files:** the code, <span class="mono">c_to_f</span>, converts Celsius to Fahrenheit (F = C × 9/5 + 32). Its test checks one case you know: water boils at 100 °C, which is 212 °F
 
-<div class="cols cols-even cols-top">
-<div>
-
-```python
-# tests/test_units.py: you write it; it stays fixed
-def test_boiling_point():
-    assert c_to_f(100) == 212
-# src/units.py: the agent's first try
-def c_to_f(c):
-    return c * 9 / 5        # forgot + 32
-```
-
-</div>
-<div class="term" data-marpit-fragment>$ uv run pytest
-<span class="r">FAILED test_boiling_point: assert 180.0 == 212</span>
-<span class="c"># the agent edits src/units.py, not the test:</span>
-<span class="c">#   return c * 9 / 5 + 32</span>
-$ uv run pytest
-<span class="g">1 passed in 0.01s</span></div>
+<div class="chain tsteps">
+<div class="c-green"><b>1. You write the test</b><div class="code">def test_boiling_point():
+    assert c_to_f(100) == 212</div>It is right, and it stays fixed</div>
+<div class="c-red" data-marpit-fragment><b>2. The agent writes the code</b><div class="code">def c_to_f(c):
+    return c * 9 / 5</div>It forgot + 32. The test fails: 180.0 is not 212</div>
+<div class="c-blue" data-marpit-fragment><b>3. The agent fixes the code</b><div class="code">def c_to_f(c):
+    return c * 9 / 5 + 32</div>It runs the test again: 1 passed</div>
 </div>
 
-<p class="takeaway" data-marpit-fragment>The test stays fixed; the code changes until it passes. Tell the agent "not to modify the tests"</p>
+<p class="takeaway" data-marpit-fragment>The bug was in the code, and the test caught it. Tell the agent "not to modify the tests"</p>
 
 <span class="source">[Claude Code best practices (April 2025, archived)](https://web.archive.org/web/20250602202220/https://www.anthropic.com/engineering/claude-code-best-practices) · [pytest](https://docs.pytest.org/)</span>
 
 <!--
-Anthropic: "Ask Claude to write code that passes the tests, instructing it not to modify the tests." Why say it: an agent told only "make the tests pass" can edit the test instead of the code. The test is the specification; it must not move.
+The assert is the line inside the test that checks the answer. Anthropic: "Ask Claude to write code that passes the tests, instructing it not to modify the tests." An agent told only "make the tests pass" can edit the test instead of the code.
 -->
 
 ---
@@ -1202,15 +1195,15 @@ MIT warns of "overreliance and shallow understanding". Write the critical parts 
 ## Working with one, is it faster?
 
 <div class="frames">
-<img src="figures/metr-1.png" style="width:800px" alt="Developers forecast 24% faster">
-<img src="figures/metr-2.png" style="width:800px" data-marpit-fragment alt="Afterwards they estimated 20% faster">
-<img src="figures/metr-3.png" style="width:800px" data-marpit-fragment alt="Measured: 19% slower">
-<img src="figures/metr.png" style="width:800px" data-marpit-fragment alt="2026 re-run: 18% faster, likely too low">
+<img src="figures/metr-1.png" style="width:800px" alt="Developers forecast 24% less time">
+<img src="figures/metr-2.png" style="width:800px" data-marpit-fragment alt="Afterwards they estimated 20% less time">
+<img src="figures/metr-3.png" style="width:800px" data-marpit-fragment alt="Measured: 19% more time">
+<img src="figures/metr.png" style="width:800px" data-marpit-fragment alt="2026 re-run: 18% less time, likely an underestimate">
 </div>
 
 <div class="cols cols-even">
-<div class="readbox bred" data-marpit-fragment><b>2025:</b> expected faster, felt faster, measured <b>slower</b>. Your own sense of speed is not evidence</div>
-<div class="readbox" data-marpit-fragment><b>2026:</b> 18% faster, and likely more. Any task could be drawn "AI forbidden", so 30 to 50% of developers held back tasks they wanted AI for</div>
+<div class="readbox bred" data-marpit-fragment><b>2025:</b> they expected and felt faster, but took <b>19% more time</b>. Your own sense of speed is not evidence</div>
+<div class="readbox" data-marpit-fragment><b>2026:</b> 18% less time, and likely more. Any task could be drawn "AI forbidden", so 30 to 50% of developers held back tasks they wanted AI for</div>
 </div>
 
 <span class="source">[Becker et al. (2025)](https://arxiv.org/abs/2507.09089) · [METR (February 2026)](https://metr.org/blog/2026-02-24-uplift-update/)</span>
@@ -1260,7 +1253,7 @@ The tools changed between the two: Claude Code and Codex spread through 2025 (ME
 <div class="c-gold" data-marpit-fragment><div class="icons"><span class="ib lg c-blue"><i class="ic i-lock"></i></span><span class="ib lg c-gold"><i class="ic i-shield"></i></span><span class="ib lg c-green"><i class="ic i-user"></i></span></div><b>Guardrails in code:</b> least privilege, approval, no lethal trifecta</div>
 <div class="c-blue" data-marpit-fragment><img src="figures/coding-loop.png" alt="The coding loop"><b>Coding agents:</b> gather, act, verify, with an instructions file and permissions</div>
 <div class="c-teal" data-marpit-fragment><img src="figures/project.png" alt="A project blueprint">They work best where <b>one command checks the work</b>: uv, git, tests</div>
-<div class="c-green" data-marpit-fragment><img src="figures/metr.png" alt="METR's trials"><b>Measure, do not assume:</b> developers felt faster and were 19% slower (2025)</div>
+<div class="c-green" data-marpit-fragment><img src="figures/metr.png" alt="METR's trials"><b>Measure, do not assume:</b> developers felt faster but took 19% more time (2025)</div>
 </div>
 
 ---

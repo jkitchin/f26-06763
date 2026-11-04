@@ -461,7 +461,7 @@ def group_diagrams():
         arrow(ax, (7.07, 2.85 + (y - 2.85) * 0.25), (8.02, y), c)
     ax.text(3.6, 0.82, "what the model reads", ha="center", fontsize=10.5, color="#3c3c3c", style="italic")
     ax.text(8.4, 0.82, "what the model asks for", ha="center", fontsize=10.5, color="#3c3c3c", style="italic")
-    ax.text(6.0, 0.15, "Claude Code, Codex and opencode are harnesses. So is the 30-line loop of the worked example.",
+    ax.text(6.0, 0.15, "Claude Code, Codex and opencode are harnesses. So is the loop of our solar example.",
             ha="center", fontsize=11, style="italic", color="#3c3c3c")
     save(fig, "harness.png")
 
@@ -612,7 +612,7 @@ def group_diagrams():
 # ------------------------------------------------------------------------------ evidence
 def group_evidence():
     # METR, Becker et al. (2025), and METR's February 2026 re-run: change in the time to finish a
-    # task when AI tools are allowed. Negative is faster. Bars with whiskers are measured, with the
+    # task when AI tools are allowed. Negative is less time. Bars with whiskers are measured, with the
     # 95% confidence interval METR reports; the 2026 row is the developers who returned from 2025.
     # metr-1.png to metr-3.png reveal one row at a time on the same canvas; metr.png is all four.
     rows = [("2025: forecast by the\ndevelopers, before", -24, None, BLUE),
@@ -632,28 +632,28 @@ def group_evidence():
                     ax.plot([e, e], [y - 0.12, y + 0.12], color="black", lw=1.4)
             edge = (ci[1] if v > 0 else ci[0]) if ci else v
             if show:
-                ax.text(edge + (1.5 if v > 0 else -1.5), y, f"{abs(v)}% {'slower' if v > 0 else 'faster'}",
+                ax.text(edge + (1.5 if v > 0 else -1.5), y, f"{abs(v)}% {'more time' if v > 0 else 'less time'}",
                         ha="left" if v > 0 else "right", va="center", fontsize=14, fontweight="bold",
                         color=c if c != GRAY else "#5c5c5c")
         if frame >= 3:
             ax.annotate("", xy=(19, 1.27), xytext=(-20, 1.73),
                         arrowprops={"arrowstyle": "->", "color": RED, "lw": 2, "connectionstyle": "arc3,rad=-0.35"})
-            ax.text(22, 1.62, "felt faster,\nwas slower", fontsize=12, color=RED, style="italic", va="center")
+            ax.text(22, 1.62, "felt faster,\ntook longer", fontsize=12, color=RED, style="italic", va="center")
         if frame == 4:
-            ax.text(14, 0, "likely too low: developers held back\nthe tasks they most wanted AI for", fontsize=11.5,
+            ax.text(14, 0, "likely an underestimate:\ndevelopers held back the\ntasks they most wanted AI for", fontsize=11.5,
                     color="#5c5c5c", style="italic", va="center")
         ax.set_yticks([3, 2, 1, 0])
         ax.set_yticklabels([r[0] for r in rows], fontsize=12.5)
         for i, t in enumerate(ax.get_yticklabels()):
             t.set_color("black" if i < frame else "white")
         ax.axvline(0, color="black", lw=1)
-        ax.set_xlim(-62, 55)
+        ax.set_xlim(-76, 68)
         ax.set_ylim(-0.6, 3.5)
         ax.set_xticks([-40, -20, 0, 20, 40])
         ax.set_xticklabels(["-40%", "-20%", "0", "+20%", "+40%"])
         ax.set_xlabel("Change in the time to finish a task when AI tools are allowed (whiskers: 95% interval)")
-        ax.text(-61, -0.5, "faster", fontsize=11, color="#3c3c3c", style="italic")
-        ax.text(54, -0.5, "slower", fontsize=11, color="#3c3c3c", style="italic", ha="right")
+        ax.text(-75, -0.5, "less time", fontsize=11, color="#3c3c3c", style="italic")
+        ax.text(67, -0.5, "more time", fontsize=11, color="#3c3c3c", style="italic", ha="right")
         ax.spines["left"].set_visible(False)
         ax.tick_params(axis="y", length=0)
         save(fig, "metr.png" if frame == 4 else f"metr-{frame}.png", tight=False)

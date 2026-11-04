@@ -531,6 +531,155 @@
         }
       },
       "serve": 7
+    },
+    "6": {
+      "items": {
+        "l19-q11": {
+          "answer": "The model chooses each next step from the last result",
+          "options": [
+            "It uses a larger and more capable model than a workflow would",
+            "The model chooses each next step from the last result",
+            "It calls at least one tool before it writes its final answer",
+            "It answers in structured JSON that your code can read"
+          ]
+        },
+        "l19-q12": {
+          "answer": "When you know the steps in advance",
+          "options": [
+            "When you know the steps in advance",
+            "When the next step depends on what a tool returns",
+            "When the task needs more than one tool to finish",
+            "When the model must decide which data to look at"
+          ]
+        },
+        "l19-q13": {
+          "answer": "Your code, after the model writes a request",
+          "options": [
+            "The model, as soon as it decides the tool is needed",
+            "Your code, after the model writes a request",
+            "The provider's servers, which run tools for the model",
+            "The tool definition, which the model reads on every call"
+          ]
+        },
+        "l19-q16": {
+          "answer": "The tool's description: what it does, its units and its limits",
+          "options": [
+            "Switch to a larger model, which makes fewer mistakes with tools",
+            "The tool's description: what it does, its units and its limits",
+            "Raise the step budget so the model gets more tries at the call",
+            "Retry each call automatically until its arguments are accepted"
+          ]
+        },
+        "l19-q17": {
+          "answer": "A check in your code: a person must approve the change",
+          "options": [
+            "The model will notice that the note was planted, and ignore it",
+            "A check in your code: a person must approve the change",
+            "A sentence in the system prompt saying every change needs approval",
+            "A larger model, which is much harder to fool with planted text"
+          ]
+        },
+        "l19-q21": {
+          "answer": "Its permission rules: allow, ask or deny each tool",
+          "options": [
+            "The instructions file it reads at the start of every session",
+            "Its permission rules: allow, ask or deny each tool",
+            "The plan it writes before it starts editing your files",
+            "Its summary of the conversation after a compaction"
+          ]
+        },
+        "l19-q22": {
+          "answer": "They felt faster with AI, but in fact took longer",
+          "options": [
+            "They were exactly as much faster as they believed they were",
+            "They felt faster with AI, but in fact took longer",
+            "AI made no measurable difference to how long tasks took",
+            "They were much faster than they themselves believed"
+          ]
+        },
+        "l19-q23": {
+          "answer": "Checking the permission rules before a tool runs",
+          "options": [
+            "Choosing which tool to call next, from the last result",
+            "Checking the permission rules before a tool runs",
+            "Writing the arguments of a tool request",
+            "Writing the final answer for the user"
+          ]
+        },
+        "l19-q25": {
+          "answer": "Each call starts with the last call's prompt, which the cache can reuse",
+          "options": [
+            "The provider replays the model's earlier answers instead of writing new ones",
+            "Each call starts with the last call's prompt, which the cache can reuse",
+            "The cache compresses the tool results, so each call sends fewer tokens",
+            "Cached calls are sent to a smaller and cheaper model than the others"
+          ]
+        },
+        "l19-q26": {
+          "answer": "Keep the start of the prompt the same; add new text only at the end",
+          "options": [
+            "Keep the start of the prompt the same; add new text only at the end",
+            "Put the newest information at the top of the system prompt",
+            "Shorten or delete old messages as the conversation grows longer",
+            "Move to a cheaper model for the later calls of a long run"
+          ]
+        },
+        "l19-q27": {
+          "answer": "In the instructions file, read at the start of every session",
+          "options": [
+            "In a longer and more emphatic first message next time",
+            "In the instructions file, read at the start of every session",
+            "In a comment at the top of each file the agent is likely to edit",
+            "Nowhere: an agent cannot keep a rule across a long session"
+          ]
+        },
+        "l19-q28": {
+          "answer": "A test it can run that comes back pass or fail",
+          "options": [
+            "A longer prompt that explains the whole project in detail",
+            "A test it can run that comes back pass or fail",
+            "Permission to run every command without asking first",
+            "A larger context window, so it can read every file at once"
+          ]
+        },
+        "l19-q29": {
+          "answer": "The software around a model changes how well the agent works",
+          "options": [
+            "A newer and larger model would have fixed just as many bugs",
+            "The software around a model changes how well the agent works",
+            "The second set of bug reports must have been easier to fix",
+            "Better tools help small models, but make no difference to large ones"
+          ]
+        },
+        "l19-q30": {
+          "answer": "Taking away one of the three: for example, its ability to send email",
+          "options": [
+            "A line in the system prompt that says never to forward email",
+            "Taking away one of the three: for example, its ability to send email",
+            "A larger model that is better at spotting planted instructions",
+            "Asking the assistant to report every email it sends"
+          ]
+        },
+        "l19-q31": {
+          "answer": "Return a message saying what was wrong, so the model can retry",
+          "options": [
+            "Raise an exception and stop the program, so nothing else can go wrong",
+            "Return a message saying what was wrong, so the model can retry",
+            "Return an empty result, and let the model carry on with its plan",
+            "Quietly correct the arguments itself, then run the request anyway"
+          ]
+        },
+        "l19-q33": {
+          "answer": "The harness around the model: interface, tools, permissions, context",
+          "options": [
+            "The code that sends prompts to the model and reads back its replies",
+            "The harness around the model: interface, tools, permissions, context",
+            "The model itself: its weights, shipped inside the agent's program",
+            "Tests that check every answer of the model before you ever see it"
+          ]
+        }
+      },
+      "serve": 8
     }
   }
 }
