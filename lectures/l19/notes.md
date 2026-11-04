@@ -24,16 +24,16 @@
   autonomously designs, plans and performs complex experiments".
 - GPT-4 is a large language model (LLM): it reads text and writes text. In Coscientist it could
   also ask for four actions:
-  - **GOOGLE:** search the internet.
-  - **PYTHON:** run a calculation, in an isolated container.
-  - **DOCUMENTATION:** read the manual of a lab robot.
-  - **EXPERIMENT:** send a protocol to the robot, an Opentrons OT-2 liquid handler.
-- The paper tests it on six tasks, among them planning the synthesis of known compounds,
-  controlling the liquid handler, and "solving optimization problems requiring analyses of
-  previously collected experimental data".
+  - **Search the web.**
+  - **Run Python**, for calculations.
+  - **Read the robot's manual.**
+  - **Send a program to the robot**, an Opentrons OT-2 liquid handler: a robot that moves small
+    amounts of liquid between plates with pipettes.
+- The paper tests it on six tasks, among them planning how to make known compounds, controlling
+  the robot, and improving a reaction from data collected earlier.
 
 ```{figure} figures/coscientist.png
-:alt: Coscientist's design. A goal in plain English, perform Suzuki and Sonogashira couplings, goes to the Planner, GPT-4. The Planner has four commands, each going to a module: GOOGLE to a web searcher, PYTHON to code execution in Docker, DOCUMENTATION to a docs searcher that reads the robot's API, and EXPERIMENT to automation, which runs the protocol on an Opentrons OT-2 liquid handler. A note says a person moved plates between instruments and GC-MS, an instrument that identifies compounds, found both products.
+:alt: Coscientist's design. A goal typed in plain English, run two reactions that join two molecules into one with the chemicals on hand, goes to the Planner, GPT-4. The Planner asks for four actions and reads each result: search the web, run Python for calculations, read the robot's manual, and send a program to the robot. The program runs on a liquid-handling robot, an Opentrons OT-2. A person moves the plate to GC-MS, an instrument that identifies each compound, which found both products.
 :width: 95%
 
 Coscientist, redrawn from the description in Boiko et al. (2023). The Planner never touches the
@@ -41,12 +41,13 @@ robot. It writes commands; the software around it runs them and sends back the r
 ```
 
 - One experiment, step by step:
-  1. **The goal:** run two classic carbon-carbon coupling reactions, Suzuki and Sonogashira,
-     with the chemicals on hand.
-  2. **Plan:** it chose the reagents, worked out the amounts, and wrote the robot's program.
-  3. **Error:** the program used a wrong method name for the robot's heater-shaker, a module
-     released after GPT-4's training data was collected.
-  4. **Look it up:** it read the robot's documentation.
+  1. **The goal:** run two reactions that join two molecules into one, with the chemicals on
+     hand.
+  2. **Plan:** it chose the chemicals, worked out the amounts, and wrote the robot's program.
+  3. **Error:** the program failed. It called the robot's heater by a wrong command name.
+     - Why: the heater was "released after the GPT-4 training data collection cutoff", so GPT-4
+       had never seen its commands.
+  4. **Look it up:** it searched the robot's manual for the right name.
   5. **Fix and run:** it corrected the program, which then ran.
   6. **Check:** gas chromatography-mass spectrometry (GC-MS), an instrument that separates a
      mixture and identifies each compound in it, found both target products.
@@ -95,7 +96,7 @@ step itself, until it gives an answer or a budget runs out.
   - **Agents** are "systems where LLMs dynamically direct their own processes and tool usage."
 
 ```{figure} figures/workflow-agent.png
-:alt: Left, a workflow: three blue boxes in a fixed column, retrieve passages, LLM writes the answer, check the format, with the caption same path every time, Lecture 18. Right, an agent: an LLM box with two-way arrows to three tools, query_log, predict_energy and set_tilt, and the caption loop until it answers or a budget runs out.
+:alt: Left, a workflow: three blue boxes in a fixed column, retrieve passages, LLM writes the answer, check the format, with the caption same path every time, Lecture 18. Right, an agent: an LLM box with two-way arrows to three tools, look up data, run a calculation and change something, and the caption loop until it answers or a budget runs out.
 :width: 95%
 
 A workflow follows the path you wrote. An agent picks its next step from the last result.
@@ -104,7 +105,8 @@ A workflow follows the path you wrote. An agent picks its next step from the las
 - **Use a workflow** when you know the steps in advance: extract fields from a datasheet, then
   validate them. It is cheaper, faster, and takes the same path every time.
 - **Use an agent** when the steps depend on what the tools return: look at the data, then decide
-  what to compute; fix a failing test by reading, editing and running it again.
+  what to compute; fix a failing test by reading, editing and running it again. It is slower and
+  more expensive, and it can take paths you did not plan.
 - Anthropic's advice: find "the simplest solution possible, and only increasing complexity when
   needed. This might mean not building agentic systems at all."
 - OpenAI says the same about agents themselves: "maximize a single agent's capabilities first"
@@ -113,16 +115,16 @@ A workflow follows the path you wrote. An agent picks its next step from the las
 ### How agents got here
 
 ```{figure} figures/timeline.png
-:alt: A timeline from 2022 to 2026. Research in blue: ReAct, October 2022; SWE-bench, October 2023; SWE-agent, May 2024. Science in red: Coscientist and ChemCrow preprints on the same day, April 2023; Coscientist in Nature, December 2023. Products in gold: GPT-4 and Auto-GPT, March 2023; Devin, March 2024; computer use, October 2024; Claude Code preview, February 2025; Codex CLI, April 2025; OpenAI's product with no hand-written code, February 2026. Standards in green: function calling, June 2023; the Model Context Protocol, November 2024; the AGENTS.md format, August 2025; MCP and AGENTS.md join the Linux Foundation, December 2025.
+:alt: A timeline from 2022 to 2026. Research in blue: ReAct, think, act, read, repeat, October 2022; SWE-bench, a test of real bug reports, October 2023; SWE-agent, May 2024. Science in red: Coscientist and ChemCrow preprints on the same day, April 2023; Coscientist in Nature, December 2023. Products in gold: GPT-4 and Auto-GPT, March 2023; Devin, March 2024; computer use, October 2024; Claude Code preview, February 2025; Codex CLI, April 2025; OpenAI's product written by its agent, February 2026. Standards in green: function calling, June 2023; the Model Context Protocol, November 2024; the AGENTS.md format, August 2025; MCP and AGENTS.md go to a neutral nonprofit, December 2025.
 :width: 100%
 
 LLM agents from 2022 to 2026. Dates are from the arXiv submission, the company's announcement,
 or the project's first public commit.
 ```
 
-- **October 2022, ReAct** ([Yao et al.](https://arxiv.org/abs/2210.03629)): a model writes a
-  short reasoning step, then an action, then reads the result: "reasoning traces and
-  task-specific actions in an interleaved manner". The loop of this lecture, in a paper.
+- **October 2022, ReAct** ("reason + act", [Yao et al.](https://arxiv.org/abs/2210.03629)): a
+  research paper in which the model writes a thought, asks for an action (a search, for
+  example), reads the result, and repeats. The loop of this lecture, on paper.
 - **March 2023, GPT-4:** OpenAI's model, later the planner inside Coscientist. Days later,
   **Auto-GPT**, an open-source program that "chains together LLM 'thoughts', to autonomously
   achieve whatever goal you set".
@@ -132,9 +134,10 @@ or the project's first public commit.
 - **June 2023, function calling** in OpenAI's API: the model returns a structured tool request,
   a tool name and its arguments in JSON (JavaScript Object Notation, a plain-text data format),
   instead of prose.
-- **October 2023, SWE-bench** ([Jimenez et al.](https://arxiv.org/abs/2310.06770)): 2,294 real
-  software problems from GitHub, solved only if the project's own tests pass. It became the
-  standard test of coding agents.
+- **October 2023, SWE-bench** (software engineering benchmark,
+  [Jimenez et al.](https://arxiv.org/abs/2310.06770)): a test for coding agents. It holds 2,294
+  real bug reports from GitHub projects, and an agent's fix counts only if the project's own
+  tests then pass. It became the standard test of coding agents.
 - **2024, the first coding agents:** Cognition's Devin (March), "the first AI software engineer";
   SWE-agent (May), which showed that the tools around a model matter as much as the model.
 - **October 2024, computer use:** Claude can "use computers the way people do", by looking at a
@@ -144,11 +147,13 @@ or the project's first public commit.
   standard way to plug tools into any agent.
 - **2025, coding agents in the terminal:** Claude Code (February) and OpenAI's Codex CLI
   (command-line interface, April). AGENTS.md (August) gave them a shared instructions file.
-- **December 2025:** MCP, AGENTS.md and Block's goose were given to the Agentic AI Foundation,
-  under the Linux Foundation
+- **December 2025, shared standards:** Anthropic gave MCP, OpenAI gave AGENTS.md, and Block gave
+  its goose agent to one nonprofit, the Agentic AI Foundation (part of the Linux Foundation), so
+  that no single company controls them
   ([press release](https://www.linuxfoundation.org/press/linux-foundation-announces-the-formation-of-the-agentic-ai-foundation)).
-- **February 2026:** an OpenAI team reported a product built with "0 lines of
-  manually-written code" (the case study below).
+- **February 2026, written by an agent:** an OpenAI team reported five months building a product
+  in which Codex wrote all the code, "0 lines of manually-written code"
+  ([Harness engineering](https://openai.com/index/harness-engineering/); the case study below).
 
 ## The agent loop and its harness
 
@@ -160,17 +165,20 @@ or the project's first public commit.
 - A 5 kW solar array on a roof in Pittsburgh. Its **tilt**, the angle between the panels and the
   ground, can be changed.
 - In November the sun is low: 34° above the horizon at noon. Steeper panels face it better.
-- **The energy model** has two parts:
-  - Direct sunlight is best when the panels face the noon sun, at a tilt of about 56°.
-  - Light from the whole sky (clouds, haze) is best on flat panels. Here it is 30% of the total.
-- Last week the panels were at 20°. The model says 50° is best: 11.8 against 10.7 kWh (kilowatt-hours,
-  a unit of energy) per day.
+- **The energy model** is a formula in the worked example, not a measurement. It predicts the
+  energy the array makes in a day at any tilt, as the sum of two parts:
+  - **Direct sun** is best when the panels face the noon sun, at a tilt of about 56°.
+  - **Sky light** (light scattered by clouds and haze) is best on flat panels. Here it is 30% of
+    the total.
+- Last week the panels were at 20°. The sum of the two parts peaks at 50°: 11.8 kWh per day,
+  against 10.7 at 20°.
 
 ```{figure} figures/solar.png
-:alt: Left, a side view of a roof with a solar panel on a post, at last week's tilt of 20 degrees, dashed, and at the best tilt of 50 degrees, in gold. The noon sun is low, 34 degrees above the horizon, and its rays come in from the right. Right, the energy per day against the tilt, from 0 to 90 degrees. The curve rises from 8.6 kWh at 0 degrees to a peak of 11.8 kWh at 50 degrees, then falls. Last week's 20 degrees gives 10.7 kWh. Tilts above 60 degrees are shaded as outside the mount's range.
+:alt: Left, a side view of a roof with a solar panel on a post, at last week's tilt of 20 degrees, dashed, and at the best tilt of 50 degrees, in gold. The noon sun is low, 34 degrees above the horizon, and its rays come in from the right. Right, the energy model, energy per day against the tilt from 0 to 90 degrees. A dashed gold curve, direct sun, peaks near 56 degrees; a dashed light blue curve, sky light, is highest at 0 degrees and falls slowly. Their sum, the solid blue total, rises from 8.6 kWh at 0 degrees to a peak of 11.8 kWh at 50 degrees, then falls. Last week's 20 degrees gives 10.7 kWh. Tilts above 60 degrees are shaded as outside the mount's range.
 :width: 100%
 
-The example of this lecture: a tilt to choose, and the energy model the agent can call.
+The example of this lecture: a tilt to choose, and the energy model the agent can call. The total is
+the sum of the two dashed parts.
 ```
 
 - The task for the agent:
@@ -184,7 +192,7 @@ The example of this lecture: a tilt to choose, and the energy model the agent ca
 |---|---|
 | `query_log` | One read-only SQL query on last week's hourly power log, stored in DuckDB ([Lecture 4](../l04/notes.md)) |
 | `predict_energy` | The energy model, valid for the mount's range, 0 to 60° |
-| `read_logbook` | The maintenance notes people type in |
+| `read_logbook` | The maintenance notes people type in. Anyone can write in it, so the agent must not take orders from it |
 | `set_tilt` | Move the real panels. A person must approve |
 
 - SQL (Structured Query Language, [Lecture 3](../l03/notes.md)) is the language for asking a
@@ -195,7 +203,7 @@ The example of this lecture: a tilt to choose, and the energy model the agent ca
 ### The loop
 
 ```{figure} figures/agent-loop.png
-:alt: The agent loop. The LLM, which reads and then asks for a tool or answers, sends a request to your code, the harness. The harness checks four things in order, step budget left, same call three times, needs approval then ask a person, and run the tool and log it. It calls the tool, gets the output and sends the result back to the LLM. When the LLM answers, the loop ends.
+:alt: The agent loop in five numbered steps. 1, the LLM, which reads every message, sends a request to your code, the harness: predict_energy for tilts 0 to 60. 2, the harness checks the tool name and arguments, stops at the step budget, asks a person before a change, and runs the tool and logs it. 3, it runs the tool, the energy model, and gets the output. 4, the result, best 50 degrees and 11.8 kWh per day, goes back to the LLM as a new message. 5, when the LLM writes an answer instead of a request, the loop ends.
 :width: 95%
 
 The model only writes requests. Every check is a line of your code.
@@ -259,29 +267,32 @@ Six jobs of the harness. The model reads text and writes requests; everything el
   - **Builds the prompt:** the system prompt, the four tool definitions, every message so far.
   - **Runs the tools:** `query_log` ran the SQL; `predict_energy` ran the model.
   - **Checks permissions:** `set_tilt` waited for the operator's yes.
-  - **Manages the context:** what the model sees. The five calls re-sent 2,574 tokens in total
-    (next section).
+  - **Manages the context:** decides what stays in the prompt when it grows too long. Our five
+    short calls needed nothing; a long coding session does (the coding agents section).
   - **Logs every step:** what was asked, what ran, what came back.
   - **Ends the run:** an answer after 5 calls; the budget was 6.
 - OpenAI's Codex team uses the same word: Codex is their agent, or "harness"
   ([Unrolling the Codex agent loop, 2026](https://openai.com/index/unrolling-the-codex-agent-loop/)).
 
-### Why the harness matters
+### Same model, different harness
 
+- **The question:** keep the model the same and change only the harness. Does the agent fix more
+  bugs?
 - **The test:** SWE-bench (software engineering benchmark) has "2,294 software engineering
   problems drawn from real GitHub issues and corresponding pull requests across 12 popular
   Python repositories" ([Jimenez et al., 2024](https://arxiv.org/abs/2310.06770)).
-  - The agent gets the project's code and the issue as people wrote it, and edits the code.
-  - The issue counts as solved only if the tests that the project's own fix made pass now pass.
-    The tests decide, not a person.
-  - **SWE-bench Lite** is 300 of these issues, chosen to be "more self-contained, with a focus on
+  - The agent gets the project's code and the bug report as people wrote it, and edits the code.
+  - A bug counts as fixed only if the project's own tests then pass. The tests decide, not a
+    person.
+  - **SWE-bench Lite** is 300 of these bugs, chosen to be "more self-contained, with a focus on
     evaluating functional bug fixes".
 - **The result:** SWE-agent ran the same model, GPT-4 Turbo, three ways on SWE-bench Lite
-  ([Yang et al., 2024](https://arxiv.org/abs/2405.15793), Table 1):
-  - No loop (retrieve the files, write one fix): **2.7%** solved.
-  - In a loop, with a plain Linux shell: **11.0%**.
-  - In a loop, with tools designed for an LLM (a file viewer, a search, an edit command):
-    **18.0%**.
+  ([Yang et al., 2024](https://arxiv.org/abs/2405.15793), Table 1). The percentage is the share
+  of the 300 bugs fixed:
+  - No loop (find the files, one try at a fix): **2.7%**, 8 of 300.
+  - In a loop, with a plain Linux shell: **11.0%**, 33 of 300.
+  - In a loop, with tools built for an LLM (a file viewer, a search, an edit command): **18.0%**,
+    54 of 300.
 - Only the harness changed. Anthropic, building its own agent for SWE-bench: "we actually spent
   more time optimizing our tools than the overall prompt"
   ([Building effective agents](https://www.anthropic.com/research/building-effective-agents)).
@@ -303,50 +314,48 @@ Six jobs of the harness. The model reads text and writes requests; everything el
 
 ### Every call re-reads everything
 
-- An LLM keeps no memory between calls. Each call sends the whole conversation again.
-- In our run, the **prefix** (system prompt and tool definitions) is 331 tokens, and each call
-  adds about 81 tokens of requests and results.
+- An LLM keeps no memory between calls. Each call sends the whole conversation again, plus the
+  new part at the end.
+- In our run, the system prompt and the tool definitions are 331 tokens, and each call adds about
+  81 tokens of requests and results.
 
 ```{figure} figures/tokens.png
 :alt: Bar chart of the input tokens read by each of the five model calls, 360, 444, 508, 607 and 655. Each bar has a blue base of 331 tokens, the system prompt and the tool definitions, and a gold top, the conversation so far, which grows with each call. The title says five calls read 2,574 tokens.
 :width: 85%
 
-Input tokens read by each call of the scripted run, counted with tiktoken's o200k_base encoding
-(other providers count a little differently). Five calls read 2,574 tokens in total.
+Input tokens read by each call of the scripted run, counted with tiktoken (Lecture 17). The blue
+part is the same in every call.
 ```
 
-- So the cost of a run grows faster than the number of calls: each call re-reads all the earlier
-  ones. A coding agent makes dozens of calls per task, on prompts of many thousands of tokens.
-- Most of what each call sends was already sent by the call before it.
+- Most of what each call sends was already sent by the call before it. A coding agent makes
+  dozens of calls per task, each many thousands of tokens long.
 
 :::{admonition} Definition: prompt caching
 :class: tip
-**Prompt caching** lets the provider keep the processed start of a prompt for a few minutes. When
-the next request starts with exactly the same text, that part is read from the cache: it costs
-much less and comes back faster.
+**Prompt caching** lets the provider keep the start of a prompt it has already processed, for a
+few minutes. When the next call starts with exactly the same text, that part is read from the
+cache: it costs about a tenth of the price and comes back faster.
 :::
 
 ### How the cache works
 
 ```{figure} figures/cache-prefix.png
-:alt: Three rows of blocks. Call 1: tools plus system prompt, then task, all gold, processed and written. Call 2: tools plus system prompt and task in green, read from the cache, then request 1 and result 1 in gold. Call 2 with the time in the prompt: the first block, time 10:02 plus tools plus system, in red, then everything else gold: the first block changed, so everything is processed again. A legend says reading from the cache costs about 0.1 times the price and writing about 1.25 times.
+:alt: Three rows of blocks, one per call, each longer than the last. Call 1: system prompt plus tools, then the task, all gold, new. Call 2: the same two blocks in green, sent before and read from the cache, then request 1 and result 1 in gold, new. Call 3: everything from call 2 in green, then request 2 and result 2 in gold. A legend says green is read from the cache at about 0.1 times the price, and gold is processed in full.
 :width: 95%
 
-The cache matches the start of the prompt. A change anywhere in the prefix makes everything after
-it new again.
+Each call starts with the whole prompt of the call before it. Only the end is new.
 ```
 
 - An agent's prompts are made for caching: "the old prompt is an exact prefix of the new prompt"
   ([OpenAI, Unrolling the Codex agent loop](https://openai.com/index/unrolling-the-codex-agent-loop/)).
-- The match must be exact, from the first token. Anthropic's order is "`tools`, `system`, and
-  `messages` (in that order)", and "changes at each level invalidate that level and all
-  subsequent levels" ([prompt caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)).
-- **The price** (Anthropic): writing to the cache costs 1.25 times the input price, reading from
-  it 0.1 times. "By default, the cache has a 5-minute lifetime. The cache is refreshed for no
-  additional cost each time the cached content is used." OpenAI caches "by default" on prompts of
-  at least 1,024 tokens ([prompt caching](https://developers.openai.com/api/docs/guides/prompt-caching)).
-- With the cache, the cost of a long run grows much more slowly. OpenAI: "When we get cache hits,
-  sampling the model is linear rather than quadratic."
+  A prefix is the start of a text.
+- The match must be exact, from the first token. One changed character near the start makes
+  everything after it new again.
+- **The price** (Anthropic): reading from the cache costs 0.1 times the input price, writing to it
+  1.25 times. The cache lasts 5 minutes, and each use restarts the clock
+  ([prompt caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)).
+  OpenAI caches automatically on prompts of at least 1,024 tokens
+  ([prompt caching](https://developers.openai.com/api/docs/guides/prompt-caching)).
 
 ### Our run, with a cache
 
@@ -355,50 +364,42 @@ it new again.
 :width: 100%
 
 Left: in each call after the first, only the gold part is new. Right: the same run extended to 30
-calls, with a 331-token prefix and 81 new tokens per call.
+calls, with a 331-token start and 81 new tokens per call.
 ```
 
 - In our five calls, 1,919 of the 2,574 tokens were the same as the call before. Priced with
-  Anthropic's multipliers, the run would cost as much as **1,011** full-price tokens, **39%** of
-  the price without a cache.
-- Extended to 30 calls: **46,035** full-price tokens without a cache, **7,719** with one
-  (**17%**). The longer the run, the more of each call was sent before.
+  Anthropic's rates, the run would cost **39%** of the price without a cache.
+- Extended to 30 calls, it would cost **17%**. The longer the run, the bigger the saving.
 
 ### What breaks the cache
 
-- **A timestamp at the start of the system prompt.** Manus calls this "a common mistake",
-  above all a time "precise to the second"
+Anything that changes the start of the prompt, or an earlier message:
+
+- **The current time at the start of the system prompt.** It changes on every call, so nothing
+  after it matches. Manus calls this "a common mistake"
   ([Manus, Context engineering for AI agents, 2025](https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus)).
-- **Changing the tools in the middle of a run.** OpenAI lists "Changing the tools available to
-  the model in the middle of the conversation" as a cause of misses. Codex once had a bug where
-  "we failed to enumerate the tools in a consistent order."
-- **Editing earlier messages.** Manus: "Make your context append-only", and "Ensure your
-  serialization is deterministic" (the same keys in the same order every time).
-- **Waiting.** A cache that is not used for 5 minutes expires. An approval that sits for 10
-  minutes in front of a person costs a full re-read.
-- **Switching models mid-session.** Claude Code keeps the conversation, but "each model has its
-  own cache", so the next request after `/model` "reads the entire conversation history with no
-  cache hits" ([How Claude Code uses prompt caching](https://code.claude.com/docs/en/prompt-caching)).
-  You pay one full re-read, then the new model's cache fills again.
+- **Changing the list of tools in the middle of a run**, or listing them in a different order.
+- **Editing an earlier message.** Add new messages at the end instead.
+- **Waiting.** A cache that is not used for 5 minutes expires. An approval that waits 10 minutes
+  for a person costs a full re-read.
+- **Switching models.** Claude Code keeps the conversation, but "each model has its own cache", so
+  the first request after `/model` reads the whole history at full price
+  ([How Claude Code uses prompt caching](https://code.claude.com/docs/en/prompt-caching)).
 - A broken cache costs more than no cache. In the worked example, a clock at the start of the
   system prompt makes the run cost 124% of the uncached price: every call pays to write and
   reads nothing back.
 
-### Why agent builders care
+### How agent builders use it
 
-- Manus, an agent company: "the KV-cache hit rate is the single most important metric for a
-  production-stage AI agent." Their agents read about 100 tokens for each token they write. (The
-  KV, key-value, cache is the processed form of the prompt that the provider stores.)
 - Thariq Shihipar, on the Claude Code team: "At Claude Code, we build our entire harness around
   prompt caching", and "we run alerts on our prompt cache hit rate"
   ([on X, February 2026](https://x.com/trq212/status/2024574133011673516), quoted by
   [Simon Willison](https://simonwillison.net/2026/Feb/20/thariq-shihipar/)).
-- Three rules follow:
-  - **Stable start:** no clock, no changing tool list at the front of the prompt. Claude Code
-    "orders each request so content that rarely changes between turns comes first".
-  - **Append only:** never edit earlier messages; add new ones at the end.
-  - **Check it:** each response reports `cache_read_input_tokens` (read from the cache) and
-    `cache_creation_input_tokens` (written).
+- Manus, an agent company, calls the cache hit rate "the single most important metric for a
+  production-stage AI agent". Their agents read about 100 tokens for each token they write.
+- The rule: **keep the start of the prompt the same, and add new text only at the end.** Each
+  response reports how many tokens were read from the cache (`cache_read_input_tokens`), so you
+  can check it.
 - **Compaction** is the other tool for a long conversation: near the limit of the context window
   (Lecture 17), the harness replaces the old messages with a summary. It saves room, but the new
   prompt no longer matches the cache, and details can be lost.
@@ -411,7 +412,8 @@ calls, with a 331-token prefix and 81 new tokens per call.
 ```{index} see: ACI; agent-computer interface
 ```
 
-- The model never sees your code. It decides from the tool definitions alone.
+- The model never sees your code. It knows a tool only by its name, its description, and the
+  text the tool sends back.
 
 :::{admonition} Definition: agent-computer interface
 :class: tip
@@ -439,9 +441,10 @@ results come back. Its design changes how well the agent works, with the same mo
   try again.
 - Call 2 of our run asked for tilts up to 90° and got back "Outside the mount's range (0 to 60
   degrees): [75, 90]. Nothing was predicted." Call 3 asked again inside the range.
-- Anthropic: "prompt-engineer your error responses to clearly communicate specific and
-  actionable improvements, rather than opaque error codes or tracebacks"
+- Anthropic's advice: write error messages that say clearly what to change, instead of error
+  codes or tracebacks
   ([Writing effective tools for agents, 2025](https://www.anthropic.com/research/writing-tools-for-agents)).
+- Write every description and every error for a reader who sees only text.
 - Return what the model needs: a summary from SQL, not 168 rows. Every row is re-read on every
   later call. Claude Code caps a tool's response at 25,000 tokens by default.
 
@@ -504,25 +507,21 @@ needs, so a wrong or manipulated output can do damage.
 ```{index} pair: case study; Replit database deletion
 ```
 
-- **July 2025:** Jason Lemkin, founder of SaaStr, was building an app by chatting with Replit's
-  coding agent, after "nine mad days" of it
+- **July 2025:** Jason Lemkin, a startup founder (SaaStr), was building an app by chatting with
+  Replit's coding agent
   ([SaaStr, 2025](https://www.saastr.com/replits-new-release-address-most-of-the-challenges-we-hit-vibe-coding-but-is-prosumer-vibe-coding-really-ready-for-commercial-apps-yet/)).
-- **A code freeze:** he had told it to make "NO MORE CHANGES without explicit permission". In
-  The Register's account he said: "I explicitly told it eleven times in ALL CAPS not to do this"
+- **"Change nothing":** he had told it, in capitals, to make "NO MORE CHANGES without explicit
+  permission"
   ([The Register, 21 July 2025](https://www.theregister.com/2025/07/21/replit_saastr_vibe_coding_incident/)).
-- **Deleted:** the agent ran a database command anyway (`npm run db:push`) and wiped the
-  production database, the one the live app used. By the agent's own account: "This destroyed
-  1,206 executives and 1,196+ companies"
+- **Deleted:** the agent ran a database command anyway and wiped the app's live database. In the
+  agent's own words: "This destroyed 1,206 executives and 1,196+ companies"
   ([Lemkin's post, with the agent's replies](https://x.com/jasonlk/status/1946069562723897802)).
-- **Wrong report:** the agent wrote "I made a catastrophic error in judgment", and said a rollback
-  was impossible. **The rollback worked.**
-- **Replit's fix, in code:** separate development and production databases
-  ([Replit, 2025](https://replit.com/blog/introducing-a-safer-way-to-vibe-code-with-replit-databases)),
-  and a "planning/chat-only mode so you can strategize without risking your codebase" (Replit's
-  chief executive, quoted by [Fortune](https://fortune.com/2025/07/23/ai-coding-tool-replit-wiped-database-called-it-a-catastrophic-failure/)).
-- For you: put limits in permissions and approval checks, in code. The model reads a sentence in
-  the prompt as one more piece of text. Check what the agent did in the system itself, not in its
-  own report.
+- **Wrong report:** the agent said the data could not be restored. **The rollback worked.**
+- **Replit's fix:** the agent now changes a separate development database. The live one changes
+  only when you approve it ([Replit, 2025](https://replit.com/blog/introducing-a-safer-way-to-vibe-code-with-replit-databases);
+  [Fortune](https://fortune.com/2025/07/23/ai-coding-tool-replit-wiped-database-called-it-a-catastrophic-failure/)).
+- For you: an instruction is text the model can ignore. A limit built into the system holds.
+  Check what the agent did in the system itself, not in its own report.
 
 ## Coding agents
 
@@ -539,9 +538,10 @@ project. It works in your terminal, your editor, or a copy of your repository in
   [Codex](https://developers.openai.com/codex) (OpenAI; its command-line tool is open source),
   [opencode](https://opencode.ai/docs/) (open source, MIT license, works with many providers and
   with local models), GitHub Copilot's agent mode, and Cursor.
-- In the 2025 Stack Overflow survey, 84% of developers were "using or planning to use AI tools",
-  and more of them distrusted the accuracy of AI output (46%) than trusted it (33%)
-  ([Stack Overflow Developer Survey 2025](https://survey.stackoverflow.co/2025/ai)).
+- In the 2026 Stack Overflow survey, "The overwhelming majority of respondents now use coding
+  assistants and agents daily (73%)". Their trust has a condition: "48% indicate they trust AI
+  when they can easily validate the answers" ([Stack Overflow Developer Survey 2026](https://survey.stackoverflow.co/2026/ai)).
+  A test is one way to make the answer easy to check (below).
 
 ### The loop of a coding agent
 
@@ -573,7 +573,11 @@ Rust (tests excluded), grouped by the job each part does. Counted on 3 November 
 - [Lecture 1](../l01/notes.md) showed that in a production ML (machine learning) system, the ML
   code is a small part of the code.
 - The same holds for agents. In Codex, the code that sends prompts to the model and reads its
-  replies is 2% of 1.1 million lines. The terminal interface alone is 29%.
+  replies is about 2% of 1.1 million lines. The terminal interface alone is 29%.
+- **How we know:** we counted the lines of Rust in Codex's open-source code, 118 packages with
+  the tests left out, and sorted the packages by job ourselves. The sorting is a judgment call:
+  the files inside the core package that call the model would add about 0.3%. Read the numbers as
+  approximate, 2 to 3% for the model calls. The grouping is in `figures/make_figures.py`.
 - Most of the engineering of an agent is the harness, and that is the part you configure.
 
 ### The parts of a coding agent
@@ -609,8 +613,8 @@ The harness of a coding agent, part by part. Each part is a setting or a file yo
 - Each line answers one question: how to build (the same environment as you and CI, continuous
   integration, [Lecture 2](../l02/notes.md)), how to check its own work, what not to touch, and
   where things go.
-- **Keep it short.** Anthropic: "target under 200 lines per CLAUDE.md file. Longer files consume
-  more context and reduce adherence." OpenAI's team keeps a short AGENTS.md, "roughly 100 lines",
+- **Keep it short.** Anthropic suggests under 200 lines: a longer file takes up more of the
+  context, and the agent follows it less well. OpenAI's team keeps a short AGENTS.md, "roughly 100 lines",
   as "the table of contents" pointing to deeper documents.
 - In a large repository, put one in each folder: "The closest AGENTS.md to the edited file wins;
   explicit user chat prompts override everything."
@@ -618,7 +622,7 @@ The harness of a coding agent, part by part. Each part is a setting or a file yo
 #### Context management
 
 ```{figure} figures/context.png
-:alt: Four horizontal bars, each the size of the context window. Start of a session: system plus tools, CLAUDE.md and your prompt, with room to work. Long session: the same, plus a long block of file reads, command output, edits and test logs, near the limit. After compaction: system plus tools, CLAUDE.md, a purple summary of the work and recent messages, with the note early details may be lost. Below, a subagent with its own window that reads 40 files to answer one question returns a short answer into the main window.
+:alt: Four horizontal bars, each the size of the context window. Start of a session: system plus tools, the instructions file and your prompt, with room to work. Long session: the same, plus a long block of files, command output and test logs, near the limit. After compaction: system plus tools, the instructions file, a purple summary of the work and recent messages, with the note early details may be lost. Below, a subagent with its own window, which may read tens of thousands of tokens, returns a summary of often 1,000 to 2,000 tokens into the main window.
 :width: 95%
 
 The context window (Lecture 17) over a coding session. Compaction and subagents keep it from
@@ -632,10 +636,13 @@ filling with old detail.
   The goal is "the smallest possible set of high-signal tokens".
 - **Compaction:** "As you work, context fills up. Claude compacts automatically, but instructions
   from early in the conversation can get lost." Put lasting rules in the instructions file.
-- **Clear it:** start a new conversation for an unrelated task (`/clear` in Claude Code).
+- **Start over:** begin a new session for an unrelated task. It starts with an empty context
+  (`/clear` does this in Claude Code).
 - **Subagents:** "Each subagent runs in its own context window"
-  ([subagents](https://code.claude.com/docs/en/sub-agents)). It can read many files and return
-  "only a condensed, distilled summary of its work (often 1,000-2,000 tokens)."
+  ([subagents](https://code.claude.com/docs/en/sub-agents)). Anthropic: a subagent "might explore
+  extensively, using tens of thousands of tokens or more, but returns only a condensed, distilled
+  summary of its work (often 1,000-2,000 tokens)"
+  ([Effective context engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)).
 - **Skills:** packaged instructions for one kind of task. Only their names and descriptions sit
   in the context; "full skill content only loads when invoked"
   ([skills](https://code.claude.com/docs/en/skills)).
@@ -645,15 +652,16 @@ filling with old detail.
 ```{index} sandbox
 ```
 
-- The instructions file is text the model may ignore, as Replit's agent ignored the code freeze.
-  These three are code the harness enforces.
+- The instructions file is text the model may ignore: "data/ is read-only" in AGENTS.md is a
+  request, not a lock. These three are code the harness enforces, like the read-only connection
+  of `query_log`.
 - **Permissions:** each tool or command is **allow** (run), **ask** (prompt you first) or **deny**
   (block). "Rules are evaluated in order: deny, then ask, then allow", and "Permission rules are
   enforced by Claude Code, not by the model" ([permissions](https://code.claude.com/docs/en/permissions)).
 - **Sandbox:** the operating system limits which files and which network the agent's commands
   can reach.
   - Anthropic: "effective sandboxing requires both filesystem and network isolation", so that
-    "a compromised Claude Code can't steal your SSH keys, or phone home to an attacker's server."
+    an agent that has been taken over cannot steal your SSH keys or send data to an attacker.
     Internally, "sandboxing safely reduces permission prompts by 84%"
     ([Beyond permission prompts, 2025](https://www.anthropic.com/research/claude-code-sandboxing)).
   - Codex has three sandbox modes ([sandboxing](https://developers.openai.com/codex/concepts/sandboxing)):
@@ -671,26 +679,25 @@ filling with old detail.
   every edit. They give "deterministic control: certain actions always happen rather than
   relying on the LLM to choose to run them" ([hooks](https://code.claude.com/docs/en/hooks-guide)).
 
-#### Case study: when the attacker drives the agent
+#### Case study: the Nx attack
 
-- **npm** is the package registry for JavaScript, as PyPI is for Python. **Nx** is a JavaScript
-  build tool with "~6 million weekly installs"
-  ([Nx postmortem](https://nx.dev/blog/s1ngularity-postmortem)).
-- **A stolen key:** "Attackers exploited a GitHub Actions injection vulnerability to steal our NPM
-  publishing token". A pull request carried shell commands in its title, and Nx's automated
-  workflow ran them.
-- **Bad versions:** with the token, the attackers published malicious Nx versions, active "for 4
-  hours" in August 2025.
-- **Install:** each ran a hidden script on install that "scanned user systems for sensitive data,
-  attempted to use local AI tools (like Claude and Gemini), and uploaded the results to a public
-  GitHub repo".
-- **Your agents, checks off:** the script ran the coding agents with "flags such as
+- **Nx** is a popular JavaScript build tool, with "~6 million weekly installs"
+  ([Nx postmortem](https://nx.dev/blog/s1ngularity-postmortem)). It is published on **npm**, the
+  package registry for JavaScript, as PyPI is for Python.
+- **1. A stolen key:** attackers stole the key that publishes Nx, through a flaw in Nx's own
+  automated checks on GitHub.
+- **2. Fake versions:** with the key, they published versions of Nx with a hidden program. They
+  were live "for 4 hours" in August 2025.
+- **3. You install Nx:** installing one ran the hidden program on your machine.
+- **4. It runs your agent:** the program started the coding agents it found (Claude Code, Gemini
+  CLI, Amazon Q) with every permission check turned off, using "flags such as
   --dangerously-skip-permissions (Claude Code), --yolo (Gemini CLI), and --trust-all-tools
-  (Amazon q)", and asked them to find files such as SSH keys, `.env` files and cryptocurrency
-  wallets ([Snyk, 2025](https://snyk.io/blog/weaponizing-ai-coding-agents-for-malware-in-the-nx-malicious-package/)).
-- The lethal trifecta, in one install: your files, an attacker's prompt, and the GitHub command
-  line. Keep secrets out of the agent's reach, and run "skip all checks" modes only inside a
-  container or a virtual machine.
+  (Amazon q)". It told them to search the disk for files such as SSH keys, `.env` files and
+  cryptocurrency wallets ([Snyk, 2025](https://snyk.io/blog/weaponizing-ai-coding-agents-for-malware-in-the-nx-malicious-package/)).
+- **5. Published:** what the agents found was uploaded to a public GitHub repository.
+- The attacker used the developer's own agent to search the machine: the lethal trifecta in one
+  install. Keep secrets out of the agent's reach, and turn the checks off only inside a container
+  or a virtual machine.
 
 ### Case study: harness engineering at OpenAI
 
@@ -734,14 +741,8 @@ How one change reaches this site.
   - **The checks:** a rule that must hold is also a check that runs on every change. A failed
     check goes back to the agent, not to the site.
   - **A person merges:** nothing reaches the site until an instructor reads and merges it.
-- 288 of the 337 commits to the repository list Claude as a co-author (counted on 2026-11-03).
-
-```{figure} figures/course-history.png
-:alt: Every pull request merged into the course's repository from July to November 2026, drawn as arcs off a horizontal line labeled main. Each arc runs from the branch's first commit to the day it merged; taller arcs carry more commits. Arcs above the line are lectures, in blue, and course pages, in gray. Arcs below are the practice game and map, in green, the clicker, arcade and Ask button, in gold, and the build, checks and rules, in purple. Labels mark the first lecture, the weekly release gate, the course map, the clicker, the first weekly release, the arcade, the RAG chat and the Ask button.
-:width: 100%
-
-The course's 131 pull requests, each a branch that merged into main.
-```
+- Claude Code wrote most of the material: notes, slides, figures, notebooks and tools. An
+  instructor checked and merged every change.
 
 ## Working with a coding agent
 
@@ -754,8 +755,8 @@ The course's 131 pull requests, each a branch that merged into main.
   2. **Plan:** it proposes a plan. You read it and fix it. Mistakes are cheapest here.
   3. **Implement:** small steps, with the tests run after each one.
   4. **Commit:** you check the change, then commit with a message that says why.
-- **Correct early, then start over:** "after two failed corrections run `/clear` and write a
-  better prompt instead of a third."
+- **Correct early, then start over:** after two failed corrections, Anthropic advises a fresh
+  session instead of a third correction. Rethink the problem before you prompt again.
 
 ### Give it a check it can run
 
@@ -765,24 +766,26 @@ A **test** is a small function that runs your code on a case where you know the 
 if the answer is wrong.
 :::
 
-- The simplest example: a function that converts Celsius to Fahrenheit, and a test that knows
-  water boils at 100 °C, which is 212 °F.
+- **The example:** a function `c_to_f` converts a temperature from Celsius to Fahrenheit,
+  $F = C \times 9/5 + 32$. Water boils at 100 °C, which is 212 °F, so that is a case where you
+  know the answer.
+- Say the agent's first try forgot the "+ 32". The test catches it:
 
 ```python
-# tests/test_units.py
-from units import c_to_f
+# src/units.py: the agent's first try
+def c_to_f(c):
+    return c * 9 / 5          # forgot + 32
 
+# tests/test_units.py
 def test_boiling_point():
     assert c_to_f(100) == 212
 ```
 
-- If `c_to_f` forgot the "+ 32", `uv run pytest` fails with `assert 180.0 == 212`. A coding agent
-  reads that error, fixes `src/units.py`, and runs the test again until it passes.
-- "Give Claude something it can run that comes back pass or fail." An earlier version of the page
-  called tests, screenshots or expected outputs "the single highest-leverage thing you can do"
-  ([archived, February 2026](https://web.archive.org/web/20260201064156/https://code.claude.com/docs/en/best-practices)).
-- Simon Willison: "The value you can get from coding agents ... is massively amplified by a good,
-  cleanly passing test suite."
+- `uv run pytest` fails with `assert 180.0 == 212`. The agent reads that error, adds the "+ 32",
+  and runs the test again until it passes. This is the verify step of the loop: the test, not the
+  agent's own judgment, says when the work is done.
+- Claude Code's best practices: "Give Claude something it can run that comes back pass or fail."
+  ([best practices](https://code.claude.com/docs/en/best-practices)).
 
 ### Set up your project for an agent
 
@@ -811,13 +814,14 @@ A project a coding agent can work in, with the lecture that taught each part.
 
 ### What to watch for
 
-- **Check every change.** Read the diff, run the tests yourself, and look at the result: the
-  plot, the table, the page. You are the author of what you commit, and the course's rules on AI
-  assistance in the [syllabus](../../course/syllabus.md) apply.
+- **Check every change.** Check the test results and the final products: the plot, the table,
+  the page. You can only catch a wrong answer in a subject you understand, so the fundamentals of
+  your field matter more now. The course's rules on AI assistance are in the
+  [syllabus](../../course/syllabus.md).
 - **Secrets:** keep keys and passwords out of files the agent can read. Give it test credentials,
   not production ones.
-- **Debugging spirals:** an agent can try fix after fix without progress. Stop it, clear the
-  context, and write a better prompt.
+- **Debugging spirals:** an agent can try fix after fix without progress. Stop it, rethink the
+  problem from the start, then begin a fresh session.
 - **Privacy:** a cloud model sees the code and data the agent reads. Check before you point one
   at a confidential project ([MIT Missing Semester, Agentic coding](https://missing.csail.mit.edu/2026/agentic-coding/)).
 - **Understanding:** the MIT (Massachusetts Institute of Technology) course warns against
@@ -834,14 +838,15 @@ A project a coding agent can work in, with the lecture that taught each part.
 - **The 2025 trial** ([Becker et al., 2025](https://arxiv.org/abs/2507.09089)):
   - 16 experienced developers, 246 real tasks in large open-source projects they had worked on for
     about 5 years.
-  - Each task was **randomly** allowed or forbidden AI tools (mostly Cursor with Claude 3.5/3.7
-    Sonnet). A randomized trial compares like with like.
+  - Each task was allowed or forbidden AI tools (mostly Cursor with Claude 3.5/3.7 Sonnet) by "a
+    simulated fair coin flip". Random assignment makes the two groups of tasks alike, so a
+    difference in time is the effect of AI.
   - Before: the developers forecast AI would cut their time by 24%. After: they estimated it had
     cut it by 20%.
   - Measured: with AI allowed, tasks took **19% longer**.
 
 ```{figure} figures/metr.png
-:alt: Horizontal bar chart of the change in the time to finish a task when AI tools are allowed. 2025, forecast by the developers before: 24% faster. 2025, estimated by the developers after: 20% faster. 2025, measured: 19% slower, with a 95% interval from 2% to 39% slower; an arrow from the estimate to the measurement says felt faster, was slower. 2026 re-run, same developers, measured: 18% faster, with an interval from 38% faster to 9% slower; a note says tasks were skipped and METR calls it an unreliable signal.
+:alt: Horizontal bar chart of the change in the time to finish a task when AI tools are allowed. 2025, forecast by the developers before: 24% faster. 2025, estimated by the developers after: 20% faster. 2025, measured: 19% slower, with a 95% interval from 2% to 39% slower; an arrow from the estimate to the measurement says felt faster, was slower. 2026 re-run, same developers, measured: 18% faster, with an interval from 38% faster to 9% slower; a note says this is likely too low, because developers held back the tasks they most wanted AI for.
 :width: 95%
 
 Forecast, belief and measurement in METR's trials. Whiskers show the 95% confidence interval.
@@ -850,12 +855,11 @@ Forecast, belief and measurement in METR's trials. Whiskers show the 95% confide
 - **The 2026 re-run** ([METR, February 2026](https://metr.org/blog/2026-02-24-uplift-update/)):
   57 developers, 800+ tasks. The developers from 2025 were an estimated 18% faster, with an
   interval from 38% faster to 9% slower.
-  - METR calls this "an unreliable signal": "30% to 50% of developers told us that they were
-    choosing not to submit some tasks because they did not want to do them without AI."
-  - That quote means: any task submitted to the study could be drawn "AI forbidden", so
-    developers held back the tasks they most wanted AI for. METR: "we are systematically missing
-    tasks which have high expected uplift from AI". It reads its 2026 estimate as "a lower-bound
-    on the true productivity effects".
+  - **The catch:** any task submitted to the study could be drawn "AI forbidden". So "30% to 50%
+    of developers told us that they were choosing not to submit some tasks because they did not
+    want to do them without AI."
+  - The missing tasks are the ones where AI helps most, so the 18% is likely too low. METR calls
+    the estimate "an unreliable signal" and "a lower-bound on the true productivity effects".
   - METR now says of the 2025 result: "We believe these historical results no longer reflect the
     current impact of AI models on open-source developer productivity."
 - **Why the change?** METR does not separate the causes:
@@ -902,9 +906,9 @@ A multi-agent system, and what it costs in tokens.
 
 - **Cost grows faster than the step count.** Every call re-reads the conversation. Keep the
   prefix stable so the cache works, cap the steps, and keep tool results short.
-- **Errors compound.** If each step is right 95% of the time, a 20-step task succeeds about 36%
-  of the time ($0.95^{20}$). Prefer a workflow when the steps are known, and test an agent on a
-  fixed set of your own tasks, several runs each.
+- **Errors add up over many steps.** Say each step is right 95% of the time. Then all 20 steps
+  of a 20-step task are right only 36% of the time ($0.95^{20} = 0.36$). Prefer a workflow when
+  the steps are known, and test an agent on your own tasks, several runs each.
 - **Prompt injection is not solved.** Anything the agent reads can carry instructions. The defence
   is in the harness: read-only tools, approval for changes, a sandbox, no lethal trifecta.
 - **An agent's report is not evidence.** The Replit agent said a rollback was impossible; it was
@@ -959,7 +963,7 @@ and data validation give you.
   written entirely by agents, and what the engineers built around them.
 - [Anthropic, prompt caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)
   and [OpenAI, prompt caching](https://developers.openai.com/api/docs/guides/prompt-caching).
-  Prices, lifetimes, and what invalidates a cache.
+  Prices, lifetimes, and what breaks a cache.
 - [Manus, Context engineering for AI agents](https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus)
   (2025). Lessons on the cache and the context from a company that builds agents.
 - [Anthropic, Effective context engineering for AI agents](https://www.anthropic.com/research/effective-context-engineering-for-ai-agents)
@@ -973,7 +977,7 @@ and data validation give you.
   [Yang et al., SWE-agent](https://arxiv.org/abs/2405.15793) (NeurIPS 2024). The benchmark of real
   GitHub issues, and why tool design matters.
 - [OWASP, Excessive agency](https://genai.owasp.org/llmrisk/llm062025-excessive-agency/). The
-  security view, with mitigations.
+  security view, with ways to reduce the risk.
 - [Nx, s1ngularity postmortem](https://nx.dev/blog/s1ngularity-postmortem) (2025). How a supply
   chain attack turned installed coding agents against their owners.
 - [Becker et al., METR (2025)](https://arxiv.org/abs/2507.09089) and

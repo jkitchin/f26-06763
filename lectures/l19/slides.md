@@ -217,7 +217,6 @@ pre { font-size: 0.6em; }
 .i-calendar { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='M8 2v4' /%3E %3Cpath d='M16 2v4' /%3E %3Crect width='18' height='18' x='3' y='4' rx='2' /%3E %3Cpath d='M3 10h18' /%3E %3C/svg%3E"); }
 .i-circle-check { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Ccircle cx='12' cy='12' r='10' /%3E %3Cpath d='m9 12 2 2 4-4' /%3E %3C/svg%3E"); }
 .i-circle-x { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Ccircle cx='12' cy='12' r='10' /%3E %3Cpath d='m15 9-6 6' /%3E %3Cpath d='m9 9 6 6' /%3E %3C/svg%3E"); }
-.i-clock { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Ccircle cx='12' cy='12' r='10' /%3E %3Cpolyline points='12 6 12 12 16 14' /%3E %3C/svg%3E"); }
 .i-cloud { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z' /%3E %3C/svg%3E"); }
 .i-code { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpolyline points='16 18 22 12 16 6' /%3E %3Cpolyline points='8 6 2 12 8 18' /%3E %3C/svg%3E"); }
 .i-coins { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Ccircle cx='8' cy='8' r='6' /%3E %3Cpath d='M18.09 10.37A6 6 0 1 1 10.34 18' /%3E %3Cpath d='M7 6h1v4' /%3E %3Cpath d='m16.71 13.88.7.71-2.82 2.82' /%3E %3C/svg%3E"); }
@@ -228,10 +227,8 @@ pre { font-size: 0.6em; }
 .i-file-text { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z' /%3E %3Cpath d='M14 2v4a2 2 0 0 0 2 2h4' /%3E %3Cpath d='M10 9H8' /%3E %3Cpath d='M16 13H8' /%3E %3Cpath d='M16 17H8' /%3E %3C/svg%3E"); }
 .i-flag { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z' /%3E %3Cline x1='4' x2='4' y1='22' y2='15' /%3E %3C/svg%3E"); }
 .i-folder { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z' /%3E %3C/svg%3E"); }
-.i-gauge { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='m12 14 4-4' /%3E %3Cpath d='M3.34 19a10 10 0 1 1 17.32 0' /%3E %3C/svg%3E"); }
 .i-git-branch { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cline x1='6' x2='6' y1='3' y2='15' /%3E %3Ccircle cx='18' cy='6' r='3' /%3E %3Ccircle cx='6' cy='18' r='3' /%3E %3Cpath d='M18 9a9 9 0 0 1-9 9' /%3E %3C/svg%3E"); }
 .i-git-pull-request { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Ccircle cx='18' cy='18' r='3' /%3E %3Ccircle cx='6' cy='6' r='3' /%3E %3Cpath d='M13 6h3a2 2 0 0 1 2 2v7' /%3E %3Cline x1='6' x2='6' y1='9' y2='21' /%3E %3C/svg%3E"); }
-.i-github { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4' /%3E %3Cpath d='M9 18c-4.51 2-5-2-7-2' /%3E %3C/svg%3E"); }
 .i-globe { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Ccircle cx='12' cy='12' r='10' /%3E %3Cpath d='M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20' /%3E %3Cpath d='M2 12h20' /%3E %3C/svg%3E"); }
 .i-graduation-cap { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z' /%3E %3Cpath d='M22 10v6' /%3E %3Cpath d='M6 12.5V16a6 3 0 0 0 12 0v-3.5' /%3E %3C/svg%3E"); }
 .i-hand { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2' /%3E %3Cpath d='M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2' /%3E %3Cpath d='M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8' /%3E %3Cpath d='M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15' /%3E %3C/svg%3E"); }
@@ -252,13 +249,11 @@ pre { font-size: 0.6em; }
 .i-pencil { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z' /%3E %3Cpath d='m15 5 4 4' /%3E %3C/svg%3E"); }
 .i-plug { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='M12 22v-5' /%3E %3Cpath d='M9 8V2' /%3E %3Cpath d='M15 8V2' /%3E %3Cpath d='M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z' /%3E %3C/svg%3E"); }
 .i-refresh-cw { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8' /%3E %3Cpath d='M21 3v5h-5' /%3E %3Cpath d='M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16' /%3E %3Cpath d='M8 16H3v5' /%3E %3C/svg%3E"); }
-.i-rotate-ccw { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8' /%3E %3Cpath d='M3 3v5h5' /%3E %3C/svg%3E"); }
 .i-scroll-text { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='M15 12h-5' /%3E %3Cpath d='M15 8h-5' /%3E %3Cpath d='M19 17V5a2 2 0 0 0-2-2H4' /%3E %3Cpath d='M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3' /%3E %3C/svg%3E"); }
 .i-search { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Ccircle cx='11' cy='11' r='8' /%3E %3Cpath d='m21 21-4.3-4.3' /%3E %3C/svg%3E"); }
 .i-send { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z' /%3E %3Cpath d='m21.854 2.147-10.94 10.939' /%3E %3C/svg%3E"); }
 .i-shield { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z' /%3E %3C/svg%3E"); }
 .i-shield-check { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z' /%3E %3Cpath d='m9 12 2 2 4-4' /%3E %3C/svg%3E"); }
-.i-shrink { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='m15 15 6 6m-6-6v4.8m0-4.8h4.8' /%3E %3Cpath d='M9 19.8V15m0 0H4.2M9 15l-6 6' /%3E %3Cpath d='M15 4.2V9m0 0h4.8M15 9l6-6' /%3E %3Cpath d='M9 4.2V9m0 0H4.2M9 9 3 3' /%3E %3C/svg%3E"); }
 .i-square-terminal { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpath d='m7 11 2-2-2-2' /%3E %3Cpath d='M11 13h4' /%3E %3Crect width='18' height='18' x='3' y='3' rx='2' ry='2' /%3E %3C/svg%3E"); }
 .i-sun { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Ccircle cx='12' cy='12' r='4' /%3E %3Cpath d='M12 2v2' /%3E %3Cpath d='M12 20v2' /%3E %3Cpath d='m4.93 4.93 1.41 1.41' /%3E %3Cpath d='m17.66 17.66 1.41 1.41' /%3E %3Cpath d='M2 12h2' /%3E %3Cpath d='M20 12h2' /%3E %3Cpath d='m6.34 17.66-1.41 1.41' /%3E %3Cpath d='m19.07 4.93-1.41 1.41' /%3E %3C/svg%3E"); }
 .i-terminal { --i: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' %3E %3Cpolyline points='4 17 10 11 4 5' /%3E %3Cline x1='12' x2='20' y1='19' y2='19' /%3E %3C/svg%3E"); }
@@ -285,7 +280,7 @@ pre { font-size: 0.6em; }
 <div class="cols cols-lc">
 <div>
 
-![w:640](figures/coscientist.png)
+![w:590](figures/coscientist.png)
 
 </div>
 <div class="readbox">
@@ -293,8 +288,8 @@ pre { font-size: 0.6em; }
 - **Coscientist** (CMU, *Nature*, 2023): "an artificial intelligence system driven by GPT-4 that autonomously designs, plans and performs complex experiments"
 
 * **The model:** GPT-4, a large language model (LLM): it reads text and writes text
-* **What it could ask for:** search the web, run Python, read the robot's manual, send a protocol to a liquid-handling robot
-* **Tested on six tasks**, for example: plan the synthesis of known compounds, control the robot, optimize a reaction from earlier data
+* **What it could ask for:** search the web, run Python, read the robot's manual, send a program to a robot that moves liquids
+* **Tested on six tasks**, for example: plan how to make known compounds, control the robot, improve a reaction from earlier data
 
 </div>
 </div>
@@ -302,7 +297,7 @@ pre { font-size: 0.6em; }
 <span class="source">[Boiko et al., Nature 624, 570 (2023)](https://www.nature.com/articles/s41586-023-06792-0), open access. CMU: Carnegie Mellon University. Figure redrawn from the paper's description</span>
 
 <!--
-Down the hall: Gabe Gomes' group, Chemical Engineering and Chemistry. Opentrons OT-2 liquid handler.
+Down the hall: Gabe Gomes' group, Chemical Engineering and Chemistry. The robot is an Opentrons OT-2 liquid handler.
 -->
 
 ---
@@ -310,17 +305,18 @@ Down the hall: Gabe Gomes' group, Chemical Engineering and Chemistry. Opentrons 
 ## An LLM ran a chemistry experiment, what happened
 
 <div class="chain">
-<div class="c-gray"><span class="ib c-gray"><i class="ic i-flag"></i></span><b>1. The goal</b>Run two classic reactions (Suzuki and Sonogashira couplings) with the chemicals on hand</div>
-<div class="c-blue" data-marpit-fragment><span class="ib"><i class="ic i-list-checks"></i></span><b>2. Plan</b>Chose the reagents, computed the amounts, wrote the robot's program</div>
-<div class="c-red" data-marpit-fragment><span class="ib"><i class="ic i-circle-x"></i></span><b>3. Error</b>Wrong command name for the heater-shaker, a module newer than GPT-4's training data</div>
-<div class="c-gold" data-marpit-fragment><span class="ib"><i class="ic i-book-open"></i></span><b>4. Look it up</b>Read the robot's documentation</div>
+<div class="c-gray"><span class="ib c-gray"><i class="ic i-flag"></i></span><b>1. The goal</b>Run two reactions that join two molecules into one, with the chemicals on hand</div>
+<div class="c-blue" data-marpit-fragment><span class="ib"><i class="ic i-list-checks"></i></span><b>2. Plan</b>Chose the chemicals, computed the amounts, wrote the robot's program</div>
+<div class="c-red" data-marpit-fragment><span class="ib"><i class="ic i-circle-x"></i></span><b>3. Error</b>The program failed: it called the robot's heater by a wrong command name</div>
+<div class="c-gold" data-marpit-fragment><span class="ib"><i class="ic i-book-open"></i></span><b>4. Look it up</b>Searched the robot's manual for the right name</div>
 <div class="c-blue" data-marpit-fragment><span class="ib"><i class="ic i-refresh-cw"></i></span><b>5. Fix and run</b>Corrected the program; this time it ran</div>
-<div class="c-green" data-marpit-fragment><span class="ib"><i class="ic i-microscope"></i></span><b>6. Check</b>GC-MS found both products</div>
+<div class="c-green" data-marpit-fragment><span class="ib"><i class="ic i-microscope"></i></span><b>6. Check</b>An instrument (GC-MS) found both products</div>
 </div>
 
 <div class="readbox bgreen" data-marpit-fragment>
 
-**GC-MS** (gas chromatography-mass spectrometry): an instrument that separates a mixture and identifies each compound in it. People moved the plates between instruments, but "no human decision-making was involved"
+- **Why the error:** the heater was released after GPT-4's training data was collected, so GPT-4 had never seen its commands
+- **GC-MS** (gas chromatography-mass spectrometry): an instrument that separates a mixture and identifies each compound in it. People moved the plates, but "no human decision-making was involved"
 
 </div>
 
@@ -396,7 +392,7 @@ An **LLM agent** is an LLM that calls tools in a loop. After each result it deci
 
 - Look at last week's data, then decide what to compute
 - Fix a failing test: read, edit, run, repeat
-- Slower and costlier; can take paths you did not plan
+- Slower and more expensive; can take paths you did not plan
 
 </div>
 </div>
@@ -416,16 +412,16 @@ An **LLM agent** is an LLM that calls tools in a loop. After each result it deci
 
 <div class="tl" style="--n:8">
 <div class="axis"></div>
-<div class="ev c-blue" style="--k:1"><div class="card"><span class="d">Oct 2022</span><b>ReAct</b>A paper: the model writes a reasoning step, then an action, then reads the result. The loop, on paper</div><div class="dot"></div></div>
+<div class="ev c-blue" style="--k:1"><div class="card"><span class="d">Oct 2022</span><b>ReAct (reason + act)</b>A paper: the model writes a thought, asks for an action, reads the result, and repeats. Today's loop, on paper</div><div class="dot"></div></div>
 <div class="ev down c-gold" style="--k:2" data-marpit-fragment><div class="card"><span class="d">Mar 2023</span><b>GPT-4</b>OpenAI's model; later the planner inside Coscientist</div><div class="dot"></div></div>
 <div class="ev c-gold" style="--k:3" data-marpit-fragment><div class="card"><span class="d">Mar 2023</span><b>Auto-GPT</b>Open-source program that chained GPT-4's "thoughts" toward any goal you typed</div><div class="dot"></div></div>
 <div class="ev down c-red" style="--k:4" data-marpit-fragment><div class="card"><span class="d">Apr 2023</span><b>Coscientist, ChemCrow</b>Two chemistry agents posted the same day. ChemCrow had 18 chemistry tools</div><div class="dot"></div></div>
 <div class="ev c-green" style="--k:5" data-marpit-fragment><div class="card"><span class="d">Jun 2023</span><b>Function calling</b>OpenAI's API: the model returns a tool name and arguments, in JSON, instead of prose</div><div class="dot"></div></div>
-<div class="ev down c-blue" style="--k:6" data-marpit-fragment><div class="card"><span class="d">Oct 2023</span><b>SWE-bench</b>2,294 real software issues; solved only if the project's tests pass</div><div class="dot"></div></div>
+<div class="ev down c-blue" style="--k:6" data-marpit-fragment><div class="card"><span class="d">Oct 2023</span><b>SWE-bench</b>A test for coding agents: 2,294 real bug reports from GitHub. A fix counts only if the project's tests pass</div><div class="dot"></div></div>
 <div class="ev c-red" style="--k:7" data-marpit-fragment><div class="card"><span class="d">Dec 2023</span><b>Coscientist in <i>Nature</i></b>GPT-4 plans and runs chemistry experiments with a lab robot</div><div class="dot"></div></div>
 </div>
 
-<span class="source">JSON (JavaScript Object Notation): a plain-text format for data. [ReAct](https://arxiv.org/abs/2210.03629) · [Auto-GPT](https://github.com/Significant-Gravitas/AutoGPT) · [ChemCrow](https://arxiv.org/abs/2304.05376) · [SWE-bench](https://arxiv.org/abs/2310.06770) · [Coscientist](https://www.nature.com/articles/s41586-023-06792-0)</span>
+<span class="source">JSON (JavaScript Object Notation): a plain-text format for data. SWE: software engineering. [ReAct](https://arxiv.org/abs/2210.03629) · [Auto-GPT](https://github.com/Significant-Gravitas/AutoGPT) · [ChemCrow](https://arxiv.org/abs/2304.05376) · [SWE-bench](https://arxiv.org/abs/2310.06770) · [Coscientist](https://www.nature.com/articles/s41586-023-06792-0)</span>
 
 ---
 
@@ -442,14 +438,15 @@ An **LLM agent** is an LLM that calls tools in a loop. After each result it deci
 <div class="ev c-gold" style="--k:5" data-marpit-fragment><div class="card"><span class="d">Feb 2025</span><b>Claude Code</b>Anthropic's coding agent, in your terminal</div><div class="dot"></div></div>
 <div class="ev down c-gold" style="--k:6" data-marpit-fragment><div class="card"><span class="d">Apr 2025</span><b>Codex CLI</b>OpenAI's open-source coding agent for the terminal</div><div class="dot"></div></div>
 <div class="ev c-green" style="--k:7" data-marpit-fragment><div class="card"><span class="d">Aug 2025</span><b>AGENTS.md</b>One instructions file that many coding agents read</div><div class="dot"></div></div>
-<div class="ev down c-green" style="--k:8" data-marpit-fragment><div class="card"><span class="d">Dec 2025</span><b>A foundation</b>MCP, AGENTS.md and goose given to a neutral body, under the Linux Foundation</div><div class="dot"></div></div>
-<div class="ev c-gold" style="--k:9" data-marpit-fragment><div class="card"><span class="d">Feb 2026</span><b>0 lines by hand</b>An OpenAI team ships a product written entirely by its coding agent</div><div class="dot"></div></div>
+<div class="ev down c-green" style="--k:8" data-marpit-fragment><div class="card"><span class="d">Dec 2025</span><b>Shared standards</b>Anthropic gives MCP, OpenAI gives AGENTS.md, to one nonprofit, so no single company controls them</div><div class="dot"></div></div>
+<div class="ev c-gold" style="--k:9" data-marpit-fragment><div class="card"><span class="d">Feb 2026</span><b>Written by an agent</b>An OpenAI team builds a product in 5 months; Codex writes all the code (<a href="https://openai.com/index/harness-engineering/">their report</a>)</div><div class="dot"></div></div>
 </div>
 
-<span class="source">CLI: command-line interface. [Devin](https://cognition.ai/blog/introducing-devin) · [SWE-agent](https://arxiv.org/abs/2405.15793) · [Computer use](https://www.anthropic.com/news/3-5-models-and-computer-use) · [MCP](https://www.anthropic.com/news/model-context-protocol) · [Claude Code](https://www.anthropic.com/news/claude-3-7-sonnet) · [Linux Foundation](https://www.linuxfoundation.org/press/linux-foundation-announces-the-formation-of-the-agentic-ai-foundation) · [OpenAI (2026)](https://openai.com/index/harness-engineering/)</span>
+<span class="source">CLI: command-line interface. [Devin](https://cognition.ai/blog/introducing-devin) · [SWE-agent](https://arxiv.org/abs/2405.15793) · [Computer use](https://www.anthropic.com/news/3-5-models-and-computer-use) · [MCP](https://www.anthropic.com/news/model-context-protocol) · [Claude Code](https://www.anthropic.com/news/claude-3-7-sonnet) · [Agentic AI Foundation, Linux Foundation](https://www.linuxfoundation.org/press/linux-foundation-announces-the-formation-of-the-agentic-ai-foundation) · [OpenAI, Harness engineering (2026)](https://openai.com/index/harness-engineering/)</span>
 
 <!--
-Research to products in about two years. The last card is the case study near the end of the coding section.
+Dec 2025: the Agentic AI Foundation, under the Linux Foundation; Block gave its goose agent too.
+Feb 2026: about 1 million lines and 1,500 pull requests, "0 lines of manually-written code". The engineers wrote instructions, docs and checks. "Humans steer. Agents execute."
 -->
 
 ---
@@ -466,16 +463,16 @@ Research to products in about two years. The last card is the case study near th
 
 <div class="small">
 
-- **A 5 kW solar array** whose **tilt**, the angle to the ground, can be changed. kWh (kilowatt-hour): a unit of energy
+- **A 5 kW solar array** on a roof. Its **tilt**, the angle to the ground, can be changed. Last week: 20°
 
-* In November the sun is low, so steeper panels face it better. Last week: 20°. The energy model: 50° is best
+* **The energy model** (right): a formula that predicts the energy per day at any tilt. Direct sun is best when the panels face the low November sun; sky light is best when they lie flat. The sum peaks at 50°
 
 </div>
 
 <div class="quote" data-marpit-fragment>Task: "Last week the solar panels made less energy than we hoped. Use the log and the energy model to choose a better tilt, and apply it."</div>
 
 <!--
-Energy model: direct sunlight best when the panels face the noon sun (56°), sky light best flat; 30% sky light.
+The energy model is a formula in the notebook, not a measurement: noon sun 34 degrees above the horizon in early November, so direct light is best at a tilt of 56 degrees; sky light is 30% of the total.
 -->
 
 ---
@@ -504,7 +501,7 @@ The energy model: kWh per day at each tilt
 
 The maintenance notes people type in
 
-**Untrusted text**
+**Anyone can write in it, so the agent must not take orders from it**
 
 </div>
 <div class="card c-red" data-marpit-fragment>
@@ -528,52 +525,17 @@ Moves the real panels. Someone could be on the roof
 
 ## The loop
 
-![w:930](figures/agent-loop.png)
-
-- **Read it left to right:** the LLM writes a request; your code checks it, runs the tool, and sends the result back. Around and around until the LLM answers
+<div class="frames">
+<img src="figures/agent-loop-1.png" style="width:1110px" alt="The LLM sends a request, predict_energy for tilts 0 to 60, to your code, the harness">
+<img src="figures/agent-loop-2.png" style="width:1110px" data-marpit-fragment alt="The harness checks the tool name and arguments, counts the steps, asks a person before a change, runs the tool and logs it">
+<img src="figures/agent-loop-3.png" style="width:1110px" data-marpit-fragment alt="The harness runs the tool, the energy model, and gets its output">
+<img src="figures/agent-loop-4.png" style="width:1110px" data-marpit-fragment alt="The result, best 50 degrees and 11.8 kWh per day, goes back to the LLM as a new message">
+<img src="figures/agent-loop.png" style="width:1110px" data-marpit-fragment alt="When the LLM writes an answer instead of a request, the loop ends">
+</div>
 
 <!--
-Same loop as Coscientist: Planner = LLM, the four commands = tools, the software that ran them = harness.
+Same loop as Coscientist: Planner = LLM, the four actions = tools, the software that ran them = harness. Steps 1 to 4 repeat until step 5.
 -->
-
----
-
-## The loop, in code
-
-<div class="cols cols-lc">
-<div>
-
-```python
-messages = [{"role": "user", "content": task}]
-for step in range(max_steps):
-    reply = model(messages)
-    messages.append({"role": "assistant",
-                     "content": reply})
-    if "answer" in reply:
-        break
-    result = run_tool(reply["tool"],
-                      reply["input"])
-    messages.append({"role": "tool",
-                     "content": result})
-```
-
-</div>
-<div class="readbox">
-
-- **`max_steps`:** the step budget. The loop always ends
-- **`model(messages)`:** the model reads **all** messages so far, every call
-- **`"answer"`:** the model decides it is done
-- **`run_tool`:** your code runs the tool; the checks go here
-- **The result** is appended, and the loop goes around
-
-</div>
-</div>
-
-<div class="readbox bgold" data-marpit-fragment>
-
-**The loop is ten lines; a real harness is not.** Codex, OpenAI's open-source coding agent, is 1.1 million lines of code. Almost all of it is everything around this loop (the coding agents section)
-
-</div>
 
 ---
 
@@ -621,7 +583,7 @@ The **harness** is all the software around the model: it builds the prompt, runs
 <div class="job l c-blue" style="grid-row:1"><span class="ib c-blue"><i class="ic i-file-text"></i></span><div><b>Builds the prompt</b>System prompt, 4 tool definitions, every message so far</div></div>
 <div class="job r c-gold" style="grid-row:1" data-marpit-fragment><span class="ib c-gold"><i class="ic i-wrench"></i></span><div><b>Runs the tools</b>query_log ran the SQL; predict_energy ran the model</div></div>
 <div class="job r c-green" style="grid-row:2" data-marpit-fragment><span class="ib c-green"><i class="ic i-shield-check"></i></span><div><b>Checks permissions</b>set_tilt waited for the operator's yes</div></div>
-<div class="job l c-purple" style="grid-row:2" data-marpit-fragment><span class="ib c-purple"><i class="ic i-layers"></i></span><div><b>Manages the context</b>What the model sees: the 5 calls re-sent 2,574 tokens in total</div></div>
+<div class="job l c-purple" style="grid-row:2" data-marpit-fragment><span class="ib c-purple"><i class="ic i-layers"></i></span><div><b>Manages the context</b>Decides what stays in the prompt when it grows too long</div></div>
 <div class="job r c-gray" style="grid-row:3" data-marpit-fragment><span class="ib c-gray"><i class="ic i-scroll-text"></i></span><div><b>Logs every step</b>What was asked, what ran, what came back</div></div>
 <div class="job l c-red" style="grid-row:3" data-marpit-fragment><span class="ib c-red"><i class="ic i-octagon-x"></i></span><div><b>Ends the run</b>An answer after 5 calls; the budget was 6</div></div>
 </div>
@@ -630,45 +592,29 @@ The **harness** is all the software around the model: it builds the prompt, runs
 
 ---
 
-## The harness, why it matters: the test
+## The harness, same model, different harness
 
-<div class="readbox">
+- **The question:** keep the model the same and change only the harness. Does the agent fix more bugs?
 
-**SWE-bench** (software engineering benchmark): 2,294 real problems reported on GitHub, from 12 popular Python projects. **SWE-bench Lite:** 300 of them, each fixed by a small change
+<div class="readbox" data-marpit-fragment>
+
+**The test, SWE-bench Lite:** 300 real bug reports from GitHub projects. The agent gets the code and the report, and edits the code. A bug counts as fixed only if the project's own tests then pass
 
 </div>
-
-<div class="chain">
-<div class="c-gray"><span class="ib c-gray"><i class="ic i-github"></i></span><b>1. A real issue</b>The project's code, and the bug report as people wrote it</div>
-<div class="c-red" data-marpit-fragment><span class="ib c-red"><i class="ic i-bot"></i></span><b>2. The agent works</b>Reads files, searches, edits the code</div>
-<div class="c-blue" data-marpit-fragment><span class="ib c-blue"><i class="ic i-test-tube"></i></span><b>3. Hidden tests run</b>The tests that the project's own fix made pass</div>
-<div class="c-green" data-marpit-fragment><span class="ib c-green"><i class="ic i-circle-check"></i></span><b>4. Solved or not</b>Solved only if those tests now pass</div>
-</div>
-
-<p class="takeaway" data-marpit-fragment>The score is the share of issues solved. The tests decide, not a person</p>
-
-<span class="source">[Jimenez et al., SWE-bench (ICLR 2024)](https://arxiv.org/abs/2310.06770) · [SWE-bench Lite](https://www.swebench.com/lite.html)</span>
-
----
-
-## The harness, why it matters: the result
-
-- SWE-agent, on SWE-bench Lite: **the same model, GPT-4 Turbo, every time.** Only the harness changes
 
 <div class="hbars">
-<div class="hb" data-marpit-fragment><span>No loop: retrieve files, write one fix</span><div class="bar c-gray" style="--v:2.7">2.7%</div></div>
-<div class="hb" data-marpit-fragment><span>In a loop, with a plain Linux shell</span><div class="bar c-gold" style="--v:11">11.0%</div></div>
-<div class="hb" data-marpit-fragment><span>In a loop, with tools designed for an LLM: a file viewer, a search, an edit command</span><div class="bar c-green" style="--v:18">18.0%</div></div>
+<div class="hb" data-marpit-fragment><span>No loop: find the files, one try at a fix (8 of 300)</span><div class="bar c-gray" style="--v:2.7">2.7%</div></div>
+<div class="hb" data-marpit-fragment><span>A loop, with a plain Linux shell (33 of 300)</span><div class="bar c-gold" style="--v:11">11.0%</div></div>
+<div class="hb" data-marpit-fragment><span>A loop, with tools built for an LLM: a file viewer, a search, an edit command (54 of 300)</span><div class="bar c-green" style="--v:18">18.0%</div></div>
 </div>
 
-<div class="small" data-marpit-fragment>
+<p class="takeaway" data-marpit-fragment>Same model, GPT-4 Turbo, every time: from 8 bugs fixed to 54. Only the harness changed</p>
 
-- Anthropic, building its own agent for SWE-bench: "we actually spent more time optimizing our tools than the overall prompt"
-- **When an agent fails, look at the harness first:** what did it read, which tools did it have, what came back?
+<span class="source">The share of the 300 bugs fixed. [Yang et al., SWE-agent (NeurIPS 2024)](https://arxiv.org/abs/2405.15793), Table 1 · [Jimenez et al., SWE-bench (ICLR 2024)](https://arxiv.org/abs/2310.06770) · [SWE-bench Lite](https://www.swebench.com/lite.html)</span>
 
-</div>
-
-<span class="source">[Yang et al., SWE-agent (NeurIPS 2024)](https://arxiv.org/abs/2405.15793), Table 1 · [Anthropic, Building effective agents](https://www.anthropic.com/research/building-effective-agents)</span>
+<!--
+When an agent fails, look at the harness first: what did it read, which tools did it have, what came back? Anthropic: "we actually spent more time optimizing our tools than the overall prompt".
+-->
 
 ---
 
@@ -678,43 +624,21 @@ The **harness** is all the software around the model: it builds the prompt, runs
 
 ---
 
-## Prompt caching, every call re-reads everything
+## Prompt caching
 
-<div class="cols cols-lc">
-<div>
-
-![w:600](figures/tokens.png)
-
-</div>
-<div class="readbox">
-
-- **What we did:** counted the tokens of each message in the run, with tiktoken (Lecture 17)
-- **Blue:** system prompt and tool definitions, **331 tokens**, sent with every call
-- **Gold:** the conversation so far, about **81 more tokens per call**
-- An LLM keeps no memory between calls: each call sends everything again
-
-</div>
-</div>
-
-<p class="takeaway" data-marpit-fragment>Each call re-sends the call before it, plus a little. A coding agent makes dozens of calls, each many thousands of tokens long</p>
-
----
-
-## Prompt caching, how it works
-
-<div class="definition">
-
-**Prompt caching:** the provider keeps the processed start of a prompt for a few minutes. When the next prompt starts with exactly the same text, that part is read from the cache, at about a tenth of the price.
-
-</div>
+- **An LLM keeps no memory between calls.** Each call sends the whole conversation again, plus the new part at the end
 
 <div class="crows">
-<div class="crow c-gold"><span class="lab">Call 1</span><div class="blocks"><div class="blk w" style="flex:4">System prompt + tools</div><div class="blk w" style="flex:1.3">Task</div></div><span class="note"><i class="ic i-hourglass"></i>all new: processed, kept for next time</span></div>
-<div class="crow c-green" data-marpit-fragment><span class="lab">Call 2</span><div class="blocks"><div class="blk r" style="flex:4">System prompt + tools</div><div class="blk r" style="flex:1.3">Task</div><div class="blk w" style="flex:1.5">Request 1</div><div class="blk w" style="flex:1.7">Result 1</div></div><span class="note"><i class="ic i-circle-check"></i>start matches call 1: green read from the cache; only gold is new</span></div>
-<div class="crow c-red" data-marpit-fragment><span class="lab">Call 2, with the time at the start</span><div class="blocks"><div class="blk x" style="flex:4">10:02 + system prompt + tools</div><div class="blk w" style="flex:1.3">Task</div><div class="blk w" style="flex:1.5">Request 1</div><div class="blk w" style="flex:1.7">Result 1</div></div><span class="note"><i class="ic i-circle-x"></i>the first characters changed: nothing matches, all paid again</span></div>
+<div class="crow c-gold"><span class="lab">Call 1</span><div class="blocks"><div class="blk w" style="flex:3.6">System prompt + tools</div><div class="blk w" style="flex:1.2">Task</div><div style="flex:5.6"></div></div><span class="note"><i class="ic i-hourglass"></i>all new</span></div>
+<div class="crow c-green" data-marpit-fragment><span class="lab">Call 2</span><div class="blocks"><div class="blk r" style="flex:3.6">System prompt + tools</div><div class="blk r" style="flex:1.2">Task</div><div class="blk w" style="flex:1.4">Request 1</div><div class="blk w" style="flex:1.4">Result 1</div><div style="flex:2.8"></div></div><span class="note"><i class="ic i-circle-check"></i>the start was sent before</span></div>
+<div class="crow c-green" data-marpit-fragment><span class="lab">Call 3</span><div class="blocks"><div class="blk r" style="flex:3.6">System prompt + tools</div><div class="blk r" style="flex:1.2">Task</div><div class="blk r" style="flex:1.4">Request 1</div><div class="blk r" style="flex:1.4">Result 1</div><div class="blk w" style="flex:1.4">Request 2</div><div class="blk w" style="flex:1.4">Result 2</div></div><span class="note"><i class="ic i-circle-check"></i>only the end is new</span></div>
 </div>
 
-<p class="takeaway" data-marpit-fragment>Keep the start of the prompt the same, and add new things at the end. An agent's prompt does this by itself</p>
+<div class="definition" data-marpit-fragment>
+
+**Prompt caching:** the provider keeps the start of a prompt it has already processed. When the next call starts with the same text, that part (green) costs about a tenth of the price.
+
+</div>
 
 <span class="source">"The old prompt is an exact prefix of the new prompt": [OpenAI, Unrolling the Codex agent loop (2026)](https://openai.com/index/unrolling-the-codex-agent-loop/) · [Anthropic, prompt caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)</span>
 
@@ -726,33 +650,44 @@ Prices: Anthropic read 0.1x, write 1.25x the input price, 5-minute lifetime refr
 
 ## Prompt caching, our run
 
-<div class="frames">
-<img src="figures/caching-1.png" style="width:1050px" alt="Input tokens of the five calls, all at full price">
-<img src="figures/caching-2.png" style="width:1050px" data-marpit-fragment alt="The same calls, split into the part read from the cache and the new part">
-<img src="figures/caching.png" style="width:1050px" data-marpit-fragment alt="The same run extended to 30 calls, with and without a cache">
+![w:860](figures/caching-run.png)
+
+<div class="small">
+
+- **Red:** every call pays full price for the whole conversation. **Green:** the part sent before is read from the cache
+
 </div>
 
-<p class="takeaway" data-marpit-fragment>With a cache, our run costs 39% as much; a 30-call run, 17%. The longer the run, the more of each call was sent before</p>
+<p class="takeaway" data-marpit-fragment>The longer the run, the bigger the saving: 39% of the cost for our 5 calls, 17% for 30</p>
 
 <!--
-Priced with Anthropic's multipliers: write 1.25, read 0.1. Right panel: 331-token prefix, 81 new tokens per call.
+Priced with Anthropic's multipliers: write 1.25, read 0.1. Prefix 331 tokens, about 81 new tokens per call, counted with tiktoken.
 -->
 
 ---
 
-## Prompt caching, why agent builders care
+## Prompt caching, the rule
 
-<div class="quote">"the KV-cache hit rate is the single most important metric for a production-stage AI agent" (Manus, an agent company)</div>
+<div class="quote">"At Claude Code, we build our entire harness around prompt caching" (Thariq Shihipar, Claude Code team)</div>
 
-<div class="quote" data-marpit-fragment style="margin-top:0.4em">"At Claude Code, we build our entire harness around prompt caching" (Thariq Shihipar, Claude Code team)</div>
+<div class="cards two" data-marpit-fragment style="margin-top:0.7em">
+<div class="card c-green"><h4><span class="ib sm"><i class="ic i-circle-check"></i></span>Keeps the cache</h4>
 
-<div class="cards" data-marpit-fragment style="margin-top:0.6em">
-<div class="card c-blue"><h4><span class="ib sm"><i class="ic i-clock"></i></span>Stable start</h4>No clock, no changing tool list at the front of the prompt</div>
-<div class="card c-green"><h4><span class="ib sm"><i class="ic i-history"></i></span>Append only</h4>Never edit earlier messages; add new ones at the end</div>
-<div class="card c-gold"><h4><span class="ib sm"><i class="ic i-gauge"></i></span>Check it</h4>Each response reports the tokens read from the cache</div>
+- The same system prompt and tools on every call
+- New messages added at the end
+
+</div>
+<div class="card c-red"><h4><span class="ib sm"><i class="ic i-circle-x"></i></span>Breaks the cache</h4>
+
+- Anything that changes the start, such as the current time written into the system prompt
+- Editing an earlier message
+
+</div>
 </div>
 
-<span class="source">KV (key-value) cache: the processed form of the prompt that the provider keeps. [Manus (2025)](https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus) · [Shihipar, quoted by Willison (2026)](https://simonwillison.net/2026/Feb/20/thariq-shihipar/) · [How Claude Code uses prompt caching](https://code.claude.com/docs/en/prompt-caching)</span>
+<p class="takeaway" data-marpit-fragment>Keep the start of the prompt the same; add new text only at the end</p>
+
+<span class="source">[Shihipar, quoted by Willison (2026)](https://simonwillison.net/2026/Feb/20/thariq-shihipar/) · [How Claude Code uses prompt caching](https://code.claude.com/docs/en/prompt-caching) · [Manus (2025)](https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus)</span>
 
 ---
 
@@ -762,34 +697,32 @@ Priced with Anthropic's multipliers: write 1.25, read 0.1. Right panel: 331-toke
 
 ---
 
-## Tools, the interface the model sees
+## Tools, what the model sees
 
-<div class="definition">
+- **The model never sees your code.** It knows a tool only by its name, its description, and the text it sends back
 
-The **agent-computer interface** (ACI) is the set of tools an agent can call, and the way their results come back.
+<div class="cols cols-even cols-top">
+<div>
 
-</div>
+<p class="small"><b>1. Before the call: the description</b></p>
 
-<div class="cols cols-even">
-<div class="readbox bred">
-
-**Vague:** <span class="mono">"predict_energy": "Predicts energy."</span> Which units? Which range? What comes back when it fails?
-
-</div>
-<div class="readbox bgreen" data-marpit-fragment>
-
-**Clear:** <span class="mono">"Predicted energy of the array (kWh per day) at each tilt ... Valid for the mount's range, 0 to 60 degrees; returns an error outside it."</span>
+<div class="readbox bred"><b>Vague:</b> <span class="mono">"Predicts energy."</span> Which units? Which tilts? What if it fails?</div>
+<div class="readbox bgreen"><b>Clear:</b> <span class="mono">"Predicted energy of the array (kWh per day) at each tilt ... Valid for the mount's range, 0 to 60 degrees; returns an error outside it."</span></div>
 
 </div>
+<div data-marpit-fragment>
+
+<p class="small"><b>2. After a bad call: the error</b></p>
+
+<div class="readbox bred"><b>A crash:</b> <span class="mono">ValueError: tilt out of range</span> stops the loop, and the run is over</div>
+<div class="readbox bgreen"><b>A message:</b> <span class="mono">"Outside the mount's range (0 to 60 degrees): [75, 90]. Nothing was predicted."</span> In our run, call 3 fixed it</div>
+
+</div>
 </div>
 
-<div class="cards" data-marpit-fragment style="margin-top:0.5em">
-<div class="card c-blue"><h4><span class="ib sm"><i class="ic i-file-text"></i></span>A clear description</h4>The model decides from it alone. A wrong argument usually means a vague description</div>
-<div class="card c-red"><h4><span class="ib sm"><i class="ic i-circle-x"></i></span>Errors as text</h4>An exception stops the loop. An error message lets the model fix its call, as in call 2</div>
-<div class="card c-gold"><h4><span class="ib sm"><i class="ic i-shrink"></i></span>Short results</h4>A summary from SQL, not 168 rows: every row is re-sent on every later call</div>
-</div>
+<p class="takeaway" data-marpit-fragment>Write every description and every error for a reader who sees only text</p>
 
-<span class="source">[Yang et al., SWE-agent (2024)](https://arxiv.org/abs/2405.15793) · [Anthropic, Writing effective tools for agents (2025)](https://www.anthropic.com/research/writing-tools-for-agents)</span>
+<span class="source">The tools and the way their results come back are the agent-computer interface (ACI). [Yang et al., SWE-agent (2024)](https://arxiv.org/abs/2405.15793) · [Anthropic, Writing effective tools for agents (2025)](https://www.anthropic.com/research/writing-tools-for-agents)</span>
 
 ---
 
@@ -867,23 +800,22 @@ The **agent-computer interface** (ACI) is the set of tools an agent can call, an
 
 ---
 
-## Guardrails, an instruction is not a control
+## Guardrails, a case study: a deleted database
 
-<div class="chain tight">
-<div class="c-gray"><span class="ib c-gray"><i class="ic i-laptop"></i></span><b>July 2025</b>Jason Lemkin, founder of SaaStr, builds an app by chatting with Replit's coding agent, nine days in</div>
-<div class="c-gold" data-marpit-fragment><span class="ib c-gold"><i class="ic i-ban"></i></span><b>A code freeze</b>He told it, in capitals, to make no more changes without his permission</div>
-<div class="c-red" data-marpit-fragment><span class="ib c-red"><i class="ic i-trash-2"></i></span><b>Deleted</b>It ran a database command anyway and wiped production: 1,206 executives, 1,196+ companies</div>
-<div class="c-red" data-marpit-fragment><span class="ib c-red"><i class="ic i-message-square"></i></span><b>Wrong report</b>"I made a catastrophic error in judgment". It also said a rollback was impossible</div>
-<div class="c-green" data-marpit-fragment><span class="ib c-green"><i class="ic i-rotate-ccw"></i></span><b>Recovered</b>The rollback worked</div>
-<div class="c-blue" data-marpit-fragment><span class="ib c-blue"><i class="ic i-shield-check"></i></span><b>Replit's fix, in code</b>Separate development and production databases; a planning-only mode</div>
+<div class="chain">
+<div class="c-gray"><span class="ib c-gray"><i class="ic i-laptop"></i></span><b>July 2025</b>Jason Lemkin, a startup founder, builds an app by chatting with Replit's coding agent</div>
+<div class="c-gold" data-marpit-fragment><span class="ib c-gold"><i class="ic i-ban"></i></span><b>"Change nothing"</b>He tells it, in capitals, to make no more changes without his permission</div>
+<div class="c-red" data-marpit-fragment><span class="ib c-red"><i class="ic i-trash-2"></i></span><b>Deleted</b>It runs a command that wipes the app's live database: records on 1,206 executives</div>
+<div class="c-red" data-marpit-fragment><span class="ib c-red"><i class="ic i-message-square"></i></span><b>Wrong report</b>It says the data cannot be restored. It could: the rollback worked</div>
+<div class="c-blue" data-marpit-fragment><span class="ib c-blue"><i class="ic i-shield-check"></i></span><b>Replit's fix</b>The agent now changes a separate development database; the live one changes only when you approve</div>
 </div>
 
-<p class="takeaway" data-marpit-fragment>A sentence in the prompt is text the model may ignore. Limits go in permissions, and you check the system itself, not the agent's report</p>
+<p class="takeaway" data-marpit-fragment>An instruction is text the model can ignore. A limit built into the system holds. Check the system itself, not the agent's report</p>
 
-<span class="source">[The Register, 21 July 2025](https://www.theregister.com/2025/07/21/replit_saastr_vibe_coding_incident/) · [Lemkin's post, with the agent's reply (2025)](https://x.com/jasonlk/status/1946069562723897802) · [SaaStr (2025)](https://www.saastr.com/replits-new-release-address-most-of-the-challenges-we-hit-vibe-coding-but-is-prosumer-vibe-coding-really-ready-for-commercial-apps-yet/) · [Replit (2025)](https://replit.com/blog/introducing-a-safer-way-to-vibe-code-with-replit-databases) · [Fortune (2025)](https://fortune.com/2025/07/23/ai-coding-tool-replit-wiped-database-called-it-a-catastrophic-failure/)</span>
+<span class="source">[The Register, 21 July 2025](https://www.theregister.com/2025/07/21/replit_saastr_vibe_coding_incident/) · [Lemkin's post, with the agent's reply (2025)](https://x.com/jasonlk/status/1946069562723897802) · [Replit (2025)](https://replit.com/blog/introducing-a-safer-way-to-vibe-code-with-replit-databases) · [Fortune (2025)](https://fortune.com/2025/07/23/ai-coding-tool-replit-wiped-database-called-it-a-catastrophic-failure/)</span>
 
 <!--
-The command was npm run db:push. Production database: the one the live app uses. Replit's CEO announced the dev/prod split and the planning mode two days later.
+Lemkin founded SaaStr. The command was npm run db:push. "This destroyed 1,206 executives and 1,196+ companies", in the agent's words. Replit's fix: development and production databases kept apart, plus a planning-only mode.
 -->
 
 ---
@@ -911,11 +843,11 @@ A **coding agent** is an LLM agent whose tools read, search, edit and run the co
 
 <div class="small" data-marpit-fragment>
 
-- **Stack Overflow survey, 2025:** 84% of developers use or plan to use AI tools; more distrust the accuracy of the output (46%) than trust it (33%)
+- **Stack Overflow survey, 2026:** 73% of respondents use coding assistants and agents daily. 48% trust AI "when they can easily validate the answers"
 
 </div>
 
-<span class="source">[Claude Code](https://code.claude.com/docs) · [Codex](https://developers.openai.com/codex) · [opencode](https://opencode.ai/docs/) · [Stack Overflow Developer Survey 2025](https://survey.stackoverflow.co/2025/ai)</span>
+<span class="source">[Claude Code](https://code.claude.com/docs) · [Codex](https://developers.openai.com/codex) · [opencode](https://opencode.ai/docs/) · [Stack Overflow Developer Survey 2026](https://survey.stackoverflow.co/2026/ai)</span>
 
 ---
 
@@ -966,20 +898,22 @@ A **coding agent** is an LLM agent whose tools read, search, edit and run the co
 
 ## Coding agents, the model is a small box
 
-![w:960](figures/small-box.png)
+![w:870](figures/small-box.png)
 
 <div class="small">
 
-- **Lecture 1:** in a production ML (machine learning) system, the ML code is a small part of the code
-
-* **Same for agents:** in Codex, the code that talks to the model is 2% of 1.1 million lines. The terminal interface alone is 29%
+- **Lecture 1:** in a production ML (machine learning) system, the ML code is a small part of the code. **Same for agents:** in Codex, the code that talks to the model is about 2% of 1.1 million lines
 
 </div>
 
-<p class="takeaway" data-marpit-fragment>Most of the engineering of an agent is the harness, and that is the part you configure</p>
+<div class="readbox" data-marpit-fragment>
+
+**How we know:** we counted the lines of Rust in Codex's open-source code (118 packages, tests left out) and sorted the packages by job ourselves. Another sorting moves the numbers a little, so read them as approximate: 2 to 3% talks to the model
+
+</div>
 
 <!--
-Counted 2026-11-03, openai/codex main, Rust files, tests excluded; crates grouped by job in make_figures.py.
+Counted 2026-11-03, openai/codex at a pinned commit; the grouping is in make_figures.py. The model-calling files inside the core package add about 0.3%.
 -->
 
 ---
@@ -1015,11 +949,11 @@ Setup: uv sync, then uv run for everything</div><div class="why"><span class="ib
 
 - **Context rot:** "as the number of tokens in the context window increases, the model's ability to accurately recall information from that context decreases"
 
-* **Compaction** summarizes the old messages. **`/clear`** starts over. A **subagent** reads in its own window and returns 1,000 to 2,000 tokens
+* **Three ways to keep it small:** compaction summarizes the old messages; a new session starts empty; a subagent explores in its own window and returns a summary, "often 1,000-2,000 tokens"
 
 </div>
 
-<span class="source">[Anthropic, Effective context engineering (2025)](https://www.anthropic.com/research/effective-context-engineering-for-ai-agents) · [subagents](https://code.claude.com/docs/en/sub-agents)</span>
+<span class="source">[Anthropic, Effective context engineering (2025)](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents), for both quotes · [Claude Code, subagents](https://code.claude.com/docs/en/sub-agents)</span>
 
 ---
 
@@ -1030,7 +964,8 @@ Setup: uv sync, then uv run for everything</div><div class="why"><span class="ib
 <h4>Text the model reads: it may ignore it</h4>
 
 - AGENTS.md, CLAUDE.md, the system prompt
-- Lemkin's code freeze: Replit's agent ignored it
+- Claude Code's docs: "context, not enforced configuration"
+- "data/ is read-only" in AGENTS.md: a request, not a lock
 
 </div>
 <div class="code" data-marpit-fragment>
@@ -1049,69 +984,37 @@ Setup: uv sync, then uv run for everything</div><div class="why"><span class="ib
 <div class="card c-red"><h4><span class="ib sm"><i class="ic i-triangle-alert"></i></span>danger-full-access</h4>No sandbox: every file, the network</div>
 </div>
 
-<span class="source">The three sandbox modes of Codex. [Claude Code: permissions](https://code.claude.com/docs/en/permissions), [hooks](https://code.claude.com/docs/en/hooks-guide) · [Codex sandboxing](https://developers.openai.com/codex/concepts/sandboxing) · [Codex approvals and security](https://developers.openai.com/codex/agent-approvals-security)</span>
-
----
-
-## Coding agents, when the attacker drives
-
-<div class="readbox">
-
-**npm:** the package registry for JavaScript, like PyPI for Python. **Nx:** a JavaScript build tool, about 6 million installs a week
-
-</div>
-
-<div class="chain tight">
-<div class="c-red" data-marpit-fragment><span class="ib c-red"><i class="ic i-git-pull-request"></i></span><b>1. A stolen key</b>Shell commands hidden in a pull request's title ran in Nx's automated checks and leaked its key to publish on npm</div>
-<div class="c-red" data-marpit-fragment><span class="ib c-red"><i class="ic i-package"></i></span><b>2. Bad versions</b>Attackers published malicious Nx versions, live for about 4 hours, August 2025</div>
-<div class="c-gold" data-marpit-fragment><span class="ib c-gold"><i class="ic i-download"></i></span><b>3. Install</b>Installing one ran a hidden script on your machine</div>
-<div class="c-gold" data-marpit-fragment><span class="ib c-gold"><i class="ic i-bot"></i></span><b>4. Your agents, checks off</b><span class="mono">--dangerously-skip-permissions</span>, <span class="mono">--yolo</span>, <span class="mono">--trust-all-tools</span>: "find the keys, tokens and wallets"</div>
-<div class="c-red" data-marpit-fragment><span class="ib c-red"><i class="ic i-upload"></i></span><b>5. Published</b>What they found went to a public GitHub repository</div>
-</div>
-
-<p class="takeaway" data-marpit-fragment>The lethal trifecta in one install. Keep secrets out of the agent's reach; run "skip all checks" modes only in a container</p>
-
-<span class="source">[Nx postmortem (2025)](https://nx.dev/blog/s1ngularity-postmortem) · [Snyk (2025)](https://snyk.io/blog/weaponizing-ai-coding-agents-for-malware-in-the-nx-malicious-package/)</span>
+<span class="source">The three sandbox modes of Codex. [Claude Code: memory](https://code.claude.com/docs/en/memory), [permissions](https://code.claude.com/docs/en/permissions), [hooks](https://code.claude.com/docs/en/hooks-guide) · [Codex sandboxing](https://developers.openai.com/codex/concepts/sandboxing) · [Codex approvals and security](https://developers.openai.com/codex/agent-approvals-security)</span>
 
 <!--
-Flags: Claude Code, Gemini CLI, Amazon Q. The prompt listed SSH keys, .env files, npm and GitHub tokens, crypto wallets. It also added a shutdown command to .bashrc and .zshrc.
+Same idea as query_log in our example: the connection is opened read-only, so DuckDB refuses a DELETE whatever the model asks.
 -->
 
 ---
 
-## Coding agents, harness engineering at OpenAI
+## Coding agents, a case study: the Nx attack
 
-<div class="kpis four">
-<div class="kpi red"><div class="v">0</div><div class="l">lines of code written by hand</div></div>
-<div class="kpi gold"><div class="v">≈ 1,500</div><div class="l">pull requests merged in 5 months</div></div>
-<div class="kpi blue"><div class="v">3</div><div class="l">engineers at the start</div></div>
-<div class="kpi green"><div class="v">≈ 1 million</div><div class="l">lines of code</div></div>
-</div>
+<div class="readbox">
 
-<div class="cards" data-marpit-fragment>
-<div class="card c-red">
-<h4>A map</h4>
-
-AGENTS.md is a table of contents, about 100 lines
+**Nx:** a popular JavaScript build tool, about 6 million installs a week, published on **npm** (the package registry for JavaScript, like PyPI for Python)
 
 </div>
-<div class="card c-blue">
-<h4>Docs in the repo</h4>
 
-"anything it can't access in-context ... effectively doesn't exist"
-
-</div>
-<div class="card c-gold">
-<h4>Rules as checks</h4>
-
-Custom linters whose error messages tell the agent how to fix it
-
-</div>
+<div class="chain tight">
+<div class="c-red" data-marpit-fragment><span class="ib c-red"><i class="ic i-key-round"></i></span><b>1. A stolen key</b>Attackers stole the key that publishes Nx, through a flaw in its automated checks</div>
+<div class="c-red" data-marpit-fragment><span class="ib c-red"><i class="ic i-package"></i></span><b>2. Fake versions</b>They published Nx versions with a hidden program, live for about 4 hours, August 2025</div>
+<div class="c-gold" data-marpit-fragment><span class="ib c-gold"><i class="ic i-download"></i></span><b>3. You install Nx</b>The hidden program runs on your machine</div>
+<div class="c-gold" data-marpit-fragment><span class="ib c-gold"><i class="ic i-bot"></i></span><b>4. It runs your agent</b>Claude Code, Gemini CLI or Amazon Q, with every check off, told to search the disk for keys and crypto wallets</div>
+<div class="c-red" data-marpit-fragment><span class="ib c-red"><i class="ic i-upload"></i></span><b>5. Published</b>What the agent found went to a public GitHub repository</div>
 </div>
 
-<p class="takeaway" data-marpit-fragment>"Humans steer. Agents execute."</p>
+<p class="takeaway" data-marpit-fragment>The attacker used the developer's own agent to search the machine. Keep secrets out of its reach; turn the checks off only inside a container</p>
 
-<span class="source">A pull request: a proposed change, reviewed before it merges. A linter: a program that checks code style and rules. [OpenAI, Harness engineering (February 2026)](https://openai.com/index/harness-engineering/)</span>
+<span class="source">[Nx postmortem (2025)](https://nx.dev/blog/s1ngularity-postmortem) · [Snyk (2025)](https://snyk.io/blog/weaponizing-ai-coding-agents-for-malware-in-the-nx-malicious-package/)</span>
+
+<!--
+The flags: --dangerously-skip-permissions (Claude Code), --yolo (Gemini CLI), --trust-all-tools (Amazon Q). The lethal trifecta in one install: your files, the attacker's prompt, a way out through the GitHub command line.
+-->
 
 ---
 
@@ -1132,25 +1035,15 @@ Custom linters whose error messages tell the agent how to fix it
 
 <div class="small" data-marpit-fragment>
 
-- **A failed check goes back to Claude Code**, not to the site. 288 of the 337 commits list Claude as co-author; an instructor merged every one
+- **A failed check goes back to Claude Code**, not to the site. Claude Code wrote most of the material; an instructor checked and merged every change
 
 </div>
+
+<span class="source">A pull request: a proposed change, reviewed before it merges</span>
 
 <!--
-Reversed second row reads right to left, so the arrows still follow the flow. Counted 2026-11-03.
+Reversed second row reads right to left, so the arrows still follow the flow.
 -->
-
----
-
-## Coding agents, how this course was built: the history
-
-![w:860](figures/course-history.png)
-
-<div class="small">
-
-- **Each arc is one pull request,** from its first commit to its merge into main. Above: lectures and course pages. Below: the game, the clicker, the checks
-
-</div>
 
 ---
 
@@ -1173,7 +1066,7 @@ Reversed second row reads right to left, so the arrows still follow the flow. Co
 
 - Anthropic's recommended workflow: "Explore, plan, code, commit". Mistakes are cheapest at step 2
 
-* **Correct early:** "after two failed corrections run `/clear` and write a better prompt instead of a third"
+* **Correct early:** after two failed corrections, start a fresh session and rethink the problem, instead of a third correction
 
 </div>
 
@@ -1189,35 +1082,36 @@ A **test** is a small function that runs your code on a case where you know the 
 
 </div>
 
+- **The example:** <span class="mono">c_to_f</span> converts Celsius to Fahrenheit, F = C × 9/5 + 32; water boils at 100 °C = 212 °F
+
 <div class="cols cols-even cols-top">
 <div>
 
 ```python
+# src/units.py: the agent's first try
+def c_to_f(c):
+    return c * 9 / 5          # forgot + 32
 # tests/test_units.py
-from units import c_to_f
-
 def test_boiling_point():
-    assert c_to_f(100) == 212   # water boils
+    assert c_to_f(100) == 212
 ```
 
 </div>
 <div class="term" data-marpit-fragment>$ uv run pytest
 <span class="r">FAILED tests/test_units.py::test_boiling_point</span>
 <span class="r">  assert 180.0 == 212</span>
-<span class="c"># the agent reads the error: it forgot "+ 32"</span>
-<span class="c"># it fixes src/units.py and runs the tests again</span>
+<span class="c"># the agent reads this and adds the + 32</span>
 $ uv run pytest
 <span class="g">1 passed in 0.01s</span></div>
 </div>
 
-<div class="small" data-marpit-fragment>
+<p class="takeaway" data-marpit-fragment>The test, not the agent's own judgment, says when the work is done: the verify step of the loop</p>
 
-- "Give Claude something it can run that comes back **pass or fail**" (Claude Code best practices)
-- Willison: the value of coding agents "is massively amplified by a good, cleanly passing test suite"
+<span class="source">[Claude Code best practices](https://code.claude.com/docs/en/best-practices) · [pytest](https://docs.pytest.org/)</span>
 
-</div>
-
-<span class="source">[Claude Code best practices](https://code.claude.com/docs/en/best-practices) · [Willison, Designing agentic loops (2025)](https://simonwillison.net/2025/Sep/30/designing-agentic-loops/) · [pytest](https://docs.pytest.org/)</span>
+<!--
+Claude Code best practices: "Give Claude something it can run that comes back pass or fail".
+-->
 
 ---
 
@@ -1245,7 +1139,7 @@ $ uv run pytest
 <div class="card c-red">
 <h4><span class="ib sm"><i class="ic i-eye"></i></span>Check every change</h4>
 
-Read the diff, run the tests yourself, look at the result: the plot, the table, the page. You are the author of what you commit
+Check the test results and the final products: the plot, the table, the page. You can only catch a wrong answer in a subject you understand, so the fundamentals of your field matter more now
 
 </div>
 <div class="card c-gold" data-marpit-fragment>
@@ -1257,7 +1151,7 @@ No keys in files it can read. Test credentials, not production ones
 <div class="card c-blue" data-marpit-fragment>
 <h4><span class="ib sm"><i class="ic i-refresh-cw"></i></span>Debugging spirals</h4>
 
-Fix after fix with no progress: stop, clear, write a better prompt
+Fix after fix with no progress: stop, rethink the problem from the start, then begin a fresh session
 
 </div>
 </div>
@@ -1277,7 +1171,7 @@ MIT warns of "overreliance and shallow understanding". Write the critical parts 
 </div>
 </div>
 
-<span class="source">MIT: Massachusetts Institute of Technology. [MIT Missing Semester, Agentic coding (2026)](https://missing.csail.mit.edu/2026/agentic-coding/). The syllabus rules on AI assistance apply</span>
+<span class="source">MIT: Massachusetts Institute of Technology. [MIT Missing Semester, Agentic coding (2026)](https://missing.csail.mit.edu/2026/agentic-coding/)</span>
 
 ---
 
@@ -1287,14 +1181,14 @@ MIT warns of "overreliance and shallow understanding". Write the critical parts 
 
 <div class="flow" data-marpit-fragment>
 <div class="box">16 experienced developers,<br>246 real tasks in projects<br>they knew for ~5 years</div><div class="arr">→</div>
-<div class="box gold">Each task: a coin flip</div><div class="arr">→</div>
+<div class="box gold">Each task:<br>"a simulated fair<br>coin flip"</div><div class="arr">→</div>
 <div><div class="box green" style="margin-bottom:8px">AI allowed<br>(mostly Cursor with Claude)</div><div class="box red">AI forbidden</div></div><div class="arr">→</div>
 <div class="box blue">Compare the time<br>to finish</div>
 </div>
 
 <div class="small" data-marpit-fragment>
 
-- **Randomized:** the coin decides, so the two groups of tasks are alike. Any difference in time comes from the AI tools
+- **Random assignment** makes the two groups of tasks alike, so a difference in time is the effect of AI
 - **Before and after**, the developers also guessed their own speed-up
 
 </div>
@@ -1309,18 +1203,18 @@ MIT warns of "overreliance and shallow understanding". Write the critical parts 
 <img src="figures/metr-1.png" style="width:800px" alt="Developers forecast 24% faster">
 <img src="figures/metr-2.png" style="width:800px" data-marpit-fragment alt="Afterwards they estimated 20% faster">
 <img src="figures/metr-3.png" style="width:800px" data-marpit-fragment alt="Measured: 19% slower">
-<img src="figures/metr.png" style="width:800px" data-marpit-fragment alt="2026 re-run: 18% faster, unreliable">
+<img src="figures/metr.png" style="width:800px" data-marpit-fragment alt="2026 re-run: 18% faster, likely too low">
 </div>
 
 <div class="cols cols-even">
 <div class="readbox bred" data-marpit-fragment><b>2025:</b> expected faster, felt faster, measured <b>slower</b>. Your own sense of speed is not evidence</div>
-<div class="readbox" data-marpit-fragment><b>2026:</b> 30 to 50% of developers skipped tasks they "did not want to do ... without AI", so tasks where AI helps most are missing: METR expects the real speed-up is larger</div>
+<div class="readbox" data-marpit-fragment><b>2026:</b> 18% faster, and likely more. Any task could be drawn "AI forbidden", so 30 to 50% of developers held back tasks they wanted AI for</div>
 </div>
 
 <span class="source">[Becker et al. (2025)](https://arxiv.org/abs/2507.09089) · [METR (February 2026)](https://metr.org/blog/2026-02-24-uplift-update/)</span>
 
 <!--
-The tools changed between the two: Claude Code and Codex spread through 2025 (METR's words). The 2025 paper saw no clear learning effect over the first 30 to 50 hours of Cursor. METR on the 2025 result now: "no longer reflect the current impact".
+The tools changed between the two: Claude Code and Codex spread through 2025 (METR's words). The 2025 paper saw no clear learning effect over the first 30 to 50 hours of Cursor. METR calls the 2026 number "an unreliable signal" and a lower bound.
 -->
 
 ---
@@ -1346,7 +1240,7 @@ The tools changed between the two: Claude Code and Codex spread through 2025 (ME
 <div class="lims">
 <div class="r hdr"><span></span><span>The limitation</span><span>What to do</span></div>
 <div class="r c-gold"><span class="ib sm c-gold"><i class="ic i-coins"></i></span><b>Cost grows with every step</b><span>Keep the start of the prompt stable for the cache; cap the steps</span></div>
-<div class="r c-red" data-marpit-fragment><span class="ib sm c-red"><i class="ic i-triangle-alert"></i></span><b>Errors compound</b><span>20 steps at 95% each succeed 36% of the time: test on your own tasks, several runs each</span></div>
+<div class="r c-red" data-marpit-fragment><span class="ib sm c-red"><i class="ic i-triangle-alert"></i></span><b>Errors add up over many steps</b><span>Each step right 95% of the time: all 20 steps right only 36% of the time. Test on your own tasks, several times</span></div>
 <div class="r c-red" data-marpit-fragment><span class="ib sm c-red"><i class="ic i-venetian-mask"></i></span><b>Prompt injection is not solved</b><span>Read-only tools, approval, a sandbox, no lethal trifecta</span></div>
 <div class="r c-blue" data-marpit-fragment><span class="ib sm c-blue"><i class="ic i-message-square"></i></span><b>A report is not evidence</b><span>Check the system itself; run the tests yourself</span></div>
 <div class="r c-blue" data-marpit-fragment><span class="ib sm c-blue"><i class="ic i-file-text"></i></span><b>Instructions are not enforced</b><span>What must hold goes in permissions, hooks and tests</span></div>
@@ -1361,10 +1255,10 @@ The tools changed between the two: Claude Code and Codex spread through 2025 (ME
 <div class="tiles">
 <div class="c-red"><img src="figures/agent-loop.png" alt="The agent loop">An <b>agent</b>: an LLM that calls tools in a loop and picks each next step</div>
 <div class="c-purple" data-marpit-fragment><img src="figures/small-box.png" alt="The model is a small box">The <b>harness</b>, not the model, is most of the system</div>
-<div class="c-green" data-marpit-fragment><img src="figures/caching.png" alt="Caching our run"><b>Prompt caching</b> reuses the unchanged start: 39% of the cost in our run</div>
 <div class="c-gold" data-marpit-fragment><div class="icons"><span class="ib lg c-blue"><i class="ic i-lock"></i></span><span class="ib lg c-gold"><i class="ic i-shield"></i></span><span class="ib lg c-green"><i class="ic i-user"></i></span></div><b>Guardrails in code:</b> least privilege, approval, no lethal trifecta</div>
 <div class="c-blue" data-marpit-fragment><img src="figures/coding-loop.png" alt="The coding loop"><b>Coding agents:</b> gather, act, verify, with an instructions file and permissions</div>
 <div class="c-teal" data-marpit-fragment><img src="figures/project.png" alt="A project blueprint">They work best where <b>one command checks the work</b>: uv, git, tests</div>
+<div class="c-green" data-marpit-fragment><img src="figures/metr.png" alt="METR's trials"><b>Measure, do not assume:</b> developers felt faster and were 19% slower (2025)</div>
 </div>
 
 ---

@@ -3,7 +3,7 @@
 
 Run from this directory:
     uv run --no-project --python 3.12 --with duckdb --with numpy --with matplotlib \
-        --with tiktoken --with nbformat --with squarify python make_figures.py
+        --with tiktoken --with nbformat --with squarify --with svgpath2mpl python make_figures.py
 
 Name groups to regenerate only those; with no names, every group runs.
 
@@ -12,12 +12,14 @@ Name groups to regenerate only those; with no names, every group runs.
                  tokenizer; other providers count a little differently), and writes run.png,
                  tokens.png and caching.png. caching.png prices the same run with Anthropic's
                  cache multipliers (write 1.25x, read 0.1x the input price) and extends it to 30
-                 calls with the measured prefix and growth per call. caching-1.png and
-                 caching-2.png are the deck's build-up of the same figure.
+                 calls with the measured prefix and growth per call. caching-run.png is its
+                 right panel alone, for the deck.
     diagrams     solar.png (the energy model of the notebook), coscientist.png (redrawn from the
                  Coscientist paper's description of its modules), workflow-agent.png,
                  agent-loop.png, harness.png, cache-prefix.png, coding-loop.png, coding-agent.png,
-                 context.png, multi-agent.png and project.png.
+                 context.png, multi-agent.png and project.png. agent-loop-1.png to
+                 agent-loop-4.png are the deck's build-up of agent-loop.png. The icons are Lucide's,
+                 found or downloaded by ../build_icons.py (set LUCIDE to skip the download).
     codex        small-box.png: Lecture 1's "ML code is a small box" figure next to Codex, the
                  open-source coding agent, sized by its lines of Rust. Counts openai/codex at a
                  pinned commit; set CODEX_SRC to an existing checkout, or it is cloned into .cache.
@@ -25,7 +27,7 @@ Name groups to regenerate only those; with no names, every group runs.
     evidence     metr.png and its build-up metr-1.png to metr-3.png: the forecast, believed and
                  measured change in task time in METR's 2025 randomized trial (Becker et al.,
                  arXiv 2507.09089), and the returning developers' estimate from METR's February
-                 2026 re-run, which METR itself calls an unreliable signal
+                 2026 re-run, which METR itself calls an unreliable signal and a lower bound
                  (metr.org/blog/2026-02-24-uplift-update/).
     course       course-history.png (every pull request merged into this course's repository, as
                  a branch off main) and course-build.png (how one change reaches the site), from
@@ -178,7 +180,7 @@ def group_trace():
 
     # caching.png: the same run with a prompt cache. Call k+1 starts with everything call k sent,
     # so that part can be read from the cache; only what is new since call k is written.
-    # caching-1.png and caching-2.png are the same canvas with less drawn, for the deck.
+    # caching-run.png is its right panel alone, for the deck.
     WRITE, READ = 1.25, 0.10
     inputs = [c["input"] for c in calls]
     hit = [0] + inputs[:-1]
@@ -193,38 +195,44 @@ def group_trace():
     cached = [WRITE * ext[0] + sum(READ * ext[j - 1] + WRITE * (ext[j] - ext[j - 1]) for j in range(1, k))
               for k in range(1, K + 1)]
     print(f"  {K} calls: {plain[-1]:,.0f} tokens without a cache, {cached[-1]:,.0f} with ({cached[-1] / plain[-1]:.0%})")
-    for frame in (1, 2, 3):
-        fig, (a1, a2) = plt.subplots(1, 2, figsize=(12.4, 4.6), gridspec_kw={"width_ratios": [1, 1.15]})
-        fig.subplots_adjust(left=0.07, right=0.9, bottom=0.14, top=0.86, wspace=0.32)
-        x = range(1, n + 1)
-        if frame == 1:
-            a1.bar(x, inputs, color=FILL["gold"], edgecolor=GOLD, label="Processed at full price")
-            a1.set_title(f"No cache: all {total_in:,} tokens at full price", fontsize=13)
-        else:
-            a1.bar(x, hit, color=FILL["green"], edgecolor=GREEN, label="Sent before: read from the cache, 0.1x")
-            a1.bar(x, new, bottom=hit, color=FILL["gold"], edgecolor=GOLD, label="New: processed, 1.25x")
-            for i, (h, w) in enumerate(zip(hit, new), 1):
-                a1.text(i, h + w + 18, f"+{w}", ha="center", fontsize=11, color=GOLD, fontweight="bold")
-            a1.set_title(f"With a cache: the run costs {share:.0%} as much", fontsize=13, color=GREEN)
-        a1.set_xticks(list(x))
-        a1.set_xlabel("Model call")
-        a1.set_ylabel("Input tokens")
-        a1.set_ylim(0, max(inputs) * 1.42)
-        a1.legend(frameon=False, loc="upper left", fontsize=10.5)
-        kk = range(1, K + 1)
-        a2.plot(kk, plain, color=RED, lw=2.6)
-        a2.plot(kk, cached, color=GREEN, lw=2.6)
-        a2.text(K + 0.6, plain[-1], f"no cache\n{plain[-1]:,.0f}", color=RED, va="center", fontsize=11)
-        a2.text(K + 0.6, cached[-1], f"with a cache\n{cached[-1]:,.0f}\n({cached[-1] / plain[-1]:.0%})",
+    kk = range(1, K + 1)
+
+    def longer_run(ax, mark=False):
+        ax.plot(kk, plain, color=RED, lw=2.6)
+        ax.plot(kk, cached, color=GREEN, lw=2.6)
+        ax.text(K + 0.6, plain[-1], f"no cache\n{plain[-1]:,.0f}", color=RED, va="center", fontsize=11)
+        ax.text(K + 0.6, cached[-1], f"with a cache\n{cached[-1]:,.0f}\n({cached[-1] / plain[-1]:.0%})",
                 color=GREEN, va="center", fontsize=11)
-        a2.set_xlim(0, K + 7)
-        a2.set_xlabel("Model calls in the run")
-        a2.set_ylabel("Input cost, in full-price tokens")
-        a2.set_title(f"A longer run saves more: {K} calls", fontsize=13)
-        a2.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:,.0f}"))
-        if frame < 3:
-            a2.set_visible(False)
-        save(fig, "caching.png" if frame == 3 else f"caching-{frame}.png", tight=False)
+        if mark:
+            ax.axvline(n, color=GRAY, lw=1.2, ls=":")
+            ax.text(n + 0.5, plain[-1] * 0.55, f"our run: {n} calls,\n{share:.0%} of the cost", fontsize=11.5,
+                    color="#3c3c3c")
+        ax.set_xlim(0, K + 7)
+        ax.set_xlabel("Model calls in the run")
+        ax.set_ylabel("Input cost, in full-price tokens")
+        ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:,.0f}"))
+
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(12.4, 4.6), gridspec_kw={"width_ratios": [1, 1.15]})
+    fig.subplots_adjust(left=0.07, right=0.9, bottom=0.14, top=0.86, wspace=0.32)
+    x = range(1, n + 1)
+    a1.bar(x, hit, color=FILL["green"], edgecolor=GREEN, label="Sent before: read from the cache, 0.1x")
+    a1.bar(x, new, bottom=hit, color=FILL["gold"], edgecolor=GOLD, label="New: processed, 1.25x")
+    for i, (h, w) in enumerate(zip(hit, new), 1):
+        a1.text(i, h + w + 18, f"+{w}", ha="center", fontsize=11, color=GOLD, fontweight="bold")
+    a1.set_title(f"With a cache: the run costs {share:.0%} as much", fontsize=13, color=GREEN)
+    a1.set_xticks(list(x))
+    a1.set_xlabel("Model call")
+    a1.set_ylabel("Input tokens")
+    a1.set_ylim(0, max(inputs) * 1.42)
+    a1.legend(frameon=False, loc="upper left", fontsize=10.5)
+    longer_run(a2)
+    a2.set_title(f"A longer run saves more: {K} calls", fontsize=13)
+    save(fig, "caching.png", tight=False)
+
+    fig, ax = plt.subplots(figsize=(9.5, 4.4))
+    longer_run(ax, mark=True)
+    ax.set_title("Cost of a run, with and without a prompt cache", fontsize=13)
+    save(fig, "caching-run.png")
 
 
 # ------------------------------------------------------------------------------ diagrams
@@ -243,12 +251,58 @@ def arrow(ax, a, b, color=GRAY, text=None, size=11, rad=0.0, tx=0.0, ty=0.0, sty
                 fontsize=size, color=color)
 
 
-def canvas(w, h):
-    fig, ax = plt.subplots(figsize=(w, h))
+def canvas(w, h, full=False):
+    """Axes in inches. full=True makes the axes fill the figure, so frames saved with tight=False stack."""
+    if full:
+        fig = plt.figure(figsize=(w, h))
+        ax = fig.add_axes([0, 0, 1, 1])
+    else:
+        fig, ax = plt.subplots(figsize=(w, h))
     ax.set_xlim(0, w)
     ax.set_ylim(0, h)
     ax.axis("off")
     return fig, ax
+
+
+def icon(ax, name, x, y, size=0.42, color="black", lw=2.0):
+    """Draw the Lucide icon NAME (lucide.dev, ISC license), centered at (x, y), size units wide.
+
+    The icons are the ones the deck uses; build_icons.py finds or downloads them.
+    """
+    import re
+    import xml.etree.ElementTree as ET
+    from matplotlib.patches import Circle, PathPatch
+    from matplotlib.transforms import Affine2D
+    from svgpath2mpl import parse_path
+    sys.path.insert(0, str(LECTURE))
+    from build_icons import icon_dir
+    tr = Affine2D().translate(-12, -12).scale(size / 24, -size / 24).translate(x, y) + ax.transData
+    kw = {"fill": False, "ec": color, "lw": lw, "capstyle": "round", "joinstyle": "round", "transform": tr}
+    for el in ET.parse(icon_dir() / f"{name}.svg").getroot():
+        tag, a = el.tag.split("}")[-1], el.attrib
+        if tag == "path":
+            ax.add_patch(PathPatch(parse_path(a["d"]), **kw))
+        elif tag == "circle":
+            ax.add_patch(Circle((float(a["cx"]), float(a["cy"])), float(a["r"]), **kw))
+        elif tag == "rect":
+            rx = float(a.get("rx", 0))
+            ax.add_patch(FancyBboxPatch((float(a["x"]) + rx, float(a["y"]) + rx), float(a["width"]) - 2 * rx,
+                                        float(a["height"]) - 2 * rx, boxstyle=f"round,pad={rx}", **kw))
+        elif tag in ("line", "polyline"):
+            if tag == "line":
+                pts = [(float(a["x1"]), float(a["y1"])), (float(a["x2"]), float(a["y2"]))]
+            else:
+                v = [float(t) for t in re.split(r"[ ,]+", a["points"].strip())]
+                pts = list(zip(v[::2], v[1::2]))
+            ax.plot(*zip(*pts), color=color, lw=lw, solid_capstyle="round", transform=tr)
+
+
+def badge(ax, name, x, y, color, r=0.3):
+    """An icon in a tinted circle, as on the slides."""
+    from matplotlib.patches import Circle
+    fill = {RED: "red", BLUE: "blue", GOLD: "gold", GREEN: "green", GRAY: "gray"}.get(color, "purple")
+    ax.add_patch(Circle((x, y), r, fc=FILL[fill], ec=color, lw=1.6))
+    icon(ax, name, x, y, size=r * 1.15, color=color, lw=1.8)
 
 
 def group_diagrams():
@@ -286,78 +340,144 @@ def group_diagrams():
                     arrowprops={"arrowstyle": "->", "color": "#e0a000", "lw": 1.6})
     a1.text(sun[0] + 0.1, sun[1] + 0.5, "noon sun in November:\nlow, 34° above the horizon", fontsize=11,
             ha="center", color="#8a6a00")
+    # Right: the energy model is the sum of two parts, drawn under the total.
     T = [0.5 * i for i in range(181)]
+    direct = [ns["E_MAX"] * (1 - ns["DIFFUSE"]) * math.cos(math.radians(v - ns["FACE_SUN"])) for v in T]
+    sky = [ns["E_MAX"] * ns["DIFFUSE"] * (1 + math.cos(math.radians(v))) / 2 for v in T]
     a2.axvspan(60, 90, color="#ececec")
-    a2.text(75, 6.2, "outside the\nmount's range", ha="center", fontsize=11, color="#5c5c5c")
+    a2.text(75, 4.0, "outside the\nmount's range", ha="center", va="bottom", fontsize=11, color="#5c5c5c")
+    a2.plot(T, direct, color=GOLD, lw=1.8, ls="--")
+    a2.plot(T, sky, color="#5c8fc4", lw=1.8, ls="--")
     a2.plot(T, [E(v) for v in T], color=BLUE, lw=2.8)
-    for v, c, label, dy in ((20, GRAY, "last week", -1.5), (50, GOLD, "best", -1.7)):
+    a2.text(30, 6.3, "direct sun: best facing the sun (56°)", fontsize=11, color=GOLD, ha="left")
+    a2.text(2, 2.6, "sky light: best flat (0°)", fontsize=11, color="#5c8fc4", ha="left")
+    a2.text(3, 10.2, "total", fontsize=11.5, color=BLUE, fontweight="bold")
+    for v, c, label, tx in ((20, GRAY, "last week", 23), (50, GOLD, "best", 60)):
         a2.plot([v], [E(v)], "o", color=c, ms=10, mec="white", zorder=5)
-        a2.annotate(f"{label}: {v}°\n{E(v):.1f} kWh/day", xy=(v, E(v)), xytext=(v, E(v) + dy), ha="center",
-                    va="top", fontsize=11.5, color=c, fontweight="bold",
+        a2.annotate(f"{label}: {v}°, {E(v):.1f} kWh", xy=(v, E(v)), xytext=(tx, 13.6), ha="center",
+                    va="bottom", fontsize=11.5, color=c, fontweight="bold",
                     arrowprops={"arrowstyle": "->", "color": c})
     a2.set_xlim(0, 90)
-    a2.set_ylim(5, 13)
+    a2.set_ylim(0, 15.5)
     a2.set_xticks(range(0, 91, 15))
     a2.set_xlabel("Tilt (degrees from horizontal)")
     a2.set_ylabel("Energy per day (kWh)")
-    a2.set_title("The energy model: average early-November day", fontsize=13)
+    a2.set_title("The energy model: total = direct sun + sky light", fontsize=13)
     fig.tight_layout(w_pad=2.5)
     save(fig, "solar.png")
 
-    # Coscientist, redrawn from the paper's text: a GPT-4 Planner with four commands.
-    fig, ax = canvas(11.8, 5.2)
-    box(ax, 5.9, 4.5, 5.6, 0.8, "Goal, in plain English\n\"perform Suzuki and Sonogashira couplings\"", "gray", size=11)
-    box(ax, 5.9, 3.1, 2.6, 0.9, "Planner\n(GPT-4)", "blue", BLUE, size=13, weight="bold")
-    arrow(ax, (5.9, 4.08), (5.9, 3.58))
-    mods = [(1.45, "GOOGLE", "Web searcher\n(searches the internet)"),
-            (4.4, "PYTHON", "Code execution\n(calculations, in Docker)"),
-            (7.4, "DOCUMENTATION", "Docs searcher\n(reads the robot's API)"),
-            (10.35, "EXPERIMENT", "Automation\n(runs the protocol)")]
-    for x, cmd, label in mods:
-        box(ax, x, 1.55, 2.6, 0.95, label, "gold", GOLD, size=11)
-        arrow(ax, (5.9, 2.62), (x, 2.06), color=GRAY, rad=0.0)
-        ax.text(x, 2.25, cmd, ha="center", fontsize=9.5, color=GOLD, fontweight="bold",
-                bbox={"fc": "white", "ec": "none", "pad": 1})
-    box(ax, 10.35, 0.35, 2.6, 0.55, "Opentrons OT-2\nliquid handler", "green", GREEN, size=11)
-    arrow(ax, (10.35, 1.07), (10.35, 0.64), color=GREEN)
-    ax.text(5.9, 0.35, "A person moved plates between instruments; GC-MS, an\ninstrument that identifies compounds, found both products",
-            ha="center", va="center", fontsize=10.5, color="#3c3c3c", style="italic")
+    # Coscientist, redrawn from the paper's text: a GPT-4 Planner that can ask for four actions.
+    fig, ax = canvas(9.2, 6.6)
+    box(ax, 4.6, 6.0, 8.8, 0.85, "", "gray")
+    icon(ax, "flag", 0.65, 6.0, 0.45, "#3c3c3c")
+    ax.text(1.05, 6.0, "Goal, typed in plain English: run two reactions that\njoin two molecules into one, with the chemicals on hand",
+            ha="left", va="center", fontsize=13, linespacing=1.25)
+    box(ax, 1.65, 3.55, 2.9, 1.5, "", "blue", BLUE)
+    icon(ax, "bot", 1.65, 3.95, 0.6, BLUE)
+    ax.text(1.65, 3.25, "Planner\nGPT-4", ha="center", va="center", fontsize=15, fontweight="bold", linespacing=1.15)
+    arrow(ax, (1.65, 5.55), (1.65, 4.32))
+    mods = [(4.95, "globe", "Search the web"), (4.1, "code", "Run Python (calculations)"),
+            (3.25, "book-open", "Read the robot's manual"), (2.4, "pipette", "Send a program to the robot")]
+    for y, name, label in mods:
+        box(ax, 6.35, y, 5.3, 0.68, "", "gold", GOLD)
+        icon(ax, name, 4.08, y, 0.42, GOLD)
+        ax.text(4.5, y, label, ha="left", va="center", fontsize=13.5)
+        arrow(ax, (3.12, 3.55 + (y - 3.55) * 0.35), (3.68, y), color=GRAY, style="<|-|>")
+    ax.text(1.65, 2.45, "asks for an action,\nthen reads the result", ha="center", va="center", fontsize=12,
+            color="#5c5c5c", style="italic", linespacing=1.15)
+    box(ax, 7.3, 0.6, 3.4, 0.9, "", "green", GREEN)
+    icon(ax, "flask-conical", 5.95, 0.6, 0.45, GREEN)
+    ax.text(6.3, 0.6, "Liquid-handling robot\n(Opentrons OT-2)", ha="left", va="center", fontsize=12.5, linespacing=1.15)
+    arrow(ax, (7.3, 2.04), (7.3, 1.07), GREEN)
+    box(ax, 2.55, 0.6, 3.7, 0.9, "", "green", GREEN)
+    icon(ax, "microscope", 1.05, 0.6, 0.45, GREEN)
+    ax.text(1.4, 0.6, "GC-MS: an instrument that\nidentifies each compound", ha="left", va="center", fontsize=12.5,
+            linespacing=1.15)
+    arrow(ax, (5.58, 0.6), (4.42, 0.6), GREEN)
+    ax.text(5.0, 1.12, "a person moves\nthe plate", ha="center", va="bottom", fontsize=11.5, color="#3c3c3c",
+            style="italic", linespacing=1.1)
+    ax.text(2.55, 1.32, "found both products", ha="center", va="bottom", fontsize=12.5, color=GREEN, fontweight="bold")
     save(fig, "coscientist.png")
 
-    # Workflow against agent.
-    fig, ax = canvas(11.8, 4.2)
-    ax.text(2.9, 3.9, "Workflow: your code decides the steps", ha="center", fontsize=13, fontweight="bold", color=BLUE)
-    for i, (y, t) in enumerate([(3.0, "Retrieve passages"), (1.9, "LLM writes the answer"), (0.8, "Check the format")]):
-        box(ax, 2.9, y, 3.2, 0.7, t, "blue", BLUE, size=12)
+    # Workflow against agent, with generic tools: the example comes later.
+    fig, ax = canvas(11.8, 4.4)
+    ax.text(2.9, 4.1, "Workflow: your code decides the steps", ha="center", fontsize=13, fontweight="bold", color=BLUE)
+    for i, (y, name, t) in enumerate([(3.15, "search", "Retrieve passages"), (2.0, "bot", "LLM writes the answer"),
+                                      (0.85, "list-checks", "Check the format")]):
+        box(ax, 2.9, y, 3.3, 0.72, "", "blue", BLUE)
+        icon(ax, name, 1.6, y, 0.4, BLUE)
+        ax.text(1.95, y, t, ha="left", va="center", fontsize=12)
         if i:
-            arrow(ax, (2.9, y + 0.75), (2.9, y + 0.37))
-    ax.text(2.9, 0.12, "Same path every time (Lecture 18)", ha="center", fontsize=11, color="#3c3c3c", style="italic")
-    ax.plot([5.75, 5.75], [0.2, 4.0], color="#d0d0d0", lw=1.5)
-    ax.text(8.7, 3.9, "Agent: the model decides the next step", ha="center", fontsize=13, fontweight="bold", color=RED)
-    box(ax, 8.7, 2.6, 2.4, 0.8, "LLM", "red", RED, size=13, weight="bold")
-    for x, t in [(6.75, "query_log"), (8.7, "predict_energy"), (10.65, "set_tilt")]:
-        box(ax, x, 0.9, 1.85, 0.55, t, "gold", GOLD, size=10.5)
-        arrow(ax, (8.7 + (x - 8.7) * 0.35, 2.18), (x, 1.2), color=GRAY, style="<|-|>")
-    ax.text(8.7, 3.35, "Loop until it answers or a budget runs out", ha="center", fontsize=11, color="#3c3c3c", style="italic")
+            arrow(ax, (2.9, y + 0.79), (2.9, y + 0.38))
+    ax.text(2.9, 0.15, "Same path every time (Lecture 18)", ha="center", fontsize=11, color="#3c3c3c", style="italic")
+    ax.plot([5.75, 5.75], [0.2, 4.2], color="#d0d0d0", lw=1.5)
+    ax.text(8.7, 4.1, "Agent: the model decides the next step", ha="center", fontsize=13, fontweight="bold", color=RED)
+    box(ax, 8.7, 2.75, 2.3, 0.85, "", "red", RED)
+    icon(ax, "bot", 8.1, 2.75, 0.5, RED)
+    ax.text(8.5, 2.75, "LLM", ha="left", va="center", fontsize=14, fontweight="bold")
+    for x, name, t in [(6.75, "search", "Look up\ndata"), (8.7, "code", "Run a\ncalculation"),
+                       (10.65, "wrench", "Change\nsomething")]:
+        box(ax, x, 0.95, 1.85, 1.05, "", "gold", GOLD)
+        icon(ax, name, x, 1.22, 0.36, GOLD)
+        ax.text(x, 0.75, t, ha="center", va="center", fontsize=11, linespacing=1.1)
+        arrow(ax, (8.7 + (x - 8.7) * 0.35, 2.3), (x, 1.5), color=GRAY, style="<|-|>")
+    ax.text(8.7, 3.52, "Loop until it answers or a budget runs out", ha="center", fontsize=11, color="#3c3c3c",
+            style="italic")
     save(fig, "workflow-agent.png")
 
-    # The loop, and where the guardrails sit.
-    fig, ax = canvas(11, 4.8)
-    box(ax, 2.0, 2.4, 2.6, 1.1, "LLM\nreads, then asks\nfor a tool or answers", "red", RED, size=11.5)
-    box(ax, 6.2, 2.4, 3.0, 2.6, "", "white", GRAY)
-    ax.text(6.2, 3.45, "Your code (the harness)", ha="center", fontsize=12, fontweight="bold")
-    for i, t in enumerate(["Step budget left?", "Same call 3 times?", "Needs approval? Ask a person", "Run the tool, log it"]):
-        ax.text(6.2, 2.9 - 0.47 * i, t, ha="center", fontsize=11, color=[GOLD, GOLD, GREEN, BLUE][i])
-    box(ax, 9.9, 2.4, 1.8, 1.1, "Tool\nquery, model,\nmove panels", "gold", GOLD, size=11)
-    arrow(ax, (3.35, 2.75), (4.65, 2.75), RED, "request", ty=0.2)
-    arrow(ax, (7.75, 2.75), (8.95, 2.75), GRAY)
-    arrow(ax, (8.95, 2.05), (7.75, 2.05), GRAY)
-    arrow(ax, (4.65, 2.05), (3.35, 2.05), BLUE, "result", ty=-0.2)
-    ax.text(2.0, 1.0, "Answer: the loop ends", ha="center", fontsize=11.5, color=RED)
-    arrow(ax, (2.0, 1.82), (2.0, 1.25), RED)
-    ax.text(6.2, 0.35, "The model only writes requests. Every check is a line of your code.",
-            ha="center", fontsize=11.5, style="italic", color="#3c3c3c")
-    save(fig, "agent-loop.png")
+    # The loop, built up in five frames for the deck; the last frame is agent-loop.png, for the notes.
+    rows = [("list-checks", "Checks the name and arguments"), ("gauge", "Stops at the step budget"),
+            ("user", "Asks a person before a change"), ("scroll-text", "Runs the tool, logs it")]
+    for frame in (1, 2, 3, 4, 5):
+        fig, ax = canvas(13.6, 5.8, full=True)
+
+        def step(n, x, y):
+            from matplotlib.patches import Circle
+            ax.add_patch(Circle((x, y), 0.22, fc=RED, ec="none", zorder=5))
+            ax.text(x, y, str(n), ha="center", va="center", fontsize=14, color="white", fontweight="bold", zorder=6)
+
+        box(ax, 1.6, 3.1, 2.8, 2.0, "", "red", RED)
+        icon(ax, "bot", 1.6, 3.7, 0.65, RED)
+        ax.text(1.6, 2.8, "LLM\nreads every message;\nwrites a request\nor an answer", ha="center", va="center",
+                fontsize=14, linespacing=1.2)
+        box(ax, 7.1, 3.1, 4.4, 3.5, "", "white", GRAY)
+        icon(ax, "shield-check", 5.3, 4.45, 0.45, "black")
+        ax.text(5.65, 4.45, "Your code: the harness", ha="left", va="center", fontsize=15.5, fontweight="bold")
+        arrow(ax, (3.05, 3.65), (4.85, 3.65), RED)
+        ax.text(4.2, 3.85, "request", ha="center", va="bottom", fontsize=13.5, color=RED, fontweight="bold")
+        ax.text(3.8, 4.75, "predict_energy(\n[0, 10, ..., 60])", ha="center", va="center", fontsize=12.5,
+                family="monospace", color=RED)
+        step(1, 3.45, 3.98)
+        if frame >= 2:
+            for i, (name, t) in enumerate(rows):
+                y = 3.75 - 0.66 * i
+                icon(ax, name, 5.35, y, 0.42, [GOLD, GOLD, GREEN, BLUE][i])
+                ax.text(5.75, y, t, ha="left", va="center", fontsize=14)
+            step(2, 7.1, 1.1)
+        if frame >= 3:
+            box(ax, 12.15, 3.1, 2.6, 2.0, "", "gold", GOLD)
+            icon(ax, "sun", 12.15, 3.7, 0.6, GOLD)
+            ax.text(12.15, 2.75, "Tool\npredict_energy:\nthe energy model", ha="center", va="center", fontsize=13.5,
+                    linespacing=1.2)
+            arrow(ax, (9.35, 3.65), (10.8, 3.65), GRAY)
+            arrow(ax, (10.8, 2.5), (9.35, 2.5), GRAY)
+            ax.text(10.07, 3.85, "runs it", ha="center", va="bottom", fontsize=13, color="#3c3c3c")
+            ax.text(10.07, 2.3, "output", ha="center", va="top", fontsize=13, color="#3c3c3c")
+            step(3, 10.07, 3.08)
+        if frame >= 4:
+            arrow(ax, (4.85, 2.5), (3.05, 2.5), BLUE)
+            ax.text(4.2, 2.3, "result", ha="center", va="top", fontsize=13.5, color=BLUE, fontweight="bold")
+            ax.text(3.8, 1.4, "best: 50°,\n11.8 kWh per day", ha="center", va="center", fontsize=12.5,
+                    family="monospace", color=BLUE)
+            step(4, 3.45, 2.17)
+        if frame >= 5:
+            arrow(ax, (1.6, 2.05), (1.6, 1.15), RED)
+            ax.text(1.6, 0.8, "An answer instead\nof a request: the loop ends", ha="center", va="center", fontsize=13.5,
+                    color=RED, linespacing=1.15)
+            step(5, 2.0, 1.6)
+        ax.text(7.1, 0.3, "The model only writes requests. Every check is a line of your code.", ha="center",
+                fontsize=14, style="italic", color="#3c3c3c")
+        save(fig, "agent-loop.png" if frame == 5 else f"agent-loop-{frame}.png", tight=False)
 
     # The harness: everything around the model.
     fig, ax = canvas(12, 5.6)
@@ -389,27 +509,26 @@ def group_diagrams():
             ha="center", fontsize=11, style="italic", color="#3c3c3c")
     save(fig, "harness.png")
 
-    # How a prompt cache works: the next call starts with the last call's whole prompt.
-    fig, ax = canvas(12, 4.6)
-    rows = [("Call 1", [("Tools + system prompt", 4.0, "w"), ("Task", 1.2, "w")]),
-            ("Call 2", [("Tools + system prompt", 4.0, "r"), ("Task", 1.2, "r"), ("Request 1", 1.5, "w"),
-                        ("Result 1", 1.7, "w")]),
-            ("Call 2, with the\ntime in the prompt", [("10:02 + tools + system", 4.0, "x"), ("Task", 1.2, "w"),
-                                                       ("Request 1", 1.5, "w"), ("Result 1", 1.7, "w")])]
-    style = {"w": ("gold", GOLD), "r": ("green", GREEN), "x": ("red", RED)}
+    # How a prompt cache works: each call starts with the last call's whole prompt.
+    fig, ax = canvas(12, 4.2)
+    rows = [("Call 1", [("System prompt + tools", 3.6, "w"), ("Task", 1.2, "w")]),
+            ("Call 2", [("System prompt + tools", 3.6, "r"), ("Task", 1.2, "r"), ("Request 1", 1.4, "w"),
+                        ("Result 1", 1.4, "w")]),
+            ("Call 3", [("System prompt + tools", 3.6, "r"), ("Task", 1.2, "r"), ("Request 1", 1.4, "r"),
+                        ("Result 1", 1.4, "r"), ("Request 2", 1.4, "w"), ("Result 2", 1.4, "w")])]
+    style = {"w": ("gold", GOLD), "r": ("green", GREEN)}
     for j, (label, blocks) in enumerate(rows):
-        y = 3.75 - 1.3 * j
-        ax.text(1.35, y, label, ha="right", va="center", fontsize=13, fontweight="bold")
-        x0 = 1.6
+        y = 3.55 - 1.15 * j
+        ax.text(1.0, y, label, ha="right", va="center", fontsize=13, fontweight="bold")
+        x0 = 1.2
         for text, w, k in blocks:
             f, e = style[k]
-            box(ax, x0 + w / 2, y, w - 0.08, 0.7, text, f, e, size=12.5)
+            box(ax, x0 + w / 2, y, w - 0.08, 0.66, text, f, e, size=12)
             x0 += w
-    ax.text(10.4, 2.45, "cache hit:\nonly the new part\nis processed", fontsize=12, color=GREEN, va="center")
-    ax.text(10.4, 1.15, "first block changed:\neverything is\nprocessed again", fontsize=12, color=RED, va="center")
-    for x, t, c in ((2.0, "read from the cache (about 0.1x the price)", GREEN),
-                    (7.7, "processed and written (about 1.25x)", GOLD)):
-        ax.add_patch(FancyBboxPatch((x, 0.12), 0.35, 0.28, boxstyle="round,pad=0.01", fc=FILL[{GREEN: "green", GOLD: "gold"}[c]], ec=c))
+    for x, t, c in ((1.2, "already sent: read from the cache, about 0.1x the price", GREEN),
+                    (7.6, "new: processed in full", GOLD)):
+        ax.add_patch(FancyBboxPatch((x, 0.12), 0.35, 0.28, boxstyle="round,pad=0.01",
+                                    fc=FILL[{GREEN: "green", GOLD: "gold"}[c]], ec=c))
         ax.text(x + 0.5, 0.26, t, va="center", fontsize=12, color="#3c3c3c")
     save(fig, "cache-prefix.png")
 
@@ -467,15 +586,16 @@ def group_diagrams():
             ax.text(W0 + W + 0.1, y, full, va="center", fontsize=11.5, color="#3c3c3c")
 
     sysb = ("System + tools", 1.75, "blue", BLUE)
-    mem = ("CLAUDE.md", 1.4, "blue", BLUE)
+    mem = ("Instructions file", 1.75, "blue", BLUE)
     bar(4.2, [sysb, mem, ("Your prompt", 1.4, "gold", GOLD)], "Start of a session", "room to work")
     bar(3.0, [sysb, mem, ("Your prompt", 1.4, "gold", GOLD),
-              ("Files, command output, test logs ...", 4.0, "gold", GOLD)], "Long session", "near the limit")
-    bar(1.8, [sysb, mem, ("Summary of the work", 2.4, "purple", "#7a3db8"), ("Recent", 1.1, "gold", GOLD)],
+              ("Files, outputs, test logs ...", 3.65, "gold", GOLD)], "Long session", "near the limit")
+    bar(1.8, [sysb, mem, ("Summary of the work", 2.45, "purple", "#7a3db8"), ("Recent", 1.1, "gold", GOLD)],
         "After compaction", "early details\nmay be lost")
     ax.text(W0 - 0.15, 0.55, "Subagent", ha="right", va="center", fontsize=12.5, fontweight="bold")
-    box(ax, W0 + 2.6, 0.55, 5.2, 0.56, "Own window: reads 40 files for one question", "gray", GRAY, size=11.5)
-    arrow(ax, (W0 + 5.25, 0.85), (W0 + 6.1, 1.47), "#7a3db8", "returns a short answer", size=11.5, tx=1.4)
+    box(ax, W0 + 2.9, 0.55, 5.8, 0.56, "Own window: may read tens of thousands of tokens", "gray", GRAY, size=11.5)
+    arrow(ax, (W0 + 5.85, 0.85), (W0 + 6.6, 1.47), "#7a3db8", "returns a summary,\noften 1,000-2,000 tokens",
+          size=11.5, tx=1.55)
     ax.text(W0 + W / 2, 4.8, "The context window: everything the model reads on one call", ha="center",
             fontsize=14, fontweight="bold")
     save(fig, "context.png")
@@ -564,7 +684,7 @@ def group_evidence():
                         arrowprops={"arrowstyle": "->", "color": RED, "lw": 2, "connectionstyle": "arc3,rad=-0.35"})
             ax.text(22, 1.62, "felt faster,\nwas slower", fontsize=12, color=RED, style="italic", va="center")
         if frame == 4:
-            ax.text(14, 0, "tasks were skipped: METR calls\nit \"an unreliable signal\"", fontsize=11.5,
+            ax.text(14, 0, "likely too low: developers held back\nthe tasks they most wanted AI for", fontsize=11.5,
                     color="#5c5c5c", style="italic", va="center")
         ax.set_yticks([3, 2, 1, 0])
         ax.set_yticklabels([r[0] for r in rows], fontsize=12.5)
@@ -646,7 +766,7 @@ def group_codex():
     for name, crates in CODEX_GROUPS:
         groups.append((name, sum(counts.get(c, 0) for c in crates)))
         seen.update(crates)
-    groups.append(("Settings, login,\ntelemetry, other", sum(v for k, v in counts.items() if k not in seen)))
+    groups.append(("Settings,\nlogin,\ntelemetry,\nother", sum(v for k, v in counts.items() if k not in seen)))
     print(f"  Codex at {CODEX_COMMIT[:9]}: {total:,} lines of Rust in {len(counts)} crates, tests excluded")
     for name, v in groups:
         print(f"    {name.replace(chr(10), ' ')}: {v:,} ({v / total:.1%})")
@@ -656,7 +776,7 @@ def group_codex():
     a1.set_xlim(0, 100)
     a1.set_ylim(-9, 46)
     a1.axis("off")
-    for label, x, y, w, h in [("Configuration", 0, 16, 14, 30), ("Process\nmanagement tools", 70, 16, 30, 30),
+    for label, x, y, w, h in [("Config-\nuration", 0, 16, 14, 30), ("Process\nmanagement tools", 70, 16, 30, 30),
                               ("Data collection", 14, 30, 22, 16), ("Feature\nextraction", 36, 30, 16, 16),
                               ("Analysis tools", 52, 30, 18, 16), ("Machine resource\nmanagement", 14, 16, 26, 14),
                               ("Monitoring", 52, 16, 18, 14), ("Data verification", 0, 0, 40, 16),
@@ -798,12 +918,12 @@ def group_course():
 # Every date is from a primary source: the arXiv "v1" line, the company's dated announcement, or
 # the repository's first commit (Auto-GPT, Codex CLI, agents.md).
 TIMELINE = [
-    ("2022-10-06", "ReAct: reason,\nthen act", "research", 1.1),
+    ("2022-10-06", "ReAct: think, act,\nread, repeat", "research", 1.1),
     ("2023-03-14", "GPT-4", "product", -0.9),
     ("2023-03-16", "Auto-GPT\n(open source)", "product", 2.2),
     ("2023-04-11", "Coscientist and ChemCrow\npreprints, same day", "science", -2.0),
     ("2023-06-13", "Function calling\nin OpenAI's API", "standard", 1.1),
-    ("2023-10-10", "SWE-bench: real\nGitHub issues", "research", -0.9),
+    ("2023-10-10", "SWE-bench: a test\nof real bug reports", "research", -0.9),
     ("2023-12-20", "Coscientist\nin Nature", "science", 2.2),
     ("2024-03-12", "Devin", "product", -2.0),
     ("2024-05-06", "SWE-agent: the\nagent-computer interface", "research", 1.1),
@@ -812,8 +932,8 @@ TIMELINE = [
     ("2025-02-24", "Claude Code\n(preview)", "product", -2.0),
     ("2025-04-16", "Codex CLI\n(open source)", "product", 1.1),
     ("2025-08-19", "AGENTS.md\nformat", "standard", -0.9),
-    ("2025-12-09", "MCP and AGENTS.md\njoin the Linux Foundation", "standard", 2.2),
-    ("2026-02-11", "OpenAI: a product with\n0 hand-written lines", "product", -2.0),
+    ("2025-12-09", "MCP and AGENTS.md go\nto a neutral nonprofit", "standard", 2.2),
+    ("2026-02-11", "OpenAI: a product\nwritten by its agent", "product", -2.0),
 ]
 
 

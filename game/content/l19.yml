@@ -308,7 +308,7 @@ items:
       The model was GPT-4 Turbo every time, on the same 300 issues. Only the software around it changed: a loop, then tools built for an LLM, such as a file viewer, a search and an edit command.
     source:
       file: lectures/l19/notes.md
-      heading: "Why the harness matters"
+      heading: "Same model, different harness"
       quote: "Only the harness changed."
     verify: {mode: quote, needle: "Only the harness changed", volatility: stable}
     tags: [harness, evidence]
