@@ -118,14 +118,11 @@ parts:
           - file: case-studies/bridge-health-monitoring
           - file: case-studies/alloy-adaptive-design
 
-# Optional material: hidden for now, to be reviewed and released later. The
-# overview cross-links both section pages, so the whole part is held together.
-#   - caption: Optional material
-#     chapters:
-#       - file: course/optional/overview
-#         sections:
-#           - file: course/optional/how-this-course-was-built
-#           - file: course/optional/generating-is-not-learning
-#           - file: course/optional/mlops
-#             sections:
-#               - file: course/optional/mlops-demo
+  - caption: Optional material
+    chapters:
+      - file: course/optional/how-this-course-was-built
+
+# MLOps: kept for a future offering, not published.
+#     - file: course/optional/mlops
+#       sections:
+#         - file: course/optional/mlops-demo

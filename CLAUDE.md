@@ -25,7 +25,7 @@ even though the repo is not.
 | `lectures/*/notes.md` | Draft material not yet added to `_toc.yml` |
 | `course/assignments/aNN.md` | Grading keys, exam material, student data |
 | `course/miniproject.md`, `course/final-project.md` | |
-| `course/optional/*.md` | |
+| `course/optional/how-this-course-was-built.md` | `course/optional/mlops.md` and its notebook (kept for a future offering) |
 | Rendered slide decks at `/slides/lNN.html` | |
 
 Three mechanisms enforce this, and all three should stay in place:
@@ -83,7 +83,7 @@ presentations are unnumbered sessions with no directory.
 
 One directory per **session**, not per week. Week 1 is two directories, `l01` and `l02`.
 A session that leaves the schedule takes its directory with it: the MLOps material that
-was L23 lives at `course/optional/mlops.md`, because a lecture with no schedule row has
+was L23 lives, unpublished, at `course/optional/mlops.md`, because a lecture with no schedule row has
 no room on the map and no way for a student to reach its questions.
 
 Published URLs mirror this structure: `lectures/l01/notes.md` becomes
@@ -825,10 +825,10 @@ stale data and would defeat its entire purpose.
 
 ## 9b. Optional material
 
-`course/optional/` holds published material that is not part of any session and that no
-assignment depends on: method, process, and reading that outlives the syllabus. It is
-listed in `_toc.yml` under its own part, so the same publishing rules apply as to anything
-else public.
+`course/optional/` holds material that is not part of any session and that no
+assignment depends on: method, process, and reading that outlives the syllabus. When a page
+in it is published, it is listed in `_toc.yml` under its own part, and the same publishing
+rules apply as to anything else public.
 
 Two constraints specific to it. It **describes** `course/modules/` but never quotes it, so
 that instructor-only content stays instructor-only even when the process is the subject.
@@ -837,8 +837,11 @@ requests, and the committed figure scripts, rather than from recollection. A cla
 how the course was built is subject to the same two-step verification as any other claim in
 section 4: the artifact exists, and it says what you are citing it for.
 
-Add to it when something is worth adding, not on a schedule.
-`course/optional/overview.md` lists what is there and what might come.
+Add to it when something is worth adding, not on a schedule. Today it publishes one page,
+`how-this-course-was-built.md`, released with Lecture 22 (11-16), which covers the same subject.
+It also defines the rung ladder (0 to 7) that the practice game shows on every item, so change
+the two together. `mlops.md` and `mlops-demo.ipynb` are kept for a future offering and stay out
+of `_toc.yml`.
 
 ---
 
@@ -949,8 +952,7 @@ note that lecture numbers are prefixes of each other (L1 inside L13 and L17, L2 
 L20), which is why the test for it exists.
 
 One room can be a page rather than a session: the optional page, listed in `PAGES` in
-`tools/graph.py`. It gets a room only once it is published in `_toc.yml`, which it is not for
-now. Published, it sits in an "Optional" region with any session whose schedule title starts
+`tools/graph.py`. It gets a room only once it is published in `_toc.yml`. Published, it sits in an "Optional" region with any session whose schedule title starts
 with "(Optional)", and its corridors are its markdown links in both directions, so a lecture
 that links the page gets a corridor to it with no hand-written edge. A session the schedule
 marks "Cancelled", or one with no topic, gets no room either.
@@ -958,7 +960,8 @@ marks "Cancelled", or one with no topic, gets no room either.
 Nothing on the map is locked behind a prerequisite, and that is a design decision rather
 than an unfinished feature: a student arriving in week 12 must not be walled out of L22
 because they skipped L9. There are also no streaks, no XP and no leaderboard, for the
-reason `course/optional/generating-is-not-learning.md` gives.
+reason the "Generating is not learning" section of
+`course/optional/how-this-course-was-built.md` gives: feeling productive is not learning.
 
 The clicker does have a leaderboard (section 5c), and the two positions are consistent
 rather than in tension. The game is graded, worked alone, and its score goes on a PDF a
