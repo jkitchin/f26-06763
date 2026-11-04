@@ -1,4 +1,4 @@
-# Lecture 19: LLM agents: tools, loops and guardrails
+# Lecture 19: LLM agents: tools, loops, harnesses and coding agents
 
 :::{admonition} At a glance
 :class: tip

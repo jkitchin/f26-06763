@@ -15,7 +15,7 @@
 
 schema: 1
 lecture: l19
-title: "LLM agents: tools, loops and guardrails"
+title: "LLM agents: tools, loops, harnesses and coding agents"
 source_notes: lectures/l19/notes.md
 status: unwritten
 serve: 7
