@@ -25,7 +25,7 @@ even though the repo is not.
 | `lectures/*/notes.md` | Draft material not yet added to `_toc.yml` |
 | `course/assignments/aNN.md` | Grading keys, exam material, student data |
 | `course/miniproject.md`, `course/final-project.md` | |
-| `course/optional/how-this-course-was-built.md` | `course/optional/mlops.md` and its notebook (kept for a future offering) |
+| | `course/optional/` for now: `how-this-course-was-built.md` (Lecture 22's subject, unlisted until then), and `mlops.md` with its notebook (kept for a future offering) |
 | Rendered slide decks at `/slides/lNN.html` | |
 
 Three mechanisms enforce this, and all three should stay in place:
@@ -826,9 +826,9 @@ stale data and would defeat its entire purpose.
 ## 9b. Optional material
 
 `course/optional/` holds material that is not part of any session and that no
-assignment depends on: method, process, and reading that outlives the syllabus. It is
-listed in `_toc.yml` under its own part, so the same publishing rules apply as to anything
-else public.
+assignment depends on: method, process, and reading that outlives the syllabus. When a page
+in it is published, it is listed in `_toc.yml` under its own part, and the same publishing
+rules apply as to anything else public.
 
 Two constraints specific to it. It **describes** `course/modules/` but never quotes it, so
 that instructor-only content stays instructor-only even when the process is the subject.
@@ -837,10 +837,11 @@ requests, and the committed figure scripts, rather than from recollection. A cla
 how the course was built is subject to the same two-step verification as any other claim in
 section 4: the artifact exists, and it says what you are citing it for.
 
-Add to it when something is worth adding, not on a schedule. Today it publishes one page,
-`how-this-course-was-built.md`, which also defines the rung ladder (0 to 7) that the practice
-game shows on every item, so change the two together. `mlops.md` and `mlops-demo.ipynb` are
-kept for a future offering and stay out of `_toc.yml`.
+Add to it when something is worth adding, not on a schedule. Nothing in it is published for
+now. `how-this-course-was-built.md` stays out of `_toc.yml` because Lecture 22 covers the same
+subject; it also defines the rung ladder (0 to 7) that the practice game shows on every item,
+so change the two together. `mlops.md` and `mlops-demo.ipynb` are kept for a future offering
+and stay out of `_toc.yml` too.
 
 ---
 
@@ -950,10 +951,12 @@ check that matters is that a quote must actually name the lecture its edge point
 note that lecture numbers are prefixes of each other (L1 inside L13 and L17, L2 inside
 L20), which is why the test for it exists.
 
-One room is not a session: the optional page, listed in `PAGES` in `tools/graph.py`. It
-sits in an "Optional" region with any session whose schedule title starts with
-"(Optional)", and its corridors are its markdown links in both directions, so a lecture
-that links the page gets a corridor to it with no hand-written edge.
+One room can be a page rather than a session: the optional page, listed in `PAGES` in
+`tools/graph.py`. It gets a room only once it is published in `_toc.yml`, which it is not for
+now. Published, it sits in an "Optional" region with any session whose schedule title starts
+with "(Optional)", and its corridors are its markdown links in both directions, so a lecture
+that links the page gets a corridor to it with no hand-written edge. A session the schedule
+marks "Cancelled", or one with no topic, gets no room either.
 
 Nothing on the map is locked behind a prerequisite, and that is a design decision rather
 than an unfinished feature: a student arriving in week 12 must not be walled out of L22

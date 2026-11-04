@@ -118,9 +118,11 @@ parts:
           - file: case-studies/bridge-health-monitoring
           - file: case-studies/alloy-adaptive-design
 
-  - caption: Optional material
-    chapters:
-      - file: course/optional/how-this-course-was-built
+# Optional material: not published for now. "How this course was built" is the
+# subject of Lecture 22 (11-16); the page stays unlisted until then.
+#   - caption: Optional material
+#     chapters:
+#       - file: course/optional/how-this-course-was-built
 
 # MLOps: kept for a future offering, not published.
 #     - file: course/optional/mlops

@@ -185,18 +185,20 @@ def sessions() -> list[dict]:
         r["arc"] = current
         if r["title"].lower().startswith("(optional)"):
             r["arc"], r["arc_source"] = OPTIONAL, "optional"
-    # A lecture row with no topic gets no room: there is nothing to show in it.
-    # L21 is one for now. It still counts toward
-    # EXPECTED_SESSIONS and still passes its arc on (its old notes declare
-    # Production and responsibility, which is where L22 belongs), and it comes
-    # back by itself once the schedule gives it a topic.
-    return [r for r in rows if r["title"]]
+    # A lecture row with no topic, or one the schedule marks "Cancelled", gets no
+    # room: there is nothing to show in it. L21 has no topic and L20 is cancelled,
+    # for now. Each still counts toward EXPECTED_SESSIONS and still passes its arc
+    # on (L21's old notes declare Production and responsibility, which is where
+    # L22 belongs), and comes back by itself once the schedule gives it a topic.
+    return [r for r in rows if r["title"] and r["title"].lower() != "cancelled"]
 
 
 def build() -> dict:
     rows = sessions()
     graph = json.loads(GRAPH.read_text(encoding="utf-8"))
-    pages = page_rooms(graph.get("pages", {}))
+    # A page gets a room only once it is published: until then it has nothing to
+    # open, and how-this-course-was-built.md becomes Lecture 22's material first.
+    pages = [pg for pg in page_rooms(graph.get("pages", {})) if pg["written"]]
 
     # Regions in course order, which is the order students already carry.
     regions: list[dict] = []

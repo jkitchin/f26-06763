@@ -2,7 +2,7 @@
   "generated_by": "tools/world.py",
   "note": "Rooms are the sessions in course/schedule.md plus the pages in tools/graph.py PAGES, regions are the arcs the notes declare, corridors are the edges tools/graph.py verified. Nothing is placed by hand.",
   "grid": {
-    "width": 22,
+    "width": 16,
     "height": 7,
     "cols_per_region": 2
   },
@@ -59,27 +59,11 @@
       ]
     },
     {
-      "name": "Machine learning and deep learning",
+      "name": "Production and responsibility",
       "x0": 13,
       "rows": 1,
       "rooms": [
-        "l20"
-      ]
-    },
-    {
-      "name": "Production and responsibility",
-      "x0": 16,
-      "rows": 1,
-      "rooms": [
         "l22"
-      ]
-    },
-    {
-      "name": "Optional",
-      "x0": 19,
-      "rows": 1,
-      "rooms": [
-        "built"
       ]
     }
   ],
@@ -351,20 +335,6 @@
       "notes": "../lectures/l19/notes.html"
     },
     {
-      "session": "L20",
-      "id": "l20",
-      "date": "2026-11-09",
-      "title": "Cancelled",
-      "kind": "session",
-      "written": false,
-      "arc_source": "declared",
-      "arc": "Machine learning and deep learning",
-      "region": 4,
-      "x": 13,
-      "y": 1,
-      "notes": null
-    },
-    {
       "session": "L22",
       "id": "l22",
       "date": "2026-11-16",
@@ -373,59 +343,13 @@
       "written": false,
       "arc_source": "inherited",
       "arc": "Production and responsibility",
-      "region": 5,
-      "x": 16,
+      "region": 4,
+      "x": 13,
       "y": 1,
       "notes": null
-    },
-    {
-      "session": "Extra",
-      "id": "built",
-      "date": "",
-      "title": "How this course was built",
-      "kind": "page",
-      "written": true,
-      "arc_source": "optional",
-      "arc": "Optional",
-      "region": 6,
-      "x": 19,
-      "y": 1,
-      "notes": "../course/optional/how-this-course-was-built.html"
     }
   ],
   "doors": [
-    {
-      "from": "built",
-      "to": "l01",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "Check every number against its source · the famous \"less than 10% of the code is the model\" is not in the paper it is cited to (Lecture 1)"
-    },
-    {
-      "from": "built",
-      "to": "l09",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "The same model ranking under any split · on the concrete strength dataset, a decision tree beats a straight line with random folds, and loses to it by 2 MPa…"
-    },
-    {
-      "from": "built",
-      "to": "l11",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "PyTorch and JAX both match the exact gradient · PyTorch was off by 7.5e-8, JAX by 4.4e-16: two Python numbers had silently become float32 · Lecture 11"
-    },
-    {
-      "from": "built",
-      "to": "l17",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "Our tiny GPT finishes all 16 course terms · 15 of 16: \"physics-in\" became \"physics-into a s\", because \"into a\" appears 58 times in our notes and…"
-    },
     {
       "from": "l04",
       "to": "l03",
@@ -809,62 +733,6 @@
       "relation": null,
       "why": null,
       "where": "- [Lecture 18](../l18/notes.md) ended with one **tool call**: the model asks for a tool by name,"
-    },
-    {
-      "from": "l20",
-      "to": "l07",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "purest form. It runs straight into the problem [Lecture 7](../l07/notes.md) called"
-    },
-    {
-      "from": "l20",
-      "to": "l09",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "Machine learning methods differ most in what the learner is told. [Lecture 9](../l09/notes.md)"
-    },
-    {
-      "from": "l20",
-      "to": "l10",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "[Lecture 9](../l09/notes.md) and [Lecture 10](../l10/notes.md) learned from it: the label is the"
-    },
-    {
-      "from": "l20",
-      "to": "l11",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "table with a neural network of the kind built in [Lecture 11](../l11/notes.md). The deep"
-    },
-    {
-      "from": "l20",
-      "to": "l15",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "to match the data. [Lecture 15](../l15/notes.md) moved to evaluative feedback: Bayesian"
-    },
-    {
-      "from": "l20",
-      "to": "l16",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "Read down the table and the problem gets harder in three distinct ways. [Lecture 16](../l16/notes.md)"
-    },
-    {
-      "from": "l20",
-      "to": "l17",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "[Lecture 17](../l17/notes.md) is a next-token predictor fitted by supervised learning on text."
     }
   ],
   "signs": []
