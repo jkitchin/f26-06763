@@ -948,6 +948,13 @@ check that matters is that a quote must actually name the lecture its edge point
 note that lecture numbers are prefixes of each other (L1 inside L13 and L17, L2 inside
 L20), which is why the test for it exists.
 
+One room can be a page rather than a session: the optional page, listed in `PAGES` in
+`tools/graph.py`. It gets a room only once it is published in `_toc.yml`, which it is not for
+now. Published, it sits in an "Optional" region with any session whose schedule title starts
+with "(Optional)", and its corridors are its markdown links in both directions, so a lecture
+that links the page gets a corridor to it with no hand-written edge. A session the schedule
+marks "Cancelled", or one with no topic, gets no room either.
+
 Nothing on the map is locked behind a prerequisite, and that is a design decision rather
 than an unfinished feature: a student arriving in week 12 must not be walled out of L22
 because they skipped L9. There are also no streaks, no XP and no leaderboard, for the

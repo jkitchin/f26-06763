@@ -68,6 +68,30 @@ RELATIONS = {"builds-on", "contrasts", "reuses", "shares-data", "prevents"}
 LINK = re.compile(r"\[(?:L|Lecture )(\d+)\]\(\.\./(l\d\d)/notes\.md\)")
 ANY_LINK = re.compile(r"\]\(\.\./(l\d\d)/notes\.md\)")
 
+#: Published pages that are not sessions but still get a room on the map:
+#: {room id: source file}. Their corridors are extracted the same way, from
+#: markdown links in both directions: the page linking a lecture's notes, and a
+#: lecture's notes linking the page.
+PAGES = {"built": "course/optional/how-this-course-was-built.md"}
+
+#: How a page links a lecture, from course/optional/: ../../lectures/l09/notes.md
+PAGE_LINK = re.compile(r"\[(?:L|Lecture )(\d+)\]\(\.\./\.\./lectures/(l\d\d)/notes\.md\)")
+PAGE_ANY_LINK = re.compile(r"\]\(\.\./\.\./lectures/(l\d\d)/notes\.md\)")
+
+
+def page_where(line: str) -> str:
+    """A page's citing line, readable in the map panel.
+
+    The page cites lectures from table rows, which arrive as raw markdown
+    ("| claim | finding ([Lecture 1](../../lectures/l01/notes.md)) |") and cut
+    mid-link at 160 characters. Links collapse to their text and cells join with
+    a middle dot before the cut.
+    """
+    text = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", line)
+    cells = [c.strip() for c in text.strip().strip("|").split("|")]
+    out = " · ".join(c for c in cells if c)
+    return out if len(out) <= 160 else out[:159].rsplit(" ", 1)[0] + "…"
+
 
 def norm(text: str) -> str:
     """Whitespace-insensitive, because the notes are hard-wrapped.
@@ -232,6 +256,39 @@ def scan() -> tuple[list[dict], list[str]]:
                 if not e["where"]:
                     e["where"] = " ".join(line.split())[:160]
 
+    # The pages: what each one links, and which lectures link it.
+    for page, file in PAGES.items():
+        path = REPO / file
+        if not path.is_file():
+            problems.append(f"{file}: listed in PAGES but missing")
+            continue
+        into_page = re.compile(
+            r"\]\(\.\./\.\./" + re.escape(file) + r"(?:#[^)]*)?\)")
+        for lp in sorted(REPO.glob("lectures/l*/notes.md")):
+            for line in lp.read_text(encoding="utf-8").split("\n"):
+                if into_page.search(line):
+                    e = edges.setdefault((lp.parent.name, page), {
+                        "from": lp.parent.name, "to": page, "weight": 0, "where": ""})
+                    e["weight"] += 1
+                    if not e["where"]:
+                        e["where"] = " ".join(line.split())[:160]
+        for n, line in enumerate(path.read_text(encoding="utf-8").split("\n"), 1):
+            for m in PAGE_LINK.finditer(line):
+                label, target = int(m.group(1)), m.group(2)
+                if label != int(target[1:]):
+                    problems.append(f"{file}:{n}: link text says L{label} but the "
+                                    f"href points at {target}")
+            for m in PAGE_ANY_LINK.finditer(line):
+                target = m.group(1)
+                if target not in known:
+                    problems.append(f"{file}:{n}: links to {target}, which has no notes.md")
+                    continue
+                e = edges.setdefault((page, target), {"from": page, "to": target,
+                                                      "weight": 0, "where": ""})
+                e["weight"] += 1
+                if not e["where"]:
+                    e["where"] = page_where(line)
+
     return sorted(edges.values(), key=lambda e: (e["from"], e["to"])), problems
 
 
@@ -269,7 +326,7 @@ def build() -> dict:
     inweight: Counter = Counter()
     for e in edges:
         inweight[e["to"]] += e["weight"]
-    known = lectures()
+    known = lectures() + sorted(PAGES)
     return {
         "generated_by": "tools/graph.py",
         "shutters": shutters,
@@ -278,7 +335,8 @@ def build() -> dict:
             "game/content/map-edges.yml for the back half of the course, where "
             "lectures cite each other only in prose. See the module docstring."
         ),
-        "lectures": known,
+        "lectures": lectures(),
+        "pages": PAGES,
         "edges": edges,
         "in_degree": {l: indeg.get(l, 0) for l in known},
         "in_weight": {l: inweight.get(l, 0) for l in known},

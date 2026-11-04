@@ -22,19 +22,24 @@ import raw from './world.json' with { type: 'json' }
 
 export interface Room {
   id: string
-  /** The label used in the schedule: `L7`, `MP-1`. */
+  /** A session on the schedule, or a published page that is not a session
+   *  (the optional page, `built`). A page has no date and no practice module. */
+  kind: 'session' | 'page'
+  /** The label used in the schedule: `L7`, `MP-1`; `Extra` for a page. */
   session: string
   title: string
+  /** ISO date of the session; empty for a page. */
   date: string
-  /** False for the twelve sessions with no notes yet. Drawn as a shutter. */
+  /** False for sessions not released yet. Drawn as a shutter. */
   written: boolean
-  /** Whether the arc came from the lecture's own notes or from the one before. */
-  arc_source: 'declared' | 'inherited'
+  /** Whether the arc came from the lecture's own notes, from the one before,
+   *  or from an "(Optional)" schedule title or a page. */
+  arc_source: 'declared' | 'inherited' | 'optional'
   arc: string
   region: number
   x: number
   y: number
-  /** Relative URL of the notes, or null for a shutter. */
+  /** Relative URL of the notes (or the page), or null for a shutter. */
   notes: string | null
 }
 

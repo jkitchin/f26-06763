@@ -1,8 +1,8 @@
 {
   "generated_by": "tools/world.py",
-  "note": "Rooms are the sessions in course/schedule.md, regions are the arcs the notes declare, corridors are the edges tools/graph.py verified. Nothing is placed by hand.",
+  "note": "Rooms are the sessions in course/schedule.md plus the pages in tools/graph.py PAGES, regions are the arcs the notes declare, corridors are the edges tools/graph.py verified. Nothing is placed by hand.",
   "grid": {
-    "width": 19,
+    "width": 16,
     "height": 7,
     "cols_per_region": 2
   },
@@ -59,19 +59,10 @@
       ]
     },
     {
-      "name": "Machine learning and deep learning",
+      "name": "Production and responsibility",
       "x0": 13,
       "rows": 1,
       "rooms": [
-        "l20"
-      ]
-    },
-    {
-      "name": "Production and responsibility",
-      "x0": 16,
-      "rows": 1,
-      "rooms": [
-        "l21",
         "l22"
       ]
     }
@@ -82,6 +73,7 @@
       "id": "l01",
       "date": "2026-08-24",
       "title": "The AI-engineering landscape and the course toolchain",
+      "kind": "session",
       "written": true,
       "arc_source": "declared",
       "arc": "Foundations",
@@ -95,6 +87,7 @@
       "id": "l02",
       "date": "2026-08-26",
       "title": "Reproducible environments and version control",
+      "kind": "session",
       "written": true,
       "arc_source": "declared",
       "arc": "Foundations",
@@ -108,6 +101,7 @@
       "id": "l03",
       "date": "2026-08-31",
       "title": "Databases for engineering data",
+      "kind": "session",
       "written": true,
       "arc_source": "declared",
       "arc": "Data Systems",
@@ -121,6 +115,7 @@
       "id": "l04",
       "date": "2026-09-02",
       "title": "Database landscape",
+      "kind": "session",
       "written": true,
       "arc_source": "declared",
       "arc": "Data Systems",
@@ -134,6 +129,7 @@
       "id": "l05",
       "date": "2026-09-09",
       "title": "Dataframes and batch pipelines",
+      "kind": "session",
       "written": true,
       "arc_source": "declared",
       "arc": "Data Systems",
@@ -147,6 +143,7 @@
       "id": "l06",
       "date": "2026-09-14",
       "title": "Streaming data and data validation",
+      "kind": "session",
       "written": true,
       "arc_source": "declared",
       "arc": "Data Systems",
@@ -160,6 +157,7 @@
       "id": "l07",
       "date": "2026-09-16",
       "title": "Features for time-series models",
+      "kind": "session",
       "written": true,
       "arc_source": "declared",
       "arc": "Data Systems",
@@ -173,6 +171,7 @@
       "id": "l08",
       "date": "2026-09-21",
       "title": "The machine learning (ML) workflow I: Time series",
+      "kind": "session",
       "written": true,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
@@ -186,6 +185,7 @@
       "id": "l09",
       "date": "2026-09-23",
       "title": "The machine learning (ML) workflow II: Regression",
+      "kind": "session",
       "written": true,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
@@ -199,6 +199,7 @@
       "id": "l10",
       "date": "2026-09-28",
       "title": "The machine learning (ML) workflow III: Classification, experiment tracking and hyperparameter search/tuning",
+      "kind": "session",
       "written": true,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
@@ -212,6 +213,7 @@
       "id": "l11",
       "date": "2026-09-30",
       "title": "ML with PyTorch/JAX",
+      "kind": "session",
       "written": true,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
@@ -225,6 +227,7 @@
       "id": "l12",
       "date": "2026-10-05",
       "title": "ML architectures for engineering data",
+      "kind": "session",
       "written": true,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
@@ -238,6 +241,7 @@
       "id": "l13",
       "date": "2026-10-07",
       "title": "Scientific machine learning: PINNs, neural ODEs and neural DAEs",
+      "kind": "session",
       "written": true,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
@@ -251,6 +255,7 @@
       "id": "l14",
       "date": "2026-10-19",
       "title": "Uncertainty quantification (UQ) for machine learning",
+      "kind": "session",
       "written": true,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
@@ -264,6 +269,7 @@
       "id": "l15",
       "date": "2026-10-21",
       "title": "Bayesian optimization",
+      "kind": "session",
       "written": true,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
@@ -277,6 +283,7 @@
       "id": "l16",
       "date": "2026-10-26",
       "title": "Generative AI",
+      "kind": "session",
       "written": true,
       "arc_source": "declared",
       "arc": "Machine learning and deep learning",
@@ -290,6 +297,7 @@
       "id": "l17",
       "date": "2026-10-28",
       "title": "Large language models (LLMs): what they are and how they are trained",
+      "kind": "session",
       "written": true,
       "arc_source": "declared",
       "arc": "LLM and agentic engineering",
@@ -303,6 +311,7 @@
       "id": "l18",
       "date": "2026-11-02",
       "title": "Retrieval-augmented generation (RAG): answering from your documents",
+      "kind": "session",
       "written": true,
       "arc_source": "declared",
       "arc": "LLM and agentic engineering",
@@ -316,6 +325,7 @@
       "id": "l19",
       "date": "2026-11-04",
       "title": "LLM agents: tools, loops, harnesses and coding agents",
+      "kind": "session",
       "written": true,
       "arc_source": "declared",
       "arc": "LLM and agentic engineering",
@@ -325,41 +335,16 @@
       "notes": "../lectures/l19/notes.html"
     },
     {
-      "session": "L20",
-      "id": "l20",
-      "date": "2026-11-09",
-      "title": "Cancelled",
-      "written": false,
-      "arc_source": "declared",
-      "arc": "Machine learning and deep learning",
-      "region": 4,
-      "x": 13,
-      "y": 1,
-      "notes": null
-    },
-    {
-      "session": "L21",
-      "id": "l21",
-      "date": "2026-11-11",
-      "title": "",
-      "written": false,
-      "arc_source": "declared",
-      "arc": "Production and responsibility",
-      "region": 5,
-      "x": 16,
-      "y": 1,
-      "notes": null
-    },
-    {
       "session": "L22",
       "id": "l22",
       "date": "2026-11-16",
       "title": "How this course was built",
+      "kind": "session",
       "written": false,
       "arc_source": "inherited",
       "arc": "Production and responsibility",
-      "region": 5,
-      "x": 17,
+      "region": 4,
+      "x": 13,
       "y": 1,
       "notes": null
     }
@@ -748,94 +733,6 @@
       "relation": null,
       "why": null,
       "where": "- [Lecture 18](../l18/notes.md) ended with one **tool call**: the model asks for a tool by name,"
-    },
-    {
-      "from": "l20",
-      "to": "l07",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "purest form. It runs straight into the problem [Lecture 7](../l07/notes.md) called"
-    },
-    {
-      "from": "l20",
-      "to": "l09",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "Machine learning methods differ most in what the learner is told. [Lecture 9](../l09/notes.md)"
-    },
-    {
-      "from": "l20",
-      "to": "l10",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "[Lecture 9](../l09/notes.md) and [Lecture 10](../l10/notes.md) learned from it: the label is the"
-    },
-    {
-      "from": "l20",
-      "to": "l11",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "table with a neural network of the kind built in [Lecture 11](../l11/notes.md). The deep"
-    },
-    {
-      "from": "l20",
-      "to": "l15",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "to match the data. [Lecture 15](../l15/notes.md) moved to evaluative feedback: Bayesian"
-    },
-    {
-      "from": "l20",
-      "to": "l16",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "Read down the table and the problem gets harder in three distinct ways. [Lecture 16](../l16/notes.md)"
-    },
-    {
-      "from": "l20",
-      "to": "l17",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "[Lecture 17](../l17/notes.md) is a next-token predictor fitted by supervised learning on text."
-    },
-    {
-      "from": "l21",
-      "to": "l03",
-      "origin": "authored",
-      "relation": "builds-on",
-      "why": "The 2.4-volt threshold is a specific number decided in Lecture 3. Evaluating against it is meaningless without knowing where it came from.",
-      "where": "sensor readings above Lecture 3's 2.4-volt trustworthiness threshold"
-    },
-    {
-      "from": "l21",
-      "to": "l04",
-      "origin": "authored",
-      "relation": "shares-data",
-      "why": "Same sensor data, no API key, which is why the demo runs anywhere.",
-      "where": "data Lecture 3, Lecture 4, and Lecture 20 use and needs no API key or external service"
-    },
-    {
-      "from": "l21",
-      "to": "l13",
-      "origin": "authored",
-      "relation": "builds-on",
-      "why": "The strongest claim of dependency anywhere in the back half. Not \"recall Lecture 13\" but \"this is Lecture 13, continued\".",
-      "where": "the subject of the entire second half of Lecture 13: what happens when a company builds the model, ships it, and stops watching"
-    },
-    {
-      "from": "l21",
-      "to": "l19",
-      "origin": "authored",
-      "relation": "reuses",
-      "why": "The eval harness is built against the RAG system Lecture 19 leaves behind.",
-      "where": "eval harness for a small RAG assistant in the spirit of Lecture 19's system"
     }
   ],
   "signs": []

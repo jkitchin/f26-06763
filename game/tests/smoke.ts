@@ -268,7 +268,7 @@ async function main() {
     const world = JSON.parse(
       readFileSync(fileURLToPath(new URL('../src/map/world.json', import.meta.url)), 'utf8'),
     ) as { spawn: { x: number; y: number };
-           rooms: { id: string; x: number; y: number; written: boolean }[] }
+           rooms: { id: string; kind: string; x: number; y: number; written: boolean }[] }
     const roomCount = await page.$$eval('[role="application"] button', (b) => b.length)
     check(roomCount === world.rooms.length,
       'every session on the schedule is drawn', `${roomCount} of ${world.rooms.length}`)
@@ -282,7 +282,7 @@ async function main() {
     // on a route computed from the world rather than typed out as key presses (a
     // hardcoded path broke the moment the grid changed). Target the last released
     // room so this holds as the course releases week by week.
-    const released = world.rooms.filter((r) => r.written)
+    const released = world.rooms.filter((r) => r.written && r.kind === 'session')
     const target = released[released.length - 1]
     if (!target) throw new Error('no released rooms on the map')
     const vert: KeyInput = target.y < world.spawn.y ? 'ArrowUp' : 'ArrowDown'

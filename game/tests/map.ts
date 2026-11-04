@@ -20,8 +20,14 @@ console.log('map:')
 
 // --- the generated world holds together ------------------------------------
 
-check(world.rooms.length === 22, 'every session on the schedule is a room',
-  `${world.rooms.length} rooms`)
+const sessionRooms = world.rooms.filter((r) => r.kind === 'session')
+// 20: the schedule has 22 lecture rows. L20 is cancelled and L21 has no topic, so
+// neither has a room.
+check(sessionRooms.length === 20, 'every session on the schedule with a topic is a room',
+  `${sessionRooms.length} rooms`)
+check(roomById('l21') === undefined, 'L21, which has no topic, is not drawn')
+check(roomById('l20') === undefined, 'L20, which is cancelled, is not drawn')
+
 // The written (open) rooms are exactly the lectures released in _toc.yml. The
 // course ships one week at a time, so this set grows week by week; the test
 // derives it from _toc.yml rather than hard-coding a count a release would break.
@@ -30,9 +36,27 @@ check(world.rooms.length === 22, 'every session on the schedule is a room',
 const toc = readFileSync(new URL('../../_toc.yml', import.meta.url), 'utf8')
 const releasedIds = new Set(
   [...toc.matchAll(/^\s*-\s*file:\s*lectures\/(l\d\d)\/notes/gm)].map((m) => m[1]))
+// Pages are released the same way, by an uncommented _toc.yml entry.
+const PAGES: Record<string, string> = { built: 'course/optional/how-this-course-was-built' }
+const pageListed = (id: string) =>
+  new RegExp(`^\\s*-\\s*file:\\s*${PAGES[id]}\\s*$`, 'm').test(toc)
+
+// The optional page gets a room only once it is published in _toc.yml, and then
+// it sits in an Optional region of its own, with no date.
+const built = roomById('built')
+if (pageListed('built')) {
+  check(built?.kind === 'page' && built.arc === 'Optional' && built.date === '',
+    'the published optional page is a room in the Optional region, with no date')
+  check(world.regions.filter((g) => g.name === 'Optional').length === 1,
+    'and there is one Optional region')
+} else {
+  check(built === undefined, 'the unpublished optional page has no room')
+  check(world.regions.every((g) => g.name !== 'Optional'), 'and there is no Optional region')
+}
 const writtenIds = world.rooms.filter((r) => r.written).map((r) => r.id).sort()
 const expectedWritten = world.rooms
-  .filter((r) => releasedIds.has(r.id)).map((r) => r.id).sort()
+  .filter((r) => (r.kind === 'page' ? pageListed(r.id) : releasedIds.has(r.id)))
+  .map((r) => r.id).sort()
 check(JSON.stringify(writtenIds) === JSON.stringify(expectedWritten),
   'written rooms are exactly the lectures released in _toc.yml',
   `written: ${writtenIds.join(',') || '(none)'}`)
@@ -42,9 +66,7 @@ check(JSON.stringify(writtenIds) === JSON.stringify(expectedWritten),
 // so dropping the mini-project days moved it from L18/L19 onto L21/L22. L21
 // anchors authored corridors, so losing it would have left edges pointing out of
 // a room that was not drawn.
-for (const id of ['l21', 'l22']) {
-  check(roomById(id) !== undefined, `${id} survived the schedule parse`)
-}
+check(roomById('l22') !== undefined, 'l22 survived the schedule parse')
 
 const cells = new Set(world.rooms.map((r) => `${r.x},${r.y}`))
 check(cells.size === world.rooms.length, 'no two rooms occupy the same cell',
@@ -70,17 +92,13 @@ check(world.signs.every((s) => roomById(s.lecture)?.written === false),
 // agents lecture (2026-11-03), it opens from L18's single tool call, and its notes link L18.
 check(world.doors.some((d) => d.from === 'l19' && d.to === 'l18'), 'L19 builds on L18')
 
-// Four. Fifteen became ten when L23's five authored edges left with the lecture
-// (MLOps moved to course/optional/), and ten became four on 2026-10-12 when the
-// agents draft left L20 (five edges) and L21's edge to it went too. The count is hardcoded on
-// purpose. Authored edges are hand-written content, each with the sentence that
-// justifies it, and a regeneration that silently dropped some would otherwise
-// look like a clean run.
+// None drawn. The four authored edges all leave L21, which has no room while it
+// has no topic; they stay in game/content/map-edges.yml and return with it. The
+// count is hardcoded on purpose: authored edges are hand-written content, and a
+// regeneration that silently changed them would otherwise look like a clean run.
 const authored = world.doors.filter((d) => d.origin === 'authored')
-check(authored.length === 4, 'the four authored corridors made it through',
+check(authored.length === 0, 'no authored corridor is drawn while L21 has no room',
   `${authored.length}`)
-check(authored.every((d) => d.why !== null && d.relation !== null),
-  'and each carries the relation and the reason it exists')
 
 // --- walking ---------------------------------------------------------------
 
@@ -111,26 +129,26 @@ check(world.rooms.every((r) => seenCells.has(`${r.x},${r.y}`)),
 
 // --- what the map reveals --------------------------------------------------
 
-const l21 = doorsOf('l21')
-// Four since 2026-10-12: L21's edge to the agents lecture left when that draft moved from L20
-// to lectures/l19/agents/, and returns as l21 -> l19 when L21 is renumbered.
-check(l21.length >= 4, 'standing in L21 shows what it builds on', `${l21.length} corridors`)
-check(l21.some((d) => d.other.id === 'l13' && d.outbound),
-  'including the strongest claim in the back half, L21 -> L13')
+const l11 = doorsOf('l11')
+check(l11.length >= 4, 'standing in L11 shows what it connects to', `${l11.length} corridors`)
+check(l11.some((d) => d.other.id === 'l09' && d.outbound), 'including L11 -> L9')
 
 const none = new Set<string>()
-const both = new Set(['l21', 'l13'])
-const oneDoor = world.doors.find((d) => d.from === 'l21' && d.to === 'l13')!
+const both = new Set(['l11', 'l09'])
+const oneDoor = world.doors.find((d) => d.from === 'l11' && d.to === 'l09')!
 check(!doorVisible(oneDoor, none), 'a corridor is hidden until both ends are visited')
-check(!doorVisible(oneDoor, new Set(['l21'])), 'one end is not enough')
+check(!doorVisible(oneDoor, new Set(['l11'])), 'one end is not enough')
 check(doorVisible(oneDoor, both), 'and drawn once both have been')
 
-check(coverage(none).seen === 0 && coverage(none).total === 22, 'coverage starts at zero of 22')
+// 20 sessions with a topic, plus the optional page once it is published.
+const roomsTotal = 20 + (pageListed('built') ? 1 : 0)
+check(coverage(none).seen === 0 && coverage(none).total === roomsTotal,
+  `coverage starts at zero of ${roomsTotal}`)
 check(coverage(both).seen === 2, 'and counts the rooms actually stood in')
 
 // Shuttered rooms no longer carry a promise sign: the promises were forward
 // references from earlier lectures, and the course no longer makes any.
-check(signFor('l20') === undefined, 'a shuttered room carries no promise sign')
+check(signFor('l22') === undefined, 'a shuttered room carries no promise sign')
 check(signFor('l01') === undefined, 'a written room has no shutter sign')
 
 // --- visits are inert to everything that grades ----------------------------

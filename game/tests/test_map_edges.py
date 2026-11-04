@@ -74,6 +74,18 @@ def test_l19_builds_on_l18():
     assert ("l19", "l18") in out
 
 
+def test_pages_connect_only_to_lectures():
+    """A page's corridors are extracted from its links in both directions, and
+    each one joins that page to a lecture, never a page to a page."""
+    lectures = set(graph.lectures())
+    edges = graph.build()["edges"]
+    for page in graph.PAGES:
+        mine = [e for e in edges if page in (e["from"], e["to"])]
+        assert mine, f"{page} has no corridors"
+        for e in mine:
+            assert ({e["from"], e["to"]} - {page}) <= lectures, e
+
+
 def test_every_relation_is_documented():
     """The vocabulary is closed because the map draws each relation
     differently; an undocumented one renders as nothing."""
