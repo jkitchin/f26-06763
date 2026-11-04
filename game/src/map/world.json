@@ -2,7 +2,7 @@
   "generated_by": "tools/world.py",
   "note": "Rooms are the sessions in course/schedule.md plus the pages in tools/graph.py PAGES, regions are the arcs the notes declare, corridors are the edges tools/graph.py verified. Nothing is placed by hand.",
   "grid": {
-    "width": 19,
+    "width": 22,
     "height": 7,
     "cols_per_region": 2
   },
@@ -59,12 +59,11 @@
       ]
     },
     {
-      "name": "Optional",
+      "name": "Machine learning and deep learning",
       "x0": 13,
-      "rows": 2,
+      "rows": 1,
       "rooms": [
-        "l20",
-        "built"
+        "l20"
       ]
     },
     {
@@ -73,6 +72,14 @@
       "rows": 1,
       "rooms": [
         "l22"
+      ]
+    },
+    {
+      "name": "Optional",
+      "x0": 19,
+      "rows": 1,
+      "rooms": [
+        "built"
       ]
     }
   ],
@@ -333,27 +340,41 @@
       "session": "L19",
       "id": "l19",
       "date": "2026-11-04",
-      "title": "LLM agents: tools, loops and guardrails",
+      "title": "LLM agents: tools, loops, harnesses and coding agents",
       "kind": "session",
-      "written": false,
+      "written": true,
       "arc_source": "declared",
       "arc": "LLM and agentic engineering",
       "region": 3,
       "x": 10,
       "y": 2,
-      "notes": null
+      "notes": "../lectures/l19/notes.html"
     },
     {
       "session": "L20",
       "id": "l20",
       "date": "2026-11-09",
-      "title": "(Optional) reinforcement learning",
+      "title": "Cancelled",
       "kind": "session",
       "written": false,
-      "arc_source": "optional",
-      "arc": "Optional",
+      "arc_source": "declared",
+      "arc": "Machine learning and deep learning",
       "region": 4,
       "x": 13,
+      "y": 1,
+      "notes": null
+    },
+    {
+      "session": "L22",
+      "id": "l22",
+      "date": "2026-11-16",
+      "title": "How this course was built",
+      "kind": "session",
+      "written": false,
+      "arc_source": "inherited",
+      "arc": "Production and responsibility",
+      "region": 5,
+      "x": 16,
       "y": 1,
       "notes": null
     },
@@ -366,24 +387,10 @@
       "written": true,
       "arc_source": "optional",
       "arc": "Optional",
-      "region": 4,
-      "x": 13,
-      "y": 2,
-      "notes": "../course/optional/how-this-course-was-built.html"
-    },
-    {
-      "session": "L22",
-      "id": "l22",
-      "date": "2026-11-16",
-      "title": "Deployment: serving, containers, latency, and cost",
-      "kind": "session",
-      "written": false,
-      "arc_source": "inherited",
-      "arc": "Production and responsibility",
-      "region": 5,
-      "x": 16,
+      "region": 6,
+      "x": 19,
       "y": 1,
-      "notes": null
+      "notes": "../course/optional/how-this-course-was-built.html"
     }
   ],
   "doors": [
@@ -746,6 +753,62 @@
       "relation": null,
       "why": null,
       "where": "- [Lecture 16](../l16/notes.md) built generative models: learn a distribution, then sample from"
+    },
+    {
+      "from": "l19",
+      "to": "l01",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "- [Lecture 1](../l01/notes.md) showed that in a production ML (machine learning) system, the ML"
+    },
+    {
+      "from": "l19",
+      "to": "l02",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "integration, [Lecture 2](../l02/notes.md)), how to check its own work, what not to touch, and"
+    },
+    {
+      "from": "l19",
+      "to": "l03",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "- SQL (Structured Query Language, [Lecture 3](../l03/notes.md)) is the language for asking a"
+    },
+    {
+      "from": "l19",
+      "to": "l04",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "| `query_log` | One read-only SQL query on last week's hourly power log, stored in DuckDB ([Lecture 4](../l04/notes.md)) |"
+    },
+    {
+      "from": "l19",
+      "to": "l06",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "| Data validation ([Lecture 6](../l06/notes.md)) | Schema checks catch wrong data, whoever wrote the code |"
+    },
+    {
+      "from": "l19",
+      "to": "l10",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "| Experiment tracking ([Lecture 10](../l10/notes.md)) | Every number traces back to the run, the code and the data that made it |"
+    },
+    {
+      "from": "l19",
+      "to": "l18",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "- [Lecture 18](../l18/notes.md) ended with one **tool call**: the model asks for a tool by name,"
     },
     {
       "from": "l20",

@@ -66,14 +66,12 @@ def test_every_edge_is_from_the_back_half():
         assert (e["from"], e["to"]) not in linked, f"{e['from']} -> {e['to']} is already a link"
 
 
-def test_l19_is_still_the_dead_end():
-    """L19 (RAG; L17 before the 2026-10-08 renumbering) cites nothing, by link or
-    in prose. It is a true fact about the course and the map should show it, so
-    an edge appearing out of L19 means somebody found a citation and this test
-    should be updated deliberately."""
-    lectures = set(graph.lectures())
-    out = {e["from"] for e in graph.build()["edges"] if e["to"] in lectures}
-    assert "l19" not in out
+def test_l19_builds_on_l18():
+    """L19 was a dead end while it was the RAG lecture, which cited nothing. Rewritten as the
+    agents lecture on 2026-11-03, it opens from L18's single tool call, so the corridor
+    from L19 to L18 is extracted from its notes. Losing it means the link was removed."""
+    out = {(e["from"], e["to"]) for e in graph.build()["edges"]}
+    assert ("l19", "l18") in out
 
 
 def test_pages_connect_only_to_lectures():

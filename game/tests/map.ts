@@ -82,12 +82,9 @@ check(world.doors.every((d) => d.from !== d.to), 'no corridor loops back on itse
 check(world.signs.every((s) => roomById(s.lecture)?.written === false),
   'every signed shutter names a room that is genuinely unwritten')
 
-// A corridor drawn out of L19 (RAG, which was L17 before the 2026-10-08
-// renumbering) would contradict the finding that it cites nothing. See
-// game/content/map-edges.yml.
-// A link from L19 to the optional page is not a citation of another session.
-check(!world.doors.some((d) => d.from === 'l19' && roomById(d.to)?.kind === 'session'),
-  'L19 is still the dead end')
+// L19 was the dead end while it was the RAG lecture, which cited nothing. Rewritten as the
+// agents lecture (2026-11-03), it opens from L18's single tool call, and its notes link L18.
+check(world.doors.some((d) => d.from === 'l19' && d.to === 'l18'), 'L19 builds on L18')
 
 // None drawn. The four authored edges all leave L21, which has no room while it
 // has no topic; they stay in game/content/map-edges.yml and return with it. The

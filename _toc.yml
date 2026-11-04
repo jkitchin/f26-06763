@@ -71,9 +71,7 @@ parts:
       - file: lectures/l18/notes
         sections:
           - file: lectures/l18/l18-context-engineering
-#       - file: lectures/l19/notes
-#         sections:
-#           - file: lectures/l19/l19-rag
+      - file: lectures/l19/notes
 #       - file: lectures/l20/notes
 #         sections:
 #           - file: lectures/l20/l20-reinforcement-learning

@@ -5,7 +5,7 @@
 # numbers come from lectures/l20/figures/make_figures.py.
 #
 # Version 3 replaces versions 1 and 2, which were the agents lecture that used to be L20 (it is
-# in lectures/l19/agents/ until the L19 rewrite). The archive in pools/l20.json keeps them, so
+# rewritten as L19 on 2026-11-03). The archive in pools/l20.json keeps them, so
 # PDFs issued against them still verify.
 
 schema: 1
