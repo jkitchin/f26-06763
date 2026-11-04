@@ -316,13 +316,13 @@
       "id": "l19",
       "date": "2026-11-04",
       "title": "LLM agents: tools, loops, harnesses and coding agents",
-      "written": false,
+      "written": true,
       "arc_source": "declared",
       "arc": "LLM and agentic engineering",
       "region": 3,
       "x": 10,
       "y": 2,
-      "notes": null
+      "notes": "../lectures/l19/notes.html"
     },
     {
       "session": "L20",

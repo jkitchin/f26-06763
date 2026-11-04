@@ -19,7 +19,7 @@ schema: 1
 lecture: l19
 title: "LLM agents: tools, loops, harnesses and coding agents"
 source_notes: lectures/l19/notes.md
-status: unwritten
+status: published
 serve: 8
 pool_version: 6
 provenance:
