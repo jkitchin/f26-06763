@@ -167,7 +167,9 @@ frontmatter `title:` and expect it to render.
    game gates it behind an Andrew ID, so a student who cannot reach it from the notes
    cannot reach it at all. `release_lecture.py` publishes the bank, and nothing in the
    release checks that anything links to it, which is exactly how L3 shipped with a live
-   quiz and no way in.
+   quiz and no way in. A lecture with no quiz bank in `game/content/` (L22) skips the
+   section and writes `- **Practice** No practice module ...` in the `At a glance` block
+   instead, with no `game/#/lNN` link; CI accepts that only when the bank file is absent.
 
 **Writing.** Follow `scientific_writing.md` (repo root) for the prose standard. Write it as a
 chapter of a book, not a set of slides rendered as prose. That
