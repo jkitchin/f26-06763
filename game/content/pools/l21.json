@@ -174,6 +174,191 @@
         }
       },
       "serve": 5
+    },
+    "3": {
+      "items": {
+        "l21-q01": {
+          "answer": "Starting Python and importing the libraries",
+          "options": [
+            "Loading the model weights from disk",
+            "Starting Python and importing the libraries",
+            "Checking the artifact's SHA-256 against the manifest",
+            "Opening the network socket for uvicorn"
+          ]
+        },
+        "l21-q02": {
+          "answer": "A batch job that scores the table on a schedule",
+          "options": [
+            "A long-running HTTP service, so the report can call it",
+            "A batch job that scores the table on a schedule",
+            "A serverless container that scales to zero between reports",
+            "In the browser of whoever opens the report"
+          ]
+        },
+        "l21-q03": {
+          "answer": "Keep instances warm and pay for them while idle",
+          "options": [
+            "Keep instances warm and pay for them while idle",
+            "Raise the worker count so each cold start loads faster",
+            "Switch to async def endpoints so the load does not block",
+            "None: scaling to zero does not change request latency"
+          ]
+        },
+        "l21-q04": {
+          "answer": "It refuses possible mixes; answer them and flag them out of domain",
+          "options": [
+            "Nothing; out-of-range requests should get a 422 before the model runs",
+            "It refuses possible mixes; answer them and flag them out of domain",
+            "Pydantic cannot express an upper bound on a float field",
+            "Bounds belong in the response model, not the request model"
+          ]
+        },
+        "l21-q05": {
+          "answer": "It narrows slightly, to 34 MPa wide",
+          "options": [
+            "It widens, because the model knows less there",
+            "It narrows slightly, to 34 MPa wide",
+            "It is unchanged, since the calibration factor is fixed",
+            "The service refuses the request with a 422"
+          ]
+        },
+        "l21-q06": {
+          "answer": "It slows to about 160 ms median, waiting for whole batches",
+          "options": [
+            "No difference, since async def is the faster, modern choice",
+            "It slows to about 160 ms median, waiting for whole batches",
+            "It gets faster, since async def frees the threadpool",
+            "It fails outright, because uvicorn kills the blocked worker"
+          ]
+        },
+        "l21-q07": {
+          "answer": "The calibration factor came out 2.09, not 1.66; intervals covered 95.9%",
+          "options": [
+            "It reproduced the ensemble bit for bit, as a seeded deterministic run should",
+            "The calibration factor came out 2.09, not 1.66; intervals covered 95.9%",
+            "It failed to run at all, because the scikit-learn API had changed",
+            "The networks came out different, but the calibration factor still matched"
+          ]
+        },
+        "l21-q08": {
+          "answer": "Liveness checked dependencies; keep it trivial, put those in readiness",
+          "options": [
+            "The probe was too slow; run it every second instead of every ten",
+            "Liveness checked dependencies; keep it trivial, put those in readiness",
+            "There should be no liveness probe when a readiness probe exists",
+            "Restarting was correct; the database should have been restarted first, then the app"
+          ]
+        },
+        "l21-q09": {
+          "answer": "So requests use the training means and spreads, and no other",
+          "options": [
+            "So requests use the training means and spreads, and no other",
+            "Because a saved scaler makes each prediction faster to compute",
+            "So the scaler can refit itself on each incoming batch of requests",
+            "Because Pydantic needs the scaler to range-check the fields"
+          ]
+        },
+        "l21-q10": {
+          "answer": "COPY . . comes before the install, so a code change invalidates that layer",
+          "options": [
+            "COPY . . comes before the install, so a code change invalidates that layer",
+            "--locked makes uv re-resolve and redownload every dependency on each build",
+            "The exec-form CMD at the end turns off Docker's layer cache for the whole file",
+            "The uv image tag is pinned, so its layer is always rebuilt"
+          ]
+        },
+        "l21-q11": {
+          "answer": "No: docker history shows the ARG, and the COPY layer keeps the file",
+          "options": [
+            "Yes: the rm deleted the file, and build arguments are not kept in the image",
+            "No: docker history shows the ARG, and the COPY layer keeps the file",
+            "Yes, as long as the final stage runs as a non-root user such as app",
+            "No, but only because the name key.txt is easy to guess"
+          ]
+        },
+        "l21-q12": {
+          "answer": "Much larger: Linux gets the CUDA build; use the CPU index",
+          "options": [
+            "Smaller, since Linux wheels leave out the Metal backend",
+            "Much larger: Linux gets the CUDA build; use the CPU index",
+            "The same, because uv.lock pins one wheel for every platform",
+            "Larger, but only by the size of the Python interpreter"
+          ]
+        },
+        "l21-q13": {
+          "answer": "About 18 ms, since W = N/X = 32/1800",
+          "options": [
+            "About 4.4 ms, the same as at 8 clients",
+            "About 18 ms, since W = N/X = 32/1800",
+            "About 1.1 ms, since more clients share the overhead",
+            "Unbounded, because the queue grows without limit"
+          ]
+        },
+        "l21-q14": {
+          "answer": "About 63%, which is 1 - 0.99^100",
+          "options": [
+            "About 1%, the same as for a single server",
+            "About 63%, which is 1 - 0.99^100",
+            "About 10%, since only the slowest tenth of servers matter",
+            "All of them, since some server is always slow"
+          ]
+        },
+        "l21-q15": {
+          "answer": "About a hundred times cheaper, 9.1 µs each",
+          "options": [
+            "Slightly cheaper, since the networks do the same work per mix",
+            "About a hundred times cheaper, 9.1 µs each",
+            "More expensive, since the request is much larger to parse",
+            "The same, since batching only helps on a GPU"
+          ]
+        },
+        "l21-q16": {
+          "answer": "$9, two thirds of it from the input context",
+          "options": [
+            "$3, since only the reply is billed",
+            "$6.60, counting every token at the input price",
+            "$9, two thirds of it from the input context",
+            "$33, if every token is billed at the output price"
+          ]
+        },
+        "l21-q17": {
+          "answer": "One slide bullet; Google's controlled test found far less",
+          "options": [
+            "Amazon's controlled study measured exactly 1% per 100 ms",
+            "One slide bullet; Google's controlled test found far less",
+            "Google's 2009 experiment found 20% fewer searches per 500 ms",
+            "The sources agree, but the effect was only seen on mobile users"
+          ]
+        },
+        "l21-q18": {
+          "answer": "New weights or a new calibration factor need the same staged release as code",
+          "options": [
+            "Data files are safe to push globally, since the code was already tested",
+            "New weights or a new calibration factor need the same staged release as code",
+            "Only kernel-level software needs staged rollouts; user-space services never do",
+            "Content updates should be tested with wildcards to cover every value"
+          ]
+        },
+        "l21-q19": {
+          "answer": "A check on every instance that the tested artifact is running",
+          "options": [
+            "A faster rollback, so the old code is back on all eight within seconds",
+            "A check on every instance that the tested artifact is running",
+            "A second deploy to the eighth server before markets open",
+            "Fewer servers, since eight is too many to keep in step"
+          ]
+        },
+        "l21-q20": {
+          "answer": "It still spends CPU on the machines serving real traffic, as simulate mode did",
+          "options": [
+            "Shadow mode is free, because nothing acts on the model's output",
+            "It still spends CPU on the machines serving real traffic, as simulate mode did",
+            "Shadow mode is only risky when its predictions are logged to disk",
+            "It is safe once the change can be pushed globally in seconds"
+          ]
+        }
+      },
+      "serve": 10
     }
   }
 }

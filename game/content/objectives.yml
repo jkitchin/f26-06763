@@ -114,7 +114,7 @@
   text: >-
     Place reinforcement learning in the course's map of machine learning by the feedback the
     learner gets: a correct answer (supervised), samples of a distribution (generative), a score
-    for one choice with no state (Bayesian optimization and bandits), or a score for a sequence of
+    for one choice with no state (Bayesian optimization), or a score for a sequence of
     choices that change the system (reinforcement learning).
 
 - id: l20-o3
@@ -123,12 +123,6 @@
     Implement tabular Q-learning on tank level control and compare it with a tuned PID
     controller over several seeds.
 
-- id: l20-o4
-  lecture: l20
-  text: >-
-    Explain why Q-learning and SARSA learn different paths on cliff walking, and what that says
-    about exploring on a real plant.
-
 - id: l20-o5
   lecture: l20
   text: >-
@@ -136,22 +130,59 @@
     optimization, or a tuned PID loop is, and read a published success claim for its baseline,
     seeds, sample count and simulator.
 
+- id: l20-o6
+  lecture: l20
+  text: >-
+    Find the value of a state by adding up its discounted rewards, and the best action in each
+    state by value iteration.
+
+- id: l20-o7
+  lecture: l20
+  text: >-
+    Write a small control problem as matrices, with where the system is as a vector of
+    probabilities, each action as a matrix whose entries are the chances of moving between
+    states, and the score of each move in a table, and take one step by multiplication.
+
+- id: l20-o8
+  lecture: l20
+  text: >-
+    Explain how a rule for choosing actions is read from a table of action scores, and fill in
+    that table by hand from rewards with the Q-learning update.
+
+# L21 (deployment), lifted verbatim from lectures/l21/notes.md. The evaluation lecture that
+# used to be L21 kept its objectives in archive/l21-evaluation/objectives.yml.
+
 - id: l21-o1
   lecture: l21
   text: >-
-    Build a repeatable eval harness that turns "it seems to work" into a number with a
-    confidence interval.
+    Choose where a model runs (an in-process library, a long-running HTTP service, a
+    serverless container, a batch job, or the user's browser) from its call pattern, latency
+    budget and cost, and name the system already deployed in this course that made the same choice.
 
 - id: l21-o2
   lecture: l21
   text: >-
-    Implement an LLM-as-judge grader and validate it against a small human-labeled set.
+    Serve a trained model behind a FastAPI endpoint with typed, range-checked request and
+    response schemas that carry the prediction's uncertainty and the model version, with the
+    model loaded once at startup and separate liveness and readiness checks.
 
 - id: l21-o3
   lecture: l21
   text: >-
-    Add tracing so every request's inputs, outputs, tool calls, latency, and cost are
-    recorded and queryable.
+    Package the service in a reproducible container built from the `uv` lockfile, CPU-only where
+    the model allows, with no secrets in any image layer.
+
+- id: l21-o4
+  lecture: l21
+  text: >-
+    Measure p50 and p95 latency and throughput under load, use Little's law and batching to
+    reason about capacity, and estimate the cost per request of a model service and of an LLM call.
+
+- id: l21-o5
+  lecture: l21
+  text: >-
+    Release a change with a staged rollout, a rollback plan and a check against the deployed
+    endpoint, and explain from documented incidents what each of those prevents.
 
 # L13 objectives, lifted verbatim from the seven bullets in lectures/l13/notes.md.
 

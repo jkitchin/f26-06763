@@ -29,7 +29,7 @@ Welcome to Lecture 20. This is an optional session, and it is about reinforcemen
 
 So far in this course every learner has been handed something fairly generous. A regression model was given the right answer for every example. Bayesian optimization was given a measured outcome for each experiment it chose. Today the learner gets less than either of those, and its actions change the very system it is learning about.
 
-Over the next ninety minutes we will place reinforcement learning on the map of methods you already know, work three examples by hand and in the browser, and finish with an honest look at when it is worth the cost. Every interactive figure in this deck trains right here in the page, so you can press Play and watch it learn.
+We will start with the mechanics, before any of the field's vocabulary: a tank small enough to write as three numbers and two small matrices, an action as a multiplication, and a table of scores that tells the program what to do and gets trained by trying. Only then do we name the pieces, ask why this is needed when we already have so much machine learning, and work the bigger examples. Every interactive figure in this deck trains right here in the page, so you can press Play and watch it learn.
 
 Next slide.
 
@@ -39,27 +39,30 @@ Next slide.
 
 ## Roadmap
 
-1. Why this matters
-2. Where reinforcement learning sits
-3. Bandits, the bridge from Bayesian optimization
-4. The Markov decision process
-5. Q-learning on a tank
-6. Exploration has a cost: cliff walking
+<style scoped>ol { columns: 2; column-gap: 2.5em; font-size: 0.92em; } li { break-inside: avoid; }</style>
+
+1. How reinforcement learning works, with a tank
+2. How the action gets chosen, and trained
+3. The words people use
+4. Why reinforcement learning, when we already have machine learning
+5. Values and planning
+6. Q-learning on a tank
 7. Deep reinforcement learning and the tools
 8. Case studies
 9. Limitations and trade-offs
 
-<!-- Three worked examples run through the session: five catalysts, the PyCSE tank, cliff walking. -->
+<!-- Mechanics first, words second, motivation third. The three-level tank runs through
+     sections 1, 2, 3 and 5; the PyCSE tank is section 6. -->
 
 <div class="narration">
 
-Here is the plan. We start with why this matters, with a failure and an engineering problem. Then we place reinforcement learning among the methods from earlier lectures, using one water tank as the common example.
+Here is the plan, and it is in an unusual order on purpose. We start with how reinforcement learning works, before any of its jargon. A tank with three levels, written as three numbers and two small matrices, and an action that is literally a matrix multiplication.
 
-Sections three and four build the theory in two steps. Bandits come first, because they are the bridge from the Bayesian optimization of Lecture 15. Then the Markov decision process, which adds the idea of state.
+Section two answers the obvious next question: how does the program choose an action, and where does that choice come from? It comes from a small table of scores that is trained by trying things, and we will train it by hand.
 
-Sections five and six are the worked examples: Q-learning on a tank, which you may have met in the PyCSE book, and a classic grid world called cliff walking. After that a short tour of deep reinforcement learning and the software, four case studies, and the limitations.
+Only in section three do we give the pieces their usual names, agent, environment, state, action, reward, policy. By then each word will point at something you have already computed. Section four asks why we need any of this when we already have so much machine learning, and what niche it fills.
 
-Keep an eye on three running examples: five catalysts, the tank, and the cliff. Each one isolates a different part of the problem.
+The rest builds on that: values and planning with the matrices; Q-learning on a real tank against a PID controller; deep reinforcement learning; case studies; and the limitations.
 
 Next slide.
 
@@ -69,13 +72,13 @@ Next slide.
 
 <!-- _class: section -->
 
-# Why this matters
+# How reinforcement learning works, with a tank
 
-<!-- 5 min -->
+<!-- 12 min -->
 
 <div class="narration">
 
-Let's start with why this matters. I want to show you one failure first, then the engineering version of the same question.
+Section one: how reinforcement learning works, with no jargon at all. We need three things. Something to control, a way to write down where it is, and a way to write down what each choice does to it. All three will be ordinary arrays of numbers, and taking an action will be one matrix multiplication.
 
 Next slide.
 
@@ -83,25 +86,29 @@ Next slide.
 
 ---
 
-## Why this matters, a boat that wins
+## How it works, the rules of a tank
 
-- 2016: an agent trained on the score of CoastRunners, a boat-racing game
-- It "finds an isolated lagoon where it can turn in a large circle and repeatedly knock over three targets"
-- Never finishes the race; scores "20 percent higher than ... human players"
-- Nothing was broken: it maximized exactly the number it was given
-- <span class="pt">▶</span> a learner that is only scored will find whatever the score rewards
+| The tank is at | The operator | It moves to | Reward |
+|---|---|---|---|
+| low | shuts | low | 0 |
+| low | opens | ok | +0.9 |
+| ok | shuts | low | 0 |
+| ok | opens | high | −0.1 |
+| high | shuts | ok | +1 |
+| high | opens | high | −0.1 |
 
-<span class="source">[Clark and Amodei, OpenAI, 2016](https://openai.com/index/faulty-reward-functions/) · [archived copy](https://web.archive.org/web/2017id_/https://blog.openai.com/faulty-reward-functions/)</span>
+- Landing at ok earns +1; opening costs 0.1; no action holds the level at ok
+- <span class="pt">▶</span> these six rows are everything the tank does
 
 <div class="narration">
 
-In 2016, researchers at OpenAI trained an agent to play a boat-racing game called CoastRunners. The agent's only training signal was the game's score.
+Picture an operator watching a tank that can be low, ok or high. Each minute the operator either opens the valve or shuts it. Opening raises the level one step; shutting lowers it one step; it cannot go past low or high.
 
-Read the quote in the second bullet. The agent found an isolated lagoon where it could turn in a large circle and knock over the same three targets again and again, as they respawned. It never finishes the race. And it scores about twenty percent higher than human players, as the third bullet says.
+Landing at ok earns a reward of one, because that is what the plant wants. Opening costs a tenth, for pumping energy. That is why opening from low earns 0.9: plus one for reaching ok, minus a tenth for opening.
 
-The fourth bullet is the uncomfortable part. Nothing in the software was broken. The learning algorithm did exactly its job: it maximized the number it was given. The number just did not describe what the designers wanted, which was to win the race.
+Notice the third and fourth rows. From ok, shutting drops the tank to low and opening overshoots to high. No action holds it at ok, just like a real tank with a fixed menu of inflows.
 
-Hold onto the takeaway at the bottom of the slide. A learner that is only ever scored will find whatever the score actually rewards. We will see this happen to a water tank later today, and it will look just as silly. The source and an archived copy are linked at the bottom.
+And the bottom line: these six rows are everything the tank does. Everything else today is about what to do with a table like this one, usually a much bigger one.
 
 Next slide.
 
@@ -109,24 +116,20 @@ Next slide.
 
 ---
 
-## Why this matters, the engineering version
+## How it works, as a diagram
 
-- A level controller picks a valve position; the level it leaves is the level it faces next
-- Successes: one network shapes the plasma in the TCV tokamak; an RL controller ran a distillation column for 35 days
-- The cost: DQN trained on **about 38 days** of play per Atari game; the human tester practiced **2 hours**
-- <span class="pt">▶</span> when is learning from reward worth that, and when is a model and a controller better?
+![w:900](figures/mdp-diagram.png)
 
-<span class="source">[Degrave et al., Nature 2022](https://www.nature.com/articles/s41586-021-04301-9) · [Yokogawa, 2022](https://www.yokogawa.com/news/press-releases/2022/2022-03-22/) · [Mnih et al., Nature 2015](https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf)</span>
+- One circle per level, one arrow per row of the table
+- <span class="pt">▶</span> read it like a board game: choose blue or orange, follow the arrow, collect the reward
 
 <div class="narration">
 
-Now the engineering version. Think of a level controller choosing a valve position. The first bullet is the key feature: the level it leaves behind is the level it has to deal with at the next step. Its decisions carry forward.
+Here are the same six facts as a picture. One circle per level, and one arrow per row of the table. Blue arrows are open, orange arrows are shut, and each arrow carries its reward.
 
-There are real successes, in the second bullet. At the TCV tokamak in Switzerland, one neural network learned to shape the plasma using all the magnetic coils. And in Japan, a reinforcement learning controller ran a distillation column for thirty five days. We come back to both in the case studies.
+Read it like a board game. You are standing on a circle. You choose blue or orange. You follow that arrow to the next circle and collect what is written on it.
 
-Then look at the cost, in the third bullet. The DQN agent that learned Atari games trained on about thirty eight days of play for each game. The human tester it was compared against practiced for two hours.
-
-So the question for the rest of the session is the one at the bottom. When is learning from reward worth that price, and when is it better to build a model and design a controller the way you already know how?
+Notice that to know where you go next, you only need the circle you are on and the colour you choose. How you got to that circle never matters. Remember that; it gets a name later.
 
 Next slide.
 
@@ -134,15 +137,22 @@ Next slide.
 
 ---
 
-<!-- _class: section -->
+## How it works, where the tank is
 
-# Where reinforcement learning sits
+$$x = [\,x_{\text{low}}\ \ x_{\text{ok}}\ \ x_{\text{high}}\,]$$
 
-<!-- 10 min -->
+- Three numbers, one per level: the chance the tank is at that level; they add to 1
+- Certainly at low: $x = [\,1\ \ 0\ \ 0\,]$
+- Half low, half ok: $x = [\,0.5\ \ 0.5\ \ 0\,]$
+- <span class="pt">▶</span> where the system is, written as a row of numbers whose positions mean something
 
 <div class="narration">
 
-Section two: where reinforcement learning sits among the methods in this course. We will define it, and then compare it, on one tank, with the learners you have already met.
+First, write down where the tank is. Use three numbers, one for each level, in the order low, ok, high. Each number is the chance that the tank is at that level, so the three add up to one.
+
+If we know the tank is at low, the list is one, zero, zero, the second bullet. If we are not sure, and it is equally likely to be at low or at ok, the list is a half, a half, zero.
+
+That is the whole representation. The bottom line is the point to hold onto: the position of each number means something. The first slot is low, the second is ok, the third is high. Keep that in mind, because the matrices on the next slide use the same positions for their rows and columns.
 
 Next slide.
 
@@ -152,21 +162,25 @@ Next slide.
 
 <!-- _class: definition -->
 
-## Where reinforcement learning sits, a definition
+## How it works, an action is a matrix
 
 <div class="definition">
 
-**Reinforcement learning**: learning which actions to take, in a system the actions change, from a reward that scores the outcome instead of naming the right action.
+**Transition matrix**: the matrix $P_a$ of an action $a$ holds, in row $i$ and column $j$, the probability that taking the action at level $i$ leads to level $j$; its rows sum to one.
 
 </div>
 
+$$P_{\text{shut}} = \begin{bmatrix} 1 & 0 & 0 \\ 1 & 0 & 0 \\ 0 & 1 & 0 \end{bmatrix} \qquad P_{\text{open}} = \begin{bmatrix} 0 & 1 & 0 \\ 0 & 0 & 1 \\ 0 & 0 & 1 \end{bmatrix}$$
+
 <div class="narration">
 
-Here is the definition we will use all session. Reinforcement learning is learning which actions to take, in a system the actions change, from a reward that scores the outcome instead of naming the right action.
+Now split the table by action. Take the three rows where the operator shuts, and write them as a grid: one row for where the tank is, one column for where it ends up, a one where it goes and zeros elsewhere. Do the same for open. Rows and columns are both in the order low, ok, high.
 
-There are two phrases to pull out of that sentence. First, the actions change the system, so what you do now affects what you face later. Second, the reward scores the outcome. It tells you how good things went. It never tells you what you should have done.
+Each action is one of these grids, a matrix. Here is the definition. The matrix P sub a of an action holds, in row i and column j, the probability that taking that action at level i leads to level j. So every entry means something: row is where you are, column is where you end up, the number is the chance. Each row sums to one, because the tank has to end up somewhere.
 
-The next few slides take those two phrases apart and show how each one separates reinforcement learning from something you have already seen.
+Check one: row ok of P shut is one, zero, zero. From ok, shutting takes you to low. That is the third row of the table.
+
+Here every entry is a zero or a one because the tank is deterministic. If the valve sometimes stuck, a row might read 0.2, 0.8, zero: opening from low reaches ok four times in five. The matrices still say everything, as probabilities.
 
 Next slide.
 
@@ -174,25 +188,19 @@ Next slide.
 
 ---
 
-## Where reinforcement learning sits, what the learner is told
+## How it works, one step is a multiplication
 
-- Sutton and Barto: RL "uses training information that evaluates the actions taken rather than instructs by giving correct actions"
-- **Instructive** feedback: the right answer, whatever you did (every label in L9 and L10)
-- **Evaluative** feedback: how good your choice was, nothing about the others
-- A yield of 70% for catalyst B says nothing about catalyst C
-- <span class="pt">▶</span> methods differ most in what the learner is told
+<style scoped>.cw.compact svg { max-height: 230px; } .cw.compact .cw-note { display: none; }</style>
 
-<span class="source">[Sutton and Barto, 2nd ed., ch. 2 (free PDF)](http://incompleteideas.net/book/RLbook2020.pdf)</span>
+<div class="cw compact" data-widget="mdp-step" data-source="l20"><img src="figures/mdp-toy.png" alt="The three-level tank's two transition matrices and its reward matrix"></div>
 
 <div class="narration">
 
-Sutton and Barto, in the standard textbook, put the difference in one sentence, quoted in the first bullet: reinforcement learning uses training information that evaluates the actions taken, rather than instructing by giving the correct actions.
+Here is one step, and you get to be the operator. Start from the three numbers for where the tank is. Certainly at low is one, zero, zero, the bars on the left.
 
-That gives us two words. Instructive feedback, in the second bullet, is what you had in Lectures 9 and 10. Every training example came with its label, the right answer, no matter what the model predicted.
+An action moves the tank by a single multiplication: that list times the action's matrix. When the tank is certainly at one level, the multiplication just picks out that row, and the row is where the tank goes. One, zero, zero times P open is zero, one, zero: from low, opening goes to ok.
 
-Evaluative feedback, in the third bullet, only tells you how good your own choice was. The example in the fourth bullet makes it concrete. Suppose you run catalyst B and get a yield of seventy percent. That number tells you nothing about catalyst C. To learn about C, you have to try C.
-
-The takeaway at the bottom is the organizing idea for this whole section: methods differ most in what the learner is told. The book is free online, and the link is at the bottom of the slide.
+Press Open and Shut in the figure and watch the three numbers pass through the matrix, with the row being used shaded, and the rewards add up underneath. That is exactly what it means for an action to change the system: the action chooses which matrix multiplies the three numbers.
 
 Next slide.
 
@@ -200,114 +208,18 @@ Next slide.
 
 ---
 
-## Where reinforcement learning sits, the course's methods
+## How it works, a question
 
-![w:1080](figures/landscape.png)
-
-- <span class="pt">▶</span> each row down adds a difficulty: evaluative feedback, then state, then late rewards
-
-<div class="narration">
-
-This figure puts the course's methods in one table, ordered by what the learner is told. Read it from the top down.
-
-At the top is supervised learning, from Lectures 9 and 10: the learner is shown the right answer. Generative models, from Lecture 16, learn a whole distribution and are told to match the data. Then Bayesian optimization and bandits, from Lecture 15: the learner picks something, gets a score for that one choice, and nothing carries over to the next choice. At the bottom is reinforcement learning, where the score is for a sequence of actions that change the system, and it often arrives late.
-
-The line under the figure says how to read it. Each row down adds a difficulty: first evaluative feedback, then state, then late rewards. Reinforcement learning sits at the bottom because it has all of them at once.
-
-Next slide.
-
-</div>
-
----
-
-## Where reinforcement learning sits, on one tank
-
-<div class="cw compact" data-widget="rl-feedback" data-source="l20" data-mode="rl"><img src="figures/landscape.png" alt="What each kind of learner is told"></div>
-
-- <span class="pt">▶</span> under RL the level carries over, so every early inflow shapes every later reward
-
-<!-- Step through. Then switch the page to the notes' copy to show the supervised and bandit modes if asked. -->
-
-<div class="narration">
-
-Here is the same idea as a figure you can step through. It runs one tank, the one from the PyCSE book, under three kinds of learner. On this slide it opens in the reinforcement learning mode.
-
-Press Play, or press Step to go one decision at a time. Each step, the learner picks an inflow, and the readout below the plot tells you what happened. Watch the level: it carries over. The level that one step leaves behind is where the next step starts.
-
-At the end, the readout points out that the final reward depends on every inflow since step one. That is the line at the bottom of the slide: under reinforcement learning, every early inflow shapes every later reward.
-
-If you open the notes, the same figure has buttons for the supervised mode, where the learner is just handed level and inflow pairs, and the bandit mode, where it tries one constant inflow, gets one score, and the tank starts over.
-
-Next slide.
-
-</div>
-
----
-
-## Where reinforcement learning sits, three difficulties
-
-- **Evaluative**: no correct action is ever shown, so the learner has to try things
-- **Sequential**: the action changes the state the learner faces next
-- **Delayed**: a valve opened too far is punished several steps later, at the overshoot
-- **Credit assignment**: deciding which early action earned a late reward
-- <span class="pt">▶</span> Bayesian optimization has the first difficulty; reinforcement learning has all three
-
-<span class="source">Sutton and Barto, ch. 1: "trial-and-error search and delayed reward"</span>
-
-<div class="narration">
-
-Let's name the difficulties you just watched. There are three, plus one consequence.
-
-Evaluative, in the first bullet: no correct action is ever shown, so the learner has to try things to find out. Sequential, second: the action changes the state the learner faces next. Delayed, third: a valve opened too far is not punished at that step. It is punished several steps later, when the level overshoots.
-
-Put sequential and delayed together and you get the fourth bullet, credit assignment. When a reward finally arrives, which of the earlier actions earned it? That question is the heart of the subject.
-
-The bottom line places it on the map. Bayesian optimization has the first difficulty only. Reinforcement learning has all three. Sutton and Barto describe the field the same way, as trial-and-error search plus delayed reward.
-
-Next slide.
-
-</div>
-
----
-
-## Where reinforcement learning sits, inside language models
-
-- InstructGPT: supervised fine-tuning, then a **reward model** of labeler preferences
-- Then "use this RM as a reward function and fine-tune ... using the PPO algorithm"
-- Its 1.3B model's outputs were preferred to 175B GPT-3's
-- This is **RLHF**; the environment is a learned stand-in for a person's judgement
-- <span class="pt">▶</span> everything this session says about rewards that miss the intent applies to RLHF
-
-<span class="source">[Ouyang et al., 2022](https://arxiv.org/abs/2203.02155) · [Christiano et al., 2017](https://arxiv.org/abs/1706.03741)</span>
-
-<div class="narration">
-
-Before we go further, one place you have already met reinforcement learning, perhaps without knowing it: inside the language models of the last few lectures.
-
-The InstructGPT paper describes three stages. First, supervised fine-tuning on demonstrations. Then, as the first bullet says, they train a reward model, a network that predicts which of two answers a human labeler would prefer. The second bullet is their own wording: they use this reward model as a reward function and fine-tune the language model with the PPO algorithm.
-
-It worked. As the third bullet says, outputs from their 1.3 billion parameter model were preferred to those of the 175 billion parameter GPT-3.
-
-This is reinforcement learning from human feedback, RLHF. Notice what the environment is, in the fourth bullet: a learned stand-in for a person's judgement. So everything we say today about rewards that miss what you meant applies here too. The reward model is only an approximation of what people want, and the policy will find its gaps.
-
-Next slide.
-
-</div>
-
----
-
-## Where reinforcement learning sits, a question
-
-<div class="clicker" data-tag="l20-which-tool" data-seconds="45" data-answer="B" data-hint="Does running one reaction change what the next one will give?" data-why="B. Each run is scored, so the feedback is evaluative, but no run changes the state the next one faces. That is a bandit, or Bayesian optimization with a model over conditions; reinforcement learning is for decisions that change the system." data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker" data-tag="l20-one-step" data-seconds="45" data-answer="B" data-hint="Weight each row of P_open by the probability of that state, then add the rows." data-why="B. p P_open is 0.5 times the low row, [0, 1, 0], plus 0.5 times the ok row, [0, 0, 1], which is [0, 0.5, 0.5]. Opening moves each half of the probability up one level." data-read="https://clicker.f26-06763.workers.dev">
 <div class="clicker-main">
 
-**You pick a temperature for each of 30 independent reaction runs and measure the yield. Each run starts from fresh feed. Which framing fits?**
+**The tank is equally likely to be at low or ok, $p = [\,0.5\ \ 0.5\ \ 0\,]$. You open the valve. What is $p\,P_{\text{open}}$?**
 
 <ol class="clicker-opts">
-<li>Supervised regression: there is a right temperature to label</li>
-<li>Bayesian optimization or a bandit</li>
-<li>Reinforcement learning, because each choice is scored</li>
-<li>A generative model of yields</li>
+<li>[ 0, 1, 0 ]</li>
+<li>[ 0, 0.5, 0.5 ]</li>
+<li>[ 0.5, 0, 0.5 ]</li>
+<li>[ 0.5, 0.5, 0 ]</li>
 </ol>
 
 </div>
@@ -322,13 +234,13 @@ Next slide.
 
 <div class="narration">
 
-Time for a question, to check the framing before we build on it. Read it with me.
+Time for a question, to check the one step before we build on it.
 
-You pick a temperature for each of thirty independent reaction runs and measure the yield. Each run starts from fresh feed. Which framing fits?
+The tank is equally likely to be at low or at ok. So p is one half, one half, zero. You open the valve. What is p times P open?
 
-A, supervised regression, because there is a right temperature to label. B, Bayesian optimization or a bandit. C, reinforcement learning, because each choice is scored. D, a generative model of yields.
+A, zero, one, zero. B, zero, a half, a half. C, a half, zero, a half. D, a half, a half, zero.
 
-Scan the QR code, or go to the address on the right, and vote on your phone. You have forty five seconds. A hint, before you answer: think about whether running one reaction changes what the next one will give. When the votes are in, we will reveal the answer and talk about it.
+Scan the QR code and vote. You have forty five seconds. If you are stuck, weight each row of P open by the probability of that state, and add the rows.
 
 Once the answer is revealed and discussed, next slide.
 
@@ -336,169 +248,22 @@ Once the answer is revealed and discussed, next slide.
 
 ---
 
-<!-- _class: section -->
+## How it works, a score for every move
 
-# Bandits, the bridge from Bayesian optimization
+$$R = \begin{bmatrix} 0 & 0.9 \\ 0 & -0.1 \\ 1 & -0.1 \end{bmatrix} \quad (\text{rows: low, ok, high; columns: shut, open})$$
 
-<!-- 10 min -->
-
-<div class="narration">
-
-Section three: bandits. A bandit is the simplest problem with evaluative feedback, and it is the bridge from Bayesian optimization to reinforcement learning. It has exploration, but no state.
-
-Next slide.
-
-</div>
-
----
-
-## Bandits, five catalysts
-
-- Five catalysts, 500 runs; mean yields 62, 70, **74**, 66, 58%, unknown to you
-- One run's yield is noisy: spread of 8 points
-- Goal: the most total yield over all 500 runs
-- **Regret** $=\sum_t (\mu^\ast - \mu_{a_t})$: yield given up by not knowing the answer
-- <span class="pt">▶</span> exploration with no state: the next run does not depend on the last
-
-<span class="source">[Sutton and Barto, ch. 2](http://incompleteideas.net/book/RLbook2020.pdf)</span>
+- Each move earns the entry of $R$ for where you were and what you did
+- Run the tank: add up the scores, $r_1 + 0.9\,r_2 + 0.9^2 r_3 + \dots$
+- The 0.9 makes later scores count a little less, so an endless run has a finite total
+- <span class="pt">▶</span> the goal: choose moves that make this total as large as possible
 
 <div class="narration">
 
-Here is our first worked example. You have five catalysts, and a budget of five hundred runs. The true mean yields are sixty two, seventy, seventy four, sixty six and fifty eight percent. Catalyst C, at seventy four, is the best. But you do not know any of these numbers.
+The last piece is the score. Each move earns a number, and those numbers also fit in a matrix, R, one row per level and one column per action. From low, opening earns 0.9: one for reaching ok, minus a tenth for pumping. From high, shutting earns one.
 
-The second bullet makes it harder. A single run's yield is noisy, with a spread of eight points. So one good run of catalyst B can easily look better than one run of C.
+Run the tank for many minutes and add up the scores as you go, second bullet. We weight later scores by powers of 0.9, so a score two moves away counts 0.81 of its size. There are two reasons. A score now is worth a bit more than the same score much later, and an endless run still adds up to a finite number.
 
-The goal, in the third bullet, is the most total yield over all five hundred runs. That means you cannot just test everything carefully and then decide. Every run spent on a bad catalyst costs you.
-
-The fourth bullet gives the measure we use, regret. At each run you give up the difference between the best mean and the mean of the catalyst you pulled. Add that up over all runs, and you have the yield you lost by not knowing the answer in advance.
-
-And note the bottom line. This is exploration with no state. The yield of the next run does not depend on what you ran last.
-
-Next slide.
-
-</div>
-
----
-
-## Bandits, four strategies
-
-- **Greedy**: best average so far
-- **ε-greedy**: greedy, except a random arm one time in ten
-- **UCB**: largest $\hat\mu_a + c\sqrt{\ln t / n_a}$, a bonus that shrinks as an arm is tried
-- **Thompson sampling**: draw one plausible mean per arm, pull the largest
-- UCB and Thompson are L15's acquisition functions with the Gaussian process removed
-- <span class="pt">▶</span> spend exploration where the uncertainty is, then stop
-
-<div class="narration">
-
-There are four strategies on this slide, and they make a nice progression.
-
-Greedy, first: always pull the catalyst with the best average so far. It sounds sensible, but an unlucky first run can make the best catalyst look bad, and greedy never goes back to check.
-
-Epsilon-greedy, second: be greedy, except one time in ten pick a catalyst at random. That fixes the getting-stuck problem, but it keeps paying for random pulls forever, even after the answer is obvious.
-
-UCB, third, for upper confidence bound. Score each catalyst by its average plus a bonus. The bonus is large for catalysts you have tried only a few times, and it shrinks as you try them. So you explore where you are uncertain.
-
-Thompson sampling, fourth: for each catalyst, draw one plausible mean from what you currently believe, and pull the largest draw.
-
-The fifth bullet should look familiar. UCB and Thompson sampling are the acquisition functions from Lecture 15, with the Gaussian process taken out. And the bottom line says what the good strategies have in common: spend exploration where the uncertainty is, then stop.
-
-Next slide.
-
-</div>
-
----
-
-## Bandits, results over 500 runs
-
-![h:360](figures/bandit-regret.png)
-
-- Greedy stuck on a wrong arm in **27%** of runs; ε-greedy never stops paying
-- <span class="pt">▶</span> UCB and Thompson flatten out: 211 and 269 points of regret
-
-<div class="narration">
-
-Here are the four strategies run five hundred times each, five hundred pulls per run. The plot shows cumulative regret, the yield given up, as the runs go on. Lower is better.
-
-Look at greedy first. In twenty seven percent of runs it got stuck on a wrong catalyst, so its regret keeps climbing in a straight line. Epsilon-greedy never gets stuck, but its line never flattens either, because it keeps spending one run in ten on random catalysts.
-
-Now look at the two curves that bend over and flatten out: UCB and Thompson sampling. They finish with about two hundred eleven and two hundred sixty nine points of regret, respectively. Their exploration happens early, while it is useful, and then it stops.
-
-The UCB curve here uses the constant c equal to eight. Hold that thought, because in two slides we will see what happens with the textbook value.
-
-Next slide.
-
-</div>
-
----
-
-## Bandits, live
-
-<div class="cw compact" data-widget="bandit" data-source="l20" data-method="ucb"><img src="figures/bandit-regret.png" alt="Five catalyst arms and cumulative regret"></div>
-
-- <span class="pt">▶</span> watch the whiskers shrink on the arms it has tried, and the pulls concentrate on C
-
-<div class="narration">
-
-Here is the bandit running live, with UCB selected. Press Play.
-
-Each bar is one catalyst's estimated mean yield, and the whisker on it shows the uncertainty bonus. Watch two things, as the bottom line says. First, the whiskers shrink on the catalysts it has tried a lot. Second, the pulls concentrate on catalyst C, the best one.
-
-The regret curve grows quickly at first, while the algorithm is still exploring, and then flattens.
-
-Try switching the method to greedy and pressing New seed a few times. On some seeds greedy locks onto the wrong catalyst early, and its regret climbs in a straight line for the rest of the run. That is the twenty seven percent from the previous slide, happening in front of you.
-
-Next slide.
-
-</div>
-
----
-
-## Bandits, the constant has units
-
-- Sutton and Barto's examples use $c = 2$, for rewards with a spread of about 1
-- These yields spread by 8: with $c = 2$, UCB locks onto a wrong arm in **16%** of runs
-- With $c = 8$, one noise standard deviation: under **1%**
-- L15 wrote UCB as $\mu + \kappa\,\sigma(x)$ so the model's uncertainty carries the units
-- <span class="pt">▶</span> a hyperparameter copied from a textbook brings that textbook's scale with it
-
-<div class="narration">
-
-The constant c in UCB has units, and that is easy to miss.
-
-Sutton and Barto's examples use c equal to two, as the first bullet says. That works for their problems, where rewards have a spread of about one. Our yields spread by eight points. With c equal to two, the bonus is tiny compared with the noise, so UCB stops exploring too soon. As the second bullet says, it locks onto a wrong catalyst in sixteen percent of runs.
-
-Set c equal to eight, one noise standard deviation, and the failure rate drops under one percent.
-
-Lecture 15 avoided this problem by construction. There, UCB was written as the mean plus kappa times sigma of x, where sigma is the model's own uncertainty, so the uncertainty already carries the units.
-
-The bottom line generalizes it: a hyperparameter copied from a textbook brings that textbook's scale with it. Check the units before you trust a default.
-
-Next slide.
-
-</div>
-
----
-
-## Bandits, and Bayesian optimization
-
-- Continuous arms (temperature, composition) cannot each be tried once
-- A Gaussian process links them: a run at 80 °C informs 82 °C
-- Bayesian optimization is a bandit with a model over the arms
-- Neither has state: the yield of run 12 does not depend on run 11
-- <span class="pt">▶</span> add that dependence and the problem becomes reinforcement learning
-
-<div class="narration">
-
-Now let's connect bandits back to Bayesian optimization explicitly.
-
-A bandit has a handful of separate arms. But many real choices are continuous, like a temperature or a composition, as the first bullet says. You cannot try every temperature once.
-
-The second bullet is what Bayesian optimization adds. A Gaussian process links nearby choices, so a run at eighty degrees tells you something about eighty two degrees. So, third bullet, Bayesian optimization is a bandit with a model over the arms.
-
-Now the fourth bullet, which is the hinge of the whole lecture. Neither a bandit nor Bayesian optimization has state. The yield of run twelve does not depend on what you did in run eleven.
-
-The bottom line is where we go next. Add that dependence, so that today's action changes tomorrow's situation, and the problem becomes reinforcement learning. The tool for describing that dependence is the Markov decision process.
+And that gives us the goal, at the bottom: choose moves that make this total as large as possible. Everything in the rest of the session is a way of doing that.
 
 Next slide.
 
@@ -508,13 +273,70 @@ Next slide.
 
 <!-- _class: section -->
 
-# The Markov decision process
+# How the action gets chosen, and trained
 
-<!-- 10 min -->
+<!-- 14 min -->
 
 <div class="narration">
 
-Section four: the Markov decision process. This is the vocabulary of the field. Once you can name the five parts, you can set up almost any reinforcement learning problem.
+Section two. We have a tank, a way to write where it is, a matrix for each action and a score for each move. The program now has to decide what to do at each level. The decision comes from somewhere, and that somewhere is trained. Let's see how.
+
+Next slide.
+
+</div>
+
+---
+
+## Choosing an action, a rule is a table
+
+| The tank is at | Do this |
+|---|---|
+| low | open |
+| ok | shut |
+| high | shut |
+
+- A rule says what to do at each level: here, three entries
+- Follow it and the tank's path and its total score are fixed
+- Nobody tells you the right entries: only the score of each move
+- <span class="pt">▶</span> the question is where a good rule comes from
+
+<div class="narration">
+
+The program needs a rule: at each level, which action. For three levels, a rule is just three entries, like this table. Open at low, shut at ok, shut at high.
+
+Once you pick a rule, everything else is decided, second bullet. Start the tank somewhere, follow the rule, and the path and its total score follow from the matrices.
+
+Here is the catch, in the third bullet. Nobody hands you the right entries. There is no teacher who says "at ok, you should have shut". All you ever get back is the score of each move you actually made.
+
+So, the bottom line: the real question is where a good rule comes from.
+
+Next slide.
+
+</div>
+
+---
+
+## Choosing an action, a table of scores
+
+$$Q = \begin{bmatrix} Q(\text{low},\text{shut}) & Q(\text{low},\text{open}) \\ Q(\text{ok},\text{shut}) & Q(\text{ok},\text{open}) \\ Q(\text{high},\text{shut}) & Q(\text{high},\text{open}) \end{bmatrix}$$
+
+- One number per level and action: how good that move is, counting the scores that follow
+- To choose: look up the row for the current level, take the larger number
+- The same last step as an L10 classifier: score every option, pick the largest
+- But no label trains it: it is trained from the scores the moves earned
+- <span class="pt">▶</span> a good rule comes from a good table; training is filling in the table
+
+<div class="narration">
+
+The answer is a second table, called Q. It has one number for each level and each action, so for our tank it is a three by two matrix. Each number says how good that move is, counting not only its own score but the scores that come after it.
+
+If you had a good Q, choosing would be easy, second bullet. Look up the row for the level you are at, and take the action with the larger number. That is the whole decision.
+
+The third bullet connects to something you know. That final step is exactly what the classifier in Lecture 10 did: score every class, report the largest.
+
+The difference, fourth bullet, is how the numbers are learned. A classifier is trained on labels, the right class for each example. Q has no labels. It is trained only from the scores the moves actually earned.
+
+So the bottom line: a good rule comes from a good table, and training means filling in that table.
 
 Next slide.
 
@@ -524,21 +346,27 @@ Next slide.
 
 <!-- _class: definition -->
 
-## The Markov decision process, a definition
+## Choosing an action, training the table
 
 <div class="definition">
 
-**Markov decision process**: states, actions, transition probabilities $p(s' \mid s, a)$ and rewards, where the next state depends only on the current state and action.
+**Q-learning**: after each move, nudge that move's entry in $Q$ toward the score it earned plus 0.9 times the best entry in the row where it landed.
 
 </div>
 
+$$Q(s,a) \leftarrow Q(s,a) + \alpha\,\big[\, r + \gamma \max_{a'} Q(s',a') - Q(s,a) \,\big]$$
+
+- Try a move; see the score $r$ and where it lands; nudge one entry of $Q$ toward $r + 0.9 \times$ the best number in the new row
+
+<span class="source">[Watkins and Dayan, 1992 (author's copy)](https://www.gatsby.ucl.ac.uk/~dayan/papers/cjch.pdf)</span>
+
 <div class="narration">
 
-Here is the definition. A Markov decision process has states, actions, transition probabilities, and rewards, where the next state depends only on the current state and action.
+Here is how the table gets filled in, and it has a name: Q-learning. In words, at the bottom: try a move, see the score it earned and where the tank landed, and nudge that one entry of Q toward the score plus 0.9 times the best number in the row you landed in.
 
-The transition probability, written p of s prime given s and a, is the chance of landing in state s prime if you take action a in state s. For the tank, the transitions are deterministic: the physics decides the next level exactly.
+The equation says the same thing in symbols. s is where you were, a is what you did, s prime is where you landed, and r is the score. The target is r plus gamma times the largest Q in the new row. Alpha is how far you move toward the target, say halfway.
 
-The important clause is the last one: the next state depends only on the current state and action. Nothing further back in the history matters. That property has a name, and it gets its own slide in a moment.
+Why the best number in the new row? Because a move is good if it earns a good score now, or if it lands you somewhere from which good moves are possible. That second part is how a score earned later works its way back to the moves that set it up. Watkins introduced this in his thesis, and the paper with Dayan, linked at the bottom, proved that it converges.
 
 Next slide.
 
@@ -546,13 +374,179 @@ Next slide.
 
 ---
 
-## The Markov decision process, the loop
+## Choosing an action, by hand: the first six updates
+
+| # | s → a → s′ | r | target r + 0.9 max Q(s′, ·) | surprise | new Q(s, a) |
+|---|---|---|---|---|---|
+| 1 | low → open → ok | 0.9 | 0.9 + 0.9 × 0 = 0.900 | 0.900 | 0.450 |
+| 2 | ok → open → high | −0.1 | −0.1 + 0.9 × 0 = −0.100 | −0.100 | −0.050 |
+| 3 | high → shut → ok | 1 | 1 + 0.9 × 0 = 1.000 | 1.000 | 0.500 |
+| 4 | ok → shut → low | 0 | 0 + 0.9 × 0.450 = 0.405 | 0.405 | 0.203 |
+| 5 | low → open → ok | 0.9 | 0.9 + 0.9 × 0.203 = 1.082 | 0.632 | 0.766 |
+| 6 | ok → open → high | −0.1 | −0.1 + 0.9 × 0.500 = 0.350 | 0.400 | 0.150 |
+
+- Same tank; the program never sees $P_a$ or $R$; α = 0.5, $Q$ starts at 0
+- <span class="pt">▶</span> update 4: reward 0, target 0.405; the value of low, learned in update 1, moved back to ok
+
+<div class="narration">
+
+Now let's do it by hand, on the same three-level tank. The important difference: the program never sees the two matrices or the score matrix. It only sees the transitions it happens to make. The table is a three by two matrix of zeros, and we use alpha of one half and gamma of 0.9. Each transition updates exactly one entry.
+
+Here are the first six updates, worked out. Read each row from left to right: where the tank was, what was done, where it landed, the score, the target, the surprise, which is the target minus the old value, and the new value.
+
+Row one. From low, the agent opens and lands at ok. The reward is 0.9, one for landing at ok minus a tenth for opening. The row for ok is still all zeros, so the target is just 0.9. The surprise is 0.9 minus zero, and with alpha of one half the entry moves halfway, to 0.45.
+
+Rows two and three work the same way. Opening from ok overshoots to high and costs a tenth, so that entry goes to minus 0.05. Shutting from high lands at ok and earns one, so that entry goes to one half.
+
+Now row four. From ok, the agent shuts and drops to low. The reward is zero, but the target is not. It is 0.9 times the best value in the low row, which is the 0.45 learned in row one. So the target is 0.405, and the entry becomes about 0.2. As the bottom line says, value earned later, by opening from low, has moved one step back, into the decision that got the agent to low.
+
+Rows five and six repeat the episode. Now the targets include what was just learned, so the numbers grow: opening from low climbs from 0.45 to 0.766.
+
+Next slide.
+
+</div>
+
+---
+
+## Choosing an action, by hand: step through it
+
+<div class="cw compact" data-widget="q-hand" data-source="l20"><img src="figures/qhand.png" alt="The 3 by 2 Q matrix after 6 and 306 updates, and Q star"></div>
+
+- <span class="pt">▶</span> one outlined entry per update; watch it approach Q*
+
+<div class="narration">
+
+Here is the same small tank as a figure, with every update. Press Step to go one update at a time. The tank on the left shows each move, with water pouring in when the valve opens and draining out when it shuts. In the middle is the three by two Q matrix, with the entry being updated outlined. Below it are the three lines of arithmetic from the last slide: the target, the surprise, and the new value.
+
+The first six steps are exactly the table you just saw. After that, the agent explores epsilon-greedily for three hundred more steps. Press Play and watch the matrix fill in and approach Q star, on the right, the exact answer. We compute it directly from the matrices later in the session. The readout gives the largest gap between them.
+
+Next slide.
+
+</div>
+
+---
+
+## Choosing an action, by hand: where it ends
+
+![w:1000](figures/qhand.png)
+
+- After 306 updates: within 0.02 of Q* everywhere except Q(high, open), tried twice
+- Greedy actions correct from update 3 on; best policy alternates ok → low → ok
+- <span class="pt">▶</span> a table can act correctly long before every number in it is right
+
+<div class="narration">
+
+This is where it ends up. On the left is the table after the six scripted updates, in the middle after three hundred and six updates, and on the right is Q star. Bold marks the greedy action in each row.
+
+As the first bullet says, after three hundred and six updates every entry is within 0.02 of Q star, except one: Q of high and open. The agent tried that only twice, because a greedy agent at high always shuts, so that entry is still far off.
+
+The second bullet is the reassuring part. The greedy actions were correct from update three onward, and never changed: open from low, shut from ok, shut from high. Since nothing holds the level at ok, the best policy cycles from ok down to low and back up.
+
+So, as the bottom line says, a table can act correctly long before every number in it is right. You will see the same thing later on the full tank, in its rarely visited top bins.
+
+Next slide.
+
+</div>
+
+---
+
+## Choosing an action, explore sometimes
+
+- Always taking the larger number never tries the other move
+- An entry that is never tried is never learned
+- **ε-greedy**: usually take the larger; one move in five, ε = 0.2, pick at random
+- Q(high, open) above: tried twice in 306 updates, still far off
+- <span class="pt">▶</span> training needs some moves made only to find out
+
+<div class="narration">
+
+One more ingredient. If the program always takes the larger number in the row, it never tries the other move, and, as the second bullet says, an entry that is never tried is never learned. It could be stuck with a wrong guess forever.
+
+The fix is simple, third bullet. Usually take the larger number, but one move in five, pick at random. That is called epsilon-greedy, with epsilon of 0.2.
+
+You saw the cost of rarely trying something on the last slide. Q of high and open was tried only twice, so it is still far from the right value.
+
+The bottom line: training needs some moves that are made only to find out. That trade-off has a name, exploration against exploitation.
+
+Next slide.
+
+</div>
+
+---
+
+<!-- _class: section -->
+
+# The words people use
+
+<!-- 4 min -->
+
+<div class="narration">
+
+Section three: the words. Everything so far was a tank, three numbers, two matrices and two tables. The field has names for each of those, and the names are what you will meet in papers and libraries. Each one now points at something you have already computed.
+
+Next slide.
+
+</div>
+
+---
+
+## The words people use, a dictionary
+
+| Word | Means | In the tank |
+|---|---|---|
+| **state** | where the system is | the level, or the three numbers $x$ |
+| **action** | a choice that changes it | open or shut, which picks $P_{\text{open}}$ or $P_{\text{shut}}$ |
+| **environment** | everything the actions act on | the matrices $P_a$ and the scores $R$ |
+| **reward** | the score of one move | one entry of $R$ |
+| **policy** | the rule from state to action | low → open, ok → shut, high → shut |
+| **agent** | the thing that chooses and learns | the program filling in $Q$ |
+| **episode** | one run from a start to an end | one run of the tank |
+
+<div class="narration">
+
+Here is the dictionary. Read it row by row.
+
+A state is where the system is: for us, the level, or the three numbers. An action is a choice that changes the state: open or shut, which picks one of the two matrices. The environment is everything the actions act on, the matrices and the scores together. A reward is the score of one move, one entry of R. A policy is the rule from state to action, the three-entry table. The agent is the thing that chooses and learns, our program filling in Q. And an episode is one run from a start to an end.
+
+When people say "the agent takes an action that affects the environment", this is all they mean: the program picks a matrix, and the matrix multiplies the state.
+
+Next slide.
+
+</div>
+
+---
+
+<!-- _class: definition -->
+
+## The words people use, a definition
+
+<div class="definition">
+
+**Reinforcement learning**: learning which actions to take, in a system the actions change, from a reward that scores the outcome instead of naming the right action.
+
+</div>
+
+<div class="narration">
+
+Now the definition, which should read as a summary of what you have already done. Reinforcement learning is learning which actions to take, in a system the actions change, from a reward that scores the outcome instead of naming the right action.
+
+There are two phrases to pull out of that sentence. First, the actions change the system, so what you do now affects what you face later. Second, the reward scores the outcome. It tells you how good things went. It never tells you what you should have done.
+
+Section four takes those two phrases apart and shows how each one separates reinforcement learning from something you have already seen.
+
+Next slide.
+
+</div>
+
+---
+
+## The words people use, the loop
 
 - **Agent** sees state $s_t$, takes action $a_t$, gets reward $r_{t+1}$ and state $s_{t+1}$
 - **Episode**: one run from start to end
-- Tank: state = level (20 bins), action = inflow (5 values), reward = $-(h-5)^2 - 0.01F^2$
-- Episode: 100 steps of 0.5 time units
-- <span class="pt">▶</span> naming these five things is most of the work of setting up an RL problem
+- Three-level tank: see the level, open or shut, collect the entry of $R$, land at the next level
+- The bigger tank later: the level in 20 bins, 5 inflows, 100 steps per episode
+- <span class="pt">▶</span> naming these things is most of the work of setting up an RL problem
 
 <span class="source">[Spinning Up, part 1](https://spinningup.openai.com/en/latest/spinningup/rl_intro.html)</span>
 
@@ -562,9 +556,9 @@ This is the loop that every reinforcement learning problem runs. The agent, firs
 
 An episode, second bullet, is one run from start to end, like one game or one batch.
 
-The third bullet maps all of this onto the tank. The state is the level, chopped into twenty bins. The action is the inflow, one of five values. The reward is minus the squared distance of the level from five, with a small penalty on the inflow. And an episode, fourth bullet, is one hundred steps of half a time unit each.
+The third bullet is our three-level tank in these words: see the level, open or shut, collect the entry of R, and land at the next level. The fourth bullet previews the bigger tank later today, with its level in twenty bins, five inflows, and one hundred steps per episode.
 
-The bottom line is a practical observation. Naming these five things, the state, action, reward, transitions, and episode, is most of the work of setting up a reinforcement learning problem. The learning algorithm is often the easy part. The Spinning Up guide linked at the bottom is a good, gentle reference for this vocabulary.
+The bottom line is a practical observation. Naming these things, the state, the actions, the rewards, the matrices, and the episode, is most of the work of setting up a reinforcement learning problem. The learning algorithm is often the easy part. The Spinning Up guide linked at the bottom is a good, gentle reference for this vocabulary.
 
 Next slide.
 
@@ -572,7 +566,31 @@ Next slide.
 
 ---
 
-## The Markov decision process, the Markov property
+<!-- _class: definition -->
+
+## The words people use, a Markov decision process
+
+<div class="definition">
+
+**Markov decision process**: states, actions, transition probabilities $p(s' \mid s, a)$ and rewards, where the next state depends only on the current state and action.
+
+</div>
+
+<div class="narration">
+
+The whole setup also has a name. The tank's states, its two actions, its two matrices and its score table together are what the field calls a Markov decision process. Here is the definition: states, actions, transition probabilities, and rewards, where the next state depends only on the current state and action.
+
+The transition probability, written p of s prime given s and a, is just one entry of the action's matrix: row s, column s prime. For our tank every entry is a zero or a one, because the tank is deterministic.
+
+The important clause is the last one, which you already noticed on the diagram: the next state depends only on where you are and what you do. How you got there never matters. That property gets its own slide next.
+
+Next slide.
+
+</div>
+
+---
+
+## The words people use, the Markov property
 
 - The next state depends only on the current state and action
 - The tank's level: Markov, because the dynamics depend only on $h$
@@ -598,20 +616,271 @@ Next slide.
 
 ---
 
-## The Markov decision process, return and discount
+<!-- _class: section -->
+
+# Why reinforcement learning, when we already have machine learning
+
+<!-- 8 min -->
+
+<div class="narration">
+
+Section four: why we need any of this. This course has already given you regression, classifiers, neural networks, Bayesian optimization and generative models. What does reinforcement learning do that those cannot? We start with a failure, then an engineering problem, then compare it with the learners you have already met.
+
+Next slide.
+
+</div>
+
+---
+
+## Why reinforcement learning, a boat that wins
+
+- 2016: an agent trained on the score of CoastRunners, a boat-racing game
+- It "finds an isolated lagoon where it can turn in a large circle and repeatedly knock over three targets"
+- Never finishes the race; scores "20 percent higher than ... human players"
+- Nothing was broken: it maximized exactly the number it was given
+- <span class="pt">▶</span> a learner that is only scored will find whatever the score rewards
+
+<span class="source">[Clark and Amodei, OpenAI, 2016](https://openai.com/index/faulty-reward-functions/) · [archived copy](https://web.archive.org/web/2017id_/https://blog.openai.com/faulty-reward-functions/)</span>
+
+<div class="narration">
+
+In 2016, researchers at OpenAI trained an agent to play a boat-racing game called CoastRunners. The agent's only training signal was the game's score.
+
+Read the quote in the second bullet. The agent found an isolated lagoon where it could turn in a large circle and knock over the same three targets again and again, as they respawned. It never finishes the race. And it scores about twenty percent higher than human players, as the third bullet says.
+
+The fourth bullet is the uncomfortable part. Nothing in the software was broken. The learning algorithm did exactly its job: it maximized the number it was given. The number just did not describe what the designers wanted, which was to win the race.
+
+Hold onto the takeaway at the bottom of the slide. A learner that is only ever scored will find whatever the score actually rewards. We will see this happen to the water tank later today, and it will look just as silly. The source and an archived copy are linked at the bottom.
+
+Next slide.
+
+</div>
+
+---
+
+## Why reinforcement learning, the engineering version
+
+- A level controller picks a valve position; the level it leaves is the level it faces next
+- Successes: one network shapes the plasma in the TCV tokamak; an RL controller ran a distillation column for 35 days
+- The cost: DQN trained on **about 38 days** of play per Atari game; the human tester practiced **2 hours**
+- <span class="pt">▶</span> when is learning from reward worth that, and when is a model and a controller better?
+
+<span class="source">[Degrave et al., Nature 2022](https://www.nature.com/articles/s41586-021-04301-9) · [Yokogawa, 2022](https://www.yokogawa.com/news/press-releases/2022/2022-03-22/) · [Mnih et al., Nature 2015](https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf)</span>
+
+<div class="narration">
+
+Now the engineering version. Think of a level controller choosing a valve position. The first bullet is the key feature: the level it leaves behind is the level it has to deal with at the next step. Its decisions carry forward.
+
+There are real successes, in the second bullet. At the TCV tokamak in Switzerland, one neural network learned to shape the plasma using all the magnetic coils. And in Japan, a reinforcement learning controller ran a distillation column for thirty five days. We come back to both in the case studies.
+
+Then look at the cost, in the third bullet. The DQN agent that learned Atari games trained on about thirty eight days of play for each game. The human tester it was compared against practiced for two hours.
+
+So the question for the rest of the session is the one at the bottom. When is learning from reward worth that price, and when is it better to build a model and design a controller the way you already know how?
+
+Next slide.
+
+</div>
+
+---
+
+## Why reinforcement learning, what the learner is told
+
+- Sutton and Barto: RL "uses training information that evaluates the actions taken rather than instructs by giving correct actions"
+- **Instructive** feedback: the right answer, whatever you did (every label in L9 and L10)
+- **Evaluative** feedback: how good your choice was, nothing about the others
+- A yield of 70% for catalyst B says nothing about catalyst C
+- <span class="pt">▶</span> methods differ most in what the learner is told
+
+<span class="source">[Sutton and Barto, 2nd ed., ch. 2 (free PDF)](http://incompleteideas.net/book/RLbook2020.pdf)</span>
+
+<div class="narration">
+
+Sutton and Barto, in the standard textbook, put the difference in one sentence, quoted in the first bullet: reinforcement learning uses training information that evaluates the actions taken, rather than instructing by giving the correct actions.
+
+That gives us two words. Instructive feedback, in the second bullet, is what you had in Lectures 9 and 10. Every training example came with its label, the right answer, no matter what the model predicted.
+
+Evaluative feedback, in the third bullet, only tells you how good your own choice was. The example in the fourth bullet makes it concrete. Suppose you run catalyst B and get a yield of seventy percent. That number tells you nothing about catalyst C. To learn about C, you have to try C.
+
+The takeaway at the bottom is the organizing idea for this whole section: methods differ most in what the learner is told. The book is free online, and the link is at the bottom of the slide.
+
+Next slide.
+
+</div>
+
+---
+
+## Why reinforcement learning, the course's methods
+
+![w:1080](figures/landscape.png)
+
+- <span class="pt">▶</span> each row down adds a difficulty: evaluative feedback, then state, then late rewards
+
+<div class="narration">
+
+This figure puts the course's methods in one table, ordered by what the learner is told. Read it from the top down.
+
+At the top is supervised learning, from Lectures 9 and 10: the learner is shown the right answer. Generative models, from Lecture 16, learn a whole distribution and are told to match the data. Then Bayesian optimization, from Lecture 15: the learner picks something, gets a score for that one choice, and nothing carries over to the next choice. At the bottom is reinforcement learning, where the score is for a sequence of actions that change the system, and it often arrives late.
+
+The line under the figure says how to read it. Each row down adds a difficulty: first evaluative feedback, then state, then late rewards. Reinforcement learning sits at the bottom because it has all of them at once.
+
+Next slide.
+
+</div>
+
+---
+
+## Why reinforcement learning, three difficulties
+
+- **Evaluative**: no correct action is ever shown, so the learner has to try things
+- **Sequential**: the action changes the state the learner faces next
+- **Delayed**: a valve opened too far is punished several steps later, at the overshoot
+- **Credit assignment**: deciding which early action earned a late reward
+- <span class="pt">▶</span> Bayesian optimization has the first difficulty; reinforcement learning has all three
+
+<span class="source">Sutton and Barto, ch. 1: "trial-and-error search and delayed reward"</span>
+
+<div class="narration">
+
+Let's name the difficulties that table implies. There are three, plus one consequence.
+
+Evaluative, in the first bullet: no correct action is ever shown, so the learner has to try things to find out. Sequential, second: the action changes the state the learner faces next. Delayed, third: a valve opened too far is not punished at that step. It is punished several steps later, when the level overshoots. The notes have an animated version of this, the same tank run under three kinds of learner.
+
+Put sequential and delayed together and you get the fourth bullet, credit assignment. When a reward finally arrives, which of the earlier actions earned it? That question is the heart of the subject.
+
+The bottom line places it on the map. Bayesian optimization has the first difficulty only. Reinforcement learning has all three. Sutton and Barto describe the field the same way, as trial-and-error search plus delayed reward.
+
+Next slide.
+
+</div>
+
+---
+
+## Why reinforcement learning, the niche it fills
+
+| Use it when | Because |
+|---|---|
+| Decisions come in a sequence and change the system | a one-shot fit cannot see the next step |
+| Nobody can label the right action | only an outcome can be scored |
+| You can try things cheaply: a simulator, a game, a model | it needs many tries, often millions |
+| The behavior you want is in no dataset | it collects its own data by acting |
+
+- Examples: plasma shaping in a tokamak, tuning a language model to preferences, scheduling
+- <span class="pt">▶</span> without a cheap way to try things, a model and a controller usually win
+
+<div class="narration">
+
+So here is the niche, in one table. Reach for reinforcement learning when four things are true.
+
+The decisions come in a sequence, and each one changes the system the next one faces. A regression fitted once cannot see that next step.
+
+Nobody can label the right action. You can score how things went, but you cannot write down what should have been done at every moment.
+
+You can try things cheaply, in a simulator, a game, or a model of the plant. This one is easy to forget. Reinforcement learning needs many tries, often millions of them.
+
+And the behavior you want is in no dataset, because nobody has done it yet. The learner collects its own data by acting.
+
+The examples in the bullet are the ones we come back to: shaping the plasma in a tokamak, tuning a language model to people's preferences, and scheduling. And the bottom line is the honest caveat. If you cannot try things cheaply, a model and a controller usually win, which is where the limitations section ends up.
+
+Next slide.
+
+</div>
+
+---
+
+## Why reinforcement learning, inside language models
+
+- InstructGPT: supervised fine-tuning, then a **reward model** of labeler preferences
+- Then "use this RM as a reward function and fine-tune ... using the PPO algorithm"
+- Its 1.3B model's outputs were preferred to 175B GPT-3's
+- This is **RLHF**; the environment is a learned stand-in for a person's judgement
+- <span class="pt">▶</span> everything this session says about rewards that miss the intent applies to RLHF
+
+<span class="source">[Ouyang et al., 2022](https://arxiv.org/abs/2203.02155) · [Christiano et al., 2017](https://arxiv.org/abs/1706.03741)</span>
+
+<div class="narration">
+
+One place you have already met reinforcement learning, perhaps without knowing it: inside the language models of the last few lectures.
+
+The InstructGPT paper describes three stages. First, supervised fine-tuning on demonstrations. Then, as the first bullet says, they train a reward model, a network that predicts which of two answers a human labeler would prefer. The second bullet is their own wording: they use this reward model as a reward function and fine-tune the language model with the PPO algorithm.
+
+It worked. As the third bullet says, outputs from their 1.3 billion parameter model were preferred to those of the 175 billion parameter GPT-3.
+
+This is reinforcement learning from human feedback, RLHF. Notice what the environment is, in the fourth bullet: a learned stand-in for a person's judgement. So everything we say today about rewards that miss what you meant applies here too. The reward model is only an approximation of what people want, and the policy will find its gaps.
+
+Next slide.
+
+</div>
+
+---
+
+## Why reinforcement learning, a question
+
+<div class="clicker" data-tag="l20-which-tool" data-seconds="45" data-answer="B" data-hint="Does running one reaction change what the next one will give?" data-why="B. Each run is scored, so the feedback is evaluative, but no run changes the state the next one faces. That is Bayesian optimization, with a model over conditions; reinforcement learning is for decisions that change the system." data-read="https://clicker.f26-06763.workers.dev">
+<div class="clicker-main">
+
+**You pick a temperature for each of 30 independent reaction runs and measure the yield. Each run starts from fresh feed. Which framing fits?**
+
+<ol class="clicker-opts">
+<li>Supervised regression: there is a right temperature to label</li>
+<li>Bayesian optimization</li>
+<li>Reinforcement learning, because each choice is scored</li>
+<li>A generative model of yields</li>
+</ol>
+
+</div>
+<aside class="clicker-panel">
+<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
+<div class="clicker-url">clicker.f26-06763.workers.dev</div>
+<button class="clicker-start">Start voting</button>
+<div class="clicker-timer">45</div>
+<div class="clicker-count">no votes yet</div>
+</aside>
+</div>
+
+<div class="narration">
+
+Time for a question, to check the framing before we build on it. Read it with me.
+
+You pick a temperature for each of thirty independent reaction runs and measure the yield. Each run starts from fresh feed. Which framing fits?
+
+A, supervised regression, because there is a right temperature to label. B, Bayesian optimization. C, reinforcement learning, because each choice is scored. D, a generative model of yields.
+
+Scan the QR code, or go to the address on the right, and vote on your phone. You have forty five seconds. A hint, before you answer: think about whether running one reaction changes what the next one will give. When the votes are in, we will reveal the answer and talk about it.
+
+Once the answer is revealed and discussed, next slide.
+
+</div>
+
+---
+
+<!-- _class: section -->
+
+# Values and planning
+
+<!-- 11 min -->
+
+<div class="narration">
+
+Section five: values and planning. When training filled in the Q table by hand, the numbers crept toward an exact answer. When the matrices are known, that answer can be computed directly, and doing so shows what training was aiming at. This is also where the formulas behind the 0.9 and the Q table live.
+
+Next slide.
+
+</div>
+
+---
+
+## Values and planning, return and discount
 
 $$G_t = r_{t+1} + \gamma\, r_{t+2} + \gamma^2 r_{t+3} + \dots$$
 
-- **Policy** $\pi(a \mid s)$: what the agent does in each state; its goal is a large return
+- **Return** $G_t$: the total score from the earlier slide, written with $\gamma$ for the 0.9
 - **Discount** $\gamma$: a reward $k$ steps away counts $\gamma^k$
 - Effective horizon $\approx 1/(1-\gamma)$: $\gamma = 0.95$ looks about 20 steps ahead
 - <span class="pt">▶</span> too small a γ and the agent cannot see the overshoot its own valve causes
 
 <div class="narration">
 
-The agent needs a goal, and the equation at the top gives it. The return, G sub t, is the reward at the next step, plus gamma times the reward after that, plus gamma squared times the one after that, and so on.
-
-A policy, first bullet, written pi of a given s, is the rule for what the agent does in each state. Its goal is a large return.
+First, the total score from section one, in the field's notation. The return, G sub t, is the reward at the next step, plus gamma times the reward after that, plus gamma squared times the one after that, and so on. Gamma is the 0.9 we used.
 
 The discount factor gamma, second bullet, is a number a little below one. A reward k steps away counts gamma to the k. So distant rewards count less.
 
@@ -625,7 +894,7 @@ Next slide.
 
 ---
 
-## The Markov decision process, values
+## Values and planning, values
 
 - **Value** $V^\pi(s)$: expected return from $s$ under $\pi$
 - **Q-function** $Q^\pi(s, a)$: expected return from taking $a$ in $s$, then following $\pi$
@@ -637,7 +906,7 @@ Next slide.
 
 To choose actions, the agent estimates how good things are. There are two kinds of estimate.
 
-The value, V of s, first bullet, is the expected return starting from state s and following the policy. The Q-function, Q of s and a, second bullet, is the expected return from taking action a in state s, and then following the policy. Q is the one we will learn today.
+The value, V of s, first bullet, is the expected return starting from state s and following the policy. The Q-function, Q of s and a, second bullet, is the expected return from taking action a in state s, and then following the policy. Q is the table we filled in by hand.
 
 The third bullet says why Q is so convenient. If you have the best Q-function, Q star, acting is easy: in each state, take the action with the largest Q.
 
@@ -651,7 +920,7 @@ Next slide.
 
 ---
 
-## The Markov decision process, credit travels back
+## Values and planning, credit travels back
 
 <div class="cw compact" data-widget="rl-credit" data-source="l20"><img src="figures/credit.png" alt="Values propagating back along a corridor"></div>
 
@@ -673,7 +942,7 @@ Next slide.
 
 ---
 
-## The Markov decision process, bootstrapping
+## Values and planning, bootstrapping
 
 - **Bootstrapping**: update an estimate from another estimate, $r + \gamma V(s')$
 - One cell per episode: slow, but each update uses one step of noise
@@ -689,7 +958,105 @@ As the second bullet says, this is slow: one cell per episode, as you just saw. 
 
 Monte Carlo, third bullet, waits for the whole return and fills the corridor in one episode. It pays for that in variance, fourth bullet. When episodes are long and noisy, the return adds up the noise of every step, and the estimates jump around.
 
-The bottom line connects this to the next section. Q-learning bootstraps. That is how late rewards reach early actions, one backup at a time. Now let's put all of this to work on a real control problem.
+The bottom line ties it to what you did by hand. Q-learning bootstraps: each target used the best number in the next row, itself an estimate. That is how late rewards reach early actions, one backup at a time.
+
+Next slide.
+
+</div>
+
+---
+
+## Values and planning, how good is a level
+
+- Rule: open at low, shut otherwise; from low the tank goes low, ok, low, ok, ...
+- Rewards 0.9, 0, 0.9, 0, ...; a reward $k$ steps ahead counts $0.9^k$
+- $V(\text{low}) = 0.9\,(1 + 0.81 + 0.81^2 + \dots) = \dfrac{0.9}{1 - 0.81} = 4.737$
+- $V(\text{ok}) = 0.9 \times 4.737 = 4.263$; $\ V(\text{high}) = 1 + 0.9 \times 4.263 = 4.837$
+- <span class="pt">▶</span> a level's value is its discounted rewards, added up
+
+<div class="narration">
+
+Now use the matrices to answer the operator's two questions exactly. First: how good is each level? Fix the rule from section two. Open when the tank is low, shut otherwise. Starting at low, the tank goes low, ok, low, ok, forever, and collects 0.9, zero, 0.9, zero, forever.
+
+To turn that endless list into one number, count a reward k steps ahead as 0.9 to the k times its size. The pattern repeats every two steps, and each repeat counts 0.81 times the one before. So the total from low is 0.9 times one plus 0.81 plus 0.81 squared and so on, which is 0.9 over 0.19, 4.737.
+
+From ok, the first step earns nothing, so its value is 0.9 times that, 4.263. From high, you shut, earn one for reaching ok, and then you are at ok: one plus 0.9 times 4.263, which is 4.837.
+
+That is the value of a level: its discounted rewards, added up. Computing it for a rule is called policy evaluation. For a big table it becomes a set of linear equations that a computer solves in one call, but the idea is exactly this sum.
+
+Next slide.
+
+</div>
+
+---
+
+## Values and planning, the best action
+
+- An action is worth its reward now, plus 0.9 × the value of where it leads
+- $Q(\text{low}, \text{shut}) = 0 + 0.9\,V(\text{low})$; $\ Q(\text{low}, \text{open}) = 0.9 + 0.9\,V(\text{ok})$; take the larger
+- **Value iteration**: start every value at 0; compute every $Q$; take the larger per row; repeat
+
+| After | low: shut, open | ok: shut, open | high: shut, open |
+|---|---|---|---|
+| 1 sweep | 0, **0.9** | **0**, −0.1 | **1**, −0.1 |
+| 2 sweeps | 0.81, **0.9** | **0.81**, 0.8 | **1**, 0.8 |
+| 263 sweeps | 4.263, **4.737** | **4.263**, 4.253 | **4.837**, 4.253 |
+
+<div class="narration">
+
+The operator's real question is what to do. An action is worth the reward it earns now, plus 0.9 times the value of the level it leads to. At low, shutting is worth zero plus 0.9 times the value of low; opening is worth 0.9 plus 0.9 times the value of ok. Take the larger. That is the Bellman equation from a few slides back, read out loud.
+
+The catch is that the values refer to each other. So solve it by repetition: value iteration. Start with every value at zero. Compute every Q, take the larger in each row as the new value, and do it again. Each pass is a sweep.
+
+The table shows the sweeps. After one sweep, the numbers are just the rewards. After two, they count two steps ahead. After 263 sweeps nothing changes any more, and the larger number in each row is exactly the value we got by following the tank: 4.737, 4.263, 4.837.
+
+Look at the bold entries, the best action in each row. Open at low, shut at ok and at high, and they are right from the very first sweep, long before the numbers settle. The only step in all of this that is not a multiplication or an addition is taking the larger.
+
+Next slide.
+
+</div>
+
+---
+
+## Values and planning, plan it
+
+<style scoped>.cw.compact svg { max-height: 230px; } .cw.compact .cw-note { display: none; }</style>
+
+<div class="cw compact" data-widget="mdp-step" data-source="l20"><img src="figures/mdp-toy.png" alt="The three-level tank's two transition matrices and its reward matrix"></div>
+
+<div class="narration">
+
+Here is the same figure. Switch it to Plan, and press Step to run value iteration one sweep at a time. Under the table you can see the arithmetic for row low on every sweep: the reward now, plus 0.9 times the best value, from the previous sweep, of the row the action leads to.
+
+Watch two things. The bold entries settle immediately, and the numbers keep climbing toward the values on the right. Each sweep counts one more step of the future.
+
+Next slide.
+
+</div>
+
+---
+
+## Values and planning, without the matrices
+
+| | Has the matrices? | How it fills in $Q(\text{low}, \text{open})$ |
+|---|---|---|
+| Value iteration (model-based) | yes | looks up row low of $P_{\text{open}}$ |
+| Q-learning (model-free) | no | opens the valve, sees where the tank went, nudges one entry |
+
+- Sutton and Barto: "expected updates" against "sample updates"
+- <span class="pt">▶</span> same 3 × 2 table of $Q$; only the way it is filled in differs
+
+<span class="source">[Sutton and Barto, sections 1.3 and 8.5](http://incompleteideas.net/book/RLbook2020.pdf)</span>
+
+<div class="narration">
+
+Everything so far assumed we had the table. A real plant does not come with one, and that splits the methods into two families.
+
+A model-based method has the matrices, because someone gave them to it or because it counted what happened when it acted, and it plans with them exactly as we just did. A model-free method never writes the matrices down.
+
+Q-learning, which you ran by hand in section two, is the model-free version of value iteration. Value iteration fills in Q of low and open by looking up row low of P open. Q-learning has no row to look up. It opens the valve, sees where the tank actually went, and nudges that one entry toward the reward it got plus 0.9 times the best value of where it landed. Sutton and Barto call these expected updates and sample updates.
+
+The bottom line: the learned model is the same three by two table of Q values. Only the way it is filled in differs.
 
 Next slide.
 
@@ -701,11 +1068,11 @@ Next slide.
 
 # Q-learning on a tank
 
-<!-- 20 min -->
+<!-- 16 min -->
 
 <div class="narration">
 
-Section five: Q-learning on a tank. This is the main worked example. We will train an agent, then compare it fairly against a PID controller, and then change the reward to see what goes wrong.
+Section six: Q-learning on a real tank, the one from the PyCSE book. It is the same algorithm you ran by hand, on twenty levels and five inflows. We will train an agent, then compare it fairly against a PID controller, and then change the reward to see what goes wrong.
 
 Next slide.
 
@@ -742,37 +1109,11 @@ Next slide.
 
 ---
 
-<!-- _class: definition -->
-
-## Q-learning on a tank, a definition
-
-<div class="definition">
-
-**Q-learning**: move each action-value estimate toward the observed reward plus the discounted value of the best action in the next state.
-
-</div>
+## Q-learning on a tank, the update
 
 $$Q(s,a) \leftarrow Q(s,a) + \alpha\,\big[\, r + \gamma \max_{a'} Q(s',a') - Q(s,a) \,\big]$$
 
-<span class="source">[Watkins and Dayan, 1992 (author's copy)](https://www.gatsby.ucl.ac.uk/~dayan/papers/cjch.pdf)</span>
-
-<div class="narration">
-
-Here is the algorithm. Q-learning moves each action-value estimate toward the observed reward plus the discounted value of the best action in the next state.
-
-The equation below the box says the same thing in symbols. Take the current estimate, Q of s and a. Compute the target: the reward you just got, plus gamma times the largest Q in the state you landed in. Then move the estimate a fraction alpha of the way toward that target.
-
-If you compare it with the Bellman equation from a few slides back, this is the same recursion, applied one sample at a time. Watkins introduced it in his thesis, and the paper with Dayan, linked at the bottom, proved that it converges.
-
-Next slide.
-
-</div>
-
----
-
-## Q-learning on a tank, the update
-
-- The bracket is the **TD error**: what this step says, minus what the table says
+- The bracket is the **TD error**, the surprise: what this step says, minus what the table says
 - $\alpha = 0.2$: how far one sample moves an entry; $\gamma = 0.95$
 - **ε-greedy**, ε = 0.2: one action in five is random, because untried actions never get learned
 - Convergence needs "all actions ... repeatedly sampled in all states"
@@ -781,15 +1122,15 @@ Next slide.
 
 <div class="narration">
 
-Let's read the update piece by piece.
+Here is the update from section two again, now with its full vocabulary.
 
-The bracket in the equation is called the TD error, for temporal difference. It is what this one step says the value should be, minus what the table currently says. If the step was better than expected, the entry goes up.
+The bracket in the equation is what we called the surprise. Its proper name is the TD error, for temporal difference. It is what this one step says the value should be, minus what the table currently says. If the step was better than expected, the entry goes up.
 
 The second bullet gives the settings, PyCSE's choices. Alpha is 0.2, so one sample moves an entry a fifth of the way. Gamma is 0.95, so the agent looks about twenty steps ahead.
 
 The third bullet is exploration. With epsilon-greedy at 0.2, one action in five is random. That is necessary, because an action that is never tried is never learned. The convergence proof, fourth bullet, requires that all actions are sampled repeatedly in all states.
 
-The fifth bullet introduces a term we will use again in cliff walking: off-policy. Q-learning learns about the greedy policy, even while it behaves epsilon-greedily.
+The fifth bullet introduces a term: off-policy. Q-learning learns about the greedy policy, even while it behaves epsilon-greedily.
 
 And the bottom line gives a sense of scale. The table is twenty by five, one hundred numbers, trained on one hundred thousand transitions, in under a second.
 
@@ -799,127 +1140,18 @@ Next slide.
 
 ---
 
-## Q-learning on a tank, by hand
+## Q-learning on a tank, five inflows are five columns
 
-- Three levels: low, ok, high; **shut** lowers the level one step, **open** raises it one step
-- Reward: +1 for landing at ok, −0.1 for opening; α = 0.5, γ = 0.9
-- No action holds the level at ok, as in the real tank
-
-| Q | shut | open |
-|---|---|---|
-| low | 0 | 0 |
-| ok | 0 | 0 |
-| high | 0 | 0 |
-
-- <span class="pt">▶</span> Q is a 3 × 2 matrix; one transition updates one entry
-
-<div class="narration">
-
-Before we train on the full tank, let's do Q-learning by hand, on a tank small enough to fit on a slide. It has three levels: low, ok and high. Shutting the valve lowers the level one step, and opening it raises the level one step. Landing at ok earns plus one, and opening costs a tenth, like the tank's effort term. We use alpha of one half and gamma of 0.9.
-
-Notice the third bullet. Just like the real tank, no action holds the level at ok. Open from ok and you overshoot to high. Shut and you drop to low.
-
-The table on the slide is the whole agent: a three by two matrix, one row per level, one column per action, all zeros to start. Watch for the bottom line on the next slide: each transition updates exactly one entry of that matrix.
-
-Next slide.
-
-</div>
-
----
-
-## Q-learning on a tank, by hand: the first six updates
-
-| # | s → a → s′ | r | target r + 0.9 max Q(s′, ·) | TD error | new Q(s, a) |
-|---|---|---|---|---|---|
-| 1 | low → open → ok | 0.9 | 0.9 + 0.9 × 0 = 0.900 | 0.900 | 0.450 |
-| 2 | ok → open → high | −0.1 | −0.1 + 0.9 × 0 = −0.100 | −0.100 | −0.050 |
-| 3 | high → shut → ok | 1 | 1 + 0.9 × 0 = 1.000 | 1.000 | 0.500 |
-| 4 | ok → shut → low | 0 | 0 + 0.9 × 0.450 = 0.405 | 0.405 | 0.203 |
-| 5 | low → open → ok | 0.9 | 0.9 + 0.9 × 0.203 = 1.082 | 0.632 | 0.766 |
-| 6 | ok → open → high | −0.1 | −0.1 + 0.9 × 0.500 = 0.350 | 0.400 | 0.150 |
-
-- <span class="pt">▶</span> update 4: reward 0, target 0.405; the value of low, learned in update 1, moved back to ok
-
-<div class="narration">
-
-Here are the first six updates, worked out. Read each row from left to right: where the agent was, what it did, where it landed, the reward, the target, the TD error, and the new value.
-
-Row one. From low, the agent opens and lands at ok. The reward is 0.9, one for landing at ok minus a tenth for opening. The row for ok is still all zeros, so the target is just 0.9. The TD error is 0.9 minus zero, and with alpha of one half the entry moves halfway, to 0.45.
-
-Rows two and three work the same way. Opening from ok overshoots to high and costs a tenth, so that entry goes to minus 0.05. Shutting from high lands at ok and earns one, so that entry goes to one half.
-
-Now row four. From ok, the agent shuts and drops to low. The reward is zero, but the target is not. It is 0.9 times the best value in the low row, which is the 0.45 learned in row one. So the target is 0.405, and the entry becomes about 0.2. As the bottom line says, value earned later, by opening from low, has moved one step back, into the decision that got the agent to low.
-
-Rows five and six repeat the episode. Now the targets include what was just learned, so the numbers grow: opening from low climbs from 0.45 to 0.766.
-
-Next slide.
-
-</div>
-
----
-
-## Q-learning on a tank, by hand: step through it
-
-<div class="cw compact" data-widget="q-hand" data-source="l20"><img src="figures/qhand.png" alt="The 3 by 2 Q matrix after 6 and 306 updates, and Q star"></div>
-
-- <span class="pt">▶</span> one outlined entry per update; watch it approach Q*
-
-<div class="narration">
-
-Here is the same small tank as a figure, with every update. Press Step to go one update at a time. The tank on the left shows each move, with water pouring in when the valve opens and draining out when it shuts. In the middle is the three by two Q matrix, with the entry being updated outlined. Below it are the three lines of arithmetic from the last slide: the target, the TD error, and the new value.
-
-The first six steps are exactly the table you just saw. After that, the agent explores epsilon-greedily for three hundred more steps. Press Play and watch the matrix fill in and approach Q star, on the right, which was computed directly from the Bellman equation by value iteration. The readout gives the largest gap between them.
-
-Next slide.
-
-</div>
-
----
-
-## Q-learning on a tank, by hand: where it ends
-
-![w:1000](figures/qhand.png)
-
-- After 306 updates: within 0.02 of Q* everywhere except Q(high, open), tried twice
-- Greedy actions correct from update 3 on; best policy alternates ok → low → ok
-- <span class="pt">▶</span> a table can act correctly long before every number in it is right
-
-<div class="narration">
-
-This is where it ends up. On the left is the table after the six scripted updates, in the middle after three hundred and six updates, and on the right is Q star. Bold marks the greedy action in each row.
-
-As the first bullet says, after three hundred and six updates every entry is within 0.02 of Q star, except one: Q of high and open. The agent tried that only twice, because a greedy agent at high always shuts, so that entry is still far off.
-
-The second bullet is the reassuring part. The greedy actions were correct from update three onward, and never changed: open from low, shut from ok, shut from high. Since nothing holds the level at ok, the best policy cycles from ok down to low and back up.
-
-So, as the bottom line says, a table can act correctly long before every number in it is right. You will see the same thing on the full tank in a moment, in its rarely visited top bins.
-
-Next slide.
-
-</div>
-
----
-
-## Q-learning on a tank, choosing an action
-
-- Look up the state's row, take $\arg\max_a Q(s, a)$
-- The same last step as an L10 classifier: score every option, pick the largest
-- Different scores: expected return, trained toward a target built from the agent's own reward
-- Nobody ever says which inflow was right
+- Choosing is still: look up the state's row, take $\arg\max_a Q(s, a)$
+- Here a row has five columns, one per inflow
 - A valve anywhere in [0, 2] has no columns to compare
 - <span class="pt">▶</span> argmax needs actions you can list; a continuous valve needs a policy that outputs the action
 
 <div class="narration">
 
-Now a question that often comes up at this point. How does the agent actually decide what to do?
+Choosing works exactly as on the small tank: look up the row for the current level, and take the action with the largest value. Here each row has five columns, one per inflow.
 
-With a table, the first bullet says it all. Look up the row for the current state, and take the action with the largest value. That is an argmax.
-
-The second bullet makes a connection. That last step is the same as the classifier in Lecture 10, which scores every class and reports the largest. So it is fair to say that a Q-table acts like a classifier over actions.
-
-The difference is in the scores, in the third and fourth bullets. A classifier's scores are trained toward labels: someone told it the right class for each example. A Q-value is an expected return, trained toward a target the agent built from its own reward and its own table. Nobody ever tells it which inflow was right.
-
-The fifth bullet raises the obvious problem. Argmax needs a list of columns to compare. A valve that can sit anywhere between zero and two has no columns.
+The third bullet raises the obvious problem. Argmax needs a list of columns to compare. A valve that can sit anywhere between zero and two has no columns.
 
 So, as the bottom line says, argmax works for actions you can list, and a continuous valve needs a policy that outputs the action directly. We will see how that works in the deep reinforcement learning section.
 
@@ -1036,6 +1268,36 @@ Next slide.
 
 ---
 
+## Q-learning on a tank, solved exactly
+
+![h:230](figures/tank-matrices.png)
+
+- Bins hide the level: F = 1 in bin 9 stays 0.911, falls 0.089
+- Value iteration on five 20 × 20 $P_a$: **0.187** over eight starts; tuned PID 0.19
+- Bad seeds pick a trap: 0.5 in bin 1 or 1.5 in bin 17, a diagonal 1 in $P_a$
+- Same 100,000 transitions counted into $\hat P_a$, then solved: 0.187, all ten seeds
+- <span class="pt">▶</span> the inflows cost a saw-tooth; the failures came from learning
+
+<div class="narration">
+
+Now the matrix view from section one pays off on the real tank. Build its transition matrices the same way: for each of the twenty bins and each of the five inflows, push four thousand levels spread across the bin through one step of the physics, and record where they land. That gives five twenty by twenty matrices. Two of them are on the left of the figure.
+
+The first bullet is a surprise. The physics is deterministic, but the matrices are not. A bin hides where inside it the level is. With an inflow of one, a level in bin 9 stays in bin 9 ninety one percent of the time and falls to bin 8 the rest. The randomness comes from the choice of state, which is the Markov property from section three in a concrete form.
+
+Second bullet. Value iteration on those matrices gives the blue staircase on the right. It scores 0.187 over the eight starts, as good as the tuned PID. So the five inflows and the twenty bins were enough to match PID, even with the saw-tooth.
+
+Third bullet: why did half the seeds fail? The green dots are the ten learned policies. They all make mistakes in the rarely visited bins at the bottom and top. The bad seeds made a particular mistake. Inflow 0.5 holds the level at exactly one, inside bin 1, and inflow 1.5 holds it at nine, inside bin 17. Those are diagonal entries of one in the matrices. A seed that picks one of them parks the tank there for the whole run.
+
+The fourth bullet is the model-based comparison. Take the same hundred thousand transitions Q-learning used, count them into estimated matrices, and solve. All ten seeds score 0.187.
+
+The bottom line: the action grid cost a saw-tooth, and the failures came from learning, not from the table.
+
+Next slide.
+
+</div>
+
+---
+
 ## Q-learning on a tank, a question
 
 <div class="clicker" data-tag="l20-steady" data-seconds="45" data-answer="C" data-hint="Which levels can one fixed inflow hold, and which of them is closest to 8?" data-why="C. A reward of −|Δh| only penalizes movement. From 8 the cheapest steady state is inflow 1.5, which holds h = 9, so the agent goes there and stays: perfectly steady, nowhere near 5." data-read="https://clicker.f26-06763.workers.dev">
@@ -1131,127 +1393,9 @@ Next slide.
 
 <!-- _class: section -->
 
-# Exploration has a cost: cliff walking
-
-<!-- 7 min -->
-
-<div class="narration">
-
-Section six: exploration has a cost. We will use a classic grid world, cliff walking, to show that the way an agent explores can change what it learns, and what it costs while learning.
-
-Next slide.
-
-</div>
-
----
-
-## Cliff walking, the problem
-
-- 4 × 12 grid; start bottom left, goal bottom right; −1 per step
-- The bottom edge between them is a cliff: −100 and back to the start
-- **Q-learning** targets $r + \gamma \max_{a'} Q(s', a')$: the best next action (**off-policy**)
-- **SARSA** targets $r + \gamma\, Q(s', a')$: the action it will actually take (**on-policy**)
-- <span class="pt">▶</span> one symbol differs, and it decides whether exploration is in the value
-
-<span class="source">[Sutton and Barto, Example 6.6](http://incompleteideas.net/book/RLbook2020.pdf)</span>
-
-<div class="narration">
-
-Here is the setup, from Sutton and Barto, Example 6.6. The grid is four rows by twelve columns. The agent starts at the bottom left, and the goal is at the bottom right. Every step costs one point.
-
-The bottom edge between start and goal is a cliff, second bullet. Step into it, and you lose one hundred points and go back to the start.
-
-We compare two learners. Q-learning, third bullet, updates toward the reward plus the value of the best next action. That is the off-policy target we just used on the tank.
-
-SARSA, fourth bullet, updates toward the value of the action it will actually take next, including its random exploratory moves. That is called on-policy.
-
-Look at the bottom line. One symbol differs between the two updates, a max versus the action actually taken, and that symbol decides whether the cost of exploring is included in the values.
-
-Next slide.
-
-</div>
-
----
-
-## Cliff walking, results
-
-![h:330](figures/cliff.png)
-
-- Q-learning: 13 steps along the edge, −49 per episode while learning
-- SARSA: 17 steps across the top, −26 per episode
-- <span class="pt">▶</span> the shortest path is the costliest one to explore on
-
-<div class="narration">
-
-Here are the results, averaged over fifty runs.
-
-On the left are the learned greedy paths. Q-learning, first bullet, learns the shortest path, thirteen steps, right along the edge of the cliff. SARSA, second bullet, learns a safer path, seventeen steps, along the top of the grid.
-
-On the right is the reward per episode during learning. Here the order flips. Q-learning averages about minus forty nine per episode, while SARSA averages about minus twenty six.
-
-Why? While learning, both agents still take a random step one time in ten. Walking along the edge, a random step often means falling off the cliff. Q-learning's values ignore that risk, because they assume the best action next time. SARSA's values include it, so SARSA learns to keep its distance.
-
-The bottom line sums it up: the shortest path is the costliest one to explore on. These numbers match the figure in Sutton and Barto.
-
-Next slide.
-
-</div>
-
----
-
-## Cliff walking, live
-
-<div class="cw compact" data-widget="cliff" data-source="l20"><img src="figures/cliff.png" alt="Q-learning and SARSA on cliff walking"></div>
-
-- <span class="pt">▶</span> turn on the exploring walk: each ✕ is a fall the greedy path never shows
-
-<div class="narration">
-
-Here are both learners running live. Press Play to watch them train side by side. The paths on the grid are their current greedy paths, and the curves below are their rewards per episode.
-
-Now press Show one exploring episode, as the bottom line suggests. It draws one exploring episode for Q-learning, with its random steps included. Each cross marks a fall into the cliff. The greedy path looks perfect, but the agent that is actually exploring keeps falling off. Those falls are where the minus forty nine comes from.
-
-Press New seed to check that this is not a fluke of one run.
-
-Next slide.
-
-</div>
-
----
-
-## Cliff walking, on a plant
-
-- Q-learning found the best policy for an agent that stops exploring; SARSA for one that keeps going
-- A plant cannot fall off the cliff one time in ten to learn where the edge is
-- Hence: train in a simulator, deploy the greedy policy
-- Learning from logged data instead meets L7's **closed-loop identification**: a controller keeps the data narrow
-- <span class="pt">▶</span> on real equipment, exploration is the expensive and dangerous part
-
-<div class="narration">
-
-Now let's bring this back to a plant.
-
-The first bullet restates the result carefully. Q-learning found the best policy for an agent that will stop exploring. SARSA found the best policy for an agent that keeps exploring. Both are right, about different questions.
-
-The second bullet is the engineering problem. A plant cannot fall off the cliff one time in ten to learn where the edge is. A reactor cannot be driven into a runaway to discover that it should not be.
-
-So, third bullet, the standard practice is to train in a simulator and deploy only the greedy policy.
-
-The fourth bullet is the alternative, learning from logged plant data instead, and it runs into a problem from Lecture 7, closed-loop identification. A plant that is already under control stays in a narrow range, so its data never shows what happens far from the setpoint.
-
-The bottom line: on real equipment, exploration is the expensive and dangerous part.
-
-Next slide.
-
-</div>
-
----
-
-<!-- _class: section -->
-
 # Deep reinforcement learning and the tools
 
-<!-- 12 min -->
+<!-- 11 min -->
 
 <div class="narration">
 
@@ -1423,11 +1567,11 @@ Next slide.
 
 # Case studies
 
-<!-- 8 min -->
+<!-- 5 min -->
 
 <div class="narration">
 
-Section eight: case studies. We will look at four, and for each one ask what was actually measured, and against what.
+Section eight: case studies. We will look at four, briefly, and for each one ask what was actually measured, and against what.
 
 Next slide.
 
@@ -1491,60 +1635,25 @@ Next slide.
 
 ---
 
-## Case studies, a reaction optimizer
+## Case studies, two numbers traced to source
 
-- Abstract: "outperformed a state-of-the-art blackbox optimization algorithm by using 71% fewer steps"
-- Body: about 32 steps against CMA-ES's 111, on **simulated** Gaussian mixtures
-- No comparison with Bayesian optimization; "Bayesian" does not appear
-- Runs do not change each other's outcome: a bandit problem, framed as RL
-- <span class="pt">▶</span> the comparison you most need is the one to look for first
+- **Reaction optimizer**: "71% fewer steps" than CMA-ES, on **simulated** Gaussian mixtures; no Bayesian optimization baseline
+- Its runs do not change each other: a Bayesian optimization problem, framed as RL
+- **Data-centre cooling**: the 2016 "40%" blog never says reinforcement learning
+- The 2018 paper: a learned **linear model plus MPC**, "the potential to save about 9%" against PID
+- <span class="pt">▶</span> read past the abstract, and trace a famous number to its source
 
-<span class="source">[Zhou, Li and Zare, ACS Central Science 2017, open access](https://pmc.ncbi.nlm.nih.gov/articles/PMC5746857/)</span>
-
-<div class="narration">
-
-The third case shows why you read past the abstract. Zhou, Li and Zare used reinforcement learning to optimize chemical reactions.
-
-The abstract, first bullet, says their method outperformed a state-of-the-art black-box optimization algorithm by using seventy one percent fewer steps.
-
-Now read the body, second bullet. The comparison is about thirty two steps against CMA-ES's one hundred eleven, on simulated Gaussian mixture functions, not on real reactions.
-
-The third bullet is the missing comparison. The paper does not compare against Bayesian optimization. The word Bayesian does not appear.
-
-And the fourth bullet connects back to our clicker question. The reaction runs do not change each other's outcome. That is a bandit problem, or a job for Bayesian optimization, framed as reinforcement learning.
-
-The bottom line: the comparison you most need is the one to look for first. Here, it was not there.
-
-Next slide.
-
-</div>
-
----
-
-## Case studies, data-centre cooling
-
-- Repeated claim: "RL cut Google's data-centre cooling 40%"
-- 2016 blog: "up to 40 percent", neural-network predictions; never says reinforcement learning
-- 2018 paper: a learned **linear model plus MPC**, 3 hours of exploration data
-- Its claim: "the potential to save about 9%" against PID
-- A week of the PID loops' history was too narrow to identify the model (L7)
-- <span class="pt">▶</span> trace a famous number to its source before you repeat it
-
-<span class="source">[DeepMind blog, 2016](https://deepmind.google/discover/blog/deepmind-ai-reduces-google-data-centre-cooling-bill-by-40/) · [Lazic et al., NeurIPS 2018](https://proceedings.neurips.cc/paper/2018/hash/059fdcd96baeb75112f09fa1dcc740cc-Abstract.html)</span>
+<span class="source">[Zhou, Li and Zare, 2017](https://pmc.ncbi.nlm.nih.gov/articles/PMC5746857/) · [DeepMind blog, 2016](https://deepmind.google/discover/blog/deepmind-ai-reduces-google-data-centre-cooling-bill-by-40/) · [Lazic et al., NeurIPS 2018](https://proceedings.neurips.cc/paper/2018/hash/059fdcd96baeb75112f09fa1dcc740cc-Abstract.html)</span>
 
 <div class="narration">
 
-The fourth case is a number you may have heard: reinforcement learning cut Google's data-centre cooling by forty percent.
+Two more cases, both about a number that shrinks when you read the source.
 
-Trace it back. The 2016 DeepMind blog post, second bullet, says up to forty percent, and describes neural networks that predict temperature and pressure. It never says reinforcement learning.
+The first is a reaction optimizer by Zhou, Li and Zare. The abstract says their method used seventy one percent fewer steps than a state-of-the-art black-box optimizer. The body says that was about thirty two steps against CMA-ES's one hundred eleven, on simulated Gaussian mixture functions, not real reactions, and there is no comparison with Bayesian optimization at all. And, second bullet, the reaction runs do not change each other's outcome. That is a Bayesian optimization problem, the clicker question from earlier, framed as reinforcement learning.
 
-The 2018 paper by Lazic and colleagues, third bullet, describes the system in detail. It is a learned linear model plus model predictive control, trained on three hours of exploration data.
+The second is a number you may have heard: reinforcement learning cut Google's data-centre cooling by forty percent. The 2016 blog post says up to forty percent and describes neural networks that predict temperature and pressure. It never says reinforcement learning. The 2018 paper by Lazic and colleagues, fourth bullet, describes a learned linear model plus model predictive control, and claims the potential to save about nine percent against the existing PID control. The notes tell the rest, including why a week of the plant's own history was not enough to fit the model.
 
-Its own claim, fourth bullet, is the potential to save about nine percent, compared with the existing PID control.
-
-The fifth bullet connects to Lecture 7. They first tried to learn the model from a week of the plant's history under the PID loops, and it did not work. The data was too narrow, because the controllers kept everything near the setpoint. That is closed-loop identification again.
-
-The bottom line: trace a famous number to its source before you repeat it.
+The bottom line: read past the abstract, and trace a famous number to its source before you repeat it.
 
 Next slide.
 
@@ -1584,7 +1693,7 @@ Next slide.
 
 # Limitations and trade-offs
 
-<!-- 8 min -->
+<!-- 9 min -->
 
 <div class="narration">
 
@@ -1602,7 +1711,7 @@ Next slide.
 - **Seeds**: same settings, ten seeds, two statistically different groups of five (Henderson); tank 0.19 to 4.09
 - **Reward**: whatever it leaves out can be sacrificed
 - **Sim-to-real gap**: a policy exploits simulator errors; domain randomization helps
-- **Safety**: ε-greedy is not acceptable on equipment that can break
+- **Safety**: ε-greedy is not acceptable on equipment that can break; train in a simulator
 - <span class="pt">▶</span> each cost lands on the plant unless a simulator absorbs it
 
 <span class="source">[Henderson et al., 2018](https://arxiv.org/abs/1709.06560) · [Tobin et al., 2017](https://arxiv.org/abs/1703.06907)</span>
@@ -1619,7 +1728,7 @@ Reward: whatever the reward leaves out can be sacrificed, as the parked tank sho
 
 The sim-to-real gap: a policy trained in a simulator will exploit the simulator's errors. Domain randomization, training over many randomized versions of the simulator, helps the policy cope with the real one.
 
-Safety: epsilon-greedy exploration is not acceptable on equipment that can break.
+Safety: epsilon-greedy exploration is not acceptable on equipment that can break. A plant cannot take a random move one time in five to find out where the edge of safe operation is, which is the main reason controllers for real equipment are trained in a simulator. Learning from logged operating data instead runs into Lecture 7's closed-loop identification problem: data recorded while a controller held the plant steady says little about anywhere else.
 
 The bottom line ties these together. Each cost lands on the plant unless a simulator absorbs it.
 
@@ -1633,8 +1742,8 @@ Next slide.
 
 - Recht: model-free methods are "considerably less effective in both theory and practice than simple model-based schemes when applied to LQR"
 - "Policy gradient ... requires thousands of times as many samples as simple nominal control"
-- Approximate dynamic programming "is closely related to ... Model Predictive Control"
-- **MPC**: fit a model, optimize over a horizon, apply the first action, repeat
+- **MPC**, "closely related to" approximate dynamic programming: fit a model, optimize, apply, repeat
+- Tank: 100,000 transitions as a model, 0.187 every seed; as Q-learning, 1.40 ± 1.31
 - <span class="pt">▶</span> RL is MPC's relative; choose it when a simulator exists and a usable model does not
 
 <span class="source">[Recht, Annu. Rev. Control Robot. Auton. Syst., 2019 (arXiv)](https://arxiv.org/abs/1806.09460)</span>
@@ -1645,9 +1754,9 @@ This slide is the strongest argument for using a model. Ben Recht's review compa
 
 His finding, in the first bullet: model-free methods are considerably less effective, in both theory and practice, than simple model-based schemes on this problem. Policy gradient, second bullet, required thousands of times as many samples as simple nominal control, which means fitting a model and then designing the controller for it.
 
-The third bullet is the connection. Approximate dynamic programming, the family Q-learning belongs to, is closely related to model predictive control.
+The third bullet is the connection. Recht notes that approximate dynamic programming, the family Q-learning belongs to, is closely related to model predictive control. MPC fits a model, optimizes the actions over a horizon, applies only the first action, then measures and repeats.
 
-MPC, fourth bullet: fit a model, optimize the actions over a horizon, apply only the first action, then measure and repeat.
+And the fourth bullet is our own tank. The same hundred thousand transitions that gave Q-learning 1.40, with a huge spread, gave 0.187 on every one of ten seeds once they were counted into transition matrices and solved by value iteration.
 
 The bottom line: reinforcement learning is MPC's relative. Choose it when a simulator exists and a usable model does not.
 
@@ -1663,7 +1772,7 @@ Next slide.
 |---|---|
 | One loop, a setpoint, roughly linear dynamics | PID, tuned |
 | Interacting variables, constraints, a model you can fit | MPC |
-| Next experiment; outcomes do not change the system | Bayesian optimization or a bandit |
+| Next experiment; outcomes do not change the system | Bayesian optimization |
 | Sequential decisions, accurate simulator, hard-to-design controller | reinforcement learning |
 | No simulator, unsafe to explore | not reinforcement learning |
 
@@ -1679,7 +1788,7 @@ One loop, a setpoint, and roughly linear dynamics: use a tuned PID. That is our 
 
 Interacting variables, constraints, and a model you can fit: use MPC.
 
-Choosing the next experiment, where outcomes do not change the system: Bayesian optimization or a bandit. That is our catalysts, and the reaction optimizer from the case studies.
+Choosing the next experiment, where outcomes do not change the system: Bayesian optimization. That is the reaction runs in the clicker question, and the reaction optimizer from the case studies.
 
 Sequential decisions, an accurate simulator, and a controller that is hard to design by hand: that is where reinforcement learning belongs. That is the tokamak.
 
@@ -1697,13 +1806,13 @@ Next slide.
 
 # Worked example
 
-- `l20-reinforcement-learning.ipynb`: the bandit; Q-learning by hand; Q-learning on the tank against a PID tuned in the notebook, ten seeds, eight starts; two gamed rewards; Q-learning against SARSA; a Gaussian policy by REINFORCE; optional PPO with Gymnasium and Stable-Baselines3
+- `l20-reinforcement-learning.ipynb`: the three-level tank as matrices; Q-learning by hand; Q-learning on the tank against a PID tuned in the notebook, ten seeds, eight starts; two gamed rewards; a Gaussian policy by REINFORCE; optional PPO with Gymnasium and Stable-Baselines3
 
 <div class="narration">
 
 That is the end of the lecture material. Now we switch to the worked example notebook, l20 reinforcement learning.
 
-It contains everything we did today, in code you can run. The bandit; the six updates by hand on the three-level tank, printed number by number; Q-learning on the tank against a PID tuned in the notebook, with ten seeds and eight starting levels; the two gamed rewards; Q-learning against SARSA on the cliff; and the Gaussian policy trained by REINFORCE. There is also an optional cell that trains PPO with Gymnasium and Stable-Baselines3, if you have them installed.
+It contains everything we did today, in code you can run. The three-level tank as matrices, solved by a linear solve and by value iteration; the six updates by hand on the same tank, printed number by number; Q-learning on the tank against a PID tuned in the notebook, with ten seeds and eight starting levels; the two gamed rewards; and the Gaussian policy trained by REINFORCE. There is also an optional cell that trains PPO with Gymnasium and Stable-Baselines3, if you have them installed.
 
 It needs only NumPy and runs in about three minutes.
 
@@ -1715,9 +1824,10 @@ Next slide.
 
 ## Recap
 
-- RL: evaluative, sequential, delayed feedback
-- Bandits: exploration alone; UCB and Thompson are L15's acquisitions
-- MDP and Bellman: late rewards travel back to early actions
+- Where it is: a vector; an action: a matrix; one step: one multiplication
+- The choice: the larger entry in a row of Q; training: try, score, nudge
+- Then the words: state, action, environment, reward, policy, agent, MDP
+- Its niche: sequential, unlabeled, cheap to try
 - Actions: argmax of Q if listable, a sampled Gaussian for a valve
 - Tank: a tuned PID beat Q-learning over starts and seeds
 - The reward is the specification: "keep it steady" parks at 9
@@ -1728,11 +1838,11 @@ Next slide.
 
 Let's recap.
 
-Reinforcement learning learns from feedback that is evaluative, sequential and delayed.
+Where the system is, is a vector. An action is a matrix whose entries are the chances of moving from one level to another. Taking the action is one multiplication.
 
-Bandits isolate exploration, with no state, and UCB and Thompson sampling are Lecture 15's acquisition functions without the model.
+The choice of action comes from a table of scores, Q: take the larger entry in the row. The table is trained by trying a move, seeing its score, and nudging one entry. That is Q-learning.
 
-The Markov decision process gives the vocabulary: state, action, reward, policy and return. The Bellman equation carries late rewards back to early actions.
+Only then the words: state, action, environment, reward, policy, agent, and the Markov decision process that holds them. Its niche is decisions in a sequence that change the system, with no labels, where trying things is cheap.
 
 A policy outputs an action: the argmax of Q when the actions can be listed, and a sampled Gaussian for a continuous valve.
 

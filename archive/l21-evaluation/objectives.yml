@@ -1,0 +1,19 @@
+# The three L21 objectives from game/content/objectives.yml, removed 2026-11-04 when the
+# evaluation lecture left the schedule. Paste back to restore.
+
+- id: l21-o1
+  lecture: l21
+  text: >-
+    Build a repeatable eval harness that turns "it seems to work" into a number with a
+    confidence interval.
+
+- id: l21-o2
+  lecture: l21
+  text: >-
+    Implement an LLM-as-judge grader and validate it against a small human-labeled set.
+
+- id: l21-o3
+  lecture: l21
+  text: >-
+    Add tracing so every request's inputs, outputs, tool calls, latency, and cost are
+    recorded and queryable.

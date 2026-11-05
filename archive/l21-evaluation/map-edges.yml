@@ -1,0 +1,48 @@
+# The authored map corridors out of the evaluation lecture, cut from
+# game/content/map-edges.yml on 2026-11-04. Quotes point at lectures/l21/notes.md, which is
+# now archive/l21-evaluation/notes.md; restore both together.
+
+edges:
+  # --- Lecture 21, evaluation and observability -----------------------------------
+  # Its edge to l20 ("Lecture 20's harness") was removed on 2026-10-12: that harness is the
+  # agents lecture, now L19, and L20 is reinforcement learning. Re-author it as l21 -> l19
+  # when L21's notes are renumbered.
+  - from: l21
+    to: l13
+    relation: builds-on
+    why: >-
+      The strongest claim of dependency anywhere in the back half. Not "recall
+      Lecture 13" but "this is Lecture 13, continued".
+    source:
+      file: lectures/l21/notes.md
+      quote: >-
+        the subject of the entire second half of Lecture 13: what happens when a
+        company builds the model, ships it, and stops watching
+
+  - from: l21
+    to: l03
+    relation: builds-on
+    why: >-
+      The 2.4-volt threshold is a specific number decided in Lecture 3. Evaluating
+      against it is meaningless without knowing where it came from.
+    source:
+      file: lectures/l21/notes.md
+      quote: sensor readings above Lecture 3's 2.4-volt trustworthiness threshold
+
+  - from: l21
+    to: l19
+    relation: reuses
+    why: The eval harness is built against the RAG system Lecture 19 leaves behind.
+    source:
+      file: lectures/l21/notes.md
+      quote: >-
+        eval harness for a small RAG assistant in the spirit of Lecture 19's system
+
+  - from: l21
+    to: l04
+    relation: shares-data
+    why: Same sensor data, no API key, which is why the demo runs anywhere.
+    source:
+      file: lectures/l21/notes.md
+      quote: data Lecture 3, Lecture 4, and Lecture 20 use and needs no API key or external service
+

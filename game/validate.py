@@ -643,8 +643,9 @@ def check_bank_level(bank: Bank) -> None:
             elif n == 1:
                 bank.warn(oid, "covered by 1 item; a single item is a coin flip, not coverage")
 
-    # Length bias, measured in the course's own content. L21 teaches that this is
-    # a real systematic error in judges; it is one in humans too.
+    # Length bias, measured in the course's own content. The archived evaluation lecture
+    # (archive/l21-evaluation/) teaches that this is a real systematic error in judges; it is
+    # one in humans too.
     if total_choice >= 20:
         share = longest_is_answer / total_choice
         if share > LENGTH_BIAS_THRESHOLD:

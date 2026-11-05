@@ -376,21 +376,21 @@
       "from": "l20",
       "to": "l07",
       "weight": 2,
-      "where": "purest form. It runs straight into the problem [Lecture 7](../l07/notes.md) called",
+      "where": "generate data for identification, which is [Lecture 7](../l07/notes.md)'s closed-loop problem in",
       "origin": "link"
     },
     {
       "from": "l20",
       "to": "l09",
       "weight": 2,
-      "where": "Machine learning methods differ most in what the learner is told. [Lecture 9](../l09/notes.md)",
+      "where": "methods differ most in what the learner is told. [Lecture 9](../l09/notes.md)",
       "origin": "link"
     },
     {
       "from": "l20",
       "to": "l10",
       "weight": 3,
-      "where": "[Lecture 9](../l09/notes.md) and [Lecture 10](../l10/notes.md) learned from it: the label is the",
+      "where": "final step as the classifier in [Lecture 10](../l10/notes.md), which scores every class and",
       "origin": "link"
     },
     {
@@ -403,7 +403,7 @@
     {
       "from": "l20",
       "to": "l15",
-      "weight": 5,
+      "weight": 3,
       "where": "to match the data. [Lecture 15](../l15/notes.md) moved to evaluative feedback: Bayesian",
       "origin": "link"
     },
@@ -423,85 +423,161 @@
     },
     {
       "from": "l21",
+      "to": "l01",
+      "weight": 5,
+      "where": "[Lecture 1](../l01/notes.md) put the problem in one sentence: \"Your model runs on your laptop.",
+      "origin": "link"
+    },
+    {
+      "from": "l21",
+      "to": "l02",
+      "weight": 2,
+      "where": "Whatever the format, write a manifest next to it. [Lecture 2](../l02/notes.md) argued that \"The",
+      "origin": "link"
+    },
+    {
+      "from": "l21",
       "to": "l03",
-      "weight": 1,
-      "where": "sensor readings above Lecture 3's 2.4-volt trustworthiness threshold",
-      "origin": "authored",
-      "relation": "builds-on",
-      "why": "The 2.4-volt threshold is a specific number decided in Lecture 3. Evaluating against it is meaningless without knowing where it came from."
+      "weight": 3,
+      "where": "You have already made this decision for a database. [Lecture 3](../l03/notes.md) ran PostgreSQL,",
+      "origin": "link"
     },
     {
       "from": "l21",
       "to": "l04",
       "weight": 1,
-      "where": "data Lecture 3, Lecture 4, and Lecture 20 use and needs no API key or external service",
-      "origin": "authored",
-      "relation": "shares-data",
-      "why": "Same sensor data, no API key, which is why the demo runs anywhere."
+      "where": "limits.\" [Lecture 4](../l04/notes.md) ran DuckDB, which has \"no server to start, no connection to",
+      "origin": "link"
+    },
+    {
+      "from": "l21",
+      "to": "l05",
+      "weight": 4,
+      "where": "stages you built in [Lecture 5](../l05/notes.md). AWS describes its batch service as the tool for",
+      "origin": "link"
+    },
+    {
+      "from": "l21",
+      "to": "l06",
+      "weight": 4,
+      "where": "fed the Tennessee Eastman stream in [Lecture 6](../l06/notes.md) works. It is the default for a",
+      "origin": "link"
+    },
+    {
+      "from": "l21",
+      "to": "l07",
+      "weight": 1,
+      "where": "means and spreads and cannot be standardized any other way. [Lecture 7](../l07/notes.md)'s leakage",
+      "origin": "link"
+    },
+    {
+      "from": "l21",
+      "to": "l08",
+      "weight": 1,
+      "where": "another way in serving.\" [Lecture 8](../l08/notes.md)'s `Pipeline` is the cure for one case of it:",
+      "origin": "link"
+    },
+    {
+      "from": "l21",
+      "to": "l09",
+      "weight": 2,
+      "where": "the concrete strength dataset of [Lecture 9](../l09/notes.md): seven mix proportions and an age in",
+      "origin": "link"
+    },
+    {
+      "from": "l21",
+      "to": "l11",
+      "weight": 2,
+      "where": "rules out the largest images above. [Lecture 11](../l11/notes.md) already gave the deciding",
+      "origin": "link"
+    },
+    {
+      "from": "l21",
+      "to": "l12",
+      "weight": 1,
+      "where": "[Lecture 12](../l12/notes.md)'s checkpoints do. `torch.load` warns \"Never load data from an",
+      "origin": "link"
     },
     {
       "from": "l21",
       "to": "l13",
       "weight": 1,
-      "where": "the subject of the entire second half of Lecture 13: what happens when a company builds the model, ships it, and stops watching",
-      "origin": "authored",
-      "relation": "builds-on",
-      "why": "The strongest claim of dependency anywhere in the back half. Not \"recall Lecture 13\" but \"this is Lecture 13, continued\"."
+      "where": "[Lecture 13](../l13/notes.md) already listed ONNX as \"a file format to export the trained",
+      "origin": "link"
     },
     {
       "from": "l21",
-      "to": "l19",
+      "to": "l14",
+      "weight": 3,
+      "where": "The worked example is the five-network ensemble from [Lecture 14](../l14/notes.md), fitted to",
+      "origin": "link"
+    },
+    {
+      "from": "l21",
+      "to": "l15",
       "weight": 1,
-      "where": "eval harness for a small RAG assistant in the spirit of Lecture 19's system",
-      "origin": "authored",
-      "relation": "reuses",
-      "why": "The eval harness is built against the RAG system Lecture 19 leaves behind."
+      "where": "a whole column in 0.2 ms. [Lecture 15](../l15/notes.md) chose four experiments at once, `q=4`,",
+      "origin": "link"
+    },
+    {
+      "from": "l21",
+      "to": "l17",
+      "weight": 1,
+      "where": "[Lecture 17](../l17/notes.md) put the same point in budget terms: \"Cost and time are counted in",
+      "origin": "link"
+    },
+    {
+      "from": "l21",
+      "to": "l18",
+      "weight": 3,
+      "where": "all. The course-notes chat in [Lecture 18](../l18/notes.md) does this with WebGPU, and the",
+      "origin": "link"
     }
   ],
   "in_degree": {
-    "l01": 4,
-    "l02": 2,
+    "l01": 5,
+    "l02": 3,
     "l03": 4,
     "l04": 3,
-    "l05": 4,
-    "l06": 1,
-    "l07": 6,
-    "l08": 4,
-    "l09": 8,
+    "l05": 5,
+    "l06": 2,
+    "l07": 7,
+    "l08": 5,
+    "l09": 9,
     "l10": 3,
-    "l11": 5,
-    "l12": 3,
+    "l11": 6,
+    "l12": 4,
     "l13": 4,
-    "l14": 2,
-    "l15": 2,
+    "l14": 3,
+    "l15": 3,
     "l16": 2,
-    "l17": 1,
-    "l18": 1,
-    "l19": 1,
+    "l17": 2,
+    "l18": 2,
+    "l19": 0,
     "l20": 0,
     "l21": 0,
     "built": 0
   },
   "in_weight": {
-    "l01": 7,
-    "l02": 5,
-    "l03": 7,
+    "l01": 12,
+    "l02": 7,
+    "l03": 9,
     "l04": 5,
-    "l05": 6,
-    "l06": 1,
-    "l07": 9,
-    "l08": 6,
-    "l09": 16,
+    "l05": 10,
+    "l06": 5,
+    "l07": 10,
+    "l08": 7,
+    "l09": 18,
     "l10": 5,
-    "l11": 8,
-    "l12": 4,
+    "l11": 10,
+    "l12": 5,
     "l13": 4,
-    "l14": 4,
-    "l15": 6,
+    "l14": 7,
+    "l15": 5,
     "l16": 3,
-    "l17": 1,
-    "l18": 3,
-    "l19": 1,
+    "l17": 2,
+    "l18": 6,
+    "l19": 0,
     "l20": 0,
     "l21": 0,
     "built": 0
@@ -527,10 +603,11 @@
     "l18": 0,
     "l19": 7,
     "l20": 7,
-    "l21": 4,
+    "l21": 16,
     "built": 1
   },
   "unreferenced": [
+    "l19",
     "l20",
     "l21",
     "built"

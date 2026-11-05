@@ -96,7 +96,7 @@ def released():
 
 
 def has_content(n):
-    """Some scheduled sessions have no lecture directory at all (L20, L22).
+    """Some scheduled sessions have no lecture directory at all (L21 and L22 at present).
 
     release_lecture.py is a silent no-op for those, so naming them in a reminder
     would send someone looking for a bug that is not there.

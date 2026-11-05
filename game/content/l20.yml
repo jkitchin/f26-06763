@@ -1,12 +1,23 @@
-# L20 item bank for reinforcement learning: where it sits by the feedback the learner gets,
-# bandits as the bridge from Bayesian optimization, the Markov decision process, Q-learning on
-# the PyCSE tank against a tuned PID, rewards the agent games, cliff walking, deep RL and the
-# tools, the case studies, and the limitations. Every item quotes lectures/l20/notes.md; the
+# L20 item bank for reinforcement learning: the tank as matrices, choosing and training an action
+# by hand, where it sits by the feedback the learner gets, values and planning, Q-learning on the
+# PyCSE tank against a tuned PID, rewards the agent games, deep RL and the tools, the case
+# studies, and the limitations. Every item quotes lectures/l20/notes.md; the
 # numbers come from lectures/l20/figures/make_figures.py.
 #
 # Version 3 replaces versions 1 and 2, which were the agents lecture that used to be L20 (it is
 # rewritten as L19 on 2026-11-03). The archive in pools/l20.json keeps them, so
 # PDFs issued against them still verify.
+#
+# Version 4 (2026-11-04, before release) adds l20-q21 to q23 for the section on the Markov
+# decision process as matrices and the exact solution of the 20-bin tank.
+#
+# Version 5 (2026-11-04, before release) follows the notes' new order, mechanics before
+# vocabulary: l20-q24 (reading an action's matrix) and l20-q25 (one Q-learning update by hand),
+# and new section headings for the items whose passages moved.
+#
+# Version 6 (2026-11-04, before release) follows the cut of the bandit and cliff-walking sections
+# from the notes: l20-q08 and q09 (bandits) and q16 to q18 (cliff walking, objective l20-o4) are
+# gone. Twenty items, so serve 10.
 
 schema: 1
 lecture: l20
@@ -16,7 +27,7 @@ source_notes: lectures/l20/notes.md
 status: unwritten
 # serve = pool // 2, so a retake can be served a disjoint set (CLAUDE.md section 9c).
 serve: 10
-pool_version: 3
+pool_version: 6
 provenance:
   drafted_by: claude
   reviewed_by: none
@@ -46,9 +57,9 @@ items:
       full inflow, long enough to see the overshoot an early valve opening causes.
     source:
       file: lectures/l20/notes.md
-      heading: "The Markov decision process"
+      heading: "Return and discount"
       quote: |
-        that is 20 steps, or 10 time units
+        which is 20 steps, or 10 time units
     verify: {mode: quote, needle: "20 steps, or 10 time units", volatility: stable}
     tags: [discount, horizon]
 
@@ -97,7 +108,7 @@ items:
       something that tracks it.
     source:
       file: lectures/l20/notes.md
-      heading: "The Markov decision process"
+      heading: "The words people use"
       quote: |
         When a learned controller behaves strangely, a state that leaves out something
         the dynamics depend on is one of the first things to check.
@@ -153,7 +164,7 @@ items:
       a reinforcement learner to explore.
     source:
       file: lectures/l20/notes.md
-      heading: "Where reinforcement learning sits in machine learning"
+      heading: "Why reinforcement learning, when we already have machine learning"
       quote: |
         A yield of 70% tells you that
         catalyst B gave 70%. It does not tell you whether catalyst C would have given 74%.
@@ -180,7 +191,7 @@ items:
       through it every later reward.
     source:
       file: lectures/l20/notes.md
-      heading: "Where reinforcement learning sits in machine learning"
+      heading: "Why reinforcement learning, when we already have machine learning"
       quote: |
         Its choices do not
         change the system, though.
@@ -213,59 +224,6 @@ items:
         model standing in for a person's judgement
     verify: {mode: quote, needle: "standing in for a person's judgement", volatility: stable}
     tags: [rlhf]
-
-  - id: l20-q08
-    kind: direction
-    rung: 2
-    difficulty: 2
-    objectives: [l20-o2]
-    prompt: |
-      Five catalysts, 500 runs. Greedy choice (always the best average so far) against ε-greedy
-      with ε = 0.1: what happened to greedy?
-    options:
-      - "It found the best catalyst in every run, faster than ε-greedy did"
-      - "It settled on a wrong catalyst in about a quarter of runs"
-      - "It spread its runs evenly over all five catalysts"
-      - "It had the highest regret of all four strategies"
-    answer: "It settled on a wrong catalyst in about a quarter of runs"
-    evidence: |
-      One unlucky early yield from catalyst C convinced it that C was poor, and it never tried C
-      again: stuck in 27% of runs. ε-greedy never got stuck but had the highest regret, 884 points,
-      because it kept pulling random arms.
-    source:
-      file: lectures/l20/notes.md
-      heading: "Bandits: the bridge from Bayesian optimization"
-      quote: |
-        Greedy settles on a wrong catalyst in 27% of runs
-    verify: {mode: quote, needle: "wrong catalyst in 27% of runs", volatility: measured}
-    tags: [bandit, exploration]
-
-  - id: l20-q09
-    kind: spot_the_defect
-    rung: 3
-    difficulty: 3
-    objectives: [l20-o2]
-    prompt: |
-      Yields spread by about 8 points per run. A student copies UCB's c = 2 from Sutton and
-      Barto's examples. In 16% of runs it locks onto a wrong catalyst. What is wrong?
-    options:
-      - "UCB cannot work when rewards are noisy, so Thompson sampling is required"
-      - "c has the units of the reward; 2 is small next to a spread of 8"
-      - "c should shrink over time, and a constant value never converges"
-      - "Five arms are too few for UCB's logarithmic bonus to apply"
-    answer: "c has the units of the reward; 2 is small next to a spread of 8"
-    evidence: |
-      The textbook's rewards have a spread of about 1. Setting c to the noise standard deviation,
-      8, cut the stuck runs to under 1%. L15 wrote UCB as μ + κσ so the model's uncertainty
-      carries the units.
-    source:
-      file: lectures/l20/notes.md
-      heading: "Bandits: the bridge from Bayesian optimization"
-      quote: |
-        The constant has
-        the units of the reward
-    verify: {mode: quote, needle: "the units of the reward", volatility: stable}
-    tags: [bandit, ucb, hyperparameters]
 
   # --- o3: Q-learning on the tank ----------------------------------------------------------------
 
@@ -430,86 +388,6 @@ items:
     verify: {mode: quote, needle: "steady state is nearest, 1, 4 or 9", volatility: measured}
     tags: [specification-gaming, reward]
 
-  # --- o4: cliff walking -------------------------------------------------------------------------
-
-  - id: l20-q16
-    kind: mcq
-    rung: 1
-    difficulty: 2
-    objectives: [l20-o4]
-    prompt: |
-      SARSA and Q-learning differ in one term of the update. Which?
-    options:
-      - "SARSA uses a larger learning rate α than Q-learning"
-      - "SARSA uses the next action it will take; Q-learning the best one"
-      - "SARSA discounts future rewards and Q-learning does not"
-      - "SARSA updates only at the end of each complete episode"
-    answer: "SARSA uses the next action it will take; Q-learning the best one"
-    evidence: |
-      SARSA's target is r + γQ(s', a') for the action a' it will actually take, exploration
-      included, so it is on-policy. Q-learning's target uses max over a', the greedy action, so it is
-      off-policy.
-    source:
-      file: lectures/l20/notes.md
-      heading: "Exploration has a cost: cliff walking"
-      quote: |
-        That makes SARSA **on-policy**: it learns the value of the policy it is following, random
-        exploratory moves included.
-    verify: {mode: quote, needle: "random exploratory moves included", volatility: stable}
-    tags: [sarsa, on-policy]
-
-  - id: l20-q17
-    kind: direction
-    rung: 2
-    difficulty: 2
-    objectives: [l20-o4]
-    prompt: |
-      On cliff walking with ε = 0.1, which method earned more reward per episode while it was
-      still learning, and why?
-    options:
-      - "Q-learning, because it found the shorter 13-step path"
-      - "SARSA, about −26 against −49: its path keeps away from the edge"
-      - "Neither: both fall off the cliff at the same rate"
-      - "Q-learning, because off-policy methods explore less"
-    answer: "SARSA, about −26 against −49: its path keeps away from the edge"
-    evidence: |
-      Q-learning learns the shortest path, along the edge, and its exploratory moves knock it off.
-      SARSA learns the value of what it actually does, random moves included, and takes the 17-step
-      path across the top.
-    source:
-      file: lectures/l20/notes.md
-      heading: "Exploration has a cost: cliff walking"
-      quote: |
-        Q-learning earns an average of −49 per episode over the last 100 episodes and SARSA
-        −26
-    verify: {mode: quote, needle: "over the last 100 episodes and SARSA", volatility: measured}
-    tags: [cliff-walking, exploration]
-
-  - id: l20-q18
-    kind: spot_the_defect
-    rung: 3
-    difficulty: 3
-    objectives: [l20-o4]
-    prompt: |
-      A team proposes training a Q-learning controller directly on a running plant, with ε = 0.1,
-      learning from its own mistakes. What is the main problem?
-    options:
-      - "Q-learning cannot learn from data it collected itself"
-      - "Exploring happens on the equipment: random moves in unsafe states"
-      - "ε = 0.1 is too little exploration to converge on a plant"
-      - "The plant's state space is too small for reinforcement learning"
-    answer: "Exploring happens on the equipment: random moves in unsafe states"
-    evidence: |
-      A control system cannot step off a cliff ten percent of the time to find out how far the edge
-      is. That is the main reason RL for real equipment is trained in a simulator.
-    source:
-      file: lectures/l20/notes.md
-      heading: "Exploration has a cost: cliff walking"
-      quote: |
-        and this is the main reason RL for real equipment is trained in a simulator.
-    verify: {mode: quote, needle: "trained in a simulator", volatility: stable}
-    tags: [safety, simulation]
-
   # --- o5: when to use it, and reading claims ----------------------------------------------------
 
   - id: l20-q19
@@ -549,7 +427,7 @@ items:
     options:
       - "Reinforcement learning, because the variables interact"
       - "Model predictive control"
-      - "A bandit, one variable at a time, in sequence"
+      - "Bayesian optimization, one variable at a time, in sequence"
       - "A generative model of past operating data"
     answer: "Model predictive control"
     evidence: |
@@ -563,3 +441,146 @@ items:
         Several interacting variables, constraints, a model you can fit | MPC
     verify: {mode: quote, needle: "a model you can fit", volatility: stable}
     tags: [mpc, choosing-a-tool]
+
+  # --- o6: the MDP as matrices ---------------------------------------------------------------------
+
+  - id: l20-q21
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l20-o6]
+    prompt: |
+      On the three-level tank, the operator opens at low and shuts otherwise. Starting at low the
+      tank goes low, ok, low, ok and so on, earning 0.9, 0, 0.9, 0 and so on. With rewards k steps
+      ahead counted as 0.9^k times their size, what is the value of starting at low?
+    options:
+      - "0.9, the reward of the first step"
+      - "About 4.74, since 0.9 / (1 - 0.81)"
+      - "9.0, since 0.9 / (1 - 0.9)"
+      - "Infinite, since the cycle never ends"
+    answer: "About 4.74, since 0.9 / (1 - 0.81)"
+    evidence: |
+      The rewards repeat every two steps, and each repeat counts 0.9^2 = 0.81 times the one before,
+      so the total is 0.9 (1 + 0.81 + 0.81^2 + ...) = 0.9 / 0.19 = 4.737. Dividing by 1 - 0.9
+      would count a reward of 0.9 on every step, but every second step earns nothing.
+    source:
+      file: lectures/l20/notes.md
+      heading: "How good is a level? Follow the tank and add up the rewards"
+      quote: |
+        because the pattern repeats every two steps and each repeat is worth $0.9^2 = 0.81$ times the
+        last.
+    verify: {mode: quote, needle: "the pattern repeats every two steps", volatility: stable}
+    tags: [mdp-matrices, value, discount]
+
+  - id: l20-q22
+    kind: mcq
+    rung: 3
+    difficulty: 2
+    objectives: [l20-o6, l20-o1]
+    prompt: |
+      Value iteration updates every entry of Q with R + γ P_a V. Q-learning uses no matrices at
+      all. What exactly does it replace?
+    options:
+      - "The expectation P_a V, with the value of the one next state actually observed"
+      - "The reward matrix R, with a learned reward model"
+      - "The max over actions, with an average over actions"
+      - "The discount γ, with the learning rate α"
+    answer: "The expectation P_a V, with the value of the one next state actually observed"
+    evidence: |
+      Q-learning moves one entry a fraction α toward r + γ max Q(s′, ·) for the observed s′. Over
+      many visits s′ lands in each column of row s of P_a in proportion to its probability, so the
+      average update is the value-iteration update: a sample update instead of an expected one.
+    source:
+      file: lectures/l20/notes.md
+      heading: "What a learning agent does without the table"
+      quote: |
+        Q-learning, which filled in the table by hand earlier, is the model-free version of value
+        iteration.
+    verify: {mode: quote, needle: "is the model-free version of value", volatility: stable}
+    tags: [mdp-matrices, model-free]
+
+  - id: l20-q23
+    kind: mcq
+    rung: 3
+    difficulty: 3
+    objectives: [l20-o3, l20-o6]
+    prompt: |
+      Half the Q-learning seeds on the 20-bin tank fail badly from some start. Solving the tank's
+      own 20 × 20 transition matrices exactly, with the same five inflows and the same bins, gives
+      a policy that scores 0.187 over the eight starts, about the tuned PID's 0.19. What does that
+      say about the failing seeds?
+    options:
+      - "The table and the five inflows were enough; the failures came from learning"
+      - "Five inflows cannot hold the setpoint, so every table policy must lose to PID"
+      - "The bins are not Markov, so no table can be trusted on this tank"
+      - "The failing seeds needed a larger discount factor"
+    answer: "The table and the five inflows were enough; the failures came from learning"
+    evidence: |
+      The exact solution uses the same representation and matches PID, so nothing about the
+      table forced the loss. The bad seeds picked, in a rarely visited bin, an inflow that holds
+      the level inside that bin (0.5 in bin 1, 1.5 in bin 17), a diagonal 1 in P_a, so the tank
+      parks there.
+    source:
+      file: lectures/l20/notes.md
+      heading: "What the table was estimating"
+      quote: |
+        the 100-entry table were enough, and the five failing seeds failed at learning.
+    verify: {mode: quote, needle: "the five failing seeds failed at learning", volatility: measured}
+    tags: [mdp-matrices, tank, seeds]
+
+  # --- o7, o8: the mechanics, before the vocabulary --------------------------------------------
+
+  - id: l20-q24
+    kind: mcq
+    rung: 1
+    difficulty: 1
+    objectives: [l20-o7]
+    prompt: |
+      On the three-level tank (levels ordered low, ok, high), the valve sometimes sticks, so row
+      low of the matrix for opening is [0.2, 0.8, 0]. What does the 0.8 mean?
+    options:
+      - "Opening from low reaches ok four times in five"
+      - "Opening from low earns a score of 0.8"
+      - "The tank is at ok 80% of the time"
+      - "Opening from ok returns to low four times in five"
+    answer: "Opening from low reaches ok four times in five"
+    evidence: |
+      The row is where the tank is (low), the column is where it ends up (ok), and the entry is the
+      chance of that move under this action. Scores live in a separate table, R, and the matrix
+      says nothing about how often the tank is anywhere.
+    source:
+      file: lectures/l20/notes.md
+      heading: "An action is a matrix"
+      quote: |
+        $P_{\text{open}}$ might be $[0.2, 0.8, 0]$, meaning that opening from low reaches ok four times
+        in five and leaves the tank at low otherwise.
+    verify: {mode: quote, needle: "opening from low reaches ok four times", volatility: stable}
+    tags: [mechanics, transition-matrix]
+
+  - id: l20-q25
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l20-o8]
+    prompt: |
+      The three-level tank's Q table starts at zero, with alpha = 0.5 and gamma = 0.9. After one
+      update Q(low, open) = 0.45. Now the program, at ok, shuts and lands at low with a score of
+      0. What does Q(ok, shut) become?
+    options:
+      - "0, because the score was 0"
+      - "About 0.20, half of the target 0 + 0.9 x 0.45"
+      - "0.405, the target itself"
+      - "0.45, copied from Q(low, open)"
+    answer: "About 0.20, half of the target 0 + 0.9 x 0.45"
+    evidence: |
+      The target is the score plus 0.9 times the best entry in the row where the move landed, and
+      the best entry in row low is 0.45, so the target is 0.405. With alpha = 0.5 the entry moves
+      halfway from 0 to 0.405, to 0.2025. The score of 0 does not make the target 0, because
+      landing at low is worth something when you can open from there.
+    source:
+      file: lectures/l20/notes.md
+      heading: "Training by hand"
+      quote: |
+        The reward is 0, but the target is not: it is $0 + 0.9 \times \max(0, 0.45) = 0.405$,
+    verify: {mode: quote, needle: "The reward is 0, but the target is not", volatility: stable}
+    tags: [mechanics, q-learning, by-hand]

@@ -93,3 +93,6 @@ lectures/*/rag-index.json
 lectures/*/rag-index.js
 # ...and the Ask button, which a deck places with <div class="ask-slot">.
 lectures/*/ask.js
+
+# L21 demo notebook working directory (model, app.py, load client), written when it runs
+lectures/l21/l21_work/
