@@ -33,7 +33,28 @@
       "from": "built",
       "to": "l01",
       "weight": 1,
-      "where": "lecture was corrected, and L1's notes now use the discrepancy deliberately",
+      "where": "Check every number against its source \u00b7 the famous \"less than 10% of the code is the model\" is not in the paper it is cited to (Lecture 1)",
+      "origin": "link"
+    },
+    {
+      "from": "built",
+      "to": "l09",
+      "weight": 1,
+      "where": "The same model ranking under any split \u00b7 on the concrete strength dataset, a decision tree beats a straight line with random folds, and loses to it by 2 MPa\u2026",
+      "origin": "link"
+    },
+    {
+      "from": "built",
+      "to": "l11",
+      "weight": 1,
+      "where": "PyTorch and JAX both match the exact gradient \u00b7 PyTorch was off by 7.5e-8, JAX by 4.4e-16: two Python numbers had silently become float32 \u00b7 Lecture 11",
+      "origin": "link"
+    },
+    {
+      "from": "built",
+      "to": "l17",
+      "weight": 1,
+      "where": "Our tiny GPT finishes all 16 course terms \u00b7 15 of 16: \"physics-in\" became \"physics-into a s\", because \"into a\" appears 58 times in our notes and\u2026",
       "origin": "link"
     },
     {
@@ -543,15 +564,15 @@
     "l06": 2,
     "l07": 7,
     "l08": 5,
-    "l09": 9,
+    "l09": 10,
     "l10": 3,
-    "l11": 6,
+    "l11": 7,
     "l12": 4,
     "l13": 4,
     "l14": 3,
     "l15": 3,
     "l16": 2,
-    "l17": 2,
+    "l17": 3,
     "l18": 2,
     "l19": 0,
     "l20": 0,
@@ -567,15 +588,15 @@
     "l06": 5,
     "l07": 10,
     "l08": 7,
-    "l09": 18,
+    "l09": 19,
     "l10": 5,
-    "l11": 10,
+    "l11": 11,
     "l12": 5,
     "l13": 4,
     "l14": 7,
     "l15": 5,
     "l16": 3,
-    "l17": 2,
+    "l17": 3,
     "l18": 6,
     "l19": 0,
     "l20": 0,
@@ -604,7 +625,7 @@
     "l19": 7,
     "l20": 7,
     "l21": 16,
-    "built": 1
+    "built": 4
   },
   "unreferenced": [
     "l19",

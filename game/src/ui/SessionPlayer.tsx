@@ -2,7 +2,7 @@
  * The session: one item at a time, with the predict-then-reveal mechanic.
  *
  * The commit step is the whole point and is not decoration. Rozenblit and
- * Keil's result, which course/optional/generating-is-not-learning.md builds on,
+ * Keil's result, which course/optional/how-this-course-was-built.md cites,
  * is that people cannot tell whether they understand something until they try
  * to produce the explanation. Reading an option list and recognising the right
  * answer is exactly the fluency signal that experiment says not to trust. So on
