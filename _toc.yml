@@ -78,6 +78,9 @@ parts:
 #       - file: lectures/l21/notes
 #         sections:
 #           - file: lectures/l21/l21-deployment
+#       - file: lectures/l22/notes
+#         sections:
+#           - file: lectures/l22/l22-git-history
 
   - caption: Assignments
     # Released with their lecture by tools/release_lecture.py, from the
