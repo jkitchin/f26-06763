@@ -68,7 +68,7 @@
       ]
     },
     {
-      "name": "Production and responsibility",
+      "name": "Course wrap-up",
       "x0": 16,
       "rows": 1,
       "rooms": [
@@ -378,8 +378,8 @@
       "title": "Course overview and how it was built",
       "kind": "session",
       "written": false,
-      "arc_source": "inherited",
-      "arc": "Production and responsibility",
+      "arc_source": "declared",
+      "arc": "Course wrap-up",
       "region": 5,
       "x": 16,
       "y": 1,
@@ -954,6 +954,158 @@
       "relation": null,
       "why": null,
       "where": "all. The course-notes chat in [Lecture 18](../l18/notes.md) does this with WebGPU, and the"
+    },
+    {
+      "from": "l22",
+      "to": "l01",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "to a model in a state you can trust. [Lecture 1](../l01/notes.md) set out the system view of"
+    },
+    {
+      "from": "l22",
+      "to": "l02",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "the course used throughout. [Lecture 2](../l02/notes.md) made environments and experiments"
+    },
+    {
+      "from": "l22",
+      "to": "l03",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "reproducible with `uv` lockfiles, Git and run logging. [Lecture 3](../l03/notes.md) and"
+    },
+    {
+      "from": "l22",
+      "to": "l04",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "[Lecture 4](../l04/notes.md) stored sensor time series in PostgreSQL and then in Parquet and DuckDB,"
+    },
+    {
+      "from": "l22",
+      "to": "l05",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "[Lecture 5](../l05/notes.md) built batch pipelines over the Tennessee Eastman plant that are safe to"
+    },
+    {
+      "from": "l22",
+      "to": "l06",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "rerun, [Lecture 6](../l06/notes.md) dealt with streams, late data and validation gates that fail"
+    },
+    {
+      "from": "l22",
+      "to": "l07",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "loudly, and [Lecture 7](../l07/notes.md) turned raw signals into features that exist at the moment"
+    },
+    {
+      "from": "l22",
+      "to": "l08",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "how to know whether to believe it. Lectures [8](../l08/notes.md), [9](../l09/notes.md) and"
+    },
+    {
+      "from": "l22",
+      "to": "l09",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "how to know whether to believe it. Lectures [8](../l08/notes.md), [9](../l09/notes.md) and"
+    },
+    {
+      "from": "l22",
+      "to": "l10",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "[10](../l10/notes.md) were the machine-learning workflow three times over, for time series,"
+    },
+    {
+      "from": "l22",
+      "to": "l11",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "cross-validation, hyperparameter search and experiment tracking. [Lecture 11](../l11/notes.md)"
+    },
+    {
+      "from": "l22",
+      "to": "l12",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "[Lecture 12](../l12/notes.md) matched architectures to the structure of engineering data."
+    },
+    {
+      "from": "l22",
+      "to": "l13",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "[Lecture 13](../l13/notes.md) put physics back in, with physics-informed networks and neural ODEs"
+    },
+    {
+      "from": "l22",
+      "to": "l14",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "and DAEs. [Lecture 14](../l14/notes.md) asked how wrong a prediction might be,"
+    },
+    {
+      "from": "l22",
+      "to": "l15",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "[Lecture 15](../l15/notes.md) used that uncertainty to choose the next experiment, and"
+    },
+    {
+      "from": "l22",
+      "to": "l16",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "[Lecture 16](../l16/notes.md) learned whole distributions and sampled from them."
+    },
+    {
+      "from": "l22",
+      "to": "l17",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "and writes text. [Lecture 17](../l17/notes.md) trained a tiny GPT to show what a language model is,"
+    },
+    {
+      "from": "l22",
+      "to": "l18",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "[Lecture 18](../l18/notes.md) controlled what the model gets to see through tools, search and"
+    },
+    {
+      "from": "l22",
+      "to": "l19",
+      "origin": "link",
+      "relation": null,
+      "why": null,
+      "where": "retrieval, and [Lecture 19](../l19/notes.md) put the model in a loop with tools as an agent, inside"
     }
   ],
   "signs": []

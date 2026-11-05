@@ -78,6 +78,9 @@ parts:
 #       - file: lectures/l21/notes
 #         sections:
 #           - file: lectures/l21/l21-deployment
+#       - file: lectures/l22/notes
+#         sections:
+#           - file: lectures/l22/l22-git-history
 
   - caption: Assignments
     # Released with their lecture by tools/release_lecture.py, from the
@@ -117,14 +120,14 @@ parts:
           - file: case-studies/bridge-health-monitoring
           - file: case-studies/alloy-adaptive-design
 
-# Optional material: hidden for now, to be reviewed and released later. The
-# overview cross-links both section pages, so the whole part is held together.
+# Optional material: nothing published. how-this-course-was-built.md was folded
+# into Lecture 22's notes, which now carry its content and the rung ladder; it is
+# kept unpublished. Publishing a page here gives it a room on the map.
 #   - caption: Optional material
 #     chapters:
-#       - file: course/optional/overview
-#         sections:
-#           - file: course/optional/how-this-course-was-built
-#           - file: course/optional/generating-is-not-learning
-#           - file: course/optional/mlops
-#             sections:
-#               - file: course/optional/mlops-demo
+#       - file: course/optional/how-this-course-was-built
+
+# MLOps: kept for a future offering, not published.
+#     - file: course/optional/mlops
+#       sections:
+#         - file: course/optional/mlops-demo
