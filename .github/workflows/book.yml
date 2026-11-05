@@ -299,6 +299,14 @@ jobs:
         # Both pointers are required, and each must name its own lecture,
         # because a copied line pointing at the previous lecture is the failure
         # this would otherwise miss. See CLAUDE.md section 4.
+        #
+        # A lecture with no quiz bank (L22 has none) has no module to link, so
+        # it is held to two different rules: its At a glance block says "No
+        # practice module" in words, so the absence reads as a decision rather
+        # than an omission, and it links no game/#/lNN, which would open a
+        # module that does not exist. The exemption keys on the bank file, not
+        # on the wording, so a lecture whose bank exists cannot opt out of the
+        # link and repeat L3.
         run: |
           python3 - <<'PY'
           import pathlib
@@ -307,10 +315,23 @@ jobs:
 
           problems = []
           checked = 0
+          without_bank = []
           for notes in sorted(pathlib.Path("lectures").glob("l*/notes.md")):
               lec = notes.parent.name
               text = notes.read_text(encoding="utf-8")
               checked += 1
+
+              bank = pathlib.Path("game/content") / f"{lec}.yml"
+              if not bank.exists():
+                  without_bank.append(lec)
+                  if not re.search(r"^- \*\*Practice\*\* No practice module", text, re.M):
+                      problems.append(
+                          f"{notes}: no quiz bank at {bank}, and the At a glance "
+                          f"block does not say '- **Practice** No practice module'")
+                  for got in sorted(set(re.findall(r'href="[^"]*game/#/(l\d\d)"', text))):
+                      problems.append(
+                          f"{notes}: links game/#/{got}, but there is no bank at {bank}")
+                  continue
 
               # The closing section, which is where a reader who scrolled ends up.
               if not re.search(r"^## Practice module\s*$", text, re.M):
@@ -338,7 +359,9 @@ jobs:
           if problems:
               print("\n".join(f"::error::{p}" for p in problems))
               sys.exit(f"{len(problems)} practice-module problem(s)")
-          print(f"OK: {checked} lectures link their practice module")
+          print(f"OK: {checked - len(without_bank)} lectures link their practice module")
+          if without_bank:
+              print(f"OK: no quiz bank, and the notes say so: {', '.join(without_bank)}")
           PY
 
       - name: Check every lecture carries index entries
