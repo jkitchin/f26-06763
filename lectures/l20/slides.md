@@ -118,9 +118,28 @@ Next slide.
 
 ## How it works, as a diagram
 
-![w:900](figures/mdp-diagram.png)
+<style scoped>
+.pair { display: grid; grid-template-columns: 1.25fr 1fr; gap: 1em; align-items: center; }
+.pair img { width: 100%; }
+.pair mjx-container, .pair .katex-display { font-size: 0.62em !important; margin: 0.2em 0 !important; }
+</style>
 
-- One circle per level, one arrow per row of the table
+<div class="pair">
+<div>
+
+![](figures/mdp-diagram.png)
+
+</div>
+<div>
+
+$$P_{\text{shut}} = \begin{array}{c|ccc} & \text{low} & \text{ok} & \text{high} \\ \hline \text{low} & 1 & 0 & 0 \\ \text{ok} & 1 & 0 & 0 \\ \text{high} & 0 & 1 & 0 \end{array}$$
+
+$$P_{\text{open}} = \begin{array}{c|ccc} & \text{low} & \text{ok} & \text{high} \\ \hline \text{low} & 0 & 1 & 0 \\ \text{ok} & 0 & 0 & 1 \\ \text{high} & 0 & 0 & 1 \end{array}$$
+
+</div>
+</div>
+
+- One circle per level, one arrow per row of the table; the same arrows as grids: row is where you are, column is where you go
 - <span class="pt">▶</span> read it like a board game: choose blue or orange, follow the arrow, collect the reward
 
 <div class="narration">
@@ -128,6 +147,8 @@ Next slide.
 Here are the same six facts as a picture. One circle per level, and one arrow per row of the table. Blue arrows are open, orange arrows are shut, and each arrow carries its reward.
 
 Read it like a board game. You are standing on a circle. You choose blue or orange. You follow that arrow to the next circle and collect what is written on it.
+
+On the right is the same game written as grids of numbers. There is one grid per colour. The row is the circle you stand on, the column is the circle the arrow lands on, and a one marks the arrow. Check one: in the shut grid, row ok has its one under low, which is the orange arrow from ok down to low. The rewards on the arrows get a grid of their own shortly. We will build these grids properly in a moment; for now, see that the picture and the grids carry exactly the same information.
 
 Notice that to know where you go next, you only need the circle you are on and the colour you choose. How you got to that circle never matters. Remember that; it gets a name later.
 
