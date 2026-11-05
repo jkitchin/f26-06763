@@ -23,8 +23,7 @@
     "l18",
     "l19",
     "l20",
-    "l21",
-    "l22"
+    "l21"
   ],
   "pages": {
     "built": "course/optional/how-this-course-was-built.md"
@@ -533,189 +532,54 @@
       "weight": 3,
       "where": "all. The course-notes chat in [Lecture 18](../l18/notes.md) does this with WebGPU, and the",
       "origin": "link"
-    },
-    {
-      "from": "l22",
-      "to": "l01",
-      "weight": 2,
-      "where": "to a model in a state you can trust. [Lecture 1](../l01/notes.md) set out the system view of",
-      "origin": "link"
-    },
-    {
-      "from": "l22",
-      "to": "l02",
-      "weight": 1,
-      "where": "the course used throughout. [Lecture 2](../l02/notes.md) made environments and experiments",
-      "origin": "link"
-    },
-    {
-      "from": "l22",
-      "to": "l03",
-      "weight": 1,
-      "where": "reproducible with `uv` lockfiles, Git and run logging. [Lecture 3](../l03/notes.md) and",
-      "origin": "link"
-    },
-    {
-      "from": "l22",
-      "to": "l04",
-      "weight": 1,
-      "where": "[Lecture 4](../l04/notes.md) stored sensor time series in PostgreSQL and then in Parquet and DuckDB,",
-      "origin": "link"
-    },
-    {
-      "from": "l22",
-      "to": "l05",
-      "weight": 1,
-      "where": "[Lecture 5](../l05/notes.md) built batch pipelines over the Tennessee Eastman plant that are safe to",
-      "origin": "link"
-    },
-    {
-      "from": "l22",
-      "to": "l06",
-      "weight": 1,
-      "where": "rerun, [Lecture 6](../l06/notes.md) dealt with streams, late data and validation gates that fail",
-      "origin": "link"
-    },
-    {
-      "from": "l22",
-      "to": "l07",
-      "weight": 1,
-      "where": "loudly, and [Lecture 7](../l07/notes.md) turned raw signals into features that exist at the moment",
-      "origin": "link"
-    },
-    {
-      "from": "l22",
-      "to": "l08",
-      "weight": 1,
-      "where": "how to know whether to believe it. Lectures [8](../l08/notes.md), [9](../l09/notes.md) and",
-      "origin": "link"
-    },
-    {
-      "from": "l22",
-      "to": "l09",
-      "weight": 1,
-      "where": "how to know whether to believe it. Lectures [8](../l08/notes.md), [9](../l09/notes.md) and",
-      "origin": "link"
-    },
-    {
-      "from": "l22",
-      "to": "l10",
-      "weight": 1,
-      "where": "[10](../l10/notes.md) were the machine-learning workflow three times over, for time series,",
-      "origin": "link"
-    },
-    {
-      "from": "l22",
-      "to": "l11",
-      "weight": 1,
-      "where": "cross-validation, hyperparameter search and experiment tracking. [Lecture 11](../l11/notes.md)",
-      "origin": "link"
-    },
-    {
-      "from": "l22",
-      "to": "l12",
-      "weight": 1,
-      "where": "[Lecture 12](../l12/notes.md) matched architectures to the structure of engineering data.",
-      "origin": "link"
-    },
-    {
-      "from": "l22",
-      "to": "l13",
-      "weight": 1,
-      "where": "[Lecture 13](../l13/notes.md) put physics back in, with physics-informed networks and neural ODEs",
-      "origin": "link"
-    },
-    {
-      "from": "l22",
-      "to": "l14",
-      "weight": 1,
-      "where": "and DAEs. [Lecture 14](../l14/notes.md) asked how wrong a prediction might be,",
-      "origin": "link"
-    },
-    {
-      "from": "l22",
-      "to": "l15",
-      "weight": 1,
-      "where": "[Lecture 15](../l15/notes.md) used that uncertainty to choose the next experiment, and",
-      "origin": "link"
-    },
-    {
-      "from": "l22",
-      "to": "l16",
-      "weight": 1,
-      "where": "[Lecture 16](../l16/notes.md) learned whole distributions and sampled from them.",
-      "origin": "link"
-    },
-    {
-      "from": "l22",
-      "to": "l17",
-      "weight": 1,
-      "where": "and writes text. [Lecture 17](../l17/notes.md) trained a tiny GPT to show what a language model is,",
-      "origin": "link"
-    },
-    {
-      "from": "l22",
-      "to": "l18",
-      "weight": 1,
-      "where": "[Lecture 18](../l18/notes.md) controlled what the model gets to see through tools, search and",
-      "origin": "link"
-    },
-    {
-      "from": "l22",
-      "to": "l19",
-      "weight": 2,
-      "where": "retrieval, and [Lecture 19](../l19/notes.md) put the model in a loop with tools as an agent, inside",
-      "origin": "link"
     }
   ],
   "in_degree": {
-    "l01": 6,
-    "l02": 4,
-    "l03": 5,
-    "l04": 4,
-    "l05": 6,
-    "l06": 3,
-    "l07": 8,
-    "l08": 6,
-    "l09": 10,
-    "l10": 4,
-    "l11": 7,
-    "l12": 5,
-    "l13": 5,
-    "l14": 4,
-    "l15": 4,
-    "l16": 3,
-    "l17": 3,
-    "l18": 3,
-    "l19": 1,
+    "l01": 5,
+    "l02": 3,
+    "l03": 4,
+    "l04": 3,
+    "l05": 5,
+    "l06": 2,
+    "l07": 7,
+    "l08": 5,
+    "l09": 9,
+    "l10": 3,
+    "l11": 6,
+    "l12": 4,
+    "l13": 4,
+    "l14": 3,
+    "l15": 3,
+    "l16": 2,
+    "l17": 2,
+    "l18": 2,
+    "l19": 0,
     "l20": 0,
     "l21": 0,
-    "l22": 0,
     "built": 0
   },
   "in_weight": {
-    "l01": 14,
-    "l02": 8,
-    "l03": 10,
-    "l04": 6,
-    "l05": 11,
-    "l06": 6,
-    "l07": 11,
-    "l08": 8,
-    "l09": 19,
-    "l10": 6,
-    "l11": 11,
-    "l12": 6,
-    "l13": 5,
-    "l14": 8,
-    "l15": 6,
-    "l16": 4,
-    "l17": 3,
-    "l18": 7,
-    "l19": 2,
+    "l01": 12,
+    "l02": 7,
+    "l03": 9,
+    "l04": 5,
+    "l05": 10,
+    "l06": 5,
+    "l07": 10,
+    "l08": 7,
+    "l09": 18,
+    "l10": 5,
+    "l11": 10,
+    "l12": 5,
+    "l13": 4,
+    "l14": 7,
+    "l15": 5,
+    "l16": 3,
+    "l17": 2,
+    "l18": 6,
+    "l19": 0,
     "l20": 0,
     "l21": 0,
-    "l22": 0,
     "built": 0
   },
   "out_degree": {
@@ -740,13 +604,12 @@
     "l19": 7,
     "l20": 7,
     "l21": 16,
-    "l22": 19,
     "built": 1
   },
   "unreferenced": [
+    "l19",
     "l20",
     "l21",
-    "l22",
     "built"
   ],
   "terminal": [
