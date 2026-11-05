@@ -121,7 +121,13 @@ leak is always the same: information from the test set reaches training through 
 than on the CPU, because it was too small for the accelerator to pay for itself. In the optional
 Lecture 21 an `async def` endpoint, which sounds faster, stalled the whole server. In both cases the
 expectation came from a reasonable-sounding rule and the measurement came from how the
-implementation actually works.
+implementation actually works. Three more measurements changed a lecture the same way:
+
+| We expected | We measured | Where |
+|---|---|---|
+| PyTorch and JAX both match the exact gradient | PyTorch was off by 7.5e-8 and JAX by 4.4e-16, because two Python numbers had silently become float32 | [Lecture 11](../l11/notes.md) |
+| The same model ranking under any split | on the concrete strength data, a decision tree beats a straight line with random folds, and loses to it by 2 MPa when rows are grouped by mix | [Lecture 9](../l09/notes.md) |
+| Our tiny GPT finishes all 16 course terms | 15 of 16: "physics-in" became "physics-into a s", because "into a" appears 58 times in the notes and "physics-informed" only 8 | [Lecture 17](../l17/notes.md) |
 
 **Say how wrong you might be.** Lecture 14 attached intervals to predictions and checked whether
 they covered as often as they claimed. Lecture 15 used those intervals to decide where to measure
@@ -162,8 +168,22 @@ A **commit trailer** is a `Key: value` line at the end of a Git commit message, 
 [Lecture 19](../l19/notes.md) already showed the pipeline that one change takes to this site: an
 instructor writes the specification, the coding agent Claude Code reads the conventions and writes
 the material, a pull request carries the change, automatic checks run on it, and an instructor reads
-it and merges it. This section is the history of that pipeline in use: how much went through it,
-when, and what changed along the way.
+it and merges it.
+
+```{figure} ../l19/figures/course-build.png
+:alt: How one change reaches this course's site. Top row, left to right: an instructor writes the spec, topics, data and examples; Claude Code reads CLAUDE.md, the rules, and writes notes, slides, figures, notebook and practice questions; a pull request, a branch with the change; automatic checks, a strict build, the index, quiz quotes that must match the notes, figures that must exist, and no instructor file published. Bottom row, right to left: an instructor reads it, asks for fixes and merges; a weekly release, a bot that opens the release of the next lecture; the public site with notes, slides, notebooks, the practice game and the map. A red arrow from the checks back to Claude Code says a check fails, fix it; a green arrow from the instructor back to Claude Code says changes requested.
+:width: 100%
+
+How one change reaches this site, the figure from Lecture 19.
+```
+
+Three guardrails sit along that path. The agent's permissions set what it may do without asking
+us. The build fails on any warning, and other checks confirm that every practice question still
+matches the notes, that no instructor-only file is published, and that the live site serves the
+new version. And nothing reaches the site until one of us merges it. The pipeline is a harness for
+the whole course, in the sense of Lecture 19, and the model is one box in it. The rest of this
+section is the history of that pipeline in use: how much went through it, when, and what changed
+along the way.
 
 ### The record
 
@@ -172,6 +192,16 @@ Up to the cutoff the repository holds 354 commits, not counting merges, between 
 instructor reviewed and merged into the main branch. Of the 354 commits, 196 were made by one
 instructor and 144 by the other, and 13 by cloud sessions of the assistant working on branches of
 their own, which an instructor then reviewed. 305 of them, 86%, carry a trailer crediting a Claude model.
+
+```{figure} ../l19/figures/course-history.png
+:alt: Every pull request merged into the course's repository from July to November 2026, drawn as arcs off a horizontal line labeled main. Each arc runs from the branch's first commit to the day it merged; taller arcs carry more commits. Arcs above the line are lectures, in blue, and course pages, in gray. Arcs below are the practice game and map, in green, the clicker, arcade and Ask button, in gold, and the build, checks and rules, in purple. Labels mark the first lecture, the weekly release gate, the course map, the clicker, the first weekly release, the arcade, the RAG chat and the Ask button.
+:width: 100%
+
+Every pull request as a branch off main, from its first commit to the day it merged; taller arcs
+carry more commits. Above the line are the lectures and course pages, below it the practice game,
+the clicker and the checks that guard them. Drawn from the repository's history by
+`lectures/l19/figures/make_figures.py`.
+```
 
 The trailers name four versions. Claude Opus 4.8 appears from the first day, Claude Opus 5 from
 2026-07-27 to 2026-09-22, Claude Sonnet 5 on five commits in late July and August, and Claude Opus
@@ -355,13 +385,18 @@ grew by about 125 lines, and once went 33 days without a change. That shape is w
 file is for. The rules were mostly written while the course was being designed, and then the
 semester ran on them.
 
-Most of the rules were written after a mistake. One requires branching from an up-to-date main
-branch, because a lecture branched from a stale one had its links to lectures that had already merged
-downgraded to plain text to make the build pass. One requires that a quoted section of the notes be re-checked whenever it
-changes, because a practice question can quietly start testing text that no longer exists. Another
-says never to judge past work by present content, after a version of the practice game graded old
-answers against a newer question bank. A rule that exists because of a mistake carries the reason
-with it, which is why it survives.
+Most of the rules were written after a mistake, so that the same mistake is not made twice:
+
+| Rule | The mistake behind it |
+|---|---|
+| Check every number against its source | the famous "less than 10% of the code is the model" is not in the paper it is cited to ([Lecture 1](../l01/notes.md)) |
+| Draw every figure from a script, never copy one | the drift figure in Lecture 1 was meant to show steady decay, and the data showed a seasonal swing |
+| Pin the site builder, Jupyter Book, below version 2 | version 2 names each page after its file, so every lecture's `notes.md` would collapse into one page |
+| Branch from an up-to-date main branch | a lecture branched from a stale one had its links to already-merged lectures downgraded to plain text to make the build pass |
+| Re-check a quoted section whenever the notes change | a practice question can quietly start testing text that no longer exists |
+| Never judge past work by present content | growing a practice question pool made finished modules count as unfinished |
+
+A rule that exists because of a mistake carries the reason with it, which is why it survives.
 
 ### What the instructors decided, and what the assistant did
 
@@ -370,6 +405,18 @@ each lecture. They set the standards in `CLAUDE.md` and in the style guide, most
 output that was not good enough. They merged every pull request and closed the ones that were not
 right. The assistant did the research, the measurement, the figure scripts, the drafting and the
 checks, at a pace no instructor could match alone.
+
+| The instructors | The assistant |
+|---|---|
+| chose the topics, datasets, examples and level | searched for and read the sources |
+| wrote the rules it works by | drafted notes, slides and practice questions |
+| reviewed what it produced | wrote and ran the scripts behind every figure and number |
+| decided every change that reached the site | built the interactive figures, the practice game and the checks |
+| taught the lectures | |
+
+Two things were kept out of the assistant's hands entirely, as the
+[syllabus](../../course/syllabus.md) states: AI is not used to grade your work or to write feedback
+on it, and your submissions and personal information do not go into AI tools.
 
 The steering is visible in the record and in what was sent back. A draft that read well but rested
 on a number nobody had checked was sent back to find the source. A slide that was crowded was made
@@ -538,6 +585,43 @@ you on the paper you just read and grade your answer. Write your explanation fir
 find the gaps. Ask it why, not only what. Then do the problem yourself, and keep the attempt that
 failed, because the failure is where the learning is.
 
+### The rung ladder
+
+```{index} rung ladder
+```
+
+Every practice question in this course shows a rung, a number from 0 to 7. Each rung is a way of
+working through the material that costs more effort than the one below it and teaches more,
+following the studies above. Rung 0 is the rereading that Roediger and Karpicke found weakest, rung
+5 is Rozenblit and Keil's written explanation, and rung 6 is Fiorella's actual teaching.
+
+| Rung | What to do |
+|---|---|
+| 0 | Read the notes |
+| 1 | Write down a prediction before each measured result |
+| 2 | Work out one number yourself, without looking |
+| 3 | Run a notebook, break it on purpose, and predict the error |
+| 4 | Change one assumption in a figure script, predict what moves, and rerun it |
+| 5 | Close everything and write the mechanism from memory |
+| 6 | Explain one section out loud to a classmate, without notes |
+| 7 | Find something wrong in the course and tell us, with the evidence |
+
+Rung 5 shows you where your understanding stops. Rung 6 helps when you explain to someone, not when
+you only prepare to. Rung 7 improves the course for the next person, and it is the same work as
+the two-step verification above, pointed at us.
+
+### Try this
+
+1. **The gradient that should have agreed.** Before running anything, predict whether PyTorch and
+   JAX match the exact gradient, and to how many digits. Then run
+   `lectures/l11/figures/make_figures.py`, and explain the gap before you read the script's header.
+2. **Fix a broken notebook.** Run `lectures/l01/l01-reproducibility.ipynb`. It is broken on purpose
+   in three documented ways. Fix each one.
+3. **Count tokens.** Predict how many tokens one line of a datasheet costs, then count it with
+   [Tiktokenizer](https://tiktokenizer.vercel.app/).
+4. **Fix something.** Find one thing in this course that is wrong, unclear or out of date, and tell
+   us, with the source.
+
 ## Limitations and trade-offs
 
 Building a course this way has real costs, and some of them are easy to miss.
@@ -602,6 +686,8 @@ the attempt.
 - [Best practices for Claude Code](https://code.claude.com/docs/en/best-practices). The current
   guidance on giving an assistant a check it can run, keeping a conventions file short, and steering
   a session, from the tool used to build this course.
+- [`CLAUDE.md`](https://github.com/jkitchin/f26-06763/blob/main/CLAUDE.md). The course's
+  conventions file in full, with the reason behind each rule.
 - [Roediger and Karpicke, Test-enhanced learning (Psychological Science, 2006)](https://psychology.ecu.edu/wp-content/pv-uploads/sites/216/2019/03/Roediger-Karpicke-2006.pdf)
   (publisher PDF on a university mirror). The experiment in which rereading wins at five minutes,
   loses at a week, and raises confidence anyway.

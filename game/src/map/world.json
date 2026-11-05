@@ -61,11 +61,10 @@
     {
       "name": "Optional",
       "x0": 13,
-      "rows": 2,
+      "rows": 1,
       "rooms": [
         "l20",
-        "l21",
-        "built"
+        "l21"
       ]
     },
     {
@@ -373,20 +372,6 @@
       "notes": null
     },
     {
-      "session": "Extra",
-      "id": "built",
-      "date": "",
-      "title": "How this course was built",
-      "kind": "page",
-      "written": true,
-      "arc_source": "optional",
-      "arc": "Optional",
-      "region": 4,
-      "x": 13,
-      "y": 2,
-      "notes": "../course/optional/how-this-course-was-built.html"
-    },
-    {
       "session": "L22",
       "id": "l22",
       "date": "2026-11-16",
@@ -402,38 +387,6 @@
     }
   ],
   "doors": [
-    {
-      "from": "built",
-      "to": "l01",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "Check every number against its source · the famous \"less than 10% of the code is the model\" is not in the paper it is cited to (Lecture 1)"
-    },
-    {
-      "from": "built",
-      "to": "l09",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "The same model ranking under any split · on the concrete strength dataset, a decision tree beats a straight line with random folds, and loses to it by 2 MPa…"
-    },
-    {
-      "from": "built",
-      "to": "l11",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "PyTorch and JAX both match the exact gradient · PyTorch was off by 7.5e-8, JAX by 4.4e-16: two Python numbers had silently become float32 · Lecture 11"
-    },
-    {
-      "from": "built",
-      "to": "l17",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "Our tiny GPT finishes all 16 course terms · 15 of 16: \"physics-in\" became \"physics-into a s\", because \"into a\" appears 58 times in our notes and…"
-    },
     {
       "from": "l04",
       "to": "l03",

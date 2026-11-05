@@ -653,6 +653,7 @@ by every person and every assistant that works on it, so a decision is made once
 
 - The standards were set mostly by rejecting output that was not good enough
 - "Claude wrote the course" is not what the record shows
+- AI does not grade your work or write feedback; your submissions stay out of AI tools
 
 <!-- L19 showed this pipeline. Today is its history. -->
 
@@ -913,6 +914,23 @@ again, even though rereading feels more effective.
 - Measure your own speed-up too: METR's developers felt 20% faster and were 19% slower
 
 <span class="source">[Becker et al., arXiv:2507.09089](https://arxiv.org/abs/2507.09089), from L19</span>
+
+---
+
+## Generating is not learning, the rung ladder
+
+| Rung | What to do |
+|---|---|
+| 0 | Read the notes |
+| 1 | Write down a prediction before each measured result |
+| 2 | Work out one number yourself, without looking |
+| 3 | Run a notebook, break it on purpose, predict the error |
+| 4 | Change one assumption in a figure script, predict what moves, rerun |
+| 5 | Close everything; write the mechanism from memory |
+| 6 | Explain one section out loud to a classmate, without notes |
+| 7 | Find something wrong in the course and tell us, with the evidence |
+
+<!-- Every practice question shows its rung. 0 is Roediger and Karpicke's rereading, 5 is Rozenblit and Keil's written explanation, 6 is Fiorella's actual teaching. Rung 7 is two-step verification pointed at the course. -->
 
 ---
 

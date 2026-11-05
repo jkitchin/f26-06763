@@ -25,7 +25,7 @@ even though the repo is not.
 | `lectures/*/notes.md` | Draft material not yet added to `_toc.yml` |
 | `course/assignments/aNN.md` | Grading keys, exam material, student data |
 | `course/miniproject.md`, `course/final-project.md` | Anything under `archive/` (unscheduled material kept for later) |
-| `course/optional/how-this-course-was-built.md` | `course/optional/mlops.md` and its notebook (kept for a future offering) |
+| `course/optional/*.md`, once listed in `_toc.yml` (none is at present) | `course/optional/how-this-course-was-built.md`, `mlops.md` and its notebook (kept, unpublished) |
 | Rendered slide decks at `/slides/lNN.html` | |
 
 Three mechanisms enforce this, and all three should stay in place:
@@ -843,11 +843,12 @@ requests, and the committed figure scripts, rather than from recollection. A cla
 how the course was built is subject to the same two-step verification as any other claim in
 section 4: the artifact exists, and it says what you are citing it for.
 
-Add to it when something is worth adding, not on a schedule. Today it publishes one page,
-`how-this-course-was-built.md`, released with Lecture 22 (11-16), which covers the same subject.
-It also defines the rung ladder (0 to 7) that the practice game shows on every item, so change
-the two together. `mlops.md` and `mlops-demo.ipynb` are kept for a future offering and stay out
-of `_toc.yml`.
+Add to it when something is worth adding, not on a schedule. Today it publishes nothing.
+`how-this-course-was-built.md` was folded into Lecture 22 (11-16), which covers the same subject,
+so the page stays out of `_toc.yml` rather than say it twice. The rung ladder (0 to 7) that the
+practice game shows on every item is defined in Lecture 22's "Generating is not learning"
+section, so change the two together. `mlops.md` and `mlops-demo.ipynb` are kept for a future
+offering and stay out of `_toc.yml` too.
 
 ---
 
@@ -968,7 +969,7 @@ Nothing on the map is locked behind a prerequisite, and that is a design decisio
 than an unfinished feature: a student arriving in week 12 must not be walled out of L22
 because they skipped L9. There are also no streaks, no XP and no leaderboard, for the
 reason the "Generating is not learning" section of
-`course/optional/how-this-course-was-built.md` gives: feeling productive is not learning.
+`lectures/l22/notes.md` gives: feeling productive is not learning.
 
 The clicker does have a leaderboard (section 5c), and the two positions are consistent
 rather than in tension. The game is graded, worked alone, and its score goes on a PDF a

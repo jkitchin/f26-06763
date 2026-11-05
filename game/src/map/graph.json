@@ -558,7 +558,7 @@
     {
       "from": "l22",
       "to": "l01",
-      "weight": 2,
+      "weight": 3,
       "where": "to a model in a state you can trust. [Lecture 1](../l01/notes.md) set out the system view of",
       "origin": "link"
     },
@@ -614,7 +614,7 @@
     {
       "from": "l22",
       "to": "l09",
-      "weight": 1,
+      "weight": 2,
       "where": "how to know whether to believe it. Lectures [8](../l08/notes.md), [9](../l09/notes.md) and",
       "origin": "link"
     },
@@ -628,7 +628,7 @@
     {
       "from": "l22",
       "to": "l11",
-      "weight": 1,
+      "weight": 2,
       "where": "cross-validation, hyperparameter search and experiment tracking. [Lecture 11](../l11/notes.md)",
       "origin": "link"
     },
@@ -670,7 +670,7 @@
     {
       "from": "l22",
       "to": "l17",
-      "weight": 1,
+      "weight": 2,
       "where": "and writes text. [Lecture 17](../l17/notes.md) trained a tiny GPT to show what a language model is,",
       "origin": "link"
     },
@@ -715,7 +715,7 @@
     "built": 0
   },
   "in_weight": {
-    "l01": 14,
+    "l01": 15,
     "l02": 8,
     "l03": 10,
     "l04": 6,
@@ -723,15 +723,15 @@
     "l06": 6,
     "l07": 11,
     "l08": 8,
-    "l09": 20,
+    "l09": 21,
     "l10": 6,
-    "l11": 12,
+    "l11": 13,
     "l12": 6,
     "l13": 5,
     "l14": 8,
     "l15": 6,
     "l16": 4,
-    "l17": 4,
+    "l17": 5,
     "l18": 7,
     "l19": 2,
     "l20": 0,
