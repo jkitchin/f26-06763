@@ -2,7 +2,7 @@
   "generated_by": "tools/world.py",
   "note": "Rooms are the sessions in course/schedule.md plus the pages in tools/graph.py PAGES, regions are the arcs the notes declare, corridors are the edges tools/graph.py verified. Nothing is placed by hand.",
   "grid": {
-    "width": 19,
+    "width": 16,
     "height": 7,
     "cols_per_region": 2
   },
@@ -59,17 +59,8 @@
       ]
     },
     {
-      "name": "Optional",
-      "x0": 13,
-      "rows": 1,
-      "rooms": [
-        "l20",
-        "l21"
-      ]
-    },
-    {
       "name": "Course wrap-up",
-      "x0": 16,
+      "x0": 13,
       "rows": 1,
       "rooms": [
         "l22"
@@ -344,34 +335,6 @@
       "notes": "../lectures/l19/notes.html"
     },
     {
-      "session": "L20",
-      "id": "l20",
-      "date": "2026-11-09",
-      "title": "(Optional) reinforcement learning",
-      "kind": "session",
-      "written": false,
-      "arc_source": "optional",
-      "arc": "Optional",
-      "region": 4,
-      "x": 13,
-      "y": 1,
-      "notes": null
-    },
-    {
-      "session": "L21",
-      "id": "l21",
-      "date": "2026-11-11",
-      "title": "(Optional) deployment: serving, containers, latency, and cost",
-      "kind": "session",
-      "written": false,
-      "arc_source": "optional",
-      "arc": "Optional",
-      "region": 4,
-      "x": 14,
-      "y": 1,
-      "notes": null
-    },
-    {
       "session": "L22",
       "id": "l22",
       "date": "2026-11-16",
@@ -380,8 +343,8 @@
       "written": false,
       "arc_source": "declared",
       "arc": "Course wrap-up",
-      "region": 5,
-      "x": 16,
+      "region": 4,
+      "x": 13,
       "y": 1,
       "notes": null
     }
@@ -770,190 +733,6 @@
       "relation": null,
       "why": null,
       "where": "- [Lecture 18](../l18/notes.md) ended with one **tool call**: the model asks for a tool by name,"
-    },
-    {
-      "from": "l20",
-      "to": "l07",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "generate data for identification, which is [Lecture 7](../l07/notes.md)'s closed-loop problem in"
-    },
-    {
-      "from": "l20",
-      "to": "l09",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "methods differ most in what the learner is told. [Lecture 9](../l09/notes.md)"
-    },
-    {
-      "from": "l20",
-      "to": "l10",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "final step as the classifier in [Lecture 10](../l10/notes.md), which scores every class and"
-    },
-    {
-      "from": "l20",
-      "to": "l11",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "table with a neural network of the kind built in [Lecture 11](../l11/notes.md). The deep"
-    },
-    {
-      "from": "l20",
-      "to": "l15",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "to match the data. [Lecture 15](../l15/notes.md) moved to evaluative feedback: Bayesian"
-    },
-    {
-      "from": "l20",
-      "to": "l16",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "Read down the table and the problem gets harder in three distinct ways. [Lecture 16](../l16/notes.md)"
-    },
-    {
-      "from": "l20",
-      "to": "l17",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "[Lecture 17](../l17/notes.md) is a next-token predictor fitted by supervised learning on text."
-    },
-    {
-      "from": "l21",
-      "to": "l01",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "[Lecture 1](../l01/notes.md) put the problem in one sentence: \"Your model runs on your laptop."
-    },
-    {
-      "from": "l21",
-      "to": "l02",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "Whatever the format, write a manifest next to it. [Lecture 2](../l02/notes.md) argued that \"The"
-    },
-    {
-      "from": "l21",
-      "to": "l03",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "You have already made this decision for a database. [Lecture 3](../l03/notes.md) ran PostgreSQL,"
-    },
-    {
-      "from": "l21",
-      "to": "l04",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "limits.\" [Lecture 4](../l04/notes.md) ran DuckDB, which has \"no server to start, no connection to"
-    },
-    {
-      "from": "l21",
-      "to": "l05",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "stages you built in [Lecture 5](../l05/notes.md). AWS describes its batch service as the tool for"
-    },
-    {
-      "from": "l21",
-      "to": "l06",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "fed the Tennessee Eastman stream in [Lecture 6](../l06/notes.md) works. It is the default for a"
-    },
-    {
-      "from": "l21",
-      "to": "l07",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "means and spreads and cannot be standardized any other way. [Lecture 7](../l07/notes.md)'s leakage"
-    },
-    {
-      "from": "l21",
-      "to": "l08",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "another way in serving.\" [Lecture 8](../l08/notes.md)'s `Pipeline` is the cure for one case of it:"
-    },
-    {
-      "from": "l21",
-      "to": "l09",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "the concrete strength dataset of [Lecture 9](../l09/notes.md): seven mix proportions and an age in"
-    },
-    {
-      "from": "l21",
-      "to": "l11",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "rules out the largest images above. [Lecture 11](../l11/notes.md) already gave the deciding"
-    },
-    {
-      "from": "l21",
-      "to": "l12",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "[Lecture 12](../l12/notes.md)'s checkpoints do. `torch.load` warns \"Never load data from an"
-    },
-    {
-      "from": "l21",
-      "to": "l13",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "[Lecture 13](../l13/notes.md) already listed ONNX as \"a file format to export the trained"
-    },
-    {
-      "from": "l21",
-      "to": "l14",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "The worked example is the five-network ensemble from [Lecture 14](../l14/notes.md), fitted to"
-    },
-    {
-      "from": "l21",
-      "to": "l15",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "a whole column in 0.2 ms. [Lecture 15](../l15/notes.md) chose four experiments at once, `q=4`,"
-    },
-    {
-      "from": "l21",
-      "to": "l17",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "[Lecture 17](../l17/notes.md) put the same point in budget terms: \"Cost and time are counted in"
-    },
-    {
-      "from": "l21",
-      "to": "l18",
-      "origin": "link",
-      "relation": null,
-      "why": null,
-      "where": "all. The course-notes chat in [Lecture 18](../l18/notes.md) does this with WebGPU, and the"
     },
     {
       "from": "l22",

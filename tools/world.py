@@ -85,10 +85,10 @@ def released_ids() -> set[str]:
 #: no gap, so a future edit that reopens one will trip it.
 EXPECTED_SESSIONS = 22
 
-#: The region for sessions the schedule marks "(Optional)" and for the published
-#: pages that are not sessions (tools/graph.py PAGES). It replaces the arc the
-#: notes declare, so an optional lecture does not reopen a region the course has
-#: already left, and it does not pass its arc on to the sessions after it.
+#: The region for the published pages that are not sessions (tools/graph.py
+#: PAGES). Sessions the schedule marks "(Optional)" used to sit here too; they now
+#: get no room (see sessions()), so the region exists only while a page is
+#: published.
 OPTIONAL = "Optional"
 
 
@@ -183,14 +183,14 @@ def sessions() -> list[dict]:
                 f"notes."
             )
         r["arc"] = current
-        if r["title"].lower().startswith("(optional)"):
-            r["arc"], r["arc_source"] = OPTIONAL, "optional"
-    # A lecture row with no topic, or one the schedule marks "Cancelled", gets no
-    # room: there is nothing to show in it. L21 has no topic and L20 is cancelled,
-    # for now. Each still counts toward EXPECTED_SESSIONS and still passes its arc
-    # on (L21's old notes declare Production and responsibility, which is where
-    # L22 belongs), and comes back by itself once the schedule gives it a topic.
-    return [r for r in rows if r["title"] and r["title"].lower() != "cancelled"]
+    # Three kinds of row get no room. One with no topic or one marked "Cancelled"
+    # has nothing to show. One marked "(Optional)" is a session the course does
+    # not route students through: L20 and L21, on the AIChE dates, so the map goes
+    # from L19 straight to L22. Each still counts toward EXPECTED_SESSIONS, so the
+    # parser cannot drop a row unnoticed.
+    return [r for r in rows if r["title"]
+            and r["title"].lower() != "cancelled"
+            and not r["title"].lower().startswith("(optional)")]
 
 
 def build() -> dict:

@@ -962,10 +962,13 @@ note that lecture numbers are prefixes of each other (L1 inside L13 and L17, L2 
 L20), which is why the test for it exists.
 
 One room can be a page rather than a session: the optional page, listed in `PAGES` in
-`tools/graph.py`. It gets a room only once it is published in `_toc.yml`. Published, it sits in an "Optional" region with any session whose schedule title starts
-with "(Optional)", and its corridors are its markdown links in both directions, so a lecture
-that links the page gets a corridor to it with no hand-written edge. A session the schedule
-marks "Cancelled", or one with no topic, gets no room either.
+`tools/graph.py`. It gets a room only once it is published in `_toc.yml`. Published, it sits
+in an "Optional" region of its own, and its corridors are its markdown links in both
+directions, so a lecture that links the page gets a corridor to it with no hand-written
+edge. A session whose schedule title starts with "(Optional)" gets no room, so the map goes
+from L19 straight to L22 past the two optional sessions on the AIChE dates; nor does one the
+schedule marks "Cancelled", or one with no topic. Each still counts toward
+`EXPECTED_SESSIONS` in `tools/world.py`.
 
 Nothing on the map is locked behind a prerequisite, and that is a design decision rather
 than an unfinished feature: a student arriving in week 12 must not be walled out of L22
