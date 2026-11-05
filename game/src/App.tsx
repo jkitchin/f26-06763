@@ -14,6 +14,7 @@ import { parseHash, toHash, type Route } from './route.ts'
 import { useProgress } from './store/useProgress.ts'
 import { Home } from './ui/Home.tsx'
 import { Identity } from './ui/Identity.tsx'
+import { MapPage } from './ui/MapPage.tsx'
 import { MapView } from './ui/MapView.tsx'
 import { SessionRoute } from './ui/SessionRoute.tsx'
 import { Summary } from './ui/Summary.tsx'
@@ -50,24 +51,35 @@ export function App() {
     return <Home banks={banks} log={log} andrewId={andrewId} storageOk={storageOk}
                  onStart={(l) => go({ name: 'session', lecture: l })}
                  onEvidence={(l) => go({ name: 'summary', lecture: l })}
-                 onMap={() => go({ name: 'map' })} />
+                 onMap={() => go({ name: 'map', tab: 'graph' })} />
+  }
+
+  // The knowledge graph and the system figure record nothing, so they open
+  // without an Andrew ID. The rooms record visits, so that tab asks first.
+  if (route.name === 'map') {
+    return (
+      <MapPage
+        tab={route.tab}
+        banks={banks}
+        onTab={(tab) => go({ name: 'map', tab })}
+        onPractice={(lecture) => go({ name: 'session', lecture })}
+        onList={() => go({ name: 'home' })}
+        rooms={andrewId
+          ? <MapView
+              banks={banks}
+              log={log}
+              onVisit={(room) => append([{ t: 'visited', room, at: Date.now() }])}
+              onStart={(lecture) => go({ name: 'session', lecture })}
+              onList={() => go({ name: 'home' })}
+            />
+          : <Identity onDone={(id, name) => setIdentity(id, name)} />}
+      />
+    )
   }
 
   if (!andrewId) {
     // Identify first, then carry on to wherever the link pointed.
     return <Identity onDone={(id, name) => setIdentity(id, name)} />
-  }
-
-  if (route.name === 'map') {
-    return (
-      <MapView
-        banks={banks}
-        log={log}
-        onVisit={(room) => append([{ t: 'visited', room, at: Date.now() }])}
-        onStart={(lecture) => go({ name: 'session', lecture })}
-        onList={() => go({ name: 'home' })}
-      />
-    )
   }
 
   if (route.name === 'session' && target) {
@@ -101,7 +113,7 @@ export function App() {
       storageOk={storageOk}
       onStart={(lecture) => go({ name: 'session', lecture })}
       onEvidence={(lecture) => go({ name: 'summary', lecture })}
-      onMap={() => go({ name: 'map' })}
+      onMap={() => go({ name: 'map', tab: 'graph' })}
     />
   )
 }

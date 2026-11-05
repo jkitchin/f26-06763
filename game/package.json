@@ -15,10 +15,12 @@
     "mastery": "node --experimental-strip-types tests/mastery.ts",
     "routes": "node --experimental-strip-types tests/routes.ts",
     "persistence": "node --experimental-strip-types tests/persistence.ts",
-    "map": "node --experimental-strip-types tests/map.ts"
+    "map": "node --experimental-strip-types tests/map.ts",
+    "knowledge": "node --experimental-strip-types tests/knowledge.ts"
   },
   "dependencies": {
     "@noble/hashes": "^1.6.1",
+    "d3-force": "^3.0.1",
     "framer-motion": "^12.0.0",
     "idb-keyval": "^6.2.1",
     "jspdf": "^2.5.2",
@@ -30,6 +32,7 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",
+    "@types/d3-force": "^3.0.10",
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

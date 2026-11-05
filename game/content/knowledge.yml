@@ -1,0 +1,297 @@
+# Hand-written content for the knowledge graph and the live system figure
+# (game/#/map/graph and game/#/map/system). Everything else on those two tabs is
+# generated from the notes by tools/knowledge.py: the lectures, their objectives,
+# the links between lectures and the sentences that justify them, the index
+# concepts, and the case studies. This file holds only what the notes cannot give:
+#
+#   themes     the topic view's suns. Each lecture belongs to one theme (`lectures`),
+#              and single sections can be claimed by another theme (`sections`), so
+#              a concept lands in the theme of the section that defines it.
+#   lectures   one or two takeaway lines per lecture, and the data it works on.
+#   system     the boxes of Lecture 1's system figure, with the lectures and tools
+#              behind each part. Tools are index terms; knowledge.py fails if one is
+#              not, so a tool on the figure always points at the lecture defining it.
+#
+# knowledge.py checks the references: every section heading exists, every lecture
+# id is a session on the map, every tool is an index term. A takeaway is a claim the
+# notes make, in plain words; check it against the lecture's Summary before editing.
+
+themes:
+  - id: system
+    name: The system around the model
+    blurb: The model is a small part of a production system; the data, checks and operations around it are most of the work and most of the failures.
+    lectures: [l01]
+
+  - id: reproducibility
+    name: Reproducibility and tracking
+    blurb: Rebuild the exact environment, version code, data and models separately, and record every run so a number can be traced and produced again.
+    lectures: [l02]
+    sections:
+      l10: [Tracking and search]
+      l11: [Reproducibility and random seeds]
+
+  - id: storage
+    name: Storing engineering data
+    blurb: Pick the store that matches the access pattern, a row store for live writes and lookups, a column store and Parquet for scans over history.
+    lectures: [l03, l04]
+
+  - id: pipelines
+    name: Pipelines and streams
+    blurb: Turn raw logs into answers with stages that are fast, safe to rerun, and correct when data arrives late and out of order.
+    lectures: [l05, l06]
+
+  - id: validation
+    name: Data validation and leakage
+    blurb: Check data before it reaches a model, and make sure no column could not have been known at the time it claims.
+    lectures: []
+    sections:
+      l06: ["Data validation: checks as a gate"]
+      l07: [Data leakage]
+
+  - id: dynamics
+    name: Dynamic processes and features
+    blurb: A process with memory needs its own past in the table, built as lags that respect time, runs and the question being asked.
+    lectures: [l07]
+
+  - id: forecasting
+    name: Forecasting
+    blurb: A forecast is supervised learning with a horizon; it earns its place only by beating persistence and the mean, scored on time-ordered splits.
+    lectures: [l08]
+
+  - id: workflow
+    name: The machine learning workflow
+    blurb: Fit, split, score; the split, the features and the metric decide the result more than the choice of model.
+    lectures: [l09, l10]
+
+  - id: training
+    name: Optimization and training
+    blurb: Training is optimization; automatic differentiation gives exact gradients, and a training loop has a few steps that each break in a known way.
+    lectures: [l11]
+    sections:
+      l09: [Training is an optimization problem]
+      l12: [Training a deep net well]
+
+  - id: architectures
+    name: Neural architectures
+    blurb: Match the architecture to the structure of the input, a vector, a field or a sequence, and check that it beats a simple baseline.
+    lectures: [l12]
+
+  - id: sciml
+    name: Physics and machine learning
+    blurb: Keep the mechanistic model and learn only the unknown part, with the physics in the loss, in the solver, or enforced by the network.
+    lectures: [l13]
+
+  - id: uncertainty
+    name: Uncertainty quantification
+    blurb: An uncertainty is a claim about how often the truth falls in an interval, and only held-out data can test it.
+    lectures: [l14]
+
+  - id: optimization
+    name: Optimizing experiments
+    blurb: When each evaluation is an expensive experiment, a surrogate and an acquisition function spend a small budget where it can still learn or gain.
+    lectures: [l15]
+
+  - id: generative
+    name: Generative models
+    blurb: Learn the distribution of the data, not one function of it, and condition it to answer questions in any direction.
+    lectures: [l16]
+
+  - id: llms
+    name: Language models
+    blurb: An LLM predicts the next token; fluency comes from that, and so does confident text that is not true.
+    lectures: [l17]
+
+  - id: retrieval
+    name: Retrieval and context
+    blurb: An answer is only as good as the passages in the context window, so fetching and ranking them is engineering you can measure.
+    lectures: [l18]
+
+  - id: agents
+    name: Agents and coding agents
+    blurb: An agent is an LLM calling tools in a loop; the harness around it, its permissions and its checks, is most of the system.
+    lectures: [l19]
+
+  - id: learning
+    name: Building with an assistant, and learning
+    blurb: Specify, verify against sources, make the checks automatic, and use the assistant to test yourself rather than to skip the attempt.
+    lectures: [l22]
+
+lectures:
+  l01:
+    takeaways:
+      - A model is a small part of a system whose bulk is data infrastructure, evaluation and operations, and that is where the effort and the failures concentrate.
+      - Engineering data drifts, needs calibration and carries physical units, which widens the gap between a validated model and a working system.
+    data: UCI Air Quality, a gas sensor array on an Italian roadside
+  l02:
+    takeaways:
+      - Reproducible means you can say which data, code and settings produced a number, and produce it again.
+      - Lock the environment with uv, keep code, data and models in tools that suit each, and log every run.
+    data: The Air Quality data from Lecture 1
+  l03:
+    takeaways:
+      - A relational database is a contract you can query; store readings in long form, keyed by sensor and time.
+      - Types with physical meaning prevent a class of bugs, but a type is not a validation.
+    data: Intel Berkeley Lab sensor readings, in PostgreSQL
+  l04:
+    takeaways:
+      - Match the storage layout to the access pattern; a row store suits live writes, a column store suits scans over history.
+      - Parquet with DuckDB reads only the columns and row groups a query needs.
+    data: Intel Berkeley Lab readings, in Parquet and DuckDB
+  l05:
+    takeaways:
+      - Describe the work and let a planner decide how to run it; vectorized and lazy code gets the speed back.
+      - Small, pure, idempotent stages make a pipeline safe to rerun after a failure.
+    data: The Tennessee Eastman plant, with Polars
+  l06:
+    takeaways:
+      - Streaming handles data that is never finished; windows in event time, closed by watermarks, cope with late and out-of-order readings.
+      - Validation is an executable gate that fails loudly before bad data reaches a model.
+    data: The Intel Lab feed, most of it out of order
+  l07:
+    takeaways:
+      - A dynamic process needs its own past in the table, as lagged columns.
+      - Ask of every column whether it could have been known at the row's timestamp; if not, it is leakage.
+    data: The Tennessee Eastman plant
+  l08:
+    takeaways:
+      - A forecast is supervised learning with a horizon, and it earns its place only by beating persistence and the mean.
+      - Score forecasts on time-ordered splits; a shuffled split leaks the future.
+    data: Reactor pressure from the Tennessee Eastman plant
+  l09:
+    takeaways:
+      - Every scikit-learn model is fitted and scored the same way, so the split, the features and the metric decide the result.
+      - Hold out whole groups when the model will meet new groups; a random split can reverse which model wins.
+    data: The concrete strength dataset and Tennessee Eastman reactor pressure
+  l10:
+    takeaways:
+      - Accuracy hides the kind of mistake; the confusion matrix, precision, recall and the threshold show it.
+      - Search hyperparameters with Optuna, record every trial in MLflow, and test the winner once.
+    data: Faults in the Tennessee Eastman plant
+  l11:
+    takeaways:
+      - Reverse-mode automatic differentiation gives every gradient exactly for about the cost of two forward passes.
+      - PyTorch and JAX implement the same mathematics with different designs, and a training loop breaks in a few known ways.
+    data: The concrete strength dataset
+  l12:
+    takeaways:
+      - Match the architecture to the structure of the input, an MLP for a vector, a CNN for a field, a 1D-CNN or RNN for a sequence.
+      - Train with a schedule, early stopping and clipping, and check the architecture beats a simple baseline.
+    data: Turbofan engines and their remaining useful life
+  l13:
+    takeaways:
+      - Scientific machine learning keeps the mechanistic model and learns only the unknown term.
+      - A PINN favors the physics through its loss but does not enforce it; constraints can be built into the network instead.
+    data: A fed-batch bioreactor
+  l14:
+    takeaways:
+      - An uncertainty is a claim about coverage, and calibration on held-out data is the only test of it.
+      - Gaussian processes, ensembles and conformal prediction each make a different assumption about the region they cannot see.
+    data: The concrete strength dataset
+  l15:
+    takeaways:
+      - Bayesian optimization is for expensive, noisy objectives without gradients, when the budget is tens of evaluations.
+      - A Gaussian process and an acquisition function choose the next experiment, balancing exploration against exploitation.
+    data: Optimizing a reactor in BoTorch
+  l16:
+    takeaways:
+      - A generative model learns the distribution of the data, and conditioning it answers questions in any direction.
+      - Gaussian mixtures condition exactly on any variables; flow matching scales further but answers only the question it was trained for.
+    data: The roots of the Peng-Robinson equation and a batch reactor
+  l17:
+    takeaways:
+      - An LLM is a generative model of text that predicts the next token, one token at a time.
+      - Fluent is not the same as true; hallucination follows from next-token prediction.
+    data: A tiny GPT, trained from scratch on the notes of Lectures 1 to 16
+  l18:
+    takeaways:
+      - An LLM answers from its context window, so the answer is bounded by the passages put there.
+      - Keyword and embedding search fail differently; fusing them and re-ranking, measured on a gold set, beats either.
+    data: The course notes themselves
+  l19:
+    takeaways:
+      - An agent is an LLM that calls tools in a loop and chooses each next step from the last result.
+      - The harness around the model, its permissions, caching and checks, is most of the system.
+    data: Choosing the tilt of solar panels on a roof
+  l22:
+    takeaways:
+      - A few ideas ran through the course; make results reproducible, split the data the way the model will meet the world, measure rather than assume, and say how wrong you might be.
+      - Generating material is not learning it; use an assistant to test you and to find the gaps in your own explanation.
+
+# Lecture 1's figure: A production ML system, sized by the code each part requires.
+# Geometry is copied from lectures/l01/figures/make_figures.py (x, y, w, h on a 100 x
+# 46 canvas, y measured from the bottom), so the live figure and the PNG agree.
+system:
+  caption: Redrawn after Sculley et al. (2015). The red box is the part most courses spend the whole semester on. Everything else is this course.
+  boxes:
+    - id: configuration
+      label: Configuration
+      geometry: [0, 16, 14, 30]
+      blurb: The settings, versions and environment that decide what a run actually did.
+      lectures: [l02, l19]
+      tools: [uv, lockfile, pyproject.toml, AGENTS.md]
+
+    - id: process
+      label: Process management tools
+      geometry: [70, 16, 30, 30]
+      blurb: Running the stages in order, rerunning them safely, and recording each run.
+      lectures: [l05, l10, l02]
+      tools: [MLflow, Optuna, batch pipeline, idempotency]
+
+    - id: collection
+      label: Data collection
+      geometry: [14, 30, 22, 16]
+      blurb: Getting sensor readings into a store, in batches or as a stream.
+      lectures: [l03, l06]
+      tools: [PostgreSQL, COPY, Kafka]
+
+    - id: features
+      label: Feature extraction
+      geometry: [36, 30, 16, 16]
+      blurb: Turning raw readings into the columns a model can learn from, without leaking the future.
+      lectures: [l07, l08, l05]
+      tools: [Polars, rolling window, regression vector]
+
+    - id: analysis
+      label: Analysis tools
+      geometry: [52, 30, 18, 16]
+      blurb: Asking questions of the data at scale, before and after a model.
+      lectures: [l04, l03, l05]
+      tools: [DuckDB, Parquet, window function]
+
+    - id: resources
+      label: Machine resource management
+      geometry: [14, 16, 26, 14]
+      blurb: Placing work on the right hardware and paying for it, from GPUs to tokens.
+      lectures: [l11, l19]
+      tools: [GPU, mixed precision, prompt caching]
+
+    - id: ml
+      label: ML code
+      geometry: [40, 16, 12, 14]
+      blurb: The model itself, the part most courses spend the whole semester on.
+      lectures: [l08, l09, l10, l11, l12, l13, l14, l15, l16, l17]
+      tools: [PyTorch, JAX, BoTorch]
+
+    - id: monitoring
+      label: Monitoring
+      geometry: [52, 16, 18, 14]
+      blurb: Watching a system after it ships, for drift, miscalibration and false alarms.
+      lectures: [l01, l08, l14]
+      tools: [sensor drift, anomaly detection, calibration]
+
+    - id: verification
+      label: Data verification
+      geometry: [0, 0, 40, 16]
+      blurb: Checking data before it is used, with executable checks that fail loudly.
+      lectures: [l06, l03, l07]
+      tools: [pandera, Great Expectations, data contract]
+
+    - id: serving
+      label: Serving infrastructure
+      geometry: [40, 0, 60, 16]
+      blurb: Answering requests with a model, and with the context and tools around it.
+      lectures: [l01, l18, l19]
+      tools: [FastAPI, container, vector database]
+
+  # The order a reading travels through the system, drawn as moving dots.
+  flow: [collection, verification, features, ml, serving, monitoring, collection]

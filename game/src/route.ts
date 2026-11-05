@@ -2,7 +2,9 @@
  * Hash routing, so every module has a URL you can put in a Canvas assignment.
  *
  *   .../game/#/          the module list
- *   .../game/#/map       the course map
+ *   .../game/#/map         the course map: the knowledge graph
+ *   .../game/#/map/system  the course map: Lecture 1's system figure, live
+ *   .../game/#/map/rooms   the course map: the walkable rooms
  *   .../game/#/l09       start or resume L09
  *   .../game/#/l09/done  the summary for L09
  *
@@ -16,9 +18,12 @@
  * everyone who opens it, while still serving each of them their own questions.
  */
 
+export type MapTab = 'graph' | 'system' | 'rooms'
+const TABS = new Set<MapTab>(['graph', 'system', 'rooms'])
+
 export type Route =
   | { name: 'home' }
-  | { name: 'map' }
+  | { name: 'map'; tab: MapTab }
   | { name: 'session'; lecture: string }
   | { name: 'summary'; lecture: string }
 
@@ -39,14 +44,18 @@ export function parseHash(hash: string): Route {
   const parts = hash.replace(/^#\/?/, '').split('/').filter(Boolean)
   const [head, tail] = parts
   if (!head) return { name: 'home' }
-  if (STANDALONE.has(head)) return { name: head as 'map' }
+  if (STANDALONE.has(head)) {
+    // An unknown tab falls back to the graph rather than to the module list:
+    // the reader asked for the map, so they get the map.
+    return { name: 'map', tab: TABS.has(tail as MapTab) ? (tail as MapTab) : 'graph' }
+  }
   if (!LECTURE.test(head)) return { name: 'home' }
   return tail === 'done' ? { name: 'summary', lecture: head } : { name: 'session', lecture: head }
 }
 
 export function toHash(route: Route): string {
   if (route.name === 'home') return '#/'
-  if (route.name === 'map') return '#/map'
+  if (route.name === 'map') return route.tab === 'graph' ? '#/map' : `#/map/${route.tab}`
   return route.name === 'summary' ? `#/${route.lecture}/done` : `#/${route.lecture}`
 }
 

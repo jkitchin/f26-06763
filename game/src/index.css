@@ -20,10 +20,30 @@
   --border: oklch(0.90 0.004 90);
   --ink: oklch(0.25 0.01 90);
   --muted: oklch(0.55 0.01 90);
+
+  /* The knowledge graph and the system figure. One hue per arc, in course
+     order, validated for colour-blind separation and contrast against the
+     graph's own surface (dataviz validate_palette.js, all pairs): every node
+     also carries a text label, so identity never rests on colour alone. The
+     wrap-up lecture is the course red, at the centre. */
+  --kg-bg: oklch(0.985 0.004 90);
+  --kg-bg-edge: oklch(0.955 0.006 90);
+  --kg-ink: oklch(0.25 0.01 90);
+  --kg-muted: oklch(0.52 0.01 90);
+  --kg-line: oklch(0.55 0.01 260 / 0.22);
+  --kg-star: oklch(0.55 0.01 260 / 0.16);
+  --arc-0: #c98500;
+  --arc-1: #0072b2;
+  --arc-2: #009e73;
+  --arc-3: #cc79a7;
+  --arc-here: #c41230;
 }
 
+/* Dark follows the system unless the student picked light on the map's toggle,
+   and a picked dark applies whatever the system says. The toggle sets
+   data-theme on <html>; see src/ui/theme.ts. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --brand: oklch(0.68 0.16 20);
     --brand-wash: oklch(0.68 0.16 20 / 0.14);
     --selected: oklch(0.82 0.012 260);
@@ -38,10 +58,53 @@
     --border: oklch(0.32 0.012 260);
     --ink: oklch(0.94 0.004 260);
     --muted: oklch(0.68 0.010 260);
+
+    --kg-bg: #0e1424;
+    --kg-bg-edge: #070b16;
+    --kg-ink: oklch(0.95 0.004 260);
+    --kg-muted: oklch(0.72 0.012 260);
+    --kg-line: oklch(0.85 0.02 260 / 0.20);
+    --kg-star: oklch(0.95 0.02 260 / 0.55);
+    --arc-0: #c08000;
+    --arc-1: #3c88d8;
+    --arc-2: #1a9a72;
+    --arc-3: #c86fa4;
+    --arc-here: #ef4a5c;
   }
 }
 
+:root[data-theme="dark"] {
+  --brand: oklch(0.68 0.16 20);
+  --brand-wash: oklch(0.68 0.16 20 / 0.14);
+  --selected: oklch(0.82 0.012 260);
+  --selected-wash: oklch(0.82 0.012 260 / 0.13);
+  --correct: oklch(0.72 0.15 145);
+  --correct-wash: oklch(0.72 0.15 145 / 0.14);
+  --wrong: oklch(0.70 0.17 25);
+  --wrong-wash: oklch(0.70 0.17 25 / 0.14);
+
+  --bg: oklch(0.19 0.008 260);
+  --surface-raised: oklch(0.23 0.010 260);
+  --border: oklch(0.32 0.012 260);
+  --ink: oklch(0.94 0.004 260);
+  --muted: oklch(0.68 0.010 260);
+
+  --kg-bg: #0e1424;
+  --kg-bg-edge: #070b16;
+  --kg-ink: oklch(0.95 0.004 260);
+  --kg-muted: oklch(0.72 0.012 260);
+  --kg-line: oklch(0.85 0.02 260 / 0.20);
+  --kg-star: oklch(0.95 0.02 260 / 0.55);
+  --arc-0: #c08000;
+  --arc-1: #3c88d8;
+  --arc-2: #1a9a72;
+  --arc-3: #c86fa4;
+  --arc-here: #ef4a5c;
+}
+
 html { color-scheme: light dark; }
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
 
 body {
   margin: 0;
@@ -124,4 +187,14 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   padding-left: 0.9em;
   color: var(--muted);
   font-style: italic;
+}
+
+/* Inline code in the knowledge graph's panel, quoted from the notes. */
+.kg-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.88em;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  padding: 0.02em 0.3em;
 }
