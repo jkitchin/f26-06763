@@ -77,7 +77,10 @@ parts:
 #           - file: lectures/l20/l20-reinforcement-learning
 #       - file: lectures/l21/notes
 #         sections:
-#           - file: lectures/l21/l21-eval
+#           - file: lectures/l21/l21-deployment
+#       - file: lectures/l22/notes
+#         sections:
+#           - file: lectures/l22/l22-git-history
 
   - caption: Assignments
     # Released with their lecture by tools/release_lecture.py, from the
@@ -93,7 +96,6 @@ parts:
 #       - file: course/assignments/a08
 #       - file: course/assignments/a09
 #       - file: course/assignments/a10
-#       - file: course/assignments/a11
 
 # Projects: hidden until their lecture. tools/release_lecture.py uncomments the
 # part header and the miniproject at Lecture 10, and the final project

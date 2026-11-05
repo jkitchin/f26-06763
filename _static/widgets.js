@@ -4149,9 +4149,9 @@
    * learner differs between the three modes. */
   WIDGETS['rl-feedback'] = function (root, data) {
     var T = data.tank, W = 720, H = 300, N = 12, mode = 0;
-    var MODES = ['Supervised', 'Bayesian optimization or bandit', 'Reinforcement learning'];
+    var MODES = ['Supervised', 'Bayesian optimization', 'Reinforcement learning'];
     html('div', { class: 'cw-title' }, root, 'What each kind of learner is told, on the same tank');
-    var svg = svgRoot(root, W, H, 'The information a supervised, a bandit and a reinforcement learner receive');
+    var svg = svgRoot(root, W, H, 'The information a supervised, a Bayesian optimization and a reinforcement learner receive');
     var row1 = html('div', { class: 'cw-controls cw-modes' }, root);
     var row2 = html('div', { class: 'cw-controls' }, root);
     var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
@@ -4214,7 +4214,7 @@
           logRow(i, 44 + (i - first) * 22, 'trial ' + (i + 1) + ':  chose F = ' + ban[i].F.toFixed(1) +
             '  →  score ' + ban[i].score.toFixed(2) + '   (tank reset)', i === pos - 1);
         }
-        readout.textContent = pos === 0 ? 'Press Play or Step: a bandit or BO learner picks one setting and gets one score.' :
+        readout.textContent = pos === 0 ? 'Press Play or Step: a Bayesian optimization learner picks one setting and gets one score.' :
           'Trial ' + pos + ': it chose F = ' + b.F.toFixed(1) + ' and got a score of ' + b.score.toFixed(2) +
           ' (minus the mean squared error over a run). Nobody says what the best setting was; so far its best is F = ' +
           bestF.toFixed(1) + '. The tank starts at h = 2 every time, so one choice cannot affect the next.';
@@ -4525,6 +4525,145 @@
     }
     var p = player(row, tr.length + 1, draw, 90);
     draw(0);
+  };
+
+  /* The three-level tank as two matrices, in two modes. Act: press Open or Shut and watch "where
+   * the tank is" (three numbers that add to one) pass through that action's matrix, and the
+   * discounted reward add up. Plan: step value iteration one sweep at a time and watch Q, and
+   * the best action in each row, settle. All numbers come from data.mdp
+   * (lectures/l20/figures/make_figures.py). */
+  WIDGETS['mdp-step'] = function (root, data) {
+    var D = data.mdp, S = D.states, A = D.actions, P = D.P, R = D.R, g = D.gamma, SW = D.sweeps;
+    var W = 720, H = 270;
+    html('div', { class: 'cw-title' }, root, 'The three-level tank as matrices: act, then plan');
+    var modeRow = html('div', { class: 'cw-controls' }, root);
+    var svg = svgRoot(root, W, H, 'The state of the tank, the matrix of the chosen action, and the rewards');
+    var row = html('div', { class: 'cw-controls' }, root);
+    var readout = html('div', { class: 'cw-readout', 'aria-live': 'polite' }, root);
+    html('div', { class: 'cw-note' }, root,
+      'Open raises the level one step and shut lowers it one step (nothing goes past low or high). Landing at ok earns +1; ' +
+      'opening costs 0.1. Rewards k steps ahead count γ^k, γ = ' + g + '. Matrices and sweeps from lectures/l20/figures/make_figures.py.');
+    var f2 = function (v) { return (v < 0 ? '−' : '') + Math.abs(v).toFixed(2); };
+    var f3 = function (v) { return (v < 0 ? '−' : '') + Math.abs(v).toFixed(3); };
+    var mono = { 'font-size': 12.5, 'font-family': 'ui-monospace, Menlo, monospace' };
+    var starts = [[1, 0, 0], [0, 1, 0], [0, 0, 1], [0.5, 0.5, 0]];
+    var st = { p: starts[0].slice(), prev: null, a: null, t: 0, G: 0, r: 0, start: 0 };
+
+    function bars(p, x, y, title, hiColor) {
+      text(svg, x, y - 12, title, { 'font-size': 12, 'font-weight': 700 });
+      for (var i = 0; i < 3; i++) {
+        var yy = y + i * 34;
+        text(svg, x, yy + 18, S[i], { 'font-size': 12 });
+        el('rect', { x: x + 40, y: yy + 4, width: 100, height: 20, fill: 'none', stroke: 'currentColor', 'stroke-opacity': 0.25 }, svg);
+        if (p[i] > 0) el('rect', { x: x + 40, y: yy + 4, width: 100 * p[i], height: 20, fill: hiColor || 'var(--cw-accent)', 'fill-opacity': 0.55 }, svg);
+        text(svg, x + 146, yy + 18, p[i].toFixed(2), { 'font-size': 12 });
+      }
+    }
+    function matrix(M, x, y, title, weights) {
+      var cw = 34, ch = 34;
+      text(svg, x, y - 12, title, { 'font-size': 12, 'font-weight': 700 });
+      S.forEach(function (s, j) { text(svg, x + j * cw + cw / 2, y - 0, s, { 'text-anchor': 'middle', 'font-size': 10, opacity: 0.75 }); });
+      for (var r = 0; r < 3; r++) {
+        var yy = y + 6 + r * ch, w = weights ? weights[r] : 0;
+        text(svg, x - 6, yy + ch / 2 + 4, S[r], { 'text-anchor': 'end', 'font-size': 10, opacity: 0.75 });
+        for (var j = 0; j < 3; j++) {
+          el('rect', { x: x + j * cw, y: yy, width: cw - 2, height: ch - 2, fill: 'var(--cw-accent2)', 'fill-opacity': w > 0 ? 0.15 + 0.45 * w : 0,
+            stroke: 'currentColor', 'stroke-opacity': w > 0 ? 0.7 : 0.2 }, svg);
+          text(svg, x + j * cw + cw / 2 - 1, yy + ch / 2 + 4, String(M[r][j]), { 'text-anchor': 'middle', 'font-size': 12, 'font-weight': M[r][j] ? 700 : 400 });
+        }
+      }
+    }
+
+    function drawAct() {
+      clear(svg);
+      bars(st.prev || st.p, 20, 40, st.prev ? 'where the tank was' : 'where the tank is');
+      if (st.a !== null) {
+        matrix(P[st.a], 290, 40, 'P_' + A[st.a], st.prev);
+        text(svg, 290, 160, 'shaded: the row(s) the tank was in', { 'font-size': 10, opacity: 0.75 });
+        text(svg, 248, 110, '×', { 'font-size': 26, 'text-anchor': 'middle' });
+        text(svg, 440, 110, '=', { 'font-size': 26, 'text-anchor': 'middle' });
+        bars(st.p, 470, 40, 'where it is now', 'var(--cw-green)');
+        var pv = function (p) { return '[' + p.map(function (v) { return v.toFixed(2); }).join(', ') + ']'; };
+        text(svg, 20, 200, pv(st.prev) + ' × P_' + A[st.a] + ' = ' + pv(st.p), mono);
+        text(svg, 20, 224, 'reward this step  r = ' + f2(st.r) + '      discounted total after ' + st.t + ' step' + (st.t === 1 ? '' : 's') +
+          '  G = ' + f3(st.G), mono);
+      } else {
+        text(svg, 290, 110, 'Press Shut or Open. The action picks a matrix;', { 'font-size': 13 });
+        text(svg, 290, 130, 'the tank moves to the row of that matrix it is in.', { 'font-size': 13 });
+      }
+    }
+    function act(a) {
+      var p = st.p, q = [0, 0, 0], r = 0;
+      for (var i = 0; i < 3; i++) { r += p[i] * R[i][a]; for (var j = 0; j < 3; j++) q[j] += p[i] * P[a][i][j]; }
+      st.prev = p; st.p = q; st.a = a; st.r = r; st.G += Math.pow(g, st.t) * r; st.t += 1;
+      drawAct();
+      var from = st.prev.map(function (v, i) { return v > 0 ? S[i] : null; }).filter(Boolean);
+      var to = q.map(function (v, i) { return v > 0 ? S[i] : null; }).filter(Boolean);
+      readout.textContent = 'You chose ' + A[a] + '. ' + (from.length === 1 ?
+        'The tank was certainly at ' + from[0] + ', so the product just picks row ' + from[0] + ' of P_' + A[a] + ', which sends it to ' + to.join(' or ') + '.' :
+        'The tank could have been at ' + from.join(' or ') + ', so the product mixes those rows of P_' + A[a] + ', in proportion to how likely each was.') +
+        ' This step earned ' + f2(r) + ', counted as ' + f3(Math.pow(g, st.t - 1) * r) + ' in the discounted total.';
+    }
+    function reset() {
+      st.p = starts[st.start].slice(); st.prev = null; st.a = null; st.t = 0; st.G = 0; st.r = 0;
+      drawAct();
+      readout.textContent = 'The tank starts ' + (st.start === 3 ? 'equally likely to be at low or ok' : 'at ' + S[st.start]) +
+        '. Try opening from low, then shutting from ok, again and again: that is the best rule, and its discounted total heads for 4.737.';
+    }
+
+    function drawPlan(k) {
+      clear(svg);
+      var Q = SW[k], cw = 78, ch = 32, x = 80, y = 50;
+      text(svg, x, y - 26, 'Q after ' + k + ' sweep' + (k === 1 ? '' : 's') + '  (bold = best action)', { 'font-size': 12, 'font-weight': 700 });
+      A.forEach(function (a, j) { text(svg, x + j * cw + cw / 2, y - 6, a, { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.8 }); });
+      text(svg, x + 2 * cw + 34, y - 6, 'V = max', { 'text-anchor': 'middle', 'font-size': 11, opacity: 0.8 });
+      for (var r = 0; r < 3; r++) {
+        var yy = y + r * ch, best = Q[r][1] > Q[r][0] ? 1 : (Q[r][0] > Q[r][1] ? 0 : -1);
+        text(svg, x - 6, yy + ch / 2 + 4, S[r], { 'text-anchor': 'end', 'font-size': 11, opacity: 0.8 });
+        for (var j = 0; j < 2; j++) {
+          el('rect', { x: x + j * cw, y: yy, width: cw - 2, height: ch - 2, fill: 'var(--cw-accent)', 'fill-opacity': 0.05 + 0.08 * Math.max(0, Q[r][j]),
+            stroke: 'currentColor', 'stroke-opacity': 0.2 }, svg);
+          text(svg, x + j * cw + cw / 2, yy + ch / 2 + 4, f3(Q[r][j]), { 'text-anchor': 'middle', 'font-size': 12, 'font-weight': best === j ? 700 : 400 });
+        }
+        text(svg, x + 2 * cw + 34, yy + ch / 2 + 4, f3(Math.max(Q[r][0], Q[r][1])), { 'text-anchor': 'middle', 'font-size': 12 });
+      }
+      var Qs = D.qstar, gap = 0;
+      for (var i = 0; i < 3; i++) for (var j2 = 0; j2 < 2; j2++) gap = Math.max(gap, Math.abs(Q[i][j2] - Qs[i][j2]));
+      text(svg, 420, y - 26, 'where this ends (Q*)', { 'font-size': 12, 'font-weight': 700 });
+      for (var r2 = 0; r2 < 3; r2++) text(svg, 420, y + r2 * ch + ch / 2 + 4,
+        S[r2] + ':  shut ' + f3(Qs[r2][0]) + '   open ' + f3(Qs[r2][1]), { 'font-size': 12 });
+      text(svg, 420, y + 3 * ch + 14, 'largest gap from Q*: ' + f3(gap), { 'font-size': 11, opacity: 0.8 });
+      if (k > 0) {
+        var V = SW[k - 1].map(function (q) { return Math.max(q[0], q[1]); });
+        text(svg, 20, 200, 'Q(low, shut) = 0   + ' + g + ' × V(low) = 0   + ' + g + ' × ' + f3(V[0]) + ' = ' + f3(Q[0][0]), mono);
+        text(svg, 20, 222, 'Q(low, open) = 0.9 + ' + g + ' × V(ok)  = 0.9 + ' + g + ' × ' + f3(V[1]) + ' = ' + f3(Q[0][1]), mono);
+        text(svg, 20, 248, 'each entry: the reward now, plus ' + g + ' × the value (best entry), from the previous sweep, of the row the action leads to', { 'font-size': 11, opacity: 0.8 });
+      } else {
+        text(svg, 20, 210, 'Start knowing nothing: every value is 0. Each sweep fills in one more step of the future.', { 'font-size': 12 });
+      }
+      readout.textContent = k === 0 ? 'Sweep 0: no values yet. Press Step.' :
+        'After ' + k + ' sweep' + (k === 1 ? '' : 's') + ', each entry counts the rewards of the next ' + k + ' step' + (k === 1 ? '' : 's') +
+        ', discounted. The bold entries, the best action in each row, are ' +
+        [0, 1, 2].map(function (r) { return S[r] + ': ' + (Q[r][1] > Q[r][0] ? 'open' : Q[r][0] > Q[r][1] ? 'shut' : 'tie'); }).join(', ') +
+        '. Largest gap from where it ends: ' + f3(gap) + '.';
+    }
+
+    function showAct() {
+      clear(row);
+      select(row, 'start at', ['low', 'ok', 'high', 'low or ok, 50/50'], st.start, function (i) { st.start = i; reset(); });
+      html('button', { type: 'button' }, row, 'Shut').onclick = function () { act(0); };
+      html('button', { type: 'button' }, row, 'Open').onclick = function () { act(1); };
+      html('button', { type: 'button' }, row, 'Reset').onclick = reset;
+      reset();
+    }
+    function showPlan() {
+      clear(row);
+      player(row, SW.length, drawPlan, 160);
+      drawPlan(0);
+      readout.textContent = 'Plan with the matrices instead of acting. Press Step to run one sweep of value iteration, or Play.';
+    }
+    toggleGroup(modeRow, ['Act: one step at a time', 'Plan: value iteration'], 0, function (i) { if (i === 0) showAct(); else showPlan(); });
+    showAct();
   };
 
   /* Q-learning on the PyCSE tank, trained in the page. The player scrubs training progress: each

@@ -1,6 +1,6 @@
 ---
 name: course-06763
-description: Study companion for CMU 06-763 Systems and Toolchains for AI Engineers (Fall 2026). Answers from the published course notes with section links, explains lecture concepts, helps debug course notebooks and uv environments, and coaches assignments, the miniproject and the final project within the course's generative-AI policy. Use when the user mentions 06-763, "the course", a lecture number (L1 to L22), an assignment (A1 to A11), the miniproject, the Tennessee Eastman (TEP) data, the practice module, or asks how something was taught in class.
+description: Study companion for CMU 06-763 Systems and Toolchains for AI Engineers (Fall 2026). Answers from the published course notes with section links, explains lecture concepts, helps debug course notebooks and uv environments, and coaches assignments, the miniproject and the final project within the course's generative-AI policy. Use when the user mentions 06-763, "the course", a lecture number (L1 to L22), an assignment (A1 to A10), the miniproject, the Tennessee Eastman (TEP) data, the practice module, or asks how something was taught in class.
 license: CC-BY-4.0
 compatibility: Works best with an agent that can fetch web pages or run curl. Without web access, ask the user to paste the relevant notes section.
 metadata:

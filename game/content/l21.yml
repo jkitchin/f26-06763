@@ -1,322 +1,611 @@
+# L21 item bank for deployment: where a model runs, the service contract (request bounds against
+# the out-of-domain flag, the interval that does not widen off the data, loading once, def against
+# async def, what to save, training-serving skew), packaging (layer order, secrets in layers, the
+# CPU-only torch wheel), health checks, latency and capacity (fan-out, Little's law, batching), the
+# cost of an LLM call, the latency folklore against Brutlag, and the release incidents. Every item
+# quotes lectures/l21/notes.md; the measured numbers come from lectures/l21/figures/make_figures.py.
+#
+# The bank starts at version 3 because versions 1 and 2 were the evaluation lecture that used to be
+# L21 (now archive/l21-evaluation/). pools/l21.json keeps them, so PDFs issued against them still
+# verify.
+
 schema: 1
 lecture: l21
-title: "Evaluating ML and LLM/agent systems: harnesses, judges, tracing"
+title: "Deployment: serving models, containers, latency and cost"
 source_notes: lectures/l21/notes.md
+# Held until release: tools/release_lecture.py flips this to published.
 status: unwritten
-serve: 5
-pool_version: 2
+# serve = pool // 2, so a retake can be served a disjoint set (CLAUDE.md section 9c).
+serve: 10
+pool_version: 3
 provenance:
-  drafted_by: hand
-  reviewed_by: jkitchin
-  reviewed_at: 2026-08-08
+  drafted_by: claude
+  reviewed_by: none
+  reviewed_at: 2026-11-04
 
 items:
 
+  # --- o1: where a model runs ----------------------------------------------------------------------
+
   - id: l21-q01
     kind: predict_measure
-    rung: 1
-    difficulty: 3
-    objectives: [l21-o2]
+    rung: 2
+    difficulty: 2
+    objectives: [l21-o1, l21-o2]
     prompt: |
-      This session's demo validates a deliberately naive judge, a lexical-overlap
-      heuristic, against hand labels on eight constructed cases.
-
-      Before you look: what is Cohen's kappa?
+      On the course laptop the concrete strength service took 0.81 s from launch to its first
+      ready answer. The model file is 46 kB. Where did most of that time go?
     predict:
-      ask: "Write a number between -1 and 1, and say what you expect."
-      common_prior: "Something positive but mediocre, maybe 0.4. Word overlap is crude but not useless."
+      common_prior: "Loading the model weights from disk"
     options:
-      - "About 0.4, mediocre but clearly better than chance, which is what a crude lexical heuristic ought to manage"
-      - "About -0.11, which is agreement no better than chance"
-      - "About 0.8, since the cases were constructed to be unambiguous and a heuristic should handle unambiguous cases"
-      - "Undefined, because kappa needs more than eight examples to be computed"
-    answer: "About -0.11, which is agreement no better than chance"
+      - "Loading the model weights from disk"
+      - "Starting Python and importing the libraries"
+      - "Checking the artifact's SHA-256 against the manifest"
+      - "Opening the network socket for uvicorn"
+    answer: "Starting Python and importing the libraries"
     evidence: |
-      Every disagreement traces to a specific, nameable blind spot. The heuristic
-      cannot tell a citation that supports the answer from one that does not,
-      because it never looks at the citation; and it cannot tell "48 mm" from
-      "36 mm" inside an otherwise identical sentence, because word overlap does
-      not distinguish those the way a person instantly does. A real LLM judge
-      would close some of those gaps and not others, and the entire point of
-      running the validation is that you find out which, on your rubric, with
-      your judge, rather than assuming.
+      Loading the model took 0.058 s. The other 93% was the interpreter starting and importing
+      FastAPI, NumPy and scikit-learn. For a small model the cold start is mostly imports; for a
+      large one the load dominates, which is why loading once at startup matters more as models
+      grow.
     source:
       file: lectures/l21/notes.md
-      heading: "LLM-as-judge, done carefully"
-      quote: "kappa of about -0.11, agreement no better\nthan chance"
-    verify: {mode: quote, needle: "-0.11", volatility: measured}
-    tags: [evaluation, judge]
+      heading: "Loading the model once"
+      quote: |
+        The other 93% was starting Python and
+        importing FastAPI, NumPy and scikit-learn.
+    verify: {mode: quote, needle: "The other 93% was starting Python", volatility: measured}
+    tags: [cold-start, lifespan]
 
   - id: l21-q02
-    kind: locus_of_control
-    rung: 3
-    difficulty: 2
-    objectives: [l21-o2]
+    kind: mcq
+    rung: 2
+    difficulty: 1
+    objectives: [l21-o1]
     prompt: |
-      You validate your LLM judge against fifty hand labels and it fails: kappa
-      is close to zero.
-
-      What should you do?
+      A heat-exchanger fouling surrogate feeds a report the plant reviews each Monday. Nothing else
+      ever calls it. Where should it run?
     options:
-      - "Skip judge validation in future; a check that fails this often is not earning its cost"
-      - "Sharpen the rubric, or add a programmatic check for the dimension it is blind to"
-      - "Move to a larger judge model, since capability is what a low kappa is measuring"
-      - "Relabel the examples, since disagreement this severe usually means the human labels were inconsistent"
-    answer: "Sharpen the rubric, or add a programmatic check for the dimension it is blind to"
+      - "A long-running HTTP service, so the report can call it"
+      - "A batch job that scores the table on a schedule"
+      - "A serverless container that scales to zero between reports"
+      - "In the browser of whoever opens the report"
+    answer: "A batch job that scores the table on a schedule"
     evidence: |
-      Treat a judge's kappa the way you would treat a surrogate's calibration
-      coverage: a number you check, not a property you assume. The fix is almost
-      always a sharper rubric or an added programmatic check, not a bigger model,
-      because the usual failure is that the rubric did not say what you meant
-      rather than that the judge could not read it. Note what the third option
-      quietly assumes: that capability, not specification, is the binding
-      constraint. It usually is not.
+      Nobody is waiting for the answer, so a server is a process to keep alive and a bill for
+      nothing. Score the whole table on a schedule and write the predictions where the report
+      already reads, with the idempotent stages of Lecture 5.
     source:
       file: lectures/l21/notes.md
-      heading: "LLM-as-judge, done carefully"
-      quote: "the fix is almost always a sharper rubric or an added programmatic check for the specific dimension the judge is blind to, not a bigger model"
-    verify: {mode: quote, needle: "a sharper rubric or an added programmatic check", volatility: stable}
-    tags: [evaluation, judge]
+      heading: "Where a model runs"
+      quote: |
+        If nobody is waiting for the answer, do not run a server.
+    verify: {mode: quote, needle: "do not run a server", volatility: stable}
+    tags: [batch, where-it-runs]
 
   - id: l21-q03
     kind: mcq
     rung: 2
     difficulty: 2
-    objectives: [l21-o2]
+    objectives: [l21-o1]
     prompt: |
-      Which of these is a known systematic bias of LLM-as-judge, and what is the
-      direct control for it?
+      A model on Cloud Run scales to zero when idle. It gets a few requests an hour, so most arrive
+      after a quiet period, and a cold start (mostly loading weights) takes about 2 s. Users need
+      a p95 under 200 ms. What is the trade?
     options:
-      - "Recency bias; place the stronger answer second so it is freshest in context"
-      - "Position bias; randomize answer order in pairwise comparisons so the effect cancels"
-      - "Temperature bias; set the judge's temperature to zero so its scores stop varying"
-      - "Vocabulary bias; restrict the rubric to words that appear in the answers themselves"
-    answer: "Position bias; randomize answer order in pairwise comparisons so the effect cancels"
+      - "Keep instances warm and pay for them while idle"
+      - "Raise the worker count so each cold start loads faster"
+      - "Switch to async def endpoints so the load does not block"
+      - "None: scaling to zero does not change request latency"
+    answer: "Keep instances warm and pay for them while idle"
     evidence: |
-      The three named biases are position, length, and self-preference. None of
-      them makes LLM-as-judge useless; they make it a measurement instrument with
-      known systematic errors, which is a reason to calibrate rather than to
-      discard. Randomizing order cancels position bias directly, and a
-      length-normalized criterion is the analogous control when longer answers
-      keep winning for the wrong reason. Temperature is a real setting and not
-      one of the biases.
+      Scale to zero makes an idle service free and makes the first request after a quiet period
+      wait for a cold start. A minimum number of warm instances removes the wait, and those
+      instances are billed, so the saving goes with it. More workers would each load their own
+      copy and start no faster.
     source:
       file: lectures/l21/notes.md
-      heading: "LLM-as-judge, done carefully"
-      quote: "randomize answer order in pairwise comparisons to cancel out position bias"
-    verify: {mode: quote, needle: "cancel out position bias", volatility: stable}
-    tags: [evaluation, judge, bias]
+      heading: "Limitations and trade-offs"
+      quote: |
+        Keeping instances warm removes the wait and
+        the saving together.
+    verify: {mode: quote, needle: "removes the wait and the saving together", volatility: stable}
+    tags: [serverless, cold-start]
+
+  # --- o2: the service contract -------------------------------------------------------------------
 
   - id: l21-q04
     kind: spot_the_defect
     rung: 3
     difficulty: 2
-    objectives: [l21-o1]
-    prompt: |
-      Your model reports 94% accuracy on the test set and the number has been
-      stable for months. A customer reports that it fails badly on night-shift
-      data.
-
-      What is the defect in the reporting?
-    options:
-      - "Accuracy is the wrong metric here; F1 balances precision against recall and would have surfaced the night-shift failure"
-      - "An aggregate is a weighted average over whatever slices happen to be in the test set, and the weights are an accident of how the data was collected"
-      - "The test set is stale and should be refreshed continuously from production traffic"
-      - "94% is simply too low a bar for a production system, and the threshold should be raised"
-    answer: "An aggregate is a weighted average over whatever slices happen to be in the test set, and the weights are an accident of how the data was collected"
-    evidence: |
-      A single scalar cannot show you which slice is failing, and a slice that is
-      rare in your test set contributes almost nothing to the aggregate however
-      badly it does. Refreshing the test set is the wrong instinct here for a
-      separate reason: an eval set that moves cannot be compared with itself over
-      time, which is why the session insists on a frozen, versioned one. Report
-      per slice, and freeze the set.
-    source:
-      file: lectures/l21/notes.md
-      heading: "ML metrics recap, and why one number hides the failure that matters"
-      quote: "the weights are usually an accident of how the data w"
-    verify: {mode: quote, needle: "an accident of how the data", volatility: stable}
-    tags: [evaluation, slices]
-
-  - id: l21-q05
-    kind: mcq
-    rung: 2
-    difficulty: 2
-    objectives: [l21-o1]
-    prompt: |
-      Why must an eval set be frozen and versioned rather than refreshed as new
-      production data arrives?
-    options:
-      - "Because labelling is expensive, so re-labelling should be avoided where possible"
-      - "Because a set that moves cannot be compared with itself over time"
-      - "Because production data is not representative of the deployment distribution"
-      - "Because a frozen set can be cached, which makes the harness fast enough to run in CI"
-    answer: "Because a set that moves cannot be compared with itself over time"
-    evidence: |
-      The whole value of an eval number is the comparison it supports: this
-      version against last version. Change the set and the comparison silently
-      becomes a comparison of two different questions, so a drop could mean a
-      regression or could mean the new examples were harder, and you cannot tell
-      which. Freezing does not mean never adding; it means versioning, so that
-      every number is attached to the set it was computed on.
-    source:
-      file: lectures/l21/notes.md
-      heading: "The eval mindset: a frozen, versioned test set"
-      quote: "the test set has to be **frozen** and **versioned**"
-    verify: {mode: quote, needle: "frozen", volatility: stable}
-    tags: [evaluation, methodology]
-
-  - id: l21-q06
-    kind: mcq
-    rung: 2
-    difficulty: 2
     objectives: [l21-o2]
     prompt: |
-      When building an LLM-as-judge, what should the judge be asked to return?
+      A reviewer proposes setting every request bound to the training minimum and maximum, for
+      example `slag: float = Field(ge=0, le=360)`, so that any mix outside the training data gets
+      a 422. What is wrong with that?
     options:
-      - "Prose you then parse, since free text lets the judge express nuance a schema would flatten"
-      - "A score plus a written justification, as structured output"
-      - "A single score, since a justification costs output tokens and latency without changing the number the harness records"
-      - "A ranked list of all candidate answers, since relative judgements are more reliable than absolute ones"
-    answer: "A score plus a written justification, as structured output"
+      - "Nothing; out-of-range requests should get a 422 before the model runs"
+      - "It refuses possible mixes; answer them and flag them out of domain"
+      - "Pydantic cannot express an upper bound on a float field"
+      - "Bounds belong in the response model, not the request model"
+    answer: "It refuses possible mixes; answer them and flag them out of domain"
     evidence: |
-      Two reasons, and the second is the one people miss. Structured output is
-      more reliable to extract than prose you parse. And writing the
-      justification is frequently what makes the judge's reasoning inspectable at
-      all, which is what lets you find the blind spot when validation fails.
-      A bare score gives you a number and no way to debug it.
+      A 422 is for the impossible, such as negative cement. A mix with more slag than any training
+      mix is a legitimate question with an unreliable answer, so the service answers it and the
+      response lists every feature outside the training box stored in the manifest.
     source:
       file: lectures/l21/notes.md
-      heading: "LLM-as-judge, done carefully"
-      quote: "a score plus a written justification instead of freeform prose you then have to parse"
-    verify: {mode: quote, needle: "a written justification", volatility: stable}
-    tags: [evaluation, judge, structured-output]
+      heading: "Requests that cannot be wrong in the obvious ways"
+      quote: |
+        These bounds reject the impossible. They should not reject the unusual.
+    verify: {mode: quote, needle: "should not reject the unusual", volatility: stable}
+    tags: [pydantic, validation, out-of-domain]
 
-  - id: l21-q07
-    kind: mechanism_recall
-    rung: 5
+  - id: l21-q05
+    kind: predict_measure
+    rung: 2
     difficulty: 3
     objectives: [l21-o2]
     prompt: |
-      Close the notes. Write out the procedure for validating an LLM judge before
-      you trust it, and say what a failed validation means. Stop when you stall,
-      and note where.
-    checklist:
-      - text: "Hand-label twenty to fifty examples yourself, first"
-        needle: "Hand-label twenty to fifty examples yourself"
-      - text: "Run the judge on the same examples and measure agreement"
-        needle: "run the judge on the same examples"
-      - text: "Percent agreement at minimum, Cohen's kappa to correct for chance"
-        needle: "Cohen's kappa"
-      - text: "A failed validation is what validation exists to catch, not a reason to skip it"
-        needle: "it is what validation exists to catch"
-      - text: "The fix is usually a sharper rubric or a programmatic check, not a bigger model"
-        needle: "not a bigger model"
-      - text: "Name the biases you are controlling for: position, length, self-preference"
-        needle: "Self-preference"
-    answer: null
+      Inside the training ranges the ensemble predicts 48.3 MPa with a 90% interval about 37 MPa
+      wide. Raise the slag to 400 kg/m3 and the age to 730 days, both outside the training data.
+      What happens to the interval?
+    predict:
+      common_prior: "It widens, because the model knows less there"
+    options:
+      - "It widens, because the model knows less there"
+      - "It narrows slightly, to 34 MPa wide"
+      - "It is unchanged, since the calibration factor is fixed"
+      - "The service refuses the request with a 422"
+    answer: "It narrows slightly, to 34 MPa wide"
     evidence: |
-      The demo runs exactly this on eight constructed cases and gets a kappa of
-      about -0.11 against a judge built to be naive. Every disagreement traces to
-      a nameable blind spot, and the point of running the validation is that you
-      find out which, on your rubric, with your judge, rather than assuming.
-      Where you stalled is your reading assignment.
+      The interval comes from the spread of the five networks, and they agree with each other off
+      the data as readily as on it. So the interval cannot warn you, and the response carries an
+      explicit in_domain flag computed from the training minimum and maximum of each feature.
     source:
       file: lectures/l21/notes.md
-      heading: "LLM-as-judge, done carefully"
-      quote: "Hand-label twenty to fifty examples yourself"
-    verify:
-      mode: manual
-      needle: "Hand-label twenty to fifty examples yourself"
-      volatility: stable
-      exempt_reason: >-
-        Free-text recall; each checklist entry is verified against the source
-        individually rather than the answer being matched as a whole.
-    tags: [evaluation, judge, self-test]
+      heading: "Responses that carry what the caller needs"
+      quote: |
+        a narrower interval, 34 MPa wide against 37, for the question the model knows
+        less about.
+    verify: {mode: quote, needle: "34 MPa wide against 37", volatility: measured}
+    tags: [uncertainty, out-of-domain, ensemble]
+
+  - id: l21-q06
+    kind: predict_measure
+    rung: 2
+    difficulty: 3
+    objectives: [l21-o2, l21-o4]
+    prompt: |
+      Four clients send 5,000-mix batches to a CPU-bound prediction endpoint written as
+      `async def`, while a fifth client asks /healthz every 50 ms. Compared with the same code
+      written as plain `def`, what happens to the health check?
+    predict:
+      common_prior: "No difference, since async def is the faster, modern choice"
+    options:
+      - "No difference, since async def is the faster, modern choice"
+      - "It slows to about 160 ms median, waiting for whole batches"
+      - "It gets faster, since async def frees the threadpool"
+      - "It fails outright, because uvicorn kills the blocked worker"
+    answer: "It slows to about 160 ms median, waiting for whole batches"
+    evidence: |
+      An async def endpoint runs on the event loop itself, so a computation that never awaits
+      blocks every other request until it finishes. A plain def endpoint runs in a threadpool and
+      the server keeps answering: 48 ms median against 161 ms, and 42 health answers in four
+      seconds against 19.
+    source:
+      file: lectures/l21/notes.md
+      heading: "def, async def, and a model that blocks"
+      quote: |
+        With `async def`
+        every request, health checks included, waits for whole batches to finish.
+    verify: {mode: quote, needle: "waits for whole batches to finish", volatility: measured}
+    tags: [async, concurrency, fastapi]
+
+  - id: l21-q07
+    kind: claim_vs_source
+    rung: 3
+    difficulty: 3
+    objectives: [l21-o2, l21-o3]
+    prompt: |
+      "The thing worth saving is the recipe, more than the weights." When this service rebuilt
+      Lecture 14's ensemble with the same split, network and seeds, what happened?
+    options:
+      - "It reproduced the ensemble bit for bit, as a seeded deterministic run should"
+      - "The calibration factor came out 2.09, not 1.66; intervals covered 95.9%"
+      - "It failed to run at all, because the scikit-learn API had changed"
+      - "The networks came out different, but the calibration factor still matched"
+    answer: "The calibration factor came out 2.09, not 1.66; intervals covered 95.9%"
+    evidence: |
+      All five networks stop at the iteration cap without converging, so their final weights
+      depend on floating-point details a library build can move. Lecture 14's own script now gives
+      2.09 too. What reproduces the model is the artifact, with a manifest of library versions, the
+      data hash and the file's own hash.
+    source:
+      file: lectures/l21/notes.md
+      heading: "What to save, and how to load it"
+      quote: |
+        The recipe
+        was saved and it did not reproduce the model.
+    verify: {mode: quote, needle: "did not reproduce the model", volatility: measured}
+    tags: [manifest, reproducibility, artifact]
 
   - id: l21-q08
-    kind: locus_of_control
+    kind: spot_the_defect
+    rung: 3
+    difficulty: 2
+    objectives: [l21-o2]
+    prompt: |
+      A team's liveness probe runs a test prediction and a database query. During a slow spell in
+      the database, the orchestrator restarts every instance of the service at once. What went
+      wrong?
+    options:
+      - "The probe was too slow; run it every second instead of every ten"
+      - "Liveness checked dependencies; keep it trivial, put those in readiness"
+      - "There should be no liveness probe when a readiness probe exists"
+      - "Restarting was correct; the database should have been restarted first, then the app"
+    answer: "Liveness checked dependencies; keep it trivial, put those in readiness"
+    evidence: |
+      A failed liveness probe restarts the container; a failed readiness probe only takes it out
+      of traffic. A liveness check that calls a slow dependency fails everywhere at once, and the
+      restarts turn a slow database into an outage.
+    source:
+      file: lectures/l21/notes.md
+      heading: "Health checks"
+      quote: |
+        Incorrect implementation of liveness probes can lead
+        to cascading failures.
+    verify: {mode: quote, needle: "can lead to cascading failures", volatility: stable}
+    tags: [health-check, liveness, readiness]
+
+  - id: l21-q09
+    kind: mcq
+    rung: 2
+    difficulty: 2
+    objectives: [l21-o2]
+    prompt: |
+      The concrete service standardizes each request before the networks see it. Why does it save
+      the fitted scaler with each network rather than recomputing the scaling in the endpoint?
+    options:
+      - "So requests use the training means and spreads, and no other"
+      - "Because a saved scaler makes each prediction faster to compute"
+      - "So the scaler can refit itself on each incoming batch of requests"
+      - "Because Pydantic needs the scaler to range-check the fields"
+    answer: "So requests use the training means and spreads, and no other"
+    evidence: |
+      Training-serving skew is a feature computed one way in training and another in serving.
+      Saving the Lecture 8 Pipeline with the model makes the serving path reuse the training code,
+      which is Google's Rule 32, and leaves no second implementation to drift.
+    source:
+      file: lectures/l21/notes.md
+      heading: "Training-serving skew"
+      quote: |
+        the service saves the scaler with each network, so a request is standardized with the training
+        means and spreads and cannot be standardized any other way.
+    verify: {mode: quote, needle: "saves the scaler with each network", volatility: stable}
+    tags: [training-serving-skew, pipeline]
+
+  # --- o3: packaging -----------------------------------------------------------------------------
+
+  - id: l21-q10
+    kind: spot_the_defect
+    rung: 3
+    difficulty: 2
+    objectives: [l21-o3]
+    prompt: |
+      Every one-line edit to app.py makes this build reinstall scikit-learn and NumPy. Why?
+
+      ```dockerfile
+      FROM python:3.12-slim
+      COPY --from=ghcr.io/astral-sh/uv:0.10.3 /uv /uvx /bin/
+      WORKDIR /app
+      COPY . .
+      RUN uv sync --locked --no-dev
+      CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+      ```
+    options:
+      - "COPY . . comes before the install, so a code change invalidates that layer"
+      - "--locked makes uv re-resolve and redownload every dependency on each build"
+      - "The exec-form CMD at the end turns off Docker's layer cache for the whole file"
+      - "The uv image tag is pinned, so its layer is always rebuilt"
+    answer: "COPY . . comes before the install, so a code change invalidates that layer"
+    evidence: |
+      Docker's cache is strictly ordered, so a changed layer rebuilds everything after it. Install
+      the dependencies from the lockfile first, in their own layer, and copy the code after. Built
+      that way, a full build took 11.7 s and a rebuild after an edit to app.py took 2.9 s.
+    source:
+      file: lectures/l21/notes.md
+      heading: "A Dockerfile from the lockfile"
+      quote: |
+        Once a layer changes, then all
+        downstream layers need to be rebuilt as well
+    verify: {mode: quote, needle: "downstream layers need to be rebuilt", volatility: stable}
+    tags: [docker, layer-cache]
+
+  - id: l21-q11
+    kind: spot_the_defect
     rung: 3
     difficulty: 3
     objectives: [l21-o3]
     prompt: |
-      A user reports that your agent "did something weird" yesterday afternoon.
-      You cannot reproduce it.
+      The image is built with `--build-arg API_KEY=...` and then pushed. The running container has
+      no key.txt. Is the key safe in the pushed image?
 
-      What makes this a debuggable incident rather than a shrug?
+      ```dockerfile
+      ARG API_KEY
+      COPY key.txt /app/key.txt
+      RUN ./fetch-weights --key-file /app/key.txt && rm /app/key.txt
+      ```
     options:
-      - "A higher log level on the model client, so the raw HTTP exchange is captured"
-      - "A trace per request, so the specific run can be retrieved and read"
-      - "A larger eval set, so the behaviour would have been caught before release"
-      - "Pinning the model version, so yesterday's behaviour is reproducible today"
-    answer: "A trace per request, so the specific run can be retrieved and read"
+      - "Yes: the rm deleted the file, and build arguments are not kept in the image"
+      - "No: docker history shows the ARG, and the COPY layer keeps the file"
+      - "Yes, as long as the final stage runs as a non-root user such as app"
+      - "No, but only because the name key.txt is easy to guess"
+    answer: "No: docker history shows the ARG, and the COPY layer keeps the file"
     evidence: |
-      Pinning and a bigger eval set are both good and neither answers this
-      question, because this question is about an event that already happened.
-      An agent trace is a run, the same as a training run, and deserves the same
-      discipline about being recorded rather than trusted to memory. Without one
-      the incident is unfalsifiable in both directions: you cannot confirm it and
-      you cannot dismiss it.
+      Layers are immutable. The rm adds a layer that hides the file and the COPY layer still
+      holds it, readable from the saved image; the figure script recovered it that way, and read
+      the build argument from docker history --no-trunc. Use RUN --mount=type=secret, and rotate
+      any key that did leak.
     source:
       file: lectures/l21/notes.md
-      heading: "Observability and tracing"
-      quote: "observability, tracing, structured logging"
-    verify: {mode: quote, needle: "tracing", volatility: stable}
-    tags: [observability, tracing]
+      heading: "Configuration and secrets"
+      quote: |
+        so deleting a file adds a layer that hides it and removes nothing.
+    verify: {mode: quote, needle: "hides it and removes nothing", volatility: stable}
+    tags: [secrets, docker, image-layer]
 
-  - id: l21-q09
-    kind: notebook_run
-    rung: 4
-    difficulty: 2
-    objectives: [l21-o2]
-    prompt: |
-      Open [`l21-eval.ipynb`](../lectures/l21/l21-eval.ipynb) and run the judge
-      validation against the hand-labelled cases.
-
-      What does the agreement look like, and what should you conclude from it?
-    options:
-      - "Strong agreement, showing that a simple heuristic is adequate for most grading"
-      - "Agreement no better than chance, about this judge rather than judges in general"
-      - "Perfect agreement, since the cases were constructed to be unambiguous"
-      - "Agreement that cannot be summarised, because kappa is undefined on so few cases"
-    answer: "Agreement no better than chance, about this judge rather than judges in general"
-    evidence: |
-      Kappa comes out around -0.11 against a deliberately naive lexical-overlap
-      judge. The generalisation to resist is "LLM judges do not work": the
-      measured thing is that *this* judge, on *this* rubric, does not, and the
-      procedure that established it is the transferable part. Run the same
-      procedure on your own judge and you will get your own number, which is the
-      only one that licenses trusting it.
-    source:
-      file: lectures/l21/notes.md
-      heading: "LLM-as-judge, done carefully"
-      quote: "a judge deliberately built to be naive"
-    verify: {mode: quote, needle: "deliberately built to be naive", volatility: stable}
-    tags: [evaluation, judge, notebook]
-
-  - id: l21-q10
-    kind: mcq
+  - id: l21-q12
+    kind: direction
     rung: 2
     difficulty: 2
     objectives: [l21-o3]
     prompt: |
-      What should a trace record for every request, and why does cost belong on
-      that list?
+      A surrogate lists a plain `torch` dependency. It installs on a Mac, and the same project is
+      built into a Linux container. Compared with the Mac, what happens to torch's size in the
+      image, and what is the fix?
     options:
-      - "Inputs and outputs only, since tool calls and timings are already in the application logs and duplicating them wastes storage"
-      - "Inputs, outputs, tool calls, latency and cost, because cost is a per-request property that only becomes visible in aggregate and only if it was recorded"
-      - "A hash of the request, so traces stay small and no user data is retained anywhere in the system"
-      - "The model version and the prompt template, since those are the only things that change between deployments"
-    answer: "Inputs, outputs, tool calls, latency and cost, because cost is a per-request property that only becomes visible in aggregate and only if it was recorded"
+      - "Smaller, since Linux wheels leave out the Metal backend"
+      - "Much larger: Linux gets the CUDA build; use the CPU index"
+      - "The same, because uv.lock pins one wheel for every platform"
+      - "Larger, but only by the size of the Python interpreter"
+    answer: "Much larger: Linux gets the CUDA build; use the CPU index"
     evidence: |
-      Cost is the one people leave out, and it is the one that cannot be
-      reconstructed later: a monthly invoice tells you the total and nothing about
-      which request shape caused it. Recorded per request, the same data answers
-      "what did yesterday's incident do" and "which endpoint is expensive", which
-      is why this is one mechanism rather than two.
+      PyPI hosts CPU-only torch wheels for macOS and GPU wheels for Linux. The Linux wheel is 539
+      MB and pulls NVIDIA's libraries (cuDNN alone is 519 MB), against about 210 MB for the CPU
+      wheel. uv's PyTorch guide shows how to point torch at the CPU index, and a model this size
+      does not need a GPU.
     source:
       file: lectures/l21/notes.md
-      heading: "Observability and tracing"
-      quote: "observability, tracing, structured logging"
-    verify: {mode: quote, needle: "structured logging", volatility: stable}
-    tags: [observability, cost]
+      heading: "Image size, and the GPU you do not need"
+      quote: |
+        so a plain `uv add torch` that is small on your Mac is large in a Linux container.
+    verify: {mode: quote, needle: "large in a Linux container", volatility: stable}
+    tags: [pytorch, cpu-only, image-size]
+
+  # --- o4: latency, capacity and cost -------------------------------------------------------------
+
+  - id: l21-q13
+    kind: predict_measure
+    rung: 3
+    difficulty: 3
+    objectives: [l21-o4]
+    prompt: |
+      One uvicorn worker saturates at about 1,800 requests per second. With 32 closed-loop
+      clients, each sending its next request as soon as the last one returns, what mean
+      latency do you predict?
+    predict:
+      common_prior: "About 4.4 ms, the same as at 8 clients"
+    options:
+      - "About 4.4 ms, the same as at 8 clients"
+      - "About 18 ms, since W = N/X = 32/1800"
+      - "About 1.1 ms, since more clients share the overhead"
+      - "Unbounded, because the queue grows without limit"
+    answer: "About 18 ms, since W = N/X = 32/1800"
+    evidence: |
+      Once throughput is pinned at capacity, Little's law L = λW makes latency proportional to the
+      number in the system: 32/1800 s is 18 ms, and the measured mean was 17.4 ms (median 17.1 ms,
+      after 4.4 and 8.7 ms at 8 and 16 clients). In a closed loop the queue cannot exceed the 32 clients, so it does not grow
+      without limit.
+    source:
+      file: lectures/l21/notes.md
+      heading: "Little's law and saturation"
+      quote: |
+        with throughput fixed at the service's capacity $X$, the latency of $N$ clients is $W = N/X$.
+    verify: {mode: quote, needle: "the latency of $N$ clients is $W = N/X$", volatility: measured}
+    tags: [littles-law, capacity, latency]
+
+  - id: l21-q14
+    kind: mcq
+    rung: 3
+    difficulty: 2
+    objectives: [l21-o4]
+    prompt: |
+      Each server typically answers in 10 ms, with a p99 of one second. A user request must wait
+      for 100 such servers. What share of user requests take more than one second?
+    options:
+      - "About 1%, the same as for a single server"
+      - "About 63%, which is 1 - 0.99^100"
+      - "About 10%, since only the slowest tenth of servers matter"
+      - "All of them, since some server is always slow"
+    answer: "About 63%, which is 1 - 0.99^100"
+    evidence: |
+      A request is fast only if all 100 servers are, which happens with probability 0.99^100, about
+      0.37. A component's tail becomes the system's typical case, which is why Dean and Barroso
+      send hedged requests to a second replica after a short delay.
+    source:
+      file: lectures/l21/notes.md
+      heading: "The tail at scale"
+      quote: |
+        "63% of user
+        requests will take more than one second,"
+    verify: {mode: quote, needle: "requests will take more than one second", volatility: stable}
+    tags: [tail-latency, fan-out]
+
+  - id: l21-q15
+    kind: direction
+    rung: 2
+    difficulty: 2
+    objectives: [l21-o4]
+    prompt: |
+      One mix per request cost 0.89 ms per prediction. The same service gets requests carrying
+      1,000 mixes each. Per prediction, what happened?
+    options:
+      - "Slightly cheaper, since the networks do the same work per mix"
+      - "About a hundred times cheaper, 9.1 µs each"
+      - "More expensive, since the request is much larger to parse"
+      - "The same, since batching only helps on a GPU"
+    answer: "About a hundred times cheaper, 9.1 µs each"
+    evidence: |
+      Almost all of a single request's cost was fixed overhead (parsing, validation, routing), not
+      the five small networks, and a batch pays it once. An optimizer that proposes candidates in
+      batches, as L15's batch acquisition does, gets the same saving from a surrogate service.
+    source:
+      file: lectures/l21/notes.md
+      heading: "Batching"
+      quote: |
+        A thousand-mix batch is a hundred times cheaper per
+        prediction, because almost all of a single request's cost was overhead
+    verify: {mode: quote, needle: "a hundred times cheaper per prediction", volatility: measured}
+    tags: [batching, throughput]
+
+  - id: l21-q16
+    kind: mcq
+    rung: 3
+    difficulty: 2
+    objectives: [l21-o4]
+    prompt: |
+      At $2 per million input tokens and $10 per million output tokens, an answer built from 3,000
+      tokens of retrieved context and a 300-token reply costs about how much per thousand answers?
+    options:
+      - "$3, since only the reply is billed"
+      - "$6.60, counting every token at the input price"
+      - "$9, two thirds of it from the input context"
+      - "$33, if every token is billed at the output price"
+    answer: "$9, two thirds of it from the input context"
+    evidence: |
+      3,000 × $2/10^6 is $0.006 and 300 × $10/10^6 is $0.003, so $0.009 an answer. Output tokens
+      cost five times as much, but a retrieval prompt is mostly input. Prices change, so read the
+      pricing page on the day and record the date with the estimate.
+    source:
+      file: lectures/l21/notes.md
+      heading: "Cost"
+      quote: |
+        $3000 \times 2/10^6 + 300 \times 10/10^6 = \$0.009$, nine dollars per thousand answers.
+    verify: {mode: quote, needle: "nine dollars per thousand answers", volatility: stable}
+    tags: [llm-cost, tokens]
+
+  - id: l21-q17
+    kind: claim_vs_source
+    rung: 3
+    difficulty: 3
+    objectives: [l21-o4]
+    prompt: |
+      A design review justifies a latency target with "every 100 ms of latency costs 1% of sales".
+      What does following that number to its sources show?
+    options:
+      - "Amazon's controlled study measured exactly 1% per 100 ms"
+      - "One slide bullet; Google's controlled test found far less"
+      - "Google's 2009 experiment found 20% fewer searches per 500 ms"
+      - "The sources agree, but the effect was only seen on mobile users"
+    answer: "One slide bullet; Google's controlled test found far less"
+    evidence: |
+      The Amazon figure is one bullet on a 2006 slide with no method and no sample size. Brutlag's
+      controlled 2009 experiment injected delays into Google search and found 100 to 400 ms cost
+      0.2% to 0.6% of daily searches, with no measurable effect at 50 ms.
+    source:
+      file: lectures/l21/notes.md
+      heading: "What latency costs, and the numbers that circulate"
+      quote: |
+        "increasing web search latency 100 to 400 ms reduces the daily number of
+        searches per user by 0.2% to 0.6%,"
+    verify: {mode: quote, needle: "reduces the daily number of searches per user", volatility: stable}
+    tags: [folklore, reading-claims, latency]
+
+  # --- o5: releasing changes safely -----------------------------------------------------------------
+
+  - id: l21-q18
+    kind: mcq
+    rung: 3
+    difficulty: 2
+    objectives: [l21-o5]
+    prompt: |
+      CrowdStrike's 19 July 2024 update shipped no new code, only a content configuration file
+      read by the existing sensor. Which lesson carries over to a model service?
+    options:
+      - "Data files are safe to push globally, since the code was already tested"
+      - "New weights or a new calibration factor need the same staged release as code"
+      - "Only kernel-level software needs staged rollouts; user-space services never do"
+      - "Content updates should be tested with wildcards to cover every value"
+    answer: "New weights or a new calibration factor need the same staged release as code"
+    evidence: |
+      The template defined 21 input fields and the code supplied 20, and the tests used a wildcard
+      for the 21st, so they never hit the mismatch. Weights, a feature schema or a calibration
+      factor change what running code does in the same way, and CrowdStrike's own remedy was a
+      staged rollout for each content instance.
+    source:
+      file: lectures/l21/notes.md
+      heading: "Every change is a deploy: CrowdStrike, 19 July 2024"
+      quote: |
+        "Each Template
+        Instance should be deployed in a staged rollout"
+    verify: {mode: quote, needle: "deployed in a staged rollout", volatility: stable}
+    tags: [case-study, staged-rollout, content-update]
+
+  - id: l21-q19
+    kind: mcq
+    rung: 3
+    difficulty: 2
+    objectives: [l21-o5]
+    prompt: |
+      Knight Capital's new code reached seven of its eight servers. Engineers then rolled back by
+      removing the new code from the seven, and the losses grew. What does the case say a deploy
+      needs before it counts as done?
+    options:
+      - "A faster rollback, so the old code is back on all eight within seconds"
+      - "A check on every instance that the tested artifact is running"
+      - "A second deploy to the eighth server before markets open"
+      - "Fewer servers, since eight is too many to keep in step"
+    answer: "A check on every instance that the tested artifact is running"
+    evidence: |
+      Nobody confirmed the eighth server, where a repurposed flag woke the retired Power Peg code,
+      and the rollback put the seven good servers into the same state. For a model service the
+      check is /readyz returning the model version, compared from outside against the version you
+      meant to deploy.
+    source:
+      file: lectures/l21/notes.md
+      heading: "Verify what is running: Knight Capital, and this website"
+      quote: |
+        A deploy is
+        complete when you have confirmed, on every instance, that the artifact you tested is the one
+        running
+    verify: {mode: quote, needle: "confirmed, on every instance", volatility: stable}
+    tags: [case-study, rollback, verification]
+
+  - id: l21-q20
+    kind: mcq
+    rung: 3
+    difficulty: 3
+    objectives: [l21-o5]
+    prompt: |
+      To be safe, a team runs a new, heavier anomaly model in shadow mode on the serving machines:
+      it scores all live traffic and its outputs are discarded. What does Cloudflare's 2 July 2019
+      outage say about this plan?
+    options:
+      - "Shadow mode is free, because nothing acts on the model's output"
+      - "It still spends CPU on the machines serving real traffic, as simulate mode did"
+      - "Shadow mode is only risky when its predictions are logged to disk"
+      - "It is safe once the change can be pushed globally in seconds"
+    answer: "It still spends CPU on the machines serving real traffic, as simulate mode did"
+    evidence: |
+      Cloudflare's new WAF rule ran in simulate mode, which records what it would have done, and
+      its regular expression backtracked badly enough to exhaust the CPU used for serving. The
+      network was down for 27 minutes. A shadow model costs what the model costs, on the same
+      machines, so it needs the same staged rollout as a live change.
+    source:
+      file: lectures/l21/notes.md
+      heading: "A fast global channel: Cloudflare, 2 July 2019"
+      quote: |
+        simulate mode still runs the rule, so it still spent the CPU
+    verify: {mode: quote, needle: "it still spent the CPU", volatility: stable}
+    tags: [case-study, shadow-deployment, staged-rollout]

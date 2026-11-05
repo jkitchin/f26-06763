@@ -21,12 +21,14 @@ console.log('map:')
 // --- the generated world holds together ------------------------------------
 
 const sessionRooms = world.rooms.filter((r) => r.kind === 'session')
-// 20: the schedule has 22 lecture rows. L20 is cancelled and L21 has no topic, so
-// neither has a room.
-check(sessionRooms.length === 20, 'every session on the schedule with a topic is a room',
+// 22: the schedule has 22 lecture rows, every one with a topic. L20 and L21 are the
+// optional sessions on the AIChE dates (2026-11-04), so both are rooms, in the Optional
+// region. A row marked "Cancelled" or left without a topic would get no room.
+check(sessionRooms.length === 22, 'every session on the schedule with a topic is a room',
   `${sessionRooms.length} rooms`)
-check(roomById('l21') === undefined, 'L21, which has no topic, is not drawn')
-check(roomById('l20') === undefined, 'L20, which is cancelled, is not drawn')
+for (const id of ['l20', 'l21']) {
+  check(roomById(id)?.arc === 'Optional', `${id.toUpperCase()}, an optional session, is in the Optional region`)
+}
 
 // The written (open) rooms are exactly the lectures released in _toc.yml. The
 // course ships one week at a time, so this set grows week by week; the test
@@ -47,12 +49,11 @@ const built = roomById('built')
 if (pageListed('built')) {
   check(built?.kind === 'page' && built.arc === 'Optional' && built.date === '',
     'the published optional page is a room in the Optional region, with no date')
-  check(world.regions.filter((g) => g.name === 'Optional').length === 1,
-    'and there is one Optional region')
 } else {
   check(built === undefined, 'the unpublished optional page has no room')
-  check(world.regions.every((g) => g.name !== 'Optional'), 'and there is no Optional region')
 }
+// One Optional region either way, since the optional sessions are always in it.
+check(world.regions.filter((g) => g.name === 'Optional').length === 1, 'there is one Optional region')
 const writtenIds = world.rooms.filter((r) => r.written).map((r) => r.id).sort()
 const expectedWritten = world.rooms
   .filter((r) => (r.kind === 'page' ? pageListed(r.id) : releasedIds.has(r.id)))
@@ -63,10 +64,11 @@ check(JSON.stringify(writtenIds) === JSON.stringify(expectedWritten),
 
 // Two rows carry a conference annotation in the schedule that an earlier parser
 // silently dropped. The annotation belongs to the dates rather than the lectures,
-// so dropping the mini-project days moved it from L18/L19 onto L21/L22. L21
-// anchors authored corridors, so losing it would have left edges pointing out of
-// a room that was not drawn.
-check(roomById('l22') !== undefined, 'l22 survived the schedule parse')
+// so dropping the mini-project days moved it from L18/L19 onto L21/L22. Losing
+// either would leave a scheduled session with no room on the map.
+for (const id of ['l21', 'l22']) {
+  check(roomById(id) !== undefined, `${id} survived the schedule parse`)
+}
 
 const cells = new Set(world.rooms.map((r) => `${r.x},${r.y}`))
 check(cells.size === world.rooms.length, 'no two rooms occupy the same cell',
@@ -92,12 +94,15 @@ check(world.signs.every((s) => roomById(s.lecture)?.written === false),
 // agents lecture (2026-11-03), it opens from L18's single tool call, and its notes link L18.
 check(world.doors.some((d) => d.from === 'l19' && d.to === 'l18'), 'L19 builds on L18')
 
-// None drawn. The four authored edges all leave L21, which has no room while it
-// has no topic; they stay in game/content/map-edges.yml and return with it. The
-// count is hardcoded on purpose: authored edges are hand-written content, and a
-// regeneration that silently changed them would otherwise look like a clean run.
+// None. Fifteen became ten when L23's five authored edges left with the lecture
+// (MLOps moved to course/optional/), ten became four on 2026-10-12 when the
+// agents draft left L20 (five edges) and L21's edge to it went too, and four became
+// zero on 2026-11-04 when the evaluation lecture left L21 for archive/l21-evaluation/.
+// The count is hardcoded on purpose. Authored edges are hand-written content, each
+// with the sentence that justifies it, and a regeneration that silently dropped
+// some, or invented some, would otherwise look like a clean run.
 const authored = world.doors.filter((d) => d.origin === 'authored')
-check(authored.length === 0, 'no authored corridor is drawn while L21 has no room',
+check(authored.length === 0, 'no authored corridors, as map-edges.yml says',
   `${authored.length}`)
 
 // --- walking ---------------------------------------------------------------
@@ -140,8 +145,8 @@ check(!doorVisible(oneDoor, none), 'a corridor is hidden until both ends are vis
 check(!doorVisible(oneDoor, new Set(['l11'])), 'one end is not enough')
 check(doorVisible(oneDoor, both), 'and drawn once both have been')
 
-// 20 sessions with a topic, plus the optional page once it is published.
-const roomsTotal = 20 + (pageListed('built') ? 1 : 0)
+// 22 sessions with a topic, plus the optional page once it is published.
+const roomsTotal = 22 + (pageListed('built') ? 1 : 0)
 check(coverage(none).seen === 0 && coverage(none).total === roomsTotal,
   `coverage starts at zero of ${roomsTotal}`)
 check(coverage(both).seen === 2, 'and counts the rooms actually stood in')

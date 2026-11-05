@@ -48,13 +48,15 @@ TOC = REPO / "_toc.yml"
 #: lives in the Projects part, so it is not listed here. A lecture with no entry
 #: releases no assignment. On 2026-10-08 the LLM arc moved two sessions later (UQ, BO and
 #: AL/RL now fill L14 to L16), so A8 to A10 follow their lectures: A8 with L18 (structured
-#: output), A9 with L19 (RAG), A10 with L20 (agents); A11 stays with L21. A8 was released
+#: output), A9 with L19 (RAG), A10 with L20 (agents). A8 was released
 #: with L18 by mistake on 2026-11-01 and pulled the same day; it is held until a date is set.
 #: L19 became the agents lecture (RAG went into L18) and releases no assignment (2026-11-03), so
-#: A9 is held too.
+#: A9 is held too. A11 (eval harness plus deployed API) was dropped on 2026-11-04 with the
+#: evaluation lecture, when L21 became the optional deployment session; its spec is in
+#: archive/l21-evaluation/.
 LECTURE_ASSIGNMENTS = {
     1: ["a01"], 4: ["a02"], 6: ["a03"], 8: ["a04"], 15: ["a05"],
-    20: ["a10"], 21: ["a11"],   # a06, a08 and a09 held: not released with L11, L18 and L19; dates open
+    20: ["a10"],   # a06, a08 and a09 held: not released with L11, L18 and L19; dates open
 }
 
 #: Which project page (course/<slug>.md) is released with which lecture. The

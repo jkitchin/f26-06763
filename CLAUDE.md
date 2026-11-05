@@ -24,7 +24,7 @@ even though the repo is not.
 | `course/syllabus.md`, `course/schedule.md` | Anything under a `solutions/` directory |
 | `lectures/*/notes.md` | Draft material not yet added to `_toc.yml` |
 | `course/assignments/aNN.md` | Grading keys, exam material, student data |
-| `course/miniproject.md`, `course/final-project.md` | |
+| `course/miniproject.md`, `course/final-project.md` | Anything under `archive/` (unscheduled material kept for later) |
 | `course/optional/*.md` | |
 | Rendered slide decks at `/slides/lNN.html` | |
 
@@ -71,20 +71,26 @@ Rules that follow:
 │       ├── slides.md      MARP deck, projected during class
 │       ├── demo.ipynb     runnable artifact driven live (optional)
 │       └── figures/       images referenced by notes or slides
+├── archive/               NOT published, lectures taken off the schedule, kept to restore
 └── .github/workflows/book.yml
 ```
 
 **Naming.** Lectures are `l01` through `l22`, zero-padded, matching the L-numbers in
 `course/schedule.md`, which is the source of truth for how many there are. Assignments
-are `a01` through `a11` (there is no `a07`: that slot once belonged to the mini-project,
-which is now just "the miniproject" and carries no A-number). The mini-project no longer
+are `a01` through `a10` (there is no `a07`: that slot once belonged to the mini-project,
+which is now just "the miniproject" and carries no A-number; `a11` was dropped with the
+evaluation lecture and is in `archive/l21-evaluation/`). The mini-project no longer
 has dedicated class days, so there are no `mp1` and `mp2` directories, and the final
 presentations are unnumbered sessions with no directory.
 
 One directory per **session**, not per week. Week 1 is two directories, `l01` and `l02`.
 A session that leaves the schedule takes its directory with it: the MLOps material that
 was L23 lives at `course/optional/mlops.md`, because a lecture with no schedule row has
-no room on the map and no way for a student to reach its questions.
+no room on the map and no way for a student to reach its questions. A lecture that is
+dropped rather than rewritten as optional reading goes to `archive/` instead, which
+`_config.yml` excludes from the build. The evaluation and observability lecture that held
+L21 until 2026-11-04 is there, with its practice bank, objectives, map corridors and
+module spec, and a README saying what to put back where.
 
 Published URLs mirror this structure: `lectures/l01/notes.md` becomes
 `/f26-06763/lectures/l01/notes.html`.
@@ -943,7 +949,8 @@ any file in `game/src/` other than `SessionRoute.tsx` calls `derive()`.
 
 **Map edges are content.** `tools/graph.py` extracts corridors from markdown cross-links,
 which covers L1 to L15; the back half cites earlier sessions only in prose, so those edges
-are hand-written in `game/content/map-edges.yml` with the sentence that justifies each. The
+are hand-written in `game/content/map-edges.yml` with the sentence that justifies each.
+There are none at present, because every authored edge so far left with its lecture. The
 check that matters is that a quote must actually name the lecture its edge points at, and
 note that lecture numbers are prefixes of each other (L1 inside L13 and L17, L2 inside
 L20), which is why the test for it exists.

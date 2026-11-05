@@ -414,16 +414,16 @@ def test_declaring_the_enclosing_h2_is_accepted():
 def test_a_short_quote_that_matches_the_intro_is_caught(item):
     """The actual failure mode: 'confidence interval' first occurs in the objectives.
 
-    This used to point at lectures/l23/notes.md, which moved to
-    course/optional/mlops.md when the back half was renumbered. The check under
-    test reads lecture notes, so the fixture has to name a lecture that exists;
-    L21 reproduces the same shape, a term promised in the objectives and
-    explained further down.
+    This used to point at lectures/l23/notes.md, then at L21's evaluation notes;
+    both left the schedule (to course/optional/mlops.md and archive/l21-evaluation/).
+    The check under test reads lecture notes, so the fixture has to name a lecture
+    that exists. L14 has the same shape: "prediction interval" is promised in the
+    objectives and explained further down.
     """
-    item["source"]["file"] = "lectures/l21/notes.md"
-    item["source"]["heading"] = "The eval mindset: a frozen, versioned test set"
-    item["source"]["quote"] = "confidence interval"
-    item["verify"]["needle"] = "confidence interval"
+    item["source"]["file"] = "lectures/l14/notes.md"
+    item["source"]["heading"] = "Three kinds of interval"
+    item["source"]["quote"] = "prediction interval"
+    item["verify"]["needle"] = "prediction interval"
     msgs = errors_for(V.check_grounding, item)
     assert any("is not where the quote lives" in m for m in msgs)
     assert any("often the intro" in m for m in msgs)

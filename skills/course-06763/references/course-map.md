@@ -29,8 +29,8 @@ If this file and the published schedule disagree, the schedule wins.
 | L18 | 2026-11-02 | Retrieval-augmented generation |
 | L19 | 2026-11-04 | LLM agents: tools, loops and guardrails |
 | L20 | 2026-11-09 | (Optional) reinforcement learning |
-| L21 | 2026-11-11 | (see schedule) |
-| L22 | 2026-11-16 | Deployment: serving, containers, latency and cost |
+| L21 | 2026-11-11 | (Optional) deployment: serving, containers, latency and cost |
+| L22 | 2026-11-16 | Course wrap-up |
 | Final presentations | 2026-11-18, 2026-11-23 | Student project presentations |
 
 ## Projects

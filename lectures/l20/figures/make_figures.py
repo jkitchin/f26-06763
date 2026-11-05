@@ -1,16 +1,13 @@
 #!/usr/bin/env python3
 """Figures and numbers for L20, reinforcement learning.
 
-Three worked examples, each small enough to run in seconds with NumPy alone, so every number
-in the notes and on the slides can be regenerated and checked:
+Worked examples, each small enough to run in seconds with NumPy alone, so every number in the
+notes and on the slides can be regenerated and checked:
 
-  bandit   five candidate catalysts as the arms of a bandit; greedy, epsilon-greedy, UCB and
-           Thompson sampling over 500 pulls, 500 runs each (Sutton & Barto ch. 2).
   tank     the PyCSE tank (A = 1, k = 0.5, setpoint 5, inflow from {0, 0.5, 1, 1.5, 2}),
            tabular Q-learning with PyCSE's settings over ten seeds, against PID with PyCSE's
            hand-picked gains and with gains tuned on the same test, and two rewards that a
            reasonable engineer might write that the agent satisfies the wrong way.
-  cliff    cliff walking (Sutton & Barto Example 6.6), Q-learning against SARSA, 50 runs.
 
 Also writes _static/l20-widget-data.js, the parameters the browser figures simulate with, so
 the tank in the notes is the tank in this file.
@@ -45,76 +42,11 @@ def save(fig, name):
     print("wrote", name)
 
 
-# ---------------------------------------------------------------- bandit
+# ---------------------------------------------------------------- bandit (widget data only)
 
 ARMS = ["Cat A", "Cat B", "Cat C", "Cat D", "Cat E"]
 ARM_MEANS = np.array([62.0, 70.0, 74.0, 66.0, 58.0])  # mean yield, %
 ARM_SD = 8.0  # run-to-run noise in one yield measurement, %
-
-
-def bandit_run(method, rng, T=500, eps=0.1, c=ARM_SD, prior=(65.0, 15.0)):
-    k = len(ARM_MEANS)
-    n = np.zeros(k)
-    q = np.zeros(k)
-    regret = np.zeros(T)
-    best = ARM_MEANS.max()
-    picks = np.zeros(T, int)
-    for t in range(T):
-        if method == "greedy":
-            a = int(np.argmax(q)) if t >= k else t
-        elif method == "eps":
-            a = int(rng.integers(k)) if rng.random() < eps else int(np.argmax(q))
-        elif method == "ucb":
-            if t < k:
-                a = t
-            else:
-                a = int(np.argmax(q + c * np.sqrt(np.log(t + 1) / n)))
-        elif method == "thompson":
-            # Gaussian posterior on each arm's mean, known noise ARM_SD
-            m0, s0 = prior
-            prec = 1 / s0**2 + n / ARM_SD**2
-            mean = (m0 / s0**2 + q * n / ARM_SD**2) / prec
-            a = int(np.argmax(rng.normal(mean, 1 / np.sqrt(prec))))
-        r = rng.normal(ARM_MEANS[a], ARM_SD)
-        n[a] += 1
-        q[a] += (r - q[a]) / n[a]
-        regret[t] = best - ARM_MEANS[a]
-        picks[t] = a
-    return np.cumsum(regret), picks
-
-
-def bandit():
-    # UCB's c has the units of the reward. Sutton & Barto's c = 2 is for rewards of unit
-    # spread; these yields have a spread of 8, so c = 2 under-explores (kept as "ucb2").
-    methods = [("greedy", "greedy"), ("eps", "ε-greedy, ε = 0.1"), ("ucb2", "UCB, c = 2"),
-               ("ucb", "UCB, c = σ = 8"), ("thompson", "Thompson sampling")]
-    runs, T = 500, 500
-    out = {}
-    fig, ax = plt.subplots(1, 2, figsize=(10.5, 3.9))
-    for (m, label), col in zip(methods, [GREY, ORANGE, "#9ec5e8", BLUE, GREEN]):
-        rng = np.random.default_rng(20)
-        cum = np.zeros((runs, T))
-        best_frac = np.zeros(runs)
-        for i in range(runs):
-            cr, picks = bandit_run("ucb" if m == "ucb2" else m, rng, T, c=2.0 if m == "ucb2" else ARM_SD)
-            cum[i] = cr
-            best_frac[i] = np.mean(picks[-100:] == 2)
-        out[m] = {"regret_500": round(float(cum[:, -1].mean()), 1),
-                  "best_last100": round(float(best_frac.mean()), 3),
-                  "stuck_runs": round(float(np.mean(best_frac < 0.5)), 3)}
-        ax[0].plot(cum.mean(0), color=col, label=label, lw=2)
-        ax[1].bar(label, best_frac.mean(), color=col)
-    ax[0].set_xlabel("pull (one yield measurement)")
-    ax[0].set_ylabel("cumulative regret (yield points)")
-    ax[0].legend(frameon=False, fontsize=9)
-    ax[0].set_title("Regret: yield lost to not knowing the best catalyst", fontsize=11)
-    ax[1].set_ylabel("share of the last 100 pulls on Cat C")
-    ax[1].set_ylim(0, 1)
-    ax[1].tick_params(axis="x", labelsize=8, rotation=12)
-    ax[1].set_title("Did it find the best arm?", fontsize=11)
-    save(fig, "bandit-regret.png")
-    RESULTS["bandit"] = out
-    print("bandit", json.dumps(out))
 
 
 # ---------------------------------------------------------------- tank
@@ -319,104 +251,6 @@ def tank():
     ax[1].set_title('reward = +1 inside 5 ± 1, from h = 2', fontsize=10)
     ax[1].set_xlabel("time")
     save(fig, "tank-hacks.png")
-
-
-# ---------------------------------------------------------------- cliff
-
-CLIFF = dict(rows=4, cols=12, start=(3, 0), goal=(3, 11), step=-1, fall=-100)
-MOVES = [(-1, 0), (0, 1), (1, 0), (0, -1)]  # up, right, down, left
-
-
-def cliff_step(pos, a):
-    r, c = pos
-    dr, dc = MOVES[a]
-    r = min(max(r + dr, 0), CLIFF["rows"] - 1)
-    c = min(max(c + dc, 0), CLIFF["cols"] - 1)
-    if r == 3 and 0 < c < 11:
-        return CLIFF["start"], CLIFF["fall"], False
-    return (r, c), CLIFF["step"], (r, c) == CLIFF["goal"]
-
-
-def cliff_learn(method, seed, episodes=500, alpha=0.5, gamma=1.0, eps=0.1):
-    rng = np.random.default_rng(seed)
-    Q = np.zeros((4, 12, 4))
-
-    def pick(p):
-        if rng.random() < eps:
-            return int(rng.integers(4))
-        q = Q[p]
-        return int(rng.choice(np.flatnonzero(q == q.max())))
-
-    rets = []
-    for _ in range(episodes):
-        p = CLIFF["start"]
-        a = pick(p)
-        G, done, n = 0, False, 0
-        while not done and n < 1000:
-            p2, r, done = cliff_step(p, a)
-            a2 = pick(p2)
-            target = r if done else r + gamma * (Q[p2].max() if method == "q" else Q[p2][a2])
-            Q[p][a] += alpha * (target - Q[p][a])
-            p, a, G, n = p2, a2, G + r, n + 1
-        rets.append(G)
-    return Q, np.array(rets)
-
-
-def greedy_path(Q):
-    p, path = CLIFF["start"], [CLIFF["start"]]
-    for _ in range(60):
-        p, r, done = cliff_step(p, int(np.argmax(Q[p])))
-        path.append(p)
-        if done or r == CLIFF["fall"]:
-            break
-    return path
-
-
-def cliff():
-    runs = 50
-    out = {}
-    fig, ax = plt.subplots(1, 2, figsize=(11, 3.6), gridspec_kw={"width_ratios": [1.3, 1]})
-    paths = {}
-    for m, label, col in [("sarsa", "SARSA (on-policy)", BLUE), ("q", "Q-learning (off-policy)", ORANGE)]:
-        R = np.zeros((runs, 500))
-        lens = []
-        for s in range(runs):
-            Q, rets = cliff_learn(m, s)
-            R[s] = rets
-            lens.append(len(greedy_path(Q)) - 1)
-            if s == 0:
-                paths[m] = greedy_path(Q)
-        sm = np.convolve(R.mean(0), np.ones(10) / 10, "valid")
-        ax[0].plot(np.arange(9, 500), sm, color=col, lw=2, label=label)
-        out[m] = {"online_return_last100": round(float(R[:, -100:].mean()), 1),
-                  "greedy_path_len_mode": int(np.bincount(lens).argmax()),
-                  "greedy_path_lens": sorted(set(lens))}
-    ax[0].set_ylim(-110, 0)
-    ax[0].set_xlabel("episode")
-    ax[0].set_ylabel("return during learning (ε = 0.1)")
-    ax[0].legend(frameon=False, fontsize=9, loc="lower right")
-    ax[0].set_title("What the agent earns while it is still exploring", fontsize=11)
-    a = ax[1]
-    for c in range(1, 11):
-        a.add_patch(plt.Rectangle((c, 0), 1, 1, color=RED, alpha=0.25))
-    a.text(6, 0.5, "cliff  −100", ha="center", va="center", fontsize=9, color=RED)
-    for m, col, off in [("sarsa", BLUE, 0.12), ("q", ORANGE, -0.12)]:
-        xs = [c + 0.5 for r, c in paths[m]]
-        ys = [3 - r + 0.5 + off for r, c in paths[m]]
-        a.plot(xs, ys, color=col, lw=2.5)
-    a.text(0.5, 0.5, "S", ha="center", va="center", fontweight="bold")
-    a.text(11.5, 0.5, "G", ha="center", va="center", fontweight="bold")
-    a.set_xlim(0, 12)
-    a.set_ylim(0, 4)
-    a.set_aspect("equal")
-    a.set_xticks(range(13))
-    a.set_yticks(range(5))
-    a.grid(True, alpha=0.3)
-    a.tick_params(labelbottom=False, labelleft=False, length=0)
-    a.set_title("Greedy path after 500 episodes (seed 0)", fontsize=11)
-    save(fig, "cliff.png")
-    RESULTS["cliff"] = out
-    print("cliff", json.dumps(out))
 
 
 # ---------------------------------------------------------------- credit assignment
@@ -672,6 +506,252 @@ def qhand():
     save(fig, "qhand.png")
 
 
+# ---------------------------------------------------------------- the MDP as matrices
+
+def policy_matrices(P, R, Pi):
+    """Collapse per-action transition matrices into the Markov chain a policy induces.
+    P is (nA, nS, nS), R is (nS, nA), Pi is (nS, nA) with rows summing to one."""
+    P_pi = sum(np.diag(Pi[:, a]) @ P[a] for a in range(P.shape[0]))
+    r_pi = (Pi * R).sum(1)
+    return P_pi, r_pi
+
+
+def evaluate(P, R, Pi, gamma):
+    """Policy evaluation is a linear solve: (I - gamma P_pi) V = r_pi."""
+    P_pi, r_pi = policy_matrices(P, R, Pi)
+    return np.linalg.solve(np.eye(len(r_pi)) - gamma * P_pi, r_pi)
+
+
+def value_iteration(P, R, gamma, tol=1e-12, max_iter=10000):
+    """Q <- R + gamma * [P_a V]_a with V = max_a Q. Matrix products, then one max."""
+    Q = np.zeros_like(R)
+    for it in range(1, max_iter + 1):
+        Qn = R + gamma * np.einsum("ast,t->sa", P, Q.max(1))
+        if np.abs(Qn - Q).max() < tol:
+            return Qn, it
+        Q = Qn
+    raise RuntimeError("value iteration did not converge")
+
+
+def mdp_matrices():
+    """The three-level tank of the by-hand example, written as the matrices that define it.
+    Checks that value iteration on them gives the Q* that qhand() printed, and that the greedy
+    policy's value from one linear solve is the same vector."""
+    T, g = QH, QH["gamma"]
+    nS, nA = 3, 2
+    P, R = np.zeros((nA, nS, nS)), np.zeros((nS, nA))
+    for s in range(nS):
+        for a in range(nA):
+            s2, r = qh_step(s, a)
+            P[a, s, s2] = 1.0
+            R[s, a] = r
+    Qs, iters = value_iteration(P, R, g)
+    assert np.allclose(Qs.round(3), RESULTS["qhand"]["qstar"]), "value iteration disagrees with qhand()"
+    greedy = np.eye(nA)[Qs.argmax(1)]
+    V_greedy = evaluate(P, R, greedy, g)
+    assert np.allclose(V_greedy, Qs.max(1), atol=1e-9), "linear solve disagrees with value iteration"
+    uniform = np.full((nS, nA), 0.5)
+    V_uniform = evaluate(P, R, uniform, g)
+    P_pi, r_pi = policy_matrices(P, R, greedy)
+    # the first sweeps of value iteration, and the gap to Q* after each
+    Q, sweeps = np.zeros((nS, nA)), []
+    for k in range(6):
+        Q = R + g * np.einsum("ast,t->sa", P, Q.max(1))
+        sweeps.append(dict(Q=Q.round(3).tolist(), gap=round(float(np.abs(Q - Qs).max()), 3)))
+    out = dict(P_shut=P[0].astype(int).tolist(), P_open=P[1].astype(int).tolist(), R=R.round(3).tolist(),
+               qstar=Qs.round(3).tolist(), vi_iterations=iters,
+               greedy_policy=[T["actions"][i] for i in Qs.argmax(1)],
+               P_greedy=P_pi.astype(int).tolist(), r_greedy=r_pi.round(3).tolist(),
+               V_greedy=V_greedy.round(3).tolist(), V_uniform=V_uniform.round(3).tolist(), sweeps=sweeps)
+    RESULTS["mdp_matrices"] = out
+    print("mdp_matrices", json.dumps(out))
+    # For the mdp-step widget: the matrices, and every value-iteration sweep until it settles to
+    # three decimals, so the reader can step through planning one sweep at a time.
+    Q, vi = np.zeros((nS, nA)), [np.zeros((nS, nA)).tolist()]
+    for k in range(400):
+        Q = R + g * np.einsum("ast,t->sa", P, Q.max(1))
+        vi.append(Q.round(3).tolist())
+        if np.abs(Q - Qs).max() < 5e-4:
+            break
+    MDP.update(states=T["states"], actions=T["actions"], gamma=g, P=P.astype(int).tolist(),
+               R=R.round(3).tolist(), sweeps=vi, qstar=Qs.round(3).tolist())
+
+    fig, axes = plt.subplots(1, 3, figsize=(9, 3.0), gridspec_kw={"width_ratios": [3, 3, 2]})
+    panels = [(P[0], "$P_{shut}$", T["states"], "%d"), (P[1], "$P_{open}$", T["states"], "%d"),
+              (R, "$R$", T["actions"], "%.1f")]
+    for ax, (M, title, cols, fmt) in zip(axes, panels):
+        ax.imshow(M, cmap="Blues", vmin=min(0.0, M.min()) - 0.2, vmax=M.max() * 1.4 + 0.01, aspect="auto")
+        for i in range(M.shape[0]):
+            for j in range(M.shape[1]):
+                ax.text(j, i, fmt % M[i, j], ha="center", va="center", fontsize=11)
+        ax.set_xticks(range(len(cols)), cols)
+        ax.set_yticks(range(3), T["states"])
+        ax.set_title(title, fontsize=11)
+        ax.spines[:].set_visible(False)
+        ax.tick_params(length=0)
+    axes[0].set_xlabel("next state $s'$")
+    axes[1].set_xlabel("next state $s'$")
+    axes[0].set_ylabel("state $s$")
+    fig.suptitle("The three-level tank as matrices: one transition matrix per action, and the rewards",
+                 fontsize=10.5)
+    save(fig, "mdp-toy.png")
+
+
+MDP: dict = {}
+
+
+def mdp_diagram():
+    """The three-level tank's rules as a state diagram: one circle per level, one arrow per
+    (level, action), labelled with the reward. The same six facts as the table in the notes."""
+    from matplotlib.patches import Circle, FancyArrowPatch
+    xs = {0: 0.0, 1: 3.0, 2: 6.0}
+    names = QH["states"]
+    fig, ax = plt.subplots(figsize=(9, 3.6))
+    for s, x in xs.items():
+        ax.add_patch(Circle((x, 0), 0.55, fc="#eef3f9", ec=BLUE, lw=2))
+        ax.text(x, 0, names[s], ha="center", va="center", fontsize=14, weight="bold")
+
+    def arrow(s, s2, a, label, rad):
+        col = BLUE if a == 1 else ORANGE
+        if s == s2:
+            x = xs[s]
+            y0 = 0.55 if a == 1 else -0.55
+            sign = 1 if a == 1 else -1
+            ax.add_patch(FancyArrowPatch((x - 0.3, y0), (x + 0.3, y0), connectionstyle="arc3,rad=%s" % (-1.8 * sign),
+                                         arrowstyle="-|>", mutation_scale=16, color=col, lw=2))
+            ax.text(x, y0 + sign * 0.95, label, ha="center", va="center", color=col, fontsize=11)
+            return
+        ax.add_patch(FancyArrowPatch((xs[s], 0), (xs[s2], 0), connectionstyle="arc3,rad=%s" % rad,
+                                     arrowstyle="-|>", mutation_scale=16, color=col, lw=2,
+                                     shrinkA=24, shrinkB=24))
+        mid = (xs[s] + xs[s2]) / 2
+        # arc3 with a negative rad bends left of the direction of travel: rightward arrows arc
+        # above the circles, leftward ones below.
+        ax.text(mid, 1.0 if xs[s2] > xs[s] else -1.0, label, ha="center", va="center", color=col, fontsize=11)
+
+    for s in range(3):
+        for a in range(2):
+            s2, r = qh_step(s, a)
+            lab = f"{QH['actions'][a]}, r = " + ("0" if r == 0 else f"{r:+.1f}".replace("-", "\u2212"))
+            if s == s2:
+                arrow(s, s2, a, lab, 0)
+            else:
+                arrow(s, s2, a, lab, -0.45 if s2 > s else -0.45)
+    ax.set_xlim(-1.4, 7.4)
+    ax.set_ylim(-2.1, 2.1)
+    ax.set_aspect("equal")
+    ax.axis("off")
+    ax.text(-1.3, 1.95, "open (blue) raises the level one step; shut (orange) lowers it one step", fontsize=10,
+            color=GREY)
+    save(fig, "mdp-diagram.png")
+
+
+def tank_model(sampler, n_per_bin=4000, T=TANK):
+    """Transition matrices P_a (nA, nS, nS) and mean rewards R (nS, nA) for the 20-bin tank.
+    `sampler(s)` returns the levels inside bin s to push through the physics."""
+    nS, flows = T["n_states"], T["flows"]
+    P, R = np.zeros((len(flows), nS, nS)), np.zeros((nS, len(flows)))
+    for s in range(nS):
+        hs = sampler(s)
+        for a, F in enumerate(flows):
+            h2 = np.array([tank_step(h, F) for h in hs])
+            P[a, s] = np.bincount([tank_bin(x) for x in h2], minlength=nS) / len(hs)
+            R[s, a] = np.mean([reward_fn("setpoint", x, h, F) for x, h in zip(h2, hs)])
+    return P, R
+
+
+def tank_matrices():
+    """The 20-bin tank as five 20 x 20 transition matrices, built by pushing levels spread across
+    each bin through tank_step. The physics is deterministic; the bins are not, because a bin
+    hides where in it the level is, so each row splits between at most two next bins. Value
+    iteration on these matrices is what tabular Q-learning was estimating from samples.
+
+    Bin s covers [s w, (s + 1) w) with w = 10 / 19, and bin 19 holds every level from 10 up (see
+    tank_bin), so its levels are drawn from [10, 10 + w). Spreading levels uniformly inside a bin
+    is an assumption; the agent's own visits are not uniform."""
+    T, g = TANK, 0.95
+    nS, flows = T["n_states"], T["flows"]
+    w = T["level_max"] / (nS - 1)
+    n = 4000
+
+    def uniform_in_bin(s):
+        return s * w + (np.arange(n) + 0.5) * w / n
+
+    P, R = tank_model(uniform_in_bin)
+    assert np.allclose(P.sum(2), 1.0)
+    Qvi, iters = value_iteration(P, R, g, tol=1e-10)
+    pi = Qvi.argmax(1)
+    vi_8 = float(np.mean([mse(run_policy(Qvi, h0)[0]) for h0 in H0S]))
+    vi_h2 = mse(run_policy(Qvi, 2.0)[0])
+
+    # Tabular Q-learning, the same ten seeds as tank(), against the exact solution
+    Qls = [q_learning_tank(s) for s in range(10)]
+    agree = [int((Q.argmax(1) == pi).sum()) for Q in Qls]
+    disagree_bins = sorted({int(b) for Q in Qls for b in np.where(Q.argmax(1) != pi)[0]})
+    ql_8 = [float(np.mean([mse(run_policy(Q, h0)[0]) for h0 in H0S])) for Q in Qls]
+    # Inflows that hold the level inside its own bin: a self-loop of probability 1 in P_a. A seed
+    # that picks one of these in a rarely visited bin parks the tank there.
+    traps = {f"bin{s}_F{flows[a]:g}": float(P[a, s, s]) for s, a in [(1, 1), (17, 3)]}
+    choices = {f"bin{s}": [flows[int(Q[s].argmax())] for Q in Qls] for s in (0, 1, 17, 18)}
+
+    # Model-based on the same budget: 100,000 random transitions, counted into P-hat and R-hat,
+    # then solved. Ten seeds.
+    mb_8, unvisited = [], []
+    for seed in range(10):
+        rng = np.random.default_rng(100 + seed)
+        cnt, rsum = np.zeros_like(P), np.zeros_like(R)
+        for _ in range(1000):
+            h = rng.uniform(1.0, 9.0)
+            for _ in range(T["steps"]):
+                s, a = tank_bin(h), int(rng.integers(len(flows)))
+                h2 = tank_step(h, flows[a])
+                cnt[a, s, tank_bin(h2)] += 1
+                rsum[s, a] += reward_fn("setpoint", h2, h, flows[a])
+                h = h2
+        visits = cnt.sum(2).T                       # (nS, nA)
+        Ph = cnt / np.maximum(visits.T[:, :, None], 1)  # an unvisited pair keeps a zero row
+        Rh = rsum / np.maximum(visits, 1)
+        Qmb, _ = value_iteration(Ph, Rh, g, tol=1e-10)
+        mb_8.append(float(np.mean([mse(run_policy(Qmb, h0)[0]) for h0 in H0S])))
+        unvisited.append(int((visits == 0).sum()))
+
+    out = dict(gamma=g, n_per_bin=n, max_nonzeros_per_row=int((P > 0).sum(2).max()),
+               example_row=dict(F=flows[2], bin=9, P=P[2, 9].round(3).tolist()),
+               vi_iterations=iters, vi_policy=[flows[i] for i in pi],
+               vi_mse_8starts=round(vi_8, 3), vi_mse_h2=round(vi_h2, 3),
+               ql_policy_agreement=agree, ql_disagree_bins=disagree_bins,
+               ql_mse_8starts=[round(x, 3) for x in ql_8], ql_choices_by_seed=choices, trap_self_loops=traps,
+               model_based_mse_8starts=dict(mean=round(float(np.mean(mb_8)), 3), sd=round(float(np.std(mb_8)), 3),
+                                            min=round(float(np.min(mb_8)), 3), max=round(float(np.max(mb_8)), 3)),
+               model_based_unvisited_pairs=unvisited, transitions=1000 * T["steps"])
+    RESULTS["tank_matrices"] = out
+    print("tank_matrices", json.dumps(out))
+
+    edges = np.arange(nS + 1) * w
+    fig, ax = plt.subplots(1, 3, figsize=(12, 3.9), gridspec_kw={"width_ratios": [1, 1, 1.35]})
+    for k, a in enumerate([0, 2]):
+        ax[k].imshow(P[a], cmap="Blues", vmin=0, vmax=1, origin="lower",
+                     extent=[0, edges[-1], 0, edges[-1]])
+        ax[k].plot([0, edges[-1]], [0, edges[-1]], color=GREY, lw=0.6, ls=":")
+        ax[k].set_title(f"$P_a$ for inflow F = {flows[a]:g}", fontsize=10.5)
+        ax[k].set_xlabel("next level bin (h)")
+        ax[k].set_ylabel("level bin now (h)")
+    ax[0].text(0.4, 9.5, "valve shut: every\nlevel falls, so the\nmass sits left of\nthe diagonal", fontsize=8, va="top")
+    ax[1].text(0.4, 9.5, "F = 1 holds h = 4:\nabove it, left of the\ndiagonal; below it,\nright of it", fontsize=8, va="top")
+    centres = (np.arange(nS) + 0.5) * w
+    for i, Q in enumerate(Qls):
+        ax[2].plot(centres, [flows[j] for j in Q.argmax(1)], "o", ms=4, color=GREEN, alpha=0.25,
+                   label="Q-learning, 10 seeds" if i == 0 else None)
+    ax[2].step(edges, [flows[j] for j in pi] + [flows[pi[-1]]], where="post", color=BLUE, lw=2,
+               label=f"value iteration on $P_a$ (MSE {vi_8:.3f})")
+    ax[2].axvline(T["setpoint"], color=RED, lw=1, ls=":")
+    ax[2].set_xlabel("level h")
+    ax[2].set_ylabel("inflow chosen")
+    ax[2].set_title("Greedy policy, solved and learned", fontsize=10.5)
+    ax[2].legend(frameon=False, fontsize=8, loc="center left", bbox_to_anchor=(0.5, 0.66))
+    save(fig, "tank-matrices.png")
+
+
 # ---------------------------------------------------------------- landscape
 
 def landscape():
@@ -679,10 +759,9 @@ def landscape():
         ("Supervised (L9, L10)", "x → y*", "the right answer", "none", "one prediction"),
         ("Generative (L16)", "samples of x", "nothing: match the data", "none", "a new sample"),
         ("BO, active learning (L15)", "choose x, see y", "a score for that choice", "none", "one experiment"),
-        ("Bandit", "choose an arm, see r", "a noisy score", "none", "one pull"),
         ("Reinforcement learning", "act, see r and s′", "a score, often late", "the action changes it", "a sequence"),
     ]
-    fig, ax = plt.subplots(figsize=(11, 3.3))
+    fig, ax = plt.subplots(figsize=(11, 2.4))
     ax.axis("off")
     cols = ["method", "data the learner sees", "what it is told", "state", "a decision is"]
     tbl = ax.table(cellText=[list(r) for r in rows], colLabels=cols, loc="center", cellLoc="left")
@@ -693,7 +772,7 @@ def landscape():
         cell.set_edgecolor("#cccccc")
         if i == 0:
             cell.set_text_props(fontweight="bold")
-        if i == 5:
+        if i == 4:
             cell.set_facecolor("#e8f1fa")
     save(fig, "landscape.png")
 
@@ -708,6 +787,7 @@ def widget_data():
         "cliff": {"rows": 4, "cols": 12, "step": -1, "fall": -100, "alpha": 0.5, "epsilon": 0.1, "episodes": 500},
         "credit": {"cells": 8, "gamma": 0.9},
         "qhand": {k: QH[k] for k in ["states", "actions", "alpha", "gamma", "effort", "script", "trace", "qstar"]},
+        "mdp": MDP,
         "results": RESULTS,
     }
     path = REPO / "_static" / "l20-widget-data.js"
@@ -718,11 +798,12 @@ def widget_data():
 
 
 if __name__ == "__main__":
-    bandit()
     tank()
-    cliff()
     credit()
     qhand()
+    mdp_matrices()
+    mdp_diagram()
+    tank_matrices()
     actions()
     landscape()
     (HERE / "results.json").write_text(json.dumps(RESULTS, indent=1) + "\n")

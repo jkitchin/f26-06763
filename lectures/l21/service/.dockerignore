@@ -1,0 +1,7 @@
+# Keep the build context to what the image needs. A local virtual environment in the context
+# would be copied in and shadow the one uv builds.
+.venv
+__pycache__
+*.pyc
+.git
+.env

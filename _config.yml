@@ -19,12 +19,14 @@ exclude_patterns:
   - course/modules      # instructor-facing planning notes, never published
   - "lectures/*/slides.md"  # MARP source, rendered separately by CI
   - "**.ipynb_checkpoints"
+  - "**/.venv"           # a project environment, e.g. lectures/l21/service/.venv from uv run
   - node_modules
   - .pytest_cache       # running the quiz tests must not break the book build
   - game                # Vite app, built separately by CI into _build/html/game
   - skills              # agent skill for students, installed with knowhow, not a book page
   - clicker             # Cloudflare Worker + its MARP dry-run deck, not book content
   - tools
+  - archive             # unscheduled material kept for future use, never published
   - README.md
   - readme.org
   - CLAUDE.md

@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Generate lectures/l20/l20-reinforcement-learning.ipynb, the L20 worked example.
 
-NumPy only, seeded so the printed numbers are the ones in the notes: five catalysts as a
-bandit; Q-learning by hand on a three-level tank; tabular Q-learning on the PyCSE tank against a PID loop tuned in the
-notebook, over ten seeds and eight starts, then two rewards the agent games; and Q-learning
-against SARSA on cliff walking (Sutton & Barto Example 6.6); a Gaussian policy trained by
+NumPy only, seeded so the printed numbers are the ones in the notes: a three-level tank written as transition matrices, solved by a linear solve and by
+value iteration, then Q-learning by hand on it; tabular Q-learning on the PyCSE tank against a PID loop tuned in the
+notebook, over ten seeds and eight starts, then two rewards the agent games; and a Gaussian policy trained by
 REINFORCE on the same tank. An optional last cell wraps the
 tank for Gymnasium and trains PPO with Stable-Baselines3 if both are installed.
 
@@ -55,18 +54,17 @@ md("""
 Every model so far in the course was fitted to recorded data against a known answer. Here the
 learner collects its own data by acting and is only told how well things went:
 
-1. **A bandit.** Five candidate catalysts, 500 runs. Which strategy loses the least yield to not
-   knowing the best one? No state: the next run does not depend on the last.
-2. **Q-learning by hand.** A three-level tank whose Q-table is a 3 × 2 matrix, with every
-   number in the first six updates printed.
+1. **The environment as matrices.** A three-level tank written as one transition matrix per
+   action and a reward matrix. A policy is evaluated with one linear solve, and value
+   iteration finds the best one.
+2. **Q-learning by hand.** The same tank, but the agent never sees the matrices. Its Q-table
+   is a 3 × 2 matrix, with every number in the first six updates printed.
 3. **Q-learning on a tank.** The level the controller leaves behind is the level it faces next.
    The tank and the settings are from the PyCSE chapter on reinforcement learning. The agent is
    compared with a PID loop **tuned here**, over **ten seeds** and **eight starting levels**.
 4. **Two rewards that miss the point.** The same agent, told to "keep it steady" or to stay
    "inside 5 ± 1".
-5. **Cliff walking.** Q-learning and SARSA learn different paths, and the difference is about
-   exploring.
-6. **A continuous valve.** A Gaussian policy trained by REINFORCE outputs the inflow directly.
+5. **A continuous valve.** A Gaussian policy trained by REINFORCE outputs the inflow directly.
 
 NumPy only. The whole notebook runs in about three minutes on a laptop.
 """)
@@ -77,77 +75,15 @@ import matplotlib.pyplot as plt
 """)
 
 md("""
-## 1. A bandit: five catalysts
+## 1. The environment as matrices
 
-Each run of catalyst $a$ gives a yield drawn from a normal distribution with mean $\\mu_a$ and
-standard deviation 8 points. The learner does not know the means. **Regret** after $T$ runs is
-$\\sum_t (\\mu^* - \\mu_{a_t})$, the yield given up by not always using the best catalyst.
+A tank small enough to write down completely: three levels (low, ok, high) and two actions.
+**Open** raises the level one step and **shut** lowers it one step. Landing at ok earns +1 and
+opening costs 0.1; γ = 0.9.
 
-Four strategies. *Greedy* uses the best average so far. *ε-greedy* does the same but picks at
-random one time in ten. *UCB* adds a bonus $c\\sqrt{\\ln t / n_a}$ that shrinks as an arm is
-tried, the acquisition function of Lecture 15 without the Gaussian process. *Thompson sampling*
-draws one plausible mean per arm from a Gaussian posterior and picks the largest.
-""")
-
-code("""
-MEANS = np.array([62.0, 70.0, 74.0, 66.0, 58.0])   # catalysts A to E, mean yield %
-SD = 8.0                                           # run-to-run spread of one measurement
-
-
-def bandit_run(method, rng, T=500, eps=0.1, c=SD, prior=(65.0, 15.0)):
-    k = len(MEANS)
-    n, q = np.zeros(k), np.zeros(k)
-    regret, picks = np.zeros(T), np.zeros(T, int)
-    for t in range(T):
-        if method == "greedy":
-            a = int(np.argmax(q)) if t >= k else t
-        elif method == "eps":
-            a = int(rng.integers(k)) if rng.random() < eps else int(np.argmax(q))
-        elif method == "ucb":
-            a = t if t < k else int(np.argmax(q + c * np.sqrt(np.log(t + 1) / n)))
-        elif method == "thompson":
-            m0, s0 = prior
-            prec = 1 / s0**2 + n / SD**2
-            mean = (m0 / s0**2 + q * n / SD**2) / prec
-            a = int(np.argmax(rng.normal(mean, 1 / np.sqrt(prec))))
-        r = rng.normal(MEANS[a], SD)
-        n[a] += 1
-        q[a] += (r - q[a]) / n[a]          # running average of this arm's yields
-        regret[t] = MEANS.max() - MEANS[a]
-        picks[t] = a
-    return np.cumsum(regret), picks
-
-
-runs = 500
-for label, method, c in [("greedy", "greedy", SD), ("eps-greedy 0.1", "eps", SD),
-                         ("UCB, c = 2", "ucb", 2.0), ("UCB, c = 8", "ucb", SD),
-                         ("Thompson", "thompson", SD)]:
-    rng = np.random.default_rng(20)
-    final, best = [], []
-    for _ in range(runs):
-        cum, picks = bandit_run(method, rng, c=c)
-        final.append(cum[-1])
-        best.append(np.mean(picks[-100:] == 2))
-    best = np.array(best)
-    print(f"{label:15s} regret {np.mean(final):6.1f}   last 100 on Cat C {best.mean():.2f}   "
-          f"stuck on a wrong arm {np.mean(best < 0.5):.1%}")
-""")
-
-md("""
-Greedy gets stuck in about a quarter of the runs: one unlucky early yield from catalyst C and
-it never tries C again. ε-greedy never gets stuck but keeps paying for random pulls forever.
-UCB's constant has the **units of the reward**: $c = 2$ is the value in Sutton & Barto's
-examples, whose rewards have a spread of about 1, and here it under-explores. Lecture 15 wrote
-UCB as $\\mu + \\kappa\\sigma$ for the same reason.
-""")
-
-md("""
-## 2. Q-learning by hand
-
-A tank small enough to update on paper: three levels (low, ok, high) and two actions. **Open**
-raises the level one step and **shut** lowers it one step. Landing at ok earns +1 and opening
-costs 0.1. The Q-table is a 3 × 2 matrix of zeros; α = 0.5, γ = 0.9. The first six updates
-follow a scripted episode so you can check every number against the notes.
+For a finite problem the environment *is* a set of matrices. Row $s$ of $P_a$ is the
+distribution of the next state after action $a$ in state $s$, and $R_{sa}$ is the expected
+reward. Build them from the step function by trying every state and action once.
 """)
 
 code("""
@@ -157,7 +93,72 @@ def small_step(s, a):
     s2 = min(s + 1, 2) if a == 1 else max(s - 1, 0)
     return s2, (1.0 if s2 == 1 else 0.0) - 0.1 * a
 
-Qh, al, g = np.zeros((3, 2)), 0.5, 0.9
+P = np.zeros((2, 3, 3))                   # (actions, states, next states)
+R = np.zeros((3, 2))
+for s in range(3):
+    for a in range(2):
+        s2, r = small_step(s, a)
+        P[a, s, s2] = 1.0
+        R[s, a] = r
+print("P_shut\\n", P[0], "\\nP_open\\n", P[1], "\\nR\\n", R)
+
+# An action acts on the environment by a matrix product: p_next = p @ P_a
+p = np.array([0.5, 0.5, 0.0])             # equally likely low or ok
+print("\\np @ P_open =", p @ P[1])
+""")
+
+md("""
+A policy is a matrix $\\Pi$ (one row per state, rows sum to one). It collapses the per-action
+matrices into one Markov chain, $P_\\pi = \\sum_a \\mathrm{diag}(\\Pi_{:,a}) P_a$, with reward
+$r_\\pi = (\\Pi \\circ R)\\mathbf{1}$. Its value is the geometric series
+$\\sum_k \\gamma^k P_\\pi^k r_\\pi$, which is a linear solve: $(I - \\gamma P_\\pi) V = r_\\pi$.
+""")
+
+code("""
+g = 0.9
+
+def evaluate(Pi):
+    P_pi = sum(np.diag(Pi[:, a]) @ P[a] for a in range(2))
+    r_pi = (Pi * R).sum(axis=1)
+    return np.linalg.solve(np.eye(3) - g * P_pi, r_pi)
+
+open_low_else_shut = np.array([[0, 1], [1, 0], [1, 0]], float)
+print("open from low, shut otherwise:", evaluate(open_low_else_shut).round(3))
+print("random (0.5 each):            ", evaluate(np.full((3, 2), 0.5)).round(3))
+print("always open:                  ", evaluate(np.array([[0, 1], [0, 1], [0, 1]], float)).round(3))
+""")
+
+md("""
+Finding the *best* policy adds one nonlinear step, the row-wise max:
+$Q_{:,a} = R_{:,a} + \\gamma P_a V$ with $V = \\max_a Q$. Value iteration repeats it. Its row
+maxima should equal the linear solve above, because "open from low, shut otherwise" is the
+greedy policy of $Q^\\ast$.
+""")
+
+code("""
+Q = np.zeros((3, 2))
+for sweep in range(1, 1000):
+    Q_new = R + g * (P @ Q.max(axis=1)).T     # P_a V for every action at once, then the max
+    if np.abs(Q_new - Q).max() < 1e-12:
+        break
+    Q = Q_new
+Qstar = Q_new
+print(f"value iteration converged in {sweep} sweeps\\nQ* =\\n{Qstar.round(3)}")
+print("row maxima of Q*:", Qstar.max(axis=1).round(3))
+print("greedy policy:", [ACTS[i] for i in Qstar.argmax(axis=1)])
+""")
+
+md("""
+## 2. Q-learning by hand
+
+The same tank, but now the agent never sees `P` or `R`. It only sees the transitions it makes.
+The Q-table is a 3 × 2 matrix of zeros; α = 0.5, γ = 0.9. The first six updates follow a
+scripted episode so you can check every number against the notes. Each update is value
+iteration's update with $P_a V$ replaced by the one next state actually observed.
+""")
+
+code("""
+Qh, al = np.zeros((3, 2)), 0.5
 
 def update(s, a, show=False):
     s2, r = small_step(s, a)
@@ -176,8 +177,8 @@ print(np.round(Qh, 3))
 """)
 
 md("""
-Now 300 ε-greedy steps, and the answer from the Bellman equation by value iteration for
-comparison. The greedy policy is the argmax of each row.
+Now 300 ε-greedy steps, compared with the $Q^\\ast$ that value iteration computed from the
+matrices in section 1. The greedy policy is the argmax of each row.
 """)
 
 code("""
@@ -189,11 +190,8 @@ for t in range(300):
     a = int(rng.integers(2)) if rng.random() < 0.3 else int(np.argmax(Qh[s]))
     s = update(s, a)
 
-Qstar = np.zeros((3, 2))
-for _ in range(2000):
-    Qstar = np.array([[small_step(s, a)[1] + g * Qstar[small_step(s, a)[0]].max() for a in range(2)] for s in range(3)])
 print("Q after 306 updates\\n", np.round(Qh, 3))
-print("Q* from value iteration\\n", np.round(Qstar, 3))
+print("Q* from value iteration on P and R\\n", np.round(Qstar, 3))
 print("greedy action in each row:", {LEVELS[i]: ACTS[int(np.argmax(Qh[i]))] for i in range(3)})
 """)
 
@@ -347,6 +345,78 @@ plt.show()
 """)
 
 md("""
+### What the table was estimating
+
+Write the 20-bin tank as matrices the way section 1 did for three levels. For each bin and
+inflow, push levels spread evenly across the bin through one step of the physics and count
+where they land. The physics is deterministic but the bins are not, because a bin hides where
+inside it the level is. Then solve with value iteration and compare with the Q-learning seeds.
+Finally, the model-based route on Q-learning's budget: count 100,000 random transitions into
+estimated matrices and solve those.
+""")
+
+code("""
+W = 10.0 / (NBINS - 1)                     # bin width; the last bin holds every level from 10 up
+
+
+def tank_matrices(n=4000):
+    P = np.zeros((len(FLOWS), NBINS, NBINS))
+    R = np.zeros((NBINS, len(FLOWS)))
+    for s in range(NBINS):
+        hs = s * W + (np.arange(n) + 0.5) * W / n
+        for a, F in enumerate(FLOWS):
+            h2 = [tank_step(h, F) for h in hs]
+            P[a, s] = np.bincount([tank_bin(x) for x in h2], minlength=NBINS) / n
+            R[s, a] = np.mean([reward_fn("setpoint", x, h, F) for x, h in zip(h2, hs)])
+    return P, R
+
+
+def value_iteration(P, R, gamma=0.95, tol=1e-10):
+    Q = np.zeros_like(R)
+    while True:
+        Q_new = R + gamma * np.einsum("ast,t->sa", P, Q.max(axis=1))
+        if np.abs(Q_new - Q).max() < tol:
+            return Q_new
+        Q = Q_new
+
+
+Pt, Rt = tank_matrices()
+print("F = 1.0, row of bin 9:", {b: round(float(x), 3) for b, x in enumerate(Pt[2, 9]) if x > 0})
+Qvi = value_iteration(Pt, Rt)
+print("exact greedy inflow by bin:", [FLOWS[i] for i in Qvi.argmax(axis=1)])
+print(f"exact policy over eight starts: {np.mean([mse(run_policy(Qvi, h0)[0]) for h0 in STARTS]):.3f}"
+      f"   (Q-learning seeds {np.mean(per_seed):.2f} +/- {np.std(per_seed):.2f}, tuned PID {best[0]:.3f})")
+print("traps, P[F=0.5] bin1->bin1 and P[F=1.5] bin17->bin17:", Pt[1, 1, 1], Pt[3, 17, 17])
+for k, Q in enumerate(Qs):
+    print(f"seed {k}: eight-start MSE {per_seed[k]:5.2f}   inflow in bin 1 = {FLOWS[int(Q[1].argmax())]}, "
+          f"bin 17 = {FLOWS[int(Q[17].argmax())]}")
+
+# Model-based: the same 100,000-transition budget, counted into P-hat and solved
+for seed in range(3):
+    rng = np.random.default_rng(100 + seed)
+    cnt, rsum = np.zeros_like(Pt), np.zeros_like(Rt)
+    for _ in range(1000):
+        h = rng.uniform(1.0, 9.0)
+        for _ in range(STEPS):
+            s, a = tank_bin(h), int(rng.integers(len(FLOWS)))
+            h2 = tank_step(h, FLOWS[a])
+            cnt[a, s, tank_bin(h2)] += 1
+            rsum[s, a] += reward_fn("setpoint", h2, h, FLOWS[a])
+            h = h2
+    visits = cnt.sum(axis=2).T
+    Qmb = value_iteration(cnt / np.maximum(visits.T[:, :, None], 1), rsum / np.maximum(visits, 1))
+    print(f"model-based, seed {seed}: eight-start MSE "
+          f"{np.mean([mse(run_policy(Qmb, h0)[0]) for h0 in STARTS]):.3f}, unvisited pairs {(visits == 0).sum()}")
+""")
+
+md("""
+The exact solution over the same five inflows matches the tuned PID, so the table was never
+the limit. The failing seeds chose, in a rarely visited bin, one of the two inflows that holds
+the level inside that same bin, a diagonal entry of 1 in $P_a$, and the tank parks there. The
+same transitions used as data for a model and then solved give the exact policy every time.
+""")
+
+md("""
 ## 4. Two rewards that miss the point
 
 The reward is the only description of the goal the agent sees. "Keep the level steady" becomes
@@ -366,77 +436,10 @@ and leaves it there: perfectly steady, and the setpoint was never in the reward.
 hovers in the lower half of the band, because nothing says 5 is better than 4.3. This is
 **specification gaming**.
 
-## 5. Cliff walking: Q-learning against SARSA
-
-A 4 × 12 grid. Start bottom left, goal bottom right, −1 per step, and the cells between them on
-the bottom row are a cliff: −100 and back to the start. SARSA updates toward the action it will
-actually take next; Q-learning toward the best one.
-""")
-
-code("""
-MOVES = [(-1, 0), (0, 1), (1, 0), (0, -1)]   # up, right, down, left
-START, GOAL = (3, 0), (3, 11)
-
-
-def cliff_step(pos, a):
-    r, c = pos
-    r = min(max(r + MOVES[a][0], 0), 3)
-    c = min(max(c + MOVES[a][1], 0), 11)
-    if r == 3 and 0 < c < 11:
-        return START, -100, False
-    return (r, c), -1, (r, c) == GOAL
-
-
-def cliff_learn(method, seed, episodes=500, alpha=0.5, eps=0.1):
-    rng = np.random.default_rng(seed)
-    Q = np.zeros((4, 12, 4))
-
-    def pick(p):
-        if rng.random() < eps:
-            return int(rng.integers(4))
-        return int(rng.choice(np.flatnonzero(Q[p] == Q[p].max())))
-
-    returns = []
-    for _ in range(episodes):
-        p, G, done, steps = START, 0, False, 0
-        a = pick(p)
-        while not done and steps < 1000:
-            p2, r, done = cliff_step(p, a)
-            a2 = pick(p2)
-            nxt = Q[p2].max() if method == "q" else Q[p2][a2]
-            Q[p][a] += alpha * ((r if done else r + nxt) - Q[p][a])
-            p, a, G, steps = p2, a2, G + r, steps + 1
-        returns.append(G)
-    return Q, np.array(returns)
-
-
-def greedy_path(Q):
-    p, path = START, [START]
-    for _ in range(60):
-        p, r, done = cliff_step(p, int(np.argmax(Q[p])))
-        path.append(p)
-        if done or r == -100:
-            break
-    return path
-
-
-for method, name in [("sarsa", "SARSA"), ("q", "Q-learning")]:
-    results = [cliff_learn(method, s) for s in range(50)]
-    online = np.mean([ret[-100:].mean() for _, ret in results])
-    lengths = [len(greedy_path(Q)) - 1 for Q, _ in results]
-    print(f"{name:10s} return while learning (last 100 episodes): {online:6.1f}   "
-          f"greedy path length, most common: {np.bincount(lengths).argmax()}")
 """)
 
 md("""
-Q-learning learns the shortest path, along the edge, and falls off during learning whenever an
-exploratory move points down. SARSA learns the value of what it actually does, random moves
-included, and keeps its distance. On a plant, exploration happens on the equipment, which is why
-real controllers are trained in simulators.
-""")
-
-md("""
-## 6. A continuous valve: a policy that outputs the inflow
+## 5. A continuous valve: a policy that outputs the inflow
 
 A Q-table picks an action by argmax over its columns, which needs actions you can list. A
 **Gaussian policy** outputs the action instead: a mean $\\mu = \\theta_0 + \\theta_1 (5 - h)$ and a
@@ -490,7 +493,7 @@ form; the reward tuned two numbers, using 300,000 transitions.
 """)
 
 md("""
-## 7. Optional: the same tank with Gymnasium and PPO
+## 6. Optional: the same tank with Gymnasium and PPO
 
 Gymnasium defines the environment interface (`reset`, `step`); Stable-Baselines3 provides PPO,
 DQN, SAC and others. This cell runs only if both are installed
@@ -543,12 +546,11 @@ md("""
   starting levels were they failing from, and why would training rarely visit them?
 - Add 1.125 to `FLOWS` (it holds $h = 5.06$). How do the switching count and the error change?
 - Change γ from 0.95 to 0.5. What does the agent do near the setpoint, and why?
+- In section 1, give the three-level tank a noisy valve: opening succeeds with probability 0.8
+  and does nothing otherwise. Write the new `P[1]`, then re-run the linear solve and value
+  iteration. Does the best policy change?
 - Write a reward of your own for "reach 5 quickly and then hold it" and check what the agent
   actually does from every start.
-- In the bandit, set UCB's `c` to 2, 8 and 30. Plot the regret curves. Where is the exploration
-  constant too small, and where too large?
-- Run cliff walking with ε = 0.01. Do the two paths still differ? What does that say about when
-  SARSA's caution is worth having?
 """)
 
 cells = with_colab_cell(cells, OUT)

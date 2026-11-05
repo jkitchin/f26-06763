@@ -25,12 +25,12 @@
 | Lecture 17: 10-28-2026 (Wednesday)                 | Large language models (LLMs): what they are and how they are trained                                            |
 | Lecture 18: 11-02-2026 (Monday)                    | Retrieval-augmented generation (RAG): answering from your documents                                          |
 | Lecture 19: 11-04-2026 (Wednesday)                 | LLM agents: tools, loops, harnesses and coding agents                                                        |
-| Lecture 20: 11-09-2026 (Monday, AIChE)             | Cancelled                                                                                                    |
-| Lecture 21: 11-11-2026 (Wednesday, AIChE)          |                                                                   |
-| Lecture 22: 11-16-2026 (Monday)                    | How this course was built                                                                                    |
+| Lecture 20: 11-09-2026 (Monday, AIChE)             | (Optional) reinforcement learning                                                                                                             |
+| Lecture 21: 11-11-2026 (Wednesday, AIChE)          | (Optional) deployment: serving, containers, latency, and cost                                                |
+| Lecture 22: 11-16-2026 (Monday)                    | Course overview and how it was built                                                                              |
 | Final presentations, day 1: 11-18-2026 (Wednesday) | Student project presentations                                                                                |
-| Final presentations, day 2: 11-23-2026 (Monday)    | Student project presentations and course wrap                                                                |
+| Final presentations, day 2: 11-23-2026 (Monday)    | Student project presentations                                                                                |
 | 11-25-2026 (Wednesday)                             | Thanksgiving, no class                                                                                       |
-| 11-30-2026 (Monday)                                | TBD                                                                                                          |
-| 12-02-2026 (Wednesday)                             | TBD                                                                                                          |
+| 11-30-2026 (Monday)                                | Guest speakers                                                                                               |
+| 12-02-2026 (Wednesday)                             | Guest speakers                                                                                               |
 
