@@ -21,14 +21,16 @@ console.log('map:')
 // --- the generated world holds together ------------------------------------
 
 const sessionRooms = world.rooms.filter((r) => r.kind === 'session')
-// 22: the schedule has 22 lecture rows, every one with a topic. L20 and L21 are the
-// optional sessions on the AIChE dates (2026-11-04), so both are rooms, in the Optional
-// region. A row marked "Cancelled" or left without a topic would get no room.
-check(sessionRooms.length === 22, 'every session on the schedule with a topic is a room',
+// 20: the schedule has 22 lecture rows. L20 and L21 are the optional sessions on the
+// AIChE dates, marked "(Optional)", and the map goes from L19 straight to L22, so neither
+// is a room. A row marked "Cancelled" or left without a topic gets no room either.
+check(sessionRooms.length === 20, 'every required session on the schedule is a room',
   `${sessionRooms.length} rooms`)
 for (const id of ['l20', 'l21']) {
-  check(roomById(id)?.arc === 'Optional', `${id.toUpperCase()}, an optional session, is in the Optional region`)
+  check(roomById(id) === undefined, `${id.toUpperCase()}, an optional session, has no room`)
 }
+check(world.doors.every((d) => !['l20', 'l21'].includes(d.from) && !['l20', 'l21'].includes(d.to)),
+  'and no corridor leads to either')
 
 // The written (open) rooms are exactly the lectures released in _toc.yml. The
 // course ships one week at a time, so this set grows week by week; the test
@@ -52,8 +54,9 @@ if (pageListed('built')) {
 } else {
   check(built === undefined, 'the unpublished optional page has no room')
 }
-// One Optional region either way, since the optional sessions are always in it.
-check(world.regions.filter((g) => g.name === 'Optional').length === 1, 'there is one Optional region')
+// The Optional region holds only published pages now, so it exists only while one is.
+check(world.regions.filter((g) => g.name === 'Optional').length === (pageListed('built') ? 1 : 0),
+  'there is an Optional region only while a page is published')
 const writtenIds = world.rooms.filter((r) => r.written).map((r) => r.id).sort()
 const expectedWritten = world.rooms
   .filter((r) => (r.kind === 'page' ? pageListed(r.id) : releasedIds.has(r.id)))
@@ -62,13 +65,11 @@ check(JSON.stringify(writtenIds) === JSON.stringify(expectedWritten),
   'written rooms are exactly the lectures released in _toc.yml',
   `written: ${writtenIds.join(',') || '(none)'}`)
 
-// Two rows carry a conference annotation in the schedule that an earlier parser
-// silently dropped. The annotation belongs to the dates rather than the lectures,
-// so dropping the mini-project days moved it from L18/L19 onto L21/L22. Losing
-// either would leave a scheduled session with no room on the map.
-for (const id of ['l21', 'l22']) {
-  check(roomById(id) !== undefined, `${id} survived the schedule parse`)
-}
+// Two rows carry a conference annotation in the schedule, such as "(Monday, AIChE)", that an
+// earlier parser silently dropped. They are L20 and L21, which have no room, so the
+// guard for them is tools/world.py's EXPECTED_SESSIONS, which fails the --check if
+// the parser reads fewer than 22 rows. L22, the room after them, must still be here.
+check(roomById('l22') !== undefined, 'l22 survived the schedule parse')
 
 const cells = new Set(world.rooms.map((r) => `${r.x},${r.y}`))
 check(cells.size === world.rooms.length, 'no two rooms occupy the same cell',
@@ -145,8 +146,8 @@ check(!doorVisible(oneDoor, none), 'a corridor is hidden until both ends are vis
 check(!doorVisible(oneDoor, new Set(['l11'])), 'one end is not enough')
 check(doorVisible(oneDoor, both), 'and drawn once both have been')
 
-// 22 sessions with a topic, plus the optional page once it is published.
-const roomsTotal = 22 + (pageListed('built') ? 1 : 0)
+// 20 required sessions, plus the optional page once it is published.
+const roomsTotal = 20 + (pageListed('built') ? 1 : 0)
 check(coverage(none).seen === 0 && coverage(none).total === roomsTotal,
   `coverage starts at zero of ${roomsTotal}`)
 check(coverage(both).seen === 2, 'and counts the rooms actually stood in')
@@ -165,7 +166,7 @@ check(signFor('l01') === undefined, 'a written room has no shutter sign')
 
 const visits: Event[] = [
   { t: 'visited', room: 'l01', at: 10 },
-  { t: 'visited', room: 'l21', at: 20 },
+  { t: 'visited', room: 'l22', at: 20 },
   { t: 'visited', room: 'l01', at: 30 },
 ]
 check(sessionsOf(visits).length === 0, 'visits create no sittings')

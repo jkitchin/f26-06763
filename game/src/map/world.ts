@@ -33,7 +33,7 @@ export interface Room {
   /** False for sessions not released yet. Drawn as a shutter. */
   written: boolean
   /** Whether the arc came from the lecture's own notes, from the one before,
-   *  or from an "(Optional)" schedule title or a page. */
+   *  or from being a page. */
   arc_source: 'declared' | 'inherited' | 'optional'
   arc: string
   region: number
