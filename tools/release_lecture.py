@@ -210,6 +210,10 @@ def main() -> int:
         print("  regenerating the course map ...")
         subprocess.run([sys.executable, str(REPO / "tools" / "world.py"), "--write"],
                        check=True)
+        # The knowledge graph reads the world, so it follows: a released lecture
+        # brings its takeaways, objectives, concepts and links with it.
+        subprocess.run([sys.executable, str(REPO / "tools" / "knowledge.py"), "--write"],
+                       check=True)
 
     if args.check:
         print("\n(--check: nothing was changed)")
@@ -217,7 +221,7 @@ def main() -> int:
         print("\nNext: review the diff, then commit on your release branch and open a PR.")
         print("Verify before pushing:")
         print("  python game/validate.py && python tools/world.py --check && "
-              "python tools/pool_archive.py --check")
+              "python tools/knowledge.py --check && python tools/pool_archive.py --check")
     return 0
 
 

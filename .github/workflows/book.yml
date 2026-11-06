@@ -83,6 +83,14 @@ jobs:
         # nothing.
         run: python tools/world.py --check
 
+      - name: Check the knowledge graph matches the notes
+        # game/src/map/knowledge.json is built from the notes, the world above,
+        # the objectives and game/content/knowledge.yml. Rebuilding it here means
+        # a renamed section, a released lecture or an edited takeaway cannot leave
+        # the graph showing something the notes no longer say, and it refuses a
+        # theme that claims a missing section or a tool that is not an index term.
+        run: python tools/knowledge.py --check
+
       - name: Check the two derivations still agree
         # game/src/seed.ts and tools/derive.py must produce identical item
         # selections forever. A divergence is invisible until students submit,
@@ -207,7 +215,7 @@ jobs:
         # game/dist/, so they belong after the build, in the build job.
         run: |
           cd game
-          for suite in mastery persistence map; do
+          for suite in mastery persistence map knowledge; do
             echo "--- $suite"
             npm run --silent "$suite"
           done

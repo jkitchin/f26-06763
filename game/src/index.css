@@ -20,10 +20,37 @@
   --border: oklch(0.90 0.004 90);
   --ink: oklch(0.25 0.01 90);
   --muted: oklch(0.55 0.01 90);
+
+  /* The knowledge graph and the system figure. One hue per arc, in course
+     order, validated for colour-blind separation and contrast against the
+     graph's own surface (dataviz validate_palette.js, all pairs): every node
+     also carries a text label, so identity never rests on colour alone. The
+     wrap-up lecture is the course red, at the centre. */
+  --kg-bg: oklch(0.985 0.004 90);
+  --kg-bg-edge: oklch(0.955 0.006 90);
+  --kg-ink: oklch(0.25 0.01 90);
+  --kg-muted: oklch(0.52 0.01 90);
+  --kg-line: oklch(0.55 0.01 260 / 0.22);
+  --kg-star: oklch(0.55 0.01 260 / 0.16);
+  --arc-0: #c98500;
+  --arc-1: #0072b2;
+  --arc-2: #009e73;
+  --arc-3: #cc79a7;
+  --arc-here: #c41230;
+
+  /* Frosted glass for the controls that float over the map. */
+  --glass-bg: oklch(1 0 0 / 0.58);
+  --glass-edge: oklch(1 0 0 / 0.75);
+  --glass-shadow: 0 10px 34px oklch(0.30 0.02 260 / 0.13), inset 0 1px 0 oklch(1 0 0 / 0.65);
+  --glass-hover: oklch(0.25 0.01 90 / 0.07);
+  --guide-dim: oklch(0.22 0.02 260 / 0.30);
 }
 
+/* Dark follows the system unless the student picked light on the map's toggle,
+   and a picked dark applies whatever the system says. The toggle sets
+   data-theme on <html>; see src/ui/theme.ts. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --brand: oklch(0.68 0.16 20);
     --brand-wash: oklch(0.68 0.16 20 / 0.14);
     --selected: oklch(0.82 0.012 260);
@@ -38,10 +65,65 @@
     --border: oklch(0.32 0.012 260);
     --ink: oklch(0.94 0.004 260);
     --muted: oklch(0.68 0.010 260);
+
+    --kg-bg: #0e1424;
+    --kg-bg-edge: #070b16;
+    --kg-ink: oklch(0.95 0.004 260);
+    --kg-muted: oklch(0.72 0.012 260);
+    --kg-line: oklch(0.85 0.02 260 / 0.20);
+    --kg-star: oklch(0.95 0.02 260 / 0.55);
+    --arc-0: #c08000;
+    --arc-1: #3c88d8;
+    --arc-2: #1a9a72;
+    --arc-3: #c86fa4;
+    --arc-here: #ef4a5c;
+
+  --glass-bg: oklch(0.21 0.02 262 / 0.55);
+  --glass-edge: oklch(1 0 0 / 0.13);
+  --glass-shadow: 0 10px 34px oklch(0 0 0 / 0.40), inset 0 1px 0 oklch(1 0 0 / 0.08);
+  --glass-hover: oklch(1 0 0 / 0.08);
+  --guide-dim: oklch(0 0 0 / 0.50);
   }
 }
 
+:root[data-theme="dark"] {
+  --brand: oklch(0.68 0.16 20);
+  --brand-wash: oklch(0.68 0.16 20 / 0.14);
+  --selected: oklch(0.82 0.012 260);
+  --selected-wash: oklch(0.82 0.012 260 / 0.13);
+  --correct: oklch(0.72 0.15 145);
+  --correct-wash: oklch(0.72 0.15 145 / 0.14);
+  --wrong: oklch(0.70 0.17 25);
+  --wrong-wash: oklch(0.70 0.17 25 / 0.14);
+
+  --bg: oklch(0.19 0.008 260);
+  --surface-raised: oklch(0.23 0.010 260);
+  --border: oklch(0.32 0.012 260);
+  --ink: oklch(0.94 0.004 260);
+  --muted: oklch(0.68 0.010 260);
+
+  --kg-bg: #0e1424;
+  --kg-bg-edge: #070b16;
+  --kg-ink: oklch(0.95 0.004 260);
+  --kg-muted: oklch(0.72 0.012 260);
+  --kg-line: oklch(0.85 0.02 260 / 0.20);
+  --kg-star: oklch(0.95 0.02 260 / 0.55);
+  --arc-0: #c08000;
+  --arc-1: #3c88d8;
+  --arc-2: #1a9a72;
+  --arc-3: #c86fa4;
+  --arc-here: #ef4a5c;
+
+  --glass-bg: oklch(0.21 0.02 262 / 0.55);
+  --glass-edge: oklch(1 0 0 / 0.13);
+  --glass-shadow: 0 10px 34px oklch(0 0 0 / 0.40), inset 0 1px 0 oklch(1 0 0 / 0.08);
+  --glass-hover: oklch(1 0 0 / 0.08);
+  --guide-dim: oklch(0 0 0 / 0.50);
+}
+
 html { color-scheme: light dark; }
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
 
 body {
   margin: 0;
@@ -125,3 +207,76 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   color: var(--muted);
   font-style: italic;
 }
+
+/* Inline code in the knowledge graph's panel, quoted from the notes. */
+.kg-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.88em;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  padding: 0.02em 0.3em;
+}
+
+/* The map's floating controls: frosted glass over the sky, so the graph
+   stays visible, blurred, behind whatever covers it. A browser without
+   backdrop-filter gets a near-opaque panel instead, which stays readable. */
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass { background: color-mix(in oklch, var(--surface-raised) 94%, transparent); }
+}
+.glass-btn {
+  border-radius: 9999px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink);
+  transition: background 120ms;
+}
+.glass-btn:hover { background: var(--glass-hover); }
+.glass-btn[aria-pressed="true"], .glass-btn[aria-checked="true"], .glass-btn[aria-current="page"] {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+/* The sky behind the system figure, the same one the graph's canvas paints. */
+.kg-sky {
+  background:
+    radial-gradient(circle at 50% 50%, var(--kg-bg) 0%, var(--kg-bg-edge) 85%);
+}
+
+/* The guide's spotlight: everything outside it dims, and a ring marks it.
+   The dim is a shadow, which takes no clicks, so the page stays usable. */
+.kg-guide-spot {
+  box-shadow: 0 0 0 200vmax var(--guide-dim);
+  outline: 2px solid var(--brand);
+  outline-offset: 0;
+  transition: transform 180ms ease-out, width 180ms ease-out, height 180ms ease-out, opacity 200ms;
+}
+.kg-guide-spot::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  border: 2px solid var(--brand);
+  animation: kg-guide-pulse 1.8s ease-out infinite;
+}
+.kg-guide-spot[data-page="1"] { outline: none; }
+.kg-guide-spot[data-page="1"]::after { display: none; }
+.kg-guide-spot[data-dim="0"] { box-shadow: none; }
+/* The pulse grows by a fixed distance, so a big target gets the same ring as a small one. */
+@keyframes kg-guide-pulse {
+  from { opacity: 0.8; inset: -2px; }
+  to { opacity: 0; inset: -14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kg-guide-spot { transition: none; }
+  .kg-guide-spot::after { animation: none; opacity: 0; }
+}
+

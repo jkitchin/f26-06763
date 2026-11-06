@@ -262,7 +262,7 @@ async function main() {
     // records it, and that the record survives a reload. The last of those is
     // the requirement the whole persistence commit exists for, checked here
     // end to end rather than in a simulation.
-    await page.goto(`http://localhost:${PORT}${BASE}#/map`, { waitUntil: 'networkidle0' })
+    await page.goto(`http://localhost:${PORT}${BASE}#/map/rooms`, { waitUntil: 'networkidle0' })
     await page.waitForSelector('[role="application"]')
 
     const world = JSON.parse(
@@ -311,6 +311,65 @@ async function main() {
     await page.waitForSelector('[role="application"]')
     const restored = await coverageOf()
     check(restored === after, 'visited rooms survive a reload', `${restored.trim()}`)
+
+    // --- the knowledge graph and the system figure ---------------------------
+    //
+    // The graph is a canvas, so these drive it the way a keyboard or screen
+    // reader user would: through the index's buttons, which list every node.
+    // That they work is the accessibility claim KnowledgeGraph.tsx makes.
+    const clickText = (sel: string, text: string) =>
+      page.evaluate((sel, text) => {
+        const el = [...document.querySelectorAll(sel)]
+          .find((e) => (e.textContent ?? '').trim().startsWith(text)) as HTMLElement | undefined
+        el?.click()
+        return !!el
+      }, sel, text)
+    const panelTitle = () => page.$eval('aside h2', (h) => h.textContent ?? '')
+    const settle = () => new Promise((r) => setTimeout(r, 300))
+
+    await page.goto(`http://localhost:${PORT}${BASE}#/map`, { waitUntil: 'networkidle0' })
+    await page.reload({ waitUntil: 'networkidle0' })
+    await page.waitForSelector('canvas')
+    const painted = await page.$eval('canvas', (c) => (c as HTMLCanvasElement).width > 0)
+    check(painted, 'the knowledge graph draws at #/map')
+
+    // A first visit opens the guide; skipping it is remembered.
+    const guide = await page.waitForSelector('[role="dialog"]', { timeout: 4000 }).catch(() => null)
+    check(!!guide, 'a first visit to the graph opens the guide')
+    await clickText('[role="dialog"] button', 'Next')
+    await settle()
+    const step2 = await page.$eval('[role="dialog"]', (d) => d.textContent ?? '')
+    check(/2 of \d/.test(step2), 'the guide steps forward', step2.slice(0, 40))
+    await clickText('[role="dialog"] button', 'Skip')
+    await settle()
+    check(!(await page.$('[role="dialog"]')), 'skipping closes the guide')
+    await page.reload({ waitUntil: 'networkidle0' })
+    await new Promise((r) => setTimeout(r, 1200))
+    check(!(await page.$('[role="dialog"]')), 'and it stays closed on the next visit')
+
+    const lecture = world.rooms.find((r) => r.id === target.id)!
+    await clickText('button', '☰All lectures')
+    await settle()
+    await clickText('aside button', `${lecture.id.replace(/^l0?/, 'L')} ·`)
+    await settle()
+    const lectureTitle = await panelTitle()
+    check(/^L\d+ ·/.test(lectureTitle), 'choosing a lecture opens its panel', lectureTitle.slice(0, 48))
+    const headings = await page.$$eval('aside h3', (hs) => hs.map((h) => h.textContent ?? ''))
+    check(headings.some((t) => /takeaways/i.test(t)), 'and the panel shows its takeaways')
+
+    await clickText('button', 'By topic')
+    await settle()
+    const firstTheme = await page.$eval('aside li button', (b) => (b.textContent ?? '').trim())
+    await clickText('aside li button', firstTheme)
+    await settle()
+    check((await panelTitle()) === firstTheme, 'the topic view opens a topic', firstTheme)
+
+    await page.goto(`http://localhost:${PORT}${BASE}#/map/system`, { waitUntil: 'networkidle0' })
+    const parts = await page.$$('g[role="button"]')
+    check(parts.length === 10, 'the system figure draws its ten parts', `${parts.length}`)
+    await page.click('g[role="button"][aria-label^="Data verification"]')
+    await settle()
+    check((await panelTitle()) === 'Data verification', 'clicking a part opens what covers it')
 
     check(errors.length === 0, 'no console errors', errors.slice(0, 2).join(' | '))
   } finally {

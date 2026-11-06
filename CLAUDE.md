@@ -862,6 +862,27 @@ participation credit. The same app carries the course map at `#/map`. It is one 
 purpose: the map opens the modules that already exist rather than needing a second set of
 content.
 
+The map has three tabs. `#/map` is the knowledge graph, with a switch between lectures and
+topics; `#/map/system` is Lecture 1's system figure, live, with the lectures and tools
+behind each part; `#/map/rooms` is the walkable grid. The first two record nothing and open
+without an Andrew ID, so they can be projected or opened from a slide; the rooms record
+visits and still ask who you are. Both new tabs read `game/src/map/knowledge.json`, built by
+`tools/knowledge.py` from the notes, the world, `objectives.yml` and
+`game/content/knowledge.yml`. That last file is the only hand-written part: the topic
+themes (each lecture belongs to one, and a theme can claim single H2 sections of another),
+a takeaway line or two per lecture, the data each lecture works on, and the boxes of the
+system figure with their lectures and tools. A takeaway is a claim, so check it against the
+lecture's Summary; a tool must be an index term, and the script fails if it is not. An
+unreleased lecture reaches the bundle as its number, title, date and arc only.
+
+The graph and the system figure fill the window, with every control floating over them on
+glass; the controls report the space they cover and the graph fits itself to the rest. A
+first visit to the graph opens a seven-step guide (`game/src/ui/MapGuide.tsx`) that points
+at each control and demonstrates on the most-linked released lecture. Whether it has been
+seen is a per-viewer flag in `localStorage`, and the Guide button replays it. The smoke test
+walks it, so a step whose control is renamed or removed fails there rather than pointing at
+nothing.
+
 **The participation score is on the PDF, and the rule is one line.** Each question is worth
 a point, each wrong answer deducts `WRONG_PENALTY` (0.25), a revealed answer scores zero,
 and the score is the mean over the questions that had an answer chosen. Free-recall items
@@ -921,7 +942,7 @@ progress lives in IndexedDB, and the PDF is generated in the tab. The grading si
 opposite: `tools/verify_evidence.py` is a CLI a TA runs against downloaded PDFs. Keep that
 split. A feature that needs a server is a feature this design cannot have.
 
-**Five artifacts are generated, and none of them may be hand-edited.** Each has a `--write`
+**Six artifacts are generated, and none of them may be hand-edited.** Each has a `--write`
 that produces it and a `--check` that regenerates and compares, and CI runs every `--check`
 in the `quiz` job:
 
@@ -930,6 +951,7 @@ in the `quiz` job:
 | `game/tests/vectors.json` | `npm run vectors` | `seed.ts` and `derive.py` disagree, so every honest PDF fails at once |
 | `game/src/map/graph.json` | `tools/graph.py` | a corridor nobody can point at, or a lecture cited by a broken link |
 | `game/src/map/world.json` | `tools/world.py` | a room missing from the map while its corridors still exist |
+| `game/src/map/knowledge.json` | `tools/knowledge.py` | a takeaway, concept or link the notes no longer carry, or a lecture shown before it is released |
 | `game/content/pools/*.json` | `tools/pool_archive.py` | a bank edit silently invalidating PDFs already in students' hands |
 | `game/content/sections.lock` | `game/validate.py` | an item quoting a section that has since been rewritten |
 

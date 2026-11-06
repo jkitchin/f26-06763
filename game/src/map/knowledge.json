@@ -1,0 +1,6050 @@
+{
+ "generated_by": "tools/knowledge.py",
+ "note": "Lectures, links, objectives, concepts and case studies are extracted from the notes; themes, takeaways and the system boxes come from game/content/knowledge.yml. Do not edit by hand.",
+ "arcs": [
+  "Foundations",
+  "Data Systems",
+  "Machine learning and deep learning",
+  "LLM and agentic engineering",
+  "Course wrap-up"
+ ],
+ "lectures": [
+  {
+   "id": "l01",
+   "session": "L1",
+   "title": "The AI-engineering landscape and the course toolchain",
+   "date": "2026-08-24",
+   "arc": "Foundations",
+   "released": true,
+   "theme": "system",
+   "notes": "../lectures/l01/notes.html",
+   "slides": "../slides/l01/",
+   "takeaways": [
+    "A model is a small part of a system whose bulk is data infrastructure, evaluation and operations, and that is where the effort and the failures concentrate.",
+    "Engineering data drifts, needs calibration and carries physical units, which widens the gap between a validated model and a working system."
+   ],
+   "data": "UCI Air Quality, a gas sensor array on an Italian roadside",
+   "objectives": [
+    "Map the end-to-end lifecycle of an engineering ML system and identify the standardized toolchain used throughout the semester.",
+    "Contrast \"a model in a notebook\" with \"a system,\" naming the data contracts, drift, and monitoring concerns that separate them.",
+    "Explain why engineering data imposes provenance and traceability requirements that general-purpose ML tutorials ignore.",
+    "Justify each component of the course toolchain in terms of the failure it prevents."
+   ],
+   "themes": [
+    "system"
+   ],
+   "cases": [
+    "bridge-health-monitoring",
+    "chest-xray-shortcuts",
+    "sepsis-alert-validation"
+   ]
+  },
+  {
+   "id": "l02",
+   "session": "L2",
+   "title": "Reproducible environments and version control",
+   "date": "2026-08-26",
+   "arc": "Foundations",
+   "released": true,
+   "theme": "reproducibility",
+   "notes": "../lectures/l02/notes.html",
+   "slides": "../slides/l02/",
+   "takeaways": [
+    "Reproducible means you can say which data, code and settings produced a number, and produce it again.",
+    "Lock the environment with uv, keep code, data and models in tools that suit each, and log every run."
+   ],
+   "data": "The Air Quality data from Lecture 1",
+   "objectives": [
+    "Build and lock a project environment with `uv`, and rebuild it exactly on a fresh machine.",
+    "Choose the right versioning tool for code, data, and models, and explain why large binary files do not belong in plain git.",
+    "Turn an exploratory notebook into a script or package with a tested command-line entry point.",
+    "Log a run to MLflow so that one run equals the same exact fact you can always reproduce."
+   ],
+   "themes": [
+    "reproducibility"
+   ],
+   "cases": []
+  },
+  {
+   "id": "l03",
+   "session": "L3",
+   "title": "Databases for engineering data",
+   "date": "2026-08-31",
+   "arc": "Data Systems",
+   "released": true,
+   "theme": "storage",
+   "notes": "../lectures/l03/notes.html",
+   "slides": "../slides/l03/",
+   "takeaways": [
+    "A relational database is a contract you can query; store readings in long form, keyed by sensor and time.",
+    "Types with physical meaning prevent a class of bugs, but a type is not a validation."
+   ],
+   "data": "Intel Berkeley Lab sensor readings, in PostgreSQL",
+   "objectives": [
+    "Model sensor/simulation data in a relational schema with appropriate types (timestamps, numeric precision, units).",
+    "Load data into PostgreSQL and query it with SQL: joins, `GROUP BY`, window functions, time bucketing.",
+    "Reason about indexing and query cost for time-range queries."
+   ],
+   "themes": [
+    "storage"
+   ],
+   "cases": []
+  },
+  {
+   "id": "l04",
+   "session": "L4",
+   "title": "Database landscape",
+   "date": "2026-09-02",
+   "arc": "Data Systems",
+   "released": true,
+   "theme": "storage",
+   "notes": "../lectures/l04/notes.html",
+   "slides": "../slides/l04/",
+   "takeaways": [
+    "Match the storage layout to the access pattern; a row store suits live writes, a column store suits scans over history.",
+    "Parquet with DuckDB reads only the columns and row groups a query needs."
+   ],
+   "data": "Intel Berkeley Lab readings, in Parquet and DuckDB",
+   "objectives": [
+    "Explain the row-store versus column-store trade-off and why a columnar layout is faster to scan, and read and write Parquet.",
+    "Query Parquet with DuckDB, and choose between a transactional (OLTP) and an analytical (OLAP) tool.",
+    "Name the other kinds of store (document, key-value, time-series) and say when each one fits."
+   ],
+   "themes": [
+    "storage"
+   ],
+   "cases": []
+  },
+  {
+   "id": "l05",
+   "session": "L5",
+   "title": "Dataframes and batch pipelines",
+   "date": "2026-09-09",
+   "arc": "Data Systems",
+   "released": true,
+   "theme": "pipelines",
+   "notes": "../lectures/l05/notes.html",
+   "slides": "../slides/l05/",
+   "takeaways": [
+    "Describe the work and let a planner decide how to run it; vectorized and lazy code gets the speed back.",
+    "Small, pure, idempotent stages make a pipeline safe to rerun after a failure."
+   ],
+   "data": "The Tennessee Eastman plant, with Polars",
+   "objectives": [
+    "Get more familiar with pandas and, most importantly, write Polars code that operates on whole columns at once instead of row by row, including grouping and joining.",
+    "Break a data pipeline into small steps that each read one file and write one file, so a run that fails halfway through can be started again without corrupting anything.",
+    "Explain the difference between pandas running code immediately and Polars planning a computation before running it, and use that difference to choose between the two for a given task."
+   ],
+   "themes": [
+    "pipelines"
+   ],
+   "cases": []
+  },
+  {
+   "id": "l06",
+   "session": "L6",
+   "title": "Streaming data and data validation",
+   "date": "2026-09-14",
+   "arc": "Data Systems",
+   "released": true,
+   "theme": "pipelines",
+   "notes": "../lectures/l06/notes.html",
+   "slides": "../slides/l06/",
+   "takeaways": [
+    "Streaming handles data that is never finished; windows in event time, closed by watermarks, cope with late and out-of-order readings.",
+    "Validation is an executable gate that fails loudly before bad data reaches a model."
+   ],
+   "data": "The Intel Lab feed, most of it out of order",
+   "objectives": [
+    "Distinguish batch from streaming, and identify when sensor systems require streaming.",
+    "Explain windowing, event vs. processing time, watermarks, and late or out-of-order data.",
+    "Author executable data-quality checks and integrate them as a pipeline gate."
+   ],
+   "themes": [
+    "pipelines",
+    "validation"
+   ],
+   "cases": [
+    "bridge-health-monitoring"
+   ]
+  },
+  {
+   "id": "l07",
+   "session": "L7",
+   "title": "Features for time-series models",
+   "date": "2026-09-16",
+   "arc": "Data Systems",
+   "released": true,
+   "theme": "dynamics",
+   "notes": "../lectures/l07/notes.html",
+   "slides": "../slides/l07/",
+   "takeaways": [
+    "A dynamic process needs its own past in the table, as lagged columns.",
+    "Ask of every column whether it could have been known at the row's timestamp; if not, it is leakage."
+   ],
+   "data": "The Tennessee Eastman plant",
+   "objectives": [
+    "Explain why a dynamic process needs its own past in the feature table, and a steady-state measurement does not.",
+    "Build a feature table from a sensor log in which every value in a row was knowable at that row's timestamp, dropping the rows whose past lies outside the record.",
+    "Convert the two coefficients of a fitted first-order model into a time constant and a gain, and say whether they are physically plausible."
+   ],
+   "themes": [
+    "dynamics",
+    "validation"
+   ],
+   "cases": [
+    "bearing-fault-benchmark",
+    "electric-load-forecasting"
+   ]
+  },
+  {
+   "id": "l08",
+   "session": "L8",
+   "title": "The machine learning (ML) workflow I: Time series",
+   "date": "2026-09-21",
+   "arc": "Machine learning and deep learning",
+   "released": true,
+   "theme": "forecasting",
+   "notes": "../lectures/l08/notes.html",
+   "slides": "../slides/l08/",
+   "takeaways": [
+    "A forecast is supervised learning with a horizon, and it earns its place only by beating persistence and the mean.",
+    "Score forecasts on time-ordered splits; a shuffled split leaks the future."
+   ],
+   "data": "Reactor pressure from the Tennessee Eastman plant",
+   "objectives": [
+    "Frame a time-series forecast as a supervised learning problem, stating the horizon and what is known when the forecast is made.",
+    "Compare a forecasting model against persistence and mean baselines across horizons, and say whether the model earned its place.",
+    "Choose between direct and recursive multi-step forecasting, and explain why recursive errors grow with the horizon.",
+    "Evaluate a forecaster with a time-ordered split whose gap is at least the horizon, and explain why a shuffled split inflates the score.",
+    "Use forecast residuals as a simple anomaly detector, setting the threshold on normal data and reporting false alarms and detection delay."
+   ],
+   "themes": [
+    "forecasting"
+   ],
+   "cases": [
+    "bridge-health-monitoring",
+    "electric-load-forecasting"
+   ]
+  },
+  {
+   "id": "l09",
+   "session": "L9",
+   "title": "The machine learning (ML) workflow II: Regression",
+   "date": "2026-09-23",
+   "arc": "Machine learning and deep learning",
+   "released": true,
+   "theme": "workflow",
+   "notes": "../lectures/l09/notes.html",
+   "slides": "../slides/l09/",
+   "takeaways": [
+    "Every scikit-learn model is fitted and scored the same way, so the split, the features and the metric decide the result.",
+    "Hold out whole groups when the model will meet new groups; a random split can reverse which model wins."
+   ],
+   "data": "The concrete strength dataset and Tennessee Eastman reactor pressure",
+   "objectives": [
+    "Frame an engineering question as regression or classification, and name its samples, features and target.",
+    "Split data into training, validation and test sets, and explain why the test set is used only once.",
+    "Fit and compare linear, decision tree, neural network and Gaussian process models through scikit-learn's common `fit` and `predict` interface, on a table of experiments and on a NARX table.",
+    "Write the training of a linear model, a neural network and a Gaussian process as an optimization problem, and say what each one optimizes.",
+    "Use k-fold and grouped cross-validation, validation curves and learning curves to diagnose underfitting and overfitting and to choose between models."
+   ],
+   "themes": [
+    "training",
+    "workflow"
+   ],
+   "cases": [
+    "alloy-adaptive-design",
+    "ecg-patient-splits"
+   ]
+  },
+  {
+   "id": "l10",
+   "session": "L10",
+   "title": "The machine learning (ML) workflow III: Classification, experiment tracking and hyperparameter search/tuning",
+   "date": "2026-09-28",
+   "arc": "Machine learning and deep learning",
+   "released": true,
+   "theme": "workflow",
+   "notes": "../lectures/l10/notes.html",
+   "slides": "../slides/l10/",
+   "takeaways": [
+    "Accuracy hides the kind of mistake; the confusion matrix, precision, recall and the threshold show it.",
+    "Search hyperparameters with Optuna, record every trial in MLflow, and test the winner once."
+   ],
+   "data": "Faults in the Tennessee Eastman plant",
+   "objectives": [
+    "Explain what a classifier predicts (a class, from a probability and a threshold), and read a logistic regression's decision boundary on one plant signal.",
+    "Say what each of the four model families minimizes when it classifies.",
+    "Understand a confusion matrix, and the concepts of accuracy, precision and recall from it.",
+    "Move the decision threshold to trade missed faults against false alarms.",
+    "Explain why a classifier can miss faults it was never trained on.",
+    "Run a hyperparameter search with Optuna, record every trial in MLflow, and register the best model."
+   ],
+   "themes": [
+    "reproducibility",
+    "workflow"
+   ],
+   "cases": [
+    "bearing-fault-benchmark",
+    "chest-xray-shortcuts",
+    "ecg-patient-splits",
+    "sepsis-alert-validation"
+   ]
+  },
+  {
+   "id": "l11",
+   "session": "L11",
+   "title": "ML with PyTorch/JAX",
+   "date": "2026-09-30",
+   "arc": "Machine learning and deep learning",
+   "released": true,
+   "theme": "training",
+   "notes": "../lectures/l11/notes.html",
+   "slides": "../slides/l11/",
+   "takeaways": [
+    "Reverse-mode automatic differentiation gives every gradient exactly for about the cost of two forward passes.",
+    "PyTorch and JAX implement the same mathematics with different designs, and a training loop breaks in a few known ways."
+   ],
+   "data": "The concrete strength dataset",
+   "objectives": [
+    "Explain what a backward pass computes by applying the chain rule to a small network, and why reverse mode suits a scalar loss better than finite differences.",
+    "Contrast how PyTorch (a recorded tape that accumulates into `.grad`) and JAX (transformations of pure functions) compute the same gradient, and use that to explain `zero_grad()`, `no_grad()` and immutable arrays.",
+    "Work with tensor shapes, broadcasting, dtypes and devices, and read a shape error.",
+    "Write a training loop in PyTorch and in JAX, and say what each of Adam's hyperparameters does.",
+    "Diagnose a training failure that raises no error by comparing against an exact reference, the predict-the-mean baseline, or a grouped split.",
+    "Measure whether an accelerator helps before moving a model onto one."
+   ],
+   "themes": [
+    "reproducibility",
+    "training"
+   ],
+   "cases": []
+  },
+  {
+   "id": "l12",
+   "session": "L12",
+   "title": "ML architectures for engineering data",
+   "date": "2026-10-05",
+   "arc": "Machine learning and deep learning",
+   "released": true,
+   "theme": "architectures",
+   "notes": "../lectures/l12/notes.html",
+   "slides": "../slides/l12/",
+   "takeaways": [
+    "Match the architecture to the structure of the input, an MLP for a vector, a CNN for a field, a 1D-CNN or RNN for a sequence.",
+    "Train with a schedule, early stopping and clipping, and check the architecture beats a simple baseline."
+   ],
+   "data": "Turbofan engines and their remaining useful life",
+   "objectives": [
+    "Match model architecture to the structure of the input (vector, field/image, sequence).",
+    "Implement a 1D-CNN or RNN for sensor time series and a 2D-CNN for field/image data.",
+    "Apply regularization and normalization appropriate to each architecture."
+   ],
+   "themes": [
+    "architectures",
+    "training"
+   ],
+   "cases": [
+    "bearing-fault-benchmark",
+    "chest-xray-shortcuts",
+    "ecg-patient-splits"
+   ]
+  },
+  {
+   "id": "l13",
+   "session": "L13",
+   "title": "Scientific machine learning: PINNs, neural ODEs and neural DAEs",
+   "date": "2026-10-07",
+   "arc": "Machine learning and deep learning",
+   "released": true,
+   "theme": "sciml",
+   "notes": "../lectures/l13/notes.html",
+   "slides": "../slides/l13/",
+   "takeaways": [
+    "Scientific machine learning keeps the mechanistic model and learns only the unknown term.",
+    "A PINN favors the physics through its loss but does not enforce it; constraints can be built into the network instead."
+   ],
+   "data": "A fed-batch bioreactor",
+   "objectives": [
+    "Explain what a physics-informed neural network (PINN) minimizes, and why its physics holds only approximately.",
+    "Build a PINN in JAX and compare its extrapolation with a plain network.",
+    "Derive a neural ODE from a recurrent network by letting the time step go to zero, and train one with a differentiable ODE solver.",
+    "Explain why some physics must be enforced rather than penalized, and what makes a model a differential-algebraic equation (DAE).",
+    "Contrast the sequential and simultaneous approaches to training a dynamic model.",
+    "Train a neural DAE with SiNDAE, and check that its predictions satisfy the constraints.",
+    "Compare PINNs, neural ODEs, neural DAEs and projection layers: where the physics lives, and what each one guarantees."
+   ],
+   "themes": [
+    "sciml"
+   ],
+   "cases": []
+  },
+  {
+   "id": "l14",
+   "session": "L14",
+   "title": "Uncertainty quantification (UQ) for machine learning",
+   "date": "2026-10-19",
+   "arc": "Machine learning and deep learning",
+   "released": true,
+   "theme": "uncertainty",
+   "notes": "../lectures/l14/notes.html",
+   "slides": "../slides/l14/",
+   "takeaways": [
+    "An uncertainty is a claim about coverage, and calibration on held-out data is the only test of it.",
+    "Gaussian processes, ensembles and conformal prediction each make a different assumption about the region they cannot see."
+   ],
+   "data": "The concrete strength dataset",
+   "objectives": [
+    "Define uncertainty quantification, distinguish aleatoric from epistemic uncertainty, and tell confidence, credible and prediction intervals apart.",
+    "Check whether a predictive uncertainty is calibrated, with coverage, a reliability diagram and a proper scoring rule, and recalibrate it with one scale factor.",
+    "Explain what a Gaussian process's band promises, and recognize three ways it fails: heteroscedastic noise, a misspecified kernel, and too few data.",
+    "Explain what the spread of a bootstrap or a deep ensemble measures, and why it needs a noise term and recalibration before it is an interval.",
+    "Wrap any model in split conformal or CV+ prediction intervals, and state the exchangeability condition their guarantee rests on.",
+    "Fit and compare UQ-capable regressors from pycse on data inside and beyond the training range."
+   ],
+   "themes": [
+    "uncertainty"
+   ],
+   "cases": [
+    "alloy-adaptive-design",
+    "electric-load-forecasting",
+    "sepsis-alert-validation"
+   ]
+  },
+  {
+   "id": "l15",
+   "session": "L15",
+   "title": "Bayesian optimization",
+   "date": "2026-10-21",
+   "arc": "Machine learning and deep learning",
+   "released": true,
+   "theme": "optimization",
+   "notes": "../lectures/l15/notes.html",
+   "slides": "../slides/l15/",
+   "takeaways": [
+    "Bayesian optimization is for expensive, noisy objectives without gradients, when the budget is tens of evaluations.",
+    "A Gaussian process and an acquisition function choose the next experiment, balancing exploration against exploitation."
+   ],
+   "data": "Optimizing a reactor in BoTorch",
+   "objectives": [
+    "Explain what Bayesian optimization (BO) is, why it is called Bayesian, and when it beats gradient-based and other derivative-free optimizers: expensive, noisy, black-box objectives with a budget of tens of evaluations.",
+    "Explain the BO loop (a Gaussian-process surrogate, an acquisition function, evaluate, update) and the trade-off between exploration and exploitation.",
+    "Write and compute the common acquisition functions: probability of improvement (PI), expected improvement (EI) and upper and lower confidence bounds (UCB, LCB), and explain how their parameters set the balance between exploration and exploitation.",
+    "Run BO in BoTorch on an engineering problem and compare it with random search over several seeds.",
+    "Name the extensions engineers need (constraints, batches, several objectives, several fidelities) and recognize where BO is used across engineering and science."
+   ],
+   "themes": [
+    "optimization"
+   ],
+   "cases": [
+    "alloy-adaptive-design"
+   ]
+  },
+  {
+   "id": "l16",
+   "session": "L16",
+   "title": "Generative AI",
+   "date": "2026-10-26",
+   "arc": "Machine learning and deep learning",
+   "released": true,
+   "theme": "generative",
+   "notes": "../lectures/l16/notes.html",
+   "slides": "../slides/l16/",
+   "takeaways": [
+    "A generative model learns the distribution of the data, and conditioning it answers questions in any direction.",
+    "Gaussian mixtures condition exactly on any variables; flow matching scales further but answers only the question it was trained for."
+   ],
+   "data": "The roots of the Peng-Robinson equation and a batch reactor",
+   "objectives": [
+    "Distinguish a generative model from the regression and classification models of L8–L14, and explain why a regression model gives a wrong answer to an inverse question with more than one solution.",
+    "Fit a Gaussian mixture model to the joint distribution of inputs and outputs, choose the number of components, and condition it to sample the inputs that give a target output.",
+    "Explain how flow matching turns samples of a simple distribution into samples of the data, train one with a mean-squared-error loss, and sample it by integrating an ODE.",
+    "Pose root finding, optimization and parameter estimation as conditional sampling, and check the samples against the physical model.",
+    "Place generative models in the machine-learning landscape, and explain why they are as dependent on data, and as limited by it, as any regression model.",
+    "Describe how generative models are used for images, molecules, proteins, materials and weather, and the failure modes those uses share."
+   ],
+   "themes": [
+    "generative"
+   ],
+   "cases": []
+  },
+  {
+   "id": "l17",
+   "session": "L17",
+   "title": "Large language models (LLMs): what they are and how they are trained",
+   "date": "2026-10-28",
+   "arc": "LLM and agentic engineering",
+   "released": true,
+   "theme": "llms",
+   "notes": "../lectures/l17/notes.html",
+   "slides": "../slides/l17/",
+   "takeaways": [
+    "An LLM is a generative model of text that predicts the next token, one token at a time.",
+    "Fluent is not the same as true; hallucination follows from next-token prediction."
+   ],
+   "data": "A tiny GPT, trained from scratch on the notes of Lectures 1 to 16",
+   "objectives": [
+    "Describe an LLM as a generative model of text: the chain rule turns the probability of a text into a product of next-token probabilities, and generation samples from them one token at a time.",
+    "Explain what tokens are, how byte-pair encoding builds them, and why the context window is a budget counted in tokens.",
+    "Explain pretraining: next-token cross-entropy at every position of every context window, on the transformer of L12 with a causal mask.",
+    "Relate model size, training data and compute across language models, and explain what post-training adds to a pretrained model.",
+    "Explain what temperature does to the next-token distribution, and why hallucination follows from next-token prediction."
+   ],
+   "themes": [
+    "llms"
+   ],
+   "cases": []
+  },
+  {
+   "id": "l18",
+   "session": "L18",
+   "title": "Retrieval-augmented generation (RAG): answering from your documents",
+   "date": "2026-11-02",
+   "arc": "LLM and agentic engineering",
+   "released": true,
+   "theme": "retrieval",
+   "notes": "../lectures/l18/notes.html",
+   "slides": "../slides/l18/",
+   "takeaways": [
+    "An LLM answers from its context window, so the answer is bounded by the passages put there.",
+    "Keyword and embedding search fail differently; fusing them and re-ranking, measured on a gold set, beats either."
+   ],
+   "data": "The course notes themselves",
+   "objectives": [
+    "Explain context engineering: an LLM answers from what is in its context window, so deciding what goes there, and how it gets there, determines the answer.",
+    "Give a model a tool, explain the tool-call exchange, and recognize when fetching context on demand (reading files, searching the web) is the right design, and the prompt-injection risk it brings.",
+    "Build keyword search (an inverted index with BM25) and semantic search (embeddings), combine them, and rerank the result with a cross-encoder; explain where late interaction (ColBERT) sits between them.",
+    "Choose chunk size, embedding model and index from measured trade-offs in hit rate, memory and search time, and say what changes when the index moves to a server.",
+    "Assemble a grounded prompt with citations within a token budget, and measure retrieval with hit@k and MRR on a gold set of queries.",
+    "Trace each stage of a retrieval pipeline running in the browser: what runs at build time, what runs on the page, and what each costs."
+   ],
+   "themes": [
+    "retrieval"
+   ],
+   "cases": []
+  },
+  {
+   "id": "l19",
+   "session": "L19",
+   "title": "LLM agents: tools, loops, harnesses and coding agents",
+   "date": "2026-11-04",
+   "arc": "LLM and agentic engineering",
+   "released": true,
+   "theme": "agents",
+   "notes": "../lectures/l19/notes.html",
+   "slides": "../slides/l19/",
+   "takeaways": [
+    "An agent is an LLM that calls tools in a loop and chooses each next step from the last result.",
+    "The harness around the model, its permissions, caching and checks, is most of the system."
+   ],
+   "data": "Choosing the tilt of solar panels on a roof",
+   "objectives": [
+    "Explain what an LLM agent is, and when a fixed workflow is the better choice.",
+    "Trace the agent loop, and name the jobs of the harness, the software around the model.",
+    "Explain how prompt caching cuts the cost of a long agent run, and what breaks the cache.",
+    "Write tool definitions a model can use correctly, and guard an agent that can act: least privilege, a person's approval, and no lethal trifecta.",
+    "Describe the parts of a coding agent: the instructions file, the tools, the permissions and sandbox, and context management.",
+    "Set up a project so a coding agent can work in it safely, with the course's toolchain: uv, git, tests and read-only data."
+   ],
+   "themes": [
+    "agents"
+   ],
+   "cases": []
+  },
+  {
+   "id": "l22",
+   "session": "L22",
+   "title": "Course overview and how it was built",
+   "date": "2026-11-16",
+   "arc": "Course wrap-up",
+   "released": false,
+   "theme": "learning"
+  }
+ ],
+ "edges": [
+  {
+   "from": "l04",
+   "to": "l03",
+   "weight": 1,
+   "where": "At the end of Lecture 3 the Intel Berkeley Lab readings sat in a relational database, indexed on (sensorid, ts) so that a narrow query, on"
+  },
+  {
+   "from": "l05",
+   "to": "l03",
+   "weight": 3,
+   "where": "Lecture 3 gave you SQL: describe the result you want, and the database's planner works out how to get it. Lecture 4 applie"
+  },
+  {
+   "from": "l05",
+   "to": "l04",
+   "weight": 2,
+   "where": "Lecture 3 gave you SQL: describe the result you want, and the database's planner works out how to get it. Lecture 4 applie"
+  },
+  {
+   "from": "l06",
+   "to": "l05",
+   "weight": 1,
+   "where": "The pipeline we built in Lecture 5 was a batch pipeline: a clean sequence of stages over a fixed, finished dataset. That is the right picture"
+  },
+  {
+   "from": "l07",
+   "to": "l05",
+   "weight": 3,
+   "where": "- Tools Polars for the table (same as Lecture 5), numpy.linalg.lstsq for the fit"
+  },
+  {
+   "from": "l08",
+   "to": "l07",
+   "weight": 1,
+   "where": "Lecture 7 built a feature table and fitted a model to it, and it never"
+  },
+  {
+   "from": "l09",
+   "to": "l05",
+   "weight": 1,
+   "where": "The simulated chemical plant of Lecture 5 and Lecture 8 ([Downs and Vogel,"
+  },
+  {
+   "from": "l09",
+   "to": "l07",
+   "weight": 3,
+   "where": "regressors of Lecture 7. A transform that is fitted to data, such as"
+  },
+  {
+   "from": "l09",
+   "to": "l08",
+   "weight": 2,
+   "where": "Lecture 8 did this for a time series: the rows were minutes of one plant,"
+  },
+  {
+   "from": "l10",
+   "to": "l01",
+   "weight": 1,
+   "where": "- MLflow (Lectures 1 and 2) records runs: the"
+  },
+  {
+   "from": "l10",
+   "to": "l02",
+   "weight": 1,
+   "where": "- MLflow (Lectures 1 and 2) records runs: the"
+  },
+  {
+   "from": "l10",
+   "to": "l05",
+   "weight": 1,
+   "where": "Lecture 5. This time we ask a yes-or-no question."
+  },
+  {
+   "from": "l10",
+   "to": "l08",
+   "weight": 1,
+   "where": "- Split by whole run, as in Lectures 8 and 9, so no run is on"
+  },
+  {
+   "from": "l10",
+   "to": "l09",
+   "weight": 2,
+   "where": "- Regression (Lecture 9) predicts a number: a pressure, a viscosity, a"
+  },
+  {
+   "from": "l11",
+   "to": "l07",
+   "weight": 1,
+   "where": "exactly as in Lecture 7. The habit does not change because the model is now a"
+  },
+  {
+   "from": "l11",
+   "to": "l09",
+   "weight": 4,
+   "where": "the model. This session is where you finally write the model. Lecture 9 wrote"
+  },
+  {
+   "from": "l12",
+   "to": "l07",
+   "weight": 1,
+   "where": "One habit from earlier weeks does not go away because the model is now a neural network. Feature scaling still matters, because gradient descent on unscaled inp"
+  },
+  {
+   "from": "l12",
+   "to": "l08",
+   "weight": 2,
+   "where": "Which to reach for is a genuine engineering choice, and the answer has shifted. For years the reflex was an RNN for anything sequential, but Bai, Kolter, and Ko"
+  },
+  {
+   "from": "l12",
+   "to": "l09",
+   "weight": 1,
+   "where": "Weight decay penalizes large weights by adding $\\tfrac{1}{2}\\lambda \\lVert w \\rVert^2$ to the loss, the same penalty ridge regression uses in [Lecture 9](.."
+  },
+  {
+   "from": "l12",
+   "to": "l11",
+   "weight": 2,
+   "where": "Lecture 11 built the machinery: tensors, autograd, a training loop, and a multilayer perceptron on tabular concrete data. It also delivered a"
+  },
+  {
+   "from": "l13",
+   "to": "l09",
+   "weight": 1,
+   "where": "This is the constrained optimization problem of Lecture 9,"
+  },
+  {
+   "from": "l13",
+   "to": "l11",
+   "weight": 2,
+   "where": "(Lecture 11): differentiate the network with respect to its input $t$."
+  },
+  {
+   "from": "l13",
+   "to": "l12",
+   "weight": 1,
+   "where": "A recurrent neural network (RNN), from Lecture 12, applied over time"
+  },
+  {
+   "from": "l14",
+   "to": "l09",
+   "weight": 1,
+   "where": "This example uses the concrete strength dataset from Lecture 9, with Lecture"
+  },
+  {
+   "from": "l15",
+   "to": "l13",
+   "weight": 1,
+   "where": "In Lecture 13 we met generations of machine learning in engineering:"
+  },
+  {
+   "from": "l15",
+   "to": "l14",
+   "weight": 1,
+   "where": "Lecture 14 built it: a mean $\\mu(x)$ and an uncertainty $\\sigma(x)$ at every"
+  },
+  {
+   "from": "l16",
+   "to": "l07",
+   "weight": 1,
+   "where": "features of Lecture 7."
+  },
+  {
+   "from": "l16",
+   "to": "l09",
+   "weight": 3,
+   "where": "from Lecture 9 is to fit a model of $x$ as a function of $y$ and ask it."
+  },
+  {
+   "from": "l16",
+   "to": "l11",
+   "weight": 2,
+   "where": "$dCB/d\\tau$ (by automatic differentiation, as in Lecture 11), fit the joint"
+  },
+  {
+   "from": "l16",
+   "to": "l12",
+   "weight": 1,
+   "where": "Lecture 12. Invertible networks have been used directly for engineering"
+  },
+  {
+   "from": "l16",
+   "to": "l13",
+   "weight": 1,
+   "where": "and call $x(1)$ the sample. This is the neural ODE of Lecture 13, used to"
+  },
+  {
+   "from": "l16",
+   "to": "l14",
+   "weight": 3,
+   "where": "kind of uncertainty Lecture 14 asked you to interpret with care: it mixes"
+  },
+  {
+   "from": "l17",
+   "to": "l01",
+   "weight": 1,
+   "where": "Lecture 1."
+  },
+  {
+   "from": "l17",
+   "to": "l08",
+   "weight": 1,
+   "where": "- The word is the one from Lecture 8: \"Autoregressive models predict the"
+  },
+  {
+   "from": "l17",
+   "to": "l09",
+   "weight": 2,
+   "where": "fit in Lecture 9 has 2; our tiny GPT has 842,881; GPT-3 has 175 billion."
+  },
+  {
+   "from": "l17",
+   "to": "l10",
+   "weight": 1,
+   "where": "Lecture 10."
+  },
+  {
+   "from": "l17",
+   "to": "l11",
+   "weight": 1,
+   "where": "Lecture 11, gives the gradient for every dial in one backward pass."
+  },
+  {
+   "from": "l17",
+   "to": "l12",
+   "weight": 2,
+   "where": "- This is the transformer of Lecture 12, where the tokens were cycles of a"
+  },
+  {
+   "from": "l17",
+   "to": "l13",
+   "weight": 1,
+   "where": "$\\min\\theta L\\text{data}$ of Lecture 13."
+  },
+  {
+   "from": "l17",
+   "to": "l15",
+   "weight": 1,
+   "where": "Lecture 15's map of where each optimizer fits, with our tiny GPT added. The"
+  },
+  {
+   "from": "l17",
+   "to": "l16",
+   "weight": 2,
+   "where": "- Lecture 16 built generative models: learn a distribution, then sample from"
+  },
+  {
+   "from": "l19",
+   "to": "l01",
+   "weight": 4,
+   "where": "- Lecture 1 showed that in a production ML (machine learning) system, the ML"
+  },
+  {
+   "from": "l19",
+   "to": "l02",
+   "weight": 4,
+   "where": "integration, Lecture 2), how to check its own work, what not to touch, and"
+  },
+  {
+   "from": "l19",
+   "to": "l03",
+   "weight": 2,
+   "where": "- SQL (Structured Query Language, Lecture 3) is the language for asking a"
+  },
+  {
+   "from": "l19",
+   "to": "l04",
+   "weight": 2,
+   "where": "| querylog | One read-only SQL query on last week's hourly power log, stored in DuckDB (Lecture 4) |"
+  },
+  {
+   "from": "l19",
+   "to": "l06",
+   "weight": 1,
+   "where": "| Data validation (Lecture 6) | Schema checks catch wrong data, whoever wrote the code |"
+  },
+  {
+   "from": "l19",
+   "to": "l10",
+   "weight": 1,
+   "where": "| Experiment tracking (Lecture 10) | Every number traces back to the run, the code and the data that made it |"
+  },
+  {
+   "from": "l19",
+   "to": "l18",
+   "weight": 3,
+   "where": "- Lecture 18 ended with one tool call: the model asks for a tool by name,"
+  }
+ ],
+ "themes": [
+  {
+   "id": "system",
+   "name": "The system around the model",
+   "blurb": "The model is a small part of a production system; the data, checks and operations around it are most of the work and most of the failures.",
+   "lectures": [
+    "l01"
+   ],
+   "arc": "Foundations"
+  },
+  {
+   "id": "reproducibility",
+   "name": "Reproducibility and tracking",
+   "blurb": "Rebuild the exact environment, version code, data and models separately, and record every run so a number can be traced and produced again.",
+   "lectures": [
+    "l02",
+    "l10",
+    "l11"
+   ],
+   "arc": "Foundations"
+  },
+  {
+   "id": "storage",
+   "name": "Storing engineering data",
+   "blurb": "Pick the store that matches the access pattern, a row store for live writes and lookups, a column store and Parquet for scans over history.",
+   "lectures": [
+    "l03",
+    "l04"
+   ],
+   "arc": "Data Systems"
+  },
+  {
+   "id": "pipelines",
+   "name": "Pipelines and streams",
+   "blurb": "Turn raw logs into answers with stages that are fast, safe to rerun, and correct when data arrives late and out of order.",
+   "lectures": [
+    "l05",
+    "l06"
+   ],
+   "arc": "Data Systems"
+  },
+  {
+   "id": "validation",
+   "name": "Data validation and leakage",
+   "blurb": "Check data before it reaches a model, and make sure no column could not have been known at the time it claims.",
+   "lectures": [
+    "l06",
+    "l07"
+   ],
+   "arc": "Data Systems"
+  },
+  {
+   "id": "dynamics",
+   "name": "Dynamic processes and features",
+   "blurb": "A process with memory needs its own past in the table, built as lags that respect time, runs and the question being asked.",
+   "lectures": [
+    "l07"
+   ],
+   "arc": "Data Systems"
+  },
+  {
+   "id": "forecasting",
+   "name": "Forecasting",
+   "blurb": "A forecast is supervised learning with a horizon; it earns its place only by beating persistence and the mean, scored on time-ordered splits.",
+   "lectures": [
+    "l08"
+   ],
+   "arc": "Machine learning and deep learning"
+  },
+  {
+   "id": "workflow",
+   "name": "The machine learning workflow",
+   "blurb": "Fit, split, score; the split, the features and the metric decide the result more than the choice of model.",
+   "lectures": [
+    "l09",
+    "l10"
+   ],
+   "arc": "Machine learning and deep learning"
+  },
+  {
+   "id": "training",
+   "name": "Optimization and training",
+   "blurb": "Training is optimization; automatic differentiation gives exact gradients, and a training loop has a few steps that each break in a known way.",
+   "lectures": [
+    "l09",
+    "l11",
+    "l12"
+   ],
+   "arc": "Machine learning and deep learning"
+  },
+  {
+   "id": "architectures",
+   "name": "Neural architectures",
+   "blurb": "Match the architecture to the structure of the input, a vector, a field or a sequence, and check that it beats a simple baseline.",
+   "lectures": [
+    "l12"
+   ],
+   "arc": "Machine learning and deep learning"
+  },
+  {
+   "id": "sciml",
+   "name": "Physics and machine learning",
+   "blurb": "Keep the mechanistic model and learn only the unknown part, with the physics in the loss, in the solver, or enforced by the network.",
+   "lectures": [
+    "l13"
+   ],
+   "arc": "Machine learning and deep learning"
+  },
+  {
+   "id": "uncertainty",
+   "name": "Uncertainty quantification",
+   "blurb": "An uncertainty is a claim about how often the truth falls in an interval, and only held-out data can test it.",
+   "lectures": [
+    "l14"
+   ],
+   "arc": "Machine learning and deep learning"
+  },
+  {
+   "id": "optimization",
+   "name": "Optimizing experiments",
+   "blurb": "When each evaluation is an expensive experiment, a surrogate and an acquisition function spend a small budget where it can still learn or gain.",
+   "lectures": [
+    "l15"
+   ],
+   "arc": "Machine learning and deep learning"
+  },
+  {
+   "id": "generative",
+   "name": "Generative models",
+   "blurb": "Learn the distribution of the data, not one function of it, and condition it to answer questions in any direction.",
+   "lectures": [
+    "l16"
+   ],
+   "arc": "Machine learning and deep learning"
+  },
+  {
+   "id": "llms",
+   "name": "Language models",
+   "blurb": "An LLM predicts the next token; fluency comes from that, and so does confident text that is not true.",
+   "lectures": [
+    "l17"
+   ],
+   "arc": "LLM and agentic engineering"
+  },
+  {
+   "id": "retrieval",
+   "name": "Retrieval and context",
+   "blurb": "An answer is only as good as the passages in the context window, so fetching and ranking them is engineering you can measure.",
+   "lectures": [
+    "l18"
+   ],
+   "arc": "LLM and agentic engineering"
+  },
+  {
+   "id": "agents",
+   "name": "Agents and coding agents",
+   "blurb": "An agent is an LLM calling tools in a loop; the harness around it, its permissions and its checks, is most of the system.",
+   "lectures": [
+    "l19"
+   ],
+   "arc": "LLM and agentic engineering"
+  }
+ ],
+ "theme_edges": [
+  {
+   "a": "agents",
+   "b": "pipelines",
+   "weight": 1
+  },
+  {
+   "a": "agents",
+   "b": "reproducibility",
+   "weight": 1
+  },
+  {
+   "a": "agents",
+   "b": "retrieval",
+   "weight": 1
+  },
+  {
+   "a": "agents",
+   "b": "storage",
+   "weight": 2
+  },
+  {
+   "a": "agents",
+   "b": "system",
+   "weight": 1
+  },
+  {
+   "a": "agents",
+   "b": "workflow",
+   "weight": 1
+  },
+  {
+   "a": "architectures",
+   "b": "dynamics",
+   "weight": 1
+  },
+  {
+   "a": "architectures",
+   "b": "forecasting",
+   "weight": 1
+  },
+  {
+   "a": "architectures",
+   "b": "generative",
+   "weight": 1
+  },
+  {
+   "a": "architectures",
+   "b": "llms",
+   "weight": 1
+  },
+  {
+   "a": "architectures",
+   "b": "sciml",
+   "weight": 1
+  },
+  {
+   "a": "architectures",
+   "b": "training",
+   "weight": 2
+  },
+  {
+   "a": "architectures",
+   "b": "workflow",
+   "weight": 1
+  },
+  {
+   "a": "dynamics",
+   "b": "forecasting",
+   "weight": 1
+  },
+  {
+   "a": "dynamics",
+   "b": "generative",
+   "weight": 1
+  },
+  {
+   "a": "dynamics",
+   "b": "pipelines",
+   "weight": 1
+  },
+  {
+   "a": "dynamics",
+   "b": "training",
+   "weight": 1
+  },
+  {
+   "a": "dynamics",
+   "b": "validation",
+   "weight": 1
+  },
+  {
+   "a": "dynamics",
+   "b": "workflow",
+   "weight": 1
+  },
+  {
+   "a": "forecasting",
+   "b": "llms",
+   "weight": 1
+  },
+  {
+   "a": "forecasting",
+   "b": "workflow",
+   "weight": 2
+  },
+  {
+   "a": "generative",
+   "b": "llms",
+   "weight": 1
+  },
+  {
+   "a": "generative",
+   "b": "sciml",
+   "weight": 1
+  },
+  {
+   "a": "generative",
+   "b": "training",
+   "weight": 1
+  },
+  {
+   "a": "generative",
+   "b": "uncertainty",
+   "weight": 1
+  },
+  {
+   "a": "generative",
+   "b": "workflow",
+   "weight": 1
+  },
+  {
+   "a": "llms",
+   "b": "optimization",
+   "weight": 1
+  },
+  {
+   "a": "llms",
+   "b": "sciml",
+   "weight": 1
+  },
+  {
+   "a": "llms",
+   "b": "system",
+   "weight": 1
+  },
+  {
+   "a": "llms",
+   "b": "training",
+   "weight": 1
+  },
+  {
+   "a": "llms",
+   "b": "workflow",
+   "weight": 2
+  },
+  {
+   "a": "optimization",
+   "b": "sciml",
+   "weight": 1
+  },
+  {
+   "a": "optimization",
+   "b": "uncertainty",
+   "weight": 1
+  },
+  {
+   "a": "pipelines",
+   "b": "storage",
+   "weight": 2
+  },
+  {
+   "a": "pipelines",
+   "b": "validation",
+   "weight": 1
+  },
+  {
+   "a": "pipelines",
+   "b": "workflow",
+   "weight": 2
+  },
+  {
+   "a": "reproducibility",
+   "b": "training",
+   "weight": 1
+  },
+  {
+   "a": "reproducibility",
+   "b": "workflow",
+   "weight": 2
+  },
+  {
+   "a": "sciml",
+   "b": "training",
+   "weight": 1
+  },
+  {
+   "a": "sciml",
+   "b": "workflow",
+   "weight": 1
+  },
+  {
+   "a": "system",
+   "b": "workflow",
+   "weight": 1
+  },
+  {
+   "a": "training",
+   "b": "workflow",
+   "weight": 2
+  },
+  {
+   "a": "uncertainty",
+   "b": "workflow",
+   "weight": 1
+  }
+ ],
+ "concepts": [
+  {
+   "id": "agent",
+   "term": "agent",
+   "kind": "concept",
+   "lecture": "l01",
+   "section": "A tour of the stack",
+   "href": "../lectures/l01/notes.html#a-tour-of-the-stack",
+   "theme": "system",
+   "also": []
+  },
+  {
+   "id": "algorithm-dynamics",
+   "term": "algorithm dynamics",
+   "kind": "concept",
+   "lecture": "l01",
+   "section": "Validating well is not evidence that a system works",
+   "href": "../lectures/l01/notes.html#validating-well-is-not-evidence-that-a-system-works",
+   "theme": "system",
+   "also": []
+  },
+  {
+   "id": "automatic-differentiation",
+   "term": "automatic differentiation",
+   "kind": "concept",
+   "lecture": "l01",
+   "section": "A tour of the stack",
+   "href": "../lectures/l01/notes.html#a-tour-of-the-stack",
+   "theme": "system",
+   "also": [
+    "l11"
+   ]
+  },
+  {
+   "id": "batch-processing",
+   "term": "batch processing",
+   "kind": "concept",
+   "lecture": "l01",
+   "section": "A tour of the stack",
+   "href": "../lectures/l01/notes.html#a-tour-of-the-stack",
+   "theme": "system",
+   "also": [
+    "l06"
+   ]
+  },
+  {
+   "id": "big-data-hubris",
+   "term": "big data hubris",
+   "kind": "concept",
+   "lecture": "l01",
+   "section": "Validating well is not evidence that a system works",
+   "href": "../lectures/l01/notes.html#validating-well-is-not-evidence-that-a-system-works",
+   "theme": "system",
+   "also": []
+  },
+  {
+   "id": "boeing-737-max",
+   "term": "Boeing 737 MAX",
+   "kind": "case",
+   "lecture": "l01",
+   "section": "Why engineering data is different",
+   "href": "../lectures/l01/notes.html#why-engineering-data-is-different",
+   "theme": "system",
+   "also": []
+  },
+  {
+   "id": "columnar-file",
+   "term": "columnar file",
+   "kind": "concept",
+   "lecture": "l01",
+   "section": "A tour of the stack",
+   "href": "../lectures/l01/notes.html#a-tour-of-the-stack",
+   "theme": "system",
+   "also": []
+  },
+  {
+   "id": "container",
+   "term": "container",
+   "kind": "concept",
+   "lecture": "l01",
+   "section": "A tour of the stack",
+   "href": "../lectures/l01/notes.html#a-tour-of-the-stack",
+   "theme": "system",
+   "also": []
+  },
+  {
+   "id": "context-window",
+   "term": "context window",
+   "kind": "concept",
+   "lecture": "l01",
+   "section": "A tour of the stack",
+   "href": "../lectures/l01/notes.html#a-tour-of-the-stack",
+   "theme": "system",
+   "also": [
+    "l17"
+   ]
+  },
+  {
+   "id": "data-validation",
+   "term": "data validation",
+   "kind": "concept",
+   "lecture": "l01",
+   "section": "A tour of the stack",
+   "href": "../lectures/l01/notes.html#a-tour-of-the-stack",
+   "theme": "system",
+   "also": [
+    "l06"
+   ]
+  },
+  {
+   "id": "embedded-database",
+   "term": "embedded database",
+   "kind": "concept",
+   "lecture": "l01",
+   "section": "A tour of the stack",
+   "href": "../lectures/l01/notes.html#a-tour-of-the-stack",
+   "theme": "system",
+   "also": [
+    "l04"
+   ]
+  },
+  {
+   "id": "experiment-tracking",
+   "term": "experiment tracking",
+   "kind": "concept",
+   "lecture": "l01",
+   "section": "A tour of the stack",
+   "href": "../lectures/l01/notes.html#a-tour-of-the-stack",
+   "theme": "system",
+   "also": [
+    "l02"
+   ]
+  },
+  {
+   "id": "fastapi",
+   "term": "FastAPI",
+   "kind": "concept",
+   "lecture": "l01",
+   "section": "A tour of the stack",
+   "href": "../lectures/l01/notes.html#a-tour-of-the-stack",
+   "theme": "system",
+   "also": []
+  },
+  {
+   "id": "fine-tuning",
+   "term": "fine-tuning",
+   "kind": "concept",
+   "lecture": "l01",
+   "section": "A tour of the stack",
+   "href": "../lectures/l01/notes.html#a-tour-of-the-stack",
+   "theme": "system",
+   "also": []
+  },
+  {
+   "id": "google-flu-trends",
+   "term": "Google Flu Trends",
+   "kind": "case",
+   "lecture": "l01",
+   "section": "Validating well is not evidence that a system works",
+   "href": "../lectures/l01/notes.html#validating-well-is-not-evidence-that-a-system-works",
+   "theme": "system",
+   "also": []
+  },
+  {
+   "id": "hidden-technical-debt",
+   "term": "hidden technical debt",
+   "kind": "concept",
+   "lecture": "l01",
+   "section": "The system view, and where the work actually is",
+   "href": "../lectures/l01/notes.html#the-system-view-and-where-the-work-actually-is",
+   "theme": "system",
+   "also": []
+  },
+  {
+   "id": "integration-failure",
+   "term": "integration failure",
+   "kind": "concept",
+   "lecture": "l01",
+   "section": "The system view, and where the work actually is",
+   "href": "../lectures/l01/notes.html#the-system-view-and-where-the-work-actually-is",
+   "theme": "system",
+   "also": []
+  },
+  {
+   "id": "mlops",
+   "term": "MLOps",
+   "kind": "concept",
+   "lecture": "l01",
+   "section": "A tour of the stack",
+   "href": "../lectures/l01/notes.html#a-tour-of-the-stack",
+   "theme": "system",
+   "also": []
+  },
+  {
+   "id": "prompt-injection",
+   "term": "prompt injection",
+   "kind": "failure",
+   "lecture": "l01",
+   "section": "A tour of the stack",
+   "href": "../lectures/l01/notes.html#a-tour-of-the-stack",
+   "theme": "system",
+   "also": [
+    "l18"
+   ]
+  },
+  {
+   "id": "prompting",
+   "term": "prompting",
+   "kind": "concept",
+   "lecture": "l01",
+   "section": "A tour of the stack",
+   "href": "../lectures/l01/notes.html#a-tour-of-the-stack",
+   "theme": "system",
+   "also": []
+  },
+  {
+   "id": "provenance",
+   "term": "provenance",
+   "kind": "concept",
+   "lecture": "l01",
+   "section": "Why engineering data is different",
+   "href": "../lectures/l01/notes.html#why-engineering-data-is-different",
+   "theme": "system",
+   "also": [
+    "l02"
+   ]
+  },
+  {
+   "id": "public-health-england-case-loss",
+   "term": "Public Health England case loss",
+   "kind": "case",
+   "lecture": "l01",
+   "section": "The system view, and where the work actually is",
+   "href": "../lectures/l01/notes.html#the-system-view-and-where-the-work-actually-is",
+   "theme": "system",
+   "also": []
+  },
+  {
+   "id": "relational-database",
+   "term": "relational database",
+   "kind": "concept",
+   "lecture": "l01",
+   "section": "A tour of the stack",
+   "href": "../lectures/l01/notes.html#a-tour-of-the-stack",
+   "theme": "system",
+   "also": []
+  },
+  {
+   "id": "retrieval-augmented-generation",
+   "term": "retrieval-augmented generation",
+   "kind": "concept",
+   "lecture": "l01",
+   "section": "A tour of the stack",
+   "href": "../lectures/l01/notes.html#a-tour-of-the-stack",
+   "theme": "system",
+   "also": [
+    "l18"
+   ]
+  },
+  {
+   "id": "sensor-calibration",
+   "term": "sensor calibration",
+   "kind": "concept",
+   "lecture": "l01",
+   "section": "Why engineering data is different",
+   "href": "../lectures/l01/notes.html#why-engineering-data-is-different",
+   "theme": "system",
+   "also": []
+  },
+  {
+   "id": "sensor-drift",
+   "term": "sensor drift",
+   "kind": "concept",
+   "lecture": "l01",
+   "section": "Why engineering data is different",
+   "href": "../lectures/l01/notes.html#why-engineering-data-is-different",
+   "theme": "system",
+   "also": []
+  },
+  {
+   "id": "stream-processing",
+   "term": "stream processing",
+   "kind": "concept",
+   "lecture": "l01",
+   "section": "A tour of the stack",
+   "href": "../lectures/l01/notes.html#a-tour-of-the-stack",
+   "theme": "system",
+   "also": []
+  },
+  {
+   "id": "token",
+   "term": "token",
+   "kind": "concept",
+   "lecture": "l01",
+   "section": "A tour of the stack",
+   "href": "../lectures/l01/notes.html#a-tour-of-the-stack",
+   "theme": "system",
+   "also": [
+    "l17"
+   ]
+  },
+  {
+   "id": "vector-database",
+   "term": "vector database",
+   "kind": "concept",
+   "lecture": "l01",
+   "section": "A tour of the stack",
+   "href": "../lectures/l01/notes.html#a-tour-of-the-stack",
+   "theme": "system",
+   "also": [
+    "l18"
+   ]
+  },
+  {
+   "id": "content-hash",
+   "term": "content hash",
+   "kind": "concept",
+   "lecture": "l02",
+   "section": "Versioning code, data, and models are three different problems",
+   "href": "../lectures/l02/notes.html#versioning-code-data-and-models-are-three-different-problems",
+   "theme": "reproducibility",
+   "also": []
+  },
+  {
+   "id": "data-versioning",
+   "term": "data versioning",
+   "kind": "concept",
+   "lecture": "l02",
+   "section": "Versioning code, data, and models are three different problems",
+   "href": "../lectures/l02/notes.html#versioning-code-data-and-models-are-three-different-problems",
+   "theme": "reproducibility",
+   "also": []
+  },
+  {
+   "id": "dependency-resolution",
+   "term": "dependency resolution",
+   "kind": "concept",
+   "lecture": "l02",
+   "section": "Environments you can rebuild",
+   "href": "../lectures/l02/notes.html#environments-you-can-rebuild",
+   "theme": "reproducibility",
+   "also": []
+  },
+  {
+   "id": "dvc",
+   "term": "DVC",
+   "kind": "concept",
+   "lecture": "l02",
+   "section": "Versioning code, data, and models are three different problems",
+   "href": "../lectures/l02/notes.html#versioning-code-data-and-models-are-three-different-problems",
+   "theme": "reproducibility",
+   "also": []
+  },
+  {
+   "id": "lockfile",
+   "term": "lockfile",
+   "kind": "concept",
+   "lecture": "l02",
+   "section": "Environments you can rebuild",
+   "href": "../lectures/l02/notes.html#environments-you-can-rebuild",
+   "theme": "reproducibility",
+   "also": []
+  },
+  {
+   "id": "mlflow",
+   "term": "MLflow",
+   "kind": "concept",
+   "lecture": "l02",
+   "section": "Experiment hygiene: one run, one fact",
+   "href": "../lectures/l02/notes.html#experiment-hygiene-one-run-one-fact",
+   "theme": "reproducibility",
+   "also": []
+  },
+  {
+   "id": "notebook-to-module",
+   "term": "notebook to module",
+   "kind": "concept",
+   "lecture": "l02",
+   "section": "From notebook to module",
+   "href": "../lectures/l02/notes.html#from-notebook-to-module",
+   "theme": "reproducibility",
+   "also": []
+  },
+  {
+   "id": "project-scaffold",
+   "term": "project scaffold",
+   "kind": "concept",
+   "lecture": "l02",
+   "section": "A project layout that scales",
+   "href": "../lectures/l02/notes.html#a-project-layout-that-scales",
+   "theme": "reproducibility",
+   "also": []
+  },
+  {
+   "id": "pyproject-toml",
+   "term": "pyproject.toml",
+   "kind": "concept",
+   "lecture": "l02",
+   "section": "A project layout that scales",
+   "href": "../lectures/l02/notes.html#a-project-layout-that-scales",
+   "theme": "reproducibility",
+   "also": []
+  },
+  {
+   "id": "random-seed",
+   "term": "random seed",
+   "kind": "concept",
+   "lecture": "l02",
+   "section": "From notebook to module",
+   "href": "../lectures/l02/notes.html#from-notebook-to-module",
+   "theme": "reproducibility",
+   "also": [
+    "l11"
+   ]
+  },
+  {
+   "id": "reproducible-but-wrong",
+   "term": "reproducible but wrong",
+   "kind": "failure",
+   "lecture": "l02",
+   "section": "Where reproducibility can bring challenges",
+   "href": "../lectures/l02/notes.html#where-reproducibility-can-bring-challenges",
+   "theme": "reproducibility",
+   "also": []
+  },
+  {
+   "id": "resolver",
+   "term": "resolver",
+   "kind": "concept",
+   "lecture": "l02",
+   "section": "Environments you can rebuild",
+   "href": "../lectures/l02/notes.html#environments-you-can-rebuild",
+   "theme": "reproducibility",
+   "also": []
+  },
+  {
+   "id": "uv",
+   "term": "uv",
+   "kind": "concept",
+   "lecture": "l02",
+   "section": "Environments you can rebuild",
+   "href": "../lectures/l02/notes.html#environments-you-can-rebuild",
+   "theme": "reproducibility",
+   "also": []
+  },
+  {
+   "id": "version-control",
+   "term": "version control",
+   "kind": "concept",
+   "lecture": "l02",
+   "section": "Versioning code, data, and models are three different problems",
+   "href": "../lectures/l02/notes.html#versioning-code-data-and-models-are-three-different-problems",
+   "theme": "reproducibility",
+   "also": []
+  },
+  {
+   "id": "virtual-environment",
+   "term": "virtual environment",
+   "kind": "concept",
+   "lecture": "l02",
+   "section": "Environments you can rebuild",
+   "href": "../lectures/l02/notes.html#environments-you-can-rebuild",
+   "theme": "reproducibility",
+   "also": []
+  },
+  {
+   "id": "leap-second",
+   "term": "2012 leap second",
+   "kind": "case",
+   "lecture": "l03",
+   "section": "Types that carry physical meaning",
+   "href": "../lectures/l03/notes.html#types-that-carry-physical-meaning",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "b-tree",
+   "term": "B-tree",
+   "kind": "concept",
+   "lecture": "l03",
+   "section": "Making range queries fast: indexes and EXPLAIN ANALYZE",
+   "href": "../lectures/l03/notes.html#making-range-queries-fast-indexes-and-explain-analyze",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "copy",
+   "term": "COPY",
+   "kind": "concept",
+   "lecture": "l03",
+   "section": "Getting data in: COPY, psql, and Python",
+   "href": "../lectures/l03/notes.html#getting-data-in-copy-psql-and-python",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "database-index",
+   "term": "database index",
+   "kind": "concept",
+   "lecture": "l03",
+   "section": "Making range queries fast: indexes and EXPLAIN ANALYZE",
+   "href": "../lectures/l03/notes.html#making-range-queries-fast-indexes-and-explain-analyze",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "double-precision",
+   "term": "double precision",
+   "kind": "concept",
+   "lecture": "l03",
+   "section": "Types that carry physical meaning",
+   "href": "../lectures/l03/notes.html#types-that-carry-physical-meaning",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "explain-analyze",
+   "term": "EXPLAIN ANALYZE",
+   "kind": "concept",
+   "lecture": "l03",
+   "section": "Making range queries fast: indexes and EXPLAIN ANALYZE",
+   "href": "../lectures/l03/notes.html#making-range-queries-fast-indexes-and-explain-analyze",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "foreign-key",
+   "term": "foreign key",
+   "kind": "concept",
+   "lecture": "l03",
+   "section": "The relational model, and why long beats wide",
+   "href": "../lectures/l03/notes.html#the-relational-model-and-why-long-beats-wide",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "hypertable",
+   "term": "hypertable",
+   "kind": "concept",
+   "lecture": "l03",
+   "section": "Making range queries fast: indexes and EXPLAIN ANALYZE",
+   "href": "../lectures/l03/notes.html#making-range-queries-fast-indexes-and-explain-analyze",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "long-format",
+   "term": "long format",
+   "kind": "concept",
+   "lecture": "l03",
+   "section": "The relational model, and why long beats wide",
+   "href": "../lectures/l03/notes.html#the-relational-model-and-why-long-beats-wide",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "normalization",
+   "term": "normalization",
+   "kind": "concept",
+   "lecture": "l03",
+   "section": "The relational model, and why long beats wide",
+   "href": "../lectures/l03/notes.html#the-relational-model-and-why-long-beats-wide",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "null-in-a-comparison",
+   "term": "NULL in a comparison",
+   "kind": "failure",
+   "lecture": "l03",
+   "section": "Where the relational model pushes back",
+   "href": "../lectures/l03/notes.html#where-the-relational-model-pushes-back",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "numeric",
+   "term": "numeric",
+   "kind": "concept",
+   "lecture": "l03",
+   "section": "Types that carry physical meaning",
+   "href": "../lectures/l03/notes.html#types-that-carry-physical-meaning",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "postgresql",
+   "term": "PostgreSQL",
+   "kind": "concept",
+   "lecture": "l03",
+   "section": "Types that carry physical meaning",
+   "href": "../lectures/l03/notes.html#types-that-carry-physical-meaning",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "primary-key",
+   "term": "primary key",
+   "kind": "concept",
+   "lecture": "l03",
+   "section": "The relational model, and why long beats wide",
+   "href": "../lectures/l03/notes.html#the-relational-model-and-why-long-beats-wide",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "relational-model",
+   "term": "relational model",
+   "kind": "concept",
+   "lecture": "l03",
+   "section": "The relational model, and why long beats wide",
+   "href": "../lectures/l03/notes.html#the-relational-model-and-why-long-beats-wide",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "staging-table",
+   "term": "staging table",
+   "kind": "concept",
+   "lecture": "l03",
+   "section": "Getting data in: COPY, psql, and Python",
+   "href": "../lectures/l03/notes.html#getting-data-in-copy-psql-and-python",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "three-valued-logic",
+   "term": "three-valued logic",
+   "kind": "concept",
+   "lecture": "l03",
+   "section": "Where the relational model pushes back",
+   "href": "../lectures/l03/notes.html#where-the-relational-model-pushes-back",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "timestamptz",
+   "term": "timestamptz",
+   "kind": "concept",
+   "lecture": "l03",
+   "section": "Types that carry physical meaning",
+   "href": "../lectures/l03/notes.html#types-that-carry-physical-meaning",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "window-function",
+   "term": "window function",
+   "kind": "concept",
+   "lecture": "l03",
+   "section": "SQL that answers engineering questions",
+   "href": "../lectures/l03/notes.html#sql-that-answers-engineering-questions",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "column-projection",
+   "term": "column projection",
+   "kind": "concept",
+   "lecture": "l04",
+   "section": "Row stores and column stores",
+   "href": "../lectures/l04/notes.html#row-stores-and-column-stores",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "column-store",
+   "term": "column store",
+   "kind": "concept",
+   "lecture": "l04",
+   "section": "Row stores and column stores",
+   "href": "../lectures/l04/notes.html#row-stores-and-column-stores",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "compression",
+   "term": "compression",
+   "kind": "concept",
+   "lecture": "l04",
+   "section": "Row stores and column stores",
+   "href": "../lectures/l04/notes.html#row-stores-and-column-stores",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "document-store",
+   "term": "document store",
+   "kind": "concept",
+   "lecture": "l04",
+   "section": "The other stores, in one line each",
+   "href": "../lectures/l04/notes.html#the-other-stores-in-one-line-each",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "duckdb",
+   "term": "DuckDB",
+   "kind": "concept",
+   "lecture": "l04",
+   "section": "DuckDB: SQL analytics inside your process",
+   "href": "../lectures/l04/notes.html#duckdb-sql-analytics-inside-your-process",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "duckdb-as-a-shared-server",
+   "term": "DuckDB as a shared server",
+   "kind": "failure",
+   "lecture": "l04",
+   "section": "Where columns and DuckDB stop helping",
+   "href": "../lectures/l04/notes.html#where-columns-and-duckdb-stop-helping",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "key-value-store",
+   "term": "key-value store",
+   "kind": "concept",
+   "lecture": "l04",
+   "section": "The other stores, in one line each",
+   "href": "../lectures/l04/notes.html#the-other-stores-in-one-line-each",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "olap",
+   "term": "OLAP",
+   "kind": "concept",
+   "lecture": "l04",
+   "section": "Row stores and column stores",
+   "href": "../lectures/l04/notes.html#row-stores-and-column-stores",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "oltp",
+   "term": "OLTP",
+   "kind": "concept",
+   "lecture": "l04",
+   "section": "Row stores and column stores",
+   "href": "../lectures/l04/notes.html#row-stores-and-column-stores",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "parquet",
+   "term": "Parquet",
+   "kind": "concept",
+   "lecture": "l04",
+   "section": "Parquet: a columnar file format",
+   "href": "../lectures/l04/notes.html#parquet-a-columnar-file-format",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "partitioning",
+   "term": "partitioning",
+   "kind": "concept",
+   "lecture": "l04",
+   "section": "Parquet: a columnar file format",
+   "href": "../lectures/l04/notes.html#parquet-a-columnar-file-format",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "point-writes-to-a-column-store",
+   "term": "point writes to a column store",
+   "kind": "failure",
+   "lecture": "l04",
+   "section": "Where columns and DuckDB stop helping",
+   "href": "../lectures/l04/notes.html#where-columns-and-duckdb-stop-helping",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "predicate-pushdown",
+   "term": "predicate pushdown",
+   "kind": "concept",
+   "lecture": "l04",
+   "section": "Row stores and column stores",
+   "href": "../lectures/l04/notes.html#row-stores-and-column-stores",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "row-group",
+   "term": "row group",
+   "kind": "concept",
+   "lecture": "l04",
+   "section": "Parquet: a columnar file format",
+   "href": "../lectures/l04/notes.html#parquet-a-columnar-file-format",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "row-store",
+   "term": "row store",
+   "kind": "concept",
+   "lecture": "l04",
+   "section": "Row stores and column stores",
+   "href": "../lectures/l04/notes.html#row-stores-and-column-stores",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "time-series-database",
+   "term": "time-series database",
+   "kind": "concept",
+   "lecture": "l04",
+   "section": "The other stores, in one line each",
+   "href": "../lectures/l04/notes.html#the-other-stores-in-one-line-each",
+   "theme": "storage",
+   "also": []
+  },
+  {
+   "id": "apache-arrow",
+   "term": "Apache Arrow",
+   "kind": "concept",
+   "lecture": "l05",
+   "section": "Polars: plan the work, then run it",
+   "href": "../lectures/l05/notes.html#polars-plan-the-work-then-run-it",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "batch-pipeline",
+   "term": "batch pipeline",
+   "kind": "concept",
+   "lecture": "l05",
+   "section": "Making it safe to rerun",
+   "href": "../lectures/l05/notes.html#making-it-safe-to-rerun",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "caching",
+   "term": "caching",
+   "kind": "concept",
+   "lecture": "l05",
+   "section": "Making it safe to rerun",
+   "href": "../lectures/l05/notes.html#making-it-safe-to-rerun",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "dataframe",
+   "term": "dataframe",
+   "kind": "concept",
+   "lecture": "l05",
+   "section": "What carries over from SQL",
+   "href": "../lectures/l05/notes.html#what-carries-over-from-sql",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "eager-execution",
+   "term": "eager execution",
+   "kind": "concept",
+   "lecture": "l05",
+   "section": "Polars: plan the work, then run it",
+   "href": "../lectures/l05/notes.html#polars-plan-the-work-then-run-it",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "idempotency",
+   "term": "idempotency",
+   "kind": "concept",
+   "lecture": "l05",
+   "section": "Making it safe to rerun",
+   "href": "../lectures/l05/notes.html#making-it-safe-to-rerun",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "lazy-evaluation",
+   "term": "lazy evaluation",
+   "kind": "concept",
+   "lecture": "l05",
+   "section": "Polars: plan the work, then run it",
+   "href": "../lectures/l05/notes.html#polars-plan-the-work-then-run-it",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "polars",
+   "term": "Polars",
+   "kind": "concept",
+   "lecture": "l05",
+   "section": "Polars: plan the work, then run it",
+   "href": "../lectures/l05/notes.html#polars-plan-the-work-then-run-it",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "pure-function",
+   "term": "pure function",
+   "kind": "concept",
+   "lecture": "l05",
+   "section": "Making it safe to rerun",
+   "href": "../lectures/l05/notes.html#making-it-safe-to-rerun",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "undocumented-fill-value",
+   "term": "undocumented fill value",
+   "kind": "failure",
+   "lecture": "l05",
+   "section": "Where this pushes back",
+   "href": "../lectures/l05/notes.html#where-this-pushes-back",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "vectorization",
+   "term": "vectorization",
+   "kind": "concept",
+   "lecture": "l05",
+   "section": "What carries over from SQL",
+   "href": "../lectures/l05/notes.html#what-carries-over-from-sql",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "accumulation-mode",
+   "term": "accumulation mode",
+   "kind": "concept",
+   "lecture": "l06",
+   "section": "Windows, event time, and watermarks",
+   "href": "../lectures/l06/notes.html#windows-event-time-and-watermarks",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "backpressure",
+   "term": "backpressure",
+   "kind": "concept",
+   "lecture": "l06",
+   "section": "Batch, streaming, and the log",
+   "href": "../lectures/l06/notes.html#batch-streaming-and-the-log",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "clock-drift",
+   "term": "clock drift",
+   "kind": "failure",
+   "lecture": "l06",
+   "section": "Where streaming and validation push back",
+   "href": "../lectures/l06/notes.html#where-streaming-and-validation-push-back",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "data-contract",
+   "term": "data contract",
+   "kind": "concept",
+   "lecture": "l06",
+   "section": "Data validation: checks as a gate",
+   "href": "../lectures/l06/notes.html#data-validation-checks-as-a-gate",
+   "theme": "validation",
+   "also": []
+  },
+  {
+   "id": "delivery-semantics",
+   "term": "delivery semantics",
+   "kind": "concept",
+   "lecture": "l06",
+   "section": "Batch, streaming, and the log",
+   "href": "../lectures/l06/notes.html#batch-streaming-and-the-log",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "event-time",
+   "term": "event time",
+   "kind": "concept",
+   "lecture": "l06",
+   "section": "Windows, event time, and watermarks",
+   "href": "../lectures/l06/notes.html#windows-event-time-and-watermarks",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "great-expectations",
+   "term": "Great Expectations",
+   "kind": "concept",
+   "lecture": "l06",
+   "section": "Data validation: checks as a gate",
+   "href": "../lectures/l06/notes.html#data-validation-checks-as-a-gate",
+   "theme": "validation",
+   "also": []
+  },
+  {
+   "id": "kafka",
+   "term": "Kafka",
+   "kind": "concept",
+   "lecture": "l06",
+   "section": "Batch, streaming, and the log",
+   "href": "../lectures/l06/notes.html#batch-streaming-and-the-log",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "late-data",
+   "term": "late data",
+   "kind": "concept",
+   "lecture": "l06",
+   "section": "Windows, event time, and watermarks",
+   "href": "../lectures/l06/notes.html#windows-event-time-and-watermarks",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "log",
+   "term": "log",
+   "kind": "concept",
+   "lecture": "l06",
+   "section": "Batch, streaming, and the log",
+   "href": "../lectures/l06/notes.html#batch-streaming-and-the-log",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "micro-batch",
+   "term": "micro-batch",
+   "kind": "concept",
+   "lecture": "l06",
+   "section": "Batch, streaming, and the log",
+   "href": "../lectures/l06/notes.html#batch-streaming-and-the-log",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "offset",
+   "term": "offset",
+   "kind": "concept",
+   "lecture": "l06",
+   "section": "Batch, streaming, and the log",
+   "href": "../lectures/l06/notes.html#batch-streaming-and-the-log",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "pandera",
+   "term": "pandera",
+   "kind": "concept",
+   "lecture": "l06",
+   "section": "Data validation: checks as a gate",
+   "href": "../lectures/l06/notes.html#data-validation-checks-as-a-gate",
+   "theme": "validation",
+   "also": []
+  },
+  {
+   "id": "processing-time",
+   "term": "processing time",
+   "kind": "concept",
+   "lecture": "l06",
+   "section": "Windows, event time, and watermarks",
+   "href": "../lectures/l06/notes.html#windows-event-time-and-watermarks",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "quarantine",
+   "term": "quarantine",
+   "kind": "concept",
+   "lecture": "l06",
+   "section": "Data validation: checks as a gate",
+   "href": "../lectures/l06/notes.html#data-validation-checks-as-a-gate",
+   "theme": "validation",
+   "also": []
+  },
+  {
+   "id": "schema-check",
+   "term": "schema check",
+   "kind": "concept",
+   "lecture": "l06",
+   "section": "Data validation: checks as a gate",
+   "href": "../lectures/l06/notes.html#data-validation-checks-as-a-gate",
+   "theme": "validation",
+   "also": []
+  },
+  {
+   "id": "session-window",
+   "term": "session window",
+   "kind": "concept",
+   "lecture": "l06",
+   "section": "Windows, event time, and watermarks",
+   "href": "../lectures/l06/notes.html#windows-event-time-and-watermarks",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "sliding-window",
+   "term": "sliding window",
+   "kind": "concept",
+   "lecture": "l06",
+   "section": "Windows, event time, and watermarks",
+   "href": "../lectures/l06/notes.html#windows-event-time-and-watermarks",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "streaming",
+   "term": "streaming",
+   "kind": "concept",
+   "lecture": "l06",
+   "section": "Batch, streaming, and the log",
+   "href": "../lectures/l06/notes.html#batch-streaming-and-the-log",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "trigger",
+   "term": "trigger",
+   "kind": "concept",
+   "lecture": "l06",
+   "section": "Windows, event time, and watermarks",
+   "href": "../lectures/l06/notes.html#windows-event-time-and-watermarks",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "tumbling-window",
+   "term": "tumbling window",
+   "kind": "concept",
+   "lecture": "l06",
+   "section": "Windows, event time, and watermarks",
+   "href": "../lectures/l06/notes.html#windows-event-time-and-watermarks",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "watermark",
+   "term": "watermark",
+   "kind": "concept",
+   "lecture": "l06",
+   "section": "Windows, event time, and watermarks",
+   "href": "../lectures/l06/notes.html#windows-event-time-and-watermarks",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "windowing",
+   "term": "windowing",
+   "kind": "concept",
+   "lecture": "l06",
+   "section": "Windows, event time, and watermarks",
+   "href": "../lectures/l06/notes.html#windows-event-time-and-watermarks",
+   "theme": "pipelines",
+   "also": []
+  },
+  {
+   "id": "an-input-that-never-moved",
+   "term": "an input that never moved",
+   "kind": "failure",
+   "lecture": "l07",
+   "section": "Limitations: what the data cannot answer",
+   "href": "../lectures/l07/notes.html#limitations-what-the-data-cannot-answer",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "arx",
+   "term": "ARX",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Continuous-time and discrete-time models",
+   "href": "../lectures/l07/notes.html#continuous-time-and-discrete-time-models",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "closed-loop-identification",
+   "term": "closed-loop identification",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Limitations: what the data cannot answer",
+   "href": "../lectures/l07/notes.html#limitations-what-the-data-cannot-answer",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "continuous-time-model",
+   "term": "continuous-time model",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Continuous-time and discrete-time models",
+   "href": "../lectures/l07/notes.html#continuous-time-and-discrete-time-models",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "data-leakage",
+   "term": "data leakage",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Data leakage",
+   "href": "../lectures/l07/notes.html#data-leakage",
+   "theme": "validation",
+   "also": [
+    "l11"
+   ]
+  },
+  {
+   "id": "design-matrix",
+   "term": "design matrix",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Multiple lags and the regression vector",
+   "href": "../lectures/l07/notes.html#multiple-lags-and-the-regression-vector",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "deviation-variable",
+   "term": "deviation variable",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Least squares and the conversion to physics",
+   "href": "../lectures/l07/notes.html#least-squares-and-the-conversion-to-physics",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "discrete-time-model",
+   "term": "discrete-time model",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Continuous-time and discrete-time models",
+   "href": "../lectures/l07/notes.html#continuous-time-and-discrete-time-models",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "dynamic-process",
+   "term": "dynamic process",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "The loop, and the data we have of it",
+   "href": "../lectures/l07/notes.html#the-loop-and-the-data-we-have-of-it",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "feature-table",
+   "term": "feature table",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Data leakage",
+   "href": "../lectures/l07/notes.html#data-leakage",
+   "theme": "validation",
+   "also": []
+  },
+  {
+   "id": "first-order-process",
+   "term": "first-order process",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Continuous-time and discrete-time models",
+   "href": "../lectures/l07/notes.html#continuous-time-and-discrete-time-models",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "forward-fill",
+   "term": "forward fill",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Common data preparation operations",
+   "href": "../lectures/l07/notes.html#common-data-preparation-operations",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "identifiability",
+   "term": "identifiability",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Limitations: what the data cannot answer",
+   "href": "../lectures/l07/notes.html#limitations-what-the-data-cannot-answer",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "lag-plot",
+   "term": "lag plot",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Continuous-time and discrete-time models",
+   "href": "../lectures/l07/notes.html#continuous-time-and-discrete-time-models",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "least-squares",
+   "term": "least squares",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Least squares and the conversion to physics",
+   "href": "../lectures/l07/notes.html#least-squares-and-the-conversion-to-physics",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "look-ahead-bias",
+   "term": "look-ahead bias",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Data leakage",
+   "href": "../lectures/l07/notes.html#data-leakage",
+   "theme": "validation",
+   "also": []
+  },
+  {
+   "id": "narx",
+   "term": "NARX",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Model structures: ARX, NARX, state space, RNN",
+   "href": "../lectures/l07/notes.html#model-structures-arx-narx-state-space-rnn",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "persistent-excitation",
+   "term": "persistent excitation",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Limitations: what the data cannot answer",
+   "href": "../lectures/l07/notes.html#limitations-what-the-data-cannot-answer",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "recurrent-neural-network",
+   "term": "recurrent neural network",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Model structures: ARX, NARX, state space, RNN",
+   "href": "../lectures/l07/notes.html#model-structures-arx-narx-state-space-rnn",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "regression-vector",
+   "term": "regression vector",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Multiple lags and the regression vector",
+   "href": "../lectures/l07/notes.html#multiple-lags-and-the-regression-vector",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "resampling",
+   "term": "resampling",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Common data preparation operations",
+   "href": "../lectures/l07/notes.html#common-data-preparation-operations",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "reversed-causality-under-closed-loop-control",
+   "term": "reversed causality under closed-loop control",
+   "kind": "case",
+   "lecture": "l07",
+   "section": "Limitations: what the data cannot answer",
+   "href": "../lectures/l07/notes.html#limitations-what-the-data-cannot-answer",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "rolling-window",
+   "term": "rolling window",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Common data preparation operations",
+   "href": "../lectures/l07/notes.html#common-data-preparation-operations",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "run-boundary",
+   "term": "run boundary",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Data leakage",
+   "href": "../lectures/l07/notes.html#data-leakage",
+   "theme": "validation",
+   "also": []
+  },
+  {
+   "id": "sampling-interval",
+   "term": "sampling interval",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Common data preparation operations",
+   "href": "../lectures/l07/notes.html#common-data-preparation-operations",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "shifting-across-a-run-boundary",
+   "term": "shifting across a run boundary",
+   "kind": "failure",
+   "lecture": "l07",
+   "section": "Data leakage",
+   "href": "../lectures/l07/notes.html#data-leakage",
+   "theme": "validation",
+   "also": []
+  },
+  {
+   "id": "state-space-model",
+   "term": "state-space model",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Model structures: ARX, NARX, state space, RNN",
+   "href": "../lectures/l07/notes.html#model-structures-arx-narx-state-space-rnn",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "steady-state",
+   "term": "steady state",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "The loop, and the data we have of it",
+   "href": "../lectures/l07/notes.html#the-loop-and-the-data-we-have-of-it",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "steady-state-gain",
+   "term": "steady-state gain",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Continuous-time and discrete-time models",
+   "href": "../lectures/l07/notes.html#continuous-time-and-discrete-time-models",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "target-leakage",
+   "term": "target leakage",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Data leakage",
+   "href": "../lectures/l07/notes.html#data-leakage",
+   "theme": "validation",
+   "also": []
+  },
+  {
+   "id": "time-constant",
+   "term": "time constant",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Continuous-time and discrete-time models",
+   "href": "../lectures/l07/notes.html#continuous-time-and-discrete-time-models",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "time-plot",
+   "term": "time plot",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "The loop, and the data we have of it",
+   "href": "../lectures/l07/notes.html#the-loop-and-the-data-we-have-of-it",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "zero-order-hold",
+   "term": "zero-order hold",
+   "kind": "concept",
+   "lecture": "l07",
+   "section": "Continuous-time and discrete-time models",
+   "href": "../lectures/l07/notes.html#continuous-time-and-discrete-time-models",
+   "theme": "dynamics",
+   "also": []
+  },
+  {
+   "id": "anomaly-detection",
+   "term": "anomaly detection",
+   "kind": "concept",
+   "lecture": "l08",
+   "section": "Residuals: diagnosis and detection",
+   "href": "../lectures/l08/notes.html#residuals-diagnosis-and-detection",
+   "theme": "forecasting",
+   "also": []
+  },
+  {
+   "id": "autocorrelation",
+   "term": "autocorrelation",
+   "kind": "concept",
+   "lecture": "l08",
+   "section": "What makes a series forecastable",
+   "href": "../lectures/l08/notes.html#what-makes-a-series-forecastable",
+   "theme": "forecasting",
+   "also": []
+  },
+  {
+   "id": "baseline",
+   "term": "baseline",
+   "kind": "concept",
+   "lecture": "l08",
+   "section": "Baselines and skill",
+   "href": "../lectures/l08/notes.html#baselines-and-skill",
+   "theme": "forecasting",
+   "also": []
+  },
+  {
+   "id": "detection-delay",
+   "term": "detection delay",
+   "kind": "concept",
+   "lecture": "l08",
+   "section": "Residuals: diagnosis and detection",
+   "href": "../lectures/l08/notes.html#residuals-diagnosis-and-detection",
+   "theme": "forecasting",
+   "also": []
+  },
+  {
+   "id": "direct-forecasting",
+   "term": "direct forecasting",
+   "kind": "concept",
+   "lecture": "l08",
+   "section": "Model families and multi-step strategies",
+   "href": "../lectures/l08/notes.html#model-families-and-multi-step-strategies",
+   "theme": "forecasting",
+   "also": []
+  },
+  {
+   "id": "false-alarm-rate",
+   "term": "false-alarm rate",
+   "kind": "concept",
+   "lecture": "l08",
+   "section": "Residuals: diagnosis and detection",
+   "href": "../lectures/l08/notes.html#residuals-diagnosis-and-detection",
+   "theme": "forecasting",
+   "also": []
+  },
+  {
+   "id": "forecast-horizon",
+   "term": "forecast horizon",
+   "kind": "concept",
+   "lecture": "l08",
+   "section": "Time series as supervised learning",
+   "href": "../lectures/l08/notes.html#time-series-as-supervised-learning",
+   "theme": "forecasting",
+   "also": []
+  },
+  {
+   "id": "forecasting-across-a-regime-change",
+   "term": "forecasting across a regime change",
+   "kind": "failure",
+   "lecture": "l08",
+   "section": "Limitations: when a forecaster fails",
+   "href": "../lectures/l08/notes.html#limitations-when-a-forecaster-fails",
+   "theme": "forecasting",
+   "also": []
+  },
+  {
+   "id": "forward-chaining",
+   "term": "forward chaining",
+   "kind": "concept",
+   "lecture": "l08",
+   "section": "Evaluating on time",
+   "href": "../lectures/l08/notes.html#evaluating-on-time",
+   "theme": "forecasting",
+   "also": []
+  },
+  {
+   "id": "hyperparameter",
+   "term": "hyperparameter",
+   "kind": "concept",
+   "lecture": "l08",
+   "section": "Time series as supervised learning",
+   "href": "../lectures/l08/notes.html#time-series-as-supervised-learning",
+   "theme": "forecasting",
+   "also": []
+  },
+  {
+   "id": "m4-forecasting-competition",
+   "term": "M4 forecasting competition",
+   "kind": "case",
+   "lecture": "l08",
+   "section": "Baselines and skill",
+   "href": "../lectures/l08/notes.html#baselines-and-skill",
+   "theme": "forecasting",
+   "also": []
+  },
+  {
+   "id": "mase",
+   "term": "MASE",
+   "kind": "metric",
+   "lecture": "l08",
+   "section": "Baselines and skill",
+   "href": "../lectures/l08/notes.html#baselines-and-skill",
+   "theme": "forecasting",
+   "also": []
+  },
+  {
+   "id": "meese-and-rogoff-exchange-rate-forecasts",
+   "term": "Meese and Rogoff exchange-rate forecasts",
+   "kind": "case",
+   "lecture": "l08",
+   "section": "Baselines and skill",
+   "href": "../lectures/l08/notes.html#baselines-and-skill",
+   "theme": "forecasting",
+   "also": []
+  },
+  {
+   "id": "persistence-forecast",
+   "term": "persistence forecast",
+   "kind": "concept",
+   "lecture": "l08",
+   "section": "Baselines and skill",
+   "href": "../lectures/l08/notes.html#baselines-and-skill",
+   "theme": "forecasting",
+   "also": []
+  },
+  {
+   "id": "random-walk",
+   "term": "random walk",
+   "kind": "concept",
+   "lecture": "l08",
+   "section": "What makes a series forecastable",
+   "href": "../lectures/l08/notes.html#what-makes-a-series-forecastable",
+   "theme": "forecasting",
+   "also": []
+  },
+  {
+   "id": "recursive-error-accumulation",
+   "term": "recursive error accumulation",
+   "kind": "failure",
+   "lecture": "l08",
+   "section": "Model families and multi-step strategies",
+   "href": "../lectures/l08/notes.html#model-families-and-multi-step-strategies",
+   "theme": "forecasting",
+   "also": []
+  },
+  {
+   "id": "recursive-forecasting",
+   "term": "recursive forecasting",
+   "kind": "concept",
+   "lecture": "l08",
+   "section": "Model families and multi-step strategies",
+   "href": "../lectures/l08/notes.html#model-families-and-multi-step-strategies",
+   "theme": "forecasting",
+   "also": []
+  },
+  {
+   "id": "rolling-origin",
+   "term": "rolling origin",
+   "kind": "concept",
+   "lecture": "l08",
+   "section": "Evaluating on time",
+   "href": "../lectures/l08/notes.html#evaluating-on-time",
+   "theme": "forecasting",
+   "also": []
+  },
+  {
+   "id": "shuffling-a-time-series-before-splitting",
+   "term": "shuffling a time series before splitting",
+   "kind": "failure",
+   "lecture": "l08",
+   "section": "Evaluating on time",
+   "href": "../lectures/l08/notes.html#evaluating-on-time",
+   "theme": "forecasting",
+   "also": []
+  },
+  {
+   "id": "skill-score",
+   "term": "skill score",
+   "kind": "concept",
+   "lecture": "l08",
+   "section": "Baselines and skill",
+   "href": "../lectures/l08/notes.html#baselines-and-skill",
+   "theme": "forecasting",
+   "also": []
+  },
+  {
+   "id": "stationarity",
+   "term": "stationarity",
+   "kind": "concept",
+   "lecture": "l08",
+   "section": "What makes a series forecastable",
+   "href": "../lectures/l08/notes.html#what-makes-a-series-forecastable",
+   "theme": "forecasting",
+   "also": []
+  },
+  {
+   "id": "supervised-learning",
+   "term": "supervised learning",
+   "kind": "concept",
+   "lecture": "l08",
+   "section": "Time series as supervised learning",
+   "href": "../lectures/l08/notes.html#time-series-as-supervised-learning",
+   "theme": "forecasting",
+   "also": []
+  },
+  {
+   "id": "timeseriessplit",
+   "term": "TimeSeriesSplit",
+   "kind": "concept",
+   "lecture": "l08",
+   "section": "Evaluating on time",
+   "href": "../lectures/l08/notes.html#evaluating-on-time",
+   "theme": "forecasting",
+   "also": []
+  },
+  {
+   "id": "unit-root-test",
+   "term": "unit root test",
+   "kind": "concept",
+   "lecture": "l08",
+   "section": "What makes a series forecastable",
+   "href": "../lectures/l08/notes.html#what-makes-a-series-forecastable",
+   "theme": "forecasting",
+   "also": []
+  },
+  {
+   "id": "white-noise",
+   "term": "white noise",
+   "kind": "concept",
+   "lecture": "l08",
+   "section": "What makes a series forecastable",
+   "href": "../lectures/l08/notes.html#what-makes-a-series-forecastable",
+   "theme": "forecasting",
+   "also": []
+  },
+  {
+   "id": "adam",
+   "term": "Adam",
+   "kind": "concept",
+   "lecture": "l09",
+   "section": "Training is an optimization problem",
+   "href": "../lectures/l09/notes.html#training-is-an-optimization-problem",
+   "theme": "training",
+   "also": [
+    "l11"
+   ]
+  },
+  {
+   "id": "bias-variance-trade-off",
+   "term": "bias-variance trade-off",
+   "kind": "concept",
+   "lecture": "l09",
+   "section": "Model capacity, overfitting and learning curves",
+   "href": "../lectures/l09/notes.html#model-capacity-overfitting-and-learning-curves",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "cross-validation",
+   "term": "cross-validation",
+   "kind": "concept",
+   "lecture": "l09",
+   "section": "Choosing a model with cross-validation",
+   "href": "../lectures/l09/notes.html#choosing-a-model-with-cross-validation",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "decision-tree",
+   "term": "decision tree",
+   "kind": "concept",
+   "lecture": "l09",
+   "section": "Regression models",
+   "href": "../lectures/l09/notes.html#regression-models",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "extrapolating-outside-the-training-data",
+   "term": "extrapolating outside the training data",
+   "kind": "failure",
+   "lecture": "l09",
+   "section": "Limitations",
+   "href": "../lectures/l09/notes.html#limitations",
+   "theme": "workflow",
+   "also": [
+    "l16"
+   ]
+  },
+  {
+   "id": "feature-engineering",
+   "term": "feature engineering",
+   "kind": "concept",
+   "lecture": "l09",
+   "section": "Regression models",
+   "href": "../lectures/l09/notes.html#regression-models",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "gaussian-process-regression",
+   "term": "Gaussian process regression",
+   "kind": "concept",
+   "lecture": "l09",
+   "section": "Regression models",
+   "href": "../lectures/l09/notes.html#regression-models",
+   "theme": "workflow",
+   "also": [
+    "l14"
+   ]
+  },
+  {
+   "id": "groupkfold",
+   "term": "GroupKFold",
+   "kind": "concept",
+   "lecture": "l09",
+   "section": "Choosing a model with cross-validation",
+   "href": "../lectures/l09/notes.html#choosing-a-model-with-cross-validation",
+   "theme": "workflow",
+   "also": [
+    "l11"
+   ]
+  },
+  {
+   "id": "l-bfgs",
+   "term": "L-BFGS",
+   "kind": "concept",
+   "lecture": "l09",
+   "section": "Training is an optimization problem",
+   "href": "../lectures/l09/notes.html#training-is-an-optimization-problem",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "lasso",
+   "term": "lasso",
+   "kind": "concept",
+   "lecture": "l09",
+   "section": "Regression models",
+   "href": "../lectures/l09/notes.html#regression-models",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "learning-curve",
+   "term": "learning curve",
+   "kind": "concept",
+   "lecture": "l09",
+   "section": "Model capacity, overfitting and learning curves",
+   "href": "../lectures/l09/notes.html#model-capacity-overfitting-and-learning-curves",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "loss-function",
+   "term": "loss function",
+   "kind": "concept",
+   "lecture": "l09",
+   "section": "Training is an optimization problem",
+   "href": "../lectures/l09/notes.html#training-is-an-optimization-problem",
+   "theme": "training",
+   "also": [
+    "l11"
+   ]
+  },
+  {
+   "id": "marginal-likelihood",
+   "term": "marginal likelihood",
+   "kind": "concept",
+   "lecture": "l09",
+   "section": "Regression models",
+   "href": "../lectures/l09/notes.html#regression-models",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "model-capacity",
+   "term": "model capacity",
+   "kind": "concept",
+   "lecture": "l09",
+   "section": "Model capacity, overfitting and learning curves",
+   "href": "../lectures/l09/notes.html#model-capacity-overfitting-and-learning-curves",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "neural-network",
+   "term": "neural network",
+   "kind": "concept",
+   "lecture": "l09",
+   "section": "Regression models",
+   "href": "../lectures/l09/notes.html#regression-models",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "no-free-lunch-theorem",
+   "term": "no free lunch theorem",
+   "kind": "concept",
+   "lecture": "l09",
+   "section": "Regression models",
+   "href": "../lectures/l09/notes.html#regression-models",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "overfitting",
+   "term": "overfitting",
+   "kind": "concept",
+   "lecture": "l09",
+   "section": "Model capacity, overfitting and learning curves",
+   "href": "../lectures/l09/notes.html#model-capacity-overfitting-and-learning-curves",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "regularization",
+   "term": "regularization",
+   "kind": "concept",
+   "lecture": "l09",
+   "section": "Regression models",
+   "href": "../lectures/l09/notes.html#regression-models",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "rmse",
+   "term": "RMSE",
+   "kind": "metric",
+   "lecture": "l09",
+   "section": "The machine learning workflow",
+   "href": "../lectures/l09/notes.html#the-machine-learning-workflow",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "splitting-one-group-across-folds",
+   "term": "splitting one group across folds",
+   "kind": "failure",
+   "lecture": "l09",
+   "section": "Choosing a model with cross-validation",
+   "href": "../lectures/l09/notes.html#choosing-a-model-with-cross-validation",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "stochastic-gradient-descent",
+   "term": "stochastic gradient descent",
+   "kind": "concept",
+   "lecture": "l09",
+   "section": "Training is an optimization problem",
+   "href": "../lectures/l09/notes.html#training-is-an-optimization-problem",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "tennessee-eastman-process",
+   "term": "Tennessee Eastman process",
+   "kind": "concept",
+   "lecture": "l09",
+   "section": "The examples in this session",
+   "href": "../lectures/l09/notes.html#the-examples-in-this-session",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "test-set",
+   "term": "test set",
+   "kind": "concept",
+   "lecture": "l09",
+   "section": "The machine learning workflow",
+   "href": "../lectures/l09/notes.html#the-machine-learning-workflow",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "training-set",
+   "term": "training set",
+   "kind": "concept",
+   "lecture": "l09",
+   "section": "The machine learning workflow",
+   "href": "../lectures/l09/notes.html#the-machine-learning-workflow",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "unsupervised-learning",
+   "term": "unsupervised learning",
+   "kind": "concept",
+   "lecture": "l09",
+   "section": "Types of machine learning",
+   "href": "../lectures/l09/notes.html#types-of-machine-learning",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "validation-curve",
+   "term": "validation curve",
+   "kind": "concept",
+   "lecture": "l09",
+   "section": "Model capacity, overfitting and learning curves",
+   "href": "../lectures/l09/notes.html#model-capacity-overfitting-and-learning-curves",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "validation-set",
+   "term": "validation set",
+   "kind": "concept",
+   "lecture": "l09",
+   "section": "The machine learning workflow",
+   "href": "../lectures/l09/notes.html#the-machine-learning-workflow",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "a-class-missing-from-the-training-data",
+   "term": "a class missing from the training data",
+   "kind": "failure",
+   "lecture": "l10",
+   "section": "Measuring a classifier",
+   "href": "../lectures/l10/notes.html#measuring-a-classifier",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "accuracy",
+   "term": "accuracy",
+   "kind": "metric",
+   "lecture": "l10",
+   "section": "Measuring a classifier",
+   "href": "../lectures/l10/notes.html#measuring-a-classifier",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "child-run",
+   "term": "child run",
+   "kind": "concept",
+   "lecture": "l10",
+   "section": "Tracking and search",
+   "href": "../lectures/l10/notes.html#tracking-and-search",
+   "theme": "reproducibility",
+   "also": []
+  },
+  {
+   "id": "classification",
+   "term": "classification",
+   "kind": "concept",
+   "lecture": "l10",
+   "section": "Classification",
+   "href": "../lectures/l10/notes.html#classification",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "confusion-matrix",
+   "term": "confusion matrix",
+   "kind": "concept",
+   "lecture": "l10",
+   "section": "Measuring a classifier",
+   "href": "../lectures/l10/notes.html#measuring-a-classifier",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "cross-entropy",
+   "term": "cross-entropy",
+   "kind": "concept",
+   "lecture": "l10",
+   "section": "Classification",
+   "href": "../lectures/l10/notes.html#classification",
+   "theme": "workflow",
+   "also": [
+    "l17"
+   ]
+  },
+  {
+   "id": "decision-boundary",
+   "term": "decision boundary",
+   "kind": "concept",
+   "lecture": "l10",
+   "section": "Classification",
+   "href": "../lectures/l10/notes.html#classification",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "decision-threshold",
+   "term": "decision threshold",
+   "kind": "concept",
+   "lecture": "l10",
+   "section": "Measuring a classifier",
+   "href": "../lectures/l10/notes.html#measuring-a-classifier",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "gini-impurity",
+   "term": "Gini impurity",
+   "kind": "concept",
+   "lecture": "l10",
+   "section": "Classification",
+   "href": "../lectures/l10/notes.html#classification",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "grid-search",
+   "term": "grid search",
+   "kind": "concept",
+   "lecture": "l10",
+   "section": "Tracking and search",
+   "href": "../lectures/l10/notes.html#tracking-and-search",
+   "theme": "reproducibility",
+   "also": []
+  },
+  {
+   "id": "logistic-regression",
+   "term": "logistic regression",
+   "kind": "concept",
+   "lecture": "l10",
+   "section": "Classification",
+   "href": "../lectures/l10/notes.html#classification",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "mlflow-run",
+   "term": "MLflow run",
+   "kind": "concept",
+   "lecture": "l10",
+   "section": "Tracking and search",
+   "href": "../lectures/l10/notes.html#tracking-and-search",
+   "theme": "reproducibility",
+   "also": []
+  },
+  {
+   "id": "model-registry",
+   "term": "model registry",
+   "kind": "concept",
+   "lecture": "l10",
+   "section": "Tracking and search",
+   "href": "../lectures/l10/notes.html#tracking-and-search",
+   "theme": "reproducibility",
+   "also": []
+  },
+  {
+   "id": "optuna",
+   "term": "Optuna",
+   "kind": "concept",
+   "lecture": "l10",
+   "section": "Tracking and search",
+   "href": "../lectures/l10/notes.html#tracking-and-search",
+   "theme": "reproducibility",
+   "also": []
+  },
+  {
+   "id": "parent-run",
+   "term": "parent run",
+   "kind": "concept",
+   "lecture": "l10",
+   "section": "Tracking and search",
+   "href": "../lectures/l10/notes.html#tracking-and-search",
+   "theme": "reproducibility",
+   "also": []
+  },
+  {
+   "id": "precision",
+   "term": "precision",
+   "kind": "metric",
+   "lecture": "l10",
+   "section": "Measuring a classifier",
+   "href": "../lectures/l10/notes.html#measuring-a-classifier",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "random-search",
+   "term": "random search",
+   "kind": "concept",
+   "lecture": "l10",
+   "section": "Tracking and search",
+   "href": "../lectures/l10/notes.html#tracking-and-search",
+   "theme": "reproducibility",
+   "also": []
+  },
+  {
+   "id": "recall",
+   "term": "recall",
+   "kind": "metric",
+   "lecture": "l10",
+   "section": "Measuring a classifier",
+   "href": "../lectures/l10/notes.html#measuring-a-classifier",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "softmax",
+   "term": "softmax",
+   "kind": "concept",
+   "lecture": "l10",
+   "section": "Classification",
+   "href": "../lectures/l10/notes.html#classification",
+   "theme": "workflow",
+   "also": []
+  },
+  {
+   "id": "tree-structured-parzen-estimator",
+   "term": "Tree-structured Parzen Estimator",
+   "kind": "concept",
+   "lecture": "l10",
+   "section": "Tracking and search",
+   "href": "../lectures/l10/notes.html#tracking-and-search",
+   "theme": "reproducibility",
+   "also": []
+  },
+  {
+   "id": "adamw",
+   "term": "AdamW",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "The anatomy of a training loop",
+   "href": "../lectures/l11/notes.html#the-anatomy-of-a-training-loop",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "bias-correction",
+   "term": "bias correction",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "The anatomy of a training loop",
+   "href": "../lectures/l11/notes.html#the-anatomy-of-a-training-loop",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "broadcast-target-shape",
+   "term": "broadcast target shape",
+   "kind": "failure",
+   "lecture": "l11",
+   "section": "Four models that looked fine",
+   "href": "../lectures/l11/notes.html#four-models-that-looked-fine",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "broadcasting",
+   "term": "broadcasting",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "Tensors, shapes, and dtypes",
+   "href": "../lectures/l11/notes.html#tensors-shapes-and-dtypes",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "computation-graph",
+   "term": "computation graph",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "Automatic differentiation",
+   "href": "../lectures/l11/notes.html#automatic-differentiation",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "dataloader",
+   "term": "DataLoader",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "The anatomy of a training loop",
+   "href": "../lectures/l11/notes.html#the-anatomy-of-a-training-loop",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "device-placement",
+   "term": "device placement",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "Devices, and when a GPU helps",
+   "href": "../lectures/l11/notes.html#devices-and-when-a-gpu-helps",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "dtype",
+   "term": "dtype",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "Tensors, shapes, and dtypes",
+   "href": "../lectures/l11/notes.html#tensors-shapes-and-dtypes",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "float32",
+   "term": "float32",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "Tensors, shapes, and dtypes",
+   "href": "../lectures/l11/notes.html#tensors-shapes-and-dtypes",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "float32-precision-loss",
+   "term": "float32 precision loss",
+   "kind": "failure",
+   "lecture": "l11",
+   "section": "Tensors, shapes, and dtypes",
+   "href": "../lectures/l11/notes.html#tensors-shapes-and-dtypes",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "float64",
+   "term": "float64",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "Tensors, shapes, and dtypes",
+   "href": "../lectures/l11/notes.html#tensors-shapes-and-dtypes",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "forgetting-zero-grad",
+   "term": "forgetting zero_grad",
+   "kind": "failure",
+   "lecture": "l11",
+   "section": "Four models that looked fine",
+   "href": "../lectures/l11/notes.html#four-models-that-looked-fine",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "forward-mode",
+   "term": "forward mode",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "Automatic differentiation",
+   "href": "../lectures/l11/notes.html#automatic-differentiation",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "gpu",
+   "term": "GPU",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "Devices, and when a GPU helps",
+   "href": "../lectures/l11/notes.html#devices-and-when-a-gpu-helps",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "gradient-accumulation",
+   "term": "gradient accumulation",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "PyTorch and JAX, two designs for the same mathematics",
+   "href": "../lectures/l11/notes.html#pytorch-and-jax-two-designs-for-the-same-mathematics",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "jax",
+   "term": "JAX",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "PyTorch and JAX, two designs for the same mathematics",
+   "href": "../lectures/l11/notes.html#pytorch-and-jax-two-designs-for-the-same-mathematics",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "jaxpr",
+   "term": "jaxpr",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "PyTorch and JAX, two designs for the same mathematics",
+   "href": "../lectures/l11/notes.html#pytorch-and-jax-two-designs-for-the-same-mathematics",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "jit",
+   "term": "jit",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "PyTorch and JAX, two designs for the same mathematics",
+   "href": "../lectures/l11/notes.html#pytorch-and-jax-two-designs-for-the-same-mathematics",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "learning-rate",
+   "term": "learning rate",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "The anatomy of a training loop",
+   "href": "../lectures/l11/notes.html#the-anatomy-of-a-training-loop",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "mixed-precision",
+   "term": "mixed precision",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "Devices, and when a GPU helps",
+   "href": "../lectures/l11/notes.html#devices-and-when-a-gpu-helps",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "momentum",
+   "term": "momentum",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "The anatomy of a training loop",
+   "href": "../lectures/l11/notes.html#the-anatomy-of-a-training-loop",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "no-grad",
+   "term": "no_grad",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "PyTorch and JAX, two designs for the same mathematics",
+   "href": "../lectures/l11/notes.html#pytorch-and-jax-two-designs-for-the-same-mathematics",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "optimizer",
+   "term": "optimizer",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "The anatomy of a training loop",
+   "href": "../lectures/l11/notes.html#the-anatomy-of-a-training-loop",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "prng-key",
+   "term": "PRNG key",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "Reproducibility and random seeds",
+   "href": "../lectures/l11/notes.html#reproducibility-and-random-seeds",
+   "theme": "reproducibility",
+   "also": []
+  },
+  {
+   "id": "pytorch",
+   "term": "PyTorch",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "PyTorch and JAX, two designs for the same mathematics",
+   "href": "../lectures/l11/notes.html#pytorch-and-jax-two-designs-for-the-same-mathematics",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "reverse-mode",
+   "term": "reverse mode",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "Automatic differentiation",
+   "href": "../lectures/l11/notes.html#automatic-differentiation",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "tensor",
+   "term": "tensor",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "Tensors, shapes, and dtypes",
+   "href": "../lectures/l11/notes.html#tensors-shapes-and-dtypes",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "training-loop",
+   "term": "training loop",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "The anatomy of a training loop",
+   "href": "../lectures/l11/notes.html#the-anatomy-of-a-training-loop",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "unscaled-inputs",
+   "term": "unscaled inputs",
+   "kind": "failure",
+   "lecture": "l11",
+   "section": "Four models that looked fine",
+   "href": "../lectures/l11/notes.html#four-models-that-looked-fine",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "vmap",
+   "term": "vmap",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "PyTorch and JAX, two designs for the same mathematics",
+   "href": "../lectures/l11/notes.html#pytorch-and-jax-two-designs-for-the-same-mathematics",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "weight-decay",
+   "term": "weight decay",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "The anatomy of a training loop",
+   "href": "../lectures/l11/notes.html#the-anatomy-of-a-training-loop",
+   "theme": "training",
+   "also": [
+    "l12"
+   ]
+  },
+  {
+   "id": "xla",
+   "term": "XLA",
+   "kind": "concept",
+   "lecture": "l11",
+   "section": "PyTorch and JAX, two designs for the same mathematics",
+   "href": "../lectures/l11/notes.html#pytorch-and-jax-two-designs-for-the-same-mathematics",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "d-convolution",
+   "term": "1D convolution",
+   "kind": "concept",
+   "lecture": "l12",
+   "section": "Sequence models for sensor time series",
+   "href": "../lectures/l12/notes.html#sequence-models-for-sensor-time-series",
+   "theme": "architectures",
+   "also": []
+  },
+  {
+   "id": "activation-function",
+   "term": "activation function",
+   "kind": "concept",
+   "lecture": "l12",
+   "section": "MLPs, and why scaling still matters",
+   "href": "../lectures/l12/notes.html#mlps-and-why-scaling-still-matters",
+   "theme": "architectures",
+   "also": []
+  },
+  {
+   "id": "batch-normalization",
+   "term": "batch normalization",
+   "kind": "concept",
+   "lecture": "l12",
+   "section": "MLPs, and why scaling still matters",
+   "href": "../lectures/l12/notes.html#mlps-and-why-scaling-still-matters",
+   "theme": "architectures",
+   "also": []
+  },
+  {
+   "id": "channel",
+   "term": "channel",
+   "kind": "concept",
+   "lecture": "l12",
+   "section": "CNNs for fields and images",
+   "href": "../lectures/l12/notes.html#cnns-for-fields-and-images",
+   "theme": "architectures",
+   "also": []
+  },
+  {
+   "id": "convolution",
+   "term": "convolution",
+   "kind": "concept",
+   "lecture": "l12",
+   "section": "CNNs for fields and images",
+   "href": "../lectures/l12/notes.html#cnns-for-fields-and-images",
+   "theme": "architectures",
+   "also": []
+  },
+  {
+   "id": "convolutional-network",
+   "term": "convolutional network",
+   "kind": "concept",
+   "lecture": "l12",
+   "section": "CNNs for fields and images",
+   "href": "../lectures/l12/notes.html#cnns-for-fields-and-images",
+   "theme": "architectures",
+   "also": []
+  },
+  {
+   "id": "dropout",
+   "term": "dropout",
+   "kind": "concept",
+   "lecture": "l12",
+   "section": "MLPs, and why scaling still matters",
+   "href": "../lectures/l12/notes.html#mlps-and-why-scaling-still-matters",
+   "theme": "architectures",
+   "also": []
+  },
+  {
+   "id": "early-stopping",
+   "term": "early stopping",
+   "kind": "concept",
+   "lecture": "l12",
+   "section": "Training a deep net well",
+   "href": "../lectures/l12/notes.html#training-a-deep-net-well",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "gradient-clipping",
+   "term": "gradient clipping",
+   "kind": "concept",
+   "lecture": "l12",
+   "section": "Training a deep net well",
+   "href": "../lectures/l12/notes.html#training-a-deep-net-well",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "kernel",
+   "term": "kernel",
+   "kind": "concept",
+   "lecture": "l12",
+   "section": "CNNs for fields and images",
+   "href": "../lectures/l12/notes.html#cnns-for-fields-and-images",
+   "theme": "architectures",
+   "also": []
+  },
+  {
+   "id": "learning-rate-schedule",
+   "term": "learning-rate schedule",
+   "kind": "concept",
+   "lecture": "l12",
+   "section": "Training a deep net well",
+   "href": "../lectures/l12/notes.html#training-a-deep-net-well",
+   "theme": "training",
+   "also": []
+  },
+  {
+   "id": "lstm",
+   "term": "LSTM",
+   "kind": "concept",
+   "lecture": "l12",
+   "section": "Sequence models for sensor time series",
+   "href": "../lectures/l12/notes.html#sequence-models-for-sensor-time-series",
+   "theme": "architectures",
+   "also": []
+  },
+  {
+   "id": "ltsf-linear",
+   "term": "LTSF-Linear",
+   "kind": "case",
+   "lecture": "l12",
+   "section": "Attention and transformers for sequences",
+   "href": "../lectures/l12/notes.html#attention-and-transformers-for-sequences",
+   "theme": "architectures",
+   "also": []
+  },
+  {
+   "id": "message-passing",
+   "term": "message passing",
+   "kind": "concept",
+   "lecture": "l12",
+   "section": "Attention and transformers for sequences",
+   "href": "../lectures/l12/notes.html#attention-and-transformers-for-sequences",
+   "theme": "architectures",
+   "also": []
+  },
+  {
+   "id": "multilayer-perceptron",
+   "term": "multilayer perceptron",
+   "kind": "concept",
+   "lecture": "l12",
+   "section": "MLPs, and why scaling still matters",
+   "href": "../lectures/l12/notes.html#mlps-and-why-scaling-still-matters",
+   "theme": "architectures",
+   "also": []
+  },
+  {
+   "id": "padding",
+   "term": "padding",
+   "kind": "concept",
+   "lecture": "l12",
+   "section": "CNNs for fields and images",
+   "href": "../lectures/l12/notes.html#cnns-for-fields-and-images",
+   "theme": "architectures",
+   "also": []
+  },
+  {
+   "id": "parameter-sharing",
+   "term": "parameter sharing",
+   "kind": "concept",
+   "lecture": "l12",
+   "section": "CNNs for fields and images",
+   "href": "../lectures/l12/notes.html#cnns-for-fields-and-images",
+   "theme": "architectures",
+   "also": []
+  },
+  {
+   "id": "pooling",
+   "term": "pooling",
+   "kind": "concept",
+   "lecture": "l12",
+   "section": "CNNs for fields and images",
+   "href": "../lectures/l12/notes.html#cnns-for-fields-and-images",
+   "theme": "architectures",
+   "also": []
+  },
+  {
+   "id": "positional-encoding",
+   "term": "positional encoding",
+   "kind": "concept",
+   "lecture": "l12",
+   "section": "Attention and transformers for sequences",
+   "href": "../lectures/l12/notes.html#attention-and-transformers-for-sequences",
+   "theme": "architectures",
+   "also": []
+  },
+  {
+   "id": "receptive-field",
+   "term": "receptive field",
+   "kind": "concept",
+   "lecture": "l12",
+   "section": "CNNs for fields and images",
+   "href": "../lectures/l12/notes.html#cnns-for-fields-and-images",
+   "theme": "architectures",
+   "also": []
+  },
+  {
+   "id": "recurrent-network",
+   "term": "recurrent network",
+   "kind": "concept",
+   "lecture": "l12",
+   "section": "Sequence models for sensor time series",
+   "href": "../lectures/l12/notes.html#sequence-models-for-sensor-time-series",
+   "theme": "architectures",
+   "also": []
+  },
+  {
+   "id": "self-attention",
+   "term": "self-attention",
+   "kind": "concept",
+   "lecture": "l12",
+   "section": "Attention and transformers for sequences",
+   "href": "../lectures/l12/notes.html#attention-and-transformers-for-sequences",
+   "theme": "architectures",
+   "also": []
+  },
+  {
+   "id": "stride",
+   "term": "stride",
+   "kind": "concept",
+   "lecture": "l12",
+   "section": "CNNs for fields and images",
+   "href": "../lectures/l12/notes.html#cnns-for-fields-and-images",
+   "theme": "architectures",
+   "also": []
+  },
+  {
+   "id": "temporal-convolutional-network",
+   "term": "temporal convolutional network",
+   "kind": "concept",
+   "lecture": "l12",
+   "section": "Sequence models for sensor time series",
+   "href": "../lectures/l12/notes.html#sequence-models-for-sensor-time-series",
+   "theme": "architectures",
+   "also": []
+  },
+  {
+   "id": "turbofan-rul-1d-cnn",
+   "term": "turbofan RUL 1D-CNN",
+   "kind": "case",
+   "lecture": "l12",
+   "section": "Does the architecture earn its keep?",
+   "href": "../lectures/l12/notes.html#does-the-architecture-earn-its-keep",
+   "theme": "architectures",
+   "also": []
+  },
+  {
+   "id": "collocation-point",
+   "term": "collocation point",
+   "kind": "concept",
+   "lecture": "l13",
+   "section": "Physics-informed neural networks (PINNs)",
+   "href": "../lectures/l13/notes.html#physics-informed-neural-networks-pinns",
+   "theme": "sciml",
+   "also": []
+  },
+  {
+   "id": "critical-quality-attribute",
+   "term": "critical quality attribute",
+   "kind": "concept",
+   "lecture": "l13",
+   "section": "Training neural DAEs",
+   "href": "../lectures/l13/notes.html#training-neural-daes",
+   "theme": "sciml",
+   "also": []
+  },
+  {
+   "id": "differentiable-integrator",
+   "term": "differentiable integrator",
+   "kind": "concept",
+   "lecture": "l13",
+   "section": "From recurrent networks to neural ODEs",
+   "href": "../lectures/l13/notes.html#from-recurrent-networks-to-neural-odes",
+   "theme": "sciml",
+   "also": []
+  },
+  {
+   "id": "differential-algebraic-equation",
+   "term": "differential-algebraic equation",
+   "kind": "concept",
+   "lecture": "l13",
+   "section": "Physics-enforced machine learning",
+   "href": "../lectures/l13/notes.html#physics-enforced-machine-learning",
+   "theme": "sciml",
+   "also": []
+  },
+  {
+   "id": "fed-batch-bioreactor",
+   "term": "fed-batch bioreactor",
+   "kind": "case",
+   "lecture": "l13",
+   "section": "Training neural DAEs",
+   "href": "../lectures/l13/notes.html#training-neural-daes",
+   "theme": "sciml",
+   "also": []
+  },
+  {
+   "id": "forward-euler-method",
+   "term": "forward Euler method",
+   "kind": "concept",
+   "lecture": "l13",
+   "section": "From recurrent networks to neural ODEs",
+   "href": "../lectures/l13/notes.html#from-recurrent-networks-to-neural-odes",
+   "theme": "sciml",
+   "also": []
+  },
+  {
+   "id": "hard-constraint",
+   "term": "hard constraint",
+   "kind": "concept",
+   "lecture": "l13",
+   "section": "Physics-enforced machine learning",
+   "href": "../lectures/l13/notes.html#physics-enforced-machine-learning",
+   "theme": "sciml",
+   "also": []
+  },
+  {
+   "id": "inference",
+   "term": "inference",
+   "kind": "concept",
+   "lecture": "l13",
+   "section": "Training neural DAEs",
+   "href": "../lectures/l13/notes.html#training-neural-daes",
+   "theme": "sciml",
+   "also": []
+  },
+  {
+   "id": "local-minimum-in-single-shooting",
+   "term": "local minimum in single shooting",
+   "kind": "failure",
+   "lecture": "l13",
+   "section": "Training a dynamic model: sequential or simultaneous",
+   "href": "../lectures/l13/notes.html#training-a-dynamic-model-sequential-or-simultaneous",
+   "theme": "sciml",
+   "also": []
+  },
+  {
+   "id": "monoclonal-antibody-glycosylation",
+   "term": "monoclonal antibody glycosylation",
+   "kind": "case",
+   "lecture": "l13",
+   "section": "Training neural DAEs",
+   "href": "../lectures/l13/notes.html#training-neural-daes",
+   "theme": "sciml",
+   "also": []
+  },
+  {
+   "id": "neural-differential-algebraic-equation",
+   "term": "neural differential-algebraic equation",
+   "kind": "concept",
+   "lecture": "l13",
+   "section": "Physics-enforced machine learning",
+   "href": "../lectures/l13/notes.html#physics-enforced-machine-learning",
+   "theme": "sciml",
+   "also": []
+  },
+  {
+   "id": "neural-ordinary-differential-equation",
+   "term": "neural ordinary differential equation",
+   "kind": "concept",
+   "lecture": "l13",
+   "section": "From recurrent networks to neural ODEs",
+   "href": "../lectures/l13/notes.html#from-recurrent-networks-to-neural-odes",
+   "theme": "sciml",
+   "also": []
+  },
+  {
+   "id": "orthogonal-collocation",
+   "term": "orthogonal collocation",
+   "kind": "concept",
+   "lecture": "l13",
+   "section": "Training a dynamic model: sequential or simultaneous",
+   "href": "../lectures/l13/notes.html#training-a-dynamic-model-sequential-or-simultaneous",
+   "theme": "sciml",
+   "also": []
+  },
+  {
+   "id": "path-constraint",
+   "term": "path constraint",
+   "kind": "concept",
+   "lecture": "l13",
+   "section": "Physics-enforced machine learning",
+   "href": "../lectures/l13/notes.html#physics-enforced-machine-learning",
+   "theme": "sciml",
+   "also": []
+  },
+  {
+   "id": "physics-informed-neural-network",
+   "term": "physics-informed neural network",
+   "kind": "concept",
+   "lecture": "l13",
+   "section": "Physics-informed neural networks (PINNs)",
+   "href": "../lectures/l13/notes.html#physics-informed-neural-networks-pinns",
+   "theme": "sciml",
+   "also": []
+  },
+  {
+   "id": "projection-layer",
+   "term": "projection layer",
+   "kind": "concept",
+   "lecture": "l13",
+   "section": "Constraints inside the network: projection layers",
+   "href": "../lectures/l13/notes.html#constraints-inside-the-network-projection-layers",
+   "theme": "sciml",
+   "also": []
+  },
+  {
+   "id": "scientific-machine-learning",
+   "term": "scientific machine learning",
+   "kind": "concept",
+   "lecture": "l13",
+   "section": "Why this matters",
+   "href": "../lectures/l13/notes.html#why-this-matters",
+   "theme": "sciml",
+   "also": []
+  },
+  {
+   "id": "sequential-approach",
+   "term": "sequential approach",
+   "kind": "concept",
+   "lecture": "l13",
+   "section": "Training a dynamic model: sequential or simultaneous",
+   "href": "../lectures/l13/notes.html#training-a-dynamic-model-sequential-or-simultaneous",
+   "theme": "sciml",
+   "also": []
+  },
+  {
+   "id": "simultaneous-approach",
+   "term": "simultaneous approach",
+   "kind": "concept",
+   "lecture": "l13",
+   "section": "Training a dynamic model: sequential or simultaneous",
+   "href": "../lectures/l13/notes.html#training-a-dynamic-model-sequential-or-simultaneous",
+   "theme": "sciml",
+   "also": []
+  },
+  {
+   "id": "sindae",
+   "term": "SiNDAE",
+   "kind": "concept",
+   "lecture": "l13",
+   "section": "Training neural DAEs",
+   "href": "../lectures/l13/notes.html#training-neural-daes",
+   "theme": "sciml",
+   "also": []
+  },
+  {
+   "id": "soft-constraint",
+   "term": "soft constraint",
+   "kind": "concept",
+   "lecture": "l13",
+   "section": "Physics-informed neural networks (PINNs)",
+   "href": "../lectures/l13/notes.html#physics-informed-neural-networks-pinns",
+   "theme": "sciml",
+   "also": []
+  },
+  {
+   "id": "sparse-identification-of-nonlinear-dynamics",
+   "term": "sparse identification of nonlinear dynamics",
+   "kind": "concept",
+   "lecture": "l13",
+   "section": "Not only neural networks",
+   "href": "../lectures/l13/notes.html#not-only-neural-networks",
+   "theme": "sciml",
+   "also": []
+  },
+  {
+   "id": "symbolic-regression",
+   "term": "symbolic regression",
+   "kind": "concept",
+   "lecture": "l13",
+   "section": "Not only neural networks",
+   "href": "../lectures/l13/notes.html#not-only-neural-networks",
+   "theme": "sciml",
+   "also": []
+  },
+  {
+   "id": "universal-differential-equation",
+   "term": "universal differential equation",
+   "kind": "concept",
+   "lecture": "l13",
+   "section": "From recurrent networks to neural ODEs",
+   "href": "../lectures/l13/notes.html#from-recurrent-networks-to-neural-odes",
+   "theme": "sciml",
+   "also": []
+  },
+  {
+   "id": "vector-field",
+   "term": "vector field",
+   "kind": "concept",
+   "lecture": "l13",
+   "section": "From recurrent networks to neural ODEs",
+   "href": "../lectures/l13/notes.html#from-recurrent-networks-to-neural-odes",
+   "theme": "sciml",
+   "also": []
+  },
+  {
+   "id": "aleatoric-uncertainty",
+   "term": "aleatoric uncertainty",
+   "kind": "concept",
+   "lecture": "l14",
+   "section": "What uncertainty quantification is",
+   "href": "../lectures/l14/notes.html#what-uncertainty-quantification-is",
+   "theme": "uncertainty",
+   "also": []
+  },
+  {
+   "id": "bootstrap",
+   "term": "bootstrap",
+   "kind": "concept",
+   "lecture": "l14",
+   "section": "Bootstrap and ensembles",
+   "href": "../lectures/l14/notes.html#bootstrap-and-ensembles",
+   "theme": "uncertainty",
+   "also": []
+  },
+  {
+   "id": "calibration",
+   "term": "calibration",
+   "kind": "concept",
+   "lecture": "l14",
+   "section": "Calibration: checking an uncertainty",
+   "href": "../lectures/l14/notes.html#calibration-checking-an-uncertainty",
+   "theme": "uncertainty",
+   "also": []
+  },
+  {
+   "id": "conformal-prediction-under-covariate-shift",
+   "term": "conformal prediction under covariate shift",
+   "kind": "failure",
+   "lecture": "l14",
+   "section": "Conformal prediction",
+   "href": "../lectures/l14/notes.html#conformal-prediction",
+   "theme": "uncertainty",
+   "also": []
+  },
+  {
+   "id": "deep-ensemble",
+   "term": "deep ensemble",
+   "kind": "concept",
+   "lecture": "l14",
+   "section": "Bootstrap and ensembles",
+   "href": "../lectures/l14/notes.html#bootstrap-and-ensembles",
+   "theme": "uncertainty",
+   "also": []
+  },
+  {
+   "id": "epistemic-uncertainty",
+   "term": "epistemic uncertainty",
+   "kind": "concept",
+   "lecture": "l14",
+   "section": "What uncertainty quantification is",
+   "href": "../lectures/l14/notes.html#what-uncertainty-quantification-is",
+   "theme": "uncertainty",
+   "also": []
+  },
+  {
+   "id": "exchangeability",
+   "term": "exchangeability",
+   "kind": "concept",
+   "lecture": "l14",
+   "section": "Conformal prediction",
+   "href": "../lectures/l14/notes.html#conformal-prediction",
+   "theme": "uncertainty",
+   "also": []
+  },
+  {
+   "id": "fluorine-held-out-of-a-force-field",
+   "term": "fluorine held out of a force field",
+   "kind": "case",
+   "lecture": "l14",
+   "section": "Why this matters",
+   "href": "../lectures/l14/notes.html#why-this-matters",
+   "theme": "uncertainty",
+   "also": []
+  },
+  {
+   "id": "heteroscedastic-noise",
+   "term": "heteroscedastic noise",
+   "kind": "concept",
+   "lecture": "l14",
+   "section": "Gaussian processes",
+   "href": "../lectures/l14/notes.html#gaussian-processes",
+   "theme": "uncertainty",
+   "also": []
+  },
+  {
+   "id": "jackknife",
+   "term": "jackknife+",
+   "kind": "concept",
+   "lecture": "l14",
+   "section": "Conformal prediction",
+   "href": "../lectures/l14/notes.html#conformal-prediction",
+   "theme": "uncertainty",
+   "also": []
+  },
+  {
+   "id": "kernel-misspecification",
+   "term": "kernel misspecification",
+   "kind": "failure",
+   "lecture": "l14",
+   "section": "Gaussian processes",
+   "href": "../lectures/l14/notes.html#gaussian-processes",
+   "theme": "uncertainty",
+   "also": []
+  },
+  {
+   "id": "prediction-interval",
+   "term": "prediction interval",
+   "kind": "concept",
+   "lecture": "l14",
+   "section": "What uncertainty quantification is",
+   "href": "../lectures/l14/notes.html#what-uncertainty-quantification-is",
+   "theme": "uncertainty",
+   "also": []
+  },
+  {
+   "id": "proper-scoring-rule",
+   "term": "proper scoring rule",
+   "kind": "concept",
+   "lecture": "l14",
+   "section": "Calibration: checking an uncertainty",
+   "href": "../lectures/l14/notes.html#calibration-checking-an-uncertainty",
+   "theme": "uncertainty",
+   "also": []
+  },
+  {
+   "id": "reliability-diagram",
+   "term": "reliability diagram",
+   "kind": "concept",
+   "lecture": "l14",
+   "section": "Calibration: checking an uncertainty",
+   "href": "../lectures/l14/notes.html#calibration-checking-an-uncertainty",
+   "theme": "uncertainty",
+   "also": []
+  },
+  {
+   "id": "shallow-ensemble",
+   "term": "shallow ensemble",
+   "kind": "concept",
+   "lecture": "l14",
+   "section": "UQ built into models: pycse",
+   "href": "../lectures/l14/notes.html#uq-built-into-models-pycse",
+   "theme": "uncertainty",
+   "also": []
+  },
+  {
+   "id": "sharpness",
+   "term": "sharpness",
+   "kind": "concept",
+   "lecture": "l14",
+   "section": "Calibration: checking an uncertainty",
+   "href": "../lectures/l14/notes.html#calibration-checking-an-uncertainty",
+   "theme": "uncertainty",
+   "also": []
+  },
+  {
+   "id": "split-conformal-prediction",
+   "term": "split conformal prediction",
+   "kind": "concept",
+   "lecture": "l14",
+   "section": "Conformal prediction",
+   "href": "../lectures/l14/notes.html#conformal-prediction",
+   "theme": "uncertainty",
+   "also": []
+  },
+  {
+   "id": "uncertainty-quantification",
+   "term": "uncertainty quantification",
+   "kind": "concept",
+   "lecture": "l14",
+   "section": "What uncertainty quantification is",
+   "href": "../lectures/l14/notes.html#what-uncertainty-quantification-is",
+   "theme": "uncertainty",
+   "also": []
+  },
+  {
+   "id": "acquisition-function",
+   "term": "acquisition function",
+   "kind": "concept",
+   "lecture": "l15",
+   "section": "The Bayesian optimization loop",
+   "href": "../lectures/l15/notes.html#the-bayesian-optimization-loop",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "active-learning",
+   "term": "active learning",
+   "kind": "concept",
+   "lecture": "l15",
+   "section": "Active learning: the same loop, a different goal",
+   "href": "../lectures/l15/notes.html#active-learning-the-same-loop-a-different-goal",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "batch-bayesian-optimization",
+   "term": "batch Bayesian optimization",
+   "kind": "concept",
+   "lecture": "l15",
+   "section": "Extensions engineers need",
+   "href": "../lectures/l15/notes.html#extensions-engineers-need",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "battery-fast-charging",
+   "term": "battery fast charging",
+   "kind": "case",
+   "lecture": "l15",
+   "section": "Where Bayesian optimization is used",
+   "href": "../lectures/l15/notes.html#where-bayesian-optimization-is-used",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "bayesian-optimization",
+   "term": "Bayesian optimization",
+   "kind": "concept",
+   "lecture": "l15",
+   "section": "The Bayesian optimization loop",
+   "href": "../lectures/l15/notes.html#the-bayesian-optimization-loop",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "bayesian-reaction-optimization",
+   "term": "Bayesian reaction optimization",
+   "kind": "case",
+   "lecture": "l15",
+   "section": "Where Bayesian optimization is used",
+   "href": "../lectures/l15/notes.html#where-bayesian-optimization-is-used",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "black-box-optimization",
+   "term": "black-box optimization",
+   "kind": "concept",
+   "lecture": "l15",
+   "section": "The problem: a few expensive experiments",
+   "href": "../lectures/l15/notes.html#the-problem-a-few-expensive-experiments",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "botorch",
+   "term": "BoTorch",
+   "kind": "concept",
+   "lecture": "l15",
+   "section": "Bayesian optimization in BoTorch",
+   "href": "../lectures/l15/notes.html#bayesian-optimization-in-botorch",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "constrained-bayesian-optimization",
+   "term": "constrained Bayesian optimization",
+   "kind": "concept",
+   "lecture": "l15",
+   "section": "Extensions engineers need",
+   "href": "../lectures/l15/notes.html#extensions-engineers-need",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "derivative-free-optimization",
+   "term": "derivative-free optimization",
+   "kind": "concept",
+   "lecture": "l15",
+   "section": "Bayesian optimization against gradient-based optimization",
+   "href": "../lectures/l15/notes.html#bayesian-optimization-against-gradient-based-optimization",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "efficient-global-optimization",
+   "term": "efficient global optimization",
+   "kind": "concept",
+   "lecture": "l15",
+   "section": "Acquisition functions",
+   "href": "../lectures/l15/notes.html#acquisition-functions",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "expected-improvement",
+   "term": "expected improvement",
+   "kind": "concept",
+   "lecture": "l15",
+   "section": "Acquisition functions",
+   "href": "../lectures/l15/notes.html#acquisition-functions",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "exploration-exploitation-trade-off",
+   "term": "exploration-exploitation trade-off",
+   "kind": "concept",
+   "lecture": "l15",
+   "section": "Exploration and exploitation",
+   "href": "../lectures/l15/notes.html#exploration-and-exploitation",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "kriging",
+   "term": "kriging",
+   "kind": "concept",
+   "lecture": "l15",
+   "section": "Acquisition functions",
+   "href": "../lectures/l15/notes.html#acquisition-functions",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "log-expected-improvement",
+   "term": "log expected improvement",
+   "kind": "concept",
+   "lecture": "l15",
+   "section": "Acquisition functions",
+   "href": "../lectures/l15/notes.html#acquisition-functions",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "mobile-robotic-chemist",
+   "term": "mobile robotic chemist",
+   "kind": "case",
+   "lecture": "l15",
+   "section": "Where Bayesian optimization is used",
+   "href": "../lectures/l15/notes.html#where-bayesian-optimization-is-used",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "multi-fidelity-optimization",
+   "term": "multi-fidelity optimization",
+   "kind": "concept",
+   "lecture": "l15",
+   "section": "Extensions engineers need",
+   "href": "../lectures/l15/notes.html#extensions-engineers-need",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "multi-objective-optimization",
+   "term": "multi-objective optimization",
+   "kind": "concept",
+   "lecture": "l15",
+   "section": "Extensions engineers need",
+   "href": "../lectures/l15/notes.html#extensions-engineers-need",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "nelder-mead-method",
+   "term": "Nelder-Mead method",
+   "kind": "concept",
+   "lecture": "l15",
+   "section": "Bayesian optimization against gradient-based optimization",
+   "href": "../lectures/l15/notes.html#bayesian-optimization-against-gradient-based-optimization",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "pareto-front",
+   "term": "Pareto front",
+   "kind": "concept",
+   "lecture": "l15",
+   "section": "Extensions engineers need",
+   "href": "../lectures/l15/notes.html#extensions-engineers-need",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "posterior-distribution",
+   "term": "posterior distribution",
+   "kind": "concept",
+   "lecture": "l15",
+   "section": "Why it is called Bayesian",
+   "href": "../lectures/l15/notes.html#why-it-is-called-bayesian",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "prior-distribution",
+   "term": "prior distribution",
+   "kind": "concept",
+   "lecture": "l15",
+   "section": "Why it is called Bayesian",
+   "href": "../lectures/l15/notes.html#why-it-is-called-bayesian",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "probability-of-improvement",
+   "term": "probability of improvement",
+   "kind": "concept",
+   "lecture": "l15",
+   "section": "Acquisition functions",
+   "href": "../lectures/l15/notes.html#acquisition-functions",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "regret",
+   "term": "regret",
+   "kind": "concept",
+   "lecture": "l15",
+   "section": "The Bayesian optimization loop",
+   "href": "../lectures/l15/notes.html#the-bayesian-optimization-loop",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "single-seed-bayesian-optimization",
+   "term": "single-seed Bayesian optimization",
+   "kind": "failure",
+   "lecture": "l15",
+   "section": "Limitations and trade-offs",
+   "href": "../lectures/l15/notes.html#limitations-and-trade-offs",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "surrogate-model",
+   "term": "surrogate model",
+   "kind": "concept",
+   "lecture": "l15",
+   "section": "The Bayesian optimization loop",
+   "href": "../lectures/l15/notes.html#the-bayesian-optimization-loop",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "underflow",
+   "term": "underflow",
+   "kind": "concept",
+   "lecture": "l15",
+   "section": "Acquisition functions",
+   "href": "../lectures/l15/notes.html#acquisition-functions",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "upper-confidence-bound",
+   "term": "upper confidence bound",
+   "kind": "concept",
+   "lecture": "l15",
+   "section": "Acquisition functions",
+   "href": "../lectures/l15/notes.html#acquisition-functions",
+   "theme": "optimization",
+   "also": []
+  },
+  {
+   "id": "bayesian-information-criterion",
+   "term": "Bayesian information criterion",
+   "kind": "concept",
+   "lecture": "l16",
+   "section": "Learning the joint distribution: Gaussian mixture models",
+   "href": "../lectures/l16/notes.html#learning-the-joint-distribution-gaussian-mixture-models",
+   "theme": "generative",
+   "also": []
+  },
+  {
+   "id": "change-of-variables",
+   "term": "change of variables",
+   "kind": "concept",
+   "lecture": "l16",
+   "section": "Transforming a simple distribution: flows, diffusion and flow matching",
+   "href": "../lectures/l16/notes.html#transforming-a-simple-distribution-flows-diffusion-and-flow-matching",
+   "theme": "generative",
+   "also": []
+  },
+  {
+   "id": "conditional-distribution",
+   "term": "conditional distribution",
+   "kind": "concept",
+   "lecture": "l16",
+   "section": "What a generative model learns",
+   "href": "../lectures/l16/notes.html#what-a-generative-model-learns",
+   "theme": "generative",
+   "also": []
+  },
+  {
+   "id": "conditioning-variables-fixed-at-training-time",
+   "term": "conditioning variables fixed at training time",
+   "kind": "failure",
+   "lecture": "l16",
+   "section": "Where generative models fit in machine learning",
+   "href": "../lectures/l16/notes.html#where-generative-models-fit-in-machine-learning",
+   "theme": "generative",
+   "also": []
+  },
+  {
+   "id": "continuous-normalizing-flow",
+   "term": "continuous normalizing flow",
+   "kind": "concept",
+   "lecture": "l16",
+   "section": "Transforming a simple distribution: flows, diffusion and flow matching",
+   "href": "../lectures/l16/notes.html#transforming-a-simple-distribution-flows-diffusion-and-flow-matching",
+   "theme": "generative",
+   "also": []
+  },
+  {
+   "id": "diffusion-model",
+   "term": "diffusion model",
+   "kind": "concept",
+   "lecture": "l16",
+   "section": "Transforming a simple distribution: flows, diffusion and flow matching",
+   "href": "../lectures/l16/notes.html#transforming-a-simple-distribution-flows-diffusion-and-flow-matching",
+   "theme": "generative",
+   "also": []
+  },
+  {
+   "id": "discriminative-model",
+   "term": "discriminative model",
+   "kind": "concept",
+   "lecture": "l16",
+   "section": "What a generative model learns",
+   "href": "../lectures/l16/notes.html#what-a-generative-model-learns",
+   "theme": "generative",
+   "also": []
+  },
+  {
+   "id": "expectation-maximization",
+   "term": "expectation maximization",
+   "kind": "concept",
+   "lecture": "l16",
+   "section": "Learning the joint distribution: Gaussian mixture models",
+   "href": "../lectures/l16/notes.html#learning-the-joint-distribution-gaussian-mixture-models",
+   "theme": "generative",
+   "also": []
+  },
+  {
+   "id": "flow-matching",
+   "term": "flow matching",
+   "kind": "concept",
+   "lecture": "l16",
+   "section": "Transforming a simple distribution: flows, diffusion and flow matching",
+   "href": "../lectures/l16/notes.html#transforming-a-simple-distribution-flows-diffusion-and-flow-matching",
+   "theme": "generative",
+   "also": []
+  },
+  {
+   "id": "gaussian-mixture-model",
+   "term": "Gaussian mixture model",
+   "kind": "concept",
+   "lecture": "l16",
+   "section": "Learning the joint distribution: Gaussian mixture models",
+   "href": "../lectures/l16/notes.html#learning-the-joint-distribution-gaussian-mixture-models",
+   "theme": "generative",
+   "also": []
+  },
+  {
+   "id": "gencast",
+   "term": "GenCast",
+   "kind": "case",
+   "lecture": "l16",
+   "section": "Generative models in science and engineering",
+   "href": "../lectures/l16/notes.html#generative-models-in-science-and-engineering",
+   "theme": "generative",
+   "also": []
+  },
+  {
+   "id": "generative-adversarial-network",
+   "term": "generative adversarial network",
+   "kind": "concept",
+   "lecture": "l16",
+   "section": "Generative models in science and engineering",
+   "href": "../lectures/l16/notes.html#generative-models-in-science-and-engineering",
+   "theme": "generative",
+   "also": []
+  },
+  {
+   "id": "generative-model",
+   "term": "generative model",
+   "kind": "concept",
+   "lecture": "l16",
+   "section": "What a generative model learns",
+   "href": "../lectures/l16/notes.html#what-a-generative-model-learns",
+   "theme": "generative",
+   "also": []
+  },
+  {
+   "id": "inverse-transform-sampling",
+   "term": "inverse transform sampling",
+   "kind": "concept",
+   "lecture": "l16",
+   "section": "Transforming a simple distribution: flows, diffusion and flow matching",
+   "href": "../lectures/l16/notes.html#transforming-a-simple-distribution-flows-diffusion-and-flow-matching",
+   "theme": "generative",
+   "also": []
+  },
+  {
+   "id": "joint-distribution",
+   "term": "joint distribution",
+   "kind": "concept",
+   "lecture": "l16",
+   "section": "What a generative model learns",
+   "href": "../lectures/l16/notes.html#what-a-generative-model-learns",
+   "theme": "generative",
+   "also": []
+  },
+  {
+   "id": "latent-space",
+   "term": "latent space",
+   "kind": "concept",
+   "lecture": "l16",
+   "section": "Generative models in science and engineering",
+   "href": "../lectures/l16/notes.html#generative-models-in-science-and-engineering",
+   "theme": "generative",
+   "also": []
+  },
+  {
+   "id": "mattergen",
+   "term": "MatterGen",
+   "kind": "case",
+   "lecture": "l16",
+   "section": "Generative models in science and engineering",
+   "href": "../lectures/l16/notes.html#generative-models-in-science-and-engineering",
+   "theme": "generative",
+   "also": []
+  },
+  {
+   "id": "memorization",
+   "term": "memorization",
+   "kind": "failure",
+   "lecture": "l16",
+   "section": "Limitations and trade-offs",
+   "href": "../lectures/l16/notes.html#limitations-and-trade-offs",
+   "theme": "generative",
+   "also": []
+  },
+  {
+   "id": "model-collapse",
+   "term": "model collapse",
+   "kind": "failure",
+   "lecture": "l16",
+   "section": "Limitations and trade-offs",
+   "href": "../lectures/l16/notes.html#limitations-and-trade-offs",
+   "theme": "generative",
+   "also": []
+  },
+  {
+   "id": "normalizing-flow",
+   "term": "normalizing flow",
+   "kind": "concept",
+   "lecture": "l16",
+   "section": "Transforming a simple distribution: flows, diffusion and flow matching",
+   "href": "../lectures/l16/notes.html#transforming-a-simple-distribution-flows-diffusion-and-flow-matching",
+   "theme": "generative",
+   "also": []
+  },
+  {
+   "id": "peng-robinson-roots",
+   "term": "Peng-Robinson roots",
+   "kind": "case",
+   "lecture": "l16",
+   "section": "Learning the joint distribution: Gaussian mixture models",
+   "href": "../lectures/l16/notes.html#learning-the-joint-distribution-gaussian-mixture-models",
+   "theme": "generative",
+   "also": []
+  },
+  {
+   "id": "probability-flow-ode",
+   "term": "probability flow ODE",
+   "kind": "concept",
+   "lecture": "l16",
+   "section": "Transforming a simple distribution: flows, diffusion and flow matching",
+   "href": "../lectures/l16/notes.html#transforming-a-simple-distribution-flows-diffusion-and-flow-matching",
+   "theme": "generative",
+   "also": []
+  },
+  {
+   "id": "rectified-flow",
+   "term": "rectified flow",
+   "kind": "concept",
+   "lecture": "l16",
+   "section": "Transforming a simple distribution: flows, diffusion and flow matching",
+   "href": "../lectures/l16/notes.html#transforming-a-simple-distribution-flows-diffusion-and-flow-matching",
+   "theme": "generative",
+   "also": []
+  },
+  {
+   "id": "rfdiffusion",
+   "term": "RFdiffusion",
+   "kind": "case",
+   "lecture": "l16",
+   "section": "Generative models in science and engineering",
+   "href": "../lectures/l16/notes.html#generative-models-in-science-and-engineering",
+   "theme": "generative",
+   "also": []
+  },
+  {
+   "id": "schur-complement",
+   "term": "Schur complement",
+   "kind": "concept",
+   "lecture": "l16",
+   "section": "Learning the joint distribution: Gaussian mixture models",
+   "href": "../lectures/l16/notes.html#learning-the-joint-distribution-gaussian-mixture-models",
+   "theme": "generative",
+   "also": []
+  },
+  {
+   "id": "self-supervised-learning",
+   "term": "self-supervised learning",
+   "kind": "concept",
+   "lecture": "l16",
+   "section": "Where generative models fit in machine learning",
+   "href": "../lectures/l16/notes.html#where-generative-models-fit-in-machine-learning",
+   "theme": "generative",
+   "also": [
+    "l17"
+   ]
+  },
+  {
+   "id": "variational-autoencoder",
+   "term": "variational autoencoder",
+   "kind": "concept",
+   "lecture": "l16",
+   "section": "Generative models in science and engineering",
+   "href": "../lectures/l16/notes.html#generative-models-in-science-and-engineering",
+   "theme": "generative",
+   "also": []
+  },
+  {
+   "id": "autoregressive-model",
+   "term": "autoregressive model",
+   "kind": "concept",
+   "lecture": "l17",
+   "section": "From generative models to text",
+   "href": "../lectures/l17/notes.html#from-generative-models-to-text",
+   "theme": "llms",
+   "also": []
+  },
+  {
+   "id": "byte-pair-encoding",
+   "term": "byte-pair encoding",
+   "kind": "concept",
+   "lecture": "l17",
+   "section": "Tokens",
+   "href": "../lectures/l17/notes.html#tokens",
+   "theme": "llms",
+   "also": []
+  },
+  {
+   "id": "causal-mask",
+   "term": "causal mask",
+   "kind": "concept",
+   "lecture": "l17",
+   "section": "The model: a transformer that only looks back",
+   "href": "../lectures/l17/notes.html#the-model-a-transformer-that-only-looks-back",
+   "theme": "llms",
+   "also": []
+  },
+  {
+   "id": "decoder-only-transformer",
+   "term": "decoder-only transformer",
+   "kind": "concept",
+   "lecture": "l17",
+   "section": "The model: a transformer that only looks back",
+   "href": "../lectures/l17/notes.html#the-model-a-transformer-that-only-looks-back",
+   "theme": "llms",
+   "also": []
+  },
+  {
+   "id": "direct-preference-optimization",
+   "term": "direct preference optimization",
+   "kind": "concept",
+   "lecture": "l17",
+   "section": "Data and scale",
+   "href": "../lectures/l17/notes.html#data-and-scale",
+   "theme": "llms",
+   "also": []
+  },
+  {
+   "id": "greedy-decoding",
+   "term": "greedy decoding",
+   "kind": "concept",
+   "lecture": "l17",
+   "section": "Sampling: temperature",
+   "href": "../lectures/l17/notes.html#sampling-temperature",
+   "theme": "llms",
+   "also": []
+  },
+  {
+   "id": "hallucination",
+   "term": "hallucination",
+   "kind": "failure",
+   "lecture": "l17",
+   "section": "Fluent is not the same as true",
+   "href": "../lectures/l17/notes.html#fluent-is-not-the-same-as-true",
+   "theme": "llms",
+   "also": []
+  },
+  {
+   "id": "language-model",
+   "term": "language model",
+   "kind": "concept",
+   "lecture": "l17",
+   "section": "From generative models to text",
+   "href": "../lectures/l17/notes.html#from-generative-models-to-text",
+   "theme": "llms",
+   "also": []
+  },
+  {
+   "id": "large-language-model",
+   "term": "large language model",
+   "kind": "concept",
+   "lecture": "l17",
+   "section": "From generative models to text",
+   "href": "../lectures/l17/notes.html#from-generative-models-to-text",
+   "theme": "llms",
+   "also": []
+  },
+  {
+   "id": "logit",
+   "term": "logit",
+   "kind": "concept",
+   "lecture": "l17",
+   "section": "Sampling: temperature",
+   "href": "../lectures/l17/notes.html#sampling-temperature",
+   "theme": "llms",
+   "also": []
+  },
+  {
+   "id": "mixture-of-experts",
+   "term": "mixture of experts",
+   "kind": "concept",
+   "lecture": "l17",
+   "section": "Data and scale",
+   "href": "../lectures/l17/notes.html#data-and-scale",
+   "theme": "llms",
+   "also": []
+  },
+  {
+   "id": "pretraining",
+   "term": "pretraining",
+   "kind": "concept",
+   "lecture": "l17",
+   "section": "Training: predict the next token, everywhere",
+   "href": "../lectures/l17/notes.html#training-predict-the-next-token-everywhere",
+   "theme": "llms",
+   "also": []
+  },
+  {
+   "id": "reinforcement-learning-from-human-feedback",
+   "term": "reinforcement learning from human feedback",
+   "kind": "concept",
+   "lecture": "l17",
+   "section": "Data and scale",
+   "href": "../lectures/l17/notes.html#data-and-scale",
+   "theme": "llms",
+   "also": []
+  },
+  {
+   "id": "supervised-fine-tuning",
+   "term": "supervised fine-tuning",
+   "kind": "concept",
+   "lecture": "l17",
+   "section": "Data and scale",
+   "href": "../lectures/l17/notes.html#data-and-scale",
+   "theme": "llms",
+   "also": []
+  },
+  {
+   "id": "temperature",
+   "term": "temperature",
+   "kind": "concept",
+   "lecture": "l17",
+   "section": "Sampling: temperature",
+   "href": "../lectures/l17/notes.html#sampling-temperature",
+   "theme": "llms",
+   "also": []
+  },
+  {
+   "id": "answering-from-weak-retrieval",
+   "term": "answering from weak retrieval",
+   "kind": "failure",
+   "lecture": "l18",
+   "section": "Assembling and measuring the context",
+   "href": "../lectures/l18/notes.html#assembling-and-measuring-the-context",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "approximate-nearest-neighbor-search",
+   "term": "approximate nearest neighbor search",
+   "kind": "concept",
+   "lecture": "l18",
+   "section": "Tuning and scaling",
+   "href": "../lectures/l18/notes.html#tuning-and-scaling",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "bi-encoder",
+   "term": "bi-encoder",
+   "kind": "concept",
+   "lecture": "l18",
+   "section": "Semantic search",
+   "href": "../lectures/l18/notes.html#semantic-search",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "bm25",
+   "term": "BM25",
+   "kind": "concept",
+   "lecture": "l18",
+   "section": "Keyword search over a document store",
+   "href": "../lectures/l18/notes.html#keyword-search-over-a-document-store",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "chunking",
+   "term": "chunking",
+   "kind": "concept",
+   "lecture": "l18",
+   "section": "Semantic search",
+   "href": "../lectures/l18/notes.html#semantic-search",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "colbert",
+   "term": "ColBERT",
+   "kind": "concept",
+   "lecture": "l18",
+   "section": "Re-ranking and late interaction",
+   "href": "../lectures/l18/notes.html#re-ranking-and-late-interaction",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "context-engineering",
+   "term": "context engineering",
+   "kind": "concept",
+   "lecture": "l18",
+   "section": "The context window decides the answer",
+   "href": "../lectures/l18/notes.html#the-context-window-decides-the-answer",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "cross-encoder",
+   "term": "cross-encoder",
+   "kind": "concept",
+   "lecture": "l18",
+   "section": "Re-ranking and late interaction",
+   "href": "../lectures/l18/notes.html#re-ranking-and-late-interaction",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "dense-retrieval",
+   "term": "dense retrieval",
+   "kind": "concept",
+   "lecture": "l18",
+   "section": "Semantic search",
+   "href": "../lectures/l18/notes.html#semantic-search",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "faiss",
+   "term": "FAISS",
+   "kind": "concept",
+   "lecture": "l18",
+   "section": "Tuning and scaling",
+   "href": "../lectures/l18/notes.html#tuning-and-scaling",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "fixed-size-chunking",
+   "term": "fixed-size chunking",
+   "kind": "concept",
+   "lecture": "l18",
+   "section": "Tuning and scaling",
+   "href": "../lectures/l18/notes.html#tuning-and-scaling",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "fts5",
+   "term": "FTS5",
+   "kind": "concept",
+   "lecture": "l18",
+   "section": "Keyword search over a document store",
+   "href": "../lectures/l18/notes.html#keyword-search-over-a-document-store",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "gold-set",
+   "term": "gold set",
+   "kind": "concept",
+   "lecture": "l18",
+   "section": "Keyword search over a document store",
+   "href": "../lectures/l18/notes.html#keyword-search-over-a-document-store",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "hit-k",
+   "term": "hit@k",
+   "kind": "metric",
+   "lecture": "l18",
+   "section": "Keyword search over a document store",
+   "href": "../lectures/l18/notes.html#keyword-search-over-a-document-store",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "hnsw",
+   "term": "HNSW",
+   "kind": "concept",
+   "lecture": "l18",
+   "section": "Tuning and scaling",
+   "href": "../lectures/l18/notes.html#tuning-and-scaling",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "hybrid-retrieval",
+   "term": "hybrid retrieval",
+   "kind": "concept",
+   "lecture": "l18",
+   "section": "Semantic search",
+   "href": "../lectures/l18/notes.html#semantic-search",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "inverted-index",
+   "term": "inverted index",
+   "kind": "concept",
+   "lecture": "l18",
+   "section": "Keyword search over a document store",
+   "href": "../lectures/l18/notes.html#keyword-search-over-a-document-store",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "keyword-retrieval",
+   "term": "keyword retrieval",
+   "kind": "concept",
+   "lecture": "l18",
+   "section": "Keyword search over a document store",
+   "href": "../lectures/l18/notes.html#keyword-search-over-a-document-store",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "late-interaction",
+   "term": "late interaction",
+   "kind": "concept",
+   "lecture": "l18",
+   "section": "Re-ranking and late interaction",
+   "href": "../lectures/l18/notes.html#re-ranking-and-late-interaction",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "model-context-protocol",
+   "term": "Model Context Protocol",
+   "kind": "concept",
+   "lecture": "l18",
+   "section": "Fetching context with tools",
+   "href": "../lectures/l18/notes.html#fetching-context-with-tools",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "mrr",
+   "term": "MRR",
+   "kind": "metric",
+   "lecture": "l18",
+   "section": "Keyword search over a document store",
+   "href": "../lectures/l18/notes.html#keyword-search-over-a-document-store",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "pgvector",
+   "term": "pgvector",
+   "kind": "concept",
+   "lecture": "l18",
+   "section": "Tuning and scaling",
+   "href": "../lectures/l18/notes.html#tuning-and-scaling",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "quantization",
+   "term": "quantization",
+   "kind": "concept",
+   "lecture": "l18",
+   "section": "Tuning and scaling",
+   "href": "../lectures/l18/notes.html#tuning-and-scaling",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "re-ranking",
+   "term": "re-ranking",
+   "kind": "concept",
+   "lecture": "l18",
+   "section": "Re-ranking and late interaction",
+   "href": "../lectures/l18/notes.html#re-ranking-and-late-interaction",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "reciprocal-rank-fusion",
+   "term": "reciprocal rank fusion",
+   "kind": "concept",
+   "lecture": "l18",
+   "section": "Semantic search",
+   "href": "../lectures/l18/notes.html#semantic-search",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "structure-aware-chunking",
+   "term": "structure-aware chunking",
+   "kind": "concept",
+   "lecture": "l18",
+   "section": "Tuning and scaling",
+   "href": "../lectures/l18/notes.html#tuning-and-scaling",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "tool-calling",
+   "term": "tool calling",
+   "kind": "concept",
+   "lecture": "l18",
+   "section": "Fetching context with tools",
+   "href": "../lectures/l18/notes.html#fetching-context-with-tools",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "webgpu",
+   "term": "WebGPU",
+   "kind": "concept",
+   "lecture": "l18",
+   "section": "Capstone: chat with the course notes",
+   "href": "../lectures/l18/notes.html#capstone-chat-with-the-course-notes",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "webllm",
+   "term": "WebLLM",
+   "kind": "concept",
+   "lecture": "l18",
+   "section": "Capstone: chat with the course notes",
+   "href": "../lectures/l18/notes.html#capstone-chat-with-the-course-notes",
+   "theme": "retrieval",
+   "also": []
+  },
+  {
+   "id": "agent-harness",
+   "term": "agent harness",
+   "kind": "concept",
+   "lecture": "l19",
+   "section": "The agent loop and its harness",
+   "href": "../lectures/l19/notes.html#the-agent-loop-and-its-harness",
+   "theme": "agents",
+   "also": []
+  },
+  {
+   "id": "agent-loop",
+   "term": "agent loop",
+   "kind": "concept",
+   "lecture": "l19",
+   "section": "The agent loop and its harness",
+   "href": "../lectures/l19/notes.html#the-agent-loop-and-its-harness",
+   "theme": "agents",
+   "also": []
+  },
+  {
+   "id": "agent-computer-interface",
+   "term": "agent-computer interface",
+   "kind": "concept",
+   "lecture": "l19",
+   "section": "Tools and guardrails",
+   "href": "../lectures/l19/notes.html#tools-and-guardrails",
+   "theme": "agents",
+   "also": []
+  },
+  {
+   "id": "agents-md",
+   "term": "AGENTS.md",
+   "kind": "concept",
+   "lecture": "l19",
+   "section": "Coding agents",
+   "href": "../lectures/l19/notes.html#coding-agents",
+   "theme": "agents",
+   "also": []
+  },
+  {
+   "id": "approval-gate",
+   "term": "approval gate",
+   "kind": "concept",
+   "lecture": "l19",
+   "section": "Tools and guardrails",
+   "href": "../lectures/l19/notes.html#tools-and-guardrails",
+   "theme": "agents",
+   "also": []
+  },
+  {
+   "id": "coding-agent",
+   "term": "coding agent",
+   "kind": "concept",
+   "lecture": "l19",
+   "section": "Coding agents",
+   "href": "../lectures/l19/notes.html#coding-agents",
+   "theme": "agents",
+   "also": []
+  },
+  {
+   "id": "compaction",
+   "term": "compaction",
+   "kind": "concept",
+   "lecture": "l19",
+   "section": "Coding agents",
+   "href": "../lectures/l19/notes.html#coding-agents",
+   "theme": "agents",
+   "also": []
+  },
+  {
+   "id": "coscientist",
+   "term": "Coscientist",
+   "kind": "case",
+   "lecture": "l19",
+   "section": "An LLM ran a chemistry experiment",
+   "href": "../lectures/l19/notes.html#an-llm-ran-a-chemistry-experiment",
+   "theme": "agents",
+   "also": []
+  },
+  {
+   "id": "excessive-agency",
+   "term": "excessive agency",
+   "kind": "failure",
+   "lecture": "l19",
+   "section": "Tools and guardrails",
+   "href": "../lectures/l19/notes.html#tools-and-guardrails",
+   "theme": "agents",
+   "also": []
+  },
+  {
+   "id": "least-privilege",
+   "term": "least privilege",
+   "kind": "concept",
+   "lecture": "l19",
+   "section": "Tools and guardrails",
+   "href": "../lectures/l19/notes.html#tools-and-guardrails",
+   "theme": "agents",
+   "also": []
+  },
+  {
+   "id": "lethal-trifecta",
+   "term": "lethal trifecta",
+   "kind": "concept",
+   "lecture": "l19",
+   "section": "Tools and guardrails",
+   "href": "../lectures/l19/notes.html#tools-and-guardrails",
+   "theme": "agents",
+   "also": []
+  },
+  {
+   "id": "llm-agent",
+   "term": "LLM agent",
+   "kind": "concept",
+   "lecture": "l19",
+   "section": "From one tool call to an agent",
+   "href": "../lectures/l19/notes.html#from-one-tool-call-to-an-agent",
+   "theme": "agents",
+   "also": []
+  },
+  {
+   "id": "metr-developer-productivity-study",
+   "term": "METR developer productivity study",
+   "kind": "case",
+   "lecture": "l19",
+   "section": "Working with a coding agent",
+   "href": "../lectures/l19/notes.html#working-with-a-coding-agent",
+   "theme": "agents",
+   "also": []
+  },
+  {
+   "id": "multi-agent-system",
+   "term": "multi-agent system",
+   "kind": "concept",
+   "lecture": "l19",
+   "section": "Frameworks and multi-agent systems",
+   "href": "../lectures/l19/notes.html#frameworks-and-multi-agent-systems",
+   "theme": "agents",
+   "also": []
+  },
+  {
+   "id": "prompt-caching",
+   "term": "prompt caching",
+   "kind": "concept",
+   "lecture": "l19",
+   "section": "Prompt caching",
+   "href": "../lectures/l19/notes.html#prompt-caching",
+   "theme": "agents",
+   "also": []
+  },
+  {
+   "id": "react",
+   "term": "ReAct",
+   "kind": "concept",
+   "lecture": "l19",
+   "section": "From one tool call to an agent",
+   "href": "../lectures/l19/notes.html#from-one-tool-call-to-an-agent",
+   "theme": "agents",
+   "also": []
+  },
+  {
+   "id": "replit-database-deletion",
+   "term": "Replit database deletion",
+   "kind": "case",
+   "lecture": "l19",
+   "section": "Tools and guardrails",
+   "href": "../lectures/l19/notes.html#tools-and-guardrails",
+   "theme": "agents",
+   "also": []
+  },
+  {
+   "id": "sandbox",
+   "term": "sandbox",
+   "kind": "concept",
+   "lecture": "l19",
+   "section": "Coding agents",
+   "href": "../lectures/l19/notes.html#coding-agents",
+   "theme": "agents",
+   "also": []
+  }
+ ],
+ "cases": [
+  {
+   "id": "alloy-adaptive-design",
+   "title": "Searching 800,000 shape memory alloys with expected improvement",
+   "field": "Materials science and engineering",
+   "lectures": [
+    "l15",
+    "l14",
+    "l09"
+   ],
+   "href": "../case-studies/alloy-adaptive-design.html"
+  },
+  {
+   "id": "bearing-fault-benchmark",
+   "title": "Near-perfect bearing fault classifiers on the CWRU benchmark",
+   "field": "Mechanical and electrical engineering, machine condition monitoring",
+   "lectures": [
+    "l07",
+    "l10",
+    "l12"
+   ],
+   "href": "../case-studies/bearing-fault-benchmark.html"
+  },
+  {
+   "id": "bridge-health-monitoring",
+   "title": "Separating temperature from damage on the Z24 bridge",
+   "field": "Civil and environmental engineering, structural health monitoring",
+   "lectures": [
+    "l01",
+    "l06",
+    "l08"
+   ],
+   "href": "../case-studies/bridge-health-monitoring.html"
+  },
+  {
+   "id": "chest-xray-shortcuts",
+   "title": "Chest X-ray models that learned the hospital",
+   "field": "Biomedical engineering, medical imaging",
+   "lectures": [
+    "l12",
+    "l01",
+    "l10"
+   ],
+   "href": "../case-studies/chest-xray-shortcuts.html"
+  },
+  {
+   "id": "ecg-patient-splits",
+   "title": "Heartbeat classification and the patient split",
+   "field": "Biomedical engineering",
+   "lectures": [
+    "l09",
+    "l10",
+    "l12"
+   ],
+   "href": "../case-studies/ecg-patient-splits.html"
+  },
+  {
+   "id": "electric-load-forecasting",
+   "title": "Forecasting electricity demand",
+   "field": "Energy systems and policy",
+   "lectures": [
+    "l07",
+    "l08",
+    "l14"
+   ],
+   "href": "../case-studies/electric-load-forecasting.html"
+  },
+  {
+   "id": "sepsis-alert-validation",
+   "title": "Validating a deployed sepsis alert",
+   "field": "Health care analytics and health information systems",
+   "lectures": [
+    "l01",
+    "l10",
+    "l14"
+   ],
+   "href": "../case-studies/sepsis-alert-validation.html"
+  }
+ ],
+ "system": {
+  "canvas": [
+   100,
+   46
+  ],
+  "caption": "Redrawn after Sculley et al. (2015). The red box is the part most courses spend the whole semester on. Everything else is this course.",
+  "boxes": [
+   {
+    "id": "configuration",
+    "label": "Configuration",
+    "x": 0,
+    "y": 16,
+    "w": 14,
+    "h": 30,
+    "blurb": "The settings, versions and environment that decide what a run actually did.",
+    "lectures": [
+     "l02",
+     "l19"
+    ],
+    "tools": [
+     {
+      "term": "uv",
+      "concept": "uv",
+      "lecture": "l02"
+     },
+     {
+      "term": "lockfile",
+      "concept": "lockfile",
+      "lecture": "l02"
+     },
+     {
+      "term": "pyproject.toml",
+      "concept": "pyproject-toml",
+      "lecture": "l02"
+     },
+     {
+      "term": "AGENTS.md",
+      "concept": "agents-md",
+      "lecture": "l19"
+     }
+    ]
+   },
+   {
+    "id": "process",
+    "label": "Process management tools",
+    "x": 70,
+    "y": 16,
+    "w": 30,
+    "h": 30,
+    "blurb": "Running the stages in order, rerunning them safely, and recording each run.",
+    "lectures": [
+     "l05",
+     "l10",
+     "l02"
+    ],
+    "tools": [
+     {
+      "term": "MLflow",
+      "concept": "mlflow",
+      "lecture": "l02"
+     },
+     {
+      "term": "Optuna",
+      "concept": "optuna",
+      "lecture": "l10"
+     },
+     {
+      "term": "batch pipeline",
+      "concept": "batch-pipeline",
+      "lecture": "l05"
+     },
+     {
+      "term": "idempotency",
+      "concept": "idempotency",
+      "lecture": "l05"
+     }
+    ]
+   },
+   {
+    "id": "collection",
+    "label": "Data collection",
+    "x": 14,
+    "y": 30,
+    "w": 22,
+    "h": 16,
+    "blurb": "Getting sensor readings into a store, in batches or as a stream.",
+    "lectures": [
+     "l03",
+     "l06"
+    ],
+    "tools": [
+     {
+      "term": "PostgreSQL",
+      "concept": "postgresql",
+      "lecture": "l03"
+     },
+     {
+      "term": "COPY",
+      "concept": "copy",
+      "lecture": "l03"
+     },
+     {
+      "term": "Kafka",
+      "concept": "kafka",
+      "lecture": "l06"
+     }
+    ]
+   },
+   {
+    "id": "features",
+    "label": "Feature extraction",
+    "x": 36,
+    "y": 30,
+    "w": 16,
+    "h": 16,
+    "blurb": "Turning raw readings into the columns a model can learn from, without leaking the future.",
+    "lectures": [
+     "l07",
+     "l08",
+     "l05"
+    ],
+    "tools": [
+     {
+      "term": "Polars",
+      "concept": "polars",
+      "lecture": "l05"
+     },
+     {
+      "term": "rolling window",
+      "concept": "rolling-window",
+      "lecture": "l07"
+     },
+     {
+      "term": "regression vector",
+      "concept": "regression-vector",
+      "lecture": "l07"
+     }
+    ]
+   },
+   {
+    "id": "analysis",
+    "label": "Analysis tools",
+    "x": 52,
+    "y": 30,
+    "w": 18,
+    "h": 16,
+    "blurb": "Asking questions of the data at scale, before and after a model.",
+    "lectures": [
+     "l04",
+     "l03",
+     "l05"
+    ],
+    "tools": [
+     {
+      "term": "DuckDB",
+      "concept": "duckdb",
+      "lecture": "l04"
+     },
+     {
+      "term": "Parquet",
+      "concept": "parquet",
+      "lecture": "l04"
+     },
+     {
+      "term": "window function",
+      "concept": "window-function",
+      "lecture": "l03"
+     }
+    ]
+   },
+   {
+    "id": "resources",
+    "label": "Machine resource management",
+    "x": 14,
+    "y": 16,
+    "w": 26,
+    "h": 14,
+    "blurb": "Placing work on the right hardware and paying for it, from GPUs to tokens.",
+    "lectures": [
+     "l11",
+     "l19"
+    ],
+    "tools": [
+     {
+      "term": "GPU",
+      "concept": "gpu",
+      "lecture": "l11"
+     },
+     {
+      "term": "mixed precision",
+      "concept": "mixed-precision",
+      "lecture": "l11"
+     },
+     {
+      "term": "prompt caching",
+      "concept": "prompt-caching",
+      "lecture": "l19"
+     }
+    ]
+   },
+   {
+    "id": "ml",
+    "label": "ML code",
+    "x": 40,
+    "y": 16,
+    "w": 12,
+    "h": 14,
+    "blurb": "The model itself, the part most courses spend the whole semester on.",
+    "lectures": [
+     "l08",
+     "l09",
+     "l10",
+     "l11",
+     "l12",
+     "l13",
+     "l14",
+     "l15",
+     "l16",
+     "l17"
+    ],
+    "tools": [
+     {
+      "term": "PyTorch",
+      "concept": "pytorch",
+      "lecture": "l11"
+     },
+     {
+      "term": "JAX",
+      "concept": "jax",
+      "lecture": "l11"
+     },
+     {
+      "term": "BoTorch",
+      "concept": "botorch",
+      "lecture": "l15"
+     }
+    ]
+   },
+   {
+    "id": "monitoring",
+    "label": "Monitoring",
+    "x": 52,
+    "y": 16,
+    "w": 18,
+    "h": 14,
+    "blurb": "Watching a system after it ships, for drift, miscalibration and false alarms.",
+    "lectures": [
+     "l01",
+     "l08",
+     "l14"
+    ],
+    "tools": [
+     {
+      "term": "sensor drift",
+      "concept": "sensor-drift",
+      "lecture": "l01"
+     },
+     {
+      "term": "anomaly detection",
+      "concept": "anomaly-detection",
+      "lecture": "l08"
+     },
+     {
+      "term": "calibration",
+      "concept": "calibration",
+      "lecture": "l14"
+     }
+    ]
+   },
+   {
+    "id": "verification",
+    "label": "Data verification",
+    "x": 0,
+    "y": 0,
+    "w": 40,
+    "h": 16,
+    "blurb": "Checking data before it is used, with executable checks that fail loudly.",
+    "lectures": [
+     "l06",
+     "l03",
+     "l07"
+    ],
+    "tools": [
+     {
+      "term": "pandera",
+      "concept": "pandera",
+      "lecture": "l06"
+     },
+     {
+      "term": "Great Expectations",
+      "concept": "great-expectations",
+      "lecture": "l06"
+     },
+     {
+      "term": "data contract",
+      "concept": "data-contract",
+      "lecture": "l06"
+     }
+    ]
+   },
+   {
+    "id": "serving",
+    "label": "Serving infrastructure",
+    "x": 40,
+    "y": 0,
+    "w": 60,
+    "h": 16,
+    "blurb": "Answering requests with a model, and with the context and tools around it.",
+    "lectures": [
+     "l01",
+     "l18",
+     "l19"
+    ],
+    "tools": [
+     {
+      "term": "FastAPI",
+      "concept": "fastapi",
+      "lecture": "l01"
+     },
+     {
+      "term": "container",
+      "concept": "container",
+      "lecture": "l01"
+     },
+     {
+      "term": "vector database",
+      "concept": "vector-database",
+      "lecture": "l01"
+     }
+    ]
+   }
+  ],
+  "flow": [
+   "collection",
+   "verification",
+   "features",
+   "ml",
+   "serving",
+   "monitoring",
+   "collection"
+  ]
+ }
+}
