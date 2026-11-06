@@ -371,6 +371,59 @@ async function main() {
     await settle()
     check((await panelTitle()) === 'Data verification', 'clicking a part opens what covers it')
 
+    // --- the map on a phone -------------------------------------------------
+    //
+    // A touch viewport, in its own context so the guide counts as a first
+    // visit. The pinch goes through Chrome's touch input, the same path a real
+    // finger takes, and is read back from the zoom the canvas reports.
+    const phoneCtx = await browser.createBrowserContext()
+    const phone = await phoneCtx.newPage()
+    watch(phone)
+    await phone.setViewport({ width: 393, height: 852, deviceScaleFactor: 2, isMobile: true, hasTouch: true })
+    await phone.goto(`http://localhost:${PORT}${BASE}#/map`, { waitUntil: 'networkidle0' })
+    const coarse = await phone.evaluate(() => matchMedia('(pointer: coarse)').matches)
+    check(coarse, 'the phone viewport reports a touch pointer')
+    check(!!(await phone.$('button[aria-label="Menu"]')) && !(await phone.$('nav[aria-label="Course map views"]')),
+          'a phone gets the one-line header with a menu')
+    await phone.waitForSelector('[role="dialog"]', { timeout: 4000 }).catch(() => null)
+    await phone.evaluate(() => ([...document.querySelectorAll('[role="dialog"] button')]
+      .find((b) => b.textContent?.trim() === 'Next') as HTMLElement | undefined)?.click())
+    await settle()
+    const tapStep = await phone.$eval('[role="dialog"] h2', (h) => h.textContent ?? '').catch(() => '')
+    check(tapStep === 'Tap a lecture', 'the guide speaks of tapping on a touchscreen', tapStep)
+    await phone.evaluate(() => ([...document.querySelectorAll('[role="dialog"] button')]
+      .find((b) => b.textContent?.trim() === 'Skip') as HTMLElement | undefined)?.click())
+    await new Promise((r) => setTimeout(r, 800))
+
+    const zoomOf = () => phone.$eval('canvas', (c) => Number((c as HTMLCanvasElement).dataset.k))
+    const kBefore = await zoomOf()
+    const cdp = await phone.createCDPSession()
+    const fingers = (d: number) => [{ x: 196 - d / 2, y: 470, id: 1 }, { x: 196 + d / 2, y: 470, id: 2 }]
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: fingers(80) })
+    for (let i = 1; i <= 8; i++) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: fingers(80 + i * 20) })
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+    await settle()
+    const kAfter = await zoomOf()
+    check(kAfter > kBefore * 1.8, 'pinching out zooms the graph in', `${kBefore} -> ${kAfter}`)
+
+    await phone.click('button[aria-label="All lectures"]')
+    await settle()
+    await phone.evaluate((t) => ([...document.querySelectorAll('aside button')]
+      .find((b) => (b.textContent ?? '').trim().startsWith(t)) as HTMLElement | undefined)?.click(),
+      `${lecture.id.replace(/^l0?/, 'L')} ·`)
+    await settle()
+    check(!!(await phone.$('aside button[aria-label^="Show more"]')), 'on a phone the panel is a sheet that can be pulled up')
+
+    await phone.click('button[aria-label="Menu"]')
+    await phone.evaluate(() => ([...document.querySelectorAll('button')]
+      .find((b) => b.textContent?.trim() === 'The system') as HTMLElement | undefined)?.click())
+    await settle()
+    const vb = await phone.$eval('svg[role="group"]', (el) => el.getAttribute('viewBox') ?? '').catch(() => '')
+    const [, , vw, vh] = vb.split(' ').map(Number)
+    check(!!vw && vh! > vw, 'on a phone the system figure stands upright', vb)
+
     check(errors.length === 0, 'no console errors', errors.slice(0, 2).join(' | '))
   } finally {
     await browser?.close()

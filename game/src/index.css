@@ -239,11 +239,23 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   color: var(--ink);
   transition: background 120ms;
 }
-.glass-btn:hover { background: var(--glass-hover); }
+/* Only where something can hover: on a touchscreen a tapped button would keep the hover look. */
+@media (hover: hover) {
+  .glass-btn:hover { background: var(--glass-hover); }
+}
 .glass-btn[aria-pressed="true"], .glass-btn[aria-checked="true"], .glass-btn[aria-current="page"] {
   background: var(--ink);
   color: var(--bg);
 }
+
+/* On a touchscreen a control needs a fingertip-sized target (about 44 px,
+   per Apple's and WCAG's guidance), and a tap should not wait to see whether
+   it is the start of a double-tap zoom. */
+@media (pointer: coarse) {
+  .glass-btn { min-height: 2.75rem; padding: 0.5rem 0.95rem; }
+  .kg-panel button, .kg-panel a { min-height: 2.25rem; }
+}
+.glass-btn, .kg-panel button, .kg-panel a, [data-guide] button { touch-action: manipulation; }
 
 /* The sky behind the system figure, the same one the graph's canvas paints. */
 .kg-sky {
