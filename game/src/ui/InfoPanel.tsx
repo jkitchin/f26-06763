@@ -436,20 +436,31 @@ function IndexPanel({ mode, onSelect }: { mode: 'lectures' | 'topics' | 'system'
   )
 }
 
-export function InfoPanel({ focus, mode, banks, onSelect, onPractice, onClose }: {
+export function InfoPanel({ focus, mode, banks, onSelect, onPractice, onClose, sheet }: {
   focus: Focus
   mode: 'lectures' | 'topics' | 'system'
   banks: Record<string, Bank>
   onSelect: (f: Focus) => void
   onPractice: (id: string) => void
   onClose: () => void
+  /** On a phone the panel is a sheet from the bottom: half height, or pulled up to nearly full. */
+  sheet?: { full: boolean; onToggle: () => void }
 }) {
   const lec = focus?.type === 'lecture' ? lectureById(focus.id) : undefined
+  const height = sheet ? (sheet.full ? 'max-h-[80dvh]' : 'max-h-[42dvh]') : 'max-h-full max-lg:max-h-[46vh]'
   return (
-    <aside className="kg-panel glass pointer-events-auto relative max-h-full overflow-y-auto rounded-2xl p-5 max-lg:max-h-[46vh]"
+    <aside className={`kg-panel glass pointer-events-auto relative overflow-y-auto overscroll-contain rounded-2xl p-5
+                       transition-[max-height] duration-300 ${height} ${sheet ? '!pt-3' : ''}`}
            aria-live="polite">
+      {sheet && (
+        <button type="button" onClick={sheet.onToggle} aria-expanded={sheet.full}
+                aria-label={sheet.full ? 'Show less of the panel' : 'Show more of the panel'}
+                className="-mx-5 mb-1 flex w-[calc(100%+2.5rem)] justify-center pb-2 pt-1">
+          <span aria-hidden className="h-1.5 w-11 rounded-full bg-[var(--muted)] opacity-45" />
+        </button>
+      )}
       <button type="button" onClick={onClose} aria-label="Close"
-              className="absolute right-3 top-3 rounded-full px-2 text-lg leading-none text-[var(--muted)] hover:text-[var(--ink)]">×</button>
+              className={`absolute right-3 ${sheet ? 'top-6' : 'top-3'} rounded-full px-2 text-lg leading-none text-[var(--muted)] hover:text-[var(--ink)]`}>×</button>
       {!focus && <IndexPanel mode={mode} onSelect={onSelect} />}
       {lec && <LecturePanel lec={lec} banks={banks} onSelect={onSelect} onPractice={onPractice} />}
       {focus?.type === 'theme' && themeById(focus.id) && <ThemePanel id={focus.id} onSelect={onSelect} />}

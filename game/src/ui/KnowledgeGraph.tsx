@@ -17,6 +17,13 @@
  * lecture that uses it. With reduced motion asked for, none of that runs, and
  * the picture is the same, only still.
  *
+ * TOUCH. On a phone or tablet there is no hover, so a tap opens a node, one
+ * finger pans, two fingers pinch to zoom about their midpoint, and a double
+ * tap on the sky zooms in. A finger does not pull nodes about, since in a
+ * dense graph it would do that by accident more often than on purpose. On a
+ * phone (`compact`) the nodes, labels and touch targets are drawn larger and
+ * the graph is fitted with less margin, because the screen is the constraint.
+ *
  * The canvas fills the page and the controls float over it, so the camera
  * fits the graph to the part of the screen the controls leave clear (`view`),
  * and keeps a selected node out from under the panel (`panel`).
@@ -117,7 +124,7 @@ const ends = (l: GLink) => [(l.source as GNode), (l.target as GNode)] as const
 
 interface Cam { x: number; y: number; k: number }
 
-interface Frame { w: number; h: number; view: View; panel: PanelBox | null }
+interface Frame { w: number; h: number; view: View; panel: PanelBox | null; compact: boolean }
 
 /** The screen point the camera centre maps to: the middle of the area the controls leave clear. */
 function origin(s: Frame): { x: number; y: number } {
@@ -134,17 +141,16 @@ function clearArea(s: Frame) {
 }
 
 const fitView = (g: Graph, s: Frame): Cam =>
-  fitCam(g, Math.max(200, s.w - s.view.l - s.view.r), Math.max(200, s.h - s.view.t - s.view.b))
+  fitCam(g, Math.max(160, s.w - s.view.l - s.view.r), Math.max(160, s.h - s.view.t - s.view.b), s.compact ? 30 : 90)
 
-function fitCam(g: Graph, w: number, h: number): Cam {
+function fitCam(g: Graph, w: number, h: number, pad: number): Cam {
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
   for (const n of g.nodes) {
     x0 = Math.min(x0, n.x! - n.r); y0 = Math.min(y0, n.y! - n.r)
     x1 = Math.max(x1, n.x! + n.r); y1 = Math.max(y1, n.y! + n.r)
   }
-  const pad = 90
   const k = Math.min(w / (x1 - x0 + pad * 2), h / (y1 - y0 + pad * 2))
-  return { x: (x0 + x1) / 2, y: (y0 + y1) / 2, k: Math.max(0.25, Math.min(k, 1.6)) }
+  return { x: (x0 + x1) / 2, y: (y0 + y1) / 2, k: Math.max(0.15, Math.min(k, 1.6)) }
 }
 
 interface Props {
@@ -162,10 +168,13 @@ interface Props {
   spotlight?: string | null
   /** Filled in with a function that finds a node on screen, for the guide to point at. */
   locate?: React.RefObject<Locate | null>
+  /** A phone-sized screen: bigger nodes, labels and targets, a tighter fit. */
+  compact?: boolean
 }
 
 export function KnowledgeGraph({
   mode, focus, onFocus, theme, reduceMotion, kindFilter, resetKey, view, panel, spotlight = null, locate,
+  compact = false,
 }: Props) {
   const boxRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -188,7 +197,7 @@ export function KnowledgeGraph({
     cams: {} as Partial<Record<Mode, Cam>>, target: null as Cam | null,
     w: 0, h: 0, hover: null as GNode | null, drag: null as null | { node?: GNode; sx: number; sy: number; moved: boolean; cx: number; cy: number },
     clicked: null as string | null, palette: null as Palette | null, sprites: new Map<string, HTMLCanvasElement>(),
-    view: view, panel: panel, t: 0, pos: new Map<GNode, [number, number]>(),
+    view: view, panel: panel, compact: compact, t: 0, pos: new Map<GNode, [number, number]>(),
     /** Whether the reader (or a glide to a focus) has moved this mode's camera off its fit. */
     moved: {} as Partial<Record<Mode, boolean>>,
     focusFrom: 'outside' as 'canvas' | 'outside',
@@ -197,6 +206,7 @@ export function KnowledgeGraph({
   props.current = { mode, focus, kindFilter, reduceMotion, theme, spotlight }
   st.current.view = view
   st.current.panel = panel
+  st.current.compact = compact
 
   // Colours follow the theme; re-read them whenever it flips.
   useEffect(() => {
@@ -228,7 +238,7 @@ export function KnowledgeGraph({
 
   // Each mode keeps its own camera, fitted the first time it opens, and refitted
   // when the controls change shape, until the reader moves it themselves.
-  const viewKey = `${view.t},${view.r},${view.b},${view.l}`
+  const viewKey = `${view.t},${view.r},${view.b},${view.l},${compact}`
   useEffect(() => {
     const s = st.current
     if (!s.w) return
@@ -305,6 +315,11 @@ export function KnowledgeGraph({
       const px = (n: GNode) => pos.get(n)![0]
       const py = (n: GNode) => pos.get(n)![1]
       const o = origin(s)
+      const big = s.compact
+      // Smallest drawn size, so a zoomed-out phone still shows a tappable mark.
+      // A topic is not enlarged as much as a lecture, or it would cover its own ring of concepts.
+      const minR = (n: GNode) => (n.kind === 'concept' ? (big ? 2.6 : 2.2) : n.kind === 'theme' ? (big ? 7 : 6) : big ? 13 : 6)
+      if (canvas.dataset.k !== cam.k.toFixed(2)) canvas.dataset.k = cam.k.toFixed(2)
       const sx = (x: number) => (x - cam.x) * cam.k + o.x
       const sy = (y: number) => (y - cam.y) * cam.k + o.y
 
@@ -371,7 +386,7 @@ export function KnowledgeGraph({
         ctx.beginPath(); ctx.arc(sx(cx), sy(cy), rad * cam.k, 0, Math.PI * 2); ctx.fill()
         const d = Math.hypot(cx, cy) || 1
         const lx = cx + (cx / d) * rad * 0.82, ly = cy + (cy / d) * rad * 0.82
-        labs.push({ txt: (knowledge.arcs[slot] ?? '').toUpperCase(), x: sx(lx), y: sy(ly), size: 11, weight: 600,
+        labs.push({ txt: (knowledge.arcs[slot] ?? '').toUpperCase(), x: sx(lx), y: sy(ly), size: big ? 12 : 11, weight: 600,
                     caps: true, align: 'center', base: 'middle', color: p.muted, alpha: lit ? 0.35 : 0.8, pri: 5, must: false })
       }
       ctx.globalAlpha = 1
@@ -399,7 +414,7 @@ export function KnowledgeGraph({
         ctx.globalAlpha = l.kind === 'member' ? (visible ? (lit ? 0.35 : 0.18) : 0.04)
           : visible ? (l.kind === 'trail' ? 0.5 : 0.75) : 0.08
         ctx.strokeStyle = l.kind === 'member' ? colorOf(p, a.slot) : p.line
-        ctx.lineWidth = l.kind === 'cite' || l.kind === 'theme' ? 1.2 + 0.4 * Math.min(l.weight, 3) : 0.8
+        ctx.lineWidth = (l.kind === 'cite' || l.kind === 'theme' ? 1.2 + 0.4 * Math.min(l.weight, 3) : 0.8) * (big ? 1.25 : 1)
         ctx.setLineDash(l.kind === 'trail' ? [2, 5] : [])
         ctx.beginPath(); ctx.moveTo(c.x0, c.y0); ctx.quadraticCurveTo(c.cx, c.cy, c.x1, c.y1); ctx.stroke()
       }
@@ -437,7 +452,7 @@ export function KnowledgeGraph({
       const order = [...g.nodes].sort((a, b) => (on(a.id) ? 1 : 0) - (on(b.id) ? 1 : 0) || a.r - b.r)
       for (const n of order) {
         const x = sx(px(n)), y = sy(py(n))
-        const r = Math.max(n.kind === 'concept' ? 2.2 : 6, n.r * cam.k) * (s.hover?.id === n.id ? 1.18 : 1)
+        const r = Math.max(minR(n), n.r * cam.k) * (s.hover?.id === n.id ? 1.18 : 1)
         if (x < -60 || y < -60 || x > W + 60 || y > H + 60) continue
         const col = colorOf(p, n.slot)
         const vis = on(n.id)
@@ -490,31 +505,31 @@ export function KnowledgeGraph({
       for (const n of g.nodes) {
         const x = sx(px(n)), y = sy(py(n))
         if (x < -80 || y < -80 || x > W + 80 || y > H + 80) continue
-        const r = Math.max(n.kind === 'concept' ? 2.2 : 6, n.r * cam.k)
+        const r = Math.max(minR(n), n.r * cam.k)
         const vis = on(n.id)
         const must = n.id === s.hover?.id || n.id === selId
         if (n.kind === 'lecture') {
           ctx.globalAlpha = vis ? 1 : 0.25
           ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-          ctx.font = `700 ${Math.max(10, Math.min(15, r * 0.75))}px ${FONT}`
+          ctx.font = `700 ${Math.max(big ? 11 : 10, Math.min(15, r * 0.75))}px ${FONT}`
           ctx.fillStyle = n.released ? '#fff' : p.muted
           ctx.fillText(n.label, x, y + 0.5)
-          if (cam.k > 0.45 || must) {
+          if (cam.k > (big ? 0.12 : 0.45) || must) {
             const date = lectureById(n.id)?.date.slice(5).replace('-', '/') ?? ''
-            labs.push({ txt: n.released ? n.sub : `${n.sub} · opens ${date}`, x, y: y + r + 6, altY: y - r - 21, size: 11.5,
+            labs.push({ txt: n.released ? n.sub : `${n.sub} · opens ${date}`, x, y: y + r + 6, altY: y - r - 21, size: big ? 12.5 : 11.5,
                         weight: n.slot < 0 ? 650 : 500, align: 'center', base: 'top',
                         color: vis ? p.ink : p.muted, alpha: vis ? 1 : 0.35, pri: n.slot < 0 ? 90 : vis && lit ? 70 : 50, must })
           }
         } else if (n.kind === 'theme') {
           const below = Math.max(r, (n.r + 38) * cam.k) + 5
-          labs.push({ txt: n.label, sub: n.sub, x, y: y + below, altY: y - below - 31, size: 12.5, weight: 650, align: 'center', base: 'top',
+          labs.push({ txt: n.label, sub: n.sub, x, y: y + below, altY: y - below - 31, size: big ? 13.5 : 12.5, weight: 650, align: 'center', base: 'top',
                       color: p.ink, alpha: vis ? 1 : 0.35, pri: vis && lit ? 85 : 60, must })
         } else {
           const near = focusId && vis && (focusId.startsWith('theme:') || focusId === n.id)
           const kindLit = !focusId && kindFilter && n.conceptKind === kindFilter
           if (!(cam.k >= 1.5 && vis) && !near && !kindLit && !must) continue
           const right = !n.centre || px(n) >= px(n.centre)
-          labs.push({ txt: n.label, x: x + (right ? r + 5 : -r - 5), y, size: 11, weight: must ? 650 : 500,
+          labs.push({ txt: n.label, x: x + (right ? r + 5 : -r - 5), y, size: big ? 12 : 11, weight: must ? 650 : 500,
                       align: right ? 'left' : 'right', base: 'middle', color: p.ink, alpha: 1,
                       pri: near ? 40 : 20, must })
         }
@@ -526,7 +541,7 @@ export function KnowledgeGraph({
       for (const n of g.nodes) {
         if (n.kind === 'concept') continue
         const x = sx(px(n)), y = sy(py(n))
-        const rr = Math.max(6, n.r * cam.k)
+        const rr = Math.max(minR(n), n.r * cam.k)
         placed.push([x - rr, y - rr, x + rr, y + rr])
       }
       const clash = (b: [number, number, number, number]) =>
@@ -542,7 +557,13 @@ export function KnowledgeGraph({
           w = Math.max(w, ctx.measureText(L.sub).width)
           ctx.font = `${L.weight} ${L.size}px ${FONT}`
         }
-        const x0 = L.align === 'left' ? L.x : L.align === 'right' ? L.x - w : L.x - w / 2
+        let x0 = L.align === 'left' ? L.x : L.align === 'right' ? L.x - w : L.x - w / 2
+        // Keep a label on screen when its node is, so an edge node is not
+        // named with half a word.
+        if (L.x >= 0 && L.x <= W) {
+          const shift = x0 < 6 ? 6 - x0 : x0 + w > W - 6 ? W - 6 - (x0 + w) : 0
+          L.x += shift; x0 += shift
+        }
         const y0 = L.base === 'top' ? L.y : L.y - h / 2
         let box: [number, number, number, number] = [x0 - 2, y0 - 1, x0 + w + 2, y0 + h + 1]
         if (!L.must && clash(box)) {
@@ -588,25 +609,38 @@ export function KnowledgeGraph({
   onFocusRef.current = onFocus
 
   // Pointer: hover, click, drag a node, drag the sky to pan, wheel to zoom.
+  // A finger: tap to open, drag to pan, pinch with two to zoom, double tap
+  // the sky to zoom in.
   useEffect(() => {
     const canvas = canvasRef.current!
     const s = st.current
+    const camOf = () => s.cams[props.current.mode]
     const world = (e: { clientX: number; clientY: number }) => {
       const rect = canvas.getBoundingClientRect()
-      const cam = s.cams[props.current.mode]!
+      const cam = camOf()!
       const o = origin(s)
       return { x: (e.clientX - rect.left - o.x) / cam.k + cam.x, y: (e.clientY - rect.top - o.y) / cam.k + cam.y }
     }
+    /** Move the camera so that world point (wx, wy) sits under client point (cx, cy) at zoom k. */
+    const pinTo = (wx: number, wy: number, cx: number, cy: number, k: number): Cam => {
+      const rect = canvas.getBoundingClientRect()
+      const o = origin(s)
+      return { x: wx - (cx - rect.left - o.x) / k, y: wy - (cy - rect.top - o.y) / k, k }
+    }
+    const clampK = (k: number) => Math.max(0.15, Math.min(4, k))
     const hit = (e: PointerEvent) => {
       const g = cache.current[props.current.mode]
-      const cam = s.cams[props.current.mode]
+      const cam = camOf()
       if (!g || !cam) return null
       const w = world(e)
+      const finger = e.pointerType === 'touch'
       let best: GNode | null = null, bd = Infinity
       for (const n of g.nodes) {
         const [nx, ny] = s.pos.get(n) ?? [n.x!, n.y!]
         const d = Math.hypot(nx - w.x, ny - w.y)
-        const reach = Math.max(n.r, (n.kind === 'concept' ? 7 : 10) / cam.k) + 2 / cam.k
+        // A fingertip is about 9 mm across, so its target is wider than a cursor's.
+        const px = finger ? (n.kind === 'concept' ? 14 : 22) : n.kind === 'concept' ? 7 : 10
+        const reach = Math.max(n.r, px / cam.k) + 2 / cam.k
         if (d <= reach && (d < bd || (best?.kind === 'concept' && n.kind !== 'concept'))) { best = n; bd = d }
       }
       return best
@@ -617,10 +651,38 @@ export function KnowledgeGraph({
       setHover(n)
       canvas.style.cursor = n ? 'pointer' : 'grab'
     }
+    const letGo = () => {
+      const node = s.drag?.node
+      if (node && node.kind !== 'concept' && node.slot >= 0) {
+        node.fx = null; node.fy = null
+        cache.current[props.current.mode]!.sim.alphaTarget(0)
+      }
+    }
+
+    const fingers = new Map<number, { x: number; y: number }>()
+    let pinch: null | { d0: number; k0: number; wx: number; wy: number } = null
+    let lastTap = { t: 0, x: 0, y: 0 }
+    const twoFingers = () => {
+      const [a, b] = [...fingers.values()] as [{ x: number; y: number }, { x: number; y: number }]
+      return { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
+    }
+
     const down = (e: PointerEvent) => {
       canvas.setPointerCapture(e.pointerId)
-      const n = hit(e)
-      const cam = s.cams[props.current.mode]!
+      const cam = camOf()!
+      if (e.pointerType === 'touch') {
+        fingers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+        if (fingers.size >= 2) {
+          // A second finger turns the gesture into a pinch, and whatever the
+          // first was doing stops.
+          letGo(); s.drag = null; s.target = null
+          const f = twoFingers(), w = world({ clientX: f.x, clientY: f.y })
+          pinch = { d0: f.d, k0: cam.k, wx: w.x, wy: w.y }
+          return
+        }
+      }
+      // A finger pans wherever it lands; a cursor on a node pulls it.
+      const n = e.pointerType === 'touch' ? null : hit(e)
       s.drag = { node: n ?? undefined, sx: e.clientX, sy: e.clientY, moved: false, cx: cam.x, cy: cam.y }
       // Lectures and topics can be pulled on; a concept rides its ring.
       if (n && n.kind !== 'concept' && n.slot >= 0 && n.fx == null) {
@@ -630,43 +692,77 @@ export function KnowledgeGraph({
       if (!n) canvas.style.cursor = 'grabbing'
     }
     const move = (e: PointerEvent) => {
+      if (e.pointerType === 'touch' && fingers.has(e.pointerId)) fingers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      const cam = camOf()
+      if (pinch && cam && fingers.size >= 2) {
+        const f = twoFingers()
+        const next = pinTo(pinch.wx, pinch.wy, f.x, f.y, clampK(pinch.k0 * (f.d / pinch.d0)))
+        cam.x = next.x; cam.y = next.y; cam.k = next.k
+        s.moved[props.current.mode] = true
+        return
+      }
       const d = s.drag
-      if (!d) { setHov(hit(e)); return }
+      if (!d) { if (e.pointerType !== 'touch') setHov(hit(e)); return }
       const dx = e.clientX - d.sx, dy = e.clientY - d.sy
-      if (Math.hypot(dx, dy) > 4) d.moved = true
-      const cam = s.cams[props.current.mode]!
+      if (Math.hypot(dx, dy) > (e.pointerType === 'touch' ? 8 : 4)) d.moved = true
+      if (!cam) return
       if (d.node && d.node.kind !== 'concept' && d.node.slot >= 0) {
         const w = world(e)
         d.node.fx = w.x; d.node.fy = w.y
-      } else if (!d.node) {
+      } else if (!d.node && d.moved) {
         cam.x = d.cx - dx / cam.k; cam.y = d.cy - dy / cam.k
         s.target = null
-        if (d.moved) s.moved[props.current.mode] = true
+        s.moved[props.current.mode] = true
       }
     }
     const up = (e: PointerEvent) => {
+      if (e.pointerType === 'touch') {
+        fingers.delete(e.pointerId)
+        if (pinch) {
+          // Lifting one finger of a pinch carries on as a pan with the other,
+          // and never counts as a tap.
+          if (fingers.size < 2) pinch = null
+          const rest = [...fingers.values()][0]
+          const cam = camOf()
+          s.drag = rest && cam && !pinch ? { sx: rest.x, sy: rest.y, moved: true, cx: cam.x, cy: cam.y } : null
+          return
+        }
+      }
       const d = s.drag
+      letGo()
       s.drag = null
       canvas.style.cursor = s.hover ? 'pointer' : 'grab'
-      if (!d) return
-      if (d.node && d.node.kind !== 'concept' && d.node.slot >= 0) {
-        d.node.fx = null; d.node.fy = null
-        cache.current[props.current.mode]!.sim.alphaTarget(0)
-      }
-      if (d.moved) return
+      if (!d || d.moved) return
       const n = hit(e)
       if (n) {
         s.clicked = n.id
         onFocusRef.current(focusFor(n))
-      } else onFocusRef.current(null)
+        return
+      }
+      // A double tap on the sky zooms in on the spot, as maps do.
+      const now = performance.now(), cam = camOf()
+      if (e.pointerType === 'touch' && cam && now - lastTap.t < 320 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 30) {
+        const w = world(e)
+        s.target = pinTo(w.x, w.y, e.clientX, e.clientY, clampK(cam.k * 1.8))
+        s.moved[props.current.mode] = true
+        lastTap = { t: 0, x: 0, y: 0 }
+        return
+      }
+      lastTap = { t: now, x: e.clientX, y: e.clientY }
+      onFocusRef.current(null)
     }
-    const leave = () => { if (!s.drag) setHov(null) }
+    const cancel = (e: PointerEvent) => {
+      fingers.delete(e.pointerId)
+      if (fingers.size < 2) pinch = null
+      letGo(); s.drag = null
+    }
+    const leave = (e: PointerEvent) => { if (!s.drag && e.pointerType !== 'touch') setHov(null) }
     const wheel = (e: WheelEvent) => {
       e.preventDefault()
-      const cam = s.cams[props.current.mode]
+      const cam = camOf()
       if (!cam) return
       const before = world(e)
-      cam.k = Math.max(0.25, Math.min(4, cam.k * Math.exp(-e.deltaY * 0.0016)))
+      cam.k = clampK(cam.k * Math.exp(-e.deltaY * 0.0016))
       const after = world(e)
       cam.x += before.x - after.x; cam.y += before.y - after.y
       s.target = null
@@ -675,12 +771,14 @@ export function KnowledgeGraph({
     canvas.addEventListener('pointerdown', down)
     canvas.addEventListener('pointermove', move)
     canvas.addEventListener('pointerup', up)
+    canvas.addEventListener('pointercancel', cancel)
     canvas.addEventListener('pointerleave', leave)
     canvas.addEventListener('wheel', wheel, { passive: false })
     return () => {
       canvas.removeEventListener('pointerdown', down)
       canvas.removeEventListener('pointermove', move)
       canvas.removeEventListener('pointerup', up)
+      canvas.removeEventListener('pointercancel', cancel)
       canvas.removeEventListener('pointerleave', leave)
       canvas.removeEventListener('wheel', wheel)
     }
@@ -695,7 +793,7 @@ export function KnowledgeGraph({
       if (!n || !cam || !c) return null
       const [x, y] = s.pos.get(n) ?? drawnAt(n, s.t)
       const o = origin(s), rect = c.getBoundingClientRect()
-      return { x: rect.left + (x - cam.x) * cam.k + o.x, y: rect.top + (y - cam.y) * cam.k + o.y, r: Math.max(6, n.r * cam.k) }
+      return { x: rect.left + (x - cam.x) * cam.k + o.x, y: rect.top + (y - cam.y) * cam.k + o.y, r: Math.max(s.compact ? 13 : 6, n.r * cam.k) }
     }
     return () => { locate.current = null }
   }, [locate])

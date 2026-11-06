@@ -883,6 +883,17 @@ seen is a per-viewer flag in `localStorage`, and the Guide button replays it. Th
 walks it, so a step whose control is renamed or removed fails there rather than pointing at
 nothing.
 
+Phones and tablets get the same page, adapted. `game/src/ui/device.ts` reads the device
+from media queries (`pointer: coarse` for a finger, width for a phone), not from the user
+agent, so a touch laptop driven by a mouse keeps hover. With a finger, a tap opens a node,
+one finger pans, two pinch to zoom, and a double tap zooms in; a finger never pulls a node,
+since in a dense graph it would do that by accident. A phone or an upright tablet gets a
+one-line header whose menu holds the views, the theme, the tour and the guide, and the panel
+becomes a bottom sheet. On a phone the nodes and labels are drawn larger and the system
+figure is drawn transposed, which keeps every box's area and so the 3.7%. The guide's
+wording follows the device. The smoke test runs a phone pass with a real two-finger pinch
+sent through Chrome's touch input.
+
 **The participation score is on the PDF, and the rule is one line.** Each question is worth
 a point, each wrong answer deducts `WRONG_PENALTY` (0.25), a revealed answer scores zero,
 and the score is the mean over the questions that had an answer chosen. Free-recall items
