@@ -315,7 +315,7 @@ async function main() {
     // --- the knowledge graph and the system figure ---------------------------
     //
     // The graph is a canvas, so these drive it the way a keyboard or screen
-    // reader user would: through the panel's buttons, which list every node.
+    // reader user would: through the index's buttons, which list every node.
     // That they work is the accessibility claim KnowledgeGraph.tsx makes.
     const clickText = (sel: string, text: string) =>
       page.evaluate((sel, text) => {
@@ -332,7 +332,24 @@ async function main() {
     await page.waitForSelector('canvas')
     const painted = await page.$eval('canvas', (c) => (c as HTMLCanvasElement).width > 0)
     check(painted, 'the knowledge graph draws at #/map')
+
+    // A first visit opens the guide; skipping it is remembered.
+    const guide = await page.waitForSelector('[role="dialog"]', { timeout: 4000 }).catch(() => null)
+    check(!!guide, 'a first visit to the graph opens the guide')
+    await clickText('[role="dialog"] button', 'Next')
+    await settle()
+    const step2 = await page.$eval('[role="dialog"]', (d) => d.textContent ?? '')
+    check(/2 of \d/.test(step2), 'the guide steps forward', step2.slice(0, 40))
+    await clickText('[role="dialog"] button', 'Skip')
+    await settle()
+    check(!(await page.$('[role="dialog"]')), 'skipping closes the guide')
+    await page.reload({ waitUntil: 'networkidle0' })
+    await new Promise((r) => setTimeout(r, 1200))
+    check(!(await page.$('[role="dialog"]')), 'and it stays closed on the next visit')
+
     const lecture = world.rooms.find((r) => r.id === target.id)!
+    await clickText('button', '☰All lectures')
+    await settle()
     await clickText('aside button', `${lecture.id.replace(/^l0?/, 'L')} ·`)
     await settle()
     const lectureTitle = await panelTitle()

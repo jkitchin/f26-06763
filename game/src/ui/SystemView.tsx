@@ -85,9 +85,10 @@ export function SystemView({ focus, onFocus, showTools, reduceMotion }: {
   const lower = (s: string) => (/^[A-Z]{2}/.test(s) ? s : s.charAt(0).toLowerCase() + s.slice(1))
 
   return (
-    <figure className="kg-system m-0">
-      <div className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--kg-bg)] p-3">
-        <svg viewBox={`-4 -4 ${canvas[0] * S + 8} ${H * S + 8}`} className="block w-full" role="group"
+    <figure className="kg-system m-0 flex h-full w-full flex-col items-center gap-3">
+      <div className="flex min-h-0 w-full flex-1 items-center justify-center">
+        <svg viewBox={`-4 -4 ${canvas[0] * S + 8} ${H * S + 8}`} className="block h-full max-h-full w-full"
+             preserveAspectRatio="xMidYMid meet" role="group"
              aria-label="A production machine-learning system, sized by the code each part requires. Each part is a button.">
           <defs>
             <filter id="sys-glow" x="-50%" y="-50%" width="200%" height="200%">
@@ -154,7 +155,7 @@ export function SystemView({ focus, onFocus, showTools, reduceMotion }: {
           )}
         </svg>
       </div>
-      <figcaption className="mt-2 text-xs leading-relaxed text-[var(--muted)]">
+      <figcaption className="glass max-w-3xl rounded-xl px-4 py-2 text-xs leading-relaxed text-[var(--muted)]">
         {caption} The blue light is a reading on its way through the system: {flow.map((id) => lower(box(id).label)).join(', then ')}.
       </figcaption>
     </figure>

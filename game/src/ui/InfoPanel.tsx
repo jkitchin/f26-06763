@@ -118,7 +118,7 @@ function LecturePanel({ lec, banks, onSelect, onPractice }: {
 
   return (
     <>
-      <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-[var(--muted)]">
+      <p className="flex items-center gap-2 pr-6 text-xs uppercase tracking-wide text-[var(--muted)]">
         <Dot arc={lec.arc} /> {lec.arc} · {fmtDate(lec.date)}
       </p>
       <h2 className="mt-1 text-lg font-semibold leading-snug">{lec.session} · {lec.title}</h2>
@@ -229,7 +229,7 @@ function ThemePanel({ id, onSelect }: { id: string; onSelect: (f: Focus) => void
   const cases = casesFor(t.lectures)
   return (
     <>
-      <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-[var(--muted)]">
+      <p className="flex items-center gap-2 pr-6 text-xs uppercase tracking-wide text-[var(--muted)]">
         <Dot arc={t.arc} /> Topic · {t.arc}
       </p>
       <h2 className="mt-1 text-lg font-semibold leading-snug">{t.name}</h2>
@@ -298,7 +298,7 @@ function ConceptPanel({ id, onSelect }: { id: string; onSelect: (f: Focus) => vo
   const siblings = knowledge.concepts.filter((x) => x.lecture === c.lecture && x.section === c.section && x.id !== c.id)
   return (
     <>
-      <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-[var(--muted)]">
+      <p className="flex items-center gap-2 pr-6 text-xs uppercase tracking-wide text-[var(--muted)]">
         <Dot arc={lec.arc} /> {KIND_LABEL[c.kind]}
       </p>
       <h2 className="mt-1 text-lg font-semibold leading-snug">{c.term}</h2>
@@ -446,12 +446,10 @@ export function InfoPanel({ focus, mode, banks, onSelect, onPractice, onClose }:
 }) {
   const lec = focus?.type === 'lecture' ? lectureById(focus.id) : undefined
   return (
-    <aside className="kg-panel relative max-h-[78vh] overflow-y-auto rounded-2xl border border-[var(--border)]
-                      bg-[var(--surface-raised)] p-5" aria-live="polite">
-      {focus && (
-        <button type="button" onClick={onClose} aria-label="Close"
-                className="absolute right-3 top-3 rounded-full px-2 text-lg leading-none text-[var(--muted)] hover:text-[var(--ink)]">×</button>
-      )}
+    <aside className="kg-panel glass pointer-events-auto relative max-h-full overflow-y-auto rounded-2xl p-5 max-lg:max-h-[46vh]"
+           aria-live="polite">
+      <button type="button" onClick={onClose} aria-label="Close"
+              className="absolute right-3 top-3 rounded-full px-2 text-lg leading-none text-[var(--muted)] hover:text-[var(--ink)]">×</button>
       {!focus && <IndexPanel mode={mode} onSelect={onSelect} />}
       {lec && <LecturePanel lec={lec} banks={banks} onSelect={onSelect} onPractice={onPractice} />}
       {focus?.type === 'theme' && themeById(focus.id) && <ThemePanel id={focus.id} onSelect={onSelect} />}

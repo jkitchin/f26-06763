@@ -10,12 +10,16 @@
  * pointing.
  *
  * WHAT MOVES AND WHY. The layout is a force simulation run to rest before the
- * first frame, so the graph opens settled rather than flying in. The idle drift
- * is drawn on top of the rest positions, a slow wobble per node with its own
- * phase, so the graph looks alive without the layout ever changing under the
- * reader's eye. Light flows along a highlighted link from the lecture that
- * explains an idea to the lecture that uses it. With reduced motion asked for,
- * none of that runs, and the picture is the same, only still.
+ * first frame, so the graph opens settled rather than flying in. The idle
+ * motion is drawn on top of the rest positions (see `drawnAt`), so the graph
+ * looks alive without the layout ever changing under the reader's eye. Light
+ * flows along a highlighted link from the lecture that explains an idea to the
+ * lecture that uses it. With reduced motion asked for, none of that runs, and
+ * the picture is the same, only still.
+ *
+ * The canvas fills the page and the controls float over it, so the camera
+ * fits the graph to the part of the screen the controls leave clear (`view`),
+ * and keeps a selected node out from under the panel (`panel`).
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -24,6 +28,7 @@ import {
 } from '../map/knowledge.ts'
 import { lectureGraph, settle, topicGraph, type GLink, type GNode, type Graph, type Mode } from '../map/layout.ts'
 import type { Focus } from './InfoPanel.tsx'
+import type { Locate } from './MapGuide.tsx'
 
 interface Palette {
   bg: string; edge: string; ink: string; muted: string; line: string; star: string
@@ -58,11 +63,42 @@ function glowSprite(color: string): HTMLCanvasElement {
 }
 
 /** Stars for the dark sky (and a faint dot field in light), fixed per page load. */
-const STARS = Array.from({ length: 170 }, (_, i) => {
+const STARS = Array.from({ length: 280 }, (_, i) => {
   const s = Math.sin(i * 12.9898) * 43758.5453
   const r = Math.sin(i * 78.233) * 12345.6789
   return { x: s - Math.floor(s), y: r - Math.floor(r), z: 0.3 + ((i * 37) % 10) / 14, p: i * 1.7 }
 })
+
+/**
+ * Where a node is drawn at time t: its rest position plus the idle motion.
+ * Lectures and topics wander on a slow loop of two frequencies, each with its
+ * own phase, so no two move in step. A concept's ring turns around its topic,
+ * the inner ring faster than the outer and each topic its own way round, like
+ * an orrery. At t = 0 every node sits at rest.
+ */
+export function drawnAt(n: GNode, t: number): [number, number] {
+  const wobble = (a: number, ph: number): [number, number] => [
+    a * (Math.sin(t * 0.00055 + ph) + 0.45 * Math.sin(t * 0.00121 + ph * 2.1)),
+    a * (Math.cos(t * 0.00047 + ph * 1.3) + 0.45 * Math.cos(t * 0.00097 + ph * 1.7)),
+  ]
+  const c = n.centre
+  if (c) {
+    const [cx, cy] = drawnAt(c, t)
+    const dx = n.x! - c.x!, dy = n.y! - c.y!
+    const inner = (n.ring ?? 0) < c.r + 30
+    const turn = (c.phase > Math.PI ? 1 : -1) * t * (inner ? 4.2e-5 : 2.9e-5)
+    const a = Math.atan2(dy, dx) + turn, d = Math.hypot(dx, dy)
+    const [wx, wy] = wobble(2.5, n.phase)
+    return [cx + Math.cos(a) * d + wx, cy + Math.sin(a) * d + wy]
+  }
+  const [wx, wy] = wobble(n.kind === 'theme' ? 11 : 9, n.phase)
+  return [n.x! + wx, n.y! + wy]
+}
+
+/** Pixels from each edge of the canvas that the floating controls cover. */
+export interface View { t: number; r: number; b: number; l: number }
+/** The info panel over the canvas, when open: the side it is on and how far in it reaches. */
+export interface PanelBox { side: 'right' | 'bottom'; size: number }
 
 export const nodeIdFor = (f: Focus, mode: Mode): string | null => {
   if (!f) return null
@@ -80,6 +116,25 @@ const focusFor = (n: GNode): Focus =>
 const ends = (l: GLink) => [(l.source as GNode), (l.target as GNode)] as const
 
 interface Cam { x: number; y: number; k: number }
+
+interface Frame { w: number; h: number; view: View; panel: PanelBox | null }
+
+/** The screen point the camera centre maps to: the middle of the area the controls leave clear. */
+function origin(s: Frame): { x: number; y: number } {
+  return { x: s.view.l + (s.w - s.view.l - s.view.r) / 2, y: s.view.t + (s.h - s.view.t - s.view.b) / 2 }
+}
+
+/** The part of the screen nothing covers, the open panel included. */
+function clearArea(s: Frame) {
+  return {
+    x0: s.view.l, y0: s.view.t,
+    x1: s.panel?.side === 'right' ? s.w - s.panel.size : s.w - s.view.r,
+    y1: s.panel?.side === 'bottom' ? s.h - s.panel.size : s.h - s.view.b,
+  }
+}
+
+const fitView = (g: Graph, s: Frame): Cam =>
+  fitCam(g, Math.max(200, s.w - s.view.l - s.view.r), Math.max(200, s.h - s.view.t - s.view.b))
 
 function fitCam(g: Graph, w: number, h: number): Cam {
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
@@ -101,9 +156,17 @@ interface Props {
   kindFilter: ConceptKind | null
   /** Bumped by the "reset view" button. */
   resetKey: number
+  view: View
+  panel: PanelBox | null
+  /** A node to light as if hovered, for the guide to demonstrate with. */
+  spotlight?: string | null
+  /** Filled in with a function that finds a node on screen, for the guide to point at. */
+  locate?: React.RefObject<Locate | null>
 }
 
-export function KnowledgeGraph({ mode, focus, onFocus, theme, reduceMotion, kindFilter, resetKey }: Props) {
+export function KnowledgeGraph({
+  mode, focus, onFocus, theme, reduceMotion, kindFilter, resetKey, view, panel, spotlight = null, locate,
+}: Props) {
   const boxRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const tipRef = useRef<HTMLDivElement>(null)
@@ -125,9 +188,15 @@ export function KnowledgeGraph({ mode, focus, onFocus, theme, reduceMotion, kind
     cams: {} as Partial<Record<Mode, Cam>>, target: null as Cam | null,
     w: 0, h: 0, hover: null as GNode | null, drag: null as null | { node?: GNode; sx: number; sy: number; moved: boolean; cx: number; cy: number },
     clicked: null as string | null, palette: null as Palette | null, sprites: new Map<string, HTMLCanvasElement>(),
+    view: view, panel: panel, t: 0, pos: new Map<GNode, [number, number]>(),
+    /** Whether the reader (or a glide to a focus) has moved this mode's camera off its fit. */
+    moved: {} as Partial<Record<Mode, boolean>>,
+    focusFrom: 'outside' as 'canvas' | 'outside',
   })
-  const props = useRef({ mode, focus, kindFilter, reduceMotion, theme })
-  props.current = { mode, focus, kindFilter, reduceMotion, theme }
+  const props = useRef({ mode, focus, kindFilter, reduceMotion, theme, spotlight })
+  props.current = { mode, focus, kindFilter, reduceMotion, theme, spotlight }
+  st.current.view = view
+  st.current.panel = panel
 
   // Colours follow the theme; re-read them whenever it flips.
   useEffect(() => {
@@ -145,7 +214,11 @@ export function KnowledgeGraph({ mode, focus, onFocus, theme, reduceMotion, kind
       const w = box.clientWidth, h = box.clientHeight
       canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr)
       canvas.style.width = `${w}px`; canvas.style.height = `${h}px`
-      st.current.w = w; st.current.h = h
+      const s = st.current
+      s.w = w; s.h = h
+      // A camera nobody has moved follows the window.
+      const m = props.current.mode, g = cache.current[m]
+      if (g && s.cams[m] && !s.moved[m]) s.cams[m] = fitView(g, s)
     }
     fit()
     const ro = new ResizeObserver(fit)
@@ -153,27 +226,50 @@ export function KnowledgeGraph({ mode, focus, onFocus, theme, reduceMotion, kind
     return () => ro.disconnect()
   }, [])
 
-  // Each mode keeps its own camera, fitted the first time it opens.
+  // Each mode keeps its own camera, fitted the first time it opens, and refitted
+  // when the controls change shape, until the reader moves it themselves.
+  const viewKey = `${view.t},${view.r},${view.b},${view.l}`
   useEffect(() => {
     const s = st.current
-    if (!s.cams[mode] && s.w) s.cams[mode] = fitCam(graph, s.w, s.h)
-  }, [mode, graph])
+    if (!s.w) return
+    if (!s.cams[mode] || !s.moved[mode]) { s.cams[mode] = fitView(graph, s); s.target = null }
+  }, [mode, graph, viewKey])
   useEffect(() => {
     const s = st.current
-    if (resetKey && s.w) s.target = fitCam(graph, s.w, s.h)
+    if (resetKey && s.w) { s.target = fitView(graph, s); s.moved[mode] = false }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resetKey, graph])
 
   // A focus that came from outside the canvas (the panel, search, the tour)
-  // glides the camera to it. One that came from a click on the canvas does not:
-  // the reader is already looking there.
+  // glides the camera to it. One that came from a click on the canvas glides
+  // only if the panel that click opened now covers it: the reader is already
+  // looking there. The panel opens a moment after the focus changes, so this
+  // runs again when it does.
+  useEffect(() => {
+    const s = st.current
+    s.focusFrom = s.clicked && s.clicked === nodeIdFor(focus, mode) ? 'canvas' : 'outside'
+    s.clicked = null
+  }, [focus, mode])
+  const panelKey = panel ? `${panel.side}${panel.size}` : ''
   useEffect(() => {
     const s = st.current
     const id = nodeIdFor(focus, mode)
-    if (!id || s.clicked === id) { s.clicked = null; return }
-    const n = graph.nodes.find((x) => x.id === id)
+    const n = id ? graph.nodes.find((x) => x.id === id) : undefined
     const cam = s.cams[mode]
-    if (n && cam) s.target = { x: n.x!, y: n.y!, k: Math.max(cam.k, n.kind === 'lecture' ? 0.9 : 1.5) }
-  }, [focus, mode, graph])
+    if (!n || !cam || !s.w) return
+    const [nx, ny] = s.pos.get(n) ?? drawnAt(n, s.t)
+    const clear = clearArea(s)
+    const k = s.focusFrom === 'outside' ? Math.max(cam.k, n.kind === 'lecture' ? 0.9 : 1.5) : cam.k
+    if (s.focusFrom === 'canvas') {
+      const o = origin(s)
+      const x = (nx - cam.x) * cam.k + o.x, y = (ny - cam.y) * cam.k + o.y
+      const m = 28
+      if (x > clear.x0 + m && x < clear.x1 - m && y > clear.y0 + m && y < clear.y1 - m) return
+    }
+    const o = origin(s)
+    s.target = { x: nx - ((clear.x0 + clear.x1) / 2 - o.x) / k, y: ny - ((clear.y0 + clear.y1) / 2 - o.y) / k, k }
+    s.moved[mode] = true
+  }, [focus, mode, graph, panelKey])
 
   // The frame loop.
   useEffect(() => {
@@ -184,30 +280,36 @@ export function KnowledgeGraph({ mode, focus, onFocus, theme, reduceMotion, kind
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame)
       const s = st.current
-      const { mode, focus, kindFilter, reduceMotion, theme } = props.current
+      const { mode, focus, kindFilter, reduceMotion, theme, spotlight } = props.current
       const p = s.palette ?? (s.palette = readPalette(boxRef.current!))
       const g = cache.current[mode]
       if (!g || !s.w) return
-      const cam = s.cams[mode] ?? (s.cams[mode] = fitCam(g, s.w, s.h))
+      const cam = s.cams[mode] ?? (s.cams[mode] = fitView(g, s))
       if (s.target) {
         const e = reduceMotion ? 1 : 0.12
         cam.x += (s.target.x - cam.x) * e; cam.y += (s.target.y - cam.y) * e; cam.k += (s.target.k - cam.k) * e
         if (Math.abs(s.target.x - cam.x) < 0.5 && Math.abs(s.target.k - cam.k) < 0.002) s.target = null
       }
       const t = reduceMotion ? 0 : now
+      s.t = t
       const dpr = canvas.width / s.w
       const W = s.w, H = s.h
       const dark = theme === 'dark'
 
-      // Rendered position: the rest position plus the idle drift.
-      const amp = (n: GNode) => (n.kind === 'concept' ? 2.6 : n.kind === 'theme' ? 6 : 5)
-      const px = (n: GNode) => n.x! + amp(n) * Math.sin(t * 0.00042 + n.phase)
-      const py = (n: GNode) => n.y! + amp(n) * Math.cos(t * 0.00035 + n.phase * 1.3)
-      const sx = (x: number) => (x - cam.x) * cam.k + W / 2
-      const sy = (y: number) => (y - cam.y) * cam.k + H / 2
+      // Drawn positions, once per frame: the rest position plus the idle motion.
+      // Hit-testing and the tooltip read the same map, so what you point at is
+      // what is drawn there.
+      const pos = s.pos
+      pos.clear()
+      for (const n of g.nodes) pos.set(n, drawnAt(n, t))
+      const px = (n: GNode) => pos.get(n)![0]
+      const py = (n: GNode) => pos.get(n)![1]
+      const o = origin(s)
+      const sx = (x: number) => (x - cam.x) * cam.k + o.x
+      const sy = (y: number) => (y - cam.y) * cam.k + o.y
 
       // What is lit: the hovered or selected node and its neighbours, or a kind filter.
-      const focusId = s.hover?.id ?? nodeIdFor(focus, mode)
+      const focusId = s.hover?.id ?? spotlight ?? nodeIdFor(focus, mode)
       let lit: Set<string> | null = null
       if (focusId) {
         lit = new Set([focusId, ...(g.neighbours.get(focusId) ?? [])])
@@ -259,9 +361,9 @@ export function KnowledgeGraph({ mode, focus, onFocus, theme, reduceMotion, kind
         list.push(n); groups.set(n.slot, list)
       }
       for (const [slot, ns] of groups) {
-        const cx = ns.reduce((a, n) => a + n.x!, 0) / ns.length
-        const cy = ns.reduce((a, n) => a + n.y!, 0) / ns.length
-        const rad = Math.max(...ns.map((n) => Math.hypot(n.x! - cx, n.y! - cy) + n.r)) + (mode === 'topics' ? 120 : 70)
+        const cx = ns.reduce((a, n) => a + px(n), 0) / ns.length
+        const cy = ns.reduce((a, n) => a + py(n), 0) / ns.length
+        const rad = Math.max(...ns.map((n) => Math.hypot(px(n) - cx, py(n) - cy) + n.r)) + (mode === 'topics' ? 120 : 70)
         const grad = ctx.createRadialGradient(sx(cx), sy(cy), 0, sx(cx), sy(cy), rad * cam.k)
         grad.addColorStop(0, colorOf(p, slot)); grad.addColorStop(1, 'transparent')
         ctx.globalAlpha = dark ? 0.13 : 0.08
@@ -411,9 +513,7 @@ export function KnowledgeGraph({ mode, focus, onFocus, theme, reduceMotion, kind
           const near = focusId && vis && (focusId.startsWith('theme:') || focusId === n.id)
           const kindLit = !focusId && kindFilter && n.conceptKind === kindFilter
           if (!(cam.k >= 1.5 && vis) && !near && !kindLit && !must) continue
-          const c = conceptById(n.id.slice(8))
-          const t0 = c ? themePos(g, c.theme) : null
-          const right = !t0 || n.x! >= t0[0]
+          const right = !n.centre || px(n) >= px(n.centre)
           labs.push({ txt: n.label, x: x + (right ? r + 5 : -r - 5), y, size: 11, weight: must ? 650 : 500,
                       align: right ? 'left' : 'right', base: 'middle', color: p.ink, alpha: 1,
                       pri: near ? 40 : 20, must })
@@ -474,8 +574,9 @@ export function KnowledgeGraph({ mode, focus, onFocus, theme, reduceMotion, kind
       if (tip && s.hover) {
         const n = s.hover
         const x = sx(px(n)), y = sy(py(n))
-        const left = Math.min(Math.max(x + 18, 8), W - tip.offsetWidth - 8)
-        const top = y - tip.offsetHeight - 14 > 8 ? y - tip.offsetHeight - 14 : y + 22
+        const c = clearArea(s)
+        const left = Math.min(Math.max(x + 18, c.x0 + 8), c.x1 - tip.offsetWidth - 8)
+        const top = y - tip.offsetHeight - 14 > c.y0 + 8 ? y - tip.offsetHeight - 14 : y + 22
         tip.style.transform = `translate(${left}px, ${top}px)`
       }
     }
@@ -493,7 +594,8 @@ export function KnowledgeGraph({ mode, focus, onFocus, theme, reduceMotion, kind
     const world = (e: { clientX: number; clientY: number }) => {
       const rect = canvas.getBoundingClientRect()
       const cam = s.cams[props.current.mode]!
-      return { x: (e.clientX - rect.left - s.w / 2) / cam.k + cam.x, y: (e.clientY - rect.top - s.h / 2) / cam.k + cam.y }
+      const o = origin(s)
+      return { x: (e.clientX - rect.left - o.x) / cam.k + cam.x, y: (e.clientY - rect.top - o.y) / cam.k + cam.y }
     }
     const hit = (e: PointerEvent) => {
       const g = cache.current[props.current.mode]
@@ -502,7 +604,8 @@ export function KnowledgeGraph({ mode, focus, onFocus, theme, reduceMotion, kind
       const w = world(e)
       let best: GNode | null = null, bd = Infinity
       for (const n of g.nodes) {
-        const d = Math.hypot(n.x! - w.x, n.y! - w.y)
+        const [nx, ny] = s.pos.get(n) ?? [n.x!, n.y!]
+        const d = Math.hypot(nx - w.x, ny - w.y)
         const reach = Math.max(n.r, (n.kind === 'concept' ? 7 : 10) / cam.k) + 2 / cam.k
         if (d <= reach && (d < bd || (best?.kind === 'concept' && n.kind !== 'concept'))) { best = n; bd = d }
       }
@@ -519,7 +622,8 @@ export function KnowledgeGraph({ mode, focus, onFocus, theme, reduceMotion, kind
       const n = hit(e)
       const cam = s.cams[props.current.mode]!
       s.drag = { node: n ?? undefined, sx: e.clientX, sy: e.clientY, moved: false, cx: cam.x, cy: cam.y }
-      if (n && n.fx === undefined || n && n.fx === null) {
+      // Lectures and topics can be pulled on; a concept rides its ring.
+      if (n && n.kind !== 'concept' && n.slot >= 0 && n.fx == null) {
         n.fx = n.x; n.fy = n.y
         cache.current[props.current.mode]!.sim.alphaTarget(0.08).restart()
       }
@@ -531,12 +635,13 @@ export function KnowledgeGraph({ mode, focus, onFocus, theme, reduceMotion, kind
       const dx = e.clientX - d.sx, dy = e.clientY - d.sy
       if (Math.hypot(dx, dy) > 4) d.moved = true
       const cam = s.cams[props.current.mode]!
-      if (d.node && d.node.slot >= 0) {
+      if (d.node && d.node.kind !== 'concept' && d.node.slot >= 0) {
         const w = world(e)
         d.node.fx = w.x; d.node.fy = w.y
       } else if (!d.node) {
         cam.x = d.cx - dx / cam.k; cam.y = d.cy - dy / cam.k
         s.target = null
+        if (d.moved) s.moved[props.current.mode] = true
       }
     }
     const up = (e: PointerEvent) => {
@@ -544,7 +649,7 @@ export function KnowledgeGraph({ mode, focus, onFocus, theme, reduceMotion, kind
       s.drag = null
       canvas.style.cursor = s.hover ? 'pointer' : 'grab'
       if (!d) return
-      if (d.node && d.node.slot >= 0) {
+      if (d.node && d.node.kind !== 'concept' && d.node.slot >= 0) {
         d.node.fx = null; d.node.fy = null
         cache.current[props.current.mode]!.sim.alphaTarget(0)
       }
@@ -565,6 +670,7 @@ export function KnowledgeGraph({ mode, focus, onFocus, theme, reduceMotion, kind
       const after = world(e)
       cam.x += before.x - after.x; cam.y += before.y - after.y
       s.target = null
+      s.moved[props.current.mode] = true
     }
     canvas.addEventListener('pointerdown', down)
     canvas.addEventListener('pointermove', move)
@@ -579,29 +685,38 @@ export function KnowledgeGraph({ mode, focus, onFocus, theme, reduceMotion, kind
       canvas.removeEventListener('wheel', wheel)
     }
   }, [])
+  // Where a node is on screen right now, in client pixels, for the guide.
+  useEffect(() => {
+    if (!locate) return
+    locate.current = (id) => {
+      const s = st.current, m = props.current.mode
+      const g = cache.current[m], cam = s.cams[m], c = canvasRef.current
+      const n = g?.nodes.find((x) => x.id === id)
+      if (!n || !cam || !c) return null
+      const [x, y] = s.pos.get(n) ?? drawnAt(n, s.t)
+      const o = origin(s), rect = c.getBoundingClientRect()
+      return { x: rect.left + (x - cam.x) * cam.k + o.x, y: rect.top + (y - cam.y) * cam.k + o.y, r: Math.max(6, n.r * cam.k) }
+    }
+    return () => { locate.current = null }
+  }, [locate])
+
   // Moving between modes drops the hover, which belonged to the other graph.
   useEffect(() => { st.current.hover = null; setHover(null) }, [mode])
 
   const described = mode === 'lectures'
-    ? `Knowledge graph of ${knowledge.lectures.length} lectures in ${knowledge.arcs.length} arcs, linked by ${knowledge.edges.length} citations between their notes. The panel beside it lists every lecture as a button.`
-    : `Knowledge graph of ${knowledge.themes.length} topics and ${knowledge.concepts.length} concepts from the index. The panel beside it lists every topic as a button, and search finds any concept.`
+    ? `Knowledge graph of ${knowledge.lectures.length} lectures in ${knowledge.arcs.length} arcs, linked by ${knowledge.edges.length} citations between their notes. The index button above it lists every lecture as a button.`
+    : `Knowledge graph of ${knowledge.themes.length} topics and ${knowledge.concepts.length} concepts from the index. The index button above it lists every topic as a button, and search finds any concept.`
 
   return (
-    <div ref={boxRef} className="kg-canvas relative h-[min(74vh,760px)] min-h-[420px] w-full overflow-hidden rounded-2xl border border-[var(--border)]">
+    <div ref={boxRef} className="kg-canvas absolute inset-0 overflow-hidden">
       <canvas ref={canvasRef} role="img" aria-label={described} className="block touch-none" style={{ cursor: 'grab' }} />
       <div ref={tipRef} aria-hidden
-           className={`pointer-events-none absolute left-0 top-0 max-w-[300px] rounded-xl border border-[var(--border)]
-                       bg-[var(--surface-raised)] px-3 py-2 text-sm shadow-xl transition-opacity duration-150
+           className={`glass pointer-events-none absolute left-0 top-0 z-10 max-w-[300px] rounded-xl px-3 py-2 text-sm transition-opacity duration-150
                        ${hover ? 'opacity-100' : 'opacity-0'}`}>
         {hover && <TipBody n={hover} />}
       </div>
     </div>
   )
-}
-
-function themePos(g: Graph, theme: string): [number, number] | null {
-  const n = g.nodes.find((x) => x.id === `theme:${theme}`)
-  return n ? [n.x!, n.y!] : null
 }
 
 function TipBody({ n }: { n: GNode }) {

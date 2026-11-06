@@ -37,6 +37,8 @@ export interface GNode extends SimulationNodeDatum {
   phase: number
   /** A concept's distance from its theme, set when the rings are laid out. */
   ring?: number
+  /** A concept's theme, which its ring turns around while the graph idles. */
+  centre?: GNode
 }
 
 export interface GLink extends SimulationLinkDatum<GNode> {
@@ -242,6 +244,7 @@ export function topicGraph(): Graph {
       ns.forEach((n, i) => {
         const a = (2 * Math.PI * i) / ns.length + t.phase
         n.ring = t.r + 20 + (i % 2) * 15
+        n.centre = t
         n.x = t.x! + Math.cos(a) * n.ring; n.y = t.y! + Math.sin(a) * n.ring
         n.vx = 0; n.vy = 0
       })

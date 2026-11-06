@@ -875,6 +875,14 @@ system figure with their lectures and tools. A takeaway is a claim, so check it 
 lecture's Summary; a tool must be an index term, and the script fails if it is not. An
 unreleased lecture reaches the bundle as its number, title, date and arc only.
 
+The graph and the system figure fill the window, with every control floating over them on
+glass; the controls report the space they cover and the graph fits itself to the rest. A
+first visit to the graph opens a seven-step guide (`game/src/ui/MapGuide.tsx`) that points
+at each control and demonstrates on the most-linked released lecture. Whether it has been
+seen is a per-viewer flag in `localStorage`, and the Guide button replays it. The smoke test
+walks it, so a step whose control is renamed or removed fails there rather than pointing at
+nothing.
+
 **The participation score is on the PDF, and the rule is one line.** Each question is worth
 a point, each wrong answer deducts `WRONG_PENALTY` (0.25), a revealed answer scores zero,
 and the score is the mean over the questions that had an answer chosen. Free-recall items
