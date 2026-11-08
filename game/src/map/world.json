@@ -340,13 +340,13 @@
       "date": "2026-11-16",
       "title": "Course overview and how it was built",
       "kind": "session",
-      "written": false,
+      "written": true,
       "arc_source": "declared",
       "arc": "Course wrap-up",
       "region": 4,
       "x": 13,
       "y": 1,
-      "notes": null
+      "notes": "../lectures/l22/notes.html"
     }
   ],
   "doors": [
