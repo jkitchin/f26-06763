@@ -5682,6 +5682,409 @@
         "AI made no measurable difference to how long tasks took",
         "They were much faster than they themselves believed"
       ]
+    },
+    {
+      "id": "l20-q01",
+      "kind": "mcq",
+      "lecture": "l20",
+      "context": "The tank agent uses a discount factor γ = 0.95, one decision every 0.5 time units. Roughly\nhow far ahead does it look?",
+      "why": "A reward k steps away counts γ^k as much as one now, so the effective horizon is roughly\n1/(1 − γ) = 20 steps. That is four times as long as the tank takes to fill from 2 to 5 at\nfull inflow, long enough to see the overshoot an early valve opening causes.",
+      "objectives": [
+        "l20-o1"
+      ],
+      "tags": [
+        "discount",
+        "horizon"
+      ],
+      "true": "About 20 steps, or 10 time units",
+      "false": [
+        "One step, because Q-learning only ever looks at the next state",
+        "The whole 100-step episode, equally weighted at every step",
+        "About 95 steps, one for each hundredth of the discount"
+      ]
+    },
+    {
+      "id": "l20-q02",
+      "kind": "mcq",
+      "lecture": "l20",
+      "context": "If you knew the Q-function of the best policy, Q*(s, a), how would you act?",
+      "why": "Q*(s, a) is the expected return from taking a in s and then acting optimally. With it in hand,\nacting well is a lookup: the best action is the one with the largest value.",
+      "objectives": [
+        "l20-o1"
+      ],
+      "tags": [
+        "q-function"
+      ],
+      "true": "In each state, take the action with the largest Q*(s, a)",
+      "false": [
+        "Sample actions in proportion to their Q-values in each state",
+        "Take the action with the largest immediate reward in each state",
+        "Keep exploring at random one time in five, forever"
+      ]
+    },
+    {
+      "id": "l20-q03",
+      "kind": "spot_the_defect",
+      "lecture": "l20",
+      "context": "A team's learned reactor controller behaves strangely. Its state is the reactor temperature\nalone, and the catalyst has been deactivating for a week. What is the first thing to check?",
+      "why": "The Markov property is a modelling choice. Temperature alone does not determine the next\ntemperature when the catalyst is changing, so the state has to include the deactivation, or\nsomething that tracks it.",
+      "objectives": [
+        "l20-o1"
+      ],
+      "tags": [
+        "markov-property"
+      ],
+      "true": "Whether the state leaves out something the dynamics depend on",
+      "false": [
+        "The learning rate, because a deactivating catalyst needs a larger α",
+        "The discount factor, which should be 1 for a continuous process",
+        "Whether the reward is scaled to between 0 and 1"
+      ]
+    },
+    {
+      "id": "l20-q04",
+      "kind": "mcq",
+      "lecture": "l20",
+      "context": "A corridor of eight cells pays +1 only at the right end. With one-step Q-learning updates,\nhow does that reward reach the first cell?",
+      "why": "Each update reads the next cell's estimate through the max term, which is bootstrapping. So\nthe news travels back one cell per episode. Monte Carlo, which waits for the whole return,\nfills the corridor in one episode at the price of variance.",
+      "objectives": [
+        "l20-o1"
+      ],
+      "tags": [
+        "credit-assignment",
+        "bootstrapping"
+      ],
+      "true": "One cell further back per episode, discounted each time",
+      "false": [
+        "All at once, after the first episode that reaches the end",
+        "Never, because cells far from the reward are never updated",
+        "Only if the reward is moved to the start of the corridor"
+      ]
+    },
+    {
+      "id": "l20-q05",
+      "kind": "mcq",
+      "lecture": "l20",
+      "context": "A run with catalyst B gives a yield of 70%. What kind of feedback is that, and what does it\nleave out?",
+      "why": "Instructive feedback names the right answer whatever the learner did; every label in L9 and\nL10 is one. Evaluative feedback scores the choice made and nothing else, which is what forces\na reinforcement learner to explore.",
+      "objectives": [
+        "l20-o2"
+      ],
+      "tags": [
+        "feedback",
+        "landscape"
+      ],
+      "true": "Evaluative: it scores B and says nothing about the catalysts not tried",
+      "false": [
+        "Instructive: it names the right catalyst for this reaction",
+        "Instructive: it is a labelled data point like any regression target",
+        "Evaluative: it ranks every catalyst relative to B at once"
+      ]
+    },
+    {
+      "id": "l20-q06",
+      "kind": "mcq",
+      "lecture": "l20",
+      "context": "Bayesian optimization (L15) and reinforcement learning both learn from scores. What does\nreinforcement learning have that Bayesian optimization does not?",
+      "why": "Running a reaction at 80 °C today does not change what 90 °C will give tomorrow, so each\nexperiment is a fresh decision. In reinforcement learning the action changes the state, and\nthrough it every later reward.",
+      "objectives": [
+        "l20-o2"
+      ],
+      "tags": [
+        "landscape",
+        "bayesian-optimization"
+      ],
+      "true": "Actions that change the state the learner faces next",
+      "false": [
+        "A surrogate model linking the choices that were tried",
+        "Noise in the measured outcome of each choice it makes",
+        "An acquisition function trading exploration against exploitation"
+      ]
+    },
+    {
+      "id": "l20-q07",
+      "kind": "claim_vs_source",
+      "lecture": "l20",
+      "context": "\"Reinforcement learning from human feedback lets a person grade every output the model\nwrites.\" What did InstructGPT actually optimize with PPO?",
+      "why": "The paper trains a reward model on labelers' comparisons and then uses it as the reward for\nPPO. The environment is a learned stand-in for a person's judgement, so it can be gamed like\nany other reward.",
+      "objectives": [
+        "l20-o2"
+      ],
+      "tags": [
+        "rlhf"
+      ],
+      "true": "A reward model trained to predict which output labelers would prefer",
+      "false": [
+        "Labelers' scores, collected live for every output during training",
+        "The next-token loss on a larger set of human-written answers",
+        "The number of tokens in each answer, as a proxy for helpfulness"
+      ]
+    },
+    {
+      "id": "l20-q10",
+      "kind": "mcq",
+      "lecture": "l20",
+      "context": "In the Q-learning update, what is the bracket r + γ max Q(s', a') − Q(s, a)?",
+      "why": "The temporal-difference error compares the one-step target with the current estimate, and\nthe learning rate α sets how far each sample moves the entry toward it.",
+      "objectives": [
+        "l20-o3"
+      ],
+      "tags": [
+        "q-learning",
+        "td-error"
+      ],
+      "true": "The TD error: what the step suggests minus what the table says",
+      "false": [
+        "The reward the agent expects at the end of the episode",
+        "The probability of choosing a random action at this step",
+        "The gradient of the policy with respect to the network weights"
+      ]
+    },
+    {
+      "id": "l20-q11",
+      "kind": "mcq",
+      "lecture": "l20",
+      "context": "Why does the tank agent pick a random inflow one time in five (ε-greedy, ε = 0.2)?",
+      "why": "An entry for an action that is never taken never moves. Watkins and Dayan's convergence proof\nrequires all actions to be sampled repeatedly in all states, so exploration is a mathematical\nrequirement as well as a practical one.",
+      "objectives": [
+        "l20-o3"
+      ],
+      "tags": [
+        "epsilon-greedy",
+        "exploration"
+      ],
+      "true": "The table only learns about actions that get tried",
+      "false": [
+        "To keep the valve from wearing out in one position",
+        "To add noise that makes the learned policy robust to sensors",
+        "Because the PID baseline also uses random perturbations"
+      ]
+    },
+    {
+      "id": "l20-q12",
+      "kind": "predict_measure",
+      "lecture": "l20",
+      "context": "From one start (h = 2), the trained agent beats a PID loop with hand-picked gains. Then the\nPID is tuned, and both are tested from eight starting levels with ten training seeds. What\nhappens?",
+      "why": "Over eight starts the agent's error was 1.40 ± 1.31 against 0.19 for the tuned PID. Half the\nseeds matched the tuned PID; the other half failed from at least one start they rarely saw in\ntraining.",
+      "objectives": [
+        "l20-o3"
+      ],
+      "tags": [
+        "baseline",
+        "pid",
+        "seeds"
+      ],
+      "true": "The tuned PID wins, by about a factor of seven on average",
+      "false": [
+        "The agent still wins, since it learned from the tank itself",
+        "They tie, because both settle exactly on the setpoint",
+        "The comparison cannot be made, since the agent uses five inflows"
+      ]
+    },
+    {
+      "id": "l20-q13",
+      "kind": "mcq",
+      "lecture": "l20",
+      "context": "The tank's outflow is k√h with k = 0.5, and the agent chooses inflow from {0, 0.5, 1, 1.5,\n2}. Why does it switch back and forth near the setpoint of 5?",
+      "why": "At steady state F = k√h, so the five inflows hold levels 0, 1, 4, 9 and 16. No policy over\nthis action set can hold 5; the best it can do is alternate, which is what the saw-tooth is.",
+      "objectives": [
+        "l20-o3"
+      ],
+      "tags": [
+        "action-set",
+        "discretization"
+      ],
+      "true": "No allowed inflow holds h = 5; that needs F = 1.118",
+      "false": [
+        "Its learning rate is too high, so the table never settles",
+        "The reward penalizes standing still at any single level",
+        "The 20 level bins are too coarse to see the setpoint at all"
+      ]
+    },
+    {
+      "id": "l20-q14",
+      "kind": "direction",
+      "lecture": "l20",
+      "context": "To fix the switching, the action set grows from five inflows to nine, with the same 1,000\ntraining episodes. What happened to the error over eight starts?",
+      "why": "A bigger table needs more experience to fill, and the budget did not change. Discretization\nhas a cost on each side, and a continuous action is one reason deep RL methods exist.",
+      "objectives": [
+        "l20-o3"
+      ],
+      "tags": [
+        "action-set",
+        "sample-cost"
+      ],
+      "true": "It was 0.99 ± 0.94: 180 entries need more data than 100",
+      "false": [
+        "It fell to match the tuned PID, since 1.0 and 1.25 bracket 1.118 closely",
+        "It was unchanged, because the level bins limit accuracy",
+        "It fell to zero, because one of the nine inflows holds h = 5"
+      ]
+    },
+    {
+      "id": "l20-q15",
+      "kind": "predict_measure",
+      "lecture": "l20",
+      "context": "The tank's reward becomes −|h(t+1) − h(t)|, \"keep the level steady\". Where does the trained\nagent leave the level?",
+      "why": "The reward only penalizes movement, so the agent parks the tank at the nearest\nconstant-inflow steady state and leaves it there. The level is steady, the setpoint was never\nin the reward, and the error from 5 is 9.69. This is specification gaming.",
+      "objectives": [
+        "l20-o3"
+      ],
+      "tags": [
+        "specification-gaming",
+        "reward"
+      ],
+      "true": "At 1, 4 or 9: a level one constant inflow holds",
+      "false": [
+        "At the setpoint, 5, where a good controller keeps it",
+        "Empty, at 0, from every starting level it is given",
+        "Wherever it started, by closing the inflow completely"
+      ]
+    },
+    {
+      "id": "l20-q19",
+      "kind": "claim_vs_source",
+      "lecture": "l20",
+      "context": "\"DeepMind used reinforcement learning to cut Google's data-centre cooling energy by 40%.\"\nWhat do the sources say?",
+      "why": "The 2016 blog reports \"up to 40 percent\" from neural-network predictions and never uses the\nwords. Lazic et al. (2018) learned a linear model from three hours of exploration and used MPC,\nwith \"the potential to save about 9%\".",
+      "objectives": [
+        "l20-o5"
+      ],
+      "tags": [
+        "case-study",
+        "reading-claims"
+      ],
+      "true": "The blog never says RL; the paper is a linear model with MPC, about 9%",
+      "false": [
+        "The 2018 paper confirms a 40% saving from a deep RL agent",
+        "The 40% came from replacing PID loops with a tuned PID controller",
+        "The saving was measured on a simulator and never deployed"
+      ]
+    },
+    {
+      "id": "l20-q20",
+      "kind": "mcq",
+      "lecture": "l20",
+      "context": "A unit has several interacting variables and constraints, and you can fit a dynamic model of\nit. Which tool is usually right?",
+      "why": "MPC fits a model, optimizes the actions over a horizon, applies the first and repeats. With\na usable model it needs far fewer samples than model-free RL; Recht found policy gradient\nneeded thousands of times as many samples as simple nominal control on LQR.",
+      "objectives": [
+        "l20-o5"
+      ],
+      "tags": [
+        "mpc",
+        "choosing-a-tool"
+      ],
+      "true": "Model predictive control",
+      "false": [
+        "Reinforcement learning, because the variables interact",
+        "Bayesian optimization, one variable at a time, in sequence",
+        "A generative model of past operating data"
+      ]
+    },
+    {
+      "id": "l20-q21",
+      "kind": "mcq",
+      "lecture": "l20",
+      "context": "On the three-level tank, the operator opens at low and shuts otherwise. Starting at low the\ntank goes low, ok, low, ok and so on, earning 0.9, 0, 0.9, 0 and so on. With rewards k steps\nahead counted as 0.9^k times their size, what is the value of starting at low?",
+      "why": "The rewards repeat every two steps, and each repeat counts 0.9^2 = 0.81 times the one before,\nso the total is 0.9 (1 + 0.81 + 0.81^2 + ...) = 0.9 / 0.19 = 4.737. Dividing by 1 - 0.9\nwould count a reward of 0.9 on every step, but every second step earns nothing.",
+      "objectives": [
+        "l20-o6"
+      ],
+      "tags": [
+        "mdp-matrices",
+        "value",
+        "discount"
+      ],
+      "true": "About 4.74, since 0.9 / (1 - 0.81)",
+      "false": [
+        "0.9, the reward of the first step",
+        "9.0, since 0.9 / (1 - 0.9)",
+        "Infinite, since the cycle never ends"
+      ]
+    },
+    {
+      "id": "l20-q22",
+      "kind": "mcq",
+      "lecture": "l20",
+      "context": "Value iteration updates every entry of Q with R + γ P_a V. Q-learning uses no matrices at\nall. What exactly does it replace?",
+      "why": "Q-learning moves one entry a fraction α toward r + γ max Q(s′, ·) for the observed s′. Over\nmany visits s′ lands in each column of row s of P_a in proportion to its probability, so the\naverage update is the value-iteration update: a sample update instead of an expected one.",
+      "objectives": [
+        "l20-o6",
+        "l20-o1"
+      ],
+      "tags": [
+        "mdp-matrices",
+        "model-free"
+      ],
+      "true": "The expectation P_a V, with the value of the one next state actually observed",
+      "false": [
+        "The reward matrix R, with a learned reward model",
+        "The max over actions, with an average over actions",
+        "The discount γ, with the learning rate α"
+      ]
+    },
+    {
+      "id": "l20-q23",
+      "kind": "mcq",
+      "lecture": "l20",
+      "context": "Half the Q-learning seeds on the 20-bin tank fail badly from some start. Solving the tank's\nown 20 × 20 transition matrices exactly, with the same five inflows and the same bins, gives\na policy that scores 0.187 over the eight starts, about the tuned PID's 0.19. What does that\nsay about the failing seeds?",
+      "why": "The exact solution uses the same representation and matches PID, so nothing about the\ntable forced the loss. The bad seeds picked, in a rarely visited bin, an inflow that holds\nthe level inside that bin (0.5 in bin 1, 1.5 in bin 17), a diagonal 1 in P_a, so the tank\nparks there.",
+      "objectives": [
+        "l20-o3",
+        "l20-o6"
+      ],
+      "tags": [
+        "mdp-matrices",
+        "tank",
+        "seeds"
+      ],
+      "true": "The table and the five inflows were enough; the failures came from learning",
+      "false": [
+        "Five inflows cannot hold the setpoint, so every table policy must lose to PID",
+        "The bins are not Markov, so no table can be trusted on this tank",
+        "The failing seeds needed a larger discount factor"
+      ]
+    },
+    {
+      "id": "l20-q24",
+      "kind": "mcq",
+      "lecture": "l20",
+      "context": "On the three-level tank (levels ordered low, ok, high), the valve sometimes sticks, so row\nlow of the matrix for opening is [0.2, 0.8, 0]. What does the 0.8 mean?",
+      "why": "The row is where the tank is (low), the column is where it ends up (ok), and the entry is the\nchance of that move under this action. Scores live in a separate table, R, and the matrix\nsays nothing about how often the tank is anywhere.",
+      "objectives": [
+        "l20-o7"
+      ],
+      "tags": [
+        "mechanics",
+        "transition-matrix"
+      ],
+      "true": "Opening from low reaches ok four times in five",
+      "false": [
+        "Opening from low earns a score of 0.8",
+        "The tank is at ok 80% of the time",
+        "Opening from ok returns to low four times in five"
+      ]
+    },
+    {
+      "id": "l20-q25",
+      "kind": "mcq",
+      "lecture": "l20",
+      "context": "The three-level tank's Q table starts at zero, with alpha = 0.5 and gamma = 0.9. After one\nupdate Q(low, open) = 0.45. Now the program, at ok, shuts and lands at low with a score of\n0. What does Q(ok, shut) become?",
+      "why": "The target is the score plus 0.9 times the best entry in the row where the move landed, and\nthe best entry in row low is 0.45, so the target is 0.405. With alpha = 0.5 the entry moves\nhalfway from 0 to 0.405, to 0.2025. The score of 0 does not make the target 0, because\nlanding at low is worth something when you can open from there.",
+      "objectives": [
+        "l20-o8"
+      ],
+      "tags": [
+        "mechanics",
+        "q-learning",
+        "by-hand"
+      ],
+      "true": "About 0.20, half of the target 0 + 0.9 x 0.45",
+      "false": [
+        "0, because the score was 0",
+        "0.405, the target itself",
+        "0.45, copied from Q(low, open)"
+      ]
     }
   ]
 }
