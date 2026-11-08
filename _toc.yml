@@ -95,7 +95,7 @@ parts:
 #       - file: course/assignments/a06
 #       - file: course/assignments/a08
 #       - file: course/assignments/a09
-      - file: course/assignments/a10
+#       - file: course/assignments/a10
 
 # Projects: hidden until their lecture. tools/release_lecture.py uncomments the
 # part header and the miniproject at Lecture 10, and the final project

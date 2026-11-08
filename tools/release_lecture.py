@@ -53,10 +53,11 @@ TOC = REPO / "_toc.yml"
 #: L19 became the agents lecture (RAG went into L18) and releases no assignment (2026-11-03), so
 #: A9 is held too. A11 (eval harness plus deployed API) was dropped on 2026-11-04 with the
 #: evaluation lecture, when L21 became the optional deployment session; its spec is in
-#: archive/l21-evaluation/.
+#: archive/l21-evaluation/. A10 was released with L20 on 2026-11-08 and pulled the same day:
+#: no further assignments are released this semester, so A6, A8, A9 and A10 stay held.
 LECTURE_ASSIGNMENTS = {
     1: ["a01"], 4: ["a02"], 6: ["a03"], 8: ["a04"], 15: ["a05"],
-    20: ["a10"],   # a06, a08 and a09 held: not released with L11, L18 and L19; dates open
+    # a06, a08, a09 and a10 held: no more assignments this semester (2026-11-08)
 }
 
 #: Which project page (course/<slug>.md) is released with which lecture. The
