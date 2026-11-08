@@ -552,14 +552,23 @@ def check_sections(bank: Bank, lock: dict) -> list[str]:
 
 
 def check_lecture_coverage(bank: Bank) -> None:
-    """Every published lecture needs a bank, or an explicit unwritten stub.
+    """Every published lecture needs a bank, or says deliberately that it has none.
 
     Without this a new lecture merges with no items and nothing says so, which
     is not hypothetical: L06 is in flight as this is written.
+
+    Saying so deliberately means either an `unwritten` stub, or no bank file and
+    notes whose At a glance block reads `- **Practice** No practice module`
+    (L22). The second is the form book.yml's practice-link check requires: it
+    rejects a lecture that has a bank file but no Practice module section.
     """
     have = set(bank.lectures)
+    no_module = re.compile(r"^- \*\*Practice\*\* No practice module", re.M)
     for lecture in toc_lectures():
         if lecture not in have:
+            notes = REPO / "lectures" / lecture / "notes.md"
+            if notes.exists() and no_module.search(notes.read_text(encoding="utf-8")):
+                continue
             bank.err(
                 lecture,
                 f"lectures/{lecture}/notes.md is published in _toc.yml but "
