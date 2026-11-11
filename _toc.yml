@@ -75,9 +75,9 @@ parts:
       - file: lectures/l20/notes
         sections:
           - file: lectures/l20/l20-reinforcement-learning
-#       - file: lectures/l21/notes
-#         sections:
-#           - file: lectures/l21/l21-deployment
+      - file: lectures/l21/notes
+        sections:
+          - file: lectures/l21/l21-deployment
       - file: lectures/l22/notes
         sections:
           - file: lectures/l22/l22-git-history
