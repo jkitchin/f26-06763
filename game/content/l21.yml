@@ -14,7 +14,7 @@ lecture: l21
 title: "Deployment: serving models, containers, latency and cost"
 source_notes: lectures/l21/notes.md
 # Held until release: tools/release_lecture.py flips this to published.
-status: unwritten
+status: published
 # serve = pool // 2, so a retake can be served a disjoint set (CLAUDE.md section 9c).
 serve: 10
 pool_version: 3
