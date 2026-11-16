@@ -9,11 +9,9 @@
  * cover it; click it for the lectures, the tools the course used for it, and
  * the case studies where it mattered.
  *
- * A reading travels through the system in the order knowledge.yml gives, from
- * collection to verification to features to the model to serving to
- * monitoring, and each part lights as the reading reaches it: the figure's
- * argument, that most of the journey happens outside the red box, told as
- * motion. It stops when reduced motion is asked for.
+ * The figure holds still. It once had a dot travelling from part to part, meant
+ * as one reading on its way through the system, but nothing on screen said so,
+ * and a moving mark with no stated meaning only distracts from the boxes.
  *
  * SVG rather than canvas: ten boxes is a scale where real elements cost
  * nothing, and each box is then a focusable button for free.
@@ -21,16 +19,15 @@
  * On a phone held upright the figure is drawn transposed (`tall`), columns
  * becoming rows, so it fills the screen's height instead of shrinking to a
  * strip across its width. A transpose keeps every box's area, so the red box
- * is still 3.7% of the whole, and the reading still travels the same parts in
- * the same order. Labels wrap to the width of their box in both orientations.
+ * is still 3.7% of the whole. Labels wrap to the width of their box in both
+ * orientations.
  */
 
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { knowledge, lectureById, type Box } from '../map/knowledge.ts'
 import { arcVar, type Focus } from './InfoPanel.tsx'
 
 const S = 10 // viewBox units per figure unit
-const LEG = 1900 // milliseconds the reading spends travelling between two parts
 
 type R = { x: number; y: number; w: number; h: number }
 
@@ -55,13 +52,10 @@ export function SystemView({ focus, onFocus, showTools, reduceMotion, tall = fal
   /** Draw the figure transposed, for a phone held upright. */
   tall?: boolean
 }) {
-  const { canvas, boxes, flow, caption } = knowledge.system
+  const { canvas, boxes, caption } = knowledge.system
   const [W0, H] = canvas
   const [VW, VH] = tall ? [H * S, W0 * S] : [W0 * S, H * S]
   const [hover, setHover] = useState<string | null>(null)
-  const [visiting, setVisiting] = useState<string | null>(null)
-  const dotRef = useRef<SVGCircleElement>(null)
-  const trailRef = useRef<SVGCircleElement>(null)
   const active = hover ?? (focus?.type === 'box' ? focus.id : null)
 
   // Figure units have y up from the bottom, as matplotlib draws them. Tall
@@ -70,47 +64,9 @@ export function SystemView({ focus, onFocus, showTools, reduceMotion, tall = fal
     const r = { x: b.x * S, y: (H - b.y - b.h) * S, w: b.w * S, h: b.h * S }
     return tall ? { x: r.y, y: r.x, w: r.h, h: r.w } : r
   }
-  const box = (id: string) => boxes.find((b) => b.id === id)!
-  // Where the reading stops in each part: the lower left corner, clear of the
-  // label and the lecture chips in the middle.
-  const stop = (id: string): [number, number] => {
-    const r = rect(box(id))
-    return [r.x + 22, r.y + r.h - 22]
-  }
-
-  useEffect(() => {
-    if (reduceMotion) { setVisiting(null); return }
-    let raf = 0
-    const t0 = performance.now()
-    let last = ''
-    const legs = flow.length - 1
-    const tick = (now: number) => {
-      raf = requestAnimationFrame(tick)
-      // The first frame's timestamp can precede t0 by a fraction of a millisecond.
-      const u = (Math.max(0, now - t0) / LEG) % legs
-      const i = Math.floor(u)
-      const f = u - i
-      // Ease in and out of each part, and dwell a moment at each stop.
-      const e = f < 0.35 ? 0 : (1 - Math.cos(Math.PI * Math.min(1, (f - 0.35) / 0.65))) / 2
-      const [x0, y0] = stop(flow[i]!)
-      const [x1, y1] = stop(flow[i + 1]!)
-      const x = x0 + (x1 - x0) * e, y = y0 + (y1 - y0) * e
-      dotRef.current?.setAttribute('cx', x.toFixed(1)); dotRef.current?.setAttribute('cy', y.toFixed(1))
-      const e2 = Math.max(0, e - 0.08)
-      trailRef.current?.setAttribute('cx', (x0 + (x1 - x0) * e2).toFixed(1))
-      trailRef.current?.setAttribute('cy', (y0 + (y1 - y0) * e2).toFixed(1))
-      const here = f < 0.35 ? flow[i]! : e > 0.9 ? flow[i + 1]! : ''
-      if (here !== last) { last = here; setVisiting(here || null) }
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reduceMotion, tall])
-
   const chip = tall ? 15 : 13
   const ml = boxes.find((b) => b.id === 'ml')
   const share = ml ? (100 * ml.w * ml.h) / boxes.reduce((s, b) => s + b.w * b.h, 0) : 0
-  const lower = (s: string) => (/^[A-Z]{2}/.test(s) ? s : s.charAt(0).toLowerCase() + s.slice(1))
 
   return (
     <figure className="kg-system m-0 flex h-full w-full flex-col items-center gap-3">
@@ -129,7 +85,6 @@ export function SystemView({ focus, onFocus, showTools, reduceMotion, tall = fal
             const r = rect(b)
             const isMl = b.id === 'ml'
             const on = !active || active === b.id
-            const lit = visiting === b.id && !active
             const lecs = b.lectures.map((l) => lectureById(l)!).filter(Boolean)
             const fs = isMl ? (tall ? 21 : 19) : tall ? 19 : 17
             const lines = wrap(b.label, r.w - 20, fs)
@@ -147,10 +102,10 @@ export function SystemView({ focus, onFocus, showTools, reduceMotion, tall = fal
                 <rect x={r.x + 3} y={r.y + 3} width={r.w - 6} height={r.h - 6} rx={10}
                       fill={isMl ? 'var(--arc-here)' : 'var(--surface-raised)'}
                       fillOpacity={isMl ? 1 : active === b.id ? 1 : 0.75}
-                      stroke={active === b.id ? 'var(--kg-ink)' : lit ? 'var(--arc-1)' : 'var(--border)'}
-                      strokeWidth={active === b.id || lit ? 3 : 1.5}
+                      stroke={active === b.id ? 'var(--kg-ink)' : 'var(--border)'}
+                      strokeWidth={active === b.id ? 3 : 1.5}
                       style={{ transition: 'stroke 300ms, stroke-width 300ms' }}
-                      filter={(active === b.id || lit) && !reduceMotion ? 'url(#sys-glow)' : undefined} />
+                      filter={active === b.id && !reduceMotion ? 'url(#sys-glow)' : undefined} />
                 <text x={r.x + r.w / 2} y={labelY(r, lines.length)}
                       textAnchor="middle" dominantBaseline="middle"
                       fill={isMl ? '#fff' : 'var(--kg-ink)'} fontSize={fs} fontWeight={isMl ? 700 : 600}>
@@ -182,16 +137,10 @@ export function SystemView({ focus, onFocus, showTools, reduceMotion, tall = fal
             )
           })}
 
-          {!reduceMotion && (
-            <g pointerEvents="none">
-              <circle ref={trailRef} r={4} fill="var(--arc-1)" opacity={0.35} />
-              <circle ref={dotRef} r={6} fill="var(--arc-1)" filter="url(#sys-glow)" />
-            </g>
-          )}
         </svg>
       </div>
       <figcaption className="glass max-w-3xl rounded-xl px-4 py-2 text-xs leading-relaxed text-[var(--muted)]">
-        {caption} The blue light is a reading on its way through the system: {flow.map((id) => lower(box(id).label)).join(', then ')}.
+        {caption}
       </figcaption>
     </figure>
   )

@@ -75,12 +75,10 @@ parts:
       - file: lectures/l20/notes
         sections:
           - file: lectures/l20/l20-reinforcement-learning
-#       - file: lectures/l21/notes
-#         sections:
-#           - file: lectures/l21/l21-deployment
-      - file: lectures/l22/notes
+      - file: lectures/l21/notes
         sections:
-          - file: lectures/l22/l22-git-history
+          - file: lectures/l21/l21-deployment
+      - file: lectures/l22/notes
 
   - caption: Assignments
     # Released with their lecture by tools/release_lecture.py, from the

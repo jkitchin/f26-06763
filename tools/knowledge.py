@@ -260,7 +260,8 @@ def build() -> dict:
     all_terms = {c["term"]: c for c in concepts.values()}
     area = 0
     boxes = []
-    ids = {b["id"] for b in system["boxes"]}
+    if len({b["id"] for b in system["boxes"]}) != len(system["boxes"]):
+        fail("two system boxes share an id")
     for b in system["boxes"]:
         x, y, w, h = b["geometry"]
         area += w * h
@@ -284,9 +285,6 @@ def build() -> dict:
                       "tools": tools})
     if area != CANVAS[0] * CANVAS[1]:
         fail(f"the system boxes cover {area} units, not the {CANVAS[0] * CANVAS[1]} of the canvas")
-    for fid in system["flow"]:
-        if fid not in ids:
-            fail(f"system flow names {fid}, which is not a box")
 
     return {
         "generated_by": "tools/knowledge.py",
@@ -301,7 +299,7 @@ def build() -> dict:
         "concepts": sorted(concepts.values(), key=lambda c: (c["lecture"], c["term"].lower())),
         "cases": cases,
         "system": {"canvas": list(CANVAS), "caption": system["caption"],
-                   "boxes": boxes, "flow": system["flow"]},
+                   "boxes": boxes},
     }
 
 

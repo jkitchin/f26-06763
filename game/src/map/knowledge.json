@@ -563,10 +563,11 @@
    "notes": "../lectures/l22/notes.html",
    "slides": "../slides/l22/",
    "takeaways": [
-    "A few ideas ran through the course; make results reproducible, split the data the way the model will meet the world, measure rather than assume, and say how wrong you might be.",
-    "Generating material is not learning it; use an assistant to test you and to find the gaps in your own explanation."
+    "A few ideas run through the course; make results reproducible, split the data the way the model will be used, measure instead of assuming, and report the uncertainty.",
+    "None of it is specific to chemical engineering; the same split mistake inflated scores for heartbeats, bearings and chest X-rays.",
+    "Generating material is not learning it; use an assistant to test you, not to do the work for you."
    ],
-   "data": "",
+   "data": "Seven case studies from other fields, and the course's own repository",
    "objectives": [],
    "themes": [
     "learning"
@@ -866,116 +867,116 @@
   {
    "from": "l22",
    "to": "l01",
-   "weight": 3,
-   "where": "to a model in a state you can trust. Lecture 1 set out the system view of"
+   "weight": 7,
+   "where": "- Lecture 1: the model is a small box inside a much larger system."
   },
   {
    "from": "l22",
    "to": "l02",
-   "weight": 1,
-   "where": "the course used throughout. Lecture 2 made environments and experiments"
+   "weight": 2,
+   "where": "- Lecture 2: reproducible environments with uv, lockfiles and Git."
   },
   {
    "from": "l22",
    "to": "l03",
    "weight": 1,
-   "where": "reproducible with uv lockfiles, Git and run logging. Lecture 3 and"
+   "where": "- Lecture 3 and Lecture 4: sensor data in PostgreSQL, then"
   },
   {
    "from": "l22",
    "to": "l04",
    "weight": 1,
-   "where": "Lecture 4 stored sensor time series in PostgreSQL and then in Parquet and DuckDB,"
+   "where": "- Lecture 3 and Lecture 4: sensor data in PostgreSQL, then"
   },
   {
    "from": "l22",
    "to": "l05",
    "weight": 1,
-   "where": "Lecture 5 built batch pipelines over the Tennessee Eastman plant that are safe to"
+   "where": "- Lecture 5: batch pipelines that are safe to rerun."
   },
   {
    "from": "l22",
    "to": "l06",
-   "weight": 1,
-   "where": "rerun, Lecture 6 dealt with streams, late data and validation gates that fail"
+   "weight": 2,
+   "where": "- Lecture 6: streams, late data and checks on incoming data."
   },
   {
    "from": "l22",
    "to": "l07",
-   "weight": 1,
-   "where": "loudly, and Lecture 7 turned raw signals into features that exist at the moment"
+   "weight": 4,
+   "where": "- Lecture 7: features that exist at the moment of prediction."
   },
   {
    "from": "l22",
    "to": "l08",
-   "weight": 1,
-   "where": "how to know whether to believe it. Lectures 8, 9 and"
+   "weight": 4,
+   "where": "- Lecture 8, Lecture 9 and Lecture 10:"
   },
   {
    "from": "l22",
    "to": "l09",
-   "weight": 2,
-   "where": "how to know whether to believe it. Lectures 8, 9 and"
+   "weight": 5,
+   "where": "- Lecture 8, Lecture 9 and Lecture 10:"
   },
   {
    "from": "l22",
    "to": "l10",
-   "weight": 1,
-   "where": "10 were the machine-learning workflow three times over, for time series,"
+   "weight": 4,
+   "where": "- Lecture 8, Lecture 9 and Lecture 10:"
   },
   {
    "from": "l22",
    "to": "l11",
    "weight": 2,
-   "where": "cross-validation, hyperparameter search and experiment tracking. Lecture 11"
+   "where": "- Lecture 11: tensors, automatic differentiation and a training loop by hand."
   },
   {
    "from": "l22",
    "to": "l12",
-   "weight": 1,
-   "where": "Lecture 12 matched architectures to the structure of engineering data."
+   "weight": 5,
+   "where": "- Lecture 12: network architectures for engineering data."
   },
   {
    "from": "l22",
    "to": "l13",
    "weight": 1,
-   "where": "Lecture 13 put physics back in, with physics-informed networks and neural ODEs"
+   "where": "- Lecture 13: physics-informed networks, and neural ordinary and"
   },
   {
    "from": "l22",
    "to": "l14",
-   "weight": 1,
-   "where": "and DAEs. Lecture 14 asked how wrong a prediction might be,"
+   "weight": 5,
+   "where": "- Lecture 14: how wrong a prediction might be."
   },
   {
    "from": "l22",
    "to": "l15",
-   "weight": 1,
-   "where": "Lecture 15 used that uncertainty to choose the next experiment, and"
+   "weight": 3,
+   "where": "- Lecture 15: using that uncertainty to choose the next experiment."
   },
   {
    "from": "l22",
    "to": "l16",
    "weight": 1,
-   "where": "Lecture 16 learned whole distributions and sampled from them."
+   "where": "- Lecture 16: learning a whole distribution and sampling from it."
   },
   {
    "from": "l22",
    "to": "l17",
    "weight": 2,
-   "where": "and writes text. Lecture 17 trained a tiny GPT to show what a language model is,"
+   "where": "- Lecture 17: a tiny language model, trained from scratch."
   },
   {
    "from": "l22",
    "to": "l18",
    "weight": 1,
-   "where": "Lecture 18 controlled what the model gets to see through tools, search and"
+   "where": "- Lecture 18: choosing what the model sees, with tools and search."
   },
   {
    "from": "l22",
    "to": "l19",
-   "weight": 2,
-   "where": "retrieval, and Lecture 19 put the model in a loop with tools as an agent, inside"
+   "weight": 3,
+   "where": "- Lecture 19: a model in a loop with tools, inside a set of checks."
   }
  ],
  "themes": [
@@ -5841,12 +5842,12 @@
    "also": []
   },
   {
-   "id": "ai-assistance-and-coding-skill-formation",
-   "term": "AI assistance and coding skill formation",
+   "id": "chest-x-ray-hospital-shortcut",
+   "term": "chest X-ray hospital shortcut",
    "kind": "case",
    "lecture": "l22",
-   "section": "Generating is not learning",
-   "href": "../lectures/l22/notes.html#generating-is-not-learning",
+   "section": "Applications across fields",
+   "href": "../lectures/l22/notes.html#applications-across-fields",
    "theme": "learning",
    "also": []
   },
@@ -5871,8 +5872,8 @@
    "also": []
   },
   {
-   "id": "commit-trailer",
-   "term": "commit trailer",
+   "id": "continuous-integration",
+   "term": "continuous integration",
    "kind": "concept",
    "lecture": "l22",
    "section": "How this course was built",
@@ -5891,28 +5892,48 @@
    "also": []
   },
   {
-   "id": "desirable-difficulty",
-   "term": "desirable difficulty",
+   "id": "cwru-bearing-benchmark",
+   "term": "CWRU bearing benchmark",
+   "kind": "case",
+   "lecture": "l22",
+   "section": "Applications across fields",
+   "href": "../lectures/l22/notes.html#applications-across-fields",
+   "theme": "learning",
+   "also": []
+  },
+  {
+   "id": "epic-sepsis-model-validation",
+   "term": "Epic Sepsis Model validation",
+   "kind": "case",
+   "lecture": "l22",
+   "section": "Applications across fields",
+   "href": "../lectures/l22/notes.html#applications-across-fields",
+   "theme": "learning",
+   "also": []
+  },
+  {
+   "id": "force-directed-layout",
+   "term": "force-directed layout",
    "kind": "concept",
    "lecture": "l22",
-   "section": "Generating is not learning",
-   "href": "../lectures/l22/notes.html#generating-is-not-learning",
+   "section": "The interactive reviews",
+   "href": "../lectures/l22/notes.html#the-interactive-reviews",
+   "theme": "learning",
+   "also": []
+  },
+  {
+   "id": "gefcom2014-load-forecasting",
+   "term": "GEFCom2014 load forecasting",
+   "kind": "case",
+   "lecture": "l22",
+   "section": "Applications across fields",
+   "href": "../lectures/l22/notes.html#applications-across-fields",
    "theme": "learning",
    "also": []
   },
   {
    "id": "git",
    "term": "Git",
-   "kind": "concept",
-   "lecture": "l22",
-   "section": "How this course was built",
-   "href": "../lectures/l22/notes.html#how-this-course-was-built",
-   "theme": "learning",
-   "also": []
-  },
-  {
-   "id": "git-log",
-   "term": "git log",
    "kind": "concept",
    "lecture": "l22",
    "section": "How this course was built",
@@ -5941,6 +5962,16 @@
    "also": []
   },
   {
+   "id": "knowledge-graph",
+   "term": "knowledge graph",
+   "kind": "concept",
+   "lecture": "l22",
+   "section": "The interactive reviews",
+   "href": "../lectures/l22/notes.html#the-interactive-reviews",
+   "theme": "learning",
+   "also": []
+  },
+  {
    "id": "learning-by-teaching",
    "term": "learning by teaching",
    "kind": "concept",
@@ -5951,12 +5982,12 @@
    "also": []
   },
   {
-   "id": "plausible-output",
-   "term": "plausible output",
-   "kind": "failure",
+   "id": "mit-bih-patient-split",
+   "term": "MIT-BIH patient split",
+   "kind": "case",
    "lecture": "l22",
-   "section": "The course in one picture",
-   "href": "../lectures/l22/notes.html#the-course-in-one-picture",
+   "section": "Applications across fields",
+   "href": "../lectures/l22/notes.html#applications-across-fields",
    "theme": "learning",
    "also": []
   },
@@ -5971,32 +6002,12 @@
    "also": []
   },
   {
-   "id": "retrieval-practice",
-   "term": "retrieval practice",
-   "kind": "concept",
+   "id": "shape-memory-alloy-search",
+   "term": "shape memory alloy search",
+   "kind": "case",
    "lecture": "l22",
-   "section": "Generating is not learning",
-   "href": "../lectures/l22/notes.html#generating-is-not-learning",
-   "theme": "learning",
-   "also": []
-  },
-  {
-   "id": "rung-ladder",
-   "term": "rung ladder",
-   "kind": "concept",
-   "lecture": "l22",
-   "section": "Generating is not learning",
-   "href": "../lectures/l22/notes.html#generating-is-not-learning",
-   "theme": "learning",
-   "also": []
-  },
-  {
-   "id": "specification",
-   "term": "specification",
-   "kind": "concept",
-   "lecture": "l22",
-   "section": "Learning a new field quickly",
-   "href": "../lectures/l22/notes.html#learning-a-new-field-quickly",
+   "section": "Applications across fields",
+   "href": "../lectures/l22/notes.html#applications-across-fields",
    "theme": "learning",
    "also": []
   },
@@ -6011,12 +6022,12 @@
    "also": []
   },
   {
-   "id": "two-step-verification",
-   "term": "two-step verification",
-   "kind": "concept",
+   "id": "z24-bridge-monitoring",
+   "term": "Z24 bridge monitoring",
+   "kind": "case",
    "lecture": "l22",
-   "section": "Learning a new field quickly",
-   "href": "../lectures/l22/notes.html#learning-a-new-field-quickly",
+   "section": "Applications across fields",
+   "href": "../lectures/l22/notes.html#applications-across-fields",
    "theme": "learning",
    "also": []
   }
@@ -6431,15 +6442,6 @@
      }
     ]
    }
-  ],
-  "flow": [
-   "collection",
-   "verification",
-   "features",
-   "ml",
-   "serving",
-   "monitoring",
-   "collection"
   ]
  }
 }

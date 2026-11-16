@@ -1,0 +1,424 @@
+{
+  "lecture": "l21",
+  "title": "Deployment: serving models, containers, latency and cost",
+  "pool_version": 3,
+  "source_notes": "lectures/l21/notes.md",
+  "generated_by": "tools/arcade_rounds.py",
+  "items": [
+    {
+      "id": "l21-q01",
+      "kind": "predict_measure",
+      "lecture": "l21",
+      "context": "On the course laptop the concrete strength service took 0.81 s from launch to its first\nready answer. The model file is 46 kB. Where did most of that time go?",
+      "why": "Loading the model took 0.058 s. The other 93% was the interpreter starting and importing\nFastAPI, NumPy and scikit-learn. For a small model the cold start is mostly imports; for a\nlarge one the load dominates, which is why loading once at startup matters more as models\ngrow.",
+      "objectives": [
+        "l21-o1",
+        "l21-o2"
+      ],
+      "tags": [
+        "cold-start",
+        "lifespan"
+      ],
+      "true": "Starting Python and importing the libraries",
+      "false": [
+        "Loading the model weights from disk",
+        "Checking the artifact's SHA-256 against the manifest",
+        "Opening the network socket for uvicorn"
+      ]
+    },
+    {
+      "id": "l21-q02",
+      "kind": "mcq",
+      "lecture": "l21",
+      "context": "A heat-exchanger fouling surrogate feeds a report the plant reviews each Monday. Nothing else\never calls it. Where should it run?",
+      "why": "Nobody is waiting for the answer, so a server is a process to keep alive and a bill for\nnothing. Score the whole table on a schedule and write the predictions where the report\nalready reads, with the idempotent stages of Lecture 5.",
+      "objectives": [
+        "l21-o1"
+      ],
+      "tags": [
+        "batch",
+        "where-it-runs"
+      ],
+      "true": "A batch job that scores the table on a schedule",
+      "false": [
+        "A long-running HTTP service, so the report can call it",
+        "A serverless container that scales to zero between reports",
+        "In the browser of whoever opens the report"
+      ]
+    },
+    {
+      "id": "l21-q03",
+      "kind": "mcq",
+      "lecture": "l21",
+      "context": "A model on Cloud Run scales to zero when idle. It gets a few requests an hour, so most arrive\nafter a quiet period, and a cold start (mostly loading weights) takes about 2 s. Users need\na p95 under 200 ms. What is the trade?",
+      "why": "Scale to zero makes an idle service free and makes the first request after a quiet period\nwait for a cold start. A minimum number of warm instances removes the wait, and those\ninstances are billed, so the saving goes with it. More workers would each load their own\ncopy and start no faster.",
+      "objectives": [
+        "l21-o1"
+      ],
+      "tags": [
+        "serverless",
+        "cold-start"
+      ],
+      "true": "Keep instances warm and pay for them while idle",
+      "false": [
+        "Raise the worker count so each cold start loads faster",
+        "Switch to async def endpoints so the load does not block",
+        "None: scaling to zero does not change request latency"
+      ]
+    },
+    {
+      "id": "l21-q04",
+      "kind": "spot_the_defect",
+      "lecture": "l21",
+      "context": "A reviewer proposes setting every request bound to the training minimum and maximum, for\nexample `slag: float = Field(ge=0, le=360)`, so that any mix outside the training data gets\na 422. What is wrong with that?",
+      "why": "A 422 is for the impossible, such as negative cement. A mix with more slag than any training\nmix is a legitimate question with an unreliable answer, so the service answers it and the\nresponse lists every feature outside the training box stored in the manifest.",
+      "objectives": [
+        "l21-o2"
+      ],
+      "tags": [
+        "pydantic",
+        "validation",
+        "out-of-domain"
+      ],
+      "true": "It refuses possible mixes; answer them and flag them out of domain",
+      "false": [
+        "Nothing; out-of-range requests should get a 422 before the model runs",
+        "Pydantic cannot express an upper bound on a float field",
+        "Bounds belong in the response model, not the request model"
+      ]
+    },
+    {
+      "id": "l21-q05",
+      "kind": "predict_measure",
+      "lecture": "l21",
+      "context": "Inside the training ranges the ensemble predicts 48.3 MPa with a 90% interval about 37 MPa\nwide. Raise the slag to 400 kg/m3 and the age to 730 days, both outside the training data.\nWhat happens to the interval?",
+      "why": "The interval comes from the spread of the five networks, and they agree with each other off\nthe data as readily as on it. So the interval cannot warn you, and the response carries an\nexplicit in_domain flag computed from the training minimum and maximum of each feature.",
+      "objectives": [
+        "l21-o2"
+      ],
+      "tags": [
+        "uncertainty",
+        "out-of-domain",
+        "ensemble"
+      ],
+      "true": "It narrows slightly, to 34 MPa wide",
+      "false": [
+        "It widens, because the model knows less there",
+        "It is unchanged, since the calibration factor is fixed",
+        "The service refuses the request with a 422"
+      ]
+    },
+    {
+      "id": "l21-q06",
+      "kind": "predict_measure",
+      "lecture": "l21",
+      "context": "Four clients send 5,000-mix batches to a CPU-bound prediction endpoint written as\n`async def`, while a fifth client asks /healthz every 50 ms. Compared with the same code\nwritten as plain `def`, what happens to the health check?",
+      "why": "An async def endpoint runs on the event loop itself, so a computation that never awaits\nblocks every other request until it finishes. A plain def endpoint runs in a threadpool and\nthe server keeps answering: 48 ms median against 161 ms, and 42 health answers in four\nseconds against 19.",
+      "objectives": [
+        "l21-o2",
+        "l21-o4"
+      ],
+      "tags": [
+        "async",
+        "concurrency",
+        "fastapi"
+      ],
+      "true": "It slows to about 160 ms median, waiting for whole batches",
+      "false": [
+        "No difference, since async def is the faster, modern choice",
+        "It gets faster, since async def frees the threadpool",
+        "It fails outright, because uvicorn kills the blocked worker"
+      ]
+    },
+    {
+      "id": "l21-q07",
+      "kind": "claim_vs_source",
+      "lecture": "l21",
+      "context": "\"The thing worth saving is the recipe, more than the weights.\" When this service rebuilt\nLecture 14's ensemble with the same split, network and seeds, what happened?",
+      "why": "All five networks stop at the iteration cap without converging, so their final weights\ndepend on floating-point details a library build can move. Lecture 14's own script now gives\n2.09 too. What reproduces the model is the artifact, with a manifest of library versions, the\ndata hash and the file's own hash.",
+      "objectives": [
+        "l21-o2",
+        "l21-o3"
+      ],
+      "tags": [
+        "manifest",
+        "reproducibility",
+        "artifact"
+      ],
+      "true": "The calibration factor came out 2.09, not 1.66; intervals covered 95.9%",
+      "false": [
+        "It reproduced the ensemble bit for bit, as a seeded deterministic run should",
+        "It failed to run at all, because the scikit-learn API had changed",
+        "The networks came out different, but the calibration factor still matched"
+      ]
+    },
+    {
+      "id": "l21-q08",
+      "kind": "spot_the_defect",
+      "lecture": "l21",
+      "context": "A team's liveness probe runs a test prediction and a database query. During a slow spell in\nthe database, the orchestrator restarts every instance of the service at once. What went\nwrong?",
+      "why": "A failed liveness probe restarts the container; a failed readiness probe only takes it out\nof traffic. A liveness check that calls a slow dependency fails everywhere at once, and the\nrestarts turn a slow database into an outage.",
+      "objectives": [
+        "l21-o2"
+      ],
+      "tags": [
+        "health-check",
+        "liveness",
+        "readiness"
+      ],
+      "true": "Liveness checked dependencies; keep it trivial, put those in readiness",
+      "false": [
+        "The probe was too slow; run it every second instead of every ten",
+        "There should be no liveness probe when a readiness probe exists",
+        "Restarting was correct; the database should have been restarted first, then the app"
+      ]
+    },
+    {
+      "id": "l21-q09",
+      "kind": "mcq",
+      "lecture": "l21",
+      "context": "The concrete service standardizes each request before the networks see it. Why does it save\nthe fitted scaler with each network rather than recomputing the scaling in the endpoint?",
+      "why": "Training-serving skew is a feature computed one way in training and another in serving.\nSaving the Lecture 8 Pipeline with the model makes the serving path reuse the training code,\nwhich is Google's Rule 32, and leaves no second implementation to drift.",
+      "objectives": [
+        "l21-o2"
+      ],
+      "tags": [
+        "training-serving-skew",
+        "pipeline"
+      ],
+      "true": "So requests use the training means and spreads, and no other",
+      "false": [
+        "Because a saved scaler makes each prediction faster to compute",
+        "So the scaler can refit itself on each incoming batch of requests",
+        "Because Pydantic needs the scaler to range-check the fields"
+      ]
+    },
+    {
+      "id": "l21-q10",
+      "kind": "spot_the_defect",
+      "lecture": "l21",
+      "context": "Every one-line edit to app.py makes this build reinstall scikit-learn and NumPy. Why?\n\n```dockerfile\nFROM python:3.12-slim\nCOPY --from=ghcr.io/astral-sh/uv:0.10.3 /uv /uvx /bin/\nWORKDIR /app\nCOPY . .\nRUN uv sync --locked --no-dev\nCMD [\"uvicorn\", \"app:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\"]\n```",
+      "why": "Docker's cache is strictly ordered, so a changed layer rebuilds everything after it. Install\nthe dependencies from the lockfile first, in their own layer, and copy the code after. Built\nthat way, a full build took 11.7 s and a rebuild after an edit to app.py took 2.9 s.",
+      "objectives": [
+        "l21-o3"
+      ],
+      "tags": [
+        "docker",
+        "layer-cache"
+      ],
+      "true": "COPY . . comes before the install, so a code change invalidates that layer",
+      "false": [
+        "--locked makes uv re-resolve and redownload every dependency on each build",
+        "The exec-form CMD at the end turns off Docker's layer cache for the whole file",
+        "The uv image tag is pinned, so its layer is always rebuilt"
+      ]
+    },
+    {
+      "id": "l21-q11",
+      "kind": "spot_the_defect",
+      "lecture": "l21",
+      "context": "The image is built with `--build-arg API_KEY=...` and then pushed. The running container has\nno key.txt. Is the key safe in the pushed image?\n\n```dockerfile\nARG API_KEY\nCOPY key.txt /app/key.txt\nRUN ./fetch-weights --key-file /app/key.txt && rm /app/key.txt\n```",
+      "why": "Layers are immutable. The rm adds a layer that hides the file and the COPY layer still\nholds it, readable from the saved image; the figure script recovered it that way, and read\nthe build argument from docker history --no-trunc. Use RUN --mount=type=secret, and rotate\nany key that did leak.",
+      "objectives": [
+        "l21-o3"
+      ],
+      "tags": [
+        "secrets",
+        "docker",
+        "image-layer"
+      ],
+      "true": "No: docker history shows the ARG, and the COPY layer keeps the file",
+      "false": [
+        "Yes: the rm deleted the file, and build arguments are not kept in the image",
+        "Yes, as long as the final stage runs as a non-root user such as app",
+        "No, but only because the name key.txt is easy to guess"
+      ]
+    },
+    {
+      "id": "l21-q12",
+      "kind": "direction",
+      "lecture": "l21",
+      "context": "A surrogate lists a plain `torch` dependency. It installs on a Mac, and the same project is\nbuilt into a Linux container. Compared with the Mac, what happens to torch's size in the\nimage, and what is the fix?",
+      "why": "PyPI hosts CPU-only torch wheels for macOS and GPU wheels for Linux. The Linux wheel is 539\nMB and pulls NVIDIA's libraries (cuDNN alone is 519 MB), against about 210 MB for the CPU\nwheel. uv's PyTorch guide shows how to point torch at the CPU index, and a model this size\ndoes not need a GPU.",
+      "objectives": [
+        "l21-o3"
+      ],
+      "tags": [
+        "pytorch",
+        "cpu-only",
+        "image-size"
+      ],
+      "true": "Much larger: Linux gets the CUDA build; use the CPU index",
+      "false": [
+        "Smaller, since Linux wheels leave out the Metal backend",
+        "The same, because uv.lock pins one wheel for every platform",
+        "Larger, but only by the size of the Python interpreter"
+      ]
+    },
+    {
+      "id": "l21-q13",
+      "kind": "predict_measure",
+      "lecture": "l21",
+      "context": "One uvicorn worker saturates at about 1,800 requests per second. With 32 closed-loop\nclients, each sending its next request as soon as the last one returns, what mean\nlatency do you predict?",
+      "why": "Once throughput is pinned at capacity, Little's law L = λW makes latency proportional to the\nnumber in the system: 32/1800 s is 18 ms, and the measured mean was 17.4 ms (median 17.1 ms,\nafter 4.4 and 8.7 ms at 8 and 16 clients). In a closed loop the queue cannot exceed the 32 clients, so it does not grow\nwithout limit.",
+      "objectives": [
+        "l21-o4"
+      ],
+      "tags": [
+        "littles-law",
+        "capacity",
+        "latency"
+      ],
+      "true": "About 18 ms, since W = N/X = 32/1800",
+      "false": [
+        "About 4.4 ms, the same as at 8 clients",
+        "About 1.1 ms, since more clients share the overhead",
+        "Unbounded, because the queue grows without limit"
+      ]
+    },
+    {
+      "id": "l21-q14",
+      "kind": "mcq",
+      "lecture": "l21",
+      "context": "Each server typically answers in 10 ms, with a p99 of one second. A user request must wait\nfor 100 such servers. What share of user requests take more than one second?",
+      "why": "A request is fast only if all 100 servers are, which happens with probability 0.99^100, about\n0.37. A component's tail becomes the system's typical case, which is why Dean and Barroso\nsend hedged requests to a second replica after a short delay.",
+      "objectives": [
+        "l21-o4"
+      ],
+      "tags": [
+        "tail-latency",
+        "fan-out"
+      ],
+      "true": "About 63%, which is 1 - 0.99^100",
+      "false": [
+        "About 1%, the same as for a single server",
+        "About 10%, since only the slowest tenth of servers matter",
+        "All of them, since some server is always slow"
+      ]
+    },
+    {
+      "id": "l21-q15",
+      "kind": "direction",
+      "lecture": "l21",
+      "context": "One mix per request cost 0.89 ms per prediction. The same service gets requests carrying\n1,000 mixes each. Per prediction, what happened?",
+      "why": "Almost all of a single request's cost was fixed overhead (parsing, validation, routing), not\nthe five small networks, and a batch pays it once. An optimizer that proposes candidates in\nbatches, as L15's batch acquisition does, gets the same saving from a surrogate service.",
+      "objectives": [
+        "l21-o4"
+      ],
+      "tags": [
+        "batching",
+        "throughput"
+      ],
+      "true": "About a hundred times cheaper, 9.1 µs each",
+      "false": [
+        "Slightly cheaper, since the networks do the same work per mix",
+        "More expensive, since the request is much larger to parse",
+        "The same, since batching only helps on a GPU"
+      ]
+    },
+    {
+      "id": "l21-q16",
+      "kind": "mcq",
+      "lecture": "l21",
+      "context": "At $2 per million input tokens and $10 per million output tokens, an answer built from 3,000\ntokens of retrieved context and a 300-token reply costs about how much per thousand answers?",
+      "why": "3,000 × $2/10^6 is $0.006 and 300 × $10/10^6 is $0.003, so $0.009 an answer. Output tokens\ncost five times as much, but a retrieval prompt is mostly input. Prices change, so read the\npricing page on the day and record the date with the estimate.",
+      "objectives": [
+        "l21-o4"
+      ],
+      "tags": [
+        "llm-cost",
+        "tokens"
+      ],
+      "true": "$9, two thirds of it from the input context",
+      "false": [
+        "$3, since only the reply is billed",
+        "$6.60, counting every token at the input price",
+        "$33, if every token is billed at the output price"
+      ]
+    },
+    {
+      "id": "l21-q17",
+      "kind": "claim_vs_source",
+      "lecture": "l21",
+      "context": "A design review justifies a latency target with \"every 100 ms of latency costs 1% of sales\".\nWhat does following that number to its sources show?",
+      "why": "The Amazon figure is one bullet on a 2006 slide with no method and no sample size. Brutlag's\ncontrolled 2009 experiment injected delays into Google search and found 100 to 400 ms cost\n0.2% to 0.6% of daily searches, with no measurable effect at 50 ms.",
+      "objectives": [
+        "l21-o4"
+      ],
+      "tags": [
+        "folklore",
+        "reading-claims",
+        "latency"
+      ],
+      "true": "One slide bullet; Google's controlled test found far less",
+      "false": [
+        "Amazon's controlled study measured exactly 1% per 100 ms",
+        "Google's 2009 experiment found 20% fewer searches per 500 ms",
+        "The sources agree, but the effect was only seen on mobile users"
+      ]
+    },
+    {
+      "id": "l21-q18",
+      "kind": "mcq",
+      "lecture": "l21",
+      "context": "CrowdStrike's 19 July 2024 update shipped no new code, only a content configuration file\nread by the existing sensor. Which lesson carries over to a model service?",
+      "why": "The template defined 21 input fields and the code supplied 20, and the tests used a wildcard\nfor the 21st, so they never hit the mismatch. Weights, a feature schema or a calibration\nfactor change what running code does in the same way, and CrowdStrike's own remedy was a\nstaged rollout for each content instance.",
+      "objectives": [
+        "l21-o5"
+      ],
+      "tags": [
+        "case-study",
+        "staged-rollout",
+        "content-update"
+      ],
+      "true": "New weights or a new calibration factor need the same staged release as code",
+      "false": [
+        "Data files are safe to push globally, since the code was already tested",
+        "Only kernel-level software needs staged rollouts; user-space services never do",
+        "Content updates should be tested with wildcards to cover every value"
+      ]
+    },
+    {
+      "id": "l21-q19",
+      "kind": "mcq",
+      "lecture": "l21",
+      "context": "Knight Capital's new code reached seven of its eight servers. Engineers then rolled back by\nremoving the new code from the seven, and the losses grew. What does the case say a deploy\nneeds before it counts as done?",
+      "why": "Nobody confirmed the eighth server, where a repurposed flag woke the retired Power Peg code,\nand the rollback put the seven good servers into the same state. For a model service the\ncheck is /readyz returning the model version, compared from outside against the version you\nmeant to deploy.",
+      "objectives": [
+        "l21-o5"
+      ],
+      "tags": [
+        "case-study",
+        "rollback",
+        "verification"
+      ],
+      "true": "A check on every instance that the tested artifact is running",
+      "false": [
+        "A faster rollback, so the old code is back on all eight within seconds",
+        "A second deploy to the eighth server before markets open",
+        "Fewer servers, since eight is too many to keep in step"
+      ]
+    },
+    {
+      "id": "l21-q20",
+      "kind": "mcq",
+      "lecture": "l21",
+      "context": "To be safe, a team runs a new, heavier anomaly model in shadow mode on the serving machines:\nit scores all live traffic and its outputs are discarded. What does Cloudflare's 2 July 2019\noutage say about this plan?",
+      "why": "Cloudflare's new WAF rule ran in simulate mode, which records what it would have done, and\nits regular expression backtracked badly enough to exhaust the CPU used for serving. The\nnetwork was down for 27 minutes. A shadow model costs what the model costs, on the same\nmachines, so it needs the same staged rollout as a live change.",
+      "objectives": [
+        "l21-o5"
+      ],
+      "tags": [
+        "case-study",
+        "shadow-deployment",
+        "staged-rollout"
+      ],
+      "true": "It still spends CPU on the machines serving real traffic, as simulate mode did",
+      "false": [
+        "Shadow mode is free, because nothing acts on the model's output",
+        "Shadow mode is only risky when its predictions are logged to disk",
+        "It is safe once the change can be pushed globally in seconds"
+      ]
+    }
+  ]
+}

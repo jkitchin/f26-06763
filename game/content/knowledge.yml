@@ -214,8 +214,10 @@ lectures:
     data: Choosing the tilt of solar panels on a roof
   l22:
     takeaways:
-      - A few ideas ran through the course; make results reproducible, split the data the way the model will meet the world, measure rather than assume, and say how wrong you might be.
-      - Generating material is not learning it; use an assistant to test you and to find the gaps in your own explanation.
+      - A few ideas run through the course; make results reproducible, split the data the way the model will be used, measure instead of assuming, and report the uncertainty.
+      - None of it is specific to chemical engineering; the same split mistake inflated scores for heartbeats, bearings and chest X-rays.
+      - Generating material is not learning it; use an assistant to test you, not to do the work for you.
+    data: Seven case studies from other fields, and the course's own repository
 
 # Lecture 1's figure: A production ML system, sized by the code each part requires.
 # Geometry is copied from lectures/l01/figures/make_figures.py (x, y, w, h on a 100 x
@@ -293,5 +295,3 @@ system:
       lectures: [l01, l18, l19]
       tools: [FastAPI, container, vector database]
 
-  # The order a reading travels through the system, drawn as moving dots.
-  flow: [collection, verification, features, ml, serving, monitoring, collection]

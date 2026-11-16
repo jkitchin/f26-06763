@@ -847,9 +847,9 @@ section 4: the artifact exists, and it says what you are citing it for.
 
 Add to it when something is worth adding, not on a schedule. Today it publishes nothing.
 `how-this-course-was-built.md` was folded into Lecture 22 (11-16), which covers the same subject,
-so the page stays out of `_toc.yml` rather than say it twice. The rung ladder (0 to 7) that the
-practice game shows on every item is defined in Lecture 22's "Generating is not learning"
-section, so change the two together. `mlops.md` and `mlops-demo.ipynb` are kept for a future
+so the page stays out of `_toc.yml` rather than say it twice. The 0 to 7 scale that the
+practice game shows on every item as its "rung" is defined in Lecture 22's "Ways to study, from 0
+to 7" section, so change the two together. `mlops.md` and `mlops-demo.ipynb` are kept for a future
 offering and stay out of `_toc.yml` too.
 
 ---
