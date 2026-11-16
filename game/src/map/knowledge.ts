@@ -66,7 +66,7 @@ export interface Knowledge {
   theme_edges: { a: string; b: string; weight: number }[]
   concepts: Concept[]
   cases: CaseStudy[]
-  system: { canvas: [number, number]; caption: string; boxes: Box[]; flow: string[] }
+  system: { canvas: [number, number]; caption: string; boxes: Box[] }
 }
 
 export const knowledge = raw as unknown as Knowledge

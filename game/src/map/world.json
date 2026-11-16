@@ -740,7 +740,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "to a model in a state you can trust. [Lecture 1](../l01/notes.md) set out the system view of"
+      "where": "- [Lecture 1](../l01/notes.md): the model is a small box inside a much larger system."
     },
     {
       "from": "l22",
@@ -748,7 +748,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "the course used throughout. [Lecture 2](../l02/notes.md) made environments and experiments"
+      "where": "- [Lecture 2](../l02/notes.md): reproducible environments with `uv`, lockfiles and Git."
     },
     {
       "from": "l22",
@@ -756,7 +756,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "reproducible with `uv` lockfiles, Git and run logging. [Lecture 3](../l03/notes.md) and"
+      "where": "- [Lecture 3](../l03/notes.md) and [Lecture 4](../l04/notes.md): sensor data in PostgreSQL, then"
     },
     {
       "from": "l22",
@@ -764,7 +764,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "[Lecture 4](../l04/notes.md) stored sensor time series in PostgreSQL and then in Parquet and DuckDB,"
+      "where": "- [Lecture 3](../l03/notes.md) and [Lecture 4](../l04/notes.md): sensor data in PostgreSQL, then"
     },
     {
       "from": "l22",
@@ -772,7 +772,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "[Lecture 5](../l05/notes.md) built batch pipelines over the Tennessee Eastman plant that are safe to"
+      "where": "- [Lecture 5](../l05/notes.md): batch pipelines that are safe to rerun."
     },
     {
       "from": "l22",
@@ -780,7 +780,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "rerun, [Lecture 6](../l06/notes.md) dealt with streams, late data and validation gates that fail"
+      "where": "- [Lecture 6](../l06/notes.md): streams, late data and checks on incoming data."
     },
     {
       "from": "l22",
@@ -788,7 +788,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "loudly, and [Lecture 7](../l07/notes.md) turned raw signals into features that exist at the moment"
+      "where": "- [Lecture 7](../l07/notes.md): features that exist at the moment of prediction."
     },
     {
       "from": "l22",
@@ -796,7 +796,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "how to know whether to believe it. Lectures [8](../l08/notes.md), [9](../l09/notes.md) and"
+      "where": "- [Lecture 8](../l08/notes.md), [Lecture 9](../l09/notes.md) and [Lecture 10](../l10/notes.md):"
     },
     {
       "from": "l22",
@@ -804,7 +804,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "how to know whether to believe it. Lectures [8](../l08/notes.md), [9](../l09/notes.md) and"
+      "where": "- [Lecture 8](../l08/notes.md), [Lecture 9](../l09/notes.md) and [Lecture 10](../l10/notes.md):"
     },
     {
       "from": "l22",
@@ -812,7 +812,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "[10](../l10/notes.md) were the machine-learning workflow three times over, for time series,"
+      "where": "- [Lecture 8](../l08/notes.md), [Lecture 9](../l09/notes.md) and [Lecture 10](../l10/notes.md):"
     },
     {
       "from": "l22",
@@ -820,7 +820,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "cross-validation, hyperparameter search and experiment tracking. [Lecture 11](../l11/notes.md)"
+      "where": "- [Lecture 11](../l11/notes.md): tensors, automatic differentiation and a training loop by hand."
     },
     {
       "from": "l22",
@@ -828,7 +828,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "[Lecture 12](../l12/notes.md) matched architectures to the structure of engineering data."
+      "where": "- [Lecture 12](../l12/notes.md): network architectures for engineering data."
     },
     {
       "from": "l22",
@@ -836,7 +836,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "[Lecture 13](../l13/notes.md) put physics back in, with physics-informed networks and neural ODEs"
+      "where": "- [Lecture 13](../l13/notes.md): physics-informed networks, and neural ordinary and"
     },
     {
       "from": "l22",
@@ -844,7 +844,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "and DAEs. [Lecture 14](../l14/notes.md) asked how wrong a prediction might be,"
+      "where": "- [Lecture 14](../l14/notes.md): how wrong a prediction might be."
     },
     {
       "from": "l22",
@@ -852,7 +852,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "[Lecture 15](../l15/notes.md) used that uncertainty to choose the next experiment, and"
+      "where": "- [Lecture 15](../l15/notes.md): using that uncertainty to choose the next experiment."
     },
     {
       "from": "l22",
@@ -860,7 +860,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "[Lecture 16](../l16/notes.md) learned whole distributions and sampled from them."
+      "where": "- [Lecture 16](../l16/notes.md): learning a whole distribution and sampling from it."
     },
     {
       "from": "l22",
@@ -868,7 +868,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "and writes text. [Lecture 17](../l17/notes.md) trained a tiny GPT to show what a language model is,"
+      "where": "- [Lecture 17](../l17/notes.md): a tiny language model, trained from scratch."
     },
     {
       "from": "l22",
@@ -876,7 +876,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "[Lecture 18](../l18/notes.md) controlled what the model gets to see through tools, search and"
+      "where": "- [Lecture 18](../l18/notes.md): choosing what the model sees, with tools and search."
     },
     {
       "from": "l22",
@@ -884,7 +884,7 @@
       "origin": "link",
       "relation": null,
       "why": null,
-      "where": "retrieval, and [Lecture 19](../l19/notes.md) put the model in a loop with tools as an agent, inside"
+      "where": "- [Lecture 19](../l19/notes.md): a model in a loop with tools, inside a set of checks."
     }
   ],
   "signs": []

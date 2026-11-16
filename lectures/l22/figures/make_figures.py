@@ -28,6 +28,12 @@ when you do, because the numbers in them are the ones this script prints.
     trio.png        Shen and Tamkin (2026), arXiv:2601.20245: quiz scores with and without an AI
                     assistant while learning the Trio library
                     These three are redrawn from the numbers the papers report, not from their data.
+    changes.png     every pull request merged into main, as one dot on the day it merged, in a lane for
+                    the part of the repository most of its files are in, sized by its number of commits
+
+Pass a figure name to draw only that one, so the others are left untouched:
+
+    uv run --no-project --python 3.12 --with matplotlib python lectures/l22/figures/make_figures.py changes
 
 What measuring changed. The plan said the decks "got more interactive as the term went on", and
 the count agrees only in part: interactive figures start at L12 and appear in most decks after
@@ -389,5 +395,68 @@ def main() -> None:
     fig_learning()
 
 
+# The part of the repository a pull request belongs to: the lane its files mostly fall in.
+LANES = [
+    ("Lectures", ("lectures/",), BLUE),
+    ("Course pages and assignments", ("course/", "index.md", "case-studies/"), GRAY),
+    ("Practice game and course map", ("game/",), GREEN),
+    ("Clicker, arcade and Ask", ("clicker/", "arcade/", "chat/", "_static/ask"), GOLD),
+    ("Build, checks and rules", ("",), PURPLE),
+]
+
+
+def merged_prs() -> list[dict]:
+    """Every pull request merged into main up to the cutoff: merge day, commits, and lane."""
+    prs = []
+    for line in git("log", "--first-parent", "--merges", f"--until={CUTOFF}", "--format=%H %cs %s", "HEAD").splitlines():
+        h, day, subject = line.split(" ", 2)
+        if not subject.startswith("Merge pull request #"):
+            continue
+        n_commits = len(git("log", "--format=%h", f"{h}^1..{h}^2").split())
+        votes = collections.Counter()
+        for f in git("diff", "--name-only", f"{h}^1", h).split():
+            votes[next(name for name, pre, _ in LANES if any(f.startswith(x) for x in pre))] += 1
+        prs.append({"day": dt.date.fromisoformat(day), "commits": max(n_commits, 1),
+                    "lane": votes.most_common(1)[0][0] if votes else LANES[-1][0]})
+    return prs
+
+
+def fig_changes(prs: list[dict]) -> None:
+    fig, ax = plt.subplots(figsize=(12, 5.6))
+    names = [name for name, _, _ in LANES]
+    for i, (name, _, color) in enumerate(LANES):
+        y = len(LANES) - 1 - i
+        ax.axhline(y, color="#e4e4e4", lw=10, zorder=0, solid_capstyle="round")
+        mine = [p for p in prs if p["lane"] == name]
+        ax.scatter([p["day"] for p in mine], [y] * len(mine), s=[34 + 26 * p["commits"] for p in mine],
+                   color=color, alpha=0.72, edgecolor="white", linewidth=1.2, zorder=3)
+        ax.text(dt.date(2026, 11, 8), y, f"{len(mine)}", va="center", ha="left", fontsize=19,
+                fontweight="bold", color=color)
+    ax.set_yticks(range(len(LANES)), list(reversed(names)), fontsize=17)
+    ax.tick_params(axis="y", length=0)
+    ax.axvline(FIRST_CLASS, color="#1a1a1a", ls="--", lw=1.6, zorder=1)
+    ax.text(FIRST_CLASS, len(LANES) - 0.45, "  first class", fontsize=16, fontweight="bold", va="bottom")
+    ax.text(dt.date(2026, 11, 8), len(LANES) - 0.45, "total", fontsize=15, color="#5c5c5c", va="bottom")
+    ax.set_xlim(dt.date(2026, 7, 14), dt.date(2026, 11, 14))
+    ax.set_ylim(-0.6, len(LANES) - 0.2)
+    ax.xaxis.set_major_locator(mdates.MonthLocator())
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%B"))
+    ax.tick_params(axis="x", labelsize=16)
+    for side in ("left", "top", "right"):
+        ax.spines[side].set_visible(False)
+    for c, lab in [(2, "2 commits"), (10, "10 commits"), (30, "30 commits")]:
+        ax.scatter([], [], s=34 + 26 * c, color="#9aa5b1", alpha=0.7, label=lab)
+    ax.legend(loc="lower left", bbox_to_anchor=(0, 1.0), ncol=3, frameon=False, fontsize=15,
+              title="Each dot is one change, checked, reviewed and merged. Bigger dots: more commits",
+              title_fontsize=15, alignment="left")
+    save(fig, "changes.png")
+
+
 if __name__ == "__main__":
-    main()
+    import sys
+    if sys.argv[1:] == ["changes"]:
+        prs = merged_prs()
+        print(f"{len(prs)} merged pull requests:", dict(collections.Counter(p["lane"] for p in prs)))
+        fig_changes(prs)
+    else:
+        main()
