@@ -321,11 +321,13 @@ Lecture 1's figure, live. The model is the small red box, 3.7% of the area.
 
 ### The process
 
-```{figure} ../l19/figures/course-build.png
-:alt: How one change reaches the course site. An instructor writes the spec; Claude Code reads the course rules and drafts the material; a pull request carries the change; automatic checks run; an instructor reviews and merges it; a weekly release publishes the next lecture.
+```{figure} figures/process.svg
+:alt: How the course was made. The instructors designed the course and its order, chose every dataset and example, wrote a spec for every lecture, set the standards and the rules, planned the extra materials, edited every draft, reviewed every change and merged every change. Claude Code researches the sources and drafts additional notes, slides, figures and extras. Automatic checks run on every change, and a failed check goes back to be fixed. A change merges only after an instructor approves; otherwise the instructor asks for changes. The result is the course you used: lecture notes and slides, plus a practice game, a course map, a clicker, case studies, narrated slides and interactive figures.
 :width: 100%
 
-How one change reaches the course, from [Lecture 19](../l19/notes.md).
+How the course was made: the instructors' work, the assistant, the automatic checks, and the
+review before any change reached you. [Lecture 19](../l19/notes.md) showed the same path for one
+change.
 ```
 
 The instructors:
@@ -369,11 +371,11 @@ Bigger dots carry more commits.
 
 ### What we added along the way
 
-```{figure} figures/milestones.png
-:alt: A timeline from July to November 2026 with a red dot for the first day of each piece of course infrastructure: the rules file, the practice game, the course map, the clicker, the arcade, interactive figures, narrated slides, the Ask button, case studies from other fields and the course agent skill.
+```{figure} figures/timeline.svg
+:alt: A timeline from July to November 2026 of what was built around the lectures, coloured by kind. Rules: the rules file, July 20. Practice and review: the practice game, August 7; the course map, August 8; the arcade games, August 29; the knowledge graph, November 5. In class: the clicker, August 25; interactive figures, September 27; narrated slides, October 12. Reading and help: the Ask button, October 28; case studies, November 1. The first class was on August 24.
 :width: 100%
 
-When each extra material first appeared.
+What was built around the lectures, and when, coloured by kind.
 ```
 
 - The extra materials kept coming all semester, added as the class needed them.
