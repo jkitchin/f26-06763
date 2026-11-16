@@ -1,6 +1,7 @@
 ---
 marp: true
 theme: course
+presenter: true
 paginate: true
 header: "06-763 · L22"
 footer: "Systems and Toolchains for AI Engineers"
@@ -146,7 +147,6 @@ svg.pl-anim g[data-bespoke-marp-fragment="inactive"] { visibility: visible; opac
 <!--
 The course 8. Applications 20. The interactive reviews 15, I open them live myself.
 How it was built 15. Learning a new field 15. Limits and close 5.
-One clicker question, the patient split. Open the vote page before class.
 -->
 
 ---
@@ -340,45 +340,22 @@ opens; he is not a question.
 ---
 ## The course in one picture, the ideas that come back
 
+<style scoped>
+a.lec { color: #fff; text-decoration: none; }
+</style>
+
 <div class="big" style="font-size:1.0em">
 
-- **Make results reproducible:** lock the software versions and keep the code in Git <span class="lec a0">L1</span><span class="lec a0">L2</span>
-* **Split the data the way the model will be used:** never let one unit sit on both sides <span class="lec a2">L8</span><span class="lec a2">L9</span><span class="lec a2">L12</span>
-* **Measure, do not assume:** time it and test it, because rules of thumb can be wrong <span class="lec a2">L11</span>
-* **Report the uncertainty:** give a range with every prediction <span class="lec a2">L14</span><span class="lec a2">L15</span>
-* **The model is a small part of the system:** most of the work is in data, checks and serving <span class="lec a0">L1</span><span class="lec a3">L19</span>
-* **Check results that look right:** a high score or a fluent answer can still be wrong <span class="lec a2">L9</span><span class="lec a3">L17</span>
+- **Make results reproducible:** lock the software versions and keep the code in Git <a class="lec a0" href="../../lectures/l01/notes.html" target="_blank">L1</a><a class="lec a0" href="../../lectures/l02/notes.html" target="_blank">L2</a>
+* **Split the data the way the model will be used:** never let one unit sit on both sides <a class="lec a2" href="../../lectures/l08/notes.html" target="_blank">L8</a><a class="lec a2" href="../../lectures/l09/notes.html" target="_blank">L9</a><a class="lec a2" href="../../lectures/l12/notes.html" target="_blank">L12</a>
+* **Measure, do not assume:** time it and test it, because rules of thumb can be wrong <a class="lec a2" href="../../lectures/l11/notes.html" target="_blank">L11</a>
+* **Report the uncertainty:** give a range with every prediction <a class="lec a2" href="../../lectures/l14/notes.html" target="_blank">L14</a><a class="lec a2" href="../../lectures/l15/notes.html" target="_blank">L15</a>
+* **The model is a small part of the system:** most of the work is in data, checks and serving <a class="lec a0" href="../../lectures/l01/notes.html" target="_blank">L1</a><a class="lec a3" href="../../lectures/l19/notes.html" target="_blank">L19</a>
+* **Check results that look right:** a high score or a fluent answer can still be wrong <a class="lec a2" href="../../lectures/l09/notes.html" target="_blank">L9</a><a class="lec a3" href="../../lectures/l17/notes.html" target="_blank">L17</a>
 
 </div>
 
 <p class="take">These ideas work in any field. The tools will change.</p>
-
----
-## The course in one picture, a question
-
-<div class="clicker" data-tag="l22-split" data-seconds="45" data-answer="B" data-hint="What do the training and test sets share in the first evaluation that they do not share in the second?" data-why="B. Heartbeats from one patient landed on both sides of the random split, so the model was tested partly on people it had trained on. Splitting by patient is how the model will be used: on new patients." data-read="https://clicker.f26-06763.workers.dev">
-<div class="clicker-main">
-
-**A heartbeat classifier scores far higher on a random split of beats than on patients it has never seen. Which idea from the course does the first number break?**
-
-<ol class="clicker-opts">
-<li>Make results reproducible</li>
-<li>Split the data the way the model will be used</li>
-<li>Report the uncertainty</li>
-<li>The model is a small part of the system</li>
-</ol>
-
-</div>
-<aside class="clicker-panel">
-<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
-<div class="clicker-url">clicker.f26-06763.workers.dev</div>
-<button class="clicker-start">Start voting</button>
-<div class="clicker-timer">45</div>
-<div class="clicker-count">no votes yet</div>
-</aside>
-</div>
-
-<!-- The ECG case study from L10's side path: MIT-BIH split by heartbeat instead of by patient. -->
 
 ---
 <!-- _class: section -->
@@ -876,49 +853,67 @@ opens; he is not a question.
 <text x="120" y="159" text-anchor="middle" font-size="14" fill="#5c5c5c">Jul 20</text>
 <line x1="271" y1="214" x2="250" y2="98" stroke="#009e73" stroke-width="2.5" opacity="0.8"/>
 <circle cx="271" cy="222" r="8" fill="#009e73"/>
+<a href="../../game/" target="_blank" style="cursor:pointer">
 <rect x="157.0" y="40" width="186" height="58" rx="12" fill="#dcefe6" stroke="#009e73" stroke-width="2.5"/>
 <text x="250" y="66" text-anchor="middle" font-size="18" font-weight="700" fill="#1a1a1a">Practice game</text>
 <text x="250" y="87" text-anchor="middle" font-size="14" fill="#5c5c5c">Aug 7</text>
+</a>
 <line x1="280" y1="230" x2="230" y2="276" stroke="#009e73" stroke-width="2.5" opacity="0.8"/>
 <circle cx="280" cy="222" r="8" fill="#009e73"/>
+<a href="../../game/#/map/rooms" target="_blank" style="cursor:pointer">
 <rect x="137.0" y="276" width="186" height="58" rx="12" fill="#dcefe6" stroke="#009e73" stroke-width="2.5"/>
 <text x="230" y="302" text-anchor="middle" font-size="18" font-weight="700" fill="#1a1a1a">Course map</text>
 <text x="230" y="323" text-anchor="middle" font-size="14" fill="#5c5c5c">Aug 8</text>
+</a>
 <line x1="435" y1="214" x2="430" y2="170" stroke="#c98500" stroke-width="2.5" opacity="0.8"/>
 <circle cx="435" cy="222" r="8" fill="#c98500"/>
+<a href="https://clicker.f26-06763.workers.dev" target="_blank" style="cursor:pointer">
 <rect x="337.0" y="112" width="186" height="58" rx="12" fill="#f7e9cf" stroke="#c98500" stroke-width="2.5"/>
 <text x="430" y="138" text-anchor="middle" font-size="18" font-weight="700" fill="#1a1a1a">Clicker</text>
 <text x="430" y="159" text-anchor="middle" font-size="14" fill="#5c5c5c">Aug 25</text>
+</a>
 <line x1="472" y1="230" x2="470" y2="352" stroke="#009e73" stroke-width="2.5" opacity="0.8"/>
 <circle cx="472" cy="222" r="8" fill="#009e73"/>
+<a href="../arcade/" target="_blank" style="cursor:pointer">
 <rect x="377.0" y="352" width="186" height="58" rx="12" fill="#dcefe6" stroke="#009e73" stroke-width="2.5"/>
 <text x="470" y="378" text-anchor="middle" font-size="18" font-weight="700" fill="#1a1a1a">Arcade games</text>
 <text x="470" y="399" text-anchor="middle" font-size="14" fill="#5c5c5c">Aug 29</text>
+</a>
 <line x1="737" y1="214" x2="640" y2="98" stroke="#c98500" stroke-width="2.5" opacity="0.8"/>
 <circle cx="737" cy="222" r="8" fill="#c98500"/>
+<a href="../../lectures/l12/notes.html" target="_blank" style="cursor:pointer">
 <rect x="547.0" y="40" width="186" height="58" rx="12" fill="#f7e9cf" stroke="#c98500" stroke-width="2.5"/>
 <text x="640" y="66" text-anchor="middle" font-size="18" font-weight="700" fill="#1a1a1a">Interactive figures</text>
 <text x="640" y="87" text-anchor="middle" font-size="14" fill="#5c5c5c">Sep 27</text>
+</a>
 <line x1="875" y1="230" x2="790" y2="276" stroke="#c98500" stroke-width="2.5" opacity="0.8"/>
 <circle cx="875" cy="222" r="8" fill="#c98500"/>
+<a href="../l20/" target="_blank" style="cursor:pointer">
 <rect x="697.0" y="276" width="186" height="58" rx="12" fill="#f7e9cf" stroke="#c98500" stroke-width="2.5"/>
 <text x="790" y="302" text-anchor="middle" font-size="18" font-weight="700" fill="#1a1a1a">Narrated slides</text>
 <text x="790" y="323" text-anchor="middle" font-size="14" fill="#5c5c5c">Oct 12</text>
+</a>
 <line x1="1021" y1="214" x2="900" y2="170" stroke="#0072b2" stroke-width="2.5" opacity="0.8"/>
 <circle cx="1021" cy="222" r="8" fill="#0072b2"/>
+<a href="../../index.html" target="_blank" style="cursor:pointer">
 <rect x="807.0" y="112" width="186" height="58" rx="12" fill="#dbe8f5" stroke="#0072b2" stroke-width="2.5"/>
 <text x="900" y="138" text-anchor="middle" font-size="18" font-weight="700" fill="#1a1a1a">Ask button</text>
 <text x="900" y="159" text-anchor="middle" font-size="14" fill="#5c5c5c">Oct 28</text>
+</a>
 <line x1="1058" y1="230" x2="1010" y2="352" stroke="#0072b2" stroke-width="2.5" opacity="0.8"/>
 <circle cx="1058" cy="222" r="8" fill="#0072b2"/>
+<a href="../../case-studies/index.html" target="_blank" style="cursor:pointer">
 <rect x="917.0" y="352" width="186" height="58" rx="12" fill="#dbe8f5" stroke="#0072b2" stroke-width="2.5"/>
 <text x="1010" y="378" text-anchor="middle" font-size="18" font-weight="700" fill="#1a1a1a">Case studies</text>
 <text x="1010" y="399" text-anchor="middle" font-size="14" fill="#5c5c5c">Nov 1</text>
+</a>
 <line x1="1094" y1="214" x2="1080" y2="98" stroke="#009e73" stroke-width="2.5" opacity="0.8"/>
 <circle cx="1094" cy="222" r="8" fill="#009e73"/>
+<a href="../../game/#/map" target="_blank" style="cursor:pointer">
 <rect x="987.0" y="40" width="186" height="58" rx="12" fill="#dcefe6" stroke="#009e73" stroke-width="2.5"/>
 <text x="1080" y="66" text-anchor="middle" font-size="18" font-weight="700" fill="#1a1a1a">Knowledge graph</text>
 <text x="1080" y="87" text-anchor="middle" font-size="14" fill="#5c5c5c">Nov 5</text>
+</a>
 </svg>
 
 - The extra materials kept coming all semester, added as the class needed them
@@ -1188,17 +1183,6 @@ opens; he is not a question.
 </div>
 
 <p class="take">You can now learn the next field yourself, with the same method.</p>
-
----
-## Standings
-
-Nicknames only. Everyone who skipped one still counted in every bar you saw.
-
-<div class="clicker-leaderboard"
-     data-read="https://clicker.f26-06763.workers.dev"
-     data-top="8"
-     data-hours="6"
-     data-title="Standings"></div>
 
 ---
 ## Before the presentations
