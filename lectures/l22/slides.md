@@ -1,6 +1,7 @@
 ---
 marp: true
 theme: course
+presenter: true
 paginate: true
 header: "06-763 · L22"
 footer: "Systems and Toolchains for AI Engineers"
@@ -264,37 +265,49 @@ opens; he is not a question.
 
 ## The course in one picture, the data lowlands
 
+<style scoped>
+.cards .big a { color: inherit; text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 6px; }
+</style>
+
 <div class="cards ">
-<div class="c-green"><span class="big">L1</span>the system view: the model is a small box; the toolchain</div>
-<div class="c-green"><span class="big">L2</span>reproducible environments: <code>uv</code> lockfiles, Git, run logging</div>
-<div class="c-blue"><span class="big">L3, L4</span>PostgreSQL, then Parquet and DuckDB: row and column stores</div>
-<div class="c-gold"><span class="big">L5</span>batch pipelines over the Tennessee Eastman plant, safe to rerun</div>
-<div class="c-red"><span class="big">L6</span>streams, late data, and validation gates that fail loudly</div>
-<div class="c-purple"><span class="big">L7</span>features that exist at the moment of prediction</div>
+<div class="c-green"><span class="big"><a href="../../lectures/l01/notes.html" target="_blank">L1</a></span>the system view: the model is a small box; the toolchain</div>
+<div class="c-green"><span class="big"><a href="../../lectures/l02/notes.html" target="_blank">L2</a></span>reproducible environments: <code>uv</code> lockfiles, Git, run logging</div>
+<div class="c-blue"><span class="big"><a href="../../lectures/l03/notes.html" target="_blank">L3</a>, <a href="../../lectures/l04/notes.html" target="_blank">L4</a></span>PostgreSQL, then Parquet and DuckDB: row and column stores</div>
+<div class="c-gold"><span class="big"><a href="../../lectures/l05/notes.html" target="_blank">L5</a></span>batch pipelines over the Tennessee Eastman plant, safe to rerun</div>
+<div class="c-red"><span class="big"><a href="../../lectures/l06/notes.html" target="_blank">L6</a></span>streams, late data, and validation gates that fail loudly</div>
+<div class="c-purple"><span class="big"><a href="../../lectures/l07/notes.html" target="_blank">L7</a></span>features that exist at the moment of prediction</div>
 </div>
 
 ---
 
 ## The course in one picture, the machine-learning highlands
 
+<style scoped>
+.cards .big a { color: inherit; text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 6px; }
+</style>
+
 <div class="cards ">
-<div class="c-gold"><span class="big">L8–L10</span>the workflow three times: time series, regression, classification</div>
-<div class="c-blue"><span class="big">L11</span>tensors, autodiff, a training loop by hand, CPU against GPU</div>
-<div class="c-blue"><span class="big">L12</span>architectures matched to the structure of the data</div>
-<div class="c-green"><span class="big">L13</span>physics back in: PINNs, neural ODEs and DAEs</div>
-<div class="c-red"><span class="big">L14, L15</span>how wrong might it be, and using that to choose the next experiment</div>
-<div class="c-purple"><span class="big">L16</span>learning a whole distribution and sampling from it</div>
+<div class="c-gold"><span class="big"><a href="../../lectures/l08/notes.html" target="_blank">L8</a>–<a href="../../lectures/l10/notes.html" target="_blank">L10</a></span>the workflow three times: time series, regression, classification</div>
+<div class="c-blue"><span class="big"><a href="../../lectures/l11/notes.html" target="_blank">L11</a></span>tensors, autodiff, a training loop by hand, CPU against GPU</div>
+<div class="c-blue"><span class="big"><a href="../../lectures/l12/notes.html" target="_blank">L12</a></span>architectures matched to the structure of the data</div>
+<div class="c-green"><span class="big"><a href="../../lectures/l13/notes.html" target="_blank">L13</a></span>physics back in: PINNs, neural ODEs and DAEs</div>
+<div class="c-red"><span class="big"><a href="../../lectures/l14/notes.html" target="_blank">L14</a>, <a href="../../lectures/l15/notes.html" target="_blank">L15</a></span>how wrong might it be, and using that to choose the next experiment</div>
+<div class="c-purple"><span class="big"><a href="../../lectures/l16/notes.html" target="_blank">L16</a></span>learning a whole distribution and sampling from it</div>
 </div>
 
 ---
 
 ## The course in one picture, the language coast
 
+<style scoped>
+.cards .big a { color: inherit; text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 6px; }
+</style>
+
 <div class="cards ">
-<div class="c-blue"><span class="big">L17</span>a tiny GPT: tokens, next-token training, temperature</div>
-<div class="c-blue"><span class="big">L18</span>what the model gets to see: tools, keyword and semantic search</div>
-<div class="c-blue"><span class="big">L19</span>the model in a loop with tools, inside a harness of checks</div>
-<div class="c-gray"><span class="big">L20</span>optional: an MDP as a table and two matrices; Q-learning on the tank</div>
+<div class="c-blue"><span class="big"><a href="../../lectures/l17/notes.html" target="_blank">L17</a></span>a tiny GPT: tokens, next-token training, temperature</div>
+<div class="c-blue"><span class="big"><a href="../../lectures/l18/notes.html" target="_blank">L18</a></span>what the model gets to see: tools, keyword and semantic search</div>
+<div class="c-blue"><span class="big"><a href="../../lectures/l19/notes.html" target="_blank">L19</a></span>the model in a loop with tools, inside a harness of checks</div>
+<div class="c-gray"><span class="big"><a href="../../lectures/l20/notes.html" target="_blank">L20</a></span>optional: an MDP as a table and two matrices; Q-learning on the tank</div>
 <div class="c-gray"><span class="big">L21</span>optional: FastAPI, Docker with <code>uv</code>, percentiles, batching, incidents</div>
 </div>
 
@@ -312,34 +325,6 @@ opens; he is not a question.
 | Fear the output that looks fine | L11 Adam hides unscaled inputs, leaky splits, fluent wrong answers |
 
 <!-- These transfer to the next field. The tools will not. -->
-
----
-
-## The course in one picture, a question
-
-<div class="clicker" data-tag="l22-split" data-seconds="45" data-answer="B" data-hint="What do the training and test sets share in the first evaluation that they do not share in the second?" data-why="B. Heartbeats from one patient landed on both sides of the random split, so the model was tested partly on people it had trained on. Splitting by patient is the split the model meets in the world." data-read="https://clicker.f26-06763.workers.dev">
-<div class="clicker-main">
-
-**A heartbeat classifier scores far higher on a random split of beats than on patients it has never seen. Which idea from the course does the first number break?**
-
-<ol class="clicker-opts">
-<li>Make the result reproducible</li>
-<li>Split the way the model meets the world</li>
-<li>Say how wrong you might be</li>
-<li>The model is a small part of the system</li>
-</ol>
-
-</div>
-<aside class="clicker-panel">
-<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
-<div class="clicker-url">clicker.f26-06763.workers.dev</div>
-<button class="clicker-start">Start voting</button>
-<div class="clicker-timer">45</div>
-<div class="clicker-count">no votes yet</div>
-</aside>
-</div>
-
-<!-- The ECG case study from L10's side path: MIT-BIH split by heartbeat instead of by patient. -->
 
 ---
 
@@ -384,13 +369,17 @@ opens; he is not a question.
 
 ## How this course was built, the record
 
+<style scoped>
+.cards .big a { color: inherit; text-decoration: underline; text-decoration-thickness: 3px; text-underline-offset: 6px; }
+</style>
+
 <div class="cards">
-<div class="c-red"><span class="big">354</span>commits, 2026-07-20 to 2026-11-04, not counting merges</div>
-<div class="c-blue"><span class="big">133</span>pull requests, each reviewed and merged by an instructor</div>
-<div class="c-gold"><span class="big">86%</span>of commits carry a trailer naming a Claude model</div>
-<div class="c-green"><span class="big">196 · 144</span>commits by the two instructors; 13 by cloud sessions of the assistant</div>
-<div class="c-purple"><span class="big">4</span>model versions: Opus 4.8, Opus 5, Sonnet 5, Opus 5.5</div>
-<div class="c-gray"><span class="big">124</span>commits before the first class</div>
+<div class="c-red"><span class="big"><a href="https://github.com/jkitchin/f26-06763/commits/main/?since=2026-07-20&amp;until=2026-11-04" target="_blank">354</a></span>commits, 2026-07-20 to 2026-11-04, not counting merges</div>
+<div class="c-blue"><span class="big"><a href="https://github.com/jkitchin/f26-06763/pulls?q=is%3Apr+is%3Amerged+merged%3A%3C%3D2026-11-04" target="_blank">133</a></span>pull requests, each reviewed and merged by an instructor</div>
+<div class="c-gold"><span class="big"><a href="https://github.com/search?q=repo%3Ajkitchin%2Ff26-06763+%22Co-Authored-By%3A+Claude%22&amp;type=commits" target="_blank">86%</a></span>of commits carry a trailer naming a Claude model</div>
+<div class="c-green"><span class="big"><a href="https://github.com/jkitchin/f26-06763/graphs/contributors" target="_blank">196 · 144</a></span>commits by the two instructors; 13 by cloud sessions of the assistant</div>
+<div class="c-purple"><span class="big">4</span>model versions: <a href="https://github.com/search?q=repo%3Ajkitchin%2Ff26-06763+%22Claude+Opus+4.8%22&amp;type=commits" target="_blank">Opus 4.8</a>, <a href="https://github.com/search?q=repo%3Ajkitchin%2Ff26-06763+%22Claude+Opus+5%22&amp;type=commits" target="_blank">Opus 5</a>, <a href="https://github.com/search?q=repo%3Ajkitchin%2Ff26-06763+%22Claude+Sonnet+5%22&amp;type=commits" target="_blank">Sonnet 5</a>, <a href="https://github.com/search?q=repo%3Ajkitchin%2Ff26-06763+%22Claude+Opus+5.5%22&amp;type=commits" target="_blank">Opus 5.5</a></div>
+<div class="c-gray"><span class="big"><a href="https://github.com/jkitchin/f26-06763/commits/main/?until=2026-08-23" target="_blank">124</a></span>commits before the first class</div>
 </div>
 
 <span class="source">All from `git log`, read by `lectures/l22/figures/make_figures.py`</span>
@@ -487,13 +476,19 @@ opens; he is not a question.
 
 ## How this course was built, the practice game, map and arcade
 
+<style scoped>
+.cards > div { position: relative; }
+.cards b a { color: inherit; text-decoration: underline; }
+.cards b a::after { content: ""; position: absolute; inset: 0; }
+</style>
+
 <div class="cards">
-<div class="c-blue"><span class="big">08-07</span><b>Practice game</b>seeded questions that quote the notes; CI fails if a quote disappears</div>
-<div class="c-green"><span class="big">08-08</span><b>Course map</b>rooms and corridors built from the cross-references</div>
-<div class="c-gold"><span class="big">08-23</span><b>Open in Colab</b>every notebook runs without a local install</div>
-<div class="c-red"><span class="big">08-25</span><b>Clicker</b>the room's pulse, mid-lecture</div>
-<div class="c-purple"><span class="big">08-27</span><b>One lecture at a time</b>each release its own pull request, in order</div>
-<div class="c-gray"><span class="big">08-29</span><b>Arcade</b>one-minute games over the same question banks</div>
+<div class="c-blue"><span class="big">08-07</span><b><a href="../../game/" target="_blank">Practice game</a></b>seeded questions that quote the notes; CI fails if a quote disappears</div>
+<div class="c-green"><span class="big">08-08</span><b><a href="../../game/#/map" target="_blank">Course map</a></b>rooms and corridors built from the cross-references</div>
+<div class="c-gold"><span class="big">08-23</span><b><a href="../../lectures/l01/l01-reproducibility.html" target="_blank">Open in Colab</a></b>every notebook runs without a local install</div>
+<div class="c-red"><span class="big">08-25</span><b><a href="https://clicker.f26-06763.workers.dev" target="_blank">Clicker</a></b>the room's pulse, mid-lecture</div>
+<div class="c-purple"><span class="big">08-27</span><b><a href="../../course/schedule.html" target="_blank">One lecture at a time</a></b>each release its own pull request, in order</div>
+<div class="c-gray"><span class="big">08-29</span><b><a href="../arcade/" target="_blank">Arcade</a></b>one-minute games over the same question banks</div>
 </div>
 
 <!-- One place where a claim is written down, one check that it matches the notes. -->
@@ -577,34 +572,6 @@ opens; he is not a question.
 
 ---
 
-## How this course was built, predict first
-
-<div class="clicker" data-tag="l22-ratchet" data-seconds="40" data-read="https://clicker.f26-06763.workers.dev">
-<div class="clicker-main">
-
-**`CLAUDE.md` holds the rules the assistant reads every session. When was most of it written?**
-
-<ol class="clicker-opts">
-<li>In the first week</li>
-<li>In the two weeks before the first class</li>
-<li>Steadily through the semester</li>
-<li>In the last month</li>
-</ol>
-
-</div>
-<aside class="clicker-panel">
-<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
-<div class="clicker-url">clicker.f26-06763.workers.dev</div>
-<button class="clicker-start">Start voting</button>
-<div class="clicker-timer">40</div>
-<div class="clicker-count">no votes yet</div>
-</aside>
-</div>
-
-<!-- A poll, not scored: a prediction. Write yours down before the next slide. -->
-
----
-
 <!-- _class: definition -->
 
 ## Conventions file
@@ -652,8 +619,9 @@ by every person and every assistant that works on it, so a decision is made once
 </div>
 
 - The standards were set mostly by rejecting output that was not good enough
-- "Claude wrote the course" is not what the record shows
-- AI does not grade your work or write feedback; your submissions stay out of AI tools
+- Highly interactive process that evolved during the semester
+
+
 
 <!-- L19 showed this pipeline. Today is its history. -->
 
@@ -813,34 +781,6 @@ again, even though rereading feels more effective.
 
 ---
 
-## Generating is not learning, predict the exam
-
-<div class="clicker" data-tag="l22-tutor" data-seconds="40" data-read="https://clicker.f26-06763.workers.dev">
-<div class="clicker-main">
-
-**High school students practise mathematics with a plain AI chat assistant, and their practice grades rise 48%. On the exam without it, compared with students who never had it, they score:**
-
-<ol class="clicker-opts">
-<li>Much higher</li>
-<li>A little higher</li>
-<li>About the same</li>
-<li>Lower</li>
-</ol>
-
-</div>
-<aside class="clicker-panel">
-<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
-<div class="clicker-url">clicker.f26-06763.workers.dev</div>
-<button class="clicker-start">Start voting</button>
-<div class="clicker-timer">40</div>
-<div class="clicker-count">no votes yet</div>
-</aside>
-</div>
-
-<!-- A prediction poll, not scored. -->
-
----
-
 ## Generating is not learning, the AI tutor trial
 
 ![h:330](figures/tutor.png)
@@ -873,32 +813,6 @@ again, even though rereading feels more effective.
 </div>
 
 <span class="source">[Anthropic 2026](https://www.anthropic.com/research/AI-assistance-coding-skills) · [Shen and Tamkin, arXiv:2601.20245](https://arxiv.org/abs/2601.20245)</span>
-
----
-
-## Generating is not learning, a question
-
-<div class="clicker" data-tag="l22-learn" data-seconds="45" data-answer="B" data-hint="Which of these has you do the recall and the reasoning yourself?" data-why="B. Asking conceptual questions and writing the code yourself kept the learning in the Trio study; delegating the code or the debugging lost it, and rereading builds confidence rather than recall." data-read="https://clicker.f26-06763.workers.dev">
-<div class="clicker-main">
-
-**Your new job uses a library you have never seen. Which way of using an assistant does the evidence favour for learning it?**
-
-<ol class="clicker-opts">
-<li>Have it write the code, and paste errors back until it runs</li>
-<li>Ask it conceptual questions, and write the code yourself</li>
-<li>Have it write the whole module, then move on</li>
-<li>Reread its explanation until it feels familiar</li>
-</ol>
-
-</div>
-<aside class="clicker-panel">
-<img src="figures/clicker-qr.png" alt="QR code linking to the vote page">
-<div class="clicker-url">clicker.f26-06763.workers.dev</div>
-<button class="clicker-start">Start voting</button>
-<div class="clicker-timer">45</div>
-<div class="clicker-count">no votes yet</div>
-</aside>
-</div>
 
 ---
 
