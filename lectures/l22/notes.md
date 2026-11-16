@@ -50,7 +50,7 @@ By the end of this session you should be able to:
 ### Four parts
 
 - Each part builds on the one before.
-- The colours match the knowledge graph.
+- The colors match the knowledge graph.
 
 **Foundations, Lectures 1 and 2:** the system around the model, and reproducible work.
 
@@ -232,7 +232,7 @@ By the end of this session you should be able to:
 - **Why:** freezing made the bridge much stiffer. So the team predicted how fast the healthy
   bridge should vibrate at each temperature. After the damage, it vibrated slower than predicted.
 - **Concepts from our course:** seasons and drift change the data ([Lecture 1](../l01/notes.md));
-  checks on incoming sensor data ([Lecture 6](../l06/notes.md)); modelling normal behaviour and
+  checks on incoming sensor data ([Lecture 6](../l06/notes.md)); modeling normal behavior and
   flagging what is left over ([Lecture 8](../l08/notes.md)).
 - **Course tools that apply here:** pandera, scikit-learn.
 - **Takeaway:** model what the environment does, then look for what it cannot explain.
@@ -278,7 +278,7 @@ that each mean something specific (here, one lecture's notes link to another).
 :::
 
 ```{figure} figures/kg-lectures.png
-:alt: The knowledge graph by lecture on a dark background. Each lecture is a coloured circle with its number and short title, coloured by part of the course, with this lecture in red at the centre. Curved lines join lectures whose notes link to each other.
+:alt: The knowledge graph by lecture on a dark background. Each lecture is a colored circle with its number and short title, colored by part of the course, with this lecture in red at the center. Curved lines join lectures whose notes link to each other.
 :width: 100%
 
 The course by lecture. A line joins two lectures when one's notes link to the other.
@@ -372,10 +372,10 @@ Bigger dots carry more commits.
 ### What we added along the way
 
 ```{figure} figures/timeline.svg
-:alt: A timeline from July to November 2026 of what was built around the lectures, coloured by kind. Rules: the rules file, July 20. Practice and review: the practice game, August 7; the course map, August 8; the knowledge graph, November 5. In class: the clicker, August 25; interactive figures, September 27; narrated slides, October 12. Reading and help: the Ask button, October 28; case studies, November 1. The first class was on August 24.
+:alt: A timeline from July to November 2026 of what was built around the lectures, colored by kind. Rules: the rules file, July 20. Practice and review: the practice game, August 7; the course map, August 8; the knowledge graph, November 5. In class: the clicker, August 25; interactive figures, September 27; narrated slides, October 12. Reading and help: the Ask button, October 28; case studies, November 1. The first class was on August 24.
 :width: 100%
 
-What was built around the lectures, and when, coloured by kind.
+What was built around the lectures, and when, colored by kind.
 ```
 
 - The extra materials kept coming all semester, added as the class needed them.
@@ -490,7 +490,7 @@ Reading again is ahead after five minutes and behind after two days.
 ```{index} pair: case study; GPT Tutor high school mathematics trial
 ```
 
-- Nearly 1,000 high school students practised math in three groups, assigned by class: no AI, a
+- Nearly 1,000 high school students practiced math in three groups, assigned by class: no AI, a
   chat assistant that gives answers, or an AI tutor told to give hints instead of answers (with
   the teachers' solutions in its instructions).
 - Then everyone took the same exam without AI

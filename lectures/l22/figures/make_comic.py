@@ -19,7 +19,7 @@ INK, RED, BLUE, GOLD, PAPER, GRAY, SKIN = "#2b2b2b", "#c41230", "#1f5c99", "#b07
 
 
 def person(x, y, shirt, name, pose, hair, glasses=False, mood="smile"):
-    """A cartoon figure standing on the ground line y, centred at x."""
+    """A cartoon figure standing on the ground line y, centered at x."""
     o = []
     a = o.append
     lean = {"stand": 0, "walk": 4, "run": 12, "sprint": 20}[pose]
@@ -134,9 +134,9 @@ def build() -> str:
     ]
     label = ("A four-panel comic. July 20: two cartoon instructors, John and Victor, relax beside a plan of 26 "
              "lectures, eleven assignments plus a miniproject, and staying a week ahead. August: they walk "
-             "comfortably ahead of a small boulder labelled L+7. October: they run, worried, as a larger boulder "
-             "labelled L+1 closes in and a note says A6, A8 and A9 are on hold. November 4: they sprint, shouting, "
-             "with a robot named Claude carrying a laptop, as a huge boulder labelled L19 rolls at their heels; "
+             "comfortably ahead of a small boulder labeled L+7. October: they run, worried, as a larger boulder "
+             "labeled L+1 closes in and a note says A6, A8 and A9 are on hold. November 4: they sprint, shouting, "
+             "with a robot named Claude carrying a laptop, as a huge boulder labeled L19 rolls at their heels; "
              "the caption says Release Lecture 19 at 12:34 pm, and seven of seventeen lectures went out the same day.")
     return (f'<svg id="race-comic" data-when-active viewBox="0 0 1200 350" width="100%" role="img" aria-label="{label}" '
             "style=\"font-family: 'Comic Sans MS', 'Comic Neue', 'Chalkboard SE', sans-serif; display:block; margin: 0 auto;\">"
