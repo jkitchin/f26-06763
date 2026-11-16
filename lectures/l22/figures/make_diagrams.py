@@ -8,7 +8,7 @@ every step at once, drops the links, and writes it next to the other figures:
 
     process.svg     how the course was made: the instructors, Claude Code, the automatic
                     checks, the review, and the course you used
-    timeline.svg    what was built around the lectures, and when, coloured by kind
+    timeline.svg    what was built around the lectures, and when, colored by kind
 
     python3 lectures/l22/figures/make_diagrams.py           # rewrite the SVG files
     python3 lectures/l22/figures/make_diagrams.py --check   # fail if they differ from the deck

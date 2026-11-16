@@ -170,7 +170,7 @@ def fig_milestones(found: list[tuple[str, dt.date, str]]) -> None:
             color="#5b4a32")
     # Label heights, in MILESTONES order, chosen so labels on nearby days do not collide.
     levels = [3.6, 2.4, -1.2, -2.6, -1.2, -3.6, 3.6, 2.4, 1.2, -1.2, -2.4, -3.6, 3.6]
-    shift = {"Open in Colab buttons": 5}   # days to move a label sideways, off its neighbour
+    shift = {"Open in Colab buttons": 5}   # days to move a label sideways, off its neighbor
     for (label, day, _), y in zip(found, levels):
         xv = mdates.date2num(day)
         ax.plot([xv, xv], [0, y], color=GRAY, lw=0.8, zorder=1)
