@@ -664,13 +664,13 @@ a.lec { color: #fff; text-decoration: none; }
 <circle cx="426.5" cy="203.9" r="7" fill="#c41230"/>
 <circle cx="461.0" cy="211.7" r="7" fill="#c41230"/>
 <text x="231" y="36" font-size="15" fill="#5c5c5c">Gray: healthy bridge, much stiffer below freezing</text>
-<text x="496" y="176" text-anchor="middle" font-size="15" fill="#0072b2">Blue: model and its confidence interval</text>
+<text x="605" y="150" text-anchor="end" font-size="15" fill="#0072b2">Blue: model and its confidence interval</text>
 <text x="404" y="234" text-anchor="middle" font-size="15" font-weight="700" fill="#c41230">Red: after damage, below the band</text>
 <text x="598" y="12" text-anchor="end" font-size="11" fill="#8a8a8a" letter-spacing="1">SCHEMATIC</text>
 </svg>
-<p class="f" data-marpit-fragment><b>Problem:</b> Spot damage in a bridge from changes in how it vibrates.</p>
+<p class="f" data-marpit-fragment><b>Problem:</b> Spot damage in a bridge from how it vibrates.</p>
 <p class="f" data-marpit-fragment><b>What happened:</b> The Z24 bridge was monitored for a year, then damaged on purpose. Temperature changed its vibration more than the damage did.</p>
-<p class="f" data-marpit-fragment><b>Why:</b> Freezing made the bridge much stiffer. A model of how temperature moves the healthy bridge flagged what temperature could not explain: the damage.</p>
+<p class="f" data-marpit-fragment><b>Why:</b> Freezing made the bridge much stiffer. So the team predicted how fast the healthy bridge should vibrate at each temperature. After the damage, it vibrated slower than predicted.</p>
 </div>
 <div class="case-r" data-marpit-fragment>
 <p class="h">Concepts from our course</p>
@@ -683,6 +683,13 @@ a.lec { color: #fff; text-decoration: none; }
 </div>
 
 <p class="take" data-marpit-fragment>Model what the environment does, then look for what it cannot explain.</p>
+
+<!--
+Inputs and outputs, before and after the fix.
+Before: the input is the measured frequency, and the output is damage or no damage, from a fixed limit. Temperature moves the frequency more than damage does, so the limit misses the damage or raises alarms on warm days.
+After: the input is the temperature, and the output is the frequency the healthy bridge should have at that temperature. Damage is flagged when the measured frequency falls below that prediction (the red dots).
+The model is trained on the healthy bridge only, so damage is never one of its inputs or outputs.
+-->
 
 ---
 ## Applications across fields, materials science
@@ -825,7 +832,7 @@ a.lec { color: #fff; text-decoration: none; }
 ---
 ## How this course was built, what we added along the way
 
-<svg viewBox="0 0 1200 430" width="100%" role="img" aria-label="Timeline from July to November 2026 of what was built around the lectures, coloured by kind: the rules file; practice and review tools (practice game, course map, arcade, knowledge graph); in-class tools (clicker, interactive figures, narrated slides); reading and help (Ask button, case studies). The first class was on August 24.">
+<svg viewBox="0 0 1200 430" width="100%" role="img" aria-label="Timeline from July to November 2026 of what was built around the lectures, coloured by kind: the rules file; practice and review tools (practice game, course map, knowledge graph); in-class tools (clicker, interactive figures, narrated slides); reading and help (Ask button, case studies). The first class was on August 24.">
 <rect x="60" y="4" width="18" height="18" rx="4" fill="#009e73"/>
 <text x="86" y="19" font-size="16" fill="#1a1a1a">Practice and review</text>
 <rect x="283.4" y="4" width="18" height="18" rx="4" fill="#c98500"/>
@@ -853,67 +860,44 @@ a.lec { color: #fff; text-decoration: none; }
 <text x="120" y="159" text-anchor="middle" font-size="14" fill="#5c5c5c">Jul 20</text>
 <line x1="271" y1="214" x2="250" y2="98" stroke="#009e73" stroke-width="2.5" opacity="0.8"/>
 <circle cx="271" cy="222" r="8" fill="#009e73"/>
-<a href="../../game/" target="_blank" style="cursor:pointer">
 <rect x="157.0" y="40" width="186" height="58" rx="12" fill="#dcefe6" stroke="#009e73" stroke-width="2.5"/>
 <text x="250" y="66" text-anchor="middle" font-size="18" font-weight="700" fill="#1a1a1a">Practice game</text>
 <text x="250" y="87" text-anchor="middle" font-size="14" fill="#5c5c5c">Aug 7</text>
-</a>
 <line x1="280" y1="230" x2="230" y2="276" stroke="#009e73" stroke-width="2.5" opacity="0.8"/>
 <circle cx="280" cy="222" r="8" fill="#009e73"/>
-<a href="../../game/#/map/rooms" target="_blank" style="cursor:pointer">
 <rect x="137.0" y="276" width="186" height="58" rx="12" fill="#dcefe6" stroke="#009e73" stroke-width="2.5"/>
 <text x="230" y="302" text-anchor="middle" font-size="18" font-weight="700" fill="#1a1a1a">Course map</text>
 <text x="230" y="323" text-anchor="middle" font-size="14" fill="#5c5c5c">Aug 8</text>
-</a>
 <line x1="435" y1="214" x2="430" y2="170" stroke="#c98500" stroke-width="2.5" opacity="0.8"/>
 <circle cx="435" cy="222" r="8" fill="#c98500"/>
-<a href="https://clicker.f26-06763.workers.dev" target="_blank" style="cursor:pointer">
 <rect x="337.0" y="112" width="186" height="58" rx="12" fill="#f7e9cf" stroke="#c98500" stroke-width="2.5"/>
 <text x="430" y="138" text-anchor="middle" font-size="18" font-weight="700" fill="#1a1a1a">Clicker</text>
 <text x="430" y="159" text-anchor="middle" font-size="14" fill="#5c5c5c">Aug 25</text>
-</a>
-<line x1="472" y1="230" x2="470" y2="352" stroke="#009e73" stroke-width="2.5" opacity="0.8"/>
-<circle cx="472" cy="222" r="8" fill="#009e73"/>
-<a href="../arcade/" target="_blank" style="cursor:pointer">
-<rect x="377.0" y="352" width="186" height="58" rx="12" fill="#dcefe6" stroke="#009e73" stroke-width="2.5"/>
-<text x="470" y="378" text-anchor="middle" font-size="18" font-weight="700" fill="#1a1a1a">Arcade games</text>
-<text x="470" y="399" text-anchor="middle" font-size="14" fill="#5c5c5c">Aug 29</text>
-</a>
 <line x1="737" y1="214" x2="640" y2="98" stroke="#c98500" stroke-width="2.5" opacity="0.8"/>
 <circle cx="737" cy="222" r="8" fill="#c98500"/>
-<a href="../../lectures/l12/notes.html" target="_blank" style="cursor:pointer">
 <rect x="547.0" y="40" width="186" height="58" rx="12" fill="#f7e9cf" stroke="#c98500" stroke-width="2.5"/>
 <text x="640" y="66" text-anchor="middle" font-size="18" font-weight="700" fill="#1a1a1a">Interactive figures</text>
 <text x="640" y="87" text-anchor="middle" font-size="14" fill="#5c5c5c">Sep 27</text>
-</a>
 <line x1="875" y1="230" x2="790" y2="276" stroke="#c98500" stroke-width="2.5" opacity="0.8"/>
 <circle cx="875" cy="222" r="8" fill="#c98500"/>
-<a href="../l20/" target="_blank" style="cursor:pointer">
 <rect x="697.0" y="276" width="186" height="58" rx="12" fill="#f7e9cf" stroke="#c98500" stroke-width="2.5"/>
 <text x="790" y="302" text-anchor="middle" font-size="18" font-weight="700" fill="#1a1a1a">Narrated slides</text>
 <text x="790" y="323" text-anchor="middle" font-size="14" fill="#5c5c5c">Oct 12</text>
-</a>
 <line x1="1021" y1="214" x2="900" y2="170" stroke="#0072b2" stroke-width="2.5" opacity="0.8"/>
 <circle cx="1021" cy="222" r="8" fill="#0072b2"/>
-<a href="../../index.html" target="_blank" style="cursor:pointer">
 <rect x="807.0" y="112" width="186" height="58" rx="12" fill="#dbe8f5" stroke="#0072b2" stroke-width="2.5"/>
 <text x="900" y="138" text-anchor="middle" font-size="18" font-weight="700" fill="#1a1a1a">Ask button</text>
 <text x="900" y="159" text-anchor="middle" font-size="14" fill="#5c5c5c">Oct 28</text>
-</a>
 <line x1="1058" y1="230" x2="1010" y2="352" stroke="#0072b2" stroke-width="2.5" opacity="0.8"/>
 <circle cx="1058" cy="222" r="8" fill="#0072b2"/>
-<a href="../../case-studies/index.html" target="_blank" style="cursor:pointer">
 <rect x="917.0" y="352" width="186" height="58" rx="12" fill="#dbe8f5" stroke="#0072b2" stroke-width="2.5"/>
 <text x="1010" y="378" text-anchor="middle" font-size="18" font-weight="700" fill="#1a1a1a">Case studies</text>
 <text x="1010" y="399" text-anchor="middle" font-size="14" fill="#5c5c5c">Nov 1</text>
-</a>
 <line x1="1094" y1="214" x2="1080" y2="98" stroke="#009e73" stroke-width="2.5" opacity="0.8"/>
 <circle cx="1094" cy="222" r="8" fill="#009e73"/>
-<a href="../../game/#/map" target="_blank" style="cursor:pointer">
 <rect x="987.0" y="40" width="186" height="58" rx="12" fill="#dcefe6" stroke="#009e73" stroke-width="2.5"/>
 <text x="1080" y="66" text-anchor="middle" font-size="18" font-weight="700" fill="#1a1a1a">Knowledge graph</text>
 <text x="1080" y="87" text-anchor="middle" font-size="14" fill="#5c5c5c">Nov 5</text>
-</a>
 </svg>
 
 - The extra materials kept coming all semester, added as the class needed them
