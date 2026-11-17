@@ -123,11 +123,11 @@ policy (see AI use, below), and it does not belong on your architecture slide.
 | Tue 2026-11-17, 11:59 pm | **Slides due for every team**, whichever day you present                                   |
 | Wed 2026-11-18           | Presentations, day 1; **day-1 feedback due at 11:59 pm**                                   |
 | Mon 2026-11-23           | Presentations, day 2; **day-2 feedback due at 11:59 pm**                                   |
-| Mon 2026-11-23, 11:59 pm | **Written document and zip file due** for every team                                       |
+| Fri 2026-12-04, 11:59 pm | **Written document and zip file due** for every team                                       |
 
 - **Slides** are due before the first presentation, so teams on day 2 do not get five extra days.
-- **The document** is due at the end of day 2, so every team can address the questions it was
-  asked.
+- **The document** is due after both presentation days, so every team can address the questions
+  it was asked.
 - **The two biggest risks** in a three-week project are a dataset that turns out to be unusable
   and a team that starts building in week two. This is why the proposal asks for data you have
   already opened.
