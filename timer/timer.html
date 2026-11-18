@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Presentation timer</title>
 <!--
   Presentation timer for the final project talks (7 minutes, hard stop).
@@ -81,7 +84,8 @@
     color: inherit;
     cursor: pointer;
   }
-  button:hover { background: rgba(0, 0, 0, 0.32); }
+  button { touch-action: manipulation; }
+  @media (hover: hover) { button:hover { background: rgba(0, 0, 0, 0.32); } }
   #hint {
     position: fixed;
     top: 12px;
@@ -128,12 +132,27 @@
   var ctx = null;
   var applauseBuffer = null;
 
+  // iPad and iPhone notes. Safari treats Web Audio as "ambient" sound, which
+  // the mute setting silences, so ask for the "playback" session (Safari 17+)
+  // the way a music player would. iOS also leaves a context suspended, or puts
+  // it in "interrupted" after the screen locks, until it is resumed from a tap,
+  // and older versions only unlock once a sound actually starts inside that
+  // tap, so the first Start plays one silent sample.
+  var unlocked = false;
   function audio() {
     if (!ctx) {
+      try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
       var AC = window.AudioContext || window.webkitAudioContext;
       ctx = new AC();
     }
-    if (ctx.state === "suspended") ctx.resume();
+    if (ctx.state !== "running" && ctx.resume) ctx.resume();
+    if (!unlocked) {
+      var s = ctx.createBufferSource();
+      s.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+      s.connect(ctx.destination);
+      s.start(0);
+      unlocked = true;
+    }
     return ctx;
   }
 
@@ -241,8 +260,9 @@
     var hp = ac.createBiquadFilter();
     hp.type = "highpass";
     hp.frequency.value = 120;
-    src.connect(hp).connect(ac.destination);
-    src.start();
+    src.connect(hp);
+    hp.connect(ac.destination);   // not chained: older Safari's connect() returns undefined
+    src.start(0);
   }
 
   // ---- timer ------------------------------------------------------------
@@ -291,6 +311,7 @@
     runStartedAt = Date.now();
     startBtn.textContent = "Pause";
     ticker = setInterval(render, 100);
+    keepAwake();
     render();
   }
 
@@ -298,6 +319,7 @@
     elapsedBefore = elapsedMs();
     running = false;
     clearInterval(ticker);
+    letSleep();
     startBtn.textContent = "Resume";
     render();
   }
@@ -307,19 +329,46 @@
   function reset() {
     running = false;
     clearInterval(ticker);
+    letSleep();
     elapsedBefore = 0;
     applauded = false;
     startBtn.textContent = "Start";
     render();
   }
 
+  // The iPad's own auto-lock (often 2 to 5 minutes) would put the screen to
+  // sleep mid-talk and suspend the audio before 7:00. A screen wake lock
+  // (Safari 16.4+) holds it on while the timer runs; it is dropped whenever
+  // the page is hidden, so it is taken again on return.
+  var wakeLock = null;
+  function keepAwake() {
+    if (!("wakeLock" in navigator) || wakeLock) return;
+    navigator.wakeLock.request("screen").then(function (lock) {
+      wakeLock = lock;
+      lock.addEventListener("release", function () { wakeLock = null; });
+    }).catch(function () {});
+  }
+  function letSleep() {
+    if (wakeLock) { wakeLock.release(); wakeLock = null; }
+  }
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible" && running) keepAwake();
+  });
+
+  // Element fullscreen is prefixed on older iPadOS and missing on iPhone,
+  // where the button is hidden; Add to Home Screen gives a full-screen view there.
+  var root = document.documentElement;
+  var requestFs = root.requestFullscreen || root.webkitRequestFullscreen;
+  var exitFs = document.exitFullscreen || document.webkitExitFullscreen;
   function fullscreen() {
-    if (!document.fullscreenElement) {
-      (document.documentElement.requestFullscreen || function () {}).call(document.documentElement);
-    } else if (document.exitFullscreen) {
-      document.exitFullscreen();
+    if (!requestFs) return;
+    if (!(document.fullscreenElement || document.webkitFullscreenElement)) {
+      requestFs.call(root);
+    } else if (exitFs) {
+      exitFs.call(document);
     }
   }
+  if (!requestFs) document.getElementById("full").style.display = "none";
 
   startBtn.addEventListener("click", function (ev) { toggle(); ev.currentTarget.blur(); });
   document.getElementById("reset").addEventListener("click", function (ev) { reset(); ev.currentTarget.blur(); });
