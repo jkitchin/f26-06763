@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Presentation timer</title>
 <!--
   Presentation timer for the final project talks (7 minutes, hard stop).
@@ -81,7 +84,8 @@
     color: inherit;
     cursor: pointer;
   }
-  button:hover { background: rgba(0, 0, 0, 0.32); }
+  button { touch-action: manipulation; }
+  @media (hover: hover) { button:hover { background: rgba(0, 0, 0, 0.32); } }
   #hint {
     position: fixed;
     top: 12px;
@@ -128,60 +132,117 @@
   var ctx = null;
   var applauseBuffer = null;
 
+  // iPad and iPhone notes. Safari treats Web Audio as "ambient" sound, which
+  // the mute setting silences, so ask for the "playback" session (Safari 17+)
+  // the way a music player would. iOS also leaves a context suspended, or puts
+  // it in "interrupted" after the screen locks, until it is resumed from a tap,
+  // and older versions only unlock once a sound actually starts inside that
+  // tap, so the first Start plays one silent sample.
+  var unlocked = false;
   function audio() {
     if (!ctx) {
+      try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
       var AC = window.AudioContext || window.webkitAudioContext;
       ctx = new AC();
     }
-    if (ctx.state === "suspended") ctx.resume();
+    if (ctx.state !== "running" && ctx.resume) ctx.resume();
+    if (!unlocked) {
+      var s = ctx.createBufferSource();
+      s.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+      s.connect(ctx.destination);
+      s.start(0);
+      unlocked = true;
+    }
     return ctx;
   }
 
-  // Applause as a few thousand short, filtered noise bursts ("claps") at
-  // random times and stereo positions, with a crowd envelope that swells
-  // quickly and tails off.
+  // Applause modelled as a room of people rather than as random clicks.
+  // Each person claps at their own steady rate (3.5 to 5.5 claps a second)
+  // with a little timing jitter, starts within the first half second, and
+  // stops at their own moment, so the sound swells and thins out. Each clap
+  // is a sharp noise burst through a low, broad resonance (the cupped-hand
+  // "pop", 500 to 1600 Hz), and the room adds a short reverb tail. Uniform
+  // random clicks with a high resonance is what sounds like rain.
   function makeApplause(ac) {
-    var seconds = 6;
+    var seconds = 7;
     var sr = ac.sampleRate;
     var n = Math.floor(seconds * sr);
     var buf = ac.createBuffer(2, n, sr);
     var L = buf.getChannelData(0);
     var R = buf.getChannelData(1);
-    var claps = 2600;
+    var dryL = new Float32Array(n), dryR = new Float32Array(n);
+    var people = 28;
 
-    function crowd(t) {
-      // rise over 0.4 s, hold, decay over the last ~3 s
-      var rise = Math.min(1, t / 0.4);
-      var fall = t < 2.5 ? 1 : Math.exp(-(t - 2.5) / 1.1);
-      return rise * fall;
-    }
-
-    for (var c = 0; c < claps; c++) {
-      var t0 = Math.random() * seconds;
-      var amp = crowd(t0) * (0.3 + 0.7 * Math.random());
-      if (amp < 0.02) continue;
-      var pan = Math.random();
-      var start = Math.floor(t0 * sr);
-      var len = Math.floor((0.008 + 0.02 * Math.random()) * sr);
-      var tau = len / 4;
-      // two-pole resonator gives each clap its own pitch, like different hands
-      var f = 700 + 1900 * Math.random();
-      var w = 2 * Math.PI * f / sr;
-      var r = 0.9;
-      var a1 = 2 * r * Math.cos(w), a2 = -r * r;
-      var y1 = 0, y2 = 0;
-      for (var i = 0; i < len && start + i < n; i++) {
-        var x = (Math.random() * 2 - 1) * Math.exp(-i / tau);
-        var y = x + a1 * y1 + a2 * y2;
-        y2 = y1; y1 = y;
-        var s = 0.05 * amp * y;
-        L[start + i] += s * (1 - pan);
-        R[start + i] += s * pan;
+    for (var p = 0; p < people; p++) {
+      var rate = 3.5 + 2 * Math.random();             // claps per second
+      var period = 1 / rate;
+      var t = 0.05 + 0.5 * Math.random() * Math.random(); // most start early
+      var stop = 2.6 + 2.8 * Math.random();
+      var dist = Math.random();                       // 0 near, 1 far
+      var gain = 1 - 0.6 * dist;
+      var pan = 0.15 + 0.7 * Math.random();
+      var f = 500 + 1100 * Math.random();             // this person's hand pitch
+      while (t < stop) {
+        var fade = t < stop - 0.6 ? 1 : (stop - t) / 0.6;
+        clap(t, f * (0.92 + 0.16 * Math.random()), gain * fade * (0.7 + 0.3 * Math.random()), pan, dist);
+        t += period * (0.88 + 0.24 * Math.random());
       }
     }
-    // normalize
-    var peak = 0;
-    for (var k = 0; k < n; k++) {
+
+    function clap(t0, f, amp, pan, dist) {
+      var start = Math.floor(t0 * sr);
+      var tau = (0.003 + 0.004 * Math.random()) * sr; // body decays in a few ms
+      var len = Math.floor(tau * 7);
+      var bw = 350 + 500 * Math.random();             // broad, not ringing
+      var r = Math.exp(-Math.PI * bw / sr);
+      var a1 = 2 * r * Math.cos(2 * Math.PI * f / sr), a2 = -r * r;
+      var y1 = 0, y2 = 0, lp = 0;
+      var lpk = 0.55 - 0.35 * dist;                   // far claps are duller
+      for (var i = 0; i < len && start + i < n; i++) {
+        var env = i < 0.0007 * sr ? i / (0.0007 * sr) : Math.exp(-i / tau);
+        var x = (Math.random() * 2 - 1) * env;
+        var y = (1 - r) * x + a1 * y1 + a2 * y2;
+        y2 = y1; y1 = y;
+        lp += lpk * ((y * 6 + 0.25 * x) - lp);         // resonance plus a bit of raw snap
+        var v = amp * lp;
+        dryL[start + i] += v * (1 - pan);
+        dryR[start + i] += v * pan;
+      }
+    }
+
+    // Small-room reverb: parallel damped comb filters into allpasses
+    // (Schroeder/Freeverb style), with slightly different delays per side.
+    function reverb(input, offset) {
+      var out = new Float32Array(n);
+      var scale = sr / 44100;
+      var combs = [1116, 1188, 1277, 1356].map(function (d) { return Math.floor((d + offset) * scale); });
+      combs.forEach(function (d) {
+        var line = new Float32Array(d), idx = 0, store = 0;
+        for (var i = 0; i < n; i++) {
+          var o = line[idx];
+          store = o * 0.65 + store * 0.35;            // damping
+          line[idx] = input[i] + store * 0.78;        // feedback
+          idx = (idx + 1) % d;
+          out[i] += o * 0.25;
+        }
+      });
+      [556, 441, 341].forEach(function (d) {
+        d = Math.floor((d + offset) * scale);
+        var line = new Float32Array(d), idx = 0;
+        for (var i = 0; i < n; i++) {
+          var b = line[idx];
+          line[idx] = out[i] + b * 0.5;
+          out[i] = b - out[i];
+          idx = (idx + 1) % d;
+        }
+      });
+      return out;
+    }
+    var wetL = reverb(dryL, 0), wetR = reverb(dryR, 23);
+    var peak = 0, k;
+    for (k = 0; k < n; k++) {
+      L[k] = dryL[k] + 0.35 * wetL[k];
+      R[k] = dryR[k] + 0.35 * wetR[k];
       peak = Math.max(peak, Math.abs(L[k]), Math.abs(R[k]));
     }
     if (peak > 0) {
@@ -198,9 +259,10 @@
     src.buffer = applauseBuffer;
     var hp = ac.createBiquadFilter();
     hp.type = "highpass";
-    hp.frequency.value = 350;
-    src.connect(hp).connect(ac.destination);
-    src.start();
+    hp.frequency.value = 120;
+    src.connect(hp);
+    hp.connect(ac.destination);   // not chained: older Safari's connect() returns undefined
+    src.start(0);
   }
 
   // ---- timer ------------------------------------------------------------
@@ -249,6 +311,7 @@
     runStartedAt = Date.now();
     startBtn.textContent = "Pause";
     ticker = setInterval(render, 100);
+    keepAwake();
     render();
   }
 
@@ -256,6 +319,7 @@
     elapsedBefore = elapsedMs();
     running = false;
     clearInterval(ticker);
+    letSleep();
     startBtn.textContent = "Resume";
     render();
   }
@@ -265,19 +329,46 @@
   function reset() {
     running = false;
     clearInterval(ticker);
+    letSleep();
     elapsedBefore = 0;
     applauded = false;
     startBtn.textContent = "Start";
     render();
   }
 
+  // The iPad's own auto-lock (often 2 to 5 minutes) would put the screen to
+  // sleep mid-talk and suspend the audio before 7:00. A screen wake lock
+  // (Safari 16.4+) holds it on while the timer runs; it is dropped whenever
+  // the page is hidden, so it is taken again on return.
+  var wakeLock = null;
+  function keepAwake() {
+    if (!("wakeLock" in navigator) || wakeLock) return;
+    navigator.wakeLock.request("screen").then(function (lock) {
+      wakeLock = lock;
+      lock.addEventListener("release", function () { wakeLock = null; });
+    }).catch(function () {});
+  }
+  function letSleep() {
+    if (wakeLock) { wakeLock.release(); wakeLock = null; }
+  }
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible" && running) keepAwake();
+  });
+
+  // Element fullscreen is prefixed on older iPadOS and missing on iPhone,
+  // where the button is hidden; Add to Home Screen gives a full-screen view there.
+  var root = document.documentElement;
+  var requestFs = root.requestFullscreen || root.webkitRequestFullscreen;
+  var exitFs = document.exitFullscreen || document.webkitExitFullscreen;
   function fullscreen() {
-    if (!document.fullscreenElement) {
-      (document.documentElement.requestFullscreen || function () {}).call(document.documentElement);
-    } else if (document.exitFullscreen) {
-      document.exitFullscreen();
+    if (!requestFs) return;
+    if (!(document.fullscreenElement || document.webkitFullscreenElement)) {
+      requestFs.call(root);
+    } else if (exitFs) {
+      exitFs.call(document);
     }
   }
+  if (!requestFs) document.getElementById("full").style.display = "none";
 
   startBtn.addEventListener("click", function (ev) { toggle(); ev.currentTarget.blur(); });
   document.getElementById("reset").addEventListener("click", function (ev) { reset(); ev.currentTarget.blur(); });
