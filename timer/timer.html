@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Presentation timer</title>
+<!--
+  Presentation timer for the final project talks (7 minutes, hard stop).
+  Published at /f26-06763/timer.html through html_extra_path in _config.yml.
+
+  Colours by elapsed time:
+    0:00 to 5:00   green
+    5:00 to 6:00   orange
+    6:00 to 7:00   yellow
+    after 7:00     red, counting up the overtime
+  Applause plays once when the countdown reaches zero. It is synthesized with
+  the Web Audio API, so the page has no audio file and makes no network call.
+
+  Keys: Space start/pause, R reset, F fullscreen, S test the sound.
+-->
+<style>
+  :root {
+    --green: #1b8a3a;
+    --orange: #e8730c;
+    --yellow: #f2c80f;
+    --red: #c4161c;
+    --idle: #1f2933;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--idle);
+    color: #fff;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.6s ease;
+    overflow: hidden;
+    user-select: none;
+  }
+  body.green  { background: var(--green); }
+  body.orange { background: var(--orange); }
+  body.yellow { background: var(--yellow); color: #111; }
+  body.red    { background: var(--red); }
+
+  #clock {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-size: min(38vw, 70vh);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  body.red #clock { font-size: min(29vw, 70vh); }
+  #label {
+    font-size: min(5vw, 6vh);
+    opacity: 0.85;
+    margin-top: 1vh;
+    min-height: 1.2em;
+  }
+  #controls {
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    transition: opacity 0.4s ease;
+  }
+  body.running.idle-mouse #controls { opacity: 0; }
+  button {
+    font: inherit;
+    font-size: 18px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: 2px solid currentColor;
+    background: rgba(0, 0, 0, 0.18);
+    color: inherit;
+    cursor: pointer;
+  }
+  button:hover { background: rgba(0, 0, 0, 0.32); }
+  #hint {
+    position: fixed;
+    top: 12px;
+    left: 16px;
+    right: 16px;
+    text-align: center;
+    font-size: 14px;
+    opacity: 0.7;
+  }
+  body.running #hint { opacity: 0; }
+</style>
+</head>
+<body>
+  <div id="hint">Space start/pause · R reset · F fullscreen · S test sound</div>
+  <div id="clock">7:00</div>
+  <div id="label">Ready</div>
+  <div id="controls">
+    <button id="start">Start</button>
+    <button id="reset">Reset</button>
+    <button id="full">Fullscreen</button>
+    <button id="sound">Test sound</button>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  var TOTAL = 7 * 60;          // seconds of talk
+  var ORANGE_AT = 5 * 60;      // elapsed seconds when orange starts
+  var YELLOW_AT = 6 * 60;      // elapsed seconds when yellow starts
+
+  var body = document.body;
+  var clock = document.getElementById("clock");
+  var label = document.getElementById("label");
+  var startBtn = document.getElementById("start");
+
+  var running = false;
+  var elapsedBefore = 0;   // ms accumulated before the current run
+  var runStartedAt = 0;    // Date.now() when the current run began
+  var applauded = false;
+  var ticker = null;
+
+  // ---- audio ------------------------------------------------------------
+  var ctx = null;
+  var applauseBuffer = null;
+
+  function audio() {
+    if (!ctx) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      ctx = new AC();
+    }
+    if (ctx.state === "suspended") ctx.resume();
+    return ctx;
+  }
+
+  // Applause as a few thousand short, filtered noise bursts ("claps") at
+  // random times and stereo positions, with a crowd envelope that swells
+  // quickly and tails off.
+  function makeApplause(ac) {
+    var seconds = 6;
+    var sr = ac.sampleRate;
+    var n = Math.floor(seconds * sr);
+    var buf = ac.createBuffer(2, n, sr);
+    var L = buf.getChannelData(0);
+    var R = buf.getChannelData(1);
+    var claps = 2600;
+
+    function crowd(t) {
+      // rise over 0.4 s, hold, decay over the last ~3 s
+      var rise = Math.min(1, t / 0.4);
+      var fall = t < 2.5 ? 1 : Math.exp(-(t - 2.5) / 1.1);
+      return rise * fall;
+    }
+
+    for (var c = 0; c < claps; c++) {
+      var t0 = Math.random() * seconds;
+      var amp = crowd(t0) * (0.3 + 0.7 * Math.random());
+      if (amp < 0.02) continue;
+      var pan = Math.random();
+      var start = Math.floor(t0 * sr);
+      var len = Math.floor((0.008 + 0.02 * Math.random()) * sr);
+      var tau = len / 4;
+      // two-pole resonator gives each clap its own pitch, like different hands
+      var f = 700 + 1900 * Math.random();
+      var w = 2 * Math.PI * f / sr;
+      var r = 0.9;
+      var a1 = 2 * r * Math.cos(w), a2 = -r * r;
+      var y1 = 0, y2 = 0;
+      for (var i = 0; i < len && start + i < n; i++) {
+        var x = (Math.random() * 2 - 1) * Math.exp(-i / tau);
+        var y = x + a1 * y1 + a2 * y2;
+        y2 = y1; y1 = y;
+        var s = 0.05 * amp * y;
+        L[start + i] += s * (1 - pan);
+        R[start + i] += s * pan;
+      }
+    }
+    // normalize
+    var peak = 0;
+    for (var k = 0; k < n; k++) {
+      peak = Math.max(peak, Math.abs(L[k]), Math.abs(R[k]));
+    }
+    if (peak > 0) {
+      var g = 0.9 / peak;
+      for (k = 0; k < n; k++) { L[k] *= g; R[k] *= g; }
+    }
+    return buf;
+  }
+
+  function playApplause() {
+    var ac = audio();
+    if (!applauseBuffer) applauseBuffer = makeApplause(ac);
+    var src = ac.createBufferSource();
+    src.buffer = applauseBuffer;
+    var hp = ac.createBiquadFilter();
+    hp.type = "highpass";
+    hp.frequency.value = 350;
+    src.connect(hp).connect(ac.destination);
+    src.start();
+  }
+
+  // ---- timer ------------------------------------------------------------
+  function elapsedMs() {
+    return elapsedBefore + (running ? Date.now() - runStartedAt : 0);
+  }
+
+  function fmt(sec) {
+    var m = Math.floor(sec / 60);
+    var s = sec % 60;
+    return m + ":" + (s < 10 ? "0" : "") + s;
+  }
+
+  function render() {
+    var e = elapsedMs() / 1000;
+    var phase, text, note;
+    if (e < TOTAL) {
+      // count down, rounding up so 7:00 shows at the start and 0:01 just before zero
+      text = fmt(Math.ceil(TOTAL - e));
+      if (e < ORANGE_AT) { phase = "green"; note = "Talk"; }
+      else if (e < YELLOW_AT) { phase = "orange"; note = "2 minutes left"; }
+      else { phase = "yellow"; note = "Last minute"; }
+    } else {
+      text = "+" + fmt(Math.floor(e - TOTAL));
+      phase = "red";
+      note = "Time";
+      if (!applauded && running) {
+        applauded = true;
+        playApplause();
+      }
+    }
+    if (!running && elapsedMs() === 0) { phase = ""; note = "Ready"; }
+    else if (!running) { note = "Paused"; }
+
+    clock.textContent = text;
+    label.textContent = note;
+    body.classList.remove("green", "orange", "yellow", "red");
+    if (phase) body.classList.add(phase);
+    body.classList.toggle("running", running);
+  }
+
+  function start() {
+    audio();   // unlock audio inside the user gesture, so the applause can play later
+    if (!applauseBuffer) applauseBuffer = makeApplause(ctx);
+    running = true;
+    runStartedAt = Date.now();
+    startBtn.textContent = "Pause";
+    ticker = setInterval(render, 100);
+    render();
+  }
+
+  function pause() {
+    elapsedBefore = elapsedMs();
+    running = false;
+    clearInterval(ticker);
+    startBtn.textContent = "Resume";
+    render();
+  }
+
+  function toggle() { running ? pause() : start(); }
+
+  function reset() {
+    running = false;
+    clearInterval(ticker);
+    elapsedBefore = 0;
+    applauded = false;
+    startBtn.textContent = "Start";
+    render();
+  }
+
+  function fullscreen() {
+    if (!document.fullscreenElement) {
+      (document.documentElement.requestFullscreen || function () {}).call(document.documentElement);
+    } else if (document.exitFullscreen) {
+      document.exitFullscreen();
+    }
+  }
+
+  startBtn.addEventListener("click", function (ev) { toggle(); ev.currentTarget.blur(); });
+  document.getElementById("reset").addEventListener("click", function (ev) { reset(); ev.currentTarget.blur(); });
+  document.getElementById("full").addEventListener("click", function (ev) { fullscreen(); ev.currentTarget.blur(); });
+  document.getElementById("sound").addEventListener("click", function (ev) { playApplause(); ev.currentTarget.blur(); });
+
+  document.addEventListener("keydown", function (ev) {
+    if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    var k = ev.key.toLowerCase();
+    if (k === " ") { ev.preventDefault(); toggle(); }
+    else if (k === "r") reset();
+    else if (k === "f") fullscreen();
+    else if (k === "s") playApplause();
+  });
+
+  // hide the buttons while running once the mouse goes still
+  var mouseTimer = null;
+  document.addEventListener("mousemove", function () {
+    body.classList.remove("idle-mouse");
+    clearTimeout(mouseTimer);
+    mouseTimer = setTimeout(function () { body.classList.add("idle-mouse"); }, 2500);
+  });
+
+  // Hook for testing: timer.html?at=415 starts paused at 6:55 elapsed.
+  var at = Number(new URLSearchParams(location.search).get("at"));
+  if (at > 0) { elapsedBefore = at * 1000; startBtn.textContent = "Resume"; }
+  render();
+})();
+</script>
+</body>
+</html>
