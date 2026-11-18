@@ -26,6 +26,7 @@ exclude_patterns:
   - skills              # agent skill for students, installed with knowhow, not a book page
   - clicker             # Cloudflare Worker + its MARP dry-run deck, not book content
   - tools
+  - timer               # standalone page copied in by html_extra_path, not a book page
   - archive             # unscheduled material kept for future use, never published
   - README.md
   - readme.org
@@ -102,6 +103,10 @@ sphinx:
       - course/assignments/a05-bioreactor.csv.sha256
       - course/assignments/miniproject-evidence.py
       - course/assignments/miniproject-evidence.py.sha256
+      # The presentation timer for the final project talks, served at /timer.html.
+      # One self-contained page: inline CSS and JS, applause synthesized in the
+      # browser, no network calls.
+      - timer/timer.html
     # Do NOT add html_theme_options here. Jupyter Book merges sphinx.config into
     # its own defaults without recursing, so setting it would replace the theme
     # options built from the html: block above and drop use_repository_button

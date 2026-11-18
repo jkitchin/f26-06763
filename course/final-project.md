@@ -166,6 +166,7 @@ Team members, and the lead for each part:
 ## The presentation
 
 Each team has a 10-minute slot: 7 minutes of talk with a hard stop, then 3 minutes of questions.
+The <a href="../timer.html">presentation timer</a> on the screen runs the 7 minutes: green for the first 5, orange for the sixth minute, yellow for the seventh, and red with applause at 7:00. Use it to rehearse.
 The talk covers three things, in this order:
 
 | Minutes | Content                                                                                                                                              |
