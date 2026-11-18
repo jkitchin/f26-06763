@@ -103,10 +103,12 @@ sphinx:
       - course/assignments/a05-bioreactor.csv.sha256
       - course/assignments/miniproject-evidence.py
       - course/assignments/miniproject-evidence.py.sha256
-      # The presentation timer for the final project talks, served at /timer.html.
-      # One self-contained page: inline CSS and JS, applause synthesized in the
-      # browser, no network calls.
+      # The presentation timer for the final project talks, served at /timer.html,
+      # and its applause recording at /applause.mp3 (CC0, source in the page's
+      # header comment). The page fetches the mp3 by relative path, so the two
+      # must stay side by side.
       - timer/timer.html
+      - timer/applause.mp3
     # Do NOT add html_theme_options here. Jupyter Book merges sphinx.config into
     # its own defaults without recursing, so setting it would replace the theme
     # options built from the html: block above and drop use_repository_button
