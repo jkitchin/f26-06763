@@ -16,8 +16,12 @@
     5:00 to 6:00   orange
     6:00 to 7:00   yellow
     after 7:00     red, counting up the overtime
-  Applause plays once when the countdown reaches zero. It is synthesized with
-  the Web Audio API, so the page has no audio file and makes no network call.
+  Applause plays once when the countdown reaches zero. It is a real recording,
+  applause.mp3 beside this page: "Audiance applauding in concert hall" by
+  Sandermotions (Freesound 277021), CC0, via Wikimedia Commons:
+  https://commons.wikimedia.org/wiki/File:277021_sandermotions_applause-2.wav
+  If the file cannot be loaded (for example when the page is opened from disk,
+  where fetch is blocked), applause synthesized with Web Audio plays instead.
 
   Keys: Space start/pause, R reset, F fullscreen, S test the sound.
 -->
@@ -144,6 +148,7 @@
       try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
       var AC = window.AudioContext || window.webkitAudioContext;
       ctx = new AC();
+      loadRecording(ctx);
     }
     if (ctx.state !== "running" && ctx.resume) ctx.resume();
     if (!unlocked) {
@@ -252,16 +257,38 @@
     return buf;
   }
 
+  // The recording is decoded into a Web Audio buffer rather than played with
+  // an <audio> element, so it goes through the same context that the Start
+  // tap unlocked and the "playback" session that ignores the mute setting.
+  var recording = null;
+  var recordingRequested = false;
+  function loadRecording(ac) {
+    if (recordingRequested || !window.fetch) return;
+    recordingRequested = true;
+    fetch("applause.mp3")
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+      .then(function (data) {
+        // callback form: older Safari's decodeAudioData does not return a promise
+        ac.decodeAudioData(data, function (b) { recording = b; }, function () {});
+      })
+      .catch(function () {});
+  }
+
   function playApplause() {
     var ac = audio();
-    if (!applauseBuffer) applauseBuffer = makeApplause(ac);
     var src = ac.createBufferSource();
-    src.buffer = applauseBuffer;
-    var hp = ac.createBiquadFilter();
-    hp.type = "highpass";
-    hp.frequency.value = 120;
-    src.connect(hp);
-    hp.connect(ac.destination);   // not chained: older Safari's connect() returns undefined
+    if (recording) {
+      src.buffer = recording;
+      src.connect(ac.destination);
+    } else {
+      if (!applauseBuffer) applauseBuffer = makeApplause(ac);
+      src.buffer = applauseBuffer;
+      var hp = ac.createBiquadFilter();
+      hp.type = "highpass";
+      hp.frequency.value = 120;
+      src.connect(hp);
+      hp.connect(ac.destination);   // not chained: older Safari's connect() returns undefined
+    }
     src.start(0);
   }
 
